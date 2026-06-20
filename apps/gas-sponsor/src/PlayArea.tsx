@@ -1,6 +1,14 @@
 import { useState } from "react";
+import {
+  ArrowRight,
+  Fuel,
+  Gauge,
+  Gift,
+  Send,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import GasTank from "./pages/index/components/GasTank";
@@ -22,7 +30,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const gasBalanceDisplay = str("gasBalanceDisplay", "0.0000");
   const chainGasBalanceDisplay = str("chainGasBalanceDisplay", "0.0000");
   // Defaults to available unless the state explicitly reports otherwise.
-  const serviceAvailable = state.serviceAvailable ? bool("serviceAvailable") : true;
+  const serviceAvailable = state.serviceAvailable
+    ? bool("serviceAvailable")
+    : true;
   const serviceNotice = str("serviceNotice");
   const isEligible = bool("isEligible");
   const fuelLevelPercent = num("fuelLevelPercent");
@@ -31,7 +41,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isRequesting = bool("isRequesting");
   const requestAmount = str("requestAmount", "0.01");
   const maxRequestAmount = num("maxRequestAmount", 0.1);
-  const quickAmounts = (state.quickAmounts?.get() ?? [0.005, 0.01, 0.02, 0.05]) as number[];
+  const quickAmounts = (state.quickAmounts?.get() ?? [
+    0.005, 0.01, 0.02, 0.05,
+  ]) as number[];
   const loading = bool("loading");
   const usedQuota = num("usedQuota");
   const dailyLimit = num("dailyLimit");
@@ -59,25 +71,53 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // Field-level error copy, only shown once the user has typed something so the
   // forms don't open in an error state. Mirrors the composable's guards exactly.
-  const donateError = donateTouched && !donateAmountValid ? t("donateInvalid") : "";
-  const recipientError = recipientTouched && !recipientValid ? t("invalidAddress") : "";
-  const sendAmountError = sendTouched && !sendAmountValid ? t("sendAmountInvalid") : "";
+  const donateError =
+    donateTouched && !donateAmountValid ? t("donateInvalid") : "";
+  const recipientError =
+    recipientTouched && !recipientValid ? t("invalidAddress") : "";
+  const sendAmountError =
+    sendTouched && !sendAmountValid ? t("sendAmountInvalid") : "";
 
   return (
     <div className="gas-sponsor-play-area">
-      {/* Hero — headline gauge folds balance, tank level, eligibility & quota into one block */}
-      <div className="gas-hero">
-        <div className="gas-hero-lead">
-          <span className="gas-hero-badge">
-            <CategoryIcon name="finance" size={40} title={t("title")} />
+      <section className="gas-refill-hero" aria-label={t("title")}>
+        <div className="gas-refill-hero__copy">
+          <span className="gas-eyebrow">
+            <Fuel size={15} aria-hidden="true" />
+            {t("sponsorLane")}
           </span>
-          <div className="gas-hero-copy">
-            <h2 className="gas-hero-title">{t("title")}</h2>
-            <p className="gas-hero-subtitle">{serviceAvailable ? t("subtitle") : t("subtitleOffline")}</p>
+          <h2>{t("title")}</h2>
+          <p>{serviceAvailable ? t("subtitle") : t("subtitleOffline")}</p>
+          <div className="gas-hero-status" aria-label={t("statusSnapshot")}>
+            <span
+              className={
+                isConnected
+                  ? "gas-status-pill gas-status-pill--ready"
+                  : "gas-status-pill"
+              }
+            >
+              <WalletCards size={15} aria-hidden="true" />
+              {isConnected ? t("walletReady") : t("walletNeeded")}
+            </span>
+            <span
+              className={
+                isEligible
+                  ? "gas-status-pill gas-status-pill--ready"
+                  : "gas-status-pill"
+              }
+            >
+              <ShieldCheck size={15} aria-hidden="true" />
+              {isEligible ? t("eligible") : t("notEligible")}
+            </span>
           </div>
         </div>
+        <div className="gas-refill-hero__media" aria-hidden="true">
+          <img src="./gas-sponsor-refill-station.jpg" alt="" />
+        </div>
+      </section>
 
-        <div className="gas-hero-gauge">
+      <section className="gas-command-deck" aria-label={t("requestGas")}>
+        <div className="gas-tank-panel">
           <GasTank
             fuelLevelPercent={fuelLevelPercent}
             gasBalance={gasBalance}
@@ -86,75 +126,105 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             isConnected={isConnected}
             t={t}
           />
-          <div className="gas-hero-facts-wrap">
-            <dl className="gas-hero-facts">
-              <div className="gas-hero-fact">
-                <dt>{t("gasBalance")}</dt>
-                <dd>{gasBalanceDisplay}</dd>
-              </div>
-              <div className="gas-hero-fact">
-                <dt>{t("sidebarTankLevel")}</dt>
-                <dd>{tankLevelDisplay}</dd>
-              </div>
-              <div className="gas-hero-fact">
-                <dt>{t("remaining")}</dt>
-                <dd>{remainingQuotaDisplay}</dd>
-              </div>
-            </dl>
-            {/* Frame the eligibility rule so users grasp "free GAS" is for
-                low-balance wallets before they connect. */}
-            <p className="gas-hero-rule">{t("eligibilityRule")}</p>
-            {!isConnected && (
-              <p className="gas-hero-connect" role="note">
-                {t("connectToCheck")}
-              </p>
-            )}
+          <div className="gas-meter-list">
+            <div className="gas-meter-item">
+              <span>{t("gasBalance")}</span>
+              <strong>{gasBalanceDisplay}</strong>
+            </div>
+            <div className="gas-meter-item">
+              <span>{t("sidebarTankLevel")}</span>
+              <strong>{tankLevelDisplay}</strong>
+            </div>
+            <div className="gas-meter-item">
+              <span>{t("remaining")}</span>
+              <strong>{remainingQuotaDisplay}</strong>
+            </div>
           </div>
         </div>
-      </div>
+
+        <div className="gas-request-panel">
+          <div className="gas-request-panel__head">
+            <span className="gas-request-panel__icon">
+              <Gauge size={20} aria-hidden="true" />
+            </span>
+            <div>
+              <h3>{t("gasPumpReadyTitle")}</h3>
+              <p>{t("gasPumpReadyDesc")}</p>
+            </div>
+          </div>
+          <RequestGasCard
+            serviceAvailable={serviceAvailable}
+            serviceNotice={serviceNotice}
+            isConnected={isConnected}
+            isEligible={isEligible}
+            remainingQuota={remainingQuota}
+            requestAmount={requestAmount}
+            maxRequestAmount={String(maxRequestAmount)}
+            isRequesting={isRequesting}
+            quickAmounts={quickAmounts}
+            onRequestAmountChange={(val: string) =>
+              state.requestAmount?.set(val)
+            }
+            onRequest={() => dispatch("requestSponsorship", requestAmount)}
+            t={t}
+          />
+          {serviceAvailable && (
+            <div className="quota-info">
+              <div className="quota-info__head">
+                <span>{t("dailyQuota")}</span>
+                <strong>
+                  {usedQuota} / {dailyLimit}
+                </strong>
+              </div>
+              <div className="quota-bar-container">
+                <div
+                  className="quota-bar"
+                  style={{ width: `${Math.min(quotaPercent, 100)}%` }}
+                />
+              </div>
+              <div className="quota-details">
+                <span className="quota-text">
+                  <span className="quota-text-label">{t("remaining")}</span>
+                  <span className="quota-text-value">
+                    {remainingQuotaDisplay} {t("tokenGas")}
+                  </span>
+                </span>
+                <span className="quota-reset">
+                  <span className="quota-reset-label">{t("resetsAt")}</span>
+                  <span className="quota-reset-value">{resetTime || "—"}</span>
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Service-state notice — honest banner when the sponsorship API is down */}
       {!serviceAvailable && serviceNotice && (
         <div className="gas-service-notice" role="status">
-          <span className="gas-service-notice-title">{t("sponsorServiceTitle")}</span>
+          <span className="gas-service-notice-title">
+            {t("sponsorServiceTitle")}
+          </span>
           <span className="gas-service-notice-desc">{serviceNotice}</span>
         </div>
       )}
 
-      {/* Primary action — request sponsored GAS */}
-      <NeoCard title={t("requestGas")}>
-        <RequestGasCard
-          serviceAvailable={serviceAvailable}
-          serviceNotice={serviceNotice}
-          isConnected={isConnected}
-          isEligible={isEligible}
-          remainingQuota={remainingQuota}
-          requestAmount={requestAmount}
-          maxRequestAmount={String(maxRequestAmount)}
-          isRequesting={isRequesting}
-          quickAmounts={quickAmounts}
-          onRequestAmountChange={(val: string) => state.requestAmount?.set(val)}
-          onRequest={() => dispatch("requestSponsorship", requestAmount)}
-          t={t}
-        />
-        {serviceAvailable && (
-          <div className="quota-info">
-            <div className="quota-bar-container">
-              <div className="quota-bar" style={{ width: `${Math.min(quotaPercent, 100)}%` }} />
-            </div>
-            <div className="quota-details">
-              <span className="quota-text">
-                <span className="quota-text-label">{t("used")}</span>
-                <span className="quota-text-value">{usedQuota} / {dailyLimit}</span>
-              </span>
-              <span className="quota-reset">
-                <span className="quota-reset-label">{t("resetsAt")}</span>
-                <span className="quota-reset-value">{resetTime || "—"}</span>
-              </span>
-            </div>
-          </div>
-        )}
-      </NeoCard>
+      <section className="gas-route-strip" aria-label={t("howItWorks")}>
+        <div className="gas-route-step">
+          <WalletCards size={18} aria-hidden="true" />
+          <span>{t("routeConnect")}</span>
+        </div>
+        <ArrowRight size={16} aria-hidden="true" className="gas-route-arrow" />
+        <div className="gas-route-step">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span>{t("routeCheck")}</span>
+        </div>
+        <ArrowRight size={16} aria-hidden="true" className="gas-route-arrow" />
+        <div className="gas-route-step">
+          <Fuel size={18} aria-hidden="true" />
+          <span>{t("routeFuel")}</span>
+        </div>
+      </section>
 
       {/* Pay it forward — Donate & Send move GAS the wallet already holds, so
           they only work for a funded wallet. The app's target user is an
@@ -164,11 +234,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <NeoCard title={t("payItForward")}>
         {!isFunded ? (
           <div className="pay-forward-empty">
-            <span className="pay-forward-empty-icon">
-              <CategoryIcon name="social" size={36} title={t("payItForward")} />
+            <span className="pay-forward-empty-icon" aria-hidden="true">
+              <Gift size={28} />
             </span>
-            <span className="pay-forward-empty-title">{t("payForwardLockedTitle")}</span>
-            <span className="pay-forward-empty-desc">{t("payForwardLockedDesc")}</span>
+            <span className="pay-forward-empty-title">
+              {t("payForwardLockedTitle")}
+            </span>
+            <span className="pay-forward-empty-desc">
+              {t("payForwardLockedDesc")}
+            </span>
           </div>
         ) : (
           <div className="pay-forward">
@@ -176,7 +250,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             {/* Donate */}
             <div className="donate-form">
-              <span className="pay-forward-section-label">{t("donate")}</span>
+              <span className="pay-forward-section-label">
+                <Gift size={15} aria-hidden="true" />
+                {t("donate")}
+              </span>
               <p className="form-hint">{t("donateSubtitle")}</p>
               <p className="form-hint">{t("donateLoopNote")}</p>
               {poolAddress && (
@@ -212,7 +289,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             {/* Send GAS */}
             <div className="send-form">
-              <span className="pay-forward-section-label">{t("sendGas")}</span>
+              <span className="pay-forward-section-label">
+                <Send size={15} aria-hidden="true" />
+                {t("sendGas")}
+              </span>
               <p className="form-hint">{t("sendSubtitle")}</p>
               <p className="form-hint">{t("sendDirectNote")}</p>
               <NeoInput

@@ -1,515 +1,677 @@
 @use "@shared/styles/tokens.scss" as *;
 
-// Green accent identity mapped onto the Neo Soft system.
 $gas-accent: var(--ns-brand, #16c784);
-$gas-accent-strong: var(--ns-brand-strong, #0fb174);
+$gas-accent-strong: var(--ns-brand-strong, #0a8050);
 $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
-// Deep brand green for legible accent text on the soft-brand fill (7:1 on
-// #e4f8f0) — brand-strong (#0fb174) only reaches ~2.5:1 there and fails AA.
 $gas-accent-deep: var(--ns-brand-deep, #0b5e3e);
+$gas-ink: var(--ns-ink, #182033);
+$gas-text: var(--ns-text-2, #596579);
+$gas-muted: var(--ns-text-muted, #7d8798);
+$gas-border: var(--ns-border, rgba(20, 22, 38, 0.08));
+$gas-surface: var(--ns-surface, #ffffff);
+$gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 
 .gas-sponsor-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px 16px 28px;
-  max-width: 880px;
+  gap: 14px;
+  width: min(100%, 1040px);
   margin: 0 auto;
-  font-family: var(
-    --gas-font,
+  padding: 16px 14px 28px;
+  color: $gas-text;
+  font-family:
     Inter,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
-    sans-serif
-  );
-  color: var(--ns-text-2, #5b6478);
+    sans-serif;
 }
 
-/* ── Hero ─────────────────────────────────────────────── */
-.gas-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 20px 24px;
-  background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+.gas-refill-hero,
+.gas-command-deck,
+.gas-route-strip,
+.gas-sponsor-play-area > .neo-card {
+  border: 1px solid $gas-border;
+  border-radius: 8px;
+  background: $gas-surface;
+  box-shadow: 0 12px 34px rgba(20, 22, 38, 0.07);
 }
 
-.gas-hero-lead {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
+.gas-refill-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
+  min-height: 282px;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      #ffffff 0%,
+      rgba(255, 255, 255, 0.98) 38%,
+      rgba(255, 255, 255, 0.72) 64%
+    ),
+    #f4fbf9;
 }
 
-.gas-hero-badge {
-  flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  line-height: 1;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: $gas-accent-soft;
-  color: $gas-accent-strong;
-}
-
-.gas-hero-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.gas-hero-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--ns-ink, #1e1e2e);
-}
-
-.gas-hero-subtitle {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ns-text-2, #5b6478);
-}
-
-/* ── Hero gauge + inline facts ────────────────────────── */
-.gas-hero-gauge {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-  padding: 20px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-}
-
-.gas-hero-facts-wrap {
-  flex: 1 1 240px;
-  min-width: 0;
+.gas-refill-hero__copy {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
+  min-width: 0;
+  padding: 30px 34px;
 }
 
-.gas-hero-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-}
-
-.gas-hero-rule {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.45;
-  color: var(--ns-text-muted, #8a92a6);
-}
-
-.gas-hero-connect {
-  margin: 0;
-  padding: 9px 12px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: $gas-accent-soft;
+.gas-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 11px;
+  border: 1px solid rgba(10, 128, 80, 0.18);
+  border-radius: 999px;
+  background: rgba(228, 248, 240, 0.86);
   color: $gas-accent-deep;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
-.gas-hero-fact {
+.gas-refill-hero h2 {
+  margin: 0;
+  max-width: 420px;
+  color: $gas-ink;
+  font-size: 36px;
+  font-weight: 850;
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.gas-refill-hero p {
+  margin: 0;
+  max-width: 430px;
+  color: $gas-text;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.gas-hero-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gas-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid $gas-border;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: $gas-muted;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.gas-status-pill--ready {
+  border-color: rgba(10, 128, 80, 0.2);
+  background: $gas-accent-soft;
+  color: $gas-accent-deep;
+}
+
+.gas-refill-hero__media {
+  min-width: 0;
+  min-height: 282px;
+}
+
+.gas-refill-hero__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center right;
+}
+
+.gas-command-deck {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+  gap: 0;
+  overflow: hidden;
+}
+
+.gas-tank-panel {
+  display: grid;
+  grid-template-columns: minmax(128px, 0.7fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 22px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(228, 248, 240, 0.68),
+      rgba(255, 255, 255, 0.92)
+    ),
+    $gas-surface;
+  border-right: 1px solid $gas-border;
+}
+
+.gas-meter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gas-meter-item {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-
-  &:last-child {
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  dt {
-    margin: 0;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ns-text-muted, #8a92a6);
-  }
-
-  dd {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--ns-ink, #1e1e2e);
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-  }
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(20, 22, 38, 0.08);
 }
 
-/* ── Gas Tank visualization (renders inside hero gauge) ──
-   A compact, self-evident fuel gauge: a clearly bordered rounded body with an
-   always-visible track and a baseline fill cap, so a 0-balance tank reads as an
-   intentional empty gauge rather than a clipped/broken widget. */
-.gas-tank-container {
+.gas-meter-item:last-child {
+  border-bottom: 0;
+}
+
+.gas-meter-item span,
+.quota-info__head span,
+.quota-text-label,
+.quota-reset-label,
+.pump-label,
+.custom-amount-field span,
+.pay-forward-section-label {
+  color: $gas-muted;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gas-meter-item strong {
+  min-width: 0;
+  color: $gas-ink;
+  font-size: 18px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.gas-request-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+}
+
+.gas-request-panel__head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.gas-request-panel__icon,
+.pay-forward-empty-icon {
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(10, 128, 80, 0.18);
+  border-radius: 8px;
+  background: $gas-accent-soft;
+  color: $gas-accent-deep;
+}
+
+.gas-request-panel h3 {
+  margin: 0 0 4px;
+  color: $gas-ink;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.gas-request-panel p {
+  margin: 0;
+  color: $gas-muted;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.gas-tank-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
+  min-width: 0;
 }
 
 .gas-tank {
-  width: 116px;
+  width: 118px;
 }
 
 .tank-body {
   position: relative;
-  width: 116px;
-  height: 124px;
-  border-radius: 18px;
-  background: var(--ns-surface, #ffffff);
-  /* Defined two-tone outline so the gauge has a clear edge even when empty. */
-  border: 1.5px solid rgba(15, 177, 116, 0.3);
+  width: 118px;
+  height: 138px;
+  overflow: hidden;
+  border: 1px solid rgba(10, 128, 80, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow:
     inset 0 1px 2px rgba(20, 22, 38, 0.04),
-    0 1px 2px rgba(20, 22, 38, 0.04);
-  overflow: hidden;
+    0 6px 18px rgba(10, 128, 80, 0.12);
 }
 
-/* Always-present track behind the fill: a faint tinted column with graduation
-   ticks so the body reads as a measurable gauge at any level. */
 .tank-track {
   position: absolute;
   inset: 0;
-  pointer-events: none;
   background:
     repeating-linear-gradient(
       180deg,
       transparent 0,
-      transparent 25px,
-      rgba(15, 177, 116, 0.1) 25px,
-      rgba(15, 177, 116, 0.1) 26px
+      transparent 27px,
+      rgba(10, 128, 80, 0.1) 27px,
+      rgba(10, 128, 80, 0.1) 28px
     ),
-    linear-gradient(180deg, rgba(22, 199, 132, 0.03) 0%, rgba(22, 199, 132, 0.07) 100%);
+    linear-gradient(180deg, rgba(22, 199, 132, 0.04), rgba(22, 199, 132, 0.1));
+  pointer-events: none;
 }
 
 .fuel-level {
   position: absolute;
-  left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
-  background: linear-gradient(180deg, $gas-accent 0%, $gas-accent-strong 100%);
-  transition: height 0.5s var(--ns-ease-smooth, ease);
+  left: 0;
   z-index: 1;
-  /* A soft meniscus on top of the fuel so the fill cap is always legible. */
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28);
+  width: 100%;
+  background: linear-gradient(180deg, $gas-accent, $gas-accent-strong);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.32);
+  transition: height 0.5s var(--ns-ease-smooth, ease);
 }
 
 .tank-gauge {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  z-index: 2;
-}
-
-.gauge-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--ns-text-muted, #8a92a6);
+  gap: 3px;
 }
 
 .gauge-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
+  color: $gas-ink;
+  font-size: 24px;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1.08;
+}
+
+.gauge-label {
+  color: $gas-muted;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .tank-status {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .tank-pct {
+  color: $gas-muted;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .status-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
-  border-radius: var(--ns-radius-full, 9999px);
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid $gas-border;
+  border-radius: 999px;
+  background: $gas-subtle;
+  color: $gas-muted;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 800;
+  letter-spacing: 0;
   text-transform: uppercase;
-
-  &::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  &.eligible {
-    background: $gas-accent-soft;
-    color: $gas-accent-deep;
-    border: 1px solid rgba(15, 177, 116, 0.18);
-  }
-
-  &.full {
-    background: var(--ns-surface-subtle, #f7f8fa);
-    color: var(--ns-text-muted, #8a92a6);
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  }
 }
 
-.status-text {
-  display: block;
+.status-indicator.eligible {
+  border-color: rgba(10, 128, 80, 0.18);
+  background: $gas-accent-soft;
+  color: $gas-accent-deep;
 }
 
-/* ── Request form ─────────────────────────────────────── */
 .request-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
-.fuel-pump-display {
+.request-console {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.5fr);
+  gap: 10px;
+}
+
+.request-console__screen {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-}
-
-.pump-screen {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 13px;
+  min-height: 138px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #0d5138;
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .pump-label {
-  flex: 1 1 100%;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pump-amount-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .pump-amount {
-  font-size: 28px;
-  font-weight: 800;
-  color: $gas-accent-strong;
+  color: #ffffff;
+  font-size: 38px;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
-  line-height: 1.05;
+  line-height: 0.95;
 }
 
 .pump-unit {
+  color: rgba(255, 255, 255, 0.76);
   font-size: 14px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 850;
 }
 
 .pump-limits {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
+  gap: 5px 12px;
 }
 
 .limit-text {
+  color: rgba(255, 255, 255, 0.72);
   font-size: 12px;
-  font-weight: 500;
-  color: var(--ns-text-2, #5b6478);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Quick amount chips ───────────────────────────────── */
+.custom-amount-field {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid $gas-border;
+  border-radius: 8px;
+  background: $gas-subtle;
+}
+
+.custom-amount-field input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(20, 22, 38, 0.1);
+  border-radius: 8px;
+  background: #ffffff;
+  color: $gas-ink;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.custom-amount-field input:focus {
+  border-color: rgba(10, 128, 80, 0.45);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
+}
+
+.custom-amount-field em {
+  color: $gas-muted;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .quick-amounts {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
 .quick-btn {
-  flex: 1 1 auto;
-  min-width: 64px;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  color: var(--ns-text-2, #5b6478);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid $gas-border;
+  border-radius: 8px;
+  background: #ffffff;
+  color: $gas-text;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
     color 0.15s ease,
-    transform 0.1s ease;
-
-  &:hover {
-    background: $gas-accent-soft;
-    border-color: rgba(15, 177, 116, 0.35);
-    color: $gas-accent-deep;
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-color: $gas-accent-strong;
-    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.18);
-  }
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-/* ── Not-eligible / zero-quota state ──────────────────── */
+.quick-btn:hover,
+.quick-btn--active {
+  border-color: rgba(10, 128, 80, 0.28);
+  background: $gas-accent-soft;
+  color: $gas-accent-deep;
+  box-shadow: 0 5px 14px rgba(10, 128, 80, 0.08);
+}
+
+.quick-btn:active {
+  transform: translateY(1px);
+}
+
+.quick-btn:focus-visible {
+  outline: 2px solid rgba(10, 128, 80, 0.5);
+  outline-offset: 2px;
+}
+
+.request-guard {
+  color: $gas-accent-deep;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .not-eligible-msg {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-  padding: 26px 20px;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 144px;
+  padding: 18px;
+  border: 1px solid rgba(185, 121, 26, 0.2);
+  border-radius: 8px;
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning, #9b650f);
 }
 
 .warning-title {
+  color: $gas-ink;
   font-size: 15px;
-  font-weight: 700;
-  color: var(--ns-ink, #1e1e2e);
+  font-weight: 850;
 }
 
 .warning-desc {
+  color: #8a5b12;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 650;
+  line-height: 1.45;
 }
 
-/* ── Service-state notice (sponsorship API down/unset) ── */
-.gas-service-notice {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 18px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-warning-soft, #fff3dd);
-  color: var(--ns-warning, #b9791a);
-}
-
-.gas-service-notice-title {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-ink, #1e1e2e);
-}
-
-.gas-service-notice-desc {
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* ── Quota info (compact strip below the request form) ── */
 .quota-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid $gas-border;
+}
+
+.quota-info__head,
+.quota-details {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quota-info__head strong,
+.quota-text-value,
+.quota-reset-value {
+  color: $gas-ink;
+  font-size: 13px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
 }
 
 .quota-bar-container {
-  height: 10px;
-  border-radius: 999px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  height: 8px;
   overflow: hidden;
+  border-radius: 999px;
+  background: rgba(20, 22, 38, 0.06);
 }
 
 .quota-bar {
+  min-width: 4px;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, $gas-accent, $gas-accent-strong);
   transition: width 0.4s ease;
-  min-width: 4px;
-}
-
-.quota-details {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px 16px;
 }
 
 .quota-text,
 .quota-reset {
   display: inline-flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 7px;
 }
 
-.quota-text-label,
-.quota-reset-label {
+.gas-service-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(185, 121, 26, 0.2);
+  border-radius: 8px;
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning, #9b650f);
+}
+
+.gas-service-notice-title {
+  color: $gas-ink;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 850;
+  letter-spacing: 0;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ns-text-muted, #8a92a6);
 }
 
-.quota-text-value {
+.gas-service-notice-desc {
   font-size: 13px;
-  font-weight: 700;
-  color: var(--ns-text, #2a2d3d);
-  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  line-height: 1.45;
 }
 
-.quota-reset-value {
+.gas-route-strip {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+}
+
+.gas-route-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(10, 128, 80, 0.12);
+  border-radius: 8px;
+  background: rgba(228, 248, 240, 0.58);
+  color: $gas-accent-deep;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--ns-text-2, #5b6478);
-  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  text-align: center;
 }
 
-/* ── Forms ────────────────────────────────────────────── */
+.gas-route-arrow {
+  color: rgba(10, 128, 80, 0.48);
+}
+
+.gas-sponsor-play-area > .neo-card {
+  overflow: hidden;
+}
+
+.gas-sponsor-play-area > .neo-card .neo-card__header {
+  padding: 14px 18px;
+  border-bottom: 1px solid $gas-border;
+}
+
+.gas-sponsor-play-area > .neo-card .neo-card__title {
+  color: $gas-ink;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.gas-sponsor-play-area > .neo-card .neo-card__body {
+  padding: 18px;
+}
+
+.pay-forward,
 .donate-form,
 .send-form {
   display: flex;
@@ -518,113 +680,152 @@ $gas-accent-deep: var(--ns-brand-deep, #0b5e3e);
 }
 
 .form-hint {
-  margin: 0 0 2px;
+  margin: 0;
+  color: $gas-muted;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.45;
-  color: var(--ns-text-muted, #8a92a6);
-}
-
-/* ── Pay it forward (gated Donate + Send) ─────────────── */
-.pay-forward {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
 
 .pay-forward .donate-form,
 .pay-forward .send-form {
-  gap: 10px;
-  padding-top: 16px;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  padding-top: 14px;
+  border-top: 1px solid $gas-border;
 }
 
 .pay-forward-section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
-/* Locked state shown to the app's actual target user (eligible, low balance)
-   so the unusable transfer forms don't read as dead controls. */
 .pay-forward-empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-  padding: 26px 20px;
-}
-
-.pay-forward-empty-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 4px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: $gas-accent-soft;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 4px 0;
 }
 
 .pay-forward-empty-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ns-ink, #1e1e2e);
+  color: $gas-ink;
+  font-size: 16px;
+  font-weight: 850;
 }
 
 .pay-forward-empty-desc {
-  max-width: 360px;
+  max-width: 560px;
+  color: $gas-muted;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 650;
   line-height: 1.5;
-  color: var(--ns-text-muted, #8a92a6);
 }
 
-/* ── Mobile ───────────────────────────────────────────── */
-@media (max-width: 480px) {
+.pool-address code {
+  color: $gas-ink;
+  font-family: $font-mono;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+@media (max-width: 820px) {
+  .gas-refill-hero {
+    grid-template-columns: 1fr;
+    min-height: 330px;
+  }
+
+  .gas-refill-hero__copy {
+    max-width: 86%;
+    padding: 24px;
+  }
+
+  .gas-refill-hero__media {
+    position: absolute;
+    inset: 0;
+    min-height: 330px;
+    opacity: 0.62;
+  }
+
+  .gas-command-deck {
+    grid-template-columns: 1fr;
+  }
+
+  .gas-tank-panel {
+    border-right: 0;
+    border-bottom: 1px solid $gas-border;
+  }
+}
+
+@media (max-width: 560px) {
   .gas-sponsor-play-area {
-    padding: 16px 12px 24px;
+    gap: 12px;
+    padding: 12px 10px 22px;
   }
 
-  .gas-hero {
-    padding: 18px 16px;
+  .gas-refill-hero {
+    min-height: 250px;
   }
 
-  .gas-hero-gauge {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 18px;
-    padding: 18px 16px;
+  .gas-refill-hero__copy {
+    max-width: none;
+    padding: 20px 18px;
   }
 
-  /* Tank stays a compact centered badge so it doesn't look orphaned */
-  .gas-tank-container {
+  .gas-refill-hero h2 {
+    max-width: 260px;
+    font-size: 29px;
+  }
+
+  .gas-refill-hero p {
+    max-width: 282px;
+    font-size: 14px;
+  }
+
+  .gas-refill-hero__media {
+    min-height: 250px;
+    opacity: 0.48;
+  }
+
+  .gas-command-deck {
+    border-radius: 8px;
+  }
+
+  .gas-tank-panel {
+    grid-template-columns: 118px minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .gas-meter-list {
     width: 100%;
   }
 
-  /* Facts gain a top divider once stacked under the tank */
-  .gas-hero-facts-wrap {
-    flex: 1 1 auto;
-    width: 100%;
-    padding-top: 18px;
-    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  .gas-request-panel {
+    padding: 18px;
   }
 
-  .gas-hero-fact dd {
-    font-size: 16px;
+  .request-console {
+    grid-template-columns: minmax(0, 1fr) 118px;
+  }
+
+  .quick-amounts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .quota-details {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
   }
 
   .quota-text,
   .quota-reset {
     justify-content: space-between;
+  }
+
+  .gas-route-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .gas-route-arrow {
+    display: none;
   }
 }

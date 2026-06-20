@@ -1,15 +1,24 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Gas Sponsor", zh: "Gas 赞助" },
-  subtitle: { en: "Get free GAS for transactions", zh: "获取免费 GAS 进行交易" },
+  // App translations
+  title: { en: "Gas Sponsor", zh: "Gas 赞助" },
+  subtitle: {
+    en: "Get free GAS for transactions",
+    zh: "获取免费 GAS 进行交易",
+  },
   yourBalance: { en: "Your Balance", zh: "您的余额" },
   dailyQuota: { en: "Daily Quota", zh: "每日配额" },
   remainingToday: { en: "Remaining Today", zh: "今日剩余" },
   resetsIn: { en: "Resets In", zh: "重置时间" },
-  balanceExceeds: { en: "Your GAS balance exceeds 0.1 GAS.", zh: "您的 GAS 余额超过 0.1 GAS。" },
-  newUsersOnly: { en: "This service is for new users only.", zh: "此服务仅供新用户使用。" },
+  balanceExceeds: {
+    en: "Your GAS balance exceeds 0.1 GAS.",
+    zh: "您的 GAS 余额超过 0.1 GAS。",
+  },
+  newUsersOnly: {
+    en: "This service is for new users only.",
+    zh: "此服务仅供新用户使用。",
+  },
   quotaExhausted: { en: "Daily quota exhausted", zh: "每日配额已用完" },
   tryTomorrow: { en: "Please try again tomorrow.", zh: "请明天再试。" },
   amountToRequest: { en: "Amount to request", zh: "请求数量" },
@@ -21,8 +30,14 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   requestSuccess: { en: "GAS sponsored successfully!", zh: "GAS 赞助成功！" },
   loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
   invalidAmount: { en: "Invalid amount", zh: "金额无效" },
-  requestingSponsorship: { en: "Requesting sponsored gas...", zh: "正在请求赞助..." },
-  requestSubmitted: { en: "Request submitted! ID: {id}", zh: "请求已提交！ID：{id}" },
+  requestingSponsorship: {
+    en: "Requesting sponsored gas...",
+    zh: "正在请求赞助...",
+  },
+  requestSubmitted: {
+    en: "Request submitted! ID: {id}",
+    zh: "请求已提交！ID：{id}",
+  },
   requestFailed: { en: "Sponsorship request failed", zh: "赞助请求失败" },
   now: { en: "Now", zh: "现在" },
   hoursShort: { en: "h", zh: "小时" },
@@ -43,10 +58,22 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   notEligibleTitle: { en: "Not Eligible", zh: "不符合资格" },
   requestAmount: { en: "Request Amount", zh: "请求数量" },
   howItWorks: { en: "How It Works", zh: "如何使用" },
-  step1: { en: "New users with less than 0.1 GAS are eligible", zh: "余额少于 0.1 GAS 的新用户符合资格" },
-  step2: { en: "Request up to 0.1 GAS per day for free", zh: "每天可免费请求最多 0.1 GAS" },
-  step3: { en: "Use sponsored gas to pay transaction fees", zh: "使用赞助的 gas 支付交易费用" },
-  step4: { en: "Once you have enough GAS, help others!", zh: "当您有足够的 GAS 后，帮助其他人！" },
+  step1: {
+    en: "New users with less than 0.1 GAS are eligible",
+    zh: "余额少于 0.1 GAS 的新用户符合资格",
+  },
+  step2: {
+    en: "Request up to 0.1 GAS per day for free",
+    zh: "每天可免费请求最多 0.1 GAS",
+  },
+  step3: {
+    en: "Use sponsored gas to pay transaction fees",
+    zh: "使用赞助的 gas 支付交易费用",
+  },
+  step4: {
+    en: "Once you have enough GAS, help others!",
+    zh: "当您有足够的 GAS 后，帮助其他人！",
+  },
   todayUsage: { en: "Today's Usage", zh: "今日使用" },
   usedToday: { en: "Used Today", zh: "今日已用" },
   available: { en: "Available", zh: "可用" },
@@ -82,7 +109,10 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   // Donate tab
   tabDonate: { en: "Donate", zh: "捐赠" },
   donateTitle: { en: "Donate to Gas Pool", zh: "捐赠到 Gas 池" },
-  donateSubtitle: { en: "Help new users get started on Neo", zh: "帮助新用户开始使用 Neo" },
+  donateSubtitle: {
+    en: "Help new users get started on Neo",
+    zh: "帮助新用户开始使用 Neo",
+  },
   donateAmount: { en: "Donation Amount", zh: "捐赠金额" },
   donateAmountPlaceholder: { en: "0.1", zh: "0.1" },
   donating: { en: "Donating...", zh: "捐赠中..." },
@@ -105,7 +135,10 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   // Send tab
   tabSend: { en: "Send", zh: "发送" },
   sendTitle: { en: "Send GAS to Address", zh: "发送 GAS 到地址" },
-  sendSubtitle: { en: "Help someone with low GAS balance", zh: "帮助 GAS 余额不足的人" },
+  sendSubtitle: {
+    en: "Help someone with low GAS balance",
+    zh: "帮助 GAS 余额不足的人",
+  },
   // Send is a plain peer-to-peer transfer — it does not route through the pool
   // and is not counted toward the sponsorship faucet.
   sendDirectNote: {
@@ -113,16 +146,19 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
     zh: "点对点直接转账——不会经过赞助资金池，也不计入水龙头额度。",
   },
   recipientAddress: { en: "Recipient Address", zh: "接收地址" },
-  recipientPlaceholder: { en: "Enter Neo N3 address...", zh: "输入 Neo N3 地址..." },
+  recipientPlaceholder: {
+    en: "Enter Neo N3 address...",
+    zh: "输入 Neo N3 地址...",
+  },
   sendAmount: { en: "Amount to Send", zh: "发送金额" },
   sendAmountPlaceholder: { en: "0.1", zh: "0.1" },
   sending: { en: "Sending...", zh: "发送中..." },
   sendBtn: { en: "Send GAS", zh: "发送 GAS" },
   sendSuccess: { en: "GAS sent successfully!", zh: "GAS 发送成功！" },
   invalidAddress: { en: "Invalid address", zh: "无效地址" },
-    sidebarTankLevel: { en: "Tank Level", zh: "油箱水平" },
-    sidebarRemainingQuota: { en: "Remaining Quota", zh: "剩余配额" },
-    sidebarEligible: { en: "Eligible", zh: "资格" },
+  sidebarTankLevel: { en: "Tank Level", zh: "油箱水平" },
+  sidebarRemainingQuota: { en: "Remaining Quota", zh: "剩余配额" },
+  sidebarEligible: { en: "Eligible", zh: "资格" },
   statusPass: { en: "Check passed", zh: "检查通过" },
   statusFail: { en: "Check failed", zh: "检查未通过" },
   iconFuel: { en: "Needs fuel", zh: "需要加油" },
@@ -185,6 +221,50 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   connectToCheck: {
     en: "Connect your wallet to check eligibility and your remaining allowance.",
     zh: "连接钱包以查看资格和剩余额度。",
+  },
+  sponsorLane: {
+    en: "New-wallet gas lane",
+    zh: "新钱包 GAS 补给通道",
+  },
+  statusSnapshot: {
+    en: "Wallet and eligibility status",
+    zh: "钱包与资格状态",
+  },
+  walletReady: {
+    en: "Wallet ready",
+    zh: "钱包已就绪",
+  },
+  walletNeeded: {
+    en: "Connect wallet",
+    zh: "连接钱包",
+  },
+  gasPumpReadyTitle: {
+    en: "Choose a refill amount",
+    zh: "选择补给数量",
+  },
+  gasPumpReadyDesc: {
+    en: "Pick a preset for the fastest request, or type a precise amount.",
+    zh: "选择预设金额最快，也可以手动输入精确数量。",
+  },
+  customAmount: {
+    en: "Custom amount",
+    zh: "自定义数量",
+  },
+  quickAmountLabel: {
+    en: "Preset GAS request amounts",
+    zh: "预设 GAS 请求数量",
+  },
+  routeConnect: {
+    en: "Connect wallet",
+    zh: "连接钱包",
+  },
+  routeCheck: {
+    en: "Check quota",
+    zh: "检查额度",
+  },
+  routeFuel: {
+    en: "Receive GAS",
+    zh: "领取 GAS",
   },
   tankAwaiting: {
     en: "Awaiting wallet",
