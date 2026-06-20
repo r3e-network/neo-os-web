@@ -24,7 +24,11 @@
   min-height: 100%;
   padding: 18px 12px 24px;
   background:
-    radial-gradient(circle at 92% 0%, rgba(255, 221, 158, 0.34), transparent 34%),
+    radial-gradient(
+      circle at 92% 0%,
+      rgba(255, 221, 158, 0.34),
+      transparent 34%
+    ),
     linear-gradient(180deg, #fffaf0 0%, #fbfdf8 48%, #f2f8f5 100%);
   color: var(--ms-ink);
   font-variant-numeric: tabular-nums;
@@ -101,8 +105,17 @@
 .multisig-hero__shade {
   z-index: -1;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78) 42%, rgba(255, 255, 255, 0.22) 78%),
-    linear-gradient(0deg, rgba(255, 250, 240, 0.92), rgba(255, 250, 240, 0.1) 58%);
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(255, 255, 255, 0.78) 42%,
+      rgba(255, 255, 255, 0.22) 78%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(255, 250, 240, 0.92),
+      rgba(255, 250, 240, 0.1) 58%
+    );
 }
 
 .multisig-hero__copy {
@@ -295,7 +308,11 @@
   border: 1px solid rgba(22, 166, 111, 0.2);
   border-radius: var(--ms-radius);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(226, 247, 236, 0.74)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(226, 247, 236, 0.74)
+    ),
     var(--ms-surface-strong);
 }
 
@@ -548,7 +565,7 @@
 .multisig-proposal-preview__art {
   position: absolute;
   inset: 0;
-  background-image: url("/multisig-proposal-card.jpg");
+  background-image: url("../multisig-proposal-card.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -615,7 +632,11 @@
   padding: 14px;
   border: 1px solid rgba(22, 166, 111, 0.24);
   border-radius: var(--ms-radius);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(226, 247, 236, 0.76));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(226, 247, 236, 0.76)
+  );
 }
 
 .multisig-approval-card__head {
