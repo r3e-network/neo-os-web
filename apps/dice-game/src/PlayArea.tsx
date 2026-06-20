@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Coins, Dices, Sparkles, Trophy } from "lucide-react";
+import { ChevronDown, Coins, Dices, Sparkles, Trophy } from "lucide-react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { StateView } from "@shared/components";
@@ -67,7 +67,7 @@ function DiceFaceImage({
     <picture className={className}>
       <source srcSet={diceAsset(face, "avif")} type="image/avif" />
       <source srcSet={diceAsset(face, "webp")} type="image/webp" />
-      <img src={diceAsset(face, "jpg")} alt={alt} decoding="async" />
+      <img src={diceAsset(face, "jpg")} alt={alt} decoding="sync" loading="eager" />
     </picture>
   );
 }
@@ -121,6 +121,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     pays: PAYOUT_MULTIPLIER.toFixed(1),
     fair: String(FAIR_MULTIPLIER),
   });
+  const outcomeLabel =
+    lastOutcome === "won"
+      ? t("outcomeWon")
+      : lastOutcome === "lost"
+        ? t("outcomeLost")
+        : lastOutcome === "refunded"
+          ? t("outcomeRefunded")
+          : "";
+  const outcomeBody =
+    lastOutcome === "won"
+      ? t("resultWonBody")
+      : lastOutcome === "lost"
+        ? t("resultLostBody")
+        : lastOutcome === "refunded"
+          ? t("resultRefundedBody")
+          : "";
 
   // The die shows the settled roll once revealed, animates while rolling, and
   // otherwise previews the chosen face.
@@ -167,23 +183,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
-  const outcomeLabel =
-    lastOutcome === "won"
-      ? t("outcomeWon")
-      : lastOutcome === "lost"
-        ? t("outcomeLost")
-        : lastOutcome === "refunded"
-          ? t("outcomeRefunded")
-          : "";
-  const outcomeBody =
-    lastOutcome === "won"
-      ? t("resultWonBody")
-      : lastOutcome === "lost"
-        ? t("resultLostBody")
-        : lastOutcome === "refunded"
-          ? t("resultRefundedBody")
-          : "";
-
   return (
     <section className="dice-playarea" aria-label={t("rollDice")}>
       <div className="dice-shell">
@@ -192,7 +191,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <picture className="dice-stage__table" aria-hidden="true">
               <source srcSet="./dice-stage.avif" type="image/avif" />
               <source srcSet="./dice-stage.webp" type="image/webp" />
-              <img src="./dice-stage.jpg" alt="" decoding="async" />
+              <img src="./dice-stage.jpg" alt="" decoding="sync" loading="eager" />
             </picture>
             <DiceFaceImage
               face={displayFace}
@@ -297,7 +296,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               )}
             </div>
             <p className="dice-edge-note" title={t("diceRiskCopy")}>
-              {houseEdgeNote}
+              <Coins size={14} aria-hidden="true" />
+              <span>{houseEdgeNote}</span>
             </p>
             <div className="dice-rule-strip" aria-label={t("diceRoundSummary")}>
               <span>{t("diceRuleCommit")}</span>
@@ -356,27 +356,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <Coins size={17} aria-hidden="true" />
                 <span>{t("stakeRackTitle")}</span>
               </div>
-              <label className="dice-stake-field">
-                <span>{t("stakeAmount")}</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={MIN_STAKE}
-                  max={effectiveMaxStake}
-                  step="0.01"
-                  value={amountInput}
-                  aria-label={t("stakeAmount")}
-                  aria-invalid={!stakeIsValid}
-                  disabled={isSubmitting}
-                  onChange={(event) => setAmountInput(event.currentTarget.value)}
-                />
-                <em>
-                  {stakeIsValid
-                    ? `${t("stakeHelp")} ${activePayout}`
-                    : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
-                </em>
-              </label>
-
+              <picture className="dice-chip-rack__visual" aria-hidden="true">
+                <img src="./dice-chip-rack.jpg" alt="" decoding="sync" loading="eager" />
+              </picture>
               <div className="dice-stake-presets" aria-label={t("stakePresets")}>
                 {STAKE_PRESETS.map((preset) => {
                   // Grey out presets above the network cap OR above what the house
@@ -390,11 +372,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       type="button"
                       className={
                         [
-                          unpayable && "dice-preset--unpayable",
-                          isActive && "dice-preset--active",
+                          "dice-preset-chip",
+                          unpayable && "dice-preset-chip--unpayable",
+                          isActive && "dice-preset-chip--active",
                         ]
                           .filter(Boolean)
-                          .join(" ") || undefined
+                          .join(" ")
                       }
                       aria-pressed={isActive}
                       disabled={isSubmitting || unpayable}
@@ -408,11 +391,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       }
                       onClick={() => setAmountInput(preset)}
                     >
-                      {preset} GAS
+                      <span className="dice-preset-chip__value">{preset}</span>
+                      <span className="dice-preset-chip__unit">GAS</span>
                     </button>
                   );
                 })}
               </div>
+              <label className="dice-stake-field">
+                <span>{t("stakeAmount")}</span>
+                <span className={`dice-stake-field__control${stakeIsValid ? "" : " dice-stake-field__control--invalid"}`}>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={MIN_STAKE}
+                    max={effectiveMaxStake}
+                    step="0.01"
+                    value={amountInput}
+                    aria-label={t("stakeAmount")}
+                    aria-invalid={!stakeIsValid}
+                    disabled={isSubmitting}
+                    onChange={(event) => setAmountInput(event.currentTarget.value)}
+                  />
+                  <b>GAS</b>
+                </span>
+                <em>
+                  {stakeIsValid
+                    ? `${t("stakeHelp")} ${activePayout}`
+                    : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
+                </em>
+              </label>
             </div>
 
             <button
@@ -465,6 +472,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <summary className="dice-panel-heading">
             <span>{t("diceVrfRouteTitle")}</span>
             <strong>{t("safetyModel")}</strong>
+            <ChevronDown className="dice-route-toggle" size={18} aria-hidden="true" />
           </summary>
           <div className="dice-route-body">
             <p>{t("diceVrfRouteCopy")}</p>
