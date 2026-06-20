@@ -5,9 +5,14 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  CalendarClock,
   Clock3,
+  Eye,
+  EyeOff,
   LockKeyhole,
+  MailPlus,
   MessageSquareText,
+  SendHorizontal,
   ShieldCheck,
 } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
@@ -20,6 +25,7 @@ import {
   shortAddress,
   addressesEqual,
   needsPublicRevealAck,
+  isEvmAddress,
   MAX_BODY_LENGTH,
   type ComposeForm,
   type MessageView,
@@ -113,6 +119,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const connected = address.length > 0;
   const bodyLength = (form.body ?? "").length;
   const dateMin = localDateTimeMin();
+  const recipientValue = String(form.recipient ?? "").trim();
+  const recipientIsValid = isEvmAddress(recipientValue);
+  const draftBody = String(form.body ?? "").trim();
 
   // Time-locked messages post their plaintext publicly on-chain, so require an
   // explicit acknowledgement before sending. Local UI state — never touches the
@@ -128,6 +137,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const recipientKnownName = nicknameFor(nicknames, form.recipient);
   const recipientNicknameValue = recipientNickname || recipientKnownName;
+  const recipientPreview =
+    recipientNicknameValue.trim() ||
+    (recipientIsValid ? shortAddress(recipientValue) : t("recipientPreviewEmpty"));
+  const draftPreview = draftBody || t("messageDraftEmpty");
+  const deliveryPreview = isTimed ? t("publicRevealLabel") : t("privateSealLabel");
+  const readinessLabel = !recipientIsValid
+    ? t("readinessNeedRecipient")
+    : !draftBody
+      ? t("readinessNeedMessage")
+      : sendBlockedByAck
+        ? t("readinessNeedAck")
+        : t("readinessReady");
 
   const onRecipientNicknameChange = (value: string) => {
     setRecipientNickname(value);
@@ -278,122 +299,167 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       ) : null}
 
-      <NeoCard title={t("composeTitle")}>
-        <div className="nm-form">
-          <div className="nm-recipient-row">
-            <NeoInput
-              label={t("recipientLabel")}
-              placeholder="0x…"
-              value={form.recipient ?? ""}
-              onChange={(v) => setForm({ recipient: v })}
-            />
-            <NeoInput
-              label={t("recipientNicknameLabel")}
-              placeholder={t("recipientNicknamePlaceholder")}
-              value={recipientNicknameValue}
-              onChange={onRecipientNicknameChange}
-            />
-          </div>
-          {recipientKnownName && !recipientNickname ? (
-            <p className="nm-hint nm-saved-name">
-              {t("savedNicknameNote", { name: recipientKnownName })}
-            </p>
-          ) : null}
-          <div className={`nm-message-composer${bodyLength > MAX_BODY_LENGTH ? " nm-message-composer--error" : ""}`}>
-            <div className="nm-message-composer__head">
-              <span className="nm-message-composer__label" id="nm-message-body-label">
-                <MessageSquareText aria-hidden="true" />
-                {t("messageLabel")}
+      <NeoCard title={t("composeTitle")} className="nm-compose-card">
+        <div className="nm-compose-shell">
+          <aside className="nm-letter-preview" aria-label={t("messagePreviewTitle")}>
+            <div className="nm-letter-preview__top">
+              <span className={`nm-letter-preview__seal${isTimed ? " is-public" : ""}`} aria-hidden="true">
+                {isTimed ? <Eye size={22} /> : <EyeOff size={22} />}
               </span>
-              <span className="nm-message-composer__counter">
-                {t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}
+              <span className="nm-letter-preview__mode">{deliveryPreview}</span>
+            </div>
+            <div className="nm-letter-preview__to">
+              <span>{t("recipientPreviewLabel")}</span>
+              <strong>{recipientPreview}</strong>
+            </div>
+            <p className="nm-letter-preview__body">{draftPreview}</p>
+            <div className="nm-letter-preview__meta">
+              <span>
+                <small>{t("characterBudgetLabel")}</small>
+                <strong>{t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}</strong>
+              </span>
+              <span>
+                <small>{t("deliveryPreviewLabel")}</small>
+                <strong>{isTimed ? t("modeTimed") : t("modeRecipient")}</strong>
               </span>
             </div>
-            <textarea
-              aria-labelledby="nm-message-body-label"
-              placeholder={t("messagePlaceholder")}
-              value={form.body ?? ""}
-              onChange={(e) => setForm({ body: e.target.value.slice(0, MAX_BODY_LENGTH) })}
-            />
-            {bodyLength > MAX_BODY_LENGTH ? (
-              <span className="nm-message-composer__error">{t("bodyTooLong")}</span>
-            ) : null}
-          </div>
+          </aside>
 
-          <div className="nm-mode-toggle" role="radiogroup" aria-label={t("deliveryModeLabel")}>
-            <button
-              type="button"
-              className={`nm-mode-option ${!isTimed ? "active" : ""}`}
-              role="radio"
-              aria-checked={!isTimed}
-              onClick={() => setForm({ lockMode: "recipient" })}
-            >
-              <span className="nm-mode-icon" aria-hidden="true">
-                <LockKeyhole />
+          <div className="nm-form">
+            <div className="nm-compose-intro">
+              <span className="nm-compose-intro__icon" aria-hidden="true">
+                <MailPlus size={18} />
               </span>
-              <span className="nm-mode-text">
-                <strong>{t("modeRecipient")}</strong>
-                <span>{t("modeRecipientHint")}</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              className={`nm-mode-option ${isTimed ? "active" : ""}`}
-              role="radio"
-              aria-checked={isTimed}
-              onClick={() => setForm({ lockMode: "timed" })}
-            >
-              <span className="nm-mode-icon" aria-hidden="true">
-                <Clock3 />
-              </span>
-              <span className="nm-mode-text">
-                <strong>{t("modeTimed")}</strong>
-                <span>{t("modeTimedHint")}</span>
-              </span>
-            </button>
-          </div>
-
-          {isTimed ? (
-            <>
-              <div className="nm-public-warning" role="alert">
-                <AlertTriangle aria-hidden="true" />
-                <span>{t("timedPublicWarning")}</span>
+              <div>
+                <span className="nm-compose-intro__eyebrow">{t("composeEyebrow")}</span>
+                <p>{t("composeLead")}</p>
               </div>
-              <label className="nm-date-field">
-                <span>{t("revealDateLabel")}</span>
-                <input
-                  type="datetime-local"
-                  min={dateMin}
-                  value={form.revealDate ?? ""}
-                  onChange={(e) => setForm({ revealDate: e.target.value })}
-                />
-              </label>
-              <label className="nm-ack">
-                <input
-                  type="checkbox"
-                  checked={publicRevealAck}
-                  onChange={(e) => setPublicRevealAck(e.target.checked)}
-                />
-                <span>{t("timedAcknowledge")}</span>
-              </label>
-            </>
-          ) : null}
+            </div>
 
-          <p className="nm-note">
-            <ShieldCheck aria-hidden="true" />
-            <span>{isTimed ? t("timedNote") : t("recipientNote")}</span>
-          </p>
+            <div className="nm-recipient-row">
+              <NeoInput
+                label={t("recipientLabel")}
+                placeholder="0x…"
+                value={form.recipient ?? ""}
+                onChange={(v) => setForm({ recipient: v })}
+              />
+              <NeoInput
+                label={t("recipientNicknameLabel")}
+                placeholder={t("recipientNicknamePlaceholder")}
+                value={recipientNicknameValue}
+                onChange={onRecipientNicknameChange}
+              />
+            </div>
+            {recipientKnownName && !recipientNickname ? (
+              <p className="nm-hint nm-saved-name">
+                {t("savedNicknameNote", { name: recipientKnownName })}
+              </p>
+            ) : null}
+            <div className={`nm-message-composer${bodyLength > MAX_BODY_LENGTH ? " nm-message-composer--error" : ""}`}>
+              <div className="nm-message-composer__head">
+                <span className="nm-message-composer__label" id="nm-message-body-label">
+                  <MessageSquareText aria-hidden="true" />
+                  {t("messageLabel")}
+                </span>
+                <span className="nm-message-composer__counter">
+                  {t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}
+                </span>
+              </div>
+              <textarea
+                aria-labelledby="nm-message-body-label"
+                placeholder={t("messagePlaceholder")}
+                value={form.body ?? ""}
+                onChange={(e) => setForm({ body: e.target.value.slice(0, MAX_BODY_LENGTH) })}
+              />
+              {bodyLength > MAX_BODY_LENGTH ? (
+                <span className="nm-message-composer__error">{t("bodyTooLong")}</span>
+              ) : null}
+            </div>
 
-          <NeoButton
-            variant="primary"
-            size="lg"
-            block
-            loading={isSending}
-            disabled={isSending || sendBlockedByAck}
-            onClick={() => dispatch("sendMessage")}
-          >
-            {isSending ? t("sending") : isTimed ? t("sendButtonTimed") : t("sendButton")}
-          </NeoButton>
+            <div className="nm-mode-toggle" role="radiogroup" aria-label={t("deliveryModeLabel")}>
+              <button
+                type="button"
+                className={`nm-mode-option ${!isTimed ? "active" : ""}`}
+                role="radio"
+                aria-checked={!isTimed}
+                onClick={() => setForm({ lockMode: "recipient" })}
+              >
+                <span className="nm-mode-icon" aria-hidden="true">
+                  <LockKeyhole />
+                </span>
+                <span className="nm-mode-text">
+                  <strong>{t("modeRecipient")}</strong>
+                  <span>{t("modeRecipientHint")}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`nm-mode-option ${isTimed ? "active" : ""}`}
+                role="radio"
+                aria-checked={isTimed}
+                onClick={() => setForm({ lockMode: "timed" })}
+              >
+                <span className="nm-mode-icon" aria-hidden="true">
+                  <Clock3 />
+                </span>
+                <span className="nm-mode-text">
+                  <strong>{t("modeTimed")}</strong>
+                  <span>{t("modeTimedHint")}</span>
+                </span>
+              </button>
+            </div>
+
+            {isTimed ? (
+              <div className="nm-timed-panel">
+                <div className="nm-public-warning" role="alert">
+                  <AlertTriangle aria-hidden="true" />
+                  <span>{t("timedPublicWarning")}</span>
+                </div>
+                <label className="nm-date-field">
+                  <span>
+                    <CalendarClock aria-hidden="true" />
+                    {t("revealDateLabel")}
+                  </span>
+                  <input
+                    type="datetime-local"
+                    min={dateMin}
+                    value={form.revealDate ?? ""}
+                    onChange={(e) => setForm({ revealDate: e.target.value })}
+                  />
+                </label>
+                <label className="nm-ack">
+                  <input
+                    type="checkbox"
+                    checked={publicRevealAck}
+                    onChange={(e) => setPublicRevealAck(e.target.checked)}
+                  />
+                  <span>{t("timedAcknowledge")}</span>
+                </label>
+              </div>
+            ) : null}
+
+            <div className="nm-send-panel">
+              <p className="nm-note">
+                <ShieldCheck aria-hidden="true" />
+                <span>{isTimed ? t("timedNote") : t("recipientNote")}</span>
+              </p>
+              <div className="nm-send-panel__footer">
+                <span className={`nm-readiness${readinessLabel === t("readinessReady") ? " is-ready" : ""}`}>
+                  {readinessLabel}
+                </span>
+                <NeoButton
+                  variant="primary"
+                  size="lg"
+                  loading={isSending}
+                  disabled={isSending || sendBlockedByAck}
+                  onClick={() => dispatch("sendMessage")}
+                >
+                  <SendHorizontal size={17} aria-hidden="true" />
+                  {isSending ? t("sending") : isTimed ? t("sendButtonTimed") : t("sendButton")}
+                </NeoButton>
+              </div>
+            </div>
+          </div>
         </div>
       </NeoCard>
 

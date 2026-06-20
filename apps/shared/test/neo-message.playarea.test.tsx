@@ -60,12 +60,14 @@ function props(dispatch = vi.fn(async () => undefined), appState: ObservableStat
 }
 
 describe("Neo Message PlayArea", () => {
-  it("renders real brand imagery and delivery-mode radio cards", () => {
+  it("renders real brand imagery, sealed preview, and delivery-mode radio cards", () => {
     const { container } = render(<PlayArea {...props()} />);
 
     expect(container.querySelector('.nm-hero img[src="./logo.jpg"]')).toBeTruthy();
     expect(container.querySelector('.nm-hero-media img[src="./banner.jpg"]')).toBeTruthy();
     expect(container.querySelector(".nm-hero svg")).toBeNull();
+    expect(screen.getByLabelText("Sealed message preview")).toBeTruthy();
+    expect(screen.getByText("Choose a recipient")).toBeTruthy();
 
     const radios = screen.getAllByRole("radio");
     expect(radios).toHaveLength(2);
@@ -118,15 +120,27 @@ describe("Neo Message PlayArea", () => {
     const appState = state();
     render(<PlayArea {...props(vi.fn(), appState)} />);
 
-    expect(screen.getByText(`0/${MAX_BODY_LENGTH}`)).toBeTruthy();
+    expect(screen.getAllByText(`0/${MAX_BODY_LENGTH}`)).toHaveLength(2);
 
     const textarea = screen.getByLabelText("Message");
     fireEvent.change(textarea, { target: { value: "hello" } });
     expect(appState.composeForm?.get()).toMatchObject({ body: "hello" });
+    expect(screen.getAllByText("hello").length).toBeGreaterThanOrEqual(1);
 
     // Over-long input is clamped to MAX_BODY_LENGTH on change.
     fireEvent.change(textarea, { target: { value: "x".repeat(MAX_BODY_LENGTH + 50) } });
     expect((appState.composeForm?.get() as { body: string }).body.length).toBe(MAX_BODY_LENGTH);
+  });
+
+  it("switches the compose preview into public-later mode", () => {
+    const appState = state();
+    render(<PlayArea {...props(vi.fn(), appState)} />);
+
+    fireEvent.click(screen.getByText("Open later"));
+
+    expect(appState.composeForm?.get()).toMatchObject({ lockMode: "timed" });
+    expect(screen.getByText("Public later")).toBeTruthy();
+    expect(screen.getByText(/Public reveal:/)).toBeTruthy();
   });
 
   it("sets a min on the time-locked reveal date so past instants are rejected", () => {
