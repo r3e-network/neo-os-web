@@ -5,6 +5,7 @@ import {
   getLaunchParam,
   type MiniAppLaunchContext,
 } from "@shared/utils/launch-params";
+import { Boxes, ChevronDown, ShieldCheck, Store } from "lucide-react";
 import type { MarketListing } from "./utils/aa-market";
 import { ListingCard } from "./components/ListingCard";
 import { WalletConnectCard } from "./components/WalletConnectCard";
@@ -72,11 +73,7 @@ export default function PlayArea({
         "accountId",
         "account",
       ]),
-      priceGas: getLaunchParam(launchContext, [
-        "priceGas",
-        "price",
-        "amount",
-      ]),
+      priceGas: getLaunchParam(launchContext, ["priceGas", "price", "amount"]),
       listingTitle: getLaunchParam(launchContext, [
         "listingTitle",
         "title",
@@ -106,18 +103,16 @@ export default function PlayArea({
   return (
     <div className="market-play-area">
       <section className="market-hero">
-        <div className="market-hero__head">
-          <span className="market-hero__badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-              <path d="M3 6h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </span>
-          <div className="market-hero__title">
-            <span className="market-hero__eyebrow">{t("appName")}</span>
-            <h2>{t("marketHeroTitle")}</h2>
-            <p>{t("docsSubtitle")}</p>
+        <div className="market-hero__copy">
+          <div className="market-hero__head">
+            <span className="market-hero__badge" aria-hidden="true">
+              <Store />
+            </span>
+            <div className="market-hero__title">
+              <span className="market-hero__eyebrow">{t("appName")}</span>
+              <h2>{t("marketHeroTitle")}</h2>
+              <p>{t("docsSubtitle")}</p>
+            </div>
           </div>
           <div
             className="market-hero__metrics"
@@ -132,6 +127,22 @@ export default function PlayArea({
               <span>{t("marketMetricActive")}</span>
             </div>
           </div>
+        </div>
+        <div
+          className="market-hero__visual"
+          role="img"
+          aria-label={t("marketHeroVisualAlt")}
+        >
+          <img
+            src="./market-escrow-desk.jpg"
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
+          <span>
+            <ShieldCheck aria-hidden="true" />
+            {t("marketHeroVisualBadge")}
+          </span>
         </div>
       </section>
 
@@ -181,7 +192,13 @@ export default function PlayArea({
                 same column. It used to float alone in a wide aux column,
                 stranding a tall empty band whenever no listing was selected. */}
             <details className="market-caveat">
-              <summary>{t("feature2Name")}</summary>
+              <summary>
+                <span>{t("feature2Name")}</span>
+                <ChevronDown
+                  className="market-disclosure__chevron"
+                  aria-hidden="true"
+                />
+              </summary>
               <p>{t("hubSummary")}</p>
             </details>
           </div>
@@ -224,7 +241,9 @@ export default function PlayArea({
 
           {!hasMarketHash && (
             <div className="empty-state">
-              <span className="empty-state__badge">AA</span>
+              <span className="empty-state__badge" aria-hidden="true">
+                <Store />
+              </span>
               <strong>{t("emptyStateTitle")}</strong>
               <span>{t("emptyStateEnterHash")}</span>
             </div>
@@ -238,7 +257,9 @@ export default function PlayArea({
               primary CTA. */}
           {hasMarketHash && listings.length === 0 && !hasWallet && (
             <div className="empty-state">
-              <span className="empty-state__badge">AA</span>
+              <span className="empty-state__badge" aria-hidden="true">
+                <Store />
+              </span>
               <strong>{t("emptyStateConnectTitle")}</strong>
               <span>{t("emptyStateConnect")}</span>
             </div>
@@ -247,23 +268,22 @@ export default function PlayArea({
           {/* Wallet is connected and the read is in flight — show a loading
               placeholder beneath the "Listings" heading so it is never left
               orphaned above blank space. */}
-          {hasMarketHash &&
-            listings.length === 0 &&
-            hasWallet &&
-            isLoading && (
-              <div className="empty-state empty-state--loading" aria-busy="true">
-                <span className="empty-state__spinner" aria-hidden="true" />
-                <strong>{t("emptyStateLoadingTitle")}</strong>
-                <span>{t("emptyStateLoading")}</span>
-              </div>
-            )}
+          {hasMarketHash && listings.length === 0 && hasWallet && isLoading && (
+            <div className="empty-state empty-state--loading" aria-busy="true">
+              <span className="empty-state__spinner" aria-hidden="true" />
+              <strong>{t("emptyStateLoadingTitle")}</strong>
+              <span>{t("emptyStateLoading")}</span>
+            </div>
+          )}
 
           {hasMarketHash &&
             listings.length === 0 &&
             hasWallet &&
             !isLoading && (
               <div className="empty-state">
-                <span className="empty-state__badge">0</span>
+                <span className="empty-state__badge" aria-hidden="true">
+                  <Boxes />
+                </span>
                 <strong>{t("emptyStateNoListingsTitle")}</strong>
                 <span>{t("emptyStateNoListings")}</span>
               </div>

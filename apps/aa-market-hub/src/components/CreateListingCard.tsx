@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import {
-  isHash160OrNeoAddress,
-  isMarketPriceGas,
-} from "../utils/validation";
+import { ChevronDown, CircleDollarSign, PlugZap } from "lucide-react";
+import { isHash160OrNeoAddress, isMarketPriceGas } from "../utils/validation";
 
 interface CreateListingCardProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -126,6 +124,7 @@ export function CreateListingCard({
                 aria-label={t("connectWallet")}
                 onClick={onConnect}
               >
+                <PlugZap aria-hidden="true" />
                 {t("connectWallet")}
               </NeoButton>
             )}
@@ -187,7 +186,13 @@ export function CreateListingCard({
             scannable — most sellers keep the canonical AA core and skip
             metadata. */}
         <details className="create-advanced">
-          <summary>{t("createAdvancedSummary")}</summary>
+          <summary>
+            <span>{t("createAdvancedSummary")}</span>
+            <ChevronDown
+              className="market-disclosure__chevron"
+              aria-hidden="true"
+            />
+          </summary>
           <div className="create-advanced__body">
             <NeoInput
               value={aaContractHash}
@@ -219,6 +224,7 @@ export function CreateListingCard({
           aria-label={t("createListingCta")}
           onClick={handleCreate}
         >
+          <CircleDollarSign aria-hidden="true" />
           {t("createListingCta")}
         </NeoButton>
       </div>

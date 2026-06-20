@@ -32,6 +32,14 @@ const appMessages = {
   walletConnected: { en: "Wallet Connected", zh: "钱包已连接" },
   walletLabel: { en: "Wallet", zh: "钱包" },
   marketHeroTitle: { en: "AA address market", zh: "AA 地址市场" },
+  marketHeroVisualAlt: {
+    en: "AA address listings routed through a GAS escrow vault",
+    zh: "AA 地址挂单通过 GAS 托管金库结算",
+  },
+  marketHeroVisualBadge: {
+    en: "Escrow settlement",
+    zh: "托管结算",
+  },
   marketMetricsLabel: { en: "Market overview", zh: "市场概览" },
   marketMetricListings: { en: "Listings", zh: "挂单" },
   marketMetricActive: { en: "Active", zh: "活跃" },
