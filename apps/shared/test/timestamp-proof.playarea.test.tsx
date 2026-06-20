@@ -24,15 +24,36 @@ function t(key: string) {
   const messages: Record<string, string> = {
     title: "Timestamp Proof",
     docSubtitle: "SHA-256 proof journal with optional on-chain anchor",
+    docDescription: "Create local SHA-256 proof entries and optionally anchor them on Neo N3.",
+    proofWorkspace: "Timestamp proof workspace",
+    proofWorkflow: "Proof workflow",
+    proofPrivacy: "Your source content stays local; only the digest is saved or anchored.",
+    proofStageKicker: "Proof desk",
+    proofStageTitle: "Hash locally, save a proof record, then anchor the digest.",
+    step2: "Hash it locally in the browser",
+    step3: "Optionally anchor the proof on-chain for third-party verification",
     totalProofs: "Total Proofs",
     anchoredProofs: "Anchored",
     latestId: "Latest ID",
     proofStats: "Proof Stats",
     createProof: "Create Proof",
+    createPanelKicker: "Create",
+    createPanelTitle: "Prepare a timestamp certificate",
+    createPanelBody: "Paste content and review the certificate preview before saving.",
     creating: "Creating...",
     enterContent: "Enter content to timestamp",
     contentPlaceholder: "Paste text, a document hash, or a release note...",
+    documentPreviewLabel: "Certificate preview",
+    documentPreviewEmptyTitle: "Ready for content",
+    documentPreviewEmpty: "Your proof preview will appear here as soon as you add content.",
+    documentTypeHash: "SHA-256 digest",
+    documentTypeText: "Source content",
+    contentChars: "Characters",
+    pendingDigest: "After save",
     verifyProof: "Verify Proof",
+    verifyPanelKicker: "Verify",
+    verifyPanelTitle: "Inspect an existing proof",
+    verifyPanelBody: "Search by proof ID, digest, or original content.",
     verifying: "Verifying...",
     proofLookup: "Proof lookup",
     verifyPlaceholder: "Proof ID, SHA-256 digest, or original content",
@@ -90,6 +111,9 @@ describe("Timestamp Proof PlayArea", () => {
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     expect(screen.getByText("Timestamp Proof")).toBeTruthy();
+    expect(screen.getByLabelText("Timestamp proof workspace")).toBeTruthy();
+    expect(screen.getByLabelText("Certificate preview")).toBeTruthy();
+    expect(document.querySelector('.proof-hero__stage img[src="./proof-desk.jpg"]')).toBeTruthy();
     expect(screen.getByText("Recent Proofs")).toBeTruthy();
     expect(screen.getByText("Proof Found")).toBeTruthy();
 

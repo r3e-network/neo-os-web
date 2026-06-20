@@ -6,12 +6,39 @@ const appMessages = {
   verify: { en: "Verify", zh: "验证" },
 
   createProof: { en: "Create Proof", zh: "创建证明" },
+  proofWorkspace: { en: "Timestamp proof workspace", zh: "时间戳证明工作台" },
+  proofWorkflow: { en: "Proof workflow", zh: "证明流程" },
+  proofPrivacy: {
+    en: "Your source content stays local; only the digest is saved or anchored.",
+    zh: "原文内容保留在本地；保存或锚定的是摘要。",
+  },
+  proofStageKicker: { en: "Proof desk", zh: "证明工作台" },
+  proofStageTitle: {
+    en: "Hash the document locally, save a proof record, then anchor the digest when it needs public verification.",
+    zh: "本地计算文档哈希，保存证明记录；需要公开核验时再锚定摘要。",
+  },
+  createPanelKicker: { en: "Create", zh: "创建" },
+  createPanelTitle: { en: "Prepare a timestamp certificate", zh: "准备时间戳证书" },
+  createPanelBody: {
+    en: "Paste the document text, release note, or existing digest and review the certificate preview before saving.",
+    zh: "粘贴文档文本、发布说明或已有摘要，先查看证书预览再保存。",
+  },
   enterContent: { en: "Enter content to timestamp", zh: "输入要时间戳的内容" },
   createDisabledHint: {
     en: "Add some text above to enable timestamping.",
     zh: "在上方输入内容即可生成时间戳。",
   },
   contentPlaceholder: { en: "Paste your text, document hash, or idea...", zh: "粘贴您的文本、文档哈希或想法..." },
+  documentPreviewLabel: { en: "Certificate preview", zh: "证书预览" },
+  documentPreviewEmptyTitle: { en: "Ready for content", zh: "等待内容" },
+  documentPreviewEmpty: {
+    en: "Your proof preview will appear here as soon as you add content.",
+    zh: "输入内容后，这里会实时显示证明预览。",
+  },
+  documentTypeHash: { en: "SHA-256 digest", zh: "SHA-256 摘要" },
+  documentTypeText: { en: "Source content", zh: "原始内容" },
+  contentChars: { en: "Characters", zh: "字符数" },
+  pendingDigest: { en: "After save", zh: "保存后生成" },
   createSuccess: { en: "Proof saved to this device.", zh: "证明已保存到当前设备。" },
   proofId: { en: "Proof ID", zh: "证明ID" },
   timestamp: { en: "Timestamp", zh: "时间戳" },
@@ -39,6 +66,12 @@ const appMessages = {
   },
 
   verifyProof: { en: "Verify Proof", zh: "验证证明" },
+  verifyPanelKicker: { en: "Verify", zh: "核验" },
+  verifyPanelTitle: { en: "Inspect an existing proof", zh: "核验已有证明" },
+  verifyPanelBody: {
+    en: "Search by proof ID, SHA-256 digest, or original content to confirm the saved timestamp and anchor status.",
+    zh: "通过证明编号、SHA-256 摘要或原文查询，确认保存时间与锚定状态。",
+  },
   proofLookup: { en: "Proof lookup", zh: "证明查询" },
   verifyPlaceholder: {
     en: "Proof ID, SHA-256 digest, or original content",
