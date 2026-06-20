@@ -270,6 +270,11 @@ export const factoryMessages = {
   // ── Live preview card (what this factory will create) ──
   previewTitle: { en: "Preview", zh: "预览" },
   previewHint: { en: "Live preview of what this template will create.", zh: "此模板将创建内容的实时预览。" },
+  dropStudio: { en: "Drop studio", zh: "发行工作台" },
+  dropStudioHint: {
+    en: "{symbol} collection parameters update the preview live.",
+    zh: "{symbol} 集合参数会实时更新预览。",
+  },
   previewUntitledCollection: { en: "Untitled collection", zh: "未命名集合" },
   previewUntitledToken: { en: "Untitled token", zh: "未命名代币" },
   previewUntitledApp: { en: "Untitled miniapp", zh: "未命名小程序" },
