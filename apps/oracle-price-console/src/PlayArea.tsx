@@ -8,8 +8,7 @@
 
 import { useState } from "react";
 import { Activity, Check, Copy, DatabaseZap, RefreshCw } from "lucide-react";
-import { NeoButton, NeoCard } from "@shared/components-react";
-import { StateView } from "@shared/components";
+import { NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { Freshness } from "./hooks/usePriceConsole";
@@ -31,29 +30,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const datafeedShort = str("datafeedShort", "");
   const datafeedHash = str("datafeedHash", "");
   const sourceLabel = str("sourceLabel", "");
-
-  // Copy the full feed contract hash so the "inspectable" identifier the console
-  // promises is actually retrievable, not just truncated to "0x03013f49…". Uses
-  // the platform clipboard API directly (the PlayArea has no services handle)
-  // with a brief "Copied" confirmation; failure leaves the label unchanged.
-  const copyFeedHash = async () => {
-    if (!datafeedHash) return;
-    try {
-      await navigator.clipboard?.writeText(datafeedHash);
-      setFeedCopied(true);
-      window.setTimeout(() => setFeedCopied(false), 1600);
-    } catch {
-      // Clipboard blocked (insecure context / denied permission): keep the
-      // hash visible via the title tooltip rather than surfacing a failure.
-    }
-  };
   const errorMsg = str("errorMsg", "");
   const isRequesting = bool("isRequesting");
   const freshness = (val<Freshness>("freshness", "idle") ?? "idle") as Freshness;
   const freshnessLabel = str("freshnessLabel", t("priceStatusReady"));
-  // Absolute on-chain write time of the displayed price (local-formatted). Empty
-  // when the feed omitted a timestamp; surfaced as a tooltip + caption so a user
-  // can independently verify freshness against the chain, not just "x ago".
   const freshnessTimestamp = str("freshnessTimestamp", "");
   const onChainTimeLabel = freshnessTimestamp
     ? t("priceOnChainTime", { time: freshnessTimestamp })
@@ -63,6 +43,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     "GAS",
     "BTC",
   ];
+
+  const copyFeedHash = async () => {
+    if (!datafeedHash) return;
+    try {
+      await navigator.clipboard?.writeText(datafeedHash);
+      setFeedCopied(true);
+      window.setTimeout(() => setFeedCopied(false), 1600);
+    } catch {
+      // Keep the full hash inspectable via the title tooltip when clipboard is blocked.
+    }
+  };
 
   const canFetchPrice = Boolean(asset);
   const assetInitial = asset.slice(0, 1);
@@ -74,18 +65,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     pairs.includes(symbol),
   );
   const catalogPairs = pairs.filter((symbol) => !featuredPairs.includes(symbol));
+  const boardState = isRequesting ? "loading" : priceLoaded ? freshness : "idle";
 
   return (
     <div className="price-play-area">
       <section className="price-hero" aria-label={t("priceHeroTitle")}>
+        <img
+          className="price-hero__media"
+          src="./oracle-market-stage.jpg"
+          alt=""
+          loading="eager"
+          decoding="async"
+        />
+        <div className="price-hero__shade" aria-hidden="true" />
+
         <div className="price-hero__copy">
           <span className="price-hero__badge" aria-hidden="true">
             <Activity size={22} />
           </span>
-          <span className="price-eyebrow">{t("priceHeroTitle")}</span>
+          <span className="price-eyebrow price-eyebrow-badge">{t("priceHeroTitle")}</span>
           <h2>{displayPair}</h2>
           <p>{t("priceHeroSubtitle")}</p>
+          <div className="price-hero__status-row" aria-label={t("priceSignalTitle")}>
+            <span
+              className={`price-status price-status-pill price-status--${boardState}`}
+              data-freshness={freshness}
+            >
+              <i className="price-status__dot" aria-hidden="true" />
+              {freshnessLabel}
+            </span>
+            <span className="price-hero__timestamp-pill">
+              {onChainTimeLabel || t("feedTimePending")}
+            </span>
+          </div>
         </div>
+
         <div className="price-hero__metrics" aria-label={t("priceMetrics")}>
           <button
             type="button"
@@ -97,68 +111,57 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             <span>{t("priceMetricFeed")}</span>
             <span className="price-metric__value">
-              <strong>{datafeedShort || "—"}</strong>
+              <strong>{datafeedShort || "-"}</strong>
               <span className="price-metric__copy-cue" aria-hidden="true">
-                {feedCopied ? (
-                  <Check size={14} />
-                ) : (
-                  <Copy size={14} />
-                )}
+                {feedCopied ? <Check size={14} /> : <Copy size={14} />}
               </span>
             </span>
           </button>
           <div className="price-metric">
             <span>{t("priceMetricNetwork")}</span>
-            <strong>{networkDisplay || "—"}</strong>
+            <strong>{networkDisplay || "-"}</strong>
           </div>
           <div className="price-metric">
             <span>{t("priceMetricSource")}</span>
-            <strong>{sourceLabel || "—"}</strong>
+            <strong>{sourceLabel || "-"}</strong>
           </div>
         </div>
       </section>
 
       <div className="price-console-body">
-        <div className="price-result-col">
-          {isRequesting ? (
-            <StateView
-              kind="loading"
-              icon={null}
-              title={t("loading")}
-              className="price-balance-state"
-            />
-          ) : priceLoaded ? (
-            <section className="price-balance-card" aria-label={t("latestPrice")}>
-              <div className={`asset-token asset-token--${asset.toLowerCase()}`}>
-                {assetInitial}
-              </div>
-              <div className="price-balance-card__content">
-                <span className="result-symbol">{displayPair}</span>
-                <span className="result-price">{priceDisplay}</span>
-              </div>
-              <span
-                className="price-status price-status--live"
-                data-freshness={freshness}
-                aria-label={t("priceSignalTitle")}
-                title={onChainTimeLabel || undefined}
-              >
-                <i className="price-status__dot" aria-hidden="true" />
-                {freshnessLabel}
-              </span>
-            </section>
-          ) : (
-            <StateView
-              kind="empty"
-              icon={null}
-              title={t("priceSignalIdle")}
-              hint={t("priceSignalIdleHint")}
-              className="price-balance-state"
-            />
-          )}
+        <section
+          className={`price-market-board price-market-board--${boardState}`}
+          aria-label={t("latestPrice")}
+        >
+          <div className="price-market-board__head">
+            <div>
+              <span>{t("marketBoardTitle")}</span>
+              <strong>{t("marketBoardHint", { pair: displayPair })}</strong>
+            </div>
+            <span className={`asset-token asset-token--${asset.toLowerCase()}`}>
+              {assetInitial}
+            </span>
+          </div>
 
-          {onChainTimeLabel && (
-            <div className="price-onchain-time" role="note">
-              {onChainTimeLabel}
+          {isRequesting ? (
+            <div className="price-market-state" role="status">
+              <span className="price-market-state__spinner" aria-hidden="true" />
+              <strong>{t("loading")}</strong>
+              <small>{t("priceSignalIdleHint")}</small>
+            </div>
+          ) : priceLoaded ? (
+            <div className="price-market-board__price">
+              <span>{displayPair}</span>
+              <strong>{priceDisplay}</strong>
+              <small>{selectedAssetHint ? t(selectedAssetHint) : ""}</small>
+            </div>
+          ) : (
+            <div className="price-market-state">
+              <span className="price-market-state__icon" aria-hidden="true">
+                <DatabaseZap size={20} />
+              </span>
+              <strong>{t("priceSignalIdle")}</strong>
+              <small>{t("priceSignalIdleHint")}</small>
             </div>
           )}
 
@@ -168,39 +171,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
 
-          {/* Request path is always visible — it backs the "inspectable" promise
-              up front, before any fetch, and keeps the resting viewport useful. */}
-          <section className="price-reference" aria-label={t("priceReferenceTitle")}>
-            <span className="price-reference__title">{t("priceReferenceTitle")}</span>
-            <dl className="price-reference__rows">
-              <div className="price-reference__row">
-                <dt>{t("priceReferenceContract")}</dt>
-                <dd className="price-reference__mono" title={datafeedHash || undefined}>
-                  {datafeedShort || "—"}
-                </dd>
-              </div>
-              <div className="price-reference__row">
-                <dt>{t("priceReferenceMethod")}</dt>
-                <dd className="price-reference__mono">{t("priceReferenceMethodValue")}</dd>
-              </div>
-              <div className="price-reference__row">
-                <dt>{t("priceReferenceQuote")}</dt>
-                <dd>{t("priceReferenceQuoteValue")}</dd>
-              </div>
-            </dl>
-          </section>
-        </div>
+          <div className="price-signal-strip" aria-label={t("priceFlowTitle")}>
+            <span>
+              <small>{t("stationPair")}</small>
+              <strong>{displayPair}</strong>
+            </span>
+            <span>
+              <small>{t("stationMethod")}</small>
+              <strong>{t("priceReferenceMethodValue")}</strong>
+            </span>
+            <span>
+              <small>{t("stationFreshness")}</small>
+              <strong>{priceLoaded ? freshnessLabel : t("stationFreshnessValue")}</strong>
+            </span>
+          </div>
+        </section>
 
-        <NeoCard
-          variant="erobo"
-          className="price-action-panel"
-          title={t("priceActionTitle")}
-        >
-          <div className="price-oracle-station">
-            <span className="price-oracle-station__icon" aria-hidden="true">
+        <section className="price-action-panel" aria-label={t("priceActionTitle")}>
+          <div className="price-action-panel__head">
+            <span className="price-action-panel__icon" aria-hidden="true">
               <DatabaseZap size={20} />
             </span>
-            <div className="price-oracle-station__copy">
+            <div>
               <span>{t("oracleStationEyebrow")}</span>
               <strong>{t("oracleStationTitle", { pair: displayPair })}</strong>
               <small>{t("priceActionHint")}</small>
@@ -209,7 +201,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           <section className="price-pair-picker" aria-label={t("asset")}>
             <div className="price-pair-picker__head">
-              <span>{t("pairPickerTitle")}</span>
+              <span>{t("watchlistTitle")}</span>
               <strong>{t("pairPickerSubtitle", { pair: displayPair })}</strong>
             </div>
             <div className="price-pair-options" role="radiogroup" aria-label={t("asset")}>
@@ -252,21 +244,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </section>
 
-          <div className="price-station-facts" aria-label={t("priceFlowTitle")}>
-            <span>
-              <small>{t("stationPair")}</small>
-              <strong>{displayPair}</strong>
-            </span>
-            <span>
-              <small>{t("stationMethod")}</small>
-              <strong>{t("priceReferenceMethodValue")}</strong>
-            </span>
-            <span>
-              <small>{t("stationFreshness")}</small>
-              <strong>{t("stationFreshnessValue")}</strong>
-            </span>
-          </div>
-
           <div className="price-query-actions">
             <NeoButton
               variant="primary"
@@ -279,12 +256,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("fetchPair", { pair: displayPair })}
             </NeoButton>
           </div>
+
           <p className="price-selected-note" role="note">
             {t(selectedAssetHint)}
           </p>
           {errorMsg && <div className="error-banner mono">{errorMsg}</div>}
-        </NeoCard>
+        </section>
       </div>
+
+      <section className="price-reference" aria-label={t("priceReferenceTitle")}>
+        <div className="price-reference__intro">
+          <span>{t("requestPackage")}</span>
+          <strong>{t("priceReferenceTitle")}</strong>
+        </div>
+        <dl className="price-reference__rows">
+          <div className="price-reference__row">
+            <dt>{t("priceReferenceContract")}</dt>
+            <dd className="price-reference__mono" title={datafeedHash || undefined}>
+              {datafeedShort || "-"}
+            </dd>
+          </div>
+          <div className="price-reference__row">
+            <dt>{t("priceReferenceMethod")}</dt>
+            <dd className="price-reference__mono">{t("priceReferenceMethodValue")}</dd>
+          </div>
+          <div className="price-reference__row">
+            <dt>{t("priceReferenceQuote")}</dt>
+            <dd>{t("priceReferenceQuoteValue")}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   );
 }
@@ -317,6 +318,9 @@ function PricePairButton({
       <span className="price-pair-card__copy">
         <strong>{pair}</strong>
         <small>{t(assetHintKey(symbol))}</small>
+      </span>
+      <span className="price-pair-card__cue">
+        {selected ? t("pairSelected") : t("pairTapToRead")}
       </span>
     </button>
   );
