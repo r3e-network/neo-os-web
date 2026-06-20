@@ -1,4 +1,22 @@
-import { Bot, CheckCircle2, Clock3, Copy, ListChecks, Power, RefreshCw, Target, Trash2, Zap } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  Bell,
+  Bot,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  Copy,
+  ListChecks,
+  Power,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useState } from "react";
 import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -9,6 +27,21 @@ import "./PlayArea.scss";
 function shortId(value: string) {
   if (!value || value.length <= 18) return value;
   return `${value.slice(0, 10)}...${value.slice(-8)}`;
+}
+
+function actionIcon(value: string) {
+  switch (value) {
+    case "auto_repay_self_loan":
+      return <ShieldCheck size={19} aria-hidden="true" />;
+    case "rebalance_vault":
+      return <RefreshCw size={19} aria-hidden="true" />;
+    case "claim_rewards":
+      return <Sparkles size={19} aria-hidden="true" />;
+    case "notify_webhook":
+      return <Bell size={19} aria-hidden="true" />;
+    default:
+      return <Zap size={19} aria-hidden="true" />;
+  }
 }
 
 /**
@@ -100,33 +133,82 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
 
   return (
     <div className="automation-play-area">
-      <section className="automation-hero" aria-labelledby="automation-title">
-        <div className="automation-hero__copy">
-          <span className="automation-hero__icon" aria-hidden="true">
-            <Bot size={22} />
-          </span>
-          <div>
-            <span className="automation-hero__eyebrow">{t("automationRoute")}</span>
-            <h2 id="automation-title">{t("title")}</h2>
-            <p>{t("subtitle")}</p>
+      <section className={`automation-hero automation-hero--${statusTone}`} aria-labelledby="automation-title">
+        <div className="automation-hero__content">
+          <div className="automation-hero__copy">
+            <span className="automation-hero__icon" aria-hidden="true">
+              <Bot size={22} />
+            </span>
+            <div>
+              <span className="automation-hero__eyebrow">{t("automationRoute")}</span>
+              <h2 id="automation-title">{t("title")}</h2>
+              <p>{t("subtitle")}</p>
+            </div>
+          </div>
+
+          <div className="automation-hero__facts">
+            <span className="automation-hero__fact">
+              <span className="automation-hero__fact-label">{t("currentPrice")}</span>
+              <strong>{hasPrice ? currentPrice : "—"}</strong>
+              {hasPrice ? (
+                <small className="automation-hero__fact-caption">{t("priceFreshnessCaption")}</small>
+              ) : null}
+            </span>
+            <span className={`automation-hero__fact automation-hero__fact--status automation-hero__fact--${statusTone}`}>
+              <span className="automation-hero__fact-label">{t("triggerStatus")}</span>
+              <strong>
+                <span className="automation-status-badge__dot" aria-hidden="true" />
+                {statusLabel}
+              </strong>
+            </span>
           </div>
         </div>
 
-        <div className="automation-hero__facts">
-          <span className="automation-hero__fact">
-            <span className="automation-hero__fact-label">{t("currentPrice")}</span>
-            <strong>{hasPrice ? currentPrice : "—"}</strong>
-            {hasPrice ? (
-              <small className="automation-hero__fact-caption">{t("priceFreshnessCaption")}</small>
-            ) : null}
-          </span>
-          <span className={`automation-hero__fact automation-hero__fact--status automation-hero__fact--${statusTone}`}>
-            <span className="automation-hero__fact-label">{t("triggerStatus")}</span>
-            <strong>
-              <span className="automation-status-badge__dot" aria-hidden="true" />
-              {statusLabel}
-            </strong>
-          </span>
+        <figure className="automation-hero__visual">
+          <img src="./automation-workbench.jpg" alt="" loading="eager" decoding="sync" />
+          <figcaption>
+            <span>{t("recipeModeValue")}</span>
+            <strong>{selectedActionLabel}</strong>
+          </figcaption>
+        </figure>
+      </section>
+
+      <section className="automation-flow-board" aria-label={t("recipePreview")}>
+        <div className="automation-flow-board__track" aria-hidden="true">
+          <span />
+          <span className="automation-flow-board__pulse automation-flow-board__pulse--one" />
+          <span className="automation-flow-board__pulse automation-flow-board__pulse--two" />
+        </div>
+        <div className="automation-flow-node automation-flow-node--feed">
+          <span className="automation-flow-node__icon"><Activity size={18} aria-hidden="true" /></span>
+          <div>
+            <span>{t("currentPrice")}</span>
+            <strong>{hasPrice ? currentPrice : t("targetPricePlaceholder")}</strong>
+          </div>
+        </div>
+        <ArrowRight className="automation-flow-board__arrow" size={18} aria-hidden="true" />
+        <div className="automation-flow-node automation-flow-node--schedule">
+          <span className="automation-flow-node__icon"><CalendarClock size={18} aria-hidden="true" /></span>
+          <div>
+            <span>{t("scheduleCadence")}</span>
+            <strong>{selectedScheduleLabel}</strong>
+          </div>
+        </div>
+        <ArrowRight className="automation-flow-board__arrow" size={18} aria-hidden="true" />
+        <div className="automation-flow-node automation-flow-node--action">
+          <span className="automation-flow-node__icon">{actionIcon(actionName)}</span>
+          <div>
+            <span>{t("actionPlan")}</span>
+            <strong>{selectedActionLabel}</strong>
+          </div>
+        </div>
+        <ArrowRight className="automation-flow-board__arrow" size={18} aria-hidden="true" />
+        <div className={`automation-flow-node automation-flow-node--status automation-flow-node--${statusTone}`}>
+          <span className="automation-flow-node__icon"><Power size={18} aria-hidden="true" /></span>
+          <div>
+            <span>{t("triggerStatus")}</span>
+            <strong>{statusLabel}</strong>
+          </div>
         </div>
       </section>
 
@@ -145,9 +227,6 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
 
           <div className="automation-recipe-composer">
             <section className="automation-recipe-preview" aria-label={t("recipePreview")}>
-              <div className="automation-recipe-preview__icon" aria-hidden="true">
-                <Bot size={20} />
-              </div>
               <div className="automation-recipe-preview__body">
                 <span>{t("recipeModeValue")}</span>
                 <strong>{t("recipePreviewLine", { asset, price: targetPrice || t("targetPricePlaceholder") })}</strong>
@@ -173,6 +252,9 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                       className={`automation-asset-card${active ? " is-selected" : ""}`}
                       onClick={() => { if (state.asset) state.asset.set(option.value); }}
                     >
+                      <span className="automation-asset-card__orb" aria-hidden="true">
+                        {option.value.slice(0, 1)}
+                      </span>
                       <strong>{option.value}</strong>
                       <span>{t(option.hintKey)}</span>
                     </button>
@@ -186,14 +268,20 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                 <span className="automation-composer-label">{t("priceRule")}</span>
                 <strong>{t("priceRuleLine", { asset })}</strong>
               </div>
-              <NeoInput
-                value={targetPrice}
-                type="number"
-                min={0}
-                label={t("targetPrice")}
-                placeholder={t("targetPricePlaceholder")}
-                onChange={(val) => { if (state.targetPrice) state.targetPrice.set(val); }}
-              />
+              <label className="automation-threshold-control">
+                <span>{t("targetPrice")}</span>
+                <span className="automation-threshold-control__input">
+                  <input
+                    value={targetPrice}
+                    type="number"
+                    min={0}
+                    inputMode="decimal"
+                    placeholder={t("targetPricePlaceholder")}
+                    onChange={(event) => { if (state.targetPrice) state.targetPrice.set(event.currentTarget.value); }}
+                  />
+                  <b>{asset}</b>
+                </span>
+              </label>
             </section>
 
             <section className="automation-composer-section" aria-label={t("schedule")}>
@@ -209,18 +297,25 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                     className={`automation-preset${schedule === preset.value ? " automation-preset--active" : ""}`}
                     onClick={() => { if (state.schedule) state.schedule.set(preset.value); }}
                   >
+                    <Clock3 size={14} aria-hidden="true" />
                     {t(preset.labelKey)}
                   </button>
                 ))}
               </div>
-              <div className="automation-schedule-field">
-              <NeoInput
-                value={schedule}
-                label={t("schedule")}
-                placeholder={t("schedulePlaceholder")}
-                onChange={(val) => { if (state.schedule) state.schedule.set(val); }}
-              />
-              </div>
+              <details className="automation-advanced-field">
+                <summary>
+                  <span>{t("schedulePresetCustom")}</span>
+                  <ChevronDown size={15} aria-hidden="true" />
+                </summary>
+                <div className="automation-schedule-field">
+                  <NeoInput
+                    value={schedule}
+                    label={t("schedule")}
+                    placeholder={t("schedulePlaceholder")}
+                    onChange={(val) => { if (state.schedule) state.schedule.set(val); }}
+                  />
+                </div>
+              </details>
             </section>
 
             <section className="automation-composer-section" aria-label={t("actionName")}>
@@ -241,6 +336,9 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                         if (state.actionName) state.actionName.set(preset.value);
                       }}
                     >
+                      <span className="automation-action-card__icon" aria-hidden="true">
+                        {actionIcon(preset.value)}
+                      </span>
                       <strong>{t(preset.labelKey)}</strong>
                       <span>{t(preset.hintKey)}</span>
                     </button>
@@ -254,6 +352,9 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                   className={`automation-action-card${actionSelectValue === CUSTOM_ACTION ? " is-selected" : ""}`}
                   onClick={() => setCustomActionMode(true)}
                 >
+                  <span className="automation-action-card__icon" aria-hidden="true">
+                    <Zap size={19} />
+                  </span>
                   <strong>{t("actionCustom")}</strong>
                   <span>{t("actionCustomHint")}</span>
                 </button>
@@ -439,7 +540,10 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
         <details className="automation-details" open>
           <summary className="automation-details__summary">
             <span>{t("payload")}</span>
-            <span className="automation-details__hint">{t("detailsLabel")}</span>
+            <span className="automation-details__hint">
+              {t("detailsLabel")}
+              <ChevronDown size={16} aria-hidden="true" />
+            </span>
           </summary>
           <div className="automation-details__body">
             <div className="automation-details__config">
