@@ -17,6 +17,8 @@ const appMessages = {
   eventNamePlaceholder: { en: "Neo Builder Summit", zh: "Neo 开发者峰会" },
   eventVenue: { en: "Venue", zh: "场地" },
   eventVenuePlaceholder: { en: "Shanghai Expo Center", zh: "上海世博中心" },
+  eventIdentity: { en: "Event identity", zh: "活动识别信息" },
+  eventDetails: { en: "Schedule and capacity", zh: "时间与容量" },
   eventStart: { en: "Start time", zh: "开始时间" },
   eventStartPlaceholder: { en: "2025-06-20 09:00", zh: "2025-06-20 09:00" },
   eventEnd: { en: "End time", zh: "结束时间" },
@@ -108,6 +110,7 @@ const appMessages = {
   ticketAlreadyUsed: { en: "Ticket is already used", zh: "门票已使用" },
 
   issueTicketTitle: { en: "Issue Ticket", zh: "签发门票" },
+  issuePreview: { en: "Pass being issued", zh: "即将签发的通行证" },
   issueRecipient: { en: "Recipient address", zh: "接收地址" },
   issueRecipientPlaceholder: { en: "Neo N3 address", zh: "Neo N3 地址" },
   issueSeat: { en: "Seat / Zone", zh: "座位/区域" },
@@ -128,6 +131,10 @@ const appMessages = {
   dateUnknown: { en: "Schedule TBD", zh: "时间待定" },
 
   docSubtitle: {
+    en: "Hand out passes your guests actually keep — issue them in seconds and check people in at the door.",
+    zh: "送出宾客真正愿意收藏的通行证——几秒即可签发，并在入口处完成核验。",
+  },
+  subtitle: {
     en: "Hand out passes your guests actually keep — issue them in seconds and check people in at the door.",
     zh: "送出宾客真正愿意收藏的通行证——几秒即可签发，并在入口处完成核验。",
   },
