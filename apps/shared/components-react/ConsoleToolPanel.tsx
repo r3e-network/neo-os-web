@@ -1,15 +1,17 @@
 import { useContext, useId, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
+  ArrowRight,
   Check,
   Copy,
+  DatabaseZap,
   FileSearch,
   Info,
   Play,
+  ReceiptText,
   RotateCcw,
   Send,
   ShieldCheck,
-  SlidersHorizontal,
 } from "lucide-react";
 import { MiniAppManifestContext } from "../react/context";
 import type { ObservableState } from "../react/context";
@@ -66,6 +68,11 @@ export interface ConsoleToolConfig {
    * configured. Defaults to the shared "consolePreviewNotice" base message.
    */
   previewNoticeKey?: string;
+  /**
+   * Optional public image path for the scene card. Oracle console apps default
+   * to ./oracle-workspace-stage.jpg, which each app ships from its public dir.
+   */
+  visualSrc?: string;
   /**
    * Hide the session "Requests" counter in the hero meta line for consoles
    * where the tally carries no business meaning (e.g. the VRF console).
@@ -198,6 +205,12 @@ export function ConsoleToolPanel({
   const requestCount = readObservable(state, "requestCount", "0");
   const choiceFields = config.fields.filter((field) => field.type === "select");
   const inputFields = config.fields.filter((field) => field.type !== "select");
+  const stageSrc = config.visualSrc ?? "./oracle-workspace-stage.jpg";
+  const requestSummary = config.fields.slice(0, 4).map((field) => ({
+    key: field.key,
+    label: t(field.labelKey),
+    value: displayFieldValue(field, values[field.key], t),
+  }));
 
   function updateValue(key: string, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -278,14 +291,30 @@ export function ConsoleToolPanel({
             <h2 id="console-title">{t(config.titleKey)}</h2>
             <p>{t(config.descriptionKey)}</p>
           </div>
+          <div className="console-tool__hero-meta" aria-label={t("statistics")}>
+            <span>{t("statNetwork")} <strong>{networkLabel}</strong></span>
+            <span>{t("statEndpoint")} <strong>{endpointLabel}</strong></span>
+            {config.hideRequestCount ? null : (
+              <span>{t("statRequests")} <strong>{requestCount}</strong></span>
+            )}
+          </div>
         </div>
-        <div className="console-tool__hero-meta" aria-label={t("statistics")}>
-          <span>{t("statNetwork")} <strong>{networkLabel}</strong></span>
-          <span>{t("statEndpoint")} <strong>{endpointLabel}</strong></span>
-          {config.hideRequestCount ? null : (
-            <span>{t("statRequests")} <strong>{requestCount}</strong></span>
-          )}
-        </div>
+        <figure className="console-tool__stage">
+          <img
+            src={stageSrc}
+            alt=""
+            onError={(event) => {
+              const image = event.currentTarget;
+              if (image.dataset.fallbackApplied === "true") return;
+              image.dataset.fallbackApplied = "true";
+              image.src = "./banner.jpg";
+            }}
+          />
+          <figcaption>
+            <span>{t("consoleFlow")}</span>
+            <strong>{t("consoleRequestHint")}</strong>
+          </figcaption>
+        </figure>
       </section>
 
       {!config.execute && (
@@ -299,12 +328,29 @@ export function ConsoleToolPanel({
         <div className="console-tool__form" aria-label={t(config.titleKey)}>
           <div className="console-tool__form-head">
             <span className="console-tool__form-icon" aria-hidden="true">
-              <SlidersHorizontal size={18} />
+              <DatabaseZap size={18} />
             </span>
             <div className="console-tool__form-copy">
               <span>{t("consoleConfigureEyebrow")}</span>
               <strong>{t("consoleConfigureTitle")}</strong>
             </div>
+          </div>
+
+          <div className="console-tool__flow-rail" aria-label={t("consoleFlow")}>
+            <span>{t("consoleFlowInput")}</span>
+            <ArrowRight size={14} aria-hidden="true" />
+            <span>{t("consoleFlowPreview")}</span>
+            <ArrowRight size={14} aria-hidden="true" />
+            <span>{t("consoleFlowVerify")}</span>
+          </div>
+
+          <div className="console-tool__request-summary" aria-label={t("consoleSelectedValues")}>
+            {requestSummary.map((item) => (
+              <div key={item.key}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
           </div>
 
           {choiceFields.length > 0 && (
@@ -371,30 +417,36 @@ export function ConsoleToolPanel({
           )}
 
           {inputFields.length > 0 && (
-            <div className="console-tool__input-grid">
-              {inputFields.map((field) => (
-                <div
-                  key={field.key}
-                  className={`console-tool__input-cell${
-                    isWideConsoleField(field) ? " console-tool__input-cell--wide" : ""
-                  }`}
-                >
-                  <NeoInput
-                    type={
-                      field.type === "number"
-                        ? "number"
-                        : field.type === "textarea"
-                          ? "textarea"
-                          : "text"
-                    }
-                    label={t(field.labelKey)}
-                    value={values[field.key] ?? ""}
-                    placeholder={field.placeholderKey ? t(field.placeholderKey) : ""}
-                    onChange={(value) => updateValue(field.key, value)}
-                  />
-                </div>
-              ))}
-            </div>
+            <section className="console-tool__input-section">
+              <div className="console-tool__section-head">
+                <span>{t("consoleParametersEyebrow")}</span>
+                <strong>{t("consoleParametersTitle")}</strong>
+              </div>
+              <div className="console-tool__input-grid">
+                {inputFields.map((field) => (
+                  <div
+                    key={field.key}
+                    className={`console-tool__input-cell${
+                      isWideConsoleField(field) ? " console-tool__input-cell--wide" : ""
+                    }`}
+                  >
+                    <NeoInput
+                      type={
+                        field.type === "number"
+                          ? "number"
+                          : field.type === "textarea"
+                            ? "textarea"
+                            : "text"
+                      }
+                      label={t(field.labelKey)}
+                      value={values[field.key] ?? ""}
+                      placeholder={field.placeholderKey ? t(field.placeholderKey) : ""}
+                      onChange={(value) => updateValue(field.key, value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
 
           <div className="console-tool__actions">
@@ -423,6 +475,15 @@ export function ConsoleToolPanel({
         </div>
 
         <div className="console-tool__result" aria-live="polite">
+          <div className="console-tool__result-top">
+            <span className="console-tool__result-icon" aria-hidden="true">
+              {result ? <ReceiptText size={18} /> : <FileSearch size={18} />}
+            </span>
+            <div>
+              <span>{t("consolePreviewEyebrow")}</span>
+              <strong>{t("consolePreviewTitle")}</strong>
+            </div>
+          </div>
           {result ? (
             <>
               <div className="console-tool__result-head">
@@ -450,9 +511,6 @@ export function ConsoleToolPanel({
             </>
           ) : (
             <div className="console-tool__empty">
-              <span className="console-tool__empty-icon" aria-hidden="true">
-                <FileSearch size={22} />
-              </span>
               <span className="console-tool__empty-pill">{t("previewWaiting")}</span>
               <p className="console-tool__empty-hint">{t("previewWaitingHint")}</p>
             </div>
@@ -468,6 +526,19 @@ function optionLabel(
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
   return option.labelKey ? t(option.labelKey) : option.label ?? option.value;
+}
+
+function displayFieldValue(
+  field: ConsoleField,
+  value: string | undefined,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  if (field.type === "select") {
+    const selected = (field.options ?? []).find((option) => option.value === value);
+    if (selected) return optionLabel(selected, t);
+  }
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text : t("notAvailable");
 }
 
 function isWideConsoleField(field: ConsoleField) {
