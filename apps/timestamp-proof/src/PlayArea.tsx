@@ -6,13 +6,16 @@ import { useState } from "react";
 import {
   Anchor,
   BadgeCheck,
+  CheckCircle2,
   Copy,
   FileCheck2,
   FileText,
   Fingerprint,
+  Hash,
   SearchCheck,
   ShieldCheck,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -27,6 +30,37 @@ interface PlayAreaProps {
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
+
+const PROOF_PRESETS = [
+  {
+    key: "release",
+    labelKey: "proofTemplateRelease",
+    bodyKey: "proofTemplateReleaseBody",
+    sample: "release-notes.pdf v1.2.0 | sha256 pending | published 2026-06-20",
+    icon: FileText,
+  },
+  {
+    key: "audit",
+    labelKey: "proofTemplateAudit",
+    bodyKey: "proofTemplateAuditBody",
+    sample:
+      "audit-report-final.pdf | reviewed by security council | seal ready",
+    icon: ShieldCheck,
+  },
+  {
+    key: "digest",
+    labelKey: "proofTemplateDigest",
+    bodyKey: "proofTemplateDigestBody",
+    sample: "7f83b1657ff1fc53b92dc18148a1d65dfa13583b2d4f4f6bdad4f3f4f7c2e6aa",
+    icon: Hash,
+  },
+] satisfies ReadonlyArray<{
+  key: string;
+  labelKey: string;
+  bodyKey: string;
+  sample: string;
+  icon: LucideIcon;
+}>;
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
@@ -49,8 +83,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const trimmedContent = content.trim();
   const canCreate = trimmedContent.length > 0;
   const looksLikeSha256 = /^[a-fA-F0-9]{64}$/.test(trimmedContent);
-  const contentKind = looksLikeSha256 ? t("documentTypeHash") : t("documentTypeText");
-  const previewTitle = trimmedContent ? contentKind : t("documentPreviewEmptyTitle");
+  const contentKind = looksLikeSha256
+    ? t("documentTypeHash")
+    : t("documentTypeText");
+  const previewTitle = trimmedContent
+    ? contentKind
+    : t("documentPreviewEmptyTitle");
   const previewBody = trimmedContent || t("documentPreviewEmpty");
 
   return (
@@ -68,7 +106,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="proof-stat">
           <span className="proof-stat__label">{t("latestId")}</span>
-          <span className="proof-stat__value proof-stat__value--mono">{latestId}</span>
+          <span className="proof-stat__value proof-stat__value--mono">
+            {latestId}
+          </span>
         </div>
       </div>
 
@@ -85,12 +125,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
 
-          <div className="proof-document-preview" aria-label={t("documentPreviewLabel")}>
+          <div
+            className="proof-document-preview"
+            aria-label={t("documentPreviewLabel")}
+          >
             <div className="proof-document-preview__paper">
+              <div className="proof-document-preview__lines" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
               <span className="proof-document-preview__seal" aria-hidden="true">
                 <Fingerprint size={26} />
               </span>
-              <span className="proof-document-preview__type">{previewTitle}</span>
+              <span className="proof-document-preview__type">
+                {previewTitle}
+              </span>
               <p>{previewBody}</p>
             </div>
             <div className="proof-document-preview__meta">
@@ -104,12 +154,62 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </span>
               <span>
                 <small>{t("proofDigest")}</small>
-                <strong>{canCreate ? t("pendingDigest") : t("notAvailable")}</strong>
+                <strong>
+                  {canCreate ? t("pendingDigest") : t("notAvailable")}
+                </strong>
               </span>
             </div>
           </div>
 
+          <div className="proof-route" aria-label={t("proofRouteLabel")}>
+            <span className={canCreate ? "is-ready" : ""}>
+              <Fingerprint size={16} aria-hidden="true" />
+              <small>{t("proofRouteHash")}</small>
+              <strong>
+                {canCreate ? t("proofRouteReady") : t("proofRouteWaiting")}
+              </strong>
+            </span>
+            <span>
+              <CheckCircle2 size={16} aria-hidden="true" />
+              <small>{t("proofRouteSave")}</small>
+              <strong>{t("localOnly")}</strong>
+            </span>
+            <span>
+              <Anchor size={16} aria-hidden="true" />
+              <small>{t("proofRouteAnchor")}</small>
+              <strong>{t("anchorShort")}</strong>
+            </span>
+          </div>
+
           <div className="proof-form proof-form--composer">
+            <div
+              className="proof-template-row"
+              aria-label={t("proofTemplatesLabel")}
+            >
+              {PROOF_PRESETS.map((preset) => {
+                const Icon = preset.icon;
+
+                return (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    className="proof-template-card"
+                    onClick={() => setContent(preset.sample)}
+                  >
+                    <span
+                      className="proof-template-card__icon"
+                      aria-hidden="true"
+                    >
+                      <Icon size={17} />
+                    </span>
+                    <span>
+                      <strong>{t(preset.labelKey)}</strong>
+                      <small>{t(preset.bodyKey)}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             <NeoInput
               value={content}
               type="textarea"
@@ -198,18 +298,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                   <div className="verify-result__row">
                     <span>{t("timestamp")}</span>
-                    <span className="mono">{new Date(verifiedProof.timestamp).toLocaleString()}</span>
+                    <span className="mono">
+                      {new Date(verifiedProof.timestamp).toLocaleString()}
+                    </span>
                   </div>
                   <div className="verify-result__row">
                     <span>{t("proofDigest")}</span>
-                    <span className="mono verify-result__hash">{verifiedProof.contentHash}</span>
+                    <span className="mono verify-result__hash">
+                      {verifiedProof.contentHash}
+                    </span>
                   </div>
                   <div className="verify-result__row">
                     <span>{t("anchorStatus")}</span>
                     <span
                       className={`proof-anchor-badge ${verifiedProof.anchored ? "is-anchored" : "is-local"}`}
                     >
-                      {verifiedProof.anchored ? t("anchoredOnChain") : t("localOnly")}
+                      {verifiedProof.anchored
+                        ? t("anchoredOnChain")
+                        : t("localOnly")}
                     </span>
                   </div>
                   {verifiedProof.anchored && verifiedProof.anchorTxid && (
@@ -234,18 +340,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   )}
                   <div className="verify-result__row">
                     <span>{t("contentPreview")}</span>
-                    <span className="verify-result__preview">{verifiedProof.content}</span>
+                    <span className="verify-result__preview">
+                      {verifiedProof.content}
+                    </span>
                   </div>
                   {!verifiedProof.anchored && (
                     <>
-                      <p className="verify-result__cost-note">{t("anchorCostNote")}</p>
+                      <p className="verify-result__cost-note">
+                        {t("anchorCostNote")}
+                      </p>
                       <NeoButton
                         variant="primary"
                         size="sm"
-                        loading={isAnchoring && anchoringId === verifiedProof.id}
+                        loading={
+                          isAnchoring && anchoringId === verifiedProof.id
+                        }
                         disabled={isAnchoring}
                         aria-label={t("anchorOnChain")}
-                        onClick={() => dispatch("anchorProof", verifiedProof.id)}
+                        onClick={() =>
+                          dispatch("anchorProof", verifiedProof.id)
+                        }
                       >
                         <Anchor size={15} aria-hidden="true" />
                         {t("anchorOnChain")}
@@ -287,8 +401,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <li key={proof.id} className="proof-list__item">
                     <div className="proof-list__main">
                       <span className="proof-list__id mono">#{proof.id}</span>
-                      <span className="proof-list__hash mono">{proof.contentHash}</span>
-                      <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
+                      <span className="proof-list__hash mono">
+                        {proof.contentHash}
+                      </span>
+                      <span className="proof-list__time">
+                        {new Date(proof.timestamp).toLocaleString()}
+                      </span>
                       <span
                         className={`proof-anchor-badge ${proof.anchored ? "is-anchored" : "is-local"}`}
                       >
@@ -300,7 +418,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         variant="secondary"
                         size="sm"
                         aria-label={t("verify")}
-                        onClick={() => dispatch("verifyProof", String(proof.id))}
+                        onClick={() =>
+                          dispatch("verifyProof", String(proof.id))
+                        }
                       >
                         <SearchCheck size={15} aria-hidden="true" />
                         {t("verify")}
