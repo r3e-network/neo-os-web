@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { Coins, Dices, Sparkles, Trophy } from "lucide-react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { StateView } from "@shared/components";
@@ -133,6 +134,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : dieIsPreview
       ? `${t("youPicked")} ${displayFace}`
       : `${t("rolledLabel")} ${displayFace}`;
+  const tableCaption = showResult
+    ? outcomeLabel
+    : isResolving
+      ? t("statusRolling")
+      : isUnresolved
+        ? t("statusSettlementPending")
+        : t("gameTableCaption");
 
   useEffect(() => {
     setFaceInput(selectedFace);
@@ -192,19 +200,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               alt={stageDieLabel}
             />
             <p className="dice-stage__caption" aria-live="polite">
-              {dieIsPreview ? (
-                <>
-                  {t("youPicked")} <strong>{displayFace}</strong>
-                </>
-              ) : showResult ? (
-                <>
-                  {t("rolledLabel")} <strong>{displayFace}</strong>
-                </>
-              ) : (
-                <>
-                  {t("youPicked")} <strong>{faceInput}</strong>
-                </>
-              )}
+              <Sparkles size={14} aria-hidden="true" />
+              <span>{tableCaption}</span>
+              <strong>{showResult ? lastRoll : faceInput}</strong>
             </p>
           </div>
 
@@ -316,97 +314,105 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <form className="dice-bet-form" onSubmit={handleSubmit}>
-            <div className="dice-bet-summary" aria-label={t("diceBetSummary")}>
-              <span>
-                {t("selectedFace")}
+            <div className="dice-current-round" aria-label={t("diceBetSummary")}>
+              <div className="dice-current-round__face">
+                <span>{t("currentRound")}</span>
                 <strong>{faceInput}</strong>
-              </span>
-              <span>
-                {t("stakeAmount")}
+              </div>
+              <div className="dice-current-round__copy">
+                <span>{t("stakeAmount")}</span>
                 <strong>{stakeIsValid ? `${normalizedAmount} GAS` : "--"}</strong>
-              </span>
-              <span>
-                {t("payoutPreview")}
-                <strong>{activePayout}</strong>
-              </span>
-              <span>
-                {t("netWinLabel")}
-                <strong>{netPayout}</strong>
-              </span>
+                <em>
+                  {t("payoutPreview")} {activePayout} · {t("netWinLabel")} {netPayout}
+                </em>
+              </div>
+              <Trophy className="dice-current-round__icon" size={23} aria-hidden="true" />
             </div>
 
-            <div className="dice-face-grid" aria-label={t("selectedFace")}>
-              {FACES.map((face) => (
-                <button
-                  key={face}
-                  type="button"
-                  aria-pressed={face === faceInput}
-                  className={`dice-face-grid__item${face === faceInput ? " dice-face-grid__item--active" : ""}`}
-                  disabled={isSubmitting}
-                  onClick={() => setFaceInput(face)}
-                >
-                  <DiceFaceImage face={face} className="dice-face-grid__die" alt="" />
-                  <span>{face}</span>
-                </button>
-              ))}
-            </div>
-
-            <label className="dice-stake-field">
-              <span>{t("stakeAmount")}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={MIN_STAKE}
-                max={effectiveMaxStake}
-                step="0.01"
-                value={amountInput}
-                aria-label={t("stakeAmount")}
-                aria-invalid={!stakeIsValid}
-                disabled={isSubmitting}
-                onChange={(event) => setAmountInput(event.currentTarget.value)}
-              />
-              <em>
-                {stakeIsValid
-                  ? `${t("stakeHelp")} ${activePayout}`
-                  : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
-              </em>
-            </label>
-
-            <div className="dice-stake-presets" aria-label={t("stakePresets")}>
-              {STAKE_PRESETS.map((preset) => {
-                // Grey out presets above the network cap OR above what the house
-                // can currently pay — pressing one would strand the GAS as credit.
-                const unpayable = Number(preset) > effectiveMaxStake;
-                const isActive =
-                  !unpayable && Number(preset) === Number(amountInput);
-                return (
+            <div className="dice-face-tray">
+              <div className="dice-face-tray__head">
+                <span>{t("pickYourFace")}</span>
+                <strong>{t("faceTrayHint")}</strong>
+              </div>
+              <div className="dice-face-grid" aria-label={t("selectedFace")}>
+                {FACES.map((face) => (
                   <button
-                    key={preset}
+                    key={face}
                     type="button"
-                    className={
-                      [
-                        unpayable && "dice-preset--unpayable",
-                        isActive && "dice-preset--active",
-                      ]
-                        .filter(Boolean)
-                        .join(" ") || undefined
-                    }
-                    aria-pressed={isActive}
-                    disabled={isSubmitting || unpayable}
-                    title={
-                      unpayable && maxPayableStake > 0
-                        ? t("statusStakeOverLiquidity", {
-                            max: maxPayableStake.toFixed(2),
-                            tokenGas: t("tokenGas"),
-                          })
-                        : undefined
-                    }
-                    onClick={() => setAmountInput(preset)}
+                    aria-pressed={face === faceInput}
+                    className={`dice-face-grid__item${face === faceInput ? " dice-face-grid__item--active" : ""}`}
+                    disabled={isSubmitting}
+                    onClick={() => setFaceInput(face)}
                   >
-                    {preset} GAS
+                    <DiceFaceImage face={face} className="dice-face-grid__die" alt="" />
+                    <span>{face}</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
+            </div>
+
+            <div className="dice-chip-rack">
+              <div className="dice-chip-rack__head">
+                <Coins size={17} aria-hidden="true" />
+                <span>{t("stakeRackTitle")}</span>
+              </div>
+              <label className="dice-stake-field">
+                <span>{t("stakeAmount")}</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={MIN_STAKE}
+                  max={effectiveMaxStake}
+                  step="0.01"
+                  value={amountInput}
+                  aria-label={t("stakeAmount")}
+                  aria-invalid={!stakeIsValid}
+                  disabled={isSubmitting}
+                  onChange={(event) => setAmountInput(event.currentTarget.value)}
+                />
+                <em>
+                  {stakeIsValid
+                    ? `${t("stakeHelp")} ${activePayout}`
+                    : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
+                </em>
+              </label>
+
+              <div className="dice-stake-presets" aria-label={t("stakePresets")}>
+                {STAKE_PRESETS.map((preset) => {
+                  // Grey out presets above the network cap OR above what the house
+                  // can currently pay — pressing one would strand the GAS as credit.
+                  const unpayable = Number(preset) > effectiveMaxStake;
+                  const isActive =
+                    !unpayable && Number(preset) === Number(amountInput);
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={
+                        [
+                          unpayable && "dice-preset--unpayable",
+                          isActive && "dice-preset--active",
+                        ]
+                          .filter(Boolean)
+                          .join(" ") || undefined
+                      }
+                      aria-pressed={isActive}
+                      disabled={isSubmitting || unpayable}
+                      title={
+                        unpayable && maxPayableStake > 0
+                          ? t("statusStakeOverLiquidity", {
+                              max: maxPayableStake.toFixed(2),
+                              tokenGas: t("tokenGas"),
+                            })
+                          : undefined
+                      }
+                      onClick={() => setAmountInput(preset)}
+                    >
+                      {preset} GAS
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <button
@@ -414,6 +420,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               className="dice-roll-button"
               disabled={isSubmitting || !stakeIsValid}
             >
+              <Dices size={19} aria-hidden="true" />
               {isSubmitting ? t("statusSubmitting") : t("rollAction")}
             </button>
 
