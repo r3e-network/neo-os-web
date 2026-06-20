@@ -2,14 +2,18 @@ import { useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
   Copy,
+  MapPin,
   QrCode,
   RefreshCw,
   ScanLine,
   Send,
+  Sparkles,
   Ticket,
   UserPlus,
+  Users,
   X,
 } from "lucide-react";
 import { NeoButton, NeoInput } from "@shared/components-react";
@@ -104,6 +108,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="ticket-play-area">
       <section className="ticket-hero" aria-labelledby="event-ticket-title">
+        <img
+          className="ticket-hero__image"
+          src="./event-pass-stage.jpg"
+          alt=""
+          loading="eager"
+          decoding="async"
+        />
+        <div className="ticket-hero__shade" aria-hidden="true" />
         <div className="ticket-hero__copy">
           <span className="ticket-hero__badge" aria-hidden="true">
             <Ticket size={24} />
@@ -120,6 +132,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
         <div className="ticket-hero__side">
+          <div className="ticket-hero__mini-pass" aria-label={t("eventPass")}>
+            <div className="ticket-hero__mini-art" aria-hidden="true" />
+            <div>
+              <span>{t("eventPass")}</span>
+              <strong>{selectedEvent?.name || eventName || t("eventNamePlaceholder")}</strong>
+              <small>{selectedEvent?.venue || eventVenue || t("eventVenuePlaceholder")}</small>
+            </div>
+          </div>
           <div className="ticket-hero__wallet">
             <span>{t("wallet")}</span>
             <strong>{address ? short(address) : t("walletNotConnected")}</strong>
@@ -169,12 +189,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="ticket-create-composer">
             <section className="ticket-create-preview" aria-label={t("eventPass")}>
-              <div className="ticket-create-preview__stub">
-                <Ticket size={18} aria-hidden="true" />
-                <span>{t("sampleAdmitOne")}</span>
-              </div>
+              <div className="ticket-create-preview__art" aria-hidden="true" />
               <div className="ticket-create-preview__body">
-                <span>{t("eventPass")}</span>
+                <span><Sparkles size={14} aria-hidden="true" />{t("eventPass")}</span>
                 <strong>{eventName || t("eventNamePlaceholder")}</strong>
                 <p>{eventVenue || t("eventVenuePlaceholder")}</p>
                 <div className="ticket-create-preview__meta">
@@ -190,7 +207,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </section>
 
-            <div className="ticket-create-fields ticket-create-fields--identity">
+            <div className="ticket-create-fields ticket-create-fields--identity" aria-label={t("eventIdentity")}>
               <NeoInput
                 value={eventName}
                 label={t("eventName")}
@@ -205,7 +222,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </div>
 
-            <div className="ticket-create-fields ticket-create-fields--schedule">
+            <div className="ticket-create-fields ticket-create-fields--schedule" aria-label={t("eventDetails")}>
               <NeoInput
                 value={eventStart}
                 label={t("eventStart")}
@@ -230,8 +247,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             <details className="ticket-create-advanced">
               <summary>
-                <span>{t("notes")}</span>
+                <span><ClipboardCheck size={15} aria-hidden="true" />{t("notes")}</span>
                 <small>{t("notesPlaceholder")}</small>
+                <ChevronDown size={16} aria-hidden="true" />
               </summary>
               <NeoInput
                 value={notes}
@@ -277,11 +295,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       onClick={() => dispatch("selectEvent", event.id)}
                     >
                       <span>{event.name || event.id}</span>
-                      <strong>{event.venue || t("venueFallback")}</strong>
+                      <strong><MapPin size={14} aria-hidden="true" />{event.venue || t("venueFallback")}</strong>
                     </button>
                     <div className="ticket-event__meta">
-                      <span>{formatDate(event.startTime, t("dateUnknown"))}</span>
-                      <span>{event.minted.toString()} / {event.maxSupply.toString()} {t("minted")}</span>
+                      <span><CalendarDays size={13} aria-hidden="true" />{formatDate(event.startTime, t("dateUnknown"))}</span>
+                      <span><Users size={13} aria-hidden="true" />{event.minted.toString()} / {event.maxSupply.toString()} {t("minted")}</span>
                       <span className={event.active ? "is-live" : "is-muted"}>
                         {event.active ? t("statusActive") : t("statusInactive")}
                       </span>
@@ -379,6 +397,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>{t("selectEventFirst")}</span>
               </div>
             )}
+            <section className="ticket-issue-preview" aria-label={t("issuePreview")}>
+              <div className="ticket-issue-preview__art" aria-hidden="true" />
+              <div className="ticket-issue-preview__copy">
+                <span>{t("issuePreview")}</span>
+                <strong>{selectedEvent?.name || t("eventNamePlaceholder")}</strong>
+                <div>
+                  <small>{issueSeat || t("seatFallback")}</small>
+                  <small>{issueRecipient ? short(issueRecipient) : t("issueRecipientPlaceholder")}</small>
+                </div>
+              </div>
+            </section>
             <NeoInput
               value={issueRecipient}
               label={t("issueRecipient")}
@@ -475,6 +504,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               const isThisTransferring = transferringTokenId === ticket.tokenId;
               return (
                 <article key={ticket.tokenId} className={`ticket-pass${ticket.used ? " ticket-pass--used" : ""}`}>
+                  <div className="ticket-pass__art" aria-hidden="true" />
                   <div className="ticket-pass__stub">
                     <Ticket size={18} aria-hidden="true" />
                     <span>{t("sampleAdmitOne")}</span>
@@ -582,6 +612,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="ticket-sample" aria-label={t("samplePreviewHeading")}>
               <span className="ticket-sample__flag">{t("samplePreviewLabel")}</span>
               <article className="ticket-pass ticket-pass--sample" aria-hidden="true">
+                <div className="ticket-pass__art" aria-hidden="true" />
                 <div className="ticket-pass__stub">
                   <Ticket size={18} aria-hidden="true" />
                   <span>{t("sampleAdmitOne")}</span>
@@ -605,9 +636,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </div>
                   </div>
                   <div className="ticket-pass__sample-foot">
-                    <span className="ticket-pass__qr-mock" aria-hidden="true">
-                      <QrCode size={26} />
-                    </span>
+                    <TokenQr value="sample-pass-1042" label={t("ticketQrLabel")} />
                     <code>1-1042</code>
                   </div>
                 </div>
@@ -623,7 +652,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <section className="ticket-evidence" aria-label={t("evidence")}>
         <details className="ticket-evidence__details" open={hasEvidence}>
-          <summary>{t("evidence")}</summary>
+          <summary>
+            <span>{t("evidence")}</span>
+            <ChevronDown size={16} aria-hidden="true" />
+          </summary>
           <div className="ticket-evidence__grid">
             <div className="ticket-evidence__col">
               <div className="ticket-evidence__head">
