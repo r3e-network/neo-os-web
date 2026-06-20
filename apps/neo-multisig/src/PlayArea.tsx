@@ -5,6 +5,24 @@ import {
   NeoInput,
   NeoSelect,
 } from "@shared/components-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Banknote,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  FileSignature,
+  HandCoins,
+  History,
+  KeyRound,
+  Plus,
+  ShieldCheck,
+  Signature,
+  Users,
+  Vault,
+  X,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { parseHash160, ownerMatchesAddress } from "@shared/utils/neo";
@@ -263,51 +281,93 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const heroRequestLabel = activeRequest
     ? statusLabel(activeRequest.status)
     : t("multisigDraftState");
+  const approvalTarget = activeVault?.threshold ?? thresholdNumber;
+  const approvalCount = activeRequest?.approvalCount ?? 0;
+  const approvalPercent = Math.min(
+    100,
+    Math.max(0, approvalTarget > 0 ? (approvalCount / approvalTarget) * 100 : 0),
+  );
+  const proposalAmountLabel = activeRequest
+    ? `${requestAmount} ${activeRequest.assetSymbol}`
+    : spendAmount.trim()
+      ? `${spendAmount.trim()} ${spendAsset}`
+      : t("multisigAmountPreview");
+  const proposalRecipientLabel = activeRequest
+    ? shorten(activeRequest.recipient)
+    : recipient.trim()
+      ? shorten(recipient.trim())
+      : t("multisigRecipientPreview");
+  const signerBoard = activeVault?.signers.length
+    ? activeVault.signers.map((signer, index) => ({
+        id: signer,
+        label: shorten(parseHash160(signer) || signer),
+        status:
+          activeRequest && index < activeRequest.approvalCount
+            ? t("multisigSignerApproved")
+            : t("multisigSignerWaiting"),
+        isApproved: !!activeRequest && index < activeRequest.approvalCount,
+        isYou: ownerMatchesAddress(signer, connectedAddress),
+      }))
+    : signers.map((signer, index) => ({
+        id: `${index}:${signer}`,
+        label: signer.trim() ? shorten(signer.trim()) : `${t("signerLabel")} ${index + 1}`,
+        status: signer.trim() ? t("multisigSignerDraft") : t("multisigSignerWaiting"),
+        isApproved: false,
+        isYou: false,
+      }));
 
   return (
     <div className="multisig-play-area">
       <div className="multisig-shell">
         <section className="multisig-main" aria-label={t("multisigHeroTitle")}>
           <div className="multisig-hero">
-            <span className="multisig-hero-accent" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
-                <path
-                  d="M12 2.5 19.5 6v6c0 4.4-3.2 7.8-7.5 9.5C7.7 19.8 4.5 16.4 4.5 12V6L12 2.5Z"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="m8.6 12 2.3 2.3 4.5-4.6"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            <span className="multisig-hero-eyebrow">{t("multisigHeroEyebrow")}</span>
-            <h2>{t("multisigHeroTitle")}</h2>
-            <p>{t("multisigHeroSubtitle")}</p>
-            <div className="multisig-hero-facts">
-              <span className="multisig-hero-tile">
-                <small>{t("multisigQuorumTitle")}</small>
-                <strong>{heroQuorumLabel}</strong>
+            <img
+              className="multisig-hero__image"
+              src="./multisig-vault-stage.jpg"
+              alt=""
+              aria-hidden="true"
+            />
+            <div className="multisig-hero__shade" aria-hidden="true" />
+            <div className="multisig-hero__copy">
+              <span className="multisig-hero-accent" aria-hidden="true">
+                <ShieldCheck size={22} />
               </span>
-              <span className="multisig-hero-tile">
-                <small>{t("multisigBalanceTitle")}</small>
-                <strong>{heroBalanceLabel}</strong>
-              </span>
-              <span className="multisig-hero-tile">
-                <small>{t("multisigRequestStatusTitle")}</small>
-                <strong>{heroRequestLabel}</strong>
-              </span>
+              <div>
+                <span className="multisig-hero-eyebrow">{t("multisigHeroEyebrow")}</span>
+                <h2>{t("multisigHeroTitle")}</h2>
+                <p>{t("multisigHeroSubtitle")}</p>
+                <div className="multisig-hero-flow" aria-label={t("multisigRouteTitle")}>
+                  <span>
+                    <Vault size={14} />
+                    {t("buttonCreateVault")}
+                  </span>
+                  <span>
+                    <HandCoins size={14} />
+                    {t("buttonPropose")}
+                  </span>
+                  <span>
+                    <Signature size={14} />
+                    {t("buttonApprove")}
+                  </span>
+                </div>
+              </div>
             </div>
-            <p className="multisig-hero-connected">
-              {connectedAddress
-                ? `${t("multisigConnectedAs")}: ${shorten(connectedAddress)}`
-                : t("multisigNotConnected")}
-            </p>
+            <div className="multisig-hero__glass" aria-label={t("multisigHeroSnapshot")}>
+              <div className="multisig-hero__vault-card">
+                <span>{t("multisigQuorumTitle")}</span>
+                <strong>{heroQuorumLabel}</strong>
+                <small>{heroBalanceLabel}</small>
+              </div>
+              <div className="multisig-hero__proposal-card">
+                <span>{t("multisigRequestStatusTitle")}</span>
+                <strong>{heroRequestLabel}</strong>
+                <small>
+                  {connectedAddress
+                    ? `${t("multisigConnectedAs")}: ${shorten(connectedAddress)}`
+                    : t("multisigNotConnected")}
+                </small>
+              </div>
+            </div>
           </div>
 
           <div className="multisig-workspace">
@@ -318,6 +378,62 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <strong>{t("multisigStepCreate")}</strong>
               </div>
               <p>{t("multisigVaultCopy")}</p>
+
+              <section className="multisig-board" aria-label={t("multisigBoardTitle")}>
+                <div className="multisig-board__head">
+                  <div>
+                    <span>{t("multisigBoardTitle")}</span>
+                    <strong>{heroQuorumLabel}</strong>
+                  </div>
+                  <div className="multisig-board__progress" aria-hidden="true">
+                    <span style={{ width: `${approvalPercent}%` }} />
+                  </div>
+                </div>
+                <div className="multisig-board__signers">
+                  {signerBoard.map((signer, index) => (
+                    <div
+                      key={signer.id}
+                      className={
+                        "multisig-board__signer" +
+                        (signer.isApproved ? " is-approved" : "") +
+                        (signer.isYou ? " is-you" : "")
+                      }
+                    >
+                      <span className="multisig-board__seal" aria-hidden="true">
+                        {signer.isApproved ? (
+                          <CheckCircle2 size={18} />
+                        ) : (
+                          <KeyRound size={18} />
+                        )}
+                      </span>
+                      <div>
+                        <strong>{signer.label}</strong>
+                        <small>
+                          {signer.isYou
+                            ? t("multisigYouBadge")
+                            : signer.status || `${t("signerLabel")} ${index + 1}`}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section
+                className="multisig-proposal-preview multisig-proposal-preview--draft"
+                aria-label={t("multisigProposalPreview")}
+              >
+                <div className="multisig-proposal-preview__art" aria-hidden="true" />
+                <div className="multisig-proposal-preview__copy">
+                  <span>{t("multisigProposalPreview")}</span>
+                  <strong>{proposalAmountLabel}</strong>
+                  <div>
+                    <small>{proposalRecipientLabel}</small>
+                    <ArrowRight size={14} />
+                    <small>{t("multisigRouteBroadcast")}</small>
+                  </div>
+                </div>
+              </section>
 
               <div className="multisig-form-grid">
                 <div className="multisig-signer-grid" aria-label={t("ariaSigners")}>
@@ -344,7 +460,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                             aria-label={t("multisigRemoveSigner")}
                             onClick={() => removeSigner(index)}
                           >
-                            {"×"}
+                            <X size={16} />
                           </button>
                         )}
                       </div>
@@ -356,6 +472,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       className="multisig-signer-add"
                       onClick={addSigner}
                     >
+                      <Plus size={15} />
                       {t("multisigAddSigner")}
                     </button>
                   )}
@@ -388,6 +505,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   disabled={!canCreateVault}
                   onClick={createVault}
                 >
+                  <Vault size={16} />
                   {t("buttonCreateVault")}
                 </NeoButton>
               </div>
@@ -433,6 +551,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       disabled={!canDeposit}
                       onClick={deposit}
                     >
+                      <HandCoins size={16} />
                       {t("buttonDeposit")}
                     </NeoButton>
                   </div>
@@ -443,6 +562,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <strong>{t("multisigStepPropose")}</strong>
                   </div>
                   <p>{t("multisigProposeCopy")}</p>
+                  <section className="multisig-proposal-preview" aria-label={t("multisigProposalPreview")}>
+                    <div className="multisig-proposal-preview__art" aria-hidden="true" />
+                    <div className="multisig-proposal-preview__copy">
+                      <span>{t("multisigProposalPreview")}</span>
+                      <strong>{proposalAmountLabel}</strong>
+                      <div>
+                        <small>{proposalRecipientLabel}</small>
+                        <ArrowRight size={14} />
+                        <small>{t("multisigRouteBroadcast")}</small>
+                      </div>
+                    </div>
+                  </section>
                   <div className="multisig-form-grid">
                     <div className="multisig-form-row multisig-form-row--transfer">
                       <NeoInput
@@ -501,6 +632,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       disabled={!canPropose}
                       onClick={propose}
                     >
+                      <FileSignature size={16} />
                       {t("buttonPropose")}
                     </NeoButton>
                   </div>
@@ -520,12 +652,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       className="multisig-copy-btn"
                       onClick={copyRequestId}
                     >
+                      <Copy size={13} />
                       {copiedRequestId ? t("multisigCopied") : t("multisigCopy")}
                     </button>
                   </div>
                   <p className="multisig-request-hint">
                     {t("multisigShareRequestId")}
                   </p>
+
+                  <section className="multisig-approval-card" aria-label={t("multisigApprovalBoard")}>
+                    <div className="multisig-approval-card__head">
+                      <span>{t("multisigApprovalBoard")}</span>
+                      <strong>
+                        {activeRequest.approvalCount} / {activeVault?.threshold ?? "?"}
+                      </strong>
+                    </div>
+                    <div className="multisig-approval-card__track" aria-hidden="true">
+                      <span style={{ width: `${approvalPercent}%` }} />
+                    </div>
+                    <div className="multisig-approval-card__route">
+                      <span>
+                        <FileSignature size={15} />
+                        #{activeRequest.id}
+                      </span>
+                      <ArrowRight size={15} />
+                      <span>
+                        <Banknote size={15} />
+                        {requestAmount} {activeRequest.assetSymbol}
+                      </span>
+                    </div>
+                  </section>
 
                   <div className="multisig-request-details">
                     <div>
@@ -586,6 +742,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         dispatch("approveRequest", activeRequest.id)
                       }
                     >
+                      <BadgeCheck size={16} />
                       {isApproving ? t("buttonApproving") : t("buttonApprove")}
                     </NeoButton>
                     <NeoButton
@@ -606,7 +763,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="multisig-aside">
               <NeoCard variant="erobo" className="multisig-signer-panel">
                 <div className="multisig-section-heading">
-                  <span>{t("multisigSignerTitle")}</span>
+                  <span>
+                    <Users size={17} />
+                    {t("multisigSignerTitle")}
+                  </span>
                   <strong>{t("multisigSignerList")}</strong>
                 </div>
                 <p>{t("multisigSignerCopy")}</p>
@@ -668,7 +828,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
               <NeoCard variant="erobo" className="multisig-activity-panel">
                 <div className="multisig-section-heading">
-                  <span>{t("recentTitle")}</span>
+                  <span>
+                    <History size={17} />
+                    {t("recentTitle")}
+                  </span>
                   {history.length > 0 && <strong>{history.length}</strong>}
                 </div>
                 {history.length === 0 ? (
@@ -705,7 +868,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   flow is the create card on the left. */}
               <NeoCard variant="erobo" className="multisig-load-panel">
                 <div className="multisig-section-heading">
-                  <span>{t("multisigLoadTitle")}</span>
+                  <span>
+                    <KeyRound size={17} />
+                    {t("multisigLoadTitle")}
+                  </span>
                   <strong>{t("multisigNetworkValue")}</strong>
                 </div>
                 <p>{t("multisigLoadCopy")}</p>
@@ -723,6 +889,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     disabled={!loadVaultId.trim()}
                     onClick={() => dispatch("loadVault", loadVaultId.trim())}
                   >
+                    <ArrowRight size={15} />
                     {t("loadButton")}
                   </NeoButton>
                 </div>
@@ -740,6 +907,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     disabled={!loadRequestId.trim()}
                     onClick={() => dispatch("loadRequest", loadRequestId.trim())}
                   >
+                    <ArrowRight size={15} />
                     {t("loadButton")}
                   </NeoButton>
                 </div>
@@ -748,7 +916,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     collapsed behind a disclosure so it stays out of the resting
                     fold until a user wants the walkthrough. */}
                 <details className="multisig-route-details">
-                  <summary>{t("multisigRouteTitle")}</summary>
+                  <summary>
+                    <span>{t("multisigRouteTitle")}</span>
+                    <ChevronDown size={16} aria-hidden="true" />
+                  </summary>
                   <p>{t("multisigRouteCopy")}</p>
                   <div className="multisig-signal-row">
                     <span>{t("buttonCreateVault")}</span>
