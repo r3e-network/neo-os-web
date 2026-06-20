@@ -13,7 +13,8 @@ afterEach(() => cleanup());
 const proof: TimestampProof = {
   id: 3,
   content: "release-notes.pdf v1.2.0",
-  contentHash: "7f83b1657ff1fc53b92dc18148a1d65dfa13583b2d4f4f6bdad4f3f4f7c2e6aa",
+  contentHash:
+    "7f83b1657ff1fc53b92dc18148a1d65dfa13583b2d4f4f6bdad4f3f4f7c2e6aa",
   timestamp: 1780300000000,
   creator: "local",
   anchorTxid: "",
@@ -24,12 +25,15 @@ function t(key: string) {
   const messages: Record<string, string> = {
     title: "Timestamp Proof",
     docSubtitle: "SHA-256 proof journal with optional on-chain anchor",
-    docDescription: "Create local SHA-256 proof entries and optionally anchor them on Neo N3.",
+    docDescription:
+      "Create local SHA-256 proof entries and optionally anchor them on Neo N3.",
     proofWorkspace: "Timestamp proof workspace",
     proofWorkflow: "Proof workflow",
-    proofPrivacy: "Your source content stays local; only the digest is saved or anchored.",
+    proofPrivacy:
+      "Your source content stays local; only the digest is saved or anchored.",
     proofStageKicker: "Proof desk",
-    proofStageTitle: "Hash locally, save a proof record, then anchor the digest.",
+    proofStageTitle:
+      "Hash locally, save a proof record, then anchor the digest.",
     step2: "Hash it locally in the browser",
     step3: "Optionally anchor the proof on-chain for third-party verification",
     totalProofs: "Total Proofs",
@@ -39,17 +43,32 @@ function t(key: string) {
     createProof: "Create Proof",
     createPanelKicker: "Create",
     createPanelTitle: "Prepare a timestamp certificate",
-    createPanelBody: "Paste content and review the certificate preview before saving.",
+    createPanelBody:
+      "Paste content and review the certificate preview before saving.",
     creating: "Creating...",
     enterContent: "Enter content to timestamp",
     contentPlaceholder: "Paste text, a document hash, or a release note...",
     documentPreviewLabel: "Certificate preview",
     documentPreviewEmptyTitle: "Ready for content",
-    documentPreviewEmpty: "Your proof preview will appear here as soon as you add content.",
+    documentPreviewEmpty:
+      "Your proof preview will appear here as soon as you add content.",
     documentTypeHash: "SHA-256 digest",
     documentTypeText: "Source content",
     contentChars: "Characters",
     pendingDigest: "After save",
+    proofRouteLabel: "Proof route",
+    proofRouteHash: "Local hash",
+    proofRouteSave: "Device proof",
+    proofRouteAnchor: "Public anchor",
+    proofRouteReady: "Ready",
+    proofRouteWaiting: "Waiting",
+    proofTemplatesLabel: "Proof templates",
+    proofTemplateRelease: "Release note",
+    proofTemplateReleaseBody: "Version or artifact note",
+    proofTemplateAudit: "Audit seal",
+    proofTemplateAuditBody: "Review result or report",
+    proofTemplateDigest: "Known digest",
+    proofTemplateDigestBody: "Paste a SHA-256 hash",
     verifyProof: "Verify Proof",
     verifyPanelKicker: "Verify",
     verifyPanelTitle: "Inspect an existing proof",
@@ -84,7 +103,9 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     totalProofs: 1,
     anchoredProofs: 0,
@@ -101,7 +122,10 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     ...overrides,
   };
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+    Object.entries(values).map(([key, value]) => [
+      key,
+      createObservable(value),
+    ]),
   );
 }
 
@@ -113,9 +137,20 @@ describe("Timestamp Proof PlayArea", () => {
     expect(screen.getByText("Timestamp Proof")).toBeTruthy();
     expect(screen.getByLabelText("Timestamp proof workspace")).toBeTruthy();
     expect(screen.getByLabelText("Certificate preview")).toBeTruthy();
-    expect(document.querySelector('.proof-hero__stage img[src="./proof-desk.jpg"]')).toBeTruthy();
+    expect(
+      document.querySelector('.proof-hero__stage img[src="./proof-desk.jpg"]'),
+    ).toBeTruthy();
     expect(screen.getByText("Recent Proofs")).toBeTruthy();
     expect(screen.getByText("Proof Found")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Known digest/ }));
+    expect(
+      (
+        screen.getByLabelText(
+          "Enter content to timestamp",
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toMatch(/^[0-9a-f]{64}$/);
 
     fireEvent.change(screen.getByLabelText("Enter content to timestamp"), {
       target: { value: "audit artifact" },
@@ -135,7 +170,9 @@ describe("Timestamp Proof PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copy digest" }));
     expect(dispatch).toHaveBeenCalledWith("copyProofDigest", 3);
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy proof reference" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Copy proof reference" }),
+    );
     expect(dispatch).toHaveBeenCalledWith("copyProofReference", 3);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete proof" }));
@@ -154,7 +191,9 @@ describe("Timestamp Proof PlayArea", () => {
 
     // Anchoring the proof is one click away (the namesake third-party journey).
     // The affordance appears on both the verified-result card and the list row.
-    const anchorButtons = screen.getAllByRole("button", { name: "Anchor on-chain" });
+    const anchorButtons = screen.getAllByRole("button", {
+      name: "Anchor on-chain",
+    });
     expect(anchorButtons.length).toBeGreaterThan(0);
     fireEvent.click(anchorButtons[0]);
     expect(dispatch).toHaveBeenCalledWith("anchorProof", 3);
@@ -186,7 +225,11 @@ describe("Timestamp Proof PlayArea", () => {
 
   it("keeps raw action keys out of the rendered workspace", () => {
     const { container } = render(
-      <PlayArea t={t} state={state({ proofs: [], verifiedProof: null, totalProofs: 0 })} dispatch={vi.fn()} />,
+      <PlayArea
+        t={t}
+        state={state({ proofs: [], verifiedProof: null, totalProofs: 0 })}
+        dispatch={vi.fn()}
+      />,
     );
 
     expect(container.textContent).not.toContain("contractMissing");
