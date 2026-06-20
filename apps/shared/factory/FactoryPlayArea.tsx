@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   Boxes,
   Check,
+  ChevronDown,
   Coins,
   Network,
   PackagePlus,
@@ -109,7 +110,11 @@ function ChoiceField<TValue extends string>({
         <span>{label}</span>
         {selectedOption ? <strong>{selectedOption.label}</strong> : null}
       </div>
-      <div className="domain-factory-choice__options" role="radiogroup" aria-label={label}>
+      <div
+        className="domain-factory-choice__options"
+        role="radiogroup"
+        aria-label={label}
+      >
         {options.map((option) => {
           const Icon = option.icon;
           const selected = option.value === value;
@@ -134,7 +139,10 @@ function ChoiceField<TValue extends string>({
                 {option.meta ? <small>{option.meta}</small> : null}
               </span>
               {selected ? (
-                <span className="domain-factory-choice__check" aria-hidden="true">
+                <span
+                  className="domain-factory-choice__check"
+                  aria-hidden="true"
+                >
                   <Check size={14} />
                 </span>
               ) : null}
@@ -172,7 +180,9 @@ function ToggleField({
         <Icon size={16} />
       </span>
       <span className="domain-factory-toggle-button__label">{label}</span>
-      <span className="domain-factory-toggle-button__track" aria-hidden="true" />
+      <span className="domain-factory-toggle-button__track" aria-hidden="true">
+        <span className="domain-factory-toggle-button__thumb" />
+      </span>
     </button>
   );
 }
@@ -222,7 +232,9 @@ function FactoryPreviewCard({
     // requires 1–1,000,000), so it can never deploy as "Unlimited" — show a
     // neutral placeholder instead of implying an unavailable option.
     const maxSupply =
-      nep11.maxSupply.trim() && Number.isFinite(maxSupplyNum) && maxSupplyNum > 0
+      nep11.maxSupply.trim() &&
+      Number.isFinite(maxSupplyNum) &&
+      maxSupplyNum > 0
         ? maxSupplyNum.toLocaleString()
         : "—";
     const royaltyNum = Number(nep11.royaltyBps);
@@ -234,7 +246,12 @@ function FactoryPreviewCard({
     body = (
       <div className="domain-factory-preview__nft">
         <div className="domain-factory-preview__art" aria-hidden="true">
-          <img src="./nft-drop-preview.jpg" alt="" loading="lazy" decoding="async" />
+          <img
+            src="./nft-drop-preview.jpg"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
           <div className="domain-factory-preview__art-overlay">
             <span>NEP-11</span>
             <strong>{initial}</strong>
@@ -250,7 +267,9 @@ function FactoryPreviewCard({
             <PreviewStat label={t("previewRoyalty")} value={royalty} />
             <PreviewStat
               label={t("previewTransferPolicy")}
-              value={t(nep11.transferable ? "previewTransferable" : "previewSoulbound")}
+              value={t(
+                nep11.transferable ? "previewTransferable" : "previewSoulbound",
+              )}
             />
           </div>
         </div>
@@ -267,9 +286,18 @@ function FactoryPreviewCard({
     const decimals = nep17.decimals.trim() || "0";
     const initial = (symbol[0] ?? "T").toUpperCase();
     body = (
-      <div className="domain-factory-preview__token">
-        <div className="domain-factory-preview__coin" aria-hidden="true">
-          <span>{initial}</span>
+      <div className="domain-factory-preview__token domain-factory-preview__token--asset">
+        <div className="domain-factory-preview__token-art" aria-hidden="true">
+          <img
+            src="./token-mint-studio.jpg"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="domain-factory-preview__token-mark">
+            <span>NEP-17</span>
+            <strong>{initial}</strong>
+          </div>
         </div>
         <div className="domain-factory-preview__nftbody">
           <div className="domain-factory-preview__head">
@@ -281,7 +309,9 @@ function FactoryPreviewCard({
             <PreviewStat label={t("decimals")} value={decimals} />
             <PreviewStat
               label={t("previewMintPolicy")}
-              value={t(nep17.mintable ? "previewMintable" : "previewFixedSupply")}
+              value={t(
+                nep17.mintable ? "previewMintable" : "previewFixedSupply",
+              )}
             />
           </div>
         </div>
@@ -310,7 +340,9 @@ function FactoryPreviewCard({
             <PreviewStat label={t("previewTemplate")} value={template} />
             <PreviewStat
               label={t("previewServices")}
-              value={services.length ? services.join(" · ") : t("previewServiceNone")}
+              value={
+                services.length ? services.join(" · ") : t("previewServiceNone")
+              }
             />
           </div>
         </div>
@@ -346,19 +378,30 @@ export function FactoryPlayArea({
     [fixedKind, launchContext],
   );
   const kind = fixedKind;
-  const [nep17, setNep17] = useState<Nep17Draft>(() => cloneDraft(initialDraft.nep17));
-  const [nep11, setNep11] = useState<Nep11Draft>(() => cloneDraft(initialDraft.nep11));
-  const [miniapp, setMiniapp] = useState<MiniAppDraft>(() => cloneDraft(initialDraft.miniapp));
+  const [nep17, setNep17] = useState<Nep17Draft>(() =>
+    cloneDraft(initialDraft.nep17),
+  );
+  const [nep11, setNep11] = useState<Nep11Draft>(() =>
+    cloneDraft(initialDraft.nep11),
+  );
+  const [miniapp, setMiniapp] = useState<MiniAppDraft>(() =>
+    cloneDraft(initialDraft.miniapp),
+  );
   const [copied, setCopied] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
 
   const { val, bool, str, num } = useStateBindings(state);
   const storedPlan = val<FactoryPlan>("currentPlan") ?? null;
   const walletAddress = str("walletAddress");
-  const presenceMap = val<Record<string, FactoryArtifactPresence>>("artifactPresence") ?? {};
+  const presenceMap =
+    val<Record<string, FactoryArtifactPresence>>("artifactPresence") ?? {};
 
   const activeNetwork =
-    kind === "nep17" ? nep17.network : kind === "nep11" ? nep11.network : miniapp.network;
+    kind === "nep17"
+      ? nep17.network
+      : kind === "nep11"
+        ? nep11.network
+        : miniapp.network;
   const draftTemplateId = factoryTemplateIdFor(kind, miniapp.templateKind);
   const draftPresence = presenceMap[`${activeNetwork}|${draftTemplateId}`];
 
@@ -369,7 +412,11 @@ export function FactoryPlayArea({
     () =>
       buildFactoryPlan(
         kind,
-        (kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp) as unknown as Record<string, unknown>,
+        (kind === "nep17"
+          ? nep17
+          : kind === "nep11"
+            ? nep11
+            : miniapp) as unknown as Record<string, unknown>,
         { appId, artifactPresence: draftPresence },
       ),
     [kind, nep17, nep11, miniapp, appId, draftPresence],
@@ -385,7 +432,8 @@ export function FactoryPlayArea({
   const isGenerating = bool("isGenerating");
   const isExecuting = bool("isExecuting");
   const walletSignature = str("walletSignature");
-  const signatureInfo = val<FactorySignatureInfo>("walletSignatureInfo") ?? null;
+  const signatureInfo =
+    val<FactorySignatureInfo>("walletSignatureInfo") ?? null;
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
   const deployedContractHash = str("deployedContractHash");
@@ -395,10 +443,16 @@ export function FactoryPlayArea({
   const deploymentsTotal = num("deploymentsTotal");
   const deploymentsState = str("deploymentsState");
 
-  const alreadyExecuted = Boolean(storedPlan && executedDigest && storedPlan.digest === executedDigest);
-  const canExecute = Boolean(storedPlan?.publishable && storedPlan.execution.available) && !alreadyExecuted;
+  const alreadyExecuted = Boolean(
+    storedPlan && executedDigest && storedPlan.digest === executedDigest,
+  );
+  const canExecute =
+    Boolean(storedPlan?.publishable && storedPlan.execution.available) &&
+    !alreadyExecuted;
   const executeBlockedReason =
-    storedPlan?.publishable && !storedPlan.execution.available && storedPlan.execution.blockedReasonKey
+    storedPlan?.publishable &&
+    !storedPlan.execution.available &&
+    storedPlan.execution.blockedReasonKey
       ? t(storedPlan.execution.blockedReasonKey)
       : "";
 
@@ -408,10 +462,20 @@ export function FactoryPlayArea({
   useEffect(() => {
     if (!walletAddress) return;
     setNep17((draft) =>
-      draft.owner ? draft : { ...draft, owner: walletAddress, treasury: draft.treasury || walletAddress },
+      draft.owner
+        ? draft
+        : {
+            ...draft,
+            owner: walletAddress,
+            treasury: draft.treasury || walletAddress,
+          },
     );
-    setNep11((draft) => (draft.owner ? draft : { ...draft, owner: walletAddress }));
-    setMiniapp((draft) => (draft.admin ? draft : { ...draft, admin: walletAddress }));
+    setNep11((draft) =>
+      draft.owner ? draft : { ...draft, owner: walletAddress },
+    );
+    setMiniapp((draft) =>
+      draft.admin ? draft : { ...draft, admin: walletAddress },
+    );
   }, [walletAddress]);
 
   // Live-verify the active template's artifact whenever template/network
@@ -425,28 +489,33 @@ export function FactoryPlayArea({
   }, [dispatch, kind, draftTemplateId, activeNetwork]);
 
   useEffect(() => {
-    void dispatch("refreshDeployments", { network: activeNetwork }).catch(() => undefined);
+    void dispatch("refreshDeployments", { network: activeNetwork }).catch(
+      () => undefined,
+    );
   }, [dispatch, activeNetwork]);
 
   const packageJson = useMemo(
-    () => JSON.stringify(
-      {
-        packageId: currentPlan.packageId,
-        digest: currentPlan.digest,
-        templateId: currentPlan.templateId,
-        templateVersion: currentPlan.templateVersion,
-        templateArtifact: currentPlan.templateArtifact,
-        operation: currentPlan.operation,
-        deploymentCall: currentPlan.deploymentCall,
-        network: currentPlan.network,
-        payload: currentPlan.payload,
-        ...(signatureInfo && storedPlan && currentPlan.digest === storedPlan.digest
-          ? { walletSignature: signatureInfo }
-          : {}),
-      },
-      null,
-      2,
-    ),
+    () =>
+      JSON.stringify(
+        {
+          packageId: currentPlan.packageId,
+          digest: currentPlan.digest,
+          templateId: currentPlan.templateId,
+          templateVersion: currentPlan.templateVersion,
+          templateArtifact: currentPlan.templateArtifact,
+          operation: currentPlan.operation,
+          deploymentCall: currentPlan.deploymentCall,
+          network: currentPlan.network,
+          payload: currentPlan.payload,
+          ...(signatureInfo &&
+          storedPlan &&
+          currentPlan.digest === storedPlan.digest
+            ? { walletSignature: signatureInfo }
+            : {}),
+        },
+        null,
+        2,
+      ),
     [currentPlan, signatureInfo, storedPlan],
   );
 
@@ -484,8 +553,16 @@ export function FactoryPlayArea({
     setMiniapp((draft) => ({ ...draft, network }));
   };
 
-  const networkLabel = t(activeNetwork === "neo-n3-mainnet" ? "networkMainnet" : "networkTestnet");
-  const kindLabel = t(kind === "nep11" ? "nep11" : kind === "miniapp" ? "miniappTemplate" : "nep17");
+  const networkLabel = t(
+    activeNetwork === "neo-n3-mainnet" ? "networkMainnet" : "networkTestnet",
+  );
+  const kindLabel = t(
+    kind === "nep11"
+      ? "nep11"
+      : kind === "miniapp"
+        ? "miniappTemplate"
+        : "nep17",
+  );
   const networkOptions: ChoiceOption<FactoryNetwork>[] = [
     {
       value: "neo-n3-testnet",
@@ -535,24 +612,42 @@ export function FactoryPlayArea({
 
   const royaltyBpsNumber = Number(nep11.royaltyBps);
   const royaltyHint =
-    Number.isFinite(royaltyBpsNumber) && royaltyBpsNumber >= 0 && royaltyBpsNumber <= 1000
+    Number.isFinite(royaltyBpsNumber) &&
+    royaltyBpsNumber >= 0 &&
+    royaltyBpsNumber <= 1000
       ? t("royaltyHelper", {
           bps: royaltyBpsNumber,
-          percent: (royaltyBpsNumber / 100).toFixed(2).replace(/\.?0+$/, "") || "0",
+          percent:
+            (royaltyBpsNumber / 100).toFixed(2).replace(/\.?0+$/, "") || "0",
         })
       : "";
-  const nep11CollectionLabel = nep11.collectionName.trim() || t("previewUntitledCollection");
+  const nep11CollectionLabel =
+    nep11.collectionName.trim() || t("previewUntitledCollection");
   const nep11SymbolLabel = nep11.symbol.trim() || t("previewSymbolPlaceholder");
   const nep11MaxSupplyNum = Number(nep11.maxSupply);
   const nep11MaxSupplyLabel =
-    nep11.maxSupply.trim() && Number.isFinite(nep11MaxSupplyNum) && nep11MaxSupplyNum > 0
+    nep11.maxSupply.trim() &&
+    Number.isFinite(nep11MaxSupplyNum) &&
+    nep11MaxSupplyNum > 0
       ? nep11MaxSupplyNum.toLocaleString()
       : "—";
   const nep11RoyaltyLabel =
     Number.isFinite(royaltyBpsNumber) && royaltyBpsNumber >= 0
       ? `${(royaltyBpsNumber / 100).toFixed(2).replace(/\.?0+$/, "") || "0"}%`
       : "—";
-  const nep11PolicyLabel = t(nep11.transferable ? "previewTransferable" : "previewSoulbound");
+  const nep11PolicyLabel = t(
+    nep11.transferable ? "previewTransferable" : "previewSoulbound",
+  );
+  const nep17NameLabel = nep17.name.trim() || t("previewUntitledToken");
+  const nep17SymbolLabel = nep17.symbol.trim() || t("previewSymbolPlaceholder");
+  const nep17SupplyNum = Number(nep17.initialSupply);
+  const nep17SupplyLabel =
+    nep17.initialSupply.trim() && Number.isFinite(nep17SupplyNum)
+      ? nep17SupplyNum.toLocaleString()
+      : "—";
+  const nep17PolicyLabel = t(
+    nep17.mintable ? "previewMintable" : "previewFixedSupply",
+  );
 
   function renderUseMyAddress(currentValue: string, apply: () => void) {
     if (!walletAddress || currentValue === walletAddress) return null;
@@ -567,21 +662,31 @@ export function FactoryPlayArea({
     <div className={`domain-factory domain-factory--${kind}`}>
       <section className="domain-factory-hero">
         <div className="domain-factory-hero__lead">
-          <span className="ns-icon-badge ns-badge--mint domain-factory-hero__badge" aria-hidden="true">
+          <span
+            className="ns-icon-badge ns-badge--mint domain-factory-hero__badge"
+            aria-hidden="true"
+          >
             <PackagePlus size={24} />
           </span>
           <div className="domain-factory-hero__text">
-            <span className="domain-factory-hero__eyebrow">{t("factoryOverview")}</span>
+            <span className="domain-factory-hero__eyebrow">
+              {t("factoryOverview")}
+            </span>
             <h2>{t("title")}</h2>
             <p>{t("subtitle")}</p>
           </div>
         </div>
-        <div className="domain-factory-hero__status" aria-label={t("planStatus")}>
+        <div
+          className="domain-factory-hero__status"
+          aria-label={t("planStatus")}
+        >
           <span className={`domain-factory-hero__pill ${heroPill.className}`}>
             {heroPill.label}
           </span>
           <div className="domain-factory-hero__meta">
-            <span className="domain-factory-hero__metalabel">{t("packageDigest")}</span>
+            <span className="domain-factory-hero__metalabel">
+              {t("packageDigest")}
+            </span>
             <strong>{currentPlan.digest.slice(-10)}</strong>
           </div>
           <small>{networkLabel}</small>
@@ -591,6 +696,44 @@ export function FactoryPlayArea({
       <div className="domain-factory-grid">
         <NeoCard variant="erobo" title={kindLabel}>
           <div className="domain-factory-form">
+            {kind === "nep17" && (
+              <section
+                className="domain-factory-token-rail"
+                aria-label={t("tokenStudio")}
+              >
+                <img
+                  className="domain-factory-token-rail__image"
+                  src="./token-mint-studio.jpg"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                />
+                <div className="domain-factory-token-rail__content">
+                  <div className="domain-factory-token-rail__copy">
+                    <span>{t("tokenStudio")}</span>
+                    <strong>{nep17NameLabel}</strong>
+                    <small>
+                      {t("tokenStudioHint", { symbol: nep17SymbolLabel })}
+                    </small>
+                  </div>
+                  <dl className="domain-factory-token-rail__stats">
+                    <div>
+                      <dt>{t("previewSupply")}</dt>
+                      <dd>{nep17SupplyLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("previewMintPolicy")}</dt>
+                      <dd>{nep17PolicyLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("network")}</dt>
+                      <dd>{networkLabel}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+            )}
+
             <ChoiceField
               label={t("network")}
               value={activeNetwork}
@@ -600,33 +743,96 @@ export function FactoryPlayArea({
 
             {kind === "nep17" && (
               <>
-                <NeoInput label={t("name")} value={nep17.name} onChange={(name) => setNep17((draft) => ({ ...draft, name }))} />
+                <NeoInput
+                  label={t("name")}
+                  value={nep17.name}
+                  onChange={(name) => setNep17((draft) => ({ ...draft, name }))}
+                />
                 <div className="domain-factory-form__row">
-                  <NeoInput label={t("symbol")} value={nep17.symbol} onChange={(symbol) => setNep17((draft) => ({ ...draft, symbol }))} />
-                  <NeoInput label={t("decimals")} type="number" value={nep17.decimals} min={0} max={8} onChange={(decimals) => setNep17((draft) => ({ ...draft, decimals }))} />
+                  <NeoInput
+                    label={t("symbol")}
+                    value={nep17.symbol}
+                    onChange={(symbol) =>
+                      setNep17((draft) => ({ ...draft, symbol }))
+                    }
+                  />
+                  <NeoInput
+                    label={t("decimals")}
+                    type="number"
+                    value={nep17.decimals}
+                    min={0}
+                    max={8}
+                    onChange={(decimals) =>
+                      setNep17((draft) => ({ ...draft, decimals }))
+                    }
+                  />
                 </div>
-                <NeoInput label={t("initialSupply")} type="number" value={nep17.initialSupply} onChange={(initialSupply) => setNep17((draft) => ({ ...draft, initialSupply }))} />
+                <NeoInput
+                  label={t("initialSupply")}
+                  type="number"
+                  value={nep17.initialSupply}
+                  onChange={(initialSupply) =>
+                    setNep17((draft) => ({ ...draft, initialSupply }))
+                  }
+                />
                 <div className="domain-factory-field">
-                  <NeoInput label={t("owner")} value={nep17.owner} placeholder="N..." onChange={(owner) => setNep17((draft) => ({ ...draft, owner, treasury: draft.treasury || owner }))} />
+                  <NeoInput
+                    label={t("owner")}
+                    value={nep17.owner}
+                    placeholder="N..."
+                    onChange={(owner) =>
+                      setNep17((draft) => ({
+                        ...draft,
+                        owner,
+                        treasury: draft.treasury || owner,
+                      }))
+                    }
+                  />
                   {renderUseMyAddress(nep17.owner, () =>
-                    setNep17((draft) => ({ ...draft, owner: walletAddress, treasury: draft.treasury || walletAddress })),
+                    setNep17((draft) => ({
+                      ...draft,
+                      owner: walletAddress,
+                      treasury: draft.treasury || walletAddress,
+                    })),
                   )}
                 </div>
-                <NeoInput label={t("treasury")} value={nep17.treasury} placeholder="N..." onChange={(treasury) => setNep17((draft) => ({ ...draft, treasury }))} />
-                <ToggleField label={t("mintable")} icon={Coins} checked={nep17.mintable} onChange={(mintable) => setNep17((draft) => ({ ...draft, mintable }))} />
+                <NeoInput
+                  label={t("treasury")}
+                  value={nep17.treasury}
+                  placeholder="N..."
+                  onChange={(treasury) =>
+                    setNep17((draft) => ({ ...draft, treasury }))
+                  }
+                />
+                <ToggleField
+                  label={t("mintable")}
+                  icon={Coins}
+                  checked={nep17.mintable}
+                  onChange={(mintable) =>
+                    setNep17((draft) => ({ ...draft, mintable }))
+                  }
+                />
               </>
             )}
 
             {kind === "nep11" && (
               <>
-                <section className="domain-factory-drop-rail" aria-label={t("dropStudio")}>
-                  <span className="domain-factory-drop-rail__icon" aria-hidden="true">
+                <section
+                  className="domain-factory-drop-rail"
+                  aria-label={t("dropStudio")}
+                >
+                  <span
+                    className="domain-factory-drop-rail__icon"
+                    aria-hidden="true"
+                  >
                     <Ticket size={18} />
                   </span>
                   <div className="domain-factory-drop-rail__copy">
                     <span>{t("dropStudio")}</span>
                     <strong>{nep11CollectionLabel}</strong>
-                    <small>{t("dropStudioHint", { symbol: nep11SymbolLabel })}</small>
+                    <small>
+                      {t("dropStudioHint", { symbol: nep11SymbolLabel })}
+                    </small>
                   </div>
                   <dl className="domain-factory-drop-rail__stats">
                     <div>
@@ -643,25 +849,88 @@ export function FactoryPlayArea({
                     </div>
                   </dl>
                 </section>
-                <NeoInput label={t("collectionName")} value={nep11.collectionName} onChange={(collectionName) => setNep11((draft) => ({ ...draft, collectionName }))} />
+                <NeoInput
+                  label={t("collectionName")}
+                  value={nep11.collectionName}
+                  onChange={(collectionName) =>
+                    setNep11((draft) => ({ ...draft, collectionName }))
+                  }
+                />
                 <div className="domain-factory-form__row">
-                  <NeoInput label={t("symbol")} value={nep11.symbol} onChange={(symbol) => setNep11((draft) => ({ ...draft, symbol }))} />
-                  <NeoInput label={t("maxSupply")} type="number" value={nep11.maxSupply} onChange={(maxSupply) => setNep11((draft) => ({ ...draft, maxSupply }))} />
+                  <NeoInput
+                    label={t("symbol")}
+                    value={nep11.symbol}
+                    onChange={(symbol) =>
+                      setNep11((draft) => ({ ...draft, symbol }))
+                    }
+                  />
+                  <NeoInput
+                    label={t("maxSupply")}
+                    type="number"
+                    value={nep11.maxSupply}
+                    onChange={(maxSupply) =>
+                      setNep11((draft) => ({ ...draft, maxSupply }))
+                    }
+                  />
                 </div>
-                <NeoInput label={t("royaltyBps")} type="number" value={nep11.royaltyBps} min={0} max={1000} hint={royaltyHint} onChange={(royaltyBps) => setNep11((draft) => ({ ...draft, royaltyBps }))} />
-                <NeoInput label={t("baseUri")} value={nep11.baseUri} onChange={(baseUri) => setNep11((draft) => ({ ...draft, baseUri }))} />
+                <NeoInput
+                  label={t("royaltyBps")}
+                  type="number"
+                  value={nep11.royaltyBps}
+                  min={0}
+                  max={1000}
+                  hint={royaltyHint}
+                  onChange={(royaltyBps) =>
+                    setNep11((draft) => ({ ...draft, royaltyBps }))
+                  }
+                />
+                <NeoInput
+                  label={t("baseUri")}
+                  value={nep11.baseUri}
+                  onChange={(baseUri) =>
+                    setNep11((draft) => ({ ...draft, baseUri }))
+                  }
+                />
                 <div className="domain-factory-field">
-                  <NeoInput label={t("owner")} value={nep11.owner} placeholder="N..." onChange={(owner) => setNep11((draft) => ({ ...draft, owner }))} />
-                  {renderUseMyAddress(nep11.owner, () => setNep11((draft) => ({ ...draft, owner: walletAddress })))}
+                  <NeoInput
+                    label={t("owner")}
+                    value={nep11.owner}
+                    placeholder="N..."
+                    onChange={(owner) =>
+                      setNep11((draft) => ({ ...draft, owner }))
+                    }
+                  />
+                  {renderUseMyAddress(nep11.owner, () =>
+                    setNep11((draft) => ({ ...draft, owner: walletAddress })),
+                  )}
                 </div>
-                <ToggleField label={t("transferable")} icon={Ticket} checked={nep11.transferable} onChange={(transferable) => setNep11((draft) => ({ ...draft, transferable }))} />
+                <ToggleField
+                  label={t("transferable")}
+                  icon={Ticket}
+                  checked={nep11.transferable}
+                  onChange={(transferable) =>
+                    setNep11((draft) => ({ ...draft, transferable }))
+                  }
+                />
               </>
             )}
 
             {kind === "miniapp" && (
               <>
-                <NeoInput label={t("appId")} value={miniapp.appId} onChange={(appId) => setMiniapp((draft) => ({ ...draft, appId }))} />
-                <NeoInput label={t("appName")} value={miniapp.appName} onChange={(appName) => setMiniapp((draft) => ({ ...draft, appName }))} />
+                <NeoInput
+                  label={t("appId")}
+                  value={miniapp.appId}
+                  onChange={(appId) =>
+                    setMiniapp((draft) => ({ ...draft, appId }))
+                  }
+                />
+                <NeoInput
+                  label={t("appName")}
+                  value={miniapp.appName}
+                  onChange={(appName) =>
+                    setMiniapp((draft) => ({ ...draft, appName }))
+                  }
+                />
                 <ChoiceField
                   label={t("templateKind")}
                   value={miniapp.templateKind}
@@ -671,12 +940,35 @@ export function FactoryPlayArea({
                   }
                 />
                 <div className="domain-factory-field">
-                  <NeoInput label={t("admin")} value={miniapp.admin} placeholder="N..." onChange={(admin) => setMiniapp((draft) => ({ ...draft, admin }))} />
-                  {renderUseMyAddress(miniapp.admin, () => setMiniapp((draft) => ({ ...draft, admin: walletAddress })))}
+                  <NeoInput
+                    label={t("admin")}
+                    value={miniapp.admin}
+                    placeholder="N..."
+                    onChange={(admin) =>
+                      setMiniapp((draft) => ({ ...draft, admin }))
+                    }
+                  />
+                  {renderUseMyAddress(miniapp.admin, () =>
+                    setMiniapp((draft) => ({ ...draft, admin: walletAddress })),
+                  )}
                 </div>
                 <div className="domain-factory-form__row domain-factory-form__row--toggles">
-                  <ToggleField label={t("needsOracle")} icon={Radio} checked={miniapp.needsOracle} onChange={(needsOracle) => setMiniapp((draft) => ({ ...draft, needsOracle }))} />
-                  <ToggleField label={t("needsOneGate")} icon={Boxes} checked={miniapp.needsOneGate} onChange={(needsOneGate) => setMiniapp((draft) => ({ ...draft, needsOneGate }))} />
+                  <ToggleField
+                    label={t("needsOracle")}
+                    icon={Radio}
+                    checked={miniapp.needsOracle}
+                    onChange={(needsOracle) =>
+                      setMiniapp((draft) => ({ ...draft, needsOracle }))
+                    }
+                  />
+                  <ToggleField
+                    label={t("needsOneGate")}
+                    icon={Boxes}
+                    checked={miniapp.needsOneGate}
+                    onChange={(needsOneGate) =>
+                      setMiniapp((draft) => ({ ...draft, needsOneGate }))
+                    }
+                  />
                 </div>
               </>
             )}
@@ -704,7 +996,13 @@ export function FactoryPlayArea({
           />
 
           <NeoCard
-            variant={storedPlan ? (storedPlan.publishable ? "success" : "warning") : "erobo"}
+            variant={
+              storedPlan
+                ? storedPlan.publishable
+                  ? "success"
+                  : "warning"
+                : "erobo"
+            }
             title={t("publishPackage")}
           >
             <div className="domain-factory-package">
@@ -719,12 +1017,18 @@ export function FactoryPlayArea({
                 </div>
                 <div>
                   <span>{t("artifactStatusLabel")}</span>
-                  <strong>{t(ARTIFACT_STATUS_KEYS[currentPlan.templateArtifact.status])}</strong>
+                  <strong>
+                    {t(
+                      ARTIFACT_STATUS_KEYS[currentPlan.templateArtifact.status],
+                    )}
+                  </strong>
                 </div>
                 {feeEstimate ? (
                   <div>
                     <span>{t("estimatedFee")}</span>
-                    <strong>{t("estimatedFeeValue", { amount: feeEstimate })}</strong>
+                    <strong>
+                      {t("estimatedFeeValue", { amount: feeEstimate })}
+                    </strong>
                   </div>
                 ) : null}
               </div>
@@ -737,7 +1041,11 @@ export function FactoryPlayArea({
                   ) : (
                     <ul>
                       {currentPlan.blockingErrors.map((code) => (
-                        <li key={code}>{ERROR_KEYS[code] ? t(ERROR_KEYS[code]) : code.replace(/_/g, " ")}</li>
+                        <li key={code}>
+                          {ERROR_KEYS[code]
+                            ? t(ERROR_KEYS[code])
+                            : code.replace(/_/g, " ")}
+                        </li>
                       ))}
                     </ul>
                   )}
@@ -749,7 +1057,11 @@ export function FactoryPlayArea({
                   ) : (
                     <ul>
                       {currentPlan.warnings.map((code) => (
-                        <li key={code}>{WARNING_KEYS[code] ? t(WARNING_KEYS[code]) : code.replace(/_/g, " ")}</li>
+                        <li key={code}>
+                          {WARNING_KEYS[code]
+                            ? t(WARNING_KEYS[code])
+                            : code.replace(/_/g, " ")}
+                        </li>
                       ))}
                     </ul>
                   )}
@@ -757,12 +1069,22 @@ export function FactoryPlayArea({
               </div>
 
               <details className="domain-factory-json-disclosure">
-                <summary>{t("viewPackagePayload")}</summary>
+                <summary>
+                  <span>{t("viewPackagePayload")}</span>
+                  <ChevronDown
+                    className="domain-factory-json-disclosure__chevron"
+                    size={14}
+                    aria-hidden="true"
+                  />
+                </summary>
                 <pre className="domain-factory-json">{packageJson}</pre>
               </details>
 
               <div className="domain-factory-actions">
-                <NeoButton variant="secondary" onClick={() => copyText(packageJson, "package")}>
+                <NeoButton
+                  variant="secondary"
+                  onClick={() => copyText(packageJson, "package")}
+                >
                   {copyLabel("package", "copyPackage")}
                 </NeoButton>
                 <NeoButton
@@ -779,7 +1101,11 @@ export function FactoryPlayArea({
                   loading={isExecuting}
                   onClick={() => dispatch("executePlan")}
                 >
-                  {t(kind === "miniapp" ? "executeRecordAction" : "executeDeployAction")}
+                  {t(
+                    kind === "miniapp"
+                      ? "executeRecordAction"
+                      : "executeDeployAction",
+                  )}
                 </NeoButton>
               </div>
 
@@ -787,10 +1113,14 @@ export function FactoryPlayArea({
                 <div className="domain-factory-hint">{t("noPlanToSign")}</div>
               ) : null}
               {executeBlockedReason ? (
-                <div className="domain-factory-hint">{executeBlockedReason}</div>
+                <div className="domain-factory-hint">
+                  {executeBlockedReason}
+                </div>
               ) : null}
               {alreadyExecuted && !lastTxid ? (
-                <div className="domain-factory-hint">{t("alreadyExecuted")}</div>
+                <div className="domain-factory-hint">
+                  {t("alreadyExecuted")}
+                </div>
               ) : null}
               {lastTxid ? (
                 <div className="domain-factory-result">
@@ -802,7 +1132,13 @@ export function FactoryPlayArea({
                     <div>
                       <span>{t("deployedContractLabel")}</span>
                       <code>{deployedContractHash}</code>
-                      <NeoButton variant="ghost" size="sm" onClick={() => copyText(deployedContractHash, "deployed-hash")}>
+                      <NeoButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          copyText(deployedContractHash, "deployed-hash")
+                        }
+                      >
                         {copyLabel("deployed-hash", "copyContractHash")}
                       </NeoButton>
                     </div>
@@ -813,12 +1149,18 @@ export function FactoryPlayArea({
                 <div className="domain-factory-signature">
                   <span>{t("walletSignature")}</span>
                   <code>{walletSignature}</code>
-                  <NeoButton variant="ghost" size="sm" onClick={() => copyText(walletSignature, "signature")}>
+                  <NeoButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyText(walletSignature, "signature")}
+                  >
                     {copyLabel("signature", "copySignature")}
                   </NeoButton>
                 </div>
               ) : null}
-              {lastError ? <div className="domain-factory-error">{lastError}</div> : null}
+              {lastError ? (
+                <div className="domain-factory-error">{lastError}</div>
+              ) : null}
             </div>
           </NeoCard>
 
@@ -854,13 +1196,19 @@ export function FactoryPlayArea({
             <div className="domain-factory-deployments">
               <div className="domain-factory-deployments__bar">
                 <span>
-                  {deploymentsState === "ready" ? t("deploymentsCount", { count: deploymentsTotal }) : "—"}
+                  {deploymentsState === "ready"
+                    ? t("deploymentsCount", { count: deploymentsTotal })
+                    : "—"}
                 </span>
                 <NeoButton
                   variant="ghost"
                   size="sm"
                   disabled={deploymentsState === "loading"}
-                  onClick={() => dispatch("refreshDeployments", { network: activeNetwork }).catch(() => undefined)}
+                  onClick={() =>
+                    dispatch("refreshDeployments", {
+                      network: activeNetwork,
+                    }).catch(() => undefined)
+                  }
                 >
                   {t("refreshAction")}
                 </NeoButton>
@@ -881,7 +1229,11 @@ export function FactoryPlayArea({
                     <NeoButton
                       variant="ghost"
                       size="sm"
-                      onClick={() => dispatch("refreshDeployments", { network: activeNetwork }).catch(() => undefined)}
+                      onClick={() =>
+                        dispatch("refreshDeployments", {
+                          network: activeNetwork,
+                        }).catch(() => undefined)
+                      }
                     >
                       {t("retryAction")}
                     </NeoButton>
@@ -897,17 +1249,27 @@ export function FactoryPlayArea({
               ) : (
                 <ul className="domain-factory-deployments__list">
                   {deployments.map((item) => (
-                    <li key={item.packageId} className="domain-factory-deployment">
+                    <li
+                      key={item.packageId}
+                      className="domain-factory-deployment"
+                    >
                       <div className="domain-factory-deployment__head">
                         <strong>{item.packageId}</strong>
-                        {ownerMatchesAddress(item.creator, walletAddress || null) ? (
-                          <span className="domain-factory-deployment__mine">{t("mineTag")}</span>
+                        {ownerMatchesAddress(
+                          item.creator,
+                          walletAddress || null,
+                        ) ? (
+                          <span className="domain-factory-deployment__mine">
+                            {t("mineTag")}
+                          </span>
                         ) : null}
                       </div>
                       <div className="domain-factory-deployment__meta">
                         <span>{item.templateId}</span>
                         {item.createdAt > 0 ? (
-                          <span>{new Date(item.createdAt).toLocaleString()}</span>
+                          <span>
+                            {new Date(item.createdAt).toLocaleString()}
+                          </span>
                         ) : null}
                       </div>
                       {item.deployedHash ? (
@@ -916,13 +1278,23 @@ export function FactoryPlayArea({
                           <NeoButton
                             variant="ghost"
                             size="sm"
-                            onClick={() => copyText(item.deployedHash, `hash-${item.packageId}`)}
+                            onClick={() =>
+                              copyText(
+                                item.deployedHash,
+                                `hash-${item.packageId}`,
+                              )
+                            }
                           >
-                            {copyLabel(`hash-${item.packageId}`, "copyContractHash")}
+                            {copyLabel(
+                              `hash-${item.packageId}`,
+                              "copyContractHash",
+                            )}
                           </NeoButton>
                         </div>
                       ) : (
-                        <span className="domain-factory-deployment__recordonly">{t("recordOnly")}</span>
+                        <span className="domain-factory-deployment__recordonly">
+                          {t("recordOnly")}
+                        </span>
                       )}
                     </li>
                   ))}
@@ -934,7 +1306,10 @@ export function FactoryPlayArea({
           <NeoCard variant="erobo" title={t("oneGateLaunch")}>
             <div className="domain-factory-onegate">
               <p>{currentPlan.oneGate.url}</p>
-              <NeoButton variant="ghost" onClick={() => copyText(currentPlan.oneGate.url, "link")}>
+              <NeoButton
+                variant="ghost"
+                onClick={() => copyText(currentPlan.oneGate.url, "link")}
+              >
                 {copyLabel("link", "copyLink")}
               </NeoButton>
             </div>

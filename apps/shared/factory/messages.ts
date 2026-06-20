@@ -53,7 +53,10 @@ export const factoryMessages = {
   packageBlocked: { en: "Fix blocking issues", zh: "请修复阻断问题" },
   planSigned: { en: "Template plan signed", zh: "模板计划已签名" },
   signFailed: { en: "Signing failed", zh: "签名失败" },
-  noPlanToSign: { en: "Generate a template plan first.", zh: "请先生成模板计划。" },
+  noPlanToSign: {
+    en: "Generate a template plan first.",
+    zh: "请先生成模板计划。",
+  },
   planCopied: { en: "Template plan copied", zh: "模板计划已复制" },
   linkCopied: { en: "OneGate link copied", zh: "OneGate 链接已复制" },
   copyPackage: { en: "Copy template plan", zh: "复制模板计划" },
@@ -67,7 +70,10 @@ export const factoryMessages = {
   noWarnings: { en: "No warnings.", zh: "没有提醒。" },
   packageDigestFull: { en: "Plan digest", zh: "计划摘要" },
   packageId: { en: "Plan ID", zh: "计划 ID" },
-  viewPackagePayload: { en: "View plan payload (JSON)", zh: "查看计划载荷 (JSON)" },
+  viewPackagePayload: {
+    en: "View plan payload (JSON)",
+    zh: "查看计划载荷 (JSON)",
+  },
   walletSignature: { en: "Wallet signature", zh: "钱包签名" },
   deployHonesty: {
     en: "This console never uploads external NEF or manifest files. It submits a preloaded template ID and initialization parameters to the configured Factory contract, and blocks execution until that contract is configured.",
@@ -89,14 +95,26 @@ export const factoryMessages = {
   },
 
   // ── Validation errors (plan blocking) ──
-  errNameLength: { en: "Name must be 3-64 characters.", zh: "名称需为 3-64 个字符。" },
-  errCollectionNameLength: { en: "Collection name must be 3-64 characters.", zh: "集合名称需为 3-64 个字符。" },
+  errNameLength: {
+    en: "Name must be 3-64 characters.",
+    zh: "名称需为 3-64 个字符。",
+  },
+  errCollectionNameLength: {
+    en: "Collection name must be 3-64 characters.",
+    zh: "集合名称需为 3-64 个字符。",
+  },
   errSymbolFormat: {
     en: "Symbol must be 2-12 uppercase letters or digits and start with a letter.",
     zh: "符号需为 2-12 位大写字母或数字，且以字母开头。",
   },
-  errDecimalsRange: { en: "Decimals must be an integer from 0 to 8.", zh: "精度需为 0-8 的整数。" },
-  errInitialSupplyPositive: { en: "Initial supply must be greater than zero.", zh: "初始供应量必须大于零。" },
+  errDecimalsRange: {
+    en: "Decimals must be an integer from 0 to 8.",
+    zh: "精度需为 0-8 的整数。",
+  },
+  errInitialSupplyPositive: {
+    en: "Initial supply must be greater than zero.",
+    zh: "初始供应量必须大于零。",
+  },
   errInitialSupplyPrecision: {
     en: "Initial supply has more decimals than the token allows.",
     zh: "初始供应量的小数位超过代币精度。",
@@ -105,10 +123,22 @@ export const factoryMessages = {
     en: "Initial supply must be a positive decimal number.",
     zh: "初始供应量需为正的十进制数。",
   },
-  errOwnerAddress: { en: "Owner must be a Neo N3 address or Hash160.", zh: "Owner 需为 Neo N3 地址或 Hash160。" },
-  errTreasuryAddress: { en: "Treasury must be a Neo N3 address or Hash160.", zh: "金库需为 Neo N3 地址或 Hash160。" },
-  errMaxSupplyRange: { en: "Max supply must be 1-1,000,000.", zh: "最大供应量需为 1-1,000,000。" },
-  errRoyaltyRange: { en: "Royalty must be 0-1000 bps.", zh: "版税需为 0-1000 个基点 (bps)。" },
+  errOwnerAddress: {
+    en: "Owner must be a Neo N3 address or Hash160.",
+    zh: "Owner 需为 Neo N3 地址或 Hash160。",
+  },
+  errTreasuryAddress: {
+    en: "Treasury must be a Neo N3 address or Hash160.",
+    zh: "金库需为 Neo N3 地址或 Hash160。",
+  },
+  errMaxSupplyRange: {
+    en: "Max supply must be 1-1,000,000.",
+    zh: "最大供应量需为 1-1,000,000。",
+  },
+  errRoyaltyRange: {
+    en: "Royalty must be 0-1000 bps.",
+    zh: "版税需为 0-1000 个基点 (bps)。",
+  },
   errBaseUri: {
     en: "Base URI must be an HTTPS URL ending with '/'.",
     zh: "基础 URI 需为以 '/' 结尾的 HTTPS 链接。",
@@ -117,9 +147,18 @@ export const factoryMessages = {
     en: "MiniApp ID must start with miniapp- and use lowercase slugs.",
     zh: "小程序 ID 需以 miniapp- 开头并使用小写短横线格式。",
   },
-  errAppNameLength: { en: "MiniApp name must be 3-64 characters.", zh: "小程序名称需为 3-64 个字符。" },
-  errTemplateKind: { en: "Choose a supported template kind.", zh: "请选择支持的模板类型。" },
-  errAdminAddress: { en: "Admin must be a Neo N3 address or Hash160.", zh: "管理员需为 Neo N3 地址或 Hash160。" },
+  errAppNameLength: {
+    en: "MiniApp name must be 3-64 characters.",
+    zh: "小程序名称需为 3-64 个字符。",
+  },
+  errTemplateKind: {
+    en: "Choose a supported template kind.",
+    zh: "请选择支持的模板类型。",
+  },
+  errAdminAddress: {
+    en: "Admin must be a Neo N3 address or Hash160.",
+    zh: "管理员需为 Neo N3 地址或 Hash160。",
+  },
   errFactoryNotConfigured: {
     en: "Factory contract is not configured for this network. Sync the deployed template registry hash before execution.",
     zh: "当前网络尚未配置 Factory 合约。执行前请同步已部署的模板注册表合约地址。",
@@ -145,7 +184,10 @@ export const factoryMessages = {
     en: "Names, symbols, owner, and parameter bounds are valid.",
     zh: "名称、符号、Owner 和参数范围均有效。",
   },
-  stepValidateBlocked: { en: "Fix blocking errors before deployment.", zh: "部署前请先修复阻断错误。" },
+  stepValidateBlocked: {
+    en: "Fix blocking errors before deployment.",
+    zh: "部署前请先修复阻断错误。",
+  },
   stepTemplateTitle: { en: "Select on-chain template", zh: "选择链上模板" },
   stepTemplateBlocked: {
     en: "Template metadata is deterministic, but the factory contract must be configured before execution.",
@@ -167,9 +209,18 @@ export const factoryMessages = {
     en: "MiniApp templates register an on-chain instance record; no artifact deployment is involved.",
     zh: "小程序模板登记链上实例记录，不涉及工件部署。",
   },
-  stepDeployTitleNep17: { en: "Deploy NEP-17 from template", zh: "基于模板部署 NEP-17" },
-  stepDeployTitleNep11: { en: "Deploy NEP-11 from template", zh: "基于模板部署 NEP-11" },
-  stepDeployTitleMiniapp: { en: "Create platform miniapp from template", zh: "基于模板创建平台小程序" },
+  stepDeployTitleNep17: {
+    en: "Deploy NEP-17 from template",
+    zh: "基于模板部署 NEP-17",
+  },
+  stepDeployTitleNep11: {
+    en: "Deploy NEP-11 from template",
+    zh: "基于模板部署 NEP-11",
+  },
+  stepDeployTitleMiniapp: {
+    en: "Create platform miniapp from template",
+    zh: "基于模板创建平台小程序",
+  },
   stepDeployBlocked: {
     en: "Resolve the blocking errors above, then submit the deployment call.",
     zh: "请先解决上方阻断错误，再提交部署调用。",
@@ -194,7 +245,10 @@ export const factoryMessages = {
     en: "Blocked: this template id is not registered on the factory contract.",
     zh: "已阻断：该模板 ID 未在 Factory 合约中注册。",
   },
-  stepBindTitle: { en: "Bind domain and catalog metadata", zh: "绑定域名与目录元数据" },
+  stepBindTitle: {
+    en: "Bind domain and catalog metadata",
+    zh: "绑定域名与目录元数据",
+  },
   stepBindDetail: {
     en: "Record contract hash, NeoNS domain, network, and OneGate launch URL in the shared registry.",
     zh: "在共享注册表中记录合约地址、NeoNS 域名、网络和 OneGate 启动链接。",
@@ -211,7 +265,10 @@ export const factoryMessages = {
     en: "Transaction submitted — confirmation pending.",
     zh: "交易已提交，等待链上确认。",
   },
-  executeConfirmed: { en: "Factory execution confirmed on-chain.", zh: "Factory 执行已在链上确认。" },
+  executeConfirmed: {
+    en: "Factory execution confirmed on-chain.",
+    zh: "Factory 执行已在链上确认。",
+  },
   executeFailed: { en: "Factory execution failed.", zh: "Factory 执行失败。" },
   alreadyExecuted: {
     en: "This exact plan was already submitted. Change the inputs and regenerate to create a new package.",
@@ -243,19 +300,37 @@ export const factoryMessages = {
 
   // ── On-chain creations ──
   myDeployments: { en: "On-chain creations", zh: "链上创建记录" },
-  deploymentsCount: { en: "{count} recorded on-chain", zh: "链上共 {count} 条记录" },
+  deploymentsCount: {
+    en: "{count} recorded on-chain",
+    zh: "链上共 {count} 条记录",
+  },
   refreshAction: { en: "Refresh", zh: "刷新" },
-  loadingDeployments: { en: "Loading on-chain records…", zh: "正在加载链上记录…" },
-  deploymentsError: { en: "Could not load on-chain records.", zh: "无法加载链上记录。" },
+  loadingDeployments: {
+    en: "Loading on-chain records…",
+    zh: "正在加载链上记录…",
+  },
+  deploymentsError: {
+    en: "Could not load on-chain records.",
+    zh: "无法加载链上记录。",
+  },
   retryAction: { en: "Retry", zh: "重试" },
-  noDeploymentsYet: { en: "No packages recorded on-chain yet.", zh: "链上还没有部署包记录。" },
+  noDeploymentsYet: {
+    en: "No packages recorded on-chain yet.",
+    zh: "链上还没有部署包记录。",
+  },
   mineTag: { en: "Yours", zh: "我的" },
-  recordOnly: { en: "Record only — no contract deployed", zh: "仅记录——未部署合约" },
+  recordOnly: {
+    en: "Record only — no contract deployed",
+    zh: "仅记录——未部署合约",
+  },
   copyContractHash: { en: "Copy contract hash", zh: "复制合约地址" },
 
   // ── Form & misc ──
   useMyAddress: { en: "Use my address", zh: "使用我的地址" },
-  royaltyHelper: { en: "{bps} bps = {percent}% of each sale", zh: "{bps} bps = 每笔销售的 {percent}%" },
+  royaltyHelper: {
+    en: "{bps} bps = {percent}% of each sale",
+    zh: "{bps} bps = 每笔销售的 {percent}%",
+  },
   draft: { en: "Draft", zh: "草稿" },
   networkTestnet: { en: "Testnet", zh: "测试网" },
   networkMainnet: { en: "Mainnet", zh: "主网" },
@@ -269,7 +344,15 @@ export const factoryMessages = {
 
   // ── Live preview card (what this factory will create) ──
   previewTitle: { en: "Preview", zh: "预览" },
-  previewHint: { en: "Live preview of what this template will create.", zh: "此模板将创建内容的实时预览。" },
+  previewHint: {
+    en: "Live preview of what this template will create.",
+    zh: "此模板将创建内容的实时预览。",
+  },
+  tokenStudio: { en: "Token mint studio", zh: "代币铸造台" },
+  tokenStudioHint: {
+    en: "{symbol} supply, treasury, and mint policy update this asset live.",
+    zh: "{symbol} 的供应量、金库和增发策略会实时更新此资产。",
+  },
   dropStudio: { en: "Drop studio", zh: "发行工作台" },
   dropStudioHint: {
     en: "{symbol} collection parameters update the preview live.",
