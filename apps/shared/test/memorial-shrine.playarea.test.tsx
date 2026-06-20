@@ -13,15 +13,25 @@ function t(key: string) {
   const messages: Record<string, string> = {
     title: "Blockchain Memorial",
     subtitle: "Inscribe memories on the blockchain forever",
+    heroKicker: "Memorial garden",
+    gardenAlt: "A quiet memorial garden with flowers and candlelight",
+    chainPermanence: "On-chain remembrance",
+    chainPermanenceDesc: "Quiet memorial cards, tribute records, and shared memories.",
     createMemorial: "Create Memorial",
     cancel: "Cancel",
     memorials: "Memorials",
     myTributes: "Tributes",
     obituaries: "Obituaries",
     visited: "Visited",
+    foreverRemember: "Forever Remembered",
+    share: "Share",
+    close: "Close",
+    offeringsReceived: "Offerings Received",
     payTribute: "Offer Tribute",
     tributeMessage: "Message",
     tributeMessagePlaceholder: "Leave a short tribute message",
+    tributeStationDesc: "Choose a symbolic offering and leave a short message.",
+    selectOffering: "Select offering",
     offeringType: "Offering",
     offeringCost: "Offering cost",
     incense: "Incense",
@@ -30,6 +40,17 @@ function t(key: string) {
     fruit: "Fruit",
     wine: "Wine",
     feast: "Feast",
+    memoryStudio: "Memorial Studio",
+    studioStepIdentity: "Identity",
+    studioStepStory: "Life and notice",
+    studioStepPublish: "Review and publish",
+    previewLabel: "Live memorial card",
+    previewEmptyName: "Name appears here",
+    previewDatesEmpty: "Years of life",
+    previewRelationEmpty: "Relationship",
+    previewBioEmpty: "Add a short life story to make the card feel personal.",
+    previewObituaryEmpty: "The obituary will appear as a quiet public notice.",
+    photoUrlHelper: "HTTPS or IPFS image. The preview updates when the URL is valid.",
     createTitle: "Create a Memorial",
     createDesc: "Memorial will be permanently stored on blockchain",
     labelName: "Name of Deceased",
@@ -97,9 +118,7 @@ describe("Memorial Shrine PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Message"), {
       target: { value: "Always remembered" },
     });
-    fireEvent.change(screen.getByLabelText("Offering"), {
-      target: { value: "3" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: /Flowers/ }));
     expect(screen.getByLabelText("Offering cost").textContent).toContain("0.03 GAS");
     fireEvent.click(screen.getByRole("button", { name: "Offer Tribute" }));
 
