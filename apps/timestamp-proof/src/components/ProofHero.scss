@@ -6,15 +6,21 @@ $accent-strong: var(--ns-brand-strong, #0fb174);
 $accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .proof-hero {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.76fr);
   gap: 20px;
   align-items: stretch;
+  overflow: hidden;
   padding: 18px;
   border: 1px solid rgba(20, 22, 38, 0.07);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    linear-gradient(135deg, rgba(255, 248, 231, 0.96), rgba(255, 255, 255, 0.82) 48%),
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 231, 0.96),
+      rgba(255, 255, 255, 0.82) 48%
+    ),
     var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
@@ -41,7 +47,11 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   place-items: center;
   border-radius: var(--ns-radius-full, 9999px);
   background:
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 55%),
+    radial-gradient(
+      circle at 30% 20%,
+      rgba(255, 255, 255, 0.95),
+      rgba(255, 255, 255, 0) 55%
+    ),
     $accent-soft;
   color: $accent-strong;
   box-shadow: 0 10px 24px rgba(22, 199, 132, 0.16);
@@ -170,8 +180,15 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 @media (max-width: 560px) {
   .proof-hero {
-    gap: 16px;
-    padding: 16px;
+    min-height: 330px;
+    padding: 18px;
+  }
+
+  .proof-hero__content {
+    position: relative;
+    z-index: 1;
+    gap: 12px;
+    padding: 0;
   }
 
   .proof-hero__head {
@@ -187,12 +204,35 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
     font-size: 24px;
   }
 
+  .proof-hero__description {
+    display: none;
+  }
+
   .proof-hero__steps {
     display: grid;
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .proof-hero__steps span:nth-child(3) {
+    display: none;
   }
 
   .proof-hero__stage {
-    min-height: 220px;
+    position: absolute;
+    inset: 0;
+    min-height: 100%;
+    border: 0;
+    border-radius: inherit;
+    opacity: 0.3;
+    box-shadow: none;
+  }
+
+  .proof-hero__stage img {
+    object-position: center right;
+  }
+
+  .proof-hero__stage figcaption {
+    display: none;
   }
 }
