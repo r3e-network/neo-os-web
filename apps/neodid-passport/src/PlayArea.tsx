@@ -1,5 +1,19 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Copy, ExternalLink, FileCheck2, Fingerprint, RotateCcw, ShieldCheck, Signature } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  FileCheck2,
+  Fingerprint,
+  Github,
+  Mail,
+  RotateCcw,
+  ShieldCheck,
+  Signature,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoInput } from "@shared/components-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react";
@@ -28,6 +42,34 @@ function initialForm(params: Record<string, string> = {}): PassportForm {
   };
 }
 
+const providerOptions: Array<{
+  value: PassportProvider;
+  labelKey: string;
+  descriptionKey: string;
+}> = [
+  {
+    value: "wallet",
+    labelKey: "walletProvider",
+    descriptionKey: "walletProviderTile",
+  },
+  {
+    value: "github",
+    labelKey: "githubProvider",
+    descriptionKey: "githubProviderTile",
+  },
+  {
+    value: "email",
+    labelKey: "emailProvider",
+    descriptionKey: "emailProviderTile",
+  },
+];
+
+function providerIcon(provider: PassportProvider, size = 18) {
+  if (provider === "wallet") return <WalletCards size={size} aria-hidden="true" />;
+  if (provider === "github") return <Github size={size} aria-hidden="true" />;
+  return <Mail size={size} aria-hidden="true" />;
+}
+
 export default function PlayArea({
   t,
   state,
@@ -50,6 +92,8 @@ export default function PlayArea({
   const proofStatus = str("proofStatus", t("notSignedStatus"));
   const isSigned = Boolean(payload?.proof?.signature);
   const providerHint = form.provider === "wallet" ? t("walletProofHint") : t("apiProofHint");
+  const selectedProviderLabel =
+    t(providerOptions.find((option) => option.value === form.provider)?.labelKey ?? "walletProvider");
   // The host resolver falls back to versionId "unversioned" when the live TEE
   // runtime metadata is unavailable, silently dropping the verification key a
   // relying party needs — surface that as a warning on the built passport.
@@ -105,16 +149,26 @@ export default function PlayArea({
             <span className="neodid-passport__offchain-chip">{t("offChainNote")}</span>
           </div>
         </div>
+        <figure className="neodid-passport__visual">
+          <img src="./passport-desk.jpg" alt={t("heroVisualAlt")} />
+          <figcaption>
+            <span>{t("credentialCardTitle")}</span>
+            <strong>{selectedProviderLabel}</strong>
+          </figcaption>
+        </figure>
         <div className="neodid-passport__metrics" aria-label={t("statistics")}>
           <div>
+            <ShieldCheck size={15} aria-hidden="true" />
             <span>{t("statNetwork")}</span>
             <strong>{str("networkLabel")}</strong>
           </div>
           <div>
+            <BadgeCheck size={15} aria-hidden="true" />
             <span>{t("statEndpoint")}</span>
             <strong>{str("endpointLabel")}</strong>
           </div>
           <div>
+            <FileCheck2 size={15} aria-hidden="true" />
             <span>{t("statRequests")}</span>
             <strong>{num("requestCount")}</strong>
           </div>
@@ -123,14 +177,17 @@ export default function PlayArea({
 
       <section className="neodid-passport__route" aria-label={t("identityRoute")}>
         <div>
+          <b>1</b>
           <ShieldCheck size={18} aria-hidden="true" />
           <span>{t("routeResolve")}</span>
         </div>
         <div>
+          <b>2</b>
           <FileCheck2 size={18} aria-hidden="true" />
           <span>{t("routeBuild")}</span>
         </div>
         <div>
+          <b>3</b>
           <Signature size={18} aria-hidden="true" />
           <span>{t("routeSign")}</span>
         </div>
@@ -148,9 +205,83 @@ export default function PlayArea({
           <div
             className={`neodid-passport__form-head${isSigned ? " neodid-passport__form-head--signed" : ""}`}
           >
-            <span>{t("liveResolver")}</span>
-            <strong>{proofStatus}</strong>
+            <div>
+              <span>{t("liveResolver")}</span>
+              <strong>{t("passportWorkspaceTitle")}</strong>
+            </div>
+            <em>
+              <span className="neodid-passport__status-dot" aria-hidden="true" />
+              {proofStatus}
+            </em>
           </div>
+
+          <div className="neodid-passport__credential-preview" aria-label={t("passportPreview")}>
+            <div className="neodid-passport__credential-mark" aria-hidden="true">
+              <Fingerprint size={30} />
+            </div>
+            <div className="neodid-passport__credential-copy">
+              <span>{t("credentialCardTitle")}</span>
+              <strong>{form.subject || t("previewSubjectFallback")}</strong>
+              <p>{t("credentialFlowCopy")}</p>
+            </div>
+            <dl className="neodid-passport__credential-facts">
+              <div>
+                <dt>{t("provider")}</dt>
+                <dd>{selectedProviderLabel}</dd>
+              </div>
+              <div>
+                <dt>{t("previewClaimLabel")}</dt>
+                <dd>{form.claim || t("notAvailable")}</dd>
+              </div>
+              <div>
+                <dt>{t("previewAudienceLabel")}</dt>
+                <dd>{form.audience || t("notAvailable")}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <section className="neodid-passport__provider-lanes" aria-labelledby="neodid-provider-title">
+            <div className="neodid-passport__provider-head">
+              <span id="neodid-provider-title">{t("proofLaneTitle")}</span>
+              <strong>{t("proofLaneHint")}</strong>
+            </div>
+            <div
+              className="neodid-passport__provider-options"
+              role="radiogroup"
+              aria-label={t("provider")}
+            >
+              {providerOptions.map((option) => {
+                const selected = form.provider === option.value;
+                const label = t(option.labelKey);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={`${t("provider")}: ${label}`}
+                    className={`neodid-passport__provider-card${
+                      selected ? " neodid-passport__provider-card--active" : ""
+                    }`}
+                    onClick={() => updateForm("provider", option.value)}
+                  >
+                    <span className="neodid-passport__provider-icon">
+                      {providerIcon(option.value)}
+                    </span>
+                    <span className="neodid-passport__provider-copy">
+                      <strong>{label}</strong>
+                      <small>{t(option.descriptionKey)}</small>
+                    </span>
+                    {selected ? (
+                      <span className="neodid-passport__provider-check" aria-hidden="true">
+                        <CheckCircle2 size={15} />
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           <NeoInput
             label={t("subject")}
@@ -159,20 +290,6 @@ export default function PlayArea({
             required
             onChange={(value) => updateForm("subject", value)}
           />
-
-          <label className="neodid-passport__field">
-            <span>{t("provider")}</span>
-            <div className="neodid-passport__select">
-              <select
-                value={form.provider}
-                onChange={(event) => updateForm("provider", event.target.value)}
-              >
-                <option value="wallet">{t("walletProvider")}</option>
-                <option value="github">{t("githubProvider")}</option>
-                <option value="email">{t("emailProvider")}</option>
-              </select>
-            </div>
-          </label>
 
           <NeoInput
             label={t("claim")}

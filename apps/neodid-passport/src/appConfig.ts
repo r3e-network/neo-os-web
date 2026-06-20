@@ -62,6 +62,10 @@ const appMessages = {
     en: "Builds a portable credential and an off-chain wallet proof — nothing is broadcast on-chain.",
     zh: "生成可携带凭证和链下钱包证明——不会向链上广播任何交易。",
   },
+  heroVisualAlt: {
+    en: "A bright identity passport desk with verified credential cards.",
+    zh: "明亮的身份护照工作台与已验证凭证卡片。",
+  },
   runAction: { en: "Resolve and Build", zh: "解析并生成" },
   signAction: { en: "Sign Passport", zh: "签名护照" },
   copyAction: { en: "Copy Payload", zh: "复制载荷" },
@@ -72,6 +76,18 @@ const appMessages = {
   walletProvider: { en: "Wallet signature", zh: "钱包签名" },
   emailProvider: { en: "Email attestation", zh: "邮箱证明" },
   githubProvider: { en: "GitHub attestation", zh: "GitHub 证明" },
+  walletProviderTile: {
+    en: "Sign in-app with the connected OneGate wallet.",
+    zh: "用已连接的 OneGate 钱包在应用内签名。",
+  },
+  githubProviderTile: {
+    en: "Prepare a package for a GitHub verifier.",
+    zh: "准备提交给 GitHub 验证器的证明包。",
+  },
+  emailProviderTile: {
+    en: "Prepare a package for an email verifier.",
+    zh: "准备提交给邮箱验证器的证明包。",
+  },
   claim: { en: "Claim", zh: "声明" },
   claimPlaceholder: { en: "wallet-ownership", zh: "wallet-ownership" },
   audience: { en: "Audience", zh: "受众" },
@@ -108,6 +124,18 @@ const appMessages = {
   routeBuild: { en: "Build credential", zh: "构建凭证" },
   routeSign: { en: "Optional wallet proof", zh: "可选钱包证明" },
   liveResolver: { en: "Morpheus NeoDID API", zh: "Morpheus NeoDID API" },
+  passportWorkspaceTitle: { en: "Credential studio", zh: "凭证工作台" },
+  passportPreview: { en: "Passport preview", zh: "护照预览" },
+  credentialCardTitle: { en: "Identity passport", zh: "身份护照" },
+  credentialFlowCopy: {
+    en: "Resolve the DID, review the payload, then attach a proof only when the lane matches the relying party.",
+    zh: "先解析 DID 并复核载荷，再按依赖方要求选择证明方式。",
+  },
+  previewSubjectFallback: { en: "Subject DID pending", zh: "等待主体 DID" },
+  previewClaimLabel: { en: "Claim", zh: "声明" },
+  previewAudienceLabel: { en: "Audience", zh: "受众" },
+  proofLaneTitle: { en: "Choose proof lane", zh: "选择证明路径" },
+  proofLaneHint: { en: "No chain transaction", zh: "不会发链上交易" },
   walletProofHint: {
     en: "Wallet signatures do not broadcast a transaction. They bind the passport payload to the current wallet address.",
     zh: "钱包签名不会广播交易，而是把护照载荷绑定到当前钱包地址。",
