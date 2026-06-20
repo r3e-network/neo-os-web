@@ -2,6 +2,7 @@
  * PopularPairs.tsx -- Accessible popular trading pairs for Neo Swap.
  */
 
+import { ArrowRight, LineChart } from "lucide-react";
 import { NeoCard } from "@shared/components-react";
 import TokenIcon from "./TokenIcon";
 import "./PopularPairs.scss";
@@ -10,6 +11,7 @@ interface PopularPairsProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   selectedPair: string;
   popularPairs: Array<{ id: string; name: string }>;
+  routeHealth: string;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
@@ -17,6 +19,7 @@ export default function PopularPairs({
   t,
   selectedPair,
   popularPairs,
+  routeHealth,
   dispatch,
 }: PopularPairsProps) {
   const handleSelectPair = (pairId: string) => {
@@ -30,7 +33,7 @@ export default function PopularPairs({
           <span>{t("marketPairs")}</span>
           <strong>{t("popularPairs")}</strong>
         </div>
-        <small>{t("quoteHealth")}</small>
+        <small><LineChart size={13} aria-hidden="true" />{t("quoteHealth")}</small>
       </div>
       <div className="pair-list">
         {popularPairs.map((pair) => {
@@ -51,7 +54,10 @@ export default function PopularPairs({
                 <span className="pair-name">{pair.name}</span>
                 <span className="pair-route">{t("routeDirectValue", { pair: pair.name })}</span>
               </span>
-              <span className="pair-status">{t("swapRouteSyncing")}</span>
+              <span className="pair-market">
+                <span className="pair-status">{routeHealth}</span>
+                <ArrowRight size={15} aria-hidden="true" />
+              </span>
             </button>
           );
         })}

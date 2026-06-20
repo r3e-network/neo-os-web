@@ -4,12 +4,14 @@
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 360px;
-  border-radius: 20px;
-  background: #07131c;
-  color: #f7fbff;
+  min-height: 348px;
+  border: 1px solid rgba(18, 33, 28, 0.08);
+  border-radius: 14px;
+  background: #f8fbf8;
+  color: #12211c;
   overflow: hidden;
   isolation: isolate;
+  box-shadow: 0 14px 34px rgba(31, 48, 42, 0.08);
 }
 
 .swap-hero-stage-image,
@@ -29,13 +31,13 @@
 .swap-hero-shade {
   z-index: -1;
   background:
-    linear-gradient(90deg, rgba(4, 11, 18, 0.76) 0%, rgba(4, 11, 18, 0.34) 48%, rgba(4, 11, 18, 0.72) 100%),
-    linear-gradient(0deg, rgba(4, 11, 18, 0.76) 0%, rgba(4, 11, 18, 0.05) 58%);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.68) 36%, rgba(255, 255, 255, 0.1) 74%),
+    linear-gradient(0deg, rgba(248, 251, 248, 0.88) 0%, rgba(248, 251, 248, 0.12) 52%);
 }
 
 .swap-hero-copy {
   align-self: start;
-  max-width: 600px;
+  max-width: 560px;
   padding: 26px;
 }
 
@@ -53,66 +55,63 @@
   justify-content: center;
   width: 46px;
   height: 46px;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  border-radius: 14px;
-  background: rgba(7, 19, 28, 0.58);
-  color: #76f0c6;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(22, 199, 132, 0.24);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0a8050;
+  box-shadow: 0 9px 22px rgba(18, 33, 28, 0.1);
 }
 
 .swap-hero-intro {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 
 .swap-hero-eyebrow {
   margin: 0;
-  color: #8ef2d0;
+  color: #0a8050;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .swap-hero-title {
   margin: 0;
-  color: #ffffff;
-  font-size: 30px;
+  color: #12211c;
+  font-size: 31px;
   font-weight: 850;
-  line-height: 1.1;
+  line-height: 1.08;
   letter-spacing: 0;
   text-wrap: balance;
-  text-shadow: 0 3px 16px rgba(0, 0, 0, 0.52);
 }
 
 .neo-swap-play-area .swap-hero-title {
-  color: #ffffff;
+  color: #12211c;
 }
 
 .swap-hero-subtitle {
-  max-width: 520px;
+  max-width: 500px;
   margin: 0;
-  color: rgba(247, 251, 255, 0.78);
+  color: #52635c;
   font-size: 14px;
-  font-weight: 550;
+  font-weight: 600;
   line-height: 1.5;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.46);
 }
 
 .swap-hero-trade-strip {
   align-self: end;
   display: grid;
-  gap: 14px;
+  gap: 13px;
   min-width: 0;
   margin: 0 18px 18px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 18px;
-  background: rgba(5, 16, 24, 0.7);
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
-  backdrop-filter: blur(18px);
+  padding: 13px;
+  border: 1px solid rgba(18, 33, 28, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 16px 34px rgba(31, 48, 42, 0.1);
+  backdrop-filter: blur(16px);
 }
 
 .swap-hero-pair {
@@ -124,7 +123,7 @@
 
 .swap-hero-pair > svg {
   flex: 0 0 auto;
-  color: rgba(247, 251, 255, 0.72);
+  color: #52635c;
 }
 
 .swap-hero-token {
@@ -133,16 +132,17 @@
   gap: 10px;
   min-width: 0;
   padding: 7px 13px 7px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(18, 33, 28, 0.1);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(18, 33, 28, 0.07);
 }
 
 .swap-hero-token strong {
   min-width: 0;
-  color: #ffffff;
+  color: #12211c;
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 850;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -150,7 +150,7 @@
 .swap-hero-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 9px;
 }
 
 .swap-hero-metrics div {
@@ -158,23 +158,23 @@
   gap: 5px;
   min-width: 0;
   padding: 11px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(18, 33, 28, 0.09);
+  border-radius: 10px;
+  background: rgba(247, 250, 249, 0.9);
 }
 
 .swap-hero-metrics span {
   min-width: 0;
-  color: rgba(247, 251, 255, 0.62);
+  color: #728078;
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 800;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .swap-hero-metrics strong {
   min-width: 0;
-  color: #ffffff;
+  color: #12211c;
   font-size: 0.92rem;
   font-weight: 850;
   line-height: 1.25;
@@ -183,12 +183,12 @@
 }
 
 .swap-hero-metrics .is-stale strong {
-  color: #ffd27a;
+  color: #a86407;
 }
 
 @media (max-width: 760px) {
   .swap-hero-content {
-    min-height: 520px;
+    min-height: 470px;
   }
 
   .swap-hero-copy {
@@ -206,7 +206,7 @@
 
 @media (max-width: 520px) {
   .swap-hero-content {
-    min-height: 560px;
+    min-height: 520px;
   }
 
   .swap-hero-head,

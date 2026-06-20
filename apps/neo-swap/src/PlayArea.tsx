@@ -14,8 +14,10 @@ import {
   Fuel,
   Network,
   RefreshCw,
+  Route,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   TrendingUp,
   Wallet,
   X,
@@ -109,6 +111,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const fromSymbol = fromToken?.symbol || t("selectToken");
   const toSymbol = toToken?.symbol || t("selectToken");
   const pairLabel = `${fromSymbol}/${toSymbol}`;
+  const receiveEstimate = toAmount || "0.00";
+  const routeModeLabel = routerAvailable ? t("routeModeLive") : t("routeModePreview");
+  const routeModeBody = routerAvailable ? t("routeModeLiveBody") : t("routeModePreviewBody");
+  const routeSource = hasQuote ? t("routeSourceMorpheus") : t("routeSourceAwaiting");
 
   // Slippage above 1% (100 bps) warrants a gentle warning — the minimum received
   // can come in notably below the quote.
@@ -124,72 +130,96 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // inline when a router is live, or tucked inside a disclosure when settlement is
   // unavailable so the price preview stays the focus. Identical markup either way.
   const tradeForm = (
-    <>
-      <div className="neo-swap-token-field">
-        <div className="neo-swap-token-header">
-          <span>{t("from")}</span>
-          <button
-            type="button"
-            className="neo-swap-token-button"
-            onClick={() => dispatch("openFromSelector")}
+    <div className="neo-swap-trade-workspace">
+      <div className="neo-swap-deal-ticket" aria-label={t("tradeTicket")}>
+        <section className="neo-swap-asset-card neo-swap-asset-card--pay">
+          <div className="neo-swap-asset-card__top">
+            <span className="neo-swap-asset-card__label">{t("payWith")}</span>
+            <span className="neo-swap-balance-line">
+              {t("balance")}: {formatBalance(fromToken)}
+            </span>
+          </div>
+          <div className="neo-swap-asset-card__body">
+            <button
+              type="button"
+              className="neo-swap-token-button"
+              onClick={() => dispatch("openFromSelector")}
+            >
+              <TokenIcon symbol={fromSymbol} />
+              <span>{fromSymbol}</span>
+            </button>
+            <div className="neo-swap-amount-shell">
+              <NeoInput
+                className="neo-swap-amount-input"
+                value={fromAmount}
+                type="number"
+                min={0}
+                placeholder={t("enterAmount")}
+                aria-label={t("payAmountLabel")}
+                onChange={(value) => { void dispatch("setFromAmount", value); }}
+              />
+              <NeoButton size="sm" variant="secondary" onClick={() => dispatch("setMaxAmount")}>
+                {t("max")}
+              </NeoButton>
+            </div>
+          </div>
+        </section>
+
+        <div className="neo-swap-direction">
+          <NeoButton
+            size="sm"
+            variant="ghost"
+            aria-label={t("switchTokens")}
+            onClick={() => dispatch("swapTokens")}
           >
-            <TokenIcon symbol={fromSymbol} />
-            {fromSymbol}
-          </button>
-        </div>
-        <div className="neo-swap-input-row">
-          <NeoInput
-            className="neo-swap-amount-input"
-            value={fromAmount}
-            type="number"
-            min={0}
-            placeholder={t("enterAmount")}
-            onChange={(value) => { void dispatch("setFromAmount", value); }}
-          />
-          <NeoButton size="sm" variant="secondary" onClick={() => dispatch("setMaxAmount")}>
-            {t("max")}
+            <ArrowDownUp size={18} aria-hidden="true" />
           </NeoButton>
         </div>
-        <span className="neo-swap-balance-line">
-          {t("balance")}: {formatBalance(fromToken)}
-        </span>
+
+        <section className="neo-swap-asset-card neo-swap-asset-card--receive">
+          <div className="neo-swap-asset-card__top">
+            <span className="neo-swap-asset-card__label">{t("receiveEstimated")}</span>
+            <span className="neo-swap-balance-line">
+              {t("balance")}: {formatBalance(toToken)}
+            </span>
+          </div>
+          <div className="neo-swap-asset-card__body">
+            <button
+              type="button"
+              className="neo-swap-token-button"
+              onClick={() => dispatch("openToSelector")}
+            >
+              <TokenIcon symbol={toSymbol} />
+              <span>{toSymbol}</span>
+            </button>
+            <div className="neo-swap-receive-amount" aria-live="polite">
+              {receiveEstimate}
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div className="neo-swap-direction">
-        <NeoButton
-          size="sm"
-          variant="ghost"
-          aria-label={t("switchTokens")}
-          onClick={() => dispatch("swapTokens")}
-        >
-          <ArrowDownUp size={17} aria-hidden="true" />
-        </NeoButton>
-      </div>
-
-      <div className="neo-swap-token-field neo-swap-token-field--receive">
-        <div className="neo-swap-token-header">
-          <span>{t("receiveEstimated")}</span>
-          <button
-            type="button"
-            className="neo-swap-token-button"
-            onClick={() => dispatch("openToSelector")}
-          >
-            <TokenIcon symbol={toSymbol} />
-            {toSymbol}
-          </button>
+      <div className="neo-swap-quote-metrics" aria-label={t("quoteSummary")}>
+        <div>
+          <span><TrendingUp size={14} aria-hidden="true" />{t("exchangeRate")}</span>
+          <strong>{rateDisplay}</strong>
         </div>
-        <div className="neo-swap-receive-amount" aria-live="polite">
-          {toAmount || "0.00"}
+        <div>
+          <span><ShieldCheck size={14} aria-hidden="true" />{t("minReceived")}</span>
+          <strong>{formattedMinReceived}</strong>
         </div>
-        <span className="neo-swap-balance-line">
-          {t("balance")}: {formatBalance(toToken)}
-        </span>
+        <div>
+          <span><SlidersHorizontal size={14} aria-hidden="true" />{t("slippage")}</span>
+          <strong>{slippage}</strong>
+        </div>
       </div>
 
-      <div className="neo-swap-slippage" role="group" aria-label={t("slippage")}>
-        <div className="neo-swap-slippage__head">
-          <span className="neo-swap-slippage__label">{t("slippage")}</span>
-          <strong className="neo-swap-slippage__value">{slippage}</strong>
+      <div className="neo-swap-control-dock" role="group" aria-label={t("slippage")}>
+        <div className="neo-swap-control-dock__copy">
+          <span className="neo-swap-control-dock__label">{t("slippageControl")}</span>
+          <p className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}>
+            {slippageHigh ? t("slippageHigh") : t("slippageHint")}
+          </p>
         </div>
         <div className="neo-swap-slippage__controls">
           {SLIPPAGE_PRESET_BPS.map((bps) => {
@@ -222,36 +252,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span aria-hidden="true">%</span>
           </div>
         </div>
-        <p className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}>
-          {slippageHigh ? t("slippageHigh") : t("slippageHint")}
-        </p>
       </div>
 
-      <div className="neo-swap-detail-panel">
-        <div>
-          <span>{t("exchangeRate")}</span>
-          <strong>{rateDisplay}</strong>
+      <section className="neo-swap-route-review" aria-label={t("routeReview")}>
+        <div className="neo-swap-route-review__head">
+          <span className="neo-swap-route-review__icon" aria-hidden="true">
+            <Route size={20} />
+          </span>
+          <div>
+            <span>{t("routeReview")}</span>
+            <strong>{routeModeLabel}</strong>
+            <p>{routeModeBody}</p>
+          </div>
         </div>
-        <div>
-          <span>{t("minReceived")}</span>
-          <strong>{formattedMinReceived}</strong>
-        </div>
-        <div>
-          <span>{t("slippage")}</span>
-          <strong>{slippage}</strong>
-        </div>
-      </div>
 
-      <details className="neo-swap-txfold">
-        <summary className="neo-swap-txfold__summary">{t("txDetailsSummary")}</summary>
-        <dl className="neo-swap-tx-details">
+        <ol className="neo-swap-route-steps">
+          <li>
+            <span aria-hidden="true">1</span>
+            <div>
+              <strong>{t("routeStepQuote")}</strong>
+              <small>{routeSource}</small>
+            </div>
+          </li>
+          <li>
+            <span aria-hidden="true">2</span>
+            <div>
+              <strong>{t("routeStepPair")}</strong>
+              <small>{t("routeDirectValue", { pair: pairLabel })}</small>
+            </div>
+          </li>
+          <li>
+            <span aria-hidden="true">3</span>
+            <div>
+              <strong>{t("routeStepWallet")}</strong>
+              <small>{t("pricePreviewOnly")}</small>
+            </div>
+          </li>
+        </ol>
+
+        <dl className="neo-swap-route-facts">
           <div>
             <dt><Network size={14} aria-hidden="true" />{t("networkLabel")}</dt>
             <dd>{t("tokenNeo")} N3</dd>
-          </div>
-          <div>
-            <dt><RefreshCw size={14} aria-hidden="true" />{t("routeLabel")}</dt>
-            <dd>{t("routeDirectValue", { pair: pairLabel })}</dd>
           </div>
           <div>
             <dt><Clock size={14} aria-hidden="true" />{t("estSettlement")}</dt>
@@ -262,8 +304,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <dd>{t("networkFeeValue")}</dd>
           </div>
         </dl>
-      </details>
-    </>
+      </section>
+    </div>
   );
 
   return (
@@ -281,7 +323,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </section>
 
       <div className="neo-swap-main-grid">
-        <NeoCard variant="erobo" className="neo-swap-swap-card">
+        <section className="neo-swap-swap-card" aria-label={t("tradeTicket")}>
           <div className="neo-swap-section-header">
             <div>
               <span>{t("tabSwap")}</span>
@@ -344,14 +386,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="neo-swap-preview" role="region" aria-label={t("pricePreviewTitle")}>
               <div className="neo-swap-preview__head">
                 <span className="neo-swap-preview__eyebrow">
-                  <TrendingUp size={14} aria-hidden="true" />
+                  <Sparkles size={14} aria-hidden="true" />
                   {t("pricePreviewTitle")}
                 </span>
-                {rateAsOf && (
-                  <span className={`neo-swap-preview__asof${rateStale ? " is-stale" : ""}`}>
-                    {rateStale ? t("rateStale") : t("rateAsOf", { time: rateAsOf })}
-                  </span>
-                )}
+                <span className="neo-swap-preview__meta">
+                  <span className="neo-swap-preview__mode">{routeModeLabel}</span>
+                  {rateAsOf && (
+                    <span className={`neo-swap-preview__asof${rateStale ? " is-stale" : ""}`}>
+                      {rateStale ? t("rateStale") : t("rateAsOf", { time: rateAsOf })}
+                    </span>
+                  )}
+                </span>
               </div>
               {rateLoading ? (
                 <strong className="neo-swap-preview__rate is-muted">{t("loadingRate")}</strong>
@@ -422,7 +467,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </details>
           )}
-        </NeoCard>
+        </section>
 
         <aside className="neo-swap-side-stack" aria-label={t("tabPool")}>
           <PopularPairs
@@ -433,6 +478,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 : ""
             }
             popularPairs={popularPairs}
+            routeHealth={routeHealth}
             dispatch={dispatch}
           />
         </aside>
