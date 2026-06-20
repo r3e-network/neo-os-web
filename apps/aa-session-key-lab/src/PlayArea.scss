@@ -38,14 +38,28 @@
 }
 
 .session-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(330px, 0.72fr);
+  gap: 22px;
   align-items: stretch;
-  padding: 28px;
+  padding: 24px;
   border-radius: var(--ns-radius-xl, 24px);
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(244, 252, 248, 0.94)
+    ),
+    var(--ns-surface, #fff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.session-hero__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
 }
 
 .session-hero__head {
@@ -91,7 +105,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.14;
 }
 
@@ -115,8 +129,9 @@
   flex-direction: column;
   gap: 6px;
   padding: 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 // All three status tiles share uniform neutral styling — Scope is not an
@@ -147,27 +162,6 @@
   background: var(--ns-brand-strong, #0fb174);
 }
 
-// Subtle vertical dividers between the three tiles so each status reads as a
-// discrete column rather than a flat run. The shared subtle surface keeps the
-// tiles legible; the divider is the inter-tile separator the row was missing.
-.session-hero__metrics {
-  position: relative;
-}
-
-.session-metric + .session-metric {
-  position: relative;
-}
-
-.session-metric + .session-metric::before {
-  content: "";
-  position: absolute;
-  top: 14px;
-  bottom: 14px;
-  left: -6px;
-  width: 1px;
-  background: var(--ns-border, rgba(20, 22, 38, 0.08));
-}
-
 .session-metric span,
 .session-command__status span,
 .session-section-heading span,
@@ -191,10 +185,61 @@
   font-size: 20px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.session-hero__visual {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 20px;
+  background: #effaf5;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: inherit;
+    object-fit: cover;
+    object-position: 49% center;
+  }
+
+  > span {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: calc(100% - 28px);
+    padding: 9px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.76);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--ns-accent-strong, #0fb174);
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px rgba(17, 78, 56, 0.16);
+    backdrop-filter: blur(12px);
+  }
+
+  svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+  }
+}
+
+.session-play-area .neo-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .session-command .neo-card__content {
@@ -316,7 +361,7 @@
   font-weight: 600;
 }
 
-// Linear setup flow: step 1 (key + sponsorship) → step 2 (configure scope).
+// Linear setup flow: step 1 covers key and sponsorship, step 2 configures scope.
 // Each card sits at its natural height — the shorter left card no longer
 // stretches to match the taller Configure form, which previously forced a
 // large dead gap between the action buttons and the sponsor fields.
@@ -361,15 +406,17 @@
 .session-guide__num {
   display: grid;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   place-items: center;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-accent-soft, #e4f8f0);
   color: var(--ns-accent-strong, #0fb174);
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+}
+
+.session-guide__num svg {
+  width: 15px;
+  height: 15px;
 }
 
 .session-guide__text {
@@ -409,7 +456,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
@@ -419,7 +466,12 @@
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.session-environment > summary {
+.session-environment > summary,
+.session-limits > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 14px 16px;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
@@ -434,16 +486,21 @@
   display: none;
 }
 
-.session-environment > summary::after {
-  content: "+";
-  float: right;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 14px;
-  font-weight: 700;
+.session-limits > summary::-webkit-details-marker {
+  display: none;
 }
 
-.session-environment[open] > summary::after {
-  content: "–";
+.session-disclosure__chevron {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--ns-text-muted, #8a92a6);
+  transition: transform 150ms ease;
+}
+
+.session-environment[open] .session-disclosure__chevron,
+.session-limits[open] .session-disclosure__chevron {
+  transform: rotate(180deg);
 }
 
 // Resolved environment values, revealed inside the disclosure
@@ -573,7 +630,9 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .session-expiry-quick__chip:hover,
@@ -596,7 +655,13 @@
 
 .session-onchain__value {
   overflow-wrap: anywhere;
-  font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(
+    --ns-font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
   font-size: 12px;
   font-weight: 600;
   color: var(--ns-ink, #1e1e2e);
@@ -627,7 +692,13 @@
 
 .session-onchain__field strong {
   overflow-wrap: anywhere;
-  font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(
+    --ns-font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
   font-size: 12px;
   font-weight: 700;
   color: var(--ns-ink, #1e1e2e);
@@ -665,33 +736,6 @@
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.session-limits > summary {
-  padding: 14px 16px;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  list-style: none;
-}
-
-.session-limits > summary::-webkit-details-marker {
-  display: none;
-}
-
-.session-limits > summary::after {
-  content: "+";
-  float: right;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.session-limits[open] > summary::after {
-  content: "–";
 }
 
 .session-limits__body {
@@ -812,6 +856,7 @@
 
 @media (max-width: 1080px) {
   // Action-first single column: step 1 (buttons) then step 2 (configure form)
+  .session-hero,
   .session-flow-stack {
     grid-template-columns: 1fr;
   }
@@ -825,6 +870,10 @@
   .session-hero {
     padding: 18px;
     border-radius: var(--ns-radius-lg, 20px);
+  }
+
+  .session-hero__visual {
+    min-height: 220px;
   }
 
   .session-hero__head {
@@ -868,12 +917,6 @@
   .session-hero__metrics,
   .session-env-grid {
     grid-template-columns: 1fr;
-  }
-
-  // Tiles stack vertically on mobile — the column divider would float between
-  // rows, so drop it and let the tile surfaces separate the statuses.
-  .session-metric + .session-metric::before {
-    display: none;
   }
 
   .session-hero__heading h2 {
