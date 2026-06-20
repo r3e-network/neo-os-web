@@ -8,15 +8,19 @@
 
 .bridge-console-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(340px, 1fr);
+  gap: 18px;
   align-items: stretch;
-  padding: 24px;
+  padding: 18px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   background:
-    linear-gradient(135deg, rgba(15, 177, 116, 0.12), rgba(15, 177, 116, 0.02)),
+    linear-gradient(
+      135deg,
+      rgba(228, 248, 240, 0.72),
+      rgba(255, 246, 222, 0.48)
+    ),
     var(--ns-surface, #ffffff);
 }
 
@@ -50,10 +54,10 @@
   margin: 0;
   max-width: 620px;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 26px;
+  font-size: 31px;
   line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .bridge-hero-copy p {
@@ -63,16 +67,41 @@
   line-height: 1.6;
 }
 
+.bridge-hero-visual {
+  position: relative;
+  min-height: 320px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 18px;
+  background: #fff8e8;
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.bridge-hero-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .bridge-route-card {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 132px;
-  padding: 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  min-height: 128px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--ns-ink, #1e1e2e);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .bridge-route-card__title {
@@ -229,7 +258,9 @@
   border-radius: 6px;
   padding: 0 12px;
   background: transparent;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .bridge-mode-tab:hover:not(.bridge-mode-tab--active) {
@@ -410,7 +441,11 @@
   border: 1px solid rgba(15, 177, 116, 0.18);
   border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(15, 177, 116, 0.12), rgba(15, 177, 116, 0.02) 62%),
+    linear-gradient(
+      135deg,
+      rgba(15, 177, 116, 0.12),
+      rgba(15, 177, 116, 0.02) 62%
+    ),
     var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
@@ -564,7 +599,10 @@
   padding: 0 14px;
   background: var(--ns-surface, #ffffff);
   font-variant-numeric: tabular-nums;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .bridge-preset:hover,
@@ -578,6 +616,75 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.bridge-handoff-rail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(15, 177, 116, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(228, 248, 240, 0.86),
+      rgba(255, 255, 255, 0.92) 68%
+    ),
+    var(--ns-surface, #ffffff);
+}
+
+.bridge-handoff-rail__step-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.bridge-handoff-rail__step-wrap:last-child {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.bridge-handoff-rail__step {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.bridge-handoff-rail__step svg,
+.bridge-handoff-rail__arrow {
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.bridge-handoff-rail__step span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.bridge-handoff-rail__step strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.bridge-handoff-rail__step small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bridge-action-preview div {
@@ -750,7 +857,10 @@
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .bridge-resource-link svg {
@@ -865,6 +975,7 @@
   .bridge-route-options,
   .bridge-kind-options,
   .bridge-ticket,
+  .bridge-handoff-rail,
   .bridge-action-preview {
     grid-template-columns: 1fr;
   }
@@ -872,6 +983,14 @@
   .bridge-route-card__flow > svg {
     transform: rotate(90deg);
     justify-self: center;
+  }
+
+  .bridge-handoff-rail__step-wrap {
+    grid-template-columns: 1fr;
+  }
+
+  .bridge-handoff-rail__arrow {
+    display: none;
   }
 
   .bridge-costs__rows {

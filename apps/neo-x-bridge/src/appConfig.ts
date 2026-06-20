@@ -16,12 +16,34 @@ export const manifest: MiniAppManifest = {
   category: "defi",
   shell: "console",
   theme: { family: "finance", accentColor: "#16c784", density: "comfortable" },
-  tabs: [{ key: "console", labelKey: "tabConsole", icon: "link", default: true }],
+  tabs: [
+    { key: "console", labelKey: "tabConsole", icon: "link", default: true },
+  ],
   stats: [
-    { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
-    { labelKey: "statEndpoint", valueKey: "endpointLabel", format: "text", icon: "chain" },
-    { labelKey: "statRequests", valueKey: "requestCount", format: "number", icon: "activity" },
-    { labelKey: "statDigest", valueKey: "lastDigest", format: "text", icon: "key" },
+    {
+      labelKey: "statNetwork",
+      valueKey: "networkLabel",
+      format: "text",
+      icon: "globe",
+    },
+    {
+      labelKey: "statEndpoint",
+      valueKey: "endpointLabel",
+      format: "text",
+      icon: "chain",
+    },
+    {
+      labelKey: "statRequests",
+      valueKey: "requestCount",
+      format: "number",
+      icon: "activity",
+    },
+    {
+      labelKey: "statDigest",
+      valueKey: "lastDigest",
+      format: "text",
+      icon: "key",
+    },
   ],
   operations: [
     {
@@ -100,7 +122,7 @@ export const manifest: MiniAppManifest = {
           key: "message",
           type: "text",
           labelKey: "messagePayload",
-          placeholder: "{\"type\":\"signal\",\"value\":\"...\"}",
+          placeholder: '{"type":"signal","value":"..."}',
           required: true,
         },
         {
@@ -164,7 +186,12 @@ export const manifest: MiniAppManifest = {
       { labelKey: "statDigest", valueKey: "lastDigest", format: "text" },
     ],
   },
-  features: { walletRequired: false, chainWarning: true, comments: true, reviews: true },
+  features: {
+    walletRequired: false,
+    chainWarning: true,
+    comments: true,
+    reviews: true,
+  },
   docs: [
     { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
@@ -227,33 +254,78 @@ const appMessages = {
   statDigest: { en: "Digest", zh: "摘要" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   lastRoute: { en: "Route", zh: "路径" },
-  emptyPayload: { en: "No bridge intent prepared yet.", zh: "还没有生成跨链意图。" },
+  emptyPayload: {
+    en: "No bridge intent prepared yet.",
+    zh: "还没有生成跨链意图。",
+  },
   emptyPayloadHint: {
     en: "Prepare an asset or message intent from the operation panel to generate a bridge handoff intent you then submit on the official bridge.",
     zh: "在操作面板中准备资产或消息意图，生成可在官方跨链桥提交的跨链交接意图。",
   },
   statusReady: { en: "Bridge console ready", zh: "跨链控制台已就绪" },
-  statusAssetReady: { en: "Asset bridge handoff prepared", zh: "资产桥交接载荷已生成" },
-  statusMessageReady: { en: "Message bridge intent prepared", zh: "消息桥意图已生成" },
-  statusTrackingReady: { en: "Tracking timeline refreshed", zh: "追踪时间线已刷新" },
+  statusAssetReady: {
+    en: "Asset bridge handoff prepared",
+    zh: "资产桥交接载荷已生成",
+  },
+  statusMessageReady: {
+    en: "Message bridge intent prepared",
+    zh: "消息桥意图已生成",
+  },
+  statusTrackingReady: {
+    en: "Tracking timeline refreshed",
+    zh: "追踪时间线已刷新",
+  },
   statusIntentPrepared: { en: "Intent prepared", zh: "意图已生成" },
-  statusMessageIntentPrepared: { en: "Message intent prepared", zh: "消息意图已生成" },
+  statusMessageIntentPrepared: {
+    en: "Message intent prepared",
+    zh: "消息意图已生成",
+  },
   // Status timeline — localized labels + details (interpolated at render).
   tlIntentLabel: { en: "Intent prepared", zh: "意图已生成" },
-  tlIntentReady: { en: "{operation} is ready for {route}.", zh: "{operation} 已就绪，路线 {route}。" },
-  tlIntentPending: { en: "Prepare a bridge intent from the operation panel.", zh: "请在操作面板中准备跨链意图。" },
+  tlIntentReady: {
+    en: "{operation} is ready for {route}.",
+    zh: "{operation} 已就绪，路线 {route}。",
+  },
+  tlIntentPending: {
+    en: "Prepare a bridge intent from the operation panel.",
+    zh: "请在操作面板中准备跨链意图。",
+  },
   tlSourceLabel: { en: "Source transaction", zh: "源链交易" },
-  tlSourceCaptured: { en: "Source tx {sourceTx} captured.", zh: "已记录源链交易 {sourceTx}。" },
-  tlSourceWaiting: { en: "Waiting for the wallet-signed source-chain transaction.", zh: "等待钱包签名的源链交易。" },
+  tlSourceCaptured: {
+    en: "Source tx {sourceTx} captured.",
+    zh: "已记录源链交易 {sourceTx}。",
+  },
+  tlSourceWaiting: {
+    en: "Waiting for the wallet-signed source-chain transaction.",
+    zh: "等待钱包签名的源链交易。",
+  },
   tlObservationLabel: { en: "Bridge observation", zh: "桥接观察" },
-  tlObservationMessage: { en: "Relayer reconstructs the directional message hash chain.", zh: "中继器重建定向消息哈希链。" },
-  tlObservationAsset: { en: "Relayer observes bridge events and reconstructs token hash-chain state.", zh: "中继器观察桥接事件并重建代币哈希链状态。" },
+  tlObservationMessage: {
+    en: "Relayer reconstructs the directional message hash chain.",
+    zh: "中继器重建定向消息哈希链。",
+  },
+  tlObservationAsset: {
+    en: "Relayer observes bridge events and reconstructs token hash-chain state.",
+    zh: "中继器观察桥接事件并重建代币哈希链状态。",
+  },
   tlAttestationLabel: { en: "Validator attestation", zh: "验证者证明" },
-  tlAttestationDetail: { en: "Validator threshold signatures authenticate the next root commitment.", zh: "验证者门限签名认证下一个根承诺。" },
+  tlAttestationDetail: {
+    en: "Validator threshold signatures authenticate the next root commitment.",
+    zh: "验证者门限签名认证下一个根承诺。",
+  },
   tlDestinationLabel: { en: "Destination finalized", zh: "目标链完成" },
-  tlDestinationMessage: { en: "Destination contract receives the verified payload.", zh: "目标合约接收已验证的载荷。" },
-  tlDestinationAsset: { en: "Destination chain releases or mints the bridged GAS.", zh: "目标链释放或铸造跨链 GAS。" },
-  errSourceTx: { en: "Enter a 0x-prefixed 64-character transaction hash.", zh: "请输入以 0x 开头的 64 位交易哈希。" },
+  tlDestinationMessage: {
+    en: "Destination contract receives the verified payload.",
+    zh: "目标合约接收已验证的载荷。",
+  },
+  tlDestinationAsset: {
+    en: "Destination chain releases or mints the bridged GAS.",
+    zh: "目标链释放或铸造跨链 GAS。",
+  },
+  errSourceTx: {
+    en: "Enter a 0x-prefixed 64-character transaction hash.",
+    zh: "请输入以 0x 开头的 64 位交易哈希。",
+  },
   copiedPayload: { en: "Bridge payload copied", zh: "跨链载荷已复制" },
   errAmountPositive: {
     en: "Enter an amount greater than zero.",
@@ -312,7 +384,10 @@ const appMessages = {
   },
 
   // Hero
-  heroEyebrow: { en: "AxLabs / BaneLabs Bridge Console", zh: "AxLabs / BaneLabs 跨链控制台" },
+  heroEyebrow: {
+    en: "AxLabs / BaneLabs Bridge Console",
+    zh: "AxLabs / BaneLabs 跨链控制台",
+  },
   heroTitle: {
     en: "Neo N3 and Neo X cross-chain control",
     zh: "Neo N3 与 Neo X 跨链控制",
@@ -326,6 +401,10 @@ const appMessages = {
     zh: "本控制台不会转移任何资金——它只生成你需在官方跨链桥提交的交接载荷。",
   },
   heroAria: { en: "Neo X bridge overview", zh: "Neo X 跨链桥概览" },
+  bridgeHeroImageAlt: {
+    en: "Bright cross-chain bridge route with GAS moving between Neo N3 and Neo X checkpoints",
+    zh: "明亮的跨链桥路径，GAS 在 Neo N3 与 Neo X 检查点之间流动",
+  },
 
   // Route card
   routeAria: { en: "Active route", zh: "当前路径" },
@@ -335,6 +414,15 @@ const appMessages = {
   routeSendLabel: { en: "Send from", zh: "从此发送" },
   routeReceiveLabel: { en: "Receive on", zh: "在此接收" },
   routeArrowAria: { en: "moves to", zh: "转移至" },
+  handoffRailAria: { en: "Bridge handoff rail", zh: "跨链交接路径" },
+  railSource: { en: "Source", zh: "源链" },
+  railAttest: { en: "Attest", zh: "证明" },
+  railAttestTitle: { en: "Validator checkpoint", zh: "验证者检查点" },
+  railAttestDetail: {
+    en: "Observed, signed, then released",
+    zh: "观察、签名、再释放",
+  },
+  railDestination: { en: "Destination", zh: "目标链" },
 
   // Metrics strip
   metricsAria: { en: "Bridge console status", zh: "跨链控制台状态" },
@@ -351,15 +439,24 @@ const appMessages = {
 
   // Field labels
   destinationAddress: { en: "Destination address", zh: "目标地址" },
-  destinationPlaceholder: { en: "Neo N3 or Neo X address", zh: "Neo N3 或 Neo X 地址" },
+  destinationPlaceholder: {
+    en: "Neo N3 or Neo X address",
+    zh: "Neo N3 或 Neo X 地址",
+  },
   amountPresetsAria: { en: "GAS amount presets", zh: "GAS 数量预设" },
-  targetContractPlaceholder: { en: "0x... or Neo script hash", zh: "0x... 或 Neo 脚本哈希" },
+  targetContractPlaceholder: {
+    en: "0x... or Neo script hash",
+    zh: "0x... 或 Neo 脚本哈希",
+  },
   assetTicketEyebrow: { en: "GAS handoff ticket", zh: "GAS 交接票据" },
   assetTicketTitle: {
     en: "Prepare {route}",
     zh: "准备 {route}",
   },
-  messageIntentEyebrow: { en: "MessageBridge intent", zh: "MessageBridge 意图" },
+  messageIntentEyebrow: {
+    en: "MessageBridge intent",
+    zh: "MessageBridge 意图",
+  },
   messageIntentTitle: {
     en: "Package a cross-chain call",
     zh: "打包跨链调用",
@@ -444,19 +541,28 @@ const appMessages = {
   copyAria: { en: "Copy generated JSON", zh: "复制生成的 JSON" },
 
   // Next-step handoff (the bridge actually happens on the official bridge app)
-  nextStepTitle: { en: "Next step — bridge on the official app", zh: "下一步——在官方应用桥接" },
+  nextStepTitle: {
+    en: "Next step — bridge on the official app",
+    zh: "下一步——在官方应用桥接",
+  },
   nextStepBody: {
     en: "This console only prepared the handoff (no funds moved). Open the official bridge, paste this intent, and sign there to actually move funds.",
     zh: "本控制台仅生成了交接载荷（未转移资金）。请打开官方跨链桥，粘贴此意图，并在那里签名以真正转移资金。",
   },
-  btnOpenOfficialBridge: { en: "Open official bridge to submit", zh: "打开官方跨链桥提交" },
+  btnOpenOfficialBridge: {
+    en: "Open official bridge to submit",
+    zh: "打开官方跨链桥提交",
+  },
 
   // Lifecycle-preview honesty + the one real fact (source tx) the user can verify
   trackPreviewNote: {
     en: "This is a local lifecycle preview from your inputs, not a live bridge status. Confirm real progress on the official bridge.",
     zh: "这是根据你的输入生成的本地生命周期预览，并非实时桥接状态。请在官方跨链桥确认真实进度。",
   },
-  viewSourceTxExplorer: { en: "View source tx on explorer", zh: "在区块浏览器查看源链交易" },
+  viewSourceTxExplorer: {
+    en: "View source tx on explorer",
+    zh: "在区块浏览器查看源链交易",
+  },
 
   // Resources
   resourcesAria: { en: "Bridge resources", zh: "跨链资源" },
@@ -467,8 +573,14 @@ const appMessages = {
   resBridgeSdk: { en: "BaneLabs SDK", zh: "BaneLabs SDK" },
 
   // Success notices
-  noticeAssetReady: { en: "Asset bridge handoff prepared.", zh: "资产桥交接载荷已生成。" },
-  noticeMessageReady: { en: "Message bridge intent prepared.", zh: "消息桥意图已生成。" },
+  noticeAssetReady: {
+    en: "Asset bridge handoff prepared.",
+    zh: "资产桥交接载荷已生成。",
+  },
+  noticeMessageReady: {
+    en: "Message bridge intent prepared.",
+    zh: "消息桥意图已生成。",
+  },
   noticeTrackingReady: {
     en: "Bridge tracking timeline refreshed.",
     zh: "跨链追踪时间线已刷新。",

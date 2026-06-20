@@ -20,7 +20,8 @@ const N3_RECIPIENT = "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke";
 function t(key: string) {
   const messages: Record<string, string> = {
     emptyPayload: "No bridge intent prepared yet.",
-    emptyPayloadHint: "Use the workspace to prepare an asset or message bridge handoff.",
+    emptyPayloadHint:
+      "Use the workspace to prepare an asset or message bridge handoff.",
     notAvailable: "Not available",
     statusReady: "Ready",
     // i18n keys consumed by the bridge console view
@@ -50,6 +51,20 @@ function t(key: string) {
     noticeMessageReady: "Message bridge intent prepared.",
     noticeTrackingReady: "Bridge tracking timeline refreshed.",
     errBridgeGeneric: "Bridge handoff could not be prepared.",
+    bridgeHeroImageAlt: "Cross-chain bridge route",
+    routeCardTitle: "How the bridge moves GAS",
+    routeAria: "Active route",
+    routeSendLabel: "Send from",
+    routeReceiveLabel: "Receive on",
+    routeN3Wallet: "NEP-21 / NeoLine",
+    routeNeoXWallet: "EVM / MetaMask",
+    routeArrowAria: "moves to",
+    handoffRailAria: "Bridge handoff rail",
+    railSource: "Source",
+    railAttest: "Attest",
+    railAttestTitle: "Validator checkpoint",
+    railAttestDetail: "Observed, signed, then released",
+    railDestination: "Destination",
     errMessageForm:
       "Enter a valid target contract, payload, and a gas limit of at least 21000.",
     errSourceTx: "Enter a 0x-prefixed 64-character transaction hash.",
@@ -112,7 +127,9 @@ describe("Neo X Bridge PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Destination address"), {
       target: { value: RECIPIENT },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Prepare asset handoff" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare asset handoff" }),
+    );
 
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("prepareAssetBridge", {
@@ -133,16 +150,18 @@ describe("Neo X Bridge PlayArea", () => {
       target: { value: TARGET },
     });
     fireEvent.change(screen.getByLabelText("Message payload"), {
-      target: { value: "{\"event\":\"settled\"}" },
+      target: { value: '{"event":"settled"}' },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Prepare message intent" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Prepare message intent" }),
+    );
 
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("prepareMessageBridge", {
         direction: "n3-to-neox",
         targetContract: TARGET,
         method: "onCrossChainMessage",
-        payload: "{\"event\":\"settled\"}",
+        payload: '{"event":"settled"}',
         gasLimit: "250000",
       });
     });
@@ -169,9 +188,11 @@ describe("Neo X Bridge PlayArea", () => {
     });
     // The Prepare-message button stays disabled while the payload is empty.
     expect(
-      (screen.getByRole("button", {
-        name: "Prepare message intent",
-      }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Prepare message intent",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     expect(dispatch).not.toHaveBeenCalled();
   });
@@ -209,10 +230,12 @@ describe("Neo X Bridge PlayArea", () => {
         recipient: N3_RECIPIENT,
       });
     });
-    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe("0.1");
-    expect((screen.getByLabelText("Destination address") as HTMLInputElement).value).toBe(
-      N3_RECIPIENT,
+    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe(
+      "0.1",
     );
+    expect(
+      (screen.getByLabelText("Destination address") as HTMLInputElement).value,
+    ).toBe(N3_RECIPIENT);
   });
 
   it("validates the source tx as a hash256 and disables tracking on a malformed hash", () => {
@@ -227,7 +250,11 @@ describe("Neo X Bridge PlayArea", () => {
       screen.getByText("Enter a 0x-prefixed 64-character transaction hash."),
     ).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Refresh tracking" }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Refresh tracking",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
 
     // A well-formed hash256 clears the error and re-enables tracking.
@@ -238,7 +265,11 @@ describe("Neo X Bridge PlayArea", () => {
       screen.queryByText("Enter a 0x-prefixed 64-character transaction hash."),
     ).toBeNull();
     expect(
-      (screen.getByRole("button", { name: "Refresh tracking" }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Refresh tracking",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(false);
   });
 });
