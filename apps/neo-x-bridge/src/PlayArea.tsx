@@ -7,6 +7,9 @@ import {
   Copy,
   ExternalLink,
   FileJson,
+  Landmark,
+  PackageCheck,
+  ShieldCheck,
   WalletCards,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -101,14 +104,16 @@ function isValidTargetAddress(direction: DirectionValue, value: string) {
 
 /** Locale key for the direction-specific wrong-chain address error. */
 function addressErrorKey(direction: DirectionValue) {
-  return targetChain(direction) === "neo-x" ? "errAddressNeoX" : "errAddressNeoN3";
+  return targetChain(direction) === "neo-x"
+    ? "errAddressNeoX"
+    : "errAddressNeoN3";
 }
 
 function normalizeWorkspaceDirection(value: unknown): DirectionValue {
   const text = String(value ?? "").toLowerCase();
   return text === "neox-to-n3" ||
     text === "neo x -> neo n3" ||
-    text === "neo x → neo n3"
+    text === "neo x \u2192 neo n3"
     ? "neox-to-n3"
     : "n3-to-neox";
 }
@@ -127,8 +132,14 @@ export default function PlayArea({
   // Active bridge environment + the official-bridge URL (network-derived), so the
   // required "Open official bridge" next step and the source-tx explorer link
   // target mainnet/testnet correctly rather than a hardcoded testnet literal.
-  const bridgeEnvironment = str("bridgeEnvironment", "mainnet") as BridgeEnvironment;
-  const officialBridgeUrl = str("bridgeAppUrl", BRIDGE_RESOURCES.bridgeAppMainnet);
+  const bridgeEnvironment = str(
+    "bridgeEnvironment",
+    "mainnet",
+  ) as BridgeEnvironment;
+  const officialBridgeUrl = str(
+    "bridgeAppUrl",
+    BRIDGE_RESOURCES.bridgeAppMainnet,
+  );
   const rawDigest = str("lastDigest", "—");
   const notAvailableLabel = t("notAvailable");
   const lastDigest =
@@ -142,8 +153,11 @@ export default function PlayArea({
   const hasDigest = lastDigest !== "—";
   const lastStatus = str("lastStatus", t("statusReady"));
   const payload = str("lastPayload", t("emptyPayload"));
-  const operations = val<BridgeOperation[]>("operationsLog", EMPTY_OPERATIONS) ?? EMPTY_OPERATIONS;
-  const timeline = val<TimelineStep[]>("timeline", EMPTY_TIMELINE) ?? EMPTY_TIMELINE;
+  const operations =
+    val<BridgeOperation[]>("operationsLog", EMPTY_OPERATIONS) ??
+    EMPTY_OPERATIONS;
+  const timeline =
+    val<TimelineStep[]>("timeline", EMPTY_TIMELINE) ?? EMPTY_TIMELINE;
 
   const activeOperation = operations[0] ?? null;
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("asset");
@@ -195,7 +209,8 @@ export default function PlayArea({
     parsedGasLimit !== null &&
     parsedGasLimit >= 21000;
   const canTrack =
-    (operationId.trim().length > 0 || sourceTx.trim().length > 0) && !sourceTxInvalid;
+    (operationId.trim().length > 0 || sourceTx.trim().length > 0) &&
+    !sourceTxInvalid;
 
   const runWorkspaceAction = useCallback(
     async (
@@ -212,9 +227,7 @@ export default function PlayArea({
         setStatus(doneMessage, "success");
       } catch (error) {
         const message =
-          error instanceof Error
-            ? error.message
-            : t("errBridgeGeneric");
+          error instanceof Error ? error.message : t("errBridgeGeneric");
         setActionError(message);
         setStatus(message, "error");
       } finally {
@@ -230,7 +243,9 @@ export default function PlayArea({
     const signature = `${operation}:${launchContext?.signature || ""}`;
     if (!operation || handledLaunchRef.current === signature) return;
 
-    const direction = normalizeWorkspaceDirection(params.direction || params.route);
+    const direction = normalizeWorkspaceDirection(
+      params.direction || params.route,
+    );
     if (/bridgeAsset|assetBridge|prepareAssetBridge/i.test(operation)) {
       const nextAmount = String(params.amount || "").trim();
       const nextRecipient = String(
@@ -302,8 +317,12 @@ export default function PlayArea({
         String(params.bridgeKind || params.kind || "asset") === "message"
           ? "message"
           : "asset";
-      const nextOperationId = String(params.operationId || params.id || "").trim();
-      const nextSourceTx = String(params.sourceTx || params.txHash || "").trim();
+      const nextOperationId = String(
+        params.operationId || params.id || "",
+      ).trim();
+      const nextSourceTx = String(
+        params.sourceTx || params.txHash || "",
+      ).trim();
       setWorkspaceMode("track");
       setTrackKind(nextKind);
       setTrackDirection(direction);
@@ -413,22 +432,34 @@ export default function PlayArea({
             {t("heroNoFunds")}
           </p>
         </div>
-        <div className="bridge-route-card" aria-label={t("routeAria")}>
-          <span className="bridge-route-card__title">{t("routeCardTitle")}</span>
-          <div className="bridge-route-card__flow">
-            <div className="route-node">
-              <span className="route-node__role">{t("routeSendLabel")}</span>
-              <span className="route-node__chain">Neo N3</span>
-              <small>{t("routeN3Wallet")}</small>
+        <figure className="bridge-hero-visual">
+          <img
+            src="./bridge-route.jpg"
+            alt={t("bridgeHeroImageAlt")}
+            loading="eager"
+            decoding="sync"
+          />
+          <figcaption className="bridge-route-card" aria-label={t("routeAria")}>
+            <span className="bridge-route-card__title">
+              {t("routeCardTitle")}
+            </span>
+            <div className="bridge-route-card__flow">
+              <div className="route-node">
+                <span className="route-node__role">{t("routeSendLabel")}</span>
+                <span className="route-node__chain">Neo N3</span>
+                <small>{t("routeN3Wallet")}</small>
+              </div>
+              <ArrowLeftRight size={20} aria-label={t("routeArrowAria")} />
+              <div className="route-node">
+                <span className="route-node__role">
+                  {t("routeReceiveLabel")}
+                </span>
+                <span className="route-node__chain">{t("neoX")}</span>
+                <small>{t("routeNeoXWallet")}</small>
+              </div>
             </div>
-            <ArrowLeftRight size={20} aria-label={t("routeArrowAria")} />
-            <div className="route-node">
-              <span className="route-node__role">{t("routeReceiveLabel")}</span>
-              <span className="route-node__chain">{t("neoX")}</span>
-              <small>{t("routeNeoXWallet")}</small>
-            </div>
-          </div>
-        </div>
+          </figcaption>
+        </figure>
       </section>
 
       <div className="bridge-metrics-strip" aria-label={t("metricsAria")}>
@@ -447,7 +478,9 @@ export default function PlayArea({
         {hasDigest && (
           <span className="strip-metric">
             <small>{t("statDigest")}</small>
-            <strong className="strip-metric--mono">{compactHash(lastDigest)}</strong>
+            <strong className="strip-metric--mono">
+              {compactHash(lastDigest)}
+            </strong>
           </span>
         )}
       </div>
@@ -458,12 +491,18 @@ export default function PlayArea({
             <span className="module-kicker">{t("workspaceKicker")}</span>
             <h3>{t("workspaceTitle")}</h3>
           </div>
-          <div className="bridge-mode-tabs" role="tablist" aria-label={t("workspaceModeAria")}>
-            {([
-              ["asset", "tabAsset"],
-              ["message", "tabMessage"],
-              ["track", "tabTrack"],
-            ] as const).map(([mode, labelKey]) => (
+          <div
+            className="bridge-mode-tabs"
+            role="tablist"
+            aria-label={t("workspaceModeAria")}
+          >
+            {(
+              [
+                ["asset", "tabAsset"],
+                ["message", "tabMessage"],
+                ["track", "tabTrack"],
+              ] as const
+            ).map(([mode, labelKey]) => (
               <button
                 key={mode}
                 type="button"
@@ -492,7 +531,9 @@ export default function PlayArea({
                 <span className="bridge-ticket-icon" aria-hidden="true">
                   <WalletCards size={18} />
                 </span>
-                <span className="bridge-eyebrow">{t("assetTicketEyebrow")}</span>
+                <span className="bridge-eyebrow">
+                  {t("assetTicketEyebrow")}
+                </span>
                 <strong>
                   {t("assetTicketTitle", {
                     route: bridgeRouteLabel(t, assetDirection),
@@ -510,7 +551,10 @@ export default function PlayArea({
                   error={assetAmountInvalid ? t("errAmountPositive") : ""}
                   onChange={setAssetAmount}
                 />
-                <div className="bridge-amount-presets" aria-label={t("amountPresetsAria")}>
+                <div
+                  className="bridge-amount-presets"
+                  aria-label={t("amountPresetsAria")}
+                >
                   {GAS_PRESETS.map((preset) => (
                     <button
                       key={preset}
@@ -531,17 +575,28 @@ export default function PlayArea({
               placeholder={t("destinationPlaceholder")}
               value={assetRecipient}
               error={
-                assetRecipientInvalid
-                  ? t(addressErrorKey(assetDirection))
-                  : ""
+                assetRecipientInvalid ? t(addressErrorKey(assetDirection)) : ""
               }
               onChange={setAssetRecipient}
               className="bridge-field-wide"
             />
+            <BridgeHandoffRail
+              t={t}
+              direction={assetDirection}
+              amount={
+                isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : EM_DASH
+              }
+              recipient={assetRecipient || EM_DASH}
+            />
             <BridgeActionPreview
               items={[
                 [t("previewRoute"), bridgeRouteLabel(t, assetDirection)],
-                [t("previewAmount"), isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : EM_DASH],
+                [
+                  t("previewAmount"),
+                  isPositiveAmount(assetAmount)
+                    ? `${assetAmount} GAS`
+                    : EM_DASH,
+                ],
                 [t("previewRecipient"), assetRecipient || EM_DASH],
               ]}
             />
@@ -575,7 +630,9 @@ export default function PlayArea({
                 <FileJson size={18} />
               </span>
               <div>
-                <span className="bridge-eyebrow">{t("messageIntentEyebrow")}</span>
+                <span className="bridge-eyebrow">
+                  {t("messageIntentEyebrow")}
+                </span>
                 <strong>{t("messageIntentTitle")}</strong>
                 <small>{t("messageIntentBody")}</small>
               </div>
@@ -618,11 +675,20 @@ export default function PlayArea({
               onBlur={() => setMessagePayloadTouched(true)}
               className="bridge-field-wide"
             />
+            <BridgeHandoffRail
+              t={t}
+              direction={messageDirection}
+              amount={messagePayload ? t("previewReady") : EM_DASH}
+              recipient={targetContract || EM_DASH}
+            />
             <BridgeActionPreview
               items={[
                 [t("previewRoute"), bridgeRouteLabel(t, messageDirection)],
                 [t("previewTarget"), targetContract || EM_DASH],
-                [t("previewPayload"), messagePayload ? t("previewReady") : EM_DASH],
+                [
+                  t("previewPayload"),
+                  messagePayload ? t("previewReady") : EM_DASH,
+                ],
               ]}
             />
             <NeoButton
@@ -644,7 +710,11 @@ export default function PlayArea({
 
         {workspaceMode === "track" && (
           <div className="bridge-form-grid">
-            <BridgeKindChooser t={t} value={trackKind} onChange={setTrackKind} />
+            <BridgeKindChooser
+              t={t}
+              value={trackKind}
+              onChange={setTrackKind}
+            />
             <BridgeRouteChooser
               t={t}
               value={trackDirection}
@@ -665,9 +735,17 @@ export default function PlayArea({
             />
             <BridgeActionPreview
               items={[
-                [t("previewBridge"), trackKind === "message" ? t("messageBridge") : t("assetBridge")],
+                [
+                  t("previewBridge"),
+                  trackKind === "message"
+                    ? t("messageBridge")
+                    : t("assetBridge"),
+                ],
                 [t("previewRoute"), bridgeRouteLabel(t, trackDirection)],
-                [t("previewSourceTx"), sourceTx ? compactHash(sourceTx) : EM_DASH],
+                [
+                  t("previewSourceTx"),
+                  sourceTx ? compactHash(sourceTx) : EM_DASH,
+                ],
               ]}
             />
             <NeoButton
@@ -701,94 +779,122 @@ export default function PlayArea({
 
       {activeOperation && (
         <div className="bridge-output-grid">
-        <NeoCard
-          variant="erobo"
-          title={t("outputTitle")}
-          className="bridge-output-card"
-          header={
-            <NeoButton size="sm" variant="ghost" aria-label={t("copyAria")} onClick={copyPayload}>
-              <Copy size={15} aria-hidden="true" />
-              {t("copyLabel")}
-            </NeoButton>
-          }
-        >
-          <div className="operation-summary">
-            <span>{activeOperation.id}</span>
-            <strong>{activeOperation.title}</strong>
-          </div>
-          <pre className="payload-preview">{payload}</pre>
-          <div className="bridge-next-step" role="note">
-            <div className="bridge-next-step__copy">
-              <strong>{t("nextStepTitle")}</strong>
-              <small>{t("nextStepBody")}</small>
+          <NeoCard
+            variant="erobo"
+            title={t("outputTitle")}
+            className="bridge-output-card"
+            header={
+              <NeoButton
+                size="sm"
+                variant="ghost"
+                aria-label={t("copyAria")}
+                onClick={copyPayload}
+              >
+                <Copy size={15} aria-hidden="true" />
+                {t("copyLabel")}
+              </NeoButton>
+            }
+          >
+            <div className="operation-summary">
+              <span>{activeOperation.id}</span>
+              <strong>{activeOperation.title}</strong>
             </div>
-            <a
-              className="bridge-next-step__cta"
-              href={officialBridgeUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span>{t("btnOpenOfficialBridge")}</span>
-              <ExternalLink size={15} aria-hidden="true" />
-            </a>
-          </div>
-        </NeoCard>
-
-        <NeoCard variant="erobo" title={t("statusCardTitle")} className="bridge-status-card">
-          <p className="bridge-preview-note" role="note">
-            {t("trackPreviewNote")}
-          </p>
-          <div className="timeline-list">
-            {timeline.map((step) => (
-              <div key={step.key} className={`timeline-step timeline-step--${step.state}`}>
-                <span className="timeline-icon" aria-hidden="true">
-                  {step.state === "done" ? (
-                    <CheckCircle2 size={16} />
-                  ) : step.state === "active" ? (
-                    <Clock3 size={16} />
-                  ) : (
-                    <CircleDashed size={16} />
-                  )}
-                </span>
-                <span className="timeline-copy">
-                  <strong>{t(step.labelKey)}</strong>
-                  <small>{t(step.detailKey, step.detailParams)}</small>
-                </span>
+            <pre className="payload-preview">{payload}</pre>
+            <div className="bridge-next-step" role="note">
+              <div className="bridge-next-step__copy">
+                <strong>{t("nextStepTitle")}</strong>
+                <small>{t("nextStepBody")}</small>
               </div>
-            ))}
-          </div>
-          {activeOperation.sourceTx && HASH256.test(activeOperation.sourceTx) && (
-            <a
-              className="bridge-source-explorer"
-              href={sourceExplorerUrl(
-                activeOperation.direction,
-                bridgeEnvironment,
-                activeOperation.sourceTx,
+              <a
+                className="bridge-next-step__cta"
+                href={officialBridgeUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span>{t("btnOpenOfficialBridge")}</span>
+                <ExternalLink size={15} aria-hidden="true" />
+              </a>
+            </div>
+          </NeoCard>
+
+          <NeoCard
+            variant="erobo"
+            title={t("statusCardTitle")}
+            className="bridge-status-card"
+          >
+            <p className="bridge-preview-note" role="note">
+              {t("trackPreviewNote")}
+            </p>
+            <div className="timeline-list">
+              {timeline.map((step) => (
+                <div
+                  key={step.key}
+                  className={`timeline-step timeline-step--${step.state}`}
+                >
+                  <span className="timeline-icon" aria-hidden="true">
+                    {step.state === "done" ? (
+                      <CheckCircle2 size={16} />
+                    ) : step.state === "active" ? (
+                      <Clock3 size={16} />
+                    ) : (
+                      <CircleDashed size={16} />
+                    )}
+                  </span>
+                  <span className="timeline-copy">
+                    <strong>{t(step.labelKey)}</strong>
+                    <small>{t(step.detailKey, step.detailParams)}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+            {activeOperation.sourceTx &&
+              HASH256.test(activeOperation.sourceTx) && (
+                <a
+                  className="bridge-source-explorer"
+                  href={sourceExplorerUrl(
+                    activeOperation.direction,
+                    bridgeEnvironment,
+                    activeOperation.sourceTx,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span>{t("viewSourceTxExplorer")}</span>
+                  <ExternalLink size={14} aria-hidden="true" />
+                </a>
               )}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span>{t("viewSourceTxExplorer")}</span>
-              <ExternalLink size={14} aria-hidden="true" />
-            </a>
-          )}
-        </NeoCard>
+          </NeoCard>
         </div>
       )}
 
       <div className="bridge-resource-row" aria-label={t("resourcesAria")}>
         <ResourceLink label={t("resOfficialBridge")} href={officialBridgeUrl} />
-        <ResourceLink label={t("resAssetBridgeDocs")} href={BRIDGE_RESOURCES.assetBridgeDocs} />
-        <ResourceLink label={t("resMessageBridgeDocs")} href={BRIDGE_RESOURCES.messageBridgeDocs} />
-        <ResourceLink label={t("resBridgeSdk")} href={BRIDGE_RESOURCES.bridgeSdk} />
+        <ResourceLink
+          label={t("resAssetBridgeDocs")}
+          href={BRIDGE_RESOURCES.assetBridgeDocs}
+        />
+        <ResourceLink
+          label={t("resMessageBridgeDocs")}
+          href={BRIDGE_RESOURCES.messageBridgeDocs}
+        />
+        <ResourceLink
+          label={t("resBridgeSdk")}
+          href={BRIDGE_RESOURCES.bridgeSdk}
+        />
       </div>
 
       {operations.length > 0 && (
-        <NeoCard variant="erobo" title={t("recentTitle")} className="bridge-recent-card">
+        <NeoCard
+          variant="erobo"
+          title={t("recentTitle")}
+          className="bridge-recent-card"
+        >
           <div className="recent-operation-list">
             {operations.map((operation) => (
               <div key={operation.id} className="recent-operation">
-                <span className="recent-kind">{kindLabel(t, operation.kind)}</span>
+                <span className="recent-kind">
+                  {kindLabel(t, operation.kind)}
+                </span>
                 <span className="recent-title">{operation.title}</span>
                 <code>{compactHash(operation.digest)}</code>
               </div>
@@ -846,7 +952,9 @@ function BridgeRouteChooser({
                 <strong>{t(option.targetKey)}</strong>
               </span>
             </span>
-            <span className="bridge-route-option__hint">{t(option.hintKey)}</span>
+            <span className="bridge-route-option__hint">
+              {t(option.hintKey)}
+            </span>
           </button>
         ))}
       </div>
@@ -903,6 +1011,69 @@ function BridgeKindChooser({
   );
 }
 
+function BridgeHandoffRail({
+  t,
+  direction,
+  amount,
+  recipient,
+}: {
+  t: PlayAreaProps["t"];
+  direction: DirectionValue;
+  amount: string;
+  recipient: string;
+}) {
+  const source = direction === "neox-to-n3" ? t("neoX") : t("routeNeoN3");
+  const target = direction === "neox-to-n3" ? t("routeNeoN3") : t("neoX");
+  const steps = [
+    {
+      key: "source",
+      icon: Landmark,
+      label: t("railSource"),
+      title: source,
+      detail: amount,
+    },
+    {
+      key: "attest",
+      icon: ShieldCheck,
+      label: t("railAttest"),
+      title: t("railAttestTitle"),
+      detail: t("railAttestDetail"),
+    },
+    {
+      key: "destination",
+      icon: PackageCheck,
+      label: t("railDestination"),
+      title: target,
+      detail: recipient,
+    },
+  ];
+
+  return (
+    <section
+      className="bridge-handoff-rail bridge-field-wide"
+      aria-label={t("handoffRailAria")}
+    >
+      {steps.map(({ key, icon: Icon, label, title, detail }, index) => (
+        <div className="bridge-handoff-rail__step-wrap" key={key}>
+          <div className="bridge-handoff-rail__step">
+            <Icon size={16} aria-hidden="true" />
+            <span>{label}</span>
+            <strong>{title}</strong>
+            <small>{detail}</small>
+          </div>
+          {index < steps.length - 1 && (
+            <ArrowRight
+              className="bridge-handoff-rail__arrow"
+              size={17}
+              aria-hidden="true"
+            />
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function BridgeCostsPanel({ t }: { t: PlayAreaProps["t"] }) {
   return (
     <div className="bridge-costs" role="note">
@@ -945,7 +1116,12 @@ function BridgeActionPreview({
 
 function ResourceLink({ label, href }: { label: string; href: string }) {
   return (
-    <a className="bridge-resource-link" href={href} target="_blank" rel="noreferrer">
+    <a
+      className="bridge-resource-link"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
       <span>{label}</span>
       <ExternalLink size={14} aria-hidden="true" />
     </a>
