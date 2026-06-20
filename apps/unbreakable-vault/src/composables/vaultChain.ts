@@ -43,6 +43,12 @@ export const MAX_MY_VAULTS_SCAN = 200;
 /** Hard cap on how many vaults to enumerate (defensive). */
 const MAX_ENUMERATE = 200;
 
+/** Static preview / hostless loads have no wallet contract binding yet. */
+export function isContractAddressUnavailableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /contract address (not configured|unavailable)/i.test(message);
+}
+
 /** Normalized view of a getVaultDetails() Map. */
 export interface ChainVaultDetails {
   id: string;
@@ -159,5 +165,7 @@ export async function readRecentVaultDetails(
     }),
   );
 
-  return results.filter((detail): detail is ChainVaultDetails => detail !== null);
+  return results.filter(
+    (detail): detail is ChainVaultDetails => detail !== null,
+  );
 }

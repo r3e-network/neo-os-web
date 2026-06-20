@@ -34,11 +34,11 @@ import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
-import { parseBigInt } from "@shared/utils/parsers";
 import {
   ATTEMPT_MEMO,
   DEFAULT_ATTEMPT_FEE_BASE,
   MAX_RECENT_VAULTS,
+  isContractAddressUnavailableError,
   readRecentVaultDetails,
   readVaultDetails,
   type ChainVaultDetails,
@@ -195,10 +195,10 @@ export function useVaultBreaker({
     const st = vaultDetails.get()?.status;
     return Boolean(
       vaultIdInput.get() &&
-        attemptSecret.get().trim() &&
-        vaultDetails.get() &&
-        String(vaultDetails.get()?.id) === String(vaultIdInput.get()) &&
-        st === "active",
+      attemptSecret.get().trim() &&
+      vaultDetails.get() &&
+      String(vaultDetails.get()?.id) === String(vaultIdInput.get()) &&
+      st === "active",
     );
   }, []);
 
@@ -212,7 +212,8 @@ export function useVaultBreaker({
     if (!vault) return false;
     const wallet = chainService.address.get();
     if (!wallet) return false;
-    const reclaimable = vault.status === "claimable" || vault.status === "expired";
+    const reclaimable =
+      vault.status === "claimable" || vault.status === "expired";
     return (
       reclaimable &&
       Boolean(vault.creator) &&
@@ -246,9 +247,16 @@ export function useVaultBreaker({
    */
   const loadRecentVaults = async () => {
     try {
-      const details = await readRecentVaultDetails(chainService, MAX_RECENT_VAULTS);
+      const details = await readRecentVaultDetails(
+        chainService,
+        MAX_RECENT_VAULTS,
+      );
       recentVaults.set(details.map(toRecentVault));
     } catch (e) {
+      if (isContractAddressUnavailableError(e)) {
+        recentVaults.set([]);
+        return;
+      }
       console.error(
         "[unbreakable-vault] loadRecentVaults error:",
         e instanceof Error ? e.message : String(e),
@@ -311,7 +319,10 @@ export function useVaultBreaker({
         [
           { type: "Integer", value: targetId },
           { type: "Hash160", value: attacker },
-          { type: "ByteArray", value: utf8ToBase64(attemptSecret.get().trim()) },
+          {
+            type: "ByteArray",
+            value: utf8ToBase64(attemptSecret.get().trim()),
+          },
         ],
         { waitForEvent: "AttemptMade" },
       );
@@ -333,7 +344,9 @@ export function useVaultBreaker({
         if (success) {
           eventBus.emit("vault:broken", { action: t("broken") });
         } else {
-          eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
+          eventBus.emit("vault:attempt_failed", {
+            message: t("vaultAttemptFailed"),
+          });
         }
         return { success };
       }
@@ -352,7 +365,9 @@ export function useVaultBreaker({
         return { success: true };
       }
       // Outcome still unconfirmed — surface a "confirming" state, not "failed".
-      eventBus.emit("vault:attempt_confirming", { message: t("vaultAttemptConfirming") });
+      eventBus.emit("vault:attempt_confirming", {
+        message: t("vaultAttemptConfirming"),
+      });
       return { success: false, confirming: true };
     } catch (e) {
       eventBus.emit("vault:error", {

@@ -41,6 +41,7 @@ import { parseBigInt } from "@shared/utils/parsers";
 import {
   CREATE_MEMO,
   MAX_MY_VAULTS_SCAN,
+  isContractAddressUnavailableError,
   readRecentVaultDetails,
   type ChainVaultDetails,
 } from "./vaultChain";
@@ -112,7 +113,8 @@ function base64FromBytes(bytes: number[]): string {
 /** Convert a hex SHA-256 digest to base64 for the ByteArray contract arg. */
 function hashHexToBase64(hash: string): string {
   const normalized = hash.replace(/^0x/i, "");
-  const bytes = normalized.match(/.{2}/g)?.map((byte) => parseInt(byte, 16)) || [];
+  const bytes =
+    normalized.match(/.{2}/g)?.map((byte) => parseInt(byte, 16)) || [];
   return base64FromBytes(bytes);
 }
 
@@ -151,13 +153,20 @@ export function useVaultCreator({
       }
       // Scan deep so a creator's older vaults (past the newest 12) stay
       // discoverable for reclaim — the contract has no per-creator index.
-      const details = await readRecentVaultDetails(chainService, MAX_MY_VAULTS_SCAN);
+      const details = await readRecentVaultDetails(
+        chainService,
+        MAX_MY_VAULTS_SCAN,
+      );
       const mine = details
         .filter((detail) => ownerMatchesAddress(detail.creator, wallet))
         .map(toMyVault)
         .sort((a, b) => b.created - a.created);
       myVaults.set(mine);
     } catch (e) {
+      if (isContractAddressUnavailableError(e)) {
+        myVaults.set([]);
+        return;
+      }
       console.error(
         "[unbreakable-vault] loadMyVaults error:",
         e instanceof Error ? e.message : String(e),
