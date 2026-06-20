@@ -3,10 +3,20 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   title: { en: "Time Capsule", zh: "时间胶囊" },
-  subtitle: { en: "Lock content until future date", zh: "锁定内容直到未来日期" },
+  subtitle: {
+    en: "Lock content until future date",
+    zh: "锁定内容直到未来日期",
+  },
   vaultEyebrow: { en: "ON-CHAIN VAULT", zh: "链上金库" },
+  heroStageAlt: {
+    en: "Glass time capsule chamber sealing a glowing message",
+    zh: "玻璃时间胶囊舱封存发光消息",
+  },
   yourCapsules: { en: "Your Capsules", zh: "你的胶囊" },
-  noCapsules: { en: "No capsules yet. Create your first one!", zh: "还没有胶囊。创建你的第一个吧！" },
+  noCapsules: {
+    en: "No capsules yet. Create your first one!",
+    zh: "还没有胶囊。创建你的第一个吧！",
+  },
   noLocalCapsules: {
     en: "No local capsules on this device yet. Seal your first capsule to get started.",
     zh: "本设备还没有本地胶囊。封存你的第一个胶囊开始吧。",
@@ -19,10 +29,40 @@ const appMessages = {
   reveal: { en: "Reveal Capsule", zh: "揭示胶囊" },
   open: { en: "Open Capsule", zh: "打开胶囊" },
   createCapsule: { en: "Create New Capsule", zh: "创建新胶囊" },
+  sealWorkbenchEyebrow: { en: "Seal workspace", zh: "封存工作台" },
+  sealWorkbenchCopy: {
+    en: "Write the local message, set the unlock window, then review what will be sealed on-chain.",
+    zh: "写入本地消息，设置解锁窗口，然后复核即将封存上链的内容。",
+  },
+  messageStage: { en: "Message core", zh: "消息核心" },
+  messageStageCopy: {
+    en: "The full message stays on this device; the chain stores its hash.",
+    zh: "完整消息保存在本设备，链上只保存哈希。",
+  },
+  timeLockStage: { en: "Time lock", zh: "时间锁" },
+  timeLockStageCopy: {
+    en: "Choose when the capsule becomes revealable.",
+    zh: "选择胶囊何时可揭示。",
+  },
+  categoryStageCopy: {
+    en: "Give the capsule a recognizable intent.",
+    zh: "为胶囊选择清晰用途。",
+  },
+  visibilityStageCopy: {
+    en: "Control who can reveal after unlock.",
+    zh: "控制解锁后谁可以揭示。",
+  },
+  sealPreview: { en: "Seal preview", zh: "封存预览" },
+  unlockPreview: { en: "Unlock preview", zh: "解锁预览" },
+  depositLabel: { en: "Refundable deposit", zh: "可退还押金" },
+  storageLabel: { en: "Chain record", zh: "链上记录" },
   titleLabel: { en: "Capsule Title", zh: "胶囊标题" },
   titlePlaceholder: { en: "Give your capsule a name", zh: "给胶囊取个名字" },
   secretMessage: { en: "Secret Message", zh: "秘密消息" },
-  secretMessagePlaceholder: { en: "Enter your secret message", zh: "输入你的秘密消息" },
+  secretMessagePlaceholder: {
+    en: "Enter your secret message",
+    zh: "输入你的秘密消息",
+  },
   contentStorageNote: {
     en: "Your full message is stored locally on this device. Keep a backup if you want to reveal it later.",
     zh: "完整消息仅保存在本设备本地。请自行备份以便日后揭示。",
@@ -33,24 +73,51 @@ const appMessages = {
   categoryMemorial: { en: "Memorial", zh: "纪念" },
   categoryAnnouncement: { en: "Announcement", zh: "公告" },
   categorySecret: { en: "Secret", zh: "秘密" },
-  categoryPersonalHint: { en: "A note for your future self", zh: "写给未来自己的笔记" },
-  categoryGiftHint: { en: "A timed reveal for someone else", zh: "给他人的定时揭晓" },
-  categoryMemorialHint: { en: "Preserve a milestone or memory", zh: "保存重要节点或回忆" },
-  categoryAnnouncementHint: { en: "Publish when the date arrives", zh: "到期后公开发布" },
-  categorySecretHint: { en: "Keep the tone private and sealed", zh: "保持私密且封存" },
+  categoryPersonalHint: {
+    en: "A note for your future self",
+    zh: "写给未来自己的笔记",
+  },
+  categoryGiftHint: {
+    en: "A timed reveal for someone else",
+    zh: "给他人的定时揭晓",
+  },
+  categoryMemorialHint: {
+    en: "Preserve a milestone or memory",
+    zh: "保存重要节点或回忆",
+  },
+  categoryAnnouncementHint: {
+    en: "Publish when the date arrives",
+    zh: "到期后公开发布",
+  },
+  categorySecretHint: {
+    en: "Keep the tone private and sealed",
+    zh: "保持私密且封存",
+  },
   unlockIn: { en: "Lock Duration", zh: "锁定时长" },
   daysPlaceholder: { en: "30", zh: "30" },
   durationPresets: { en: "Duration presets", zh: "常用锁定时长" },
   daysShort: { en: "D", zh: "天" },
   hoursShort: { en: "H", zh: "时" },
   minShort: { en: "M", zh: "分" },
-  unlockDateHelper: { en: "Set between 1 and 3650 days before unlock", zh: "设置 1 到 3650 天后解锁" },
+  unlockDateHelper: {
+    en: "Set between 1 and 3650 days before unlock",
+    zh: "设置 1 到 3650 天后解锁",
+  },
   visibility: { en: "Visibility", zh: "可见性" },
   private: { en: "Private", zh: "私密" },
   public: { en: "Public", zh: "公开" },
-  privateHint: { en: "Only you can reveal after unlock", zh: "仅您可在解锁后揭示" },
-  publicHint: { en: "Anyone can reveal after unlock", zh: "解锁后任何人可揭示" },
-  createCapsuleButton: { en: "Create Capsule (0.2 GAS deposit)", zh: "创建胶囊 (0.2 GAS 押金)" },
+  privateHint: {
+    en: "Only you can reveal after unlock",
+    zh: "仅您可在解锁后揭示",
+  },
+  publicHint: {
+    en: "Anyone can reveal after unlock",
+    zh: "解锁后任何人可揭示",
+  },
+  createCapsuleButton: {
+    en: "Create Capsule (0.2 GAS deposit)",
+    zh: "创建胶囊 (0.2 GAS 押金)",
+  },
   depositNote: {
     en: "The 0.2 GAS is a refundable deposit, locked in the vault and returned to you when you reveal — not a spent fee.",
     zh: "0.2 GAS 是可退还押金，会锁定在金库中，在你揭示胶囊时退回给你，并非花掉的手续费。",
@@ -60,29 +127,63 @@ const appMessages = {
   capsuleRevealed: { en: "Capsule revealed", zh: "胶囊已揭示" },
   revealing: { en: "Revealing capsule...", zh: "揭示胶囊中..." },
   fish: { en: "Tip a public capsule", zh: "打赏公开胶囊" },
+  fishSummary: {
+    en: "Cheer on a sealed public capsule without revealing it.",
+    zh: "鼓励一个公开封存胶囊，但不会揭示内容。",
+  },
+  fishFactTip: {
+    en: "0.05 GAS goes to the capsule owner",
+    zh: "0.05 GAS 会进入胶囊所有者名下",
+  },
+  fishFactSealed: { en: "The message stays sealed", zh: "消息仍保持封存" },
+  fishFactCharged: {
+    en: "Charged only when a tippable capsule exists",
+    zh: "仅存在可打赏胶囊时才会扣费",
+  },
   fishing: { en: "Sending tip...", zh: "打赏中..." },
   fishButton: { en: "Send 0.05 GAS Tip", zh: "打赏 0.05 GAS" },
   fishDescription: {
-    en: "This is a tip, not a reveal. Send a 0.05 GAS tip to the owner of a public, unrevealed capsule to cheer them on — the fee is credited on-chain to that owner, who collects it with \"Collect tips\". You do NOT see the message: it stays sealed until its owner reveals it. You get back only a public acknowledgement (the capsule id). Charged only when a tippable capsule exists.",
+    en: 'This is a tip, not a reveal. Send a 0.05 GAS tip to the owner of a public, unrevealed capsule to cheer them on — the fee is credited on-chain to that owner, who collects it with "Collect tips". You do NOT see the message: it stays sealed until its owner reveals it. You get back only a public acknowledgement (the capsule id). Charged only when a tippable capsule exists.',
     zh: "这是打赏，不是揭示。向某个公开且未揭示胶囊的所有者发送 0.05 GAS 打赏以示鼓励——费用会在链上记入该所有者名下，由其通过“领取打赏”自行领取。你看不到消息内容：消息会一直封存，直到所有者本人揭示。你只会得到一个公开的确认（胶囊编号）。仅在存在可打赏胶囊时收取。",
   },
   collectTips: { en: "Collect tips", zh: "领取打赏" },
   collectingTips: { en: "Collecting...", zh: "领取中..." },
-  tipsCollected: { en: "Collected {amount} GAS in fishing tips", zh: "已领取 {amount} GAS 打赏" },
-  noTipsToCollect: { en: "No fishing tips to collect yet.", zh: "暂无可领取的打赏。" },
+  tipsCollected: {
+    en: "Collected {amount} GAS in fishing tips",
+    zh: "已领取 {amount} GAS 打赏",
+  },
+  noTipsToCollect: {
+    en: "No fishing tips to collect yet.",
+    zh: "暂无可领取的打赏。",
+  },
   collectTipsHint: {
     en: "Owners of public capsules collect any 0.05 GAS tips their capsules received here.",
     zh: "公开胶囊的所有者可在此领取胶囊收到的 0.05 GAS 打赏。",
   },
-  fishResult: { en: "Tipped capsule {id} — it stays sealed until its owner reveals it", zh: "已打赏胶囊 {id}——在所有者揭示前仍保持封存" },
-  fishNone: { en: "No public capsule available to tip", zh: "没有可打赏的公开胶囊" },
-  fishCandidatesTitle: { en: "Public capsules you can tip", zh: "可打赏的公开胶囊" },
+  fishResult: {
+    en: "Tipped capsule {id} — it stays sealed until its owner reveals it",
+    zh: "已打赏胶囊 {id}——在所有者揭示前仍保持封存",
+  },
+  fishNone: {
+    en: "No public capsule available to tip",
+    zh: "没有可打赏的公开胶囊",
+  },
+  fishCandidatesTitle: {
+    en: "Public capsules you can tip",
+    zh: "可打赏的公开胶囊",
+  },
   fishCandidatesHint: {
     en: "Pick a capsule to tip its owner. The message stays sealed — you are only cheering them on.",
     zh: "选择一个胶囊为其所有者打赏。消息仍保持封存——你只是表示鼓励。",
   },
-  fishCandidatesLoading: { en: "Looking for public capsules...", zh: "正在查找公开胶囊..." },
-  fishCandidatesEmpty: { en: "No public, unrevealed capsules from other users right now.", zh: "目前没有其他用户公开且未揭示的胶囊。" },
+  fishCandidatesLoading: {
+    en: "Looking for public capsules...",
+    zh: "正在查找公开胶囊...",
+  },
+  fishCandidatesEmpty: {
+    en: "No public, unrevealed capsules from other users right now.",
+    zh: "目前没有其他用户公开且未揭示的胶囊。",
+  },
   fishCandidatesRefresh: { en: "Refresh list", zh: "刷新列表" },
   fishTipThis: { en: "Tip (0.05 GAS)", zh: "打赏 (0.05 GAS)" },
   hashStored: { en: "Content hash stored on-chain", zh: "内容哈希已上链" },
@@ -93,8 +194,14 @@ const appMessages = {
   },
   notUnlocked: { en: "Capsule is still locked", zh: "胶囊仍处于锁定状态" },
   notUnlockedYet: { en: "Not unlocked yet", zh: "尚未到解锁时间" },
-  invalidLockDuration: { en: "Lock duration must be between 1 and 3650 days.", zh: "锁定时长需在 1 到 3650 天之间。" },
-  walletRequired: { en: "Connect your Neo wallet to seal a capsule.", zh: "请先连接 Neo 钱包再封存胶囊。" },
+  invalidLockDuration: {
+    en: "Lock duration must be between 1 and 3650 days.",
+    zh: "锁定时长需在 1 到 3650 天之间。",
+  },
+  walletRequired: {
+    en: "Connect your Neo wallet to seal a capsule.",
+    zh: "请先连接 Neo 钱包再封存胶囊。",
+  },
   contractNotReady: {
     en: "Time Capsule contract is not available on this network.",
     zh: "时间胶囊合约在当前网络上不可用。",
@@ -110,8 +217,14 @@ const appMessages = {
   },
   withdrawCredit: { en: "Withdraw Credit", zh: "提取余额" },
   withdrawingCredit: { en: "Withdrawing...", zh: "提取中..." },
-  creditWithdrawn: { en: "Withdrew {amount} GAS deposit credit", zh: "已提取 {amount} GAS 押金余额" },
-  noCreditToWithdraw: { en: "No reusable deposit credit to withdraw.", zh: "没有可提取的押金余额。" },
+  creditWithdrawn: {
+    en: "Withdrew {amount} GAS deposit credit",
+    zh: "已提取 {amount} GAS 押金余额",
+  },
+  noCreditToWithdraw: {
+    en: "No reusable deposit credit to withdraw.",
+    zh: "没有可提取的押金余额。",
+  },
   untitledCapsule: { en: "Untitled capsule", zh: "无标题胶囊" },
   message: { en: "Message:", zh: "消息：" },
   tabCapsules: { en: "Capsules", zh: "胶囊" },
