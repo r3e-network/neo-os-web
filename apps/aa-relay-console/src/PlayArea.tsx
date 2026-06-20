@@ -8,11 +8,15 @@
 
 import { useMemo, useState } from "react";
 import {
+  ChevronDown,
   CircleDollarSign,
   ClipboardCheck,
   FileJson2,
+  Gauge,
+  Landmark,
   Rocket,
   ShieldCheck,
+  TerminalSquare,
   WalletCards,
 } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
@@ -65,7 +69,11 @@ function parseStateJson(value: string): Record<string, unknown> | null {
   if (!value || value.trim() === "{}") return null;
   try {
     const parsed = JSON.parse(value);
-    if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      Object.keys(parsed).length > 0
+    ) {
       return parsed as Record<string, unknown>;
     }
   } catch {
@@ -147,6 +155,13 @@ export default function PlayArea({
   const canSubmitRelay = aaAddressValid && payloadJsonIsValid && !isRelaying;
   const draftAAAddress = aaAddress.trim() || "—";
   const aaAddressInvalid = hasAAAddress && !aaAddressValid;
+  const sponsorReadiness = aaAddressValid ? t("relayReady") : t("relayNeedsAA");
+  const amountReadiness = sponsorAmountIsValid
+    ? t("relayReady")
+    : t("relayNeedsAmount");
+  const payloadReadiness = payloadJsonIsValid
+    ? t("relayReady")
+    : t("relayNeedsPayload");
 
   // Single human-readable result line: show only after an action has populated state.
   const relayResult = parseStateJson(relayResponse);
@@ -228,9 +243,7 @@ export default function PlayArea({
       (typeof activeResult.message === "string" ? activeResult.message : "") ||
       "";
     const statusLike =
-      (activeResult.status as string) ||
-      (activeResult.state as string) ||
-      "";
+      (activeResult.status as string) || (activeResult.state as string) || "";
     if (errLike) {
       resultText = isServiceUnavailable(errLike)
         ? t("serviceUnavailable")
@@ -256,13 +269,18 @@ export default function PlayArea({
             </div>
           </div>
 
-          <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
+          <div
+            className="relay-hero__facts"
+            aria-label={t("relayMetricsLabel")}
+          >
             <span className="relay-fact">
               <span className="relay-fact__label">{t("network")}</span>
               <strong>{networkDisplay || "—"}</strong>
             </span>
             <span className="relay-fact">
-              <span className="relay-fact__label">{t("relayEndpointMetric")}</span>
+              <span className="relay-fact__label">
+                {t("relayEndpointMetric")}
+              </span>
               <strong title={relayUrlDisplay || "—"}>
                 <code>{relayUrlDisplay || "—"}</code>
               </strong>
@@ -276,7 +294,7 @@ export default function PlayArea({
           </div>
         </div>
         <figure className="relay-hero__stage">
-          <img src="./aa-relay-station.jpg" alt="" />
+          <img src="./aa-relay-station.jpg" alt={t("relayHeroVisualAlt")} />
           <figcaption>
             <span>{t("relayStageKicker")}</span>
             <strong>{t("relayStageTitle")}</strong>
@@ -285,9 +303,52 @@ export default function PlayArea({
       </section>
 
       <NeoCard variant="erobo" className="relay-account">
-        <div className="relay-form">
-          <p className="relay-explainer">{t("relayPaymasterExplainer")}</p>
-          <div className="relay-account__summary" aria-label={t("relayDraftLabel")}>
+        <div className="relay-account__intro">
+          <span className="relay-account__icon" aria-hidden="true">
+            <WalletCards size={21} />
+          </span>
+          <div>
+            <span className="relay-account__eyebrow">
+              {t("relayAccountEyebrow")}
+            </span>
+            <h3>{t("relayAccountTitle")}</h3>
+            <p className="relay-explainer">{t("relayPaymasterExplainer")}</p>
+          </div>
+        </div>
+        <div className="relay-readiness" aria-label={t("relayReadinessLabel")}>
+          <span
+            className={`relay-readiness__item${
+              aaAddressValid ? " relay-readiness__item--ready" : ""
+            }`}
+          >
+            <ShieldCheck size={17} aria-hidden="true" />
+            <small>{t("aaAddress")}</small>
+            <strong>{sponsorReadiness}</strong>
+          </span>
+          <span
+            className={`relay-readiness__item${
+              sponsorAmountIsValid ? " relay-readiness__item--ready" : ""
+            }`}
+          >
+            <CircleDollarSign size={17} aria-hidden="true" />
+            <small>{t("sponsorAmount")}</small>
+            <strong>{amountReadiness}</strong>
+          </span>
+          <span
+            className={`relay-readiness__item${
+              payloadJsonIsValid ? " relay-readiness__item--ready" : ""
+            }`}
+          >
+            <FileJson2 size={17} aria-hidden="true" />
+            <small>{t("payloadJson")}</small>
+            <strong>{payloadReadiness}</strong>
+          </span>
+        </div>
+        <div className="relay-form relay-form--account">
+          <div
+            className="relay-account__summary"
+            aria-label={t("relayDraftLabel")}
+          >
             <span>
               <small>{t("aaAddress")}</small>
               <strong title={draftAAAddress}>{draftAAAddress}</strong>
@@ -301,21 +362,32 @@ export default function PlayArea({
               <strong>{sponsorAmountTrimmed || "—"}</strong>
             </span>
           </div>
-          <NeoInput
-            value={aaAddress}
-            label={t("aaAddress")}
-            hint={t("aaAddressHint")}
-            placeholder={t("aaAddressPlaceholder")}
-            error={aaAddressInvalid ? t("aaAddressInvalid") : ""}
-            onChange={(val) => setAaAddress(val)}
-          />
-          <details className="relay-howto">
-            <summary>{t("relayHowItWorksTitle")}</summary>
-            <div className="relay-howto__body">
-              <p>{t("sponsorDirectionNote")}</p>
-              <p>{t("relaySubmitExplainer")}</p>
-            </div>
-          </details>
+          <div className="relay-account__entry">
+            <NeoInput
+              value={aaAddress}
+              label={t("aaAddress")}
+              hint={t("aaAddressHint")}
+              placeholder={t("aaAddressPlaceholder")}
+              error={aaAddressInvalid ? t("aaAddressInvalid") : ""}
+              onChange={(val) => setAaAddress(val)}
+            />
+            <details className="relay-howto">
+              <summary>
+                <span className="relay-disclosure__summary">
+                  <span>{t("relayHowItWorksTitle")}</span>
+                  <ChevronDown
+                    className="relay-disclosure__icon"
+                    size={16}
+                    aria-hidden="true"
+                  />
+                </span>
+              </summary>
+              <div className="relay-howto__body">
+                <p>{t("sponsorDirectionNote")}</p>
+                <p>{t("relaySubmitExplainer")}</p>
+              </div>
+            </details>
+          </div>
         </div>
       </NeoCard>
 
@@ -354,8 +426,15 @@ export default function PlayArea({
         <NeoCard variant="erobo" className="relay-step">
           <div className="relay-form">
             <header className="relay-step__head">
-              <span className="relay-step__eyebrow">{t("relayStep1Eyebrow")}</span>
-              <h3 className="relay-step__title">{t("relayStep1Title")}</h3>
+              <span className="relay-step__icon" aria-hidden="true">
+                <Landmark size={18} />
+              </span>
+              <div>
+                <span className="relay-step__eyebrow">
+                  {t("relayStep1Eyebrow")}
+                </span>
+                <h3 className="relay-step__title">{t("relayStep1Title")}</h3>
+              </div>
             </header>
 
             <NeoInput
@@ -408,8 +487,15 @@ export default function PlayArea({
         <NeoCard variant="erobo" className="relay-step">
           <div className="relay-form">
             <header className="relay-step__head">
-              <span className="relay-step__eyebrow">{t("relayStep2Eyebrow")}</span>
-              <h3 className="relay-step__title">{t("relayStep2Title")}</h3>
+              <span className="relay-step__icon" aria-hidden="true">
+                <TerminalSquare size={18} />
+              </span>
+              <div>
+                <span className="relay-step__eyebrow">
+                  {t("relayStep2Eyebrow")}
+                </span>
+                <h3 className="relay-step__title">{t("relayStep2Title")}</h3>
+              </div>
             </header>
 
             <NeoInput
@@ -427,7 +513,7 @@ export default function PlayArea({
             >
               <div className="relay-payload-lens__head">
                 <span aria-hidden="true">
-                  <FileJson2 size={18} />
+                  <Gauge size={18} />
                 </span>
                 <div>
                   <small>{t("relayPayloadLens")}</small>
@@ -445,7 +531,9 @@ export default function PlayArea({
                 </span>
                 <span>
                   <small>{t("relayPayloadTarget")}</small>
-                  <strong title={payloadSummary.target}>{payloadSummary.target}</strong>
+                  <strong title={payloadSummary.target}>
+                    {payloadSummary.target}
+                  </strong>
                 </span>
                 <span>
                   <small>{t("relayPayloadArgs")}</small>
@@ -460,6 +548,7 @@ export default function PlayArea({
               hint={t("payloadJsonHint")}
               placeholder={t("payloadJsonPlaceholder")}
               aria-label={t("payloadJson")}
+              className="relay-payload-editor"
               onChange={(val) => setPayloadJsonLocal(val)}
             />
             {(!hasAAAddress || !payloadJsonIsValid) && (
@@ -473,7 +562,12 @@ export default function PlayArea({
               disabled={!canSubmitRelay}
               aria-label={t("submitRelay")}
               onClick={() =>
-                dispatch("submitRelay", aaAddress, dappIdLocal, payloadJsonLocal)
+                dispatch(
+                  "submitRelay",
+                  aaAddress,
+                  dappIdLocal,
+                  payloadJsonLocal,
+                )
               }
             >
               <Rocket size={17} aria-hidden="true" />
@@ -498,12 +592,23 @@ export default function PlayArea({
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="relay-result__tx-label">{t("relayTxLabel")}</span>
+              <span className="relay-result__tx-label">
+                {t("relayTxLabel")}
+              </span>
               <code>{relayTxid}</code>
             </a>
           )}
           <details className="relay-result__raw">
-            <summary>{t("latestRelay")}</summary>
+            <summary>
+              <span className="relay-disclosure__summary relay-disclosure__summary--raw">
+                <span>{t("latestRelay")}</span>
+                <ChevronDown
+                  className="relay-disclosure__icon"
+                  size={15}
+                  aria-hidden="true"
+                />
+              </span>
+            </summary>
             <pre>{resultRaw}</pre>
           </details>
         </div>
