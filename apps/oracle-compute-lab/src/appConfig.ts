@@ -28,17 +28,40 @@ export const appMeta = {
 
 export const manifest: MiniAppManifest = {
   name: "Oracle Compute Lab",
-  description: "Build Morpheus compute previews that keep sealed inputs redacted.",
+  description:
+    "Build Morpheus compute previews that keep sealed inputs redacted.",
   icon: "brain",
   category: "oracle",
   shell: "console",
   theme: { family: "default", accentColor: "#22d3ee", density: "comfortable" },
-  tabs: [{ key: "compute", labelKey: "tabCompute", icon: "brain", default: true }],
+  tabs: [
+    { key: "compute", labelKey: "tabCompute", icon: "brain", default: true },
+  ],
   stats: [
-    { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
-    { labelKey: "statEndpoint", valueKey: "endpointLabel", format: "text", icon: "tools" },
-    { labelKey: "statRequests", valueKey: "requestCount", format: "number", icon: "activity" },
-    { labelKey: "statDigest", valueKey: "lastDigest", format: "text", icon: "key" },
+    {
+      labelKey: "statNetwork",
+      valueKey: "networkLabel",
+      format: "text",
+      icon: "globe",
+    },
+    {
+      labelKey: "statEndpoint",
+      valueKey: "endpointLabel",
+      format: "text",
+      icon: "tools",
+    },
+    {
+      labelKey: "statRequests",
+      valueKey: "requestCount",
+      format: "number",
+      icon: "activity",
+    },
+    {
+      labelKey: "statDigest",
+      valueKey: "lastDigest",
+      format: "text",
+      icon: "key",
+    },
   ],
   sidebar: {
     titleKey: "appName",
@@ -55,7 +78,12 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { compute: true, confidential: true, datafeed: true, oracle: true },
+  permissions: {
+    compute: true,
+    confidential: true,
+    datafeed: true,
+    oracle: true,
+  },
 };
 
 const clean = (value: string | undefined, fallback: string) => {
@@ -100,7 +128,7 @@ export const consoleConfig: ConsoleToolConfig = {
       labelKey: "input",
       placeholderKey: "inputPlaceholder",
       type: "textarea",
-      defaultValue: "{\"asset\":\"GAS\",\"window\":\"24h\"}",
+      defaultValue: '{"asset":"GAS","window":"24h"}',
     },
   ],
   buildResult(values, t) {
@@ -121,7 +149,9 @@ export const consoleConfig: ConsoleToolConfig = {
     // active language instead of interpolating raw English enum values
     // ("risk-score sealed 预览已准备").
     const workflowLabel = t(WORKFLOW_LABEL_KEYS[workflow] ?? "workflowRisk");
-    const privacyLabel = t(privacy === "public" ? "privacyPublic" : "privacySealed");
+    const privacyLabel = t(
+      privacy === "public" ? "privacyPublic" : "privacySealed",
+    );
     const inputDigest = previewId(input);
     const digest = previewId(`${workflow}|${privacy}|${inputDigest}`);
     const basePayload = {
@@ -157,7 +187,10 @@ export const consoleConfig: ConsoleToolConfig = {
 
     return {
       status: inputValid ? t("computeReady") : t("computeInvalidJson"),
-      summary: t("computeSummary", { workflow: workflowLabel, privacy: privacyLabel }),
+      summary: t("computeSummary", {
+        workflow: workflowLabel,
+        privacy: privacyLabel,
+      }),
       rows: [
         { label: t("workflow"), value: workflowLabel },
         { label: t("privacy"), value: privacyLabel },
@@ -186,21 +219,116 @@ const appMessages = {
     en: "Shape compute work into a deterministic preview. Sealed mode keeps raw input out of visible payloads.",
     zh: "把计算任务整理为确定性预览；加密封装模式不会在可见载荷中暴露原始输入。",
   },
+  computeHeroAlt: {
+    en: "Sealed compute chamber turning private input into a deterministic digest.",
+    zh: "密封计算舱将私密输入转换为确定性摘要。",
+  },
+  computeHeroCopy: {
+    en: "Package Morpheus compute work without pretending it has already run: choose the workflow, decide whether input stays sealed, validate JSON, and copy an auditable preview package.",
+    zh: "把 Morpheus 计算任务打包成预览，而不是伪装成已执行：选择工作流、决定输入是否密封、校验 JSON，并复制可审计预览包。",
+  },
+  computeStatusLabel: { en: "Compute preview status", zh: "计算预览状态" },
   runAction: { en: "Build Preview", zh: "生成预览" },
   workflow: { en: "Workflow", zh: "工作流" },
   workflowRisk: { en: "Risk score", zh: "风险评分" },
   workflowProof: { en: "Proof check", zh: "证明校验" },
   workflowBatch: { en: "Batch transform", zh: "批量转换" },
+  workflowRiskHint: {
+    en: "Score a compact market or account signal.",
+    zh: "评估简洁的市场或账户信号。",
+  },
+  workflowProofHint: {
+    en: "Check a proof-shaped claim before dispatch.",
+    zh: "分发前校验证明类声明。",
+  },
+  workflowBatchHint: {
+    en: "Prepare repeatable transforms for many items.",
+    zh: "准备面向多项目的可重复转换。",
+  },
   privacy: { en: "Privacy", zh: "隐私模式" },
   privacySealed: { en: "Sealed", zh: "加密封装" },
   privacyPublic: { en: "Public", zh: "公开" },
+  privacySealedHint: {
+    en: "Copyable payload redacts raw input.",
+    zh: "可复制 payload 会隐藏原始输入。",
+  },
+  privacyPublicHint: {
+    en: "Raw input is visible in the preview.",
+    zh: "原始输入会显示在预览中。",
+  },
   input: { en: "Input Payload", zh: "输入载荷" },
-  inputPlaceholder: { en: "{\"asset\":\"GAS\"}", zh: "{\"asset\":\"GAS\"}" },
+  inputPlaceholder: { en: '{"asset":"GAS"}', zh: '{"asset":"GAS"}' },
   inputValid: { en: "Input is valid JSON", zh: "输入为有效 JSON" },
   inputDigest: { en: "Input Digest", zh: "输入摘要" },
   computeReady: { en: "Compute preview ready", zh: "计算预览已准备" },
-  computeInvalidJson: { en: "Enter a valid JSON input payload", zh: "请输入有效的 JSON 输入载荷" },
-  computeSummary: { en: "{workflow} {privacy} preview prepared", zh: "{workflow} {privacy} 预览已准备" },
+  computeInvalidJson: {
+    en: "Enter a valid JSON input payload",
+    zh: "请输入有效的 JSON 输入载荷",
+  },
+  computeSummary: {
+    en: "{workflow} {privacy} preview prepared",
+    zh: "{workflow} {privacy} 预览已准备",
+  },
+  computeFlowTitle: { en: "Compute preview flow", zh: "计算预览流程" },
+  computeFlowWorkflow: { en: "Choose workflow", zh: "选择工作流" },
+  computeFlowWorkflowDesc: {
+    en: "Pick the compute shape first.",
+    zh: "先选择计算形态。",
+  },
+  computeFlowSeal: { en: "Protect input", zh: "保护输入" },
+  computeFlowSealDesc: {
+    en: "Sealed mode keeps raw data out.",
+    zh: "密封模式隐藏原始数据。",
+  },
+  computeFlowDigest: { en: "Preview digest", zh: "预览摘要" },
+  computeFlowDigestDesc: {
+    en: "Review the deterministic package.",
+    zh: "审阅确定性预览包。",
+  },
+  computePlan: { en: "Compute plan", zh: "计算方案" },
+  computePlanCopy: {
+    en: "Build a small, reviewable compute package with an explicit privacy boundary.",
+    zh: "构建简洁、可审阅、隐私边界明确的计算包。",
+  },
+  computeWorkflowTitle: { en: "Compute workflow", zh: "计算工作流" },
+  computeWorkflowCopy: {
+    en: "Choose the operation shape that downstream dispatch should execute.",
+    zh: "选择后续分发应执行的操作形态。",
+  },
+  computePrivacyTitle: { en: "Privacy boundary", zh: "隐私边界" },
+  computePrivacyCopy: {
+    en: "Make input visibility a deliberate step before previewing.",
+    zh: "预览前明确决定输入可见性。",
+  },
+  computeInputTitle: { en: "Input package", zh: "输入包" },
+  computeInputSealedCopy: {
+    en: "Raw input stays local to this editor; the preview payload exposes only its digest.",
+    zh: "原始输入只留在编辑器里；预览 payload 只暴露摘要。",
+  },
+  computeInputPublicCopy: {
+    en: "Public mode includes the raw JSON in the copied preview package.",
+    zh: "公开模式会把原始 JSON 纳入可复制预览包。",
+  },
+  computeInputReadyHint: {
+    en: "JSON is valid and ready for preview.",
+    zh: "JSON 有效，可以生成预览。",
+  },
+  computeInputInvalidHint: {
+    en: "Fix the JSON before building a successful preview.",
+    zh: "请修复 JSON 后再生成成功预览。",
+  },
+  computeInputSize: { en: "Input size", zh: "输入大小" },
+  computeInputBytes: { en: "{count} chars", zh: "{count} 字符" },
+  computeVisibility: { en: "Visibility", zh: "可见性" },
+  inputRedacted: { en: "Redacted", zh: "已隐藏" },
+  inputPublic: { en: "Public", zh: "公开" },
+  computeReceipt: { en: "Compute receipt", zh: "计算回执" },
+  computeValidationReady: { en: "Inputs ready", zh: "输入已就绪" },
+  computeEmptyTitle: { en: "Build a safe preview", zh: "生成安全预览" },
+  computeEmptyCopy: {
+    en: "The receipt will show workflow, privacy mode, input digest, and the exact copyable payload without leaking sealed input.",
+    zh: "回执会显示工作流、隐私模式、输入摘要和准确可复制 payload，同时不泄漏密封输入。",
+  },
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },
   statNetwork: { en: "Network", zh: "网络" },
@@ -218,11 +346,20 @@ const appMessages = {
     zh: "面向 Morpheus 计算工作流的安全规划界面。",
   },
   feature1Name: { en: "Inspectable", zh: "可审查" },
-  feature1Desc: { en: "Workflow, privacy mode, and input digest are visible without revealing sealed inputs.", zh: "可查看工作流、隐私模式和输入摘要，同时不暴露加密封装输入。" },
+  feature1Desc: {
+    en: "Workflow, privacy mode, and input digest are visible without revealing sealed inputs.",
+    zh: "可查看工作流、隐私模式和输入摘要，同时不暴露加密封装输入。",
+  },
   feature2Name: { en: "Deterministic", zh: "确定性" },
-  feature2Desc: { en: "The same request produces the same local digest.", zh: "同一请求会产生相同的本地摘要。" },
+  feature2Desc: {
+    en: "The same request produces the same local digest.",
+    zh: "同一请求会产生相同的本地摘要。",
+  },
   feature3Name: { en: "Dispatch Aware", zh: "分发感知" },
-  feature3Desc: { en: "Copy this package into your Morpheus dispatch call (e.g. submitMiniAppRequest); the digest lets you confirm the bound on-chain request matches this preview. Dispatching requires a Morpheus runtime token — it does not happen here.", zh: "把此包复制到你的 Morpheus 分发调用（例如 submitMiniAppRequest）；摘要可用于确认绑定的链上请求与此预览一致。分发需要 Morpheus 运行时令牌——不会在此处发生。" },
+  feature3Desc: {
+    en: "Copy this package into your Morpheus dispatch call (e.g. submitMiniAppRequest); the digest lets you confirm the bound on-chain request matches this preview. Dispatching requires a Morpheus runtime token — it does not happen here.",
+    zh: "把此包复制到你的 Morpheus 分发调用（例如 submitMiniAppRequest）；摘要可用于确认绑定的链上请求与此预览一致。分发需要 Morpheus 运行时令牌——不会在此处发生。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);
