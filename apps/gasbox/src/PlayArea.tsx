@@ -5,7 +5,20 @@
  */
 
 import { useState } from "react";
-import { Bot, Coins, Gem, Gift, LockKeyhole, Star, type LucideIcon } from "lucide-react";
+import {
+  Bot,
+  Coins,
+  Gem,
+  Gift,
+  LockKeyhole,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Ticket,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -217,6 +230,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     selectedMachine?.topPrize ||
     rarestAvailableItem?.name ||
     t("gasboxNoAvailablePrize");
+  const prizeFocusOddsLabel = rarestAvailableItem
+    ? formatPercent(rarestAvailableItem.displayProbability, t("gasboxPending"))
+    : t("gasboxPending");
   const inventoryRatio = selectedMachine
     ? `${availableItems.length}/${Math.max(selectedItems.length, selectedMachine.itemCount)}`
     : t("gasboxPending");
@@ -385,20 +401,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="gasbox-play-area">
       <section className="gasbox-hero" aria-label={t("title")}>
-        <div className="gasbox-hero__main">
-          <div className="gasbox-hero__badge" aria-hidden="true">
-            <GachaMark />
-          </div>
-          <div className="gasbox-hero__copy">
-            <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
-            <h2>{t("title")}</h2>
-            <p className="gasbox-hero__status">
-              <span className="gasbox-hero__dot" aria-hidden="true" />
-              {signalLabel}
-            </p>
-            <p>{t("gasboxEscrowSafetyDesc")}</p>
+        <div className="gasbox-hero__copy">
+          <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
+          <h2>{t("gasboxHeroTitle")}</h2>
+          <p className="gasbox-hero__status">
+            <span className="gasbox-hero__dot" aria-hidden="true" />
+            {signalLabel}
+          </p>
+          <p>{t("gasboxHeroCopy")}</p>
+          <div className="gasbox-hero__pills" aria-label={t("gasboxHeroProofs")}>
+            <span>
+              <ShieldCheck aria-hidden="true" />
+              {t("gasboxHeroEscrow")}
+            </span>
+            <span>
+              <Sparkles aria-hidden="true" />
+              {t("gasboxHeroReveal")}
+            </span>
+            <span>
+              <Trophy aria-hidden="true" />
+              {t("gasboxHeroPrize")}
+            </span>
           </div>
         </div>
+        <picture className="gasbox-hero__art" aria-hidden="true">
+          <source srcSet="banner.avif" type="image/avif" />
+          <source srcSet="banner.webp" type="image/webp" />
+          <img src="banner.jpg" alt="" loading="eager" decoding="async" />
+        </picture>
         <div className="gasbox-hero__metrics" aria-label={t("gasboxLiveStatus")}>
           <div className="gasbox-metric">
             <span>{t("machines")}</span>
@@ -426,6 +456,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             size="sm"
             onClick={() => dispatch(studioOpen ? "closeStudio" : "openStudio")}
           >
+            <Sparkles aria-hidden="true" />
             {studioOpen ? t("studioCloseAction") : t("createMachineAction")}
           </NeoButton>
         </div>
@@ -457,6 +488,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <div className="gasbox-empty-button-row">
               <NeoButton variant="primary" size="md" onClick={() => dispatch("refreshMachines")}>
+                <RefreshCw aria-hidden="true" />
                 {t("refreshMachines")}
               </NeoButton>
             </div>
@@ -483,15 +515,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   className={`gasbox-machine-item${isSelected ? " gasbox-machine-item--selected" : ""}${!machine.active ? " gasbox-machine-item--inactive" : ""}`}
                   onClick={() => handleSelectMachine(machine.id)}
                 >
-                  <div className="gasbox-machine-icon" aria-hidden="true">{machineMark(machine)}</div>
+                  <div className="gasbox-machine-window">
+                    <div className="gasbox-machine-icon" aria-hidden="true">{machineMark(machine)}</div>
+                    <span className={`gasbox-machine-state${machine.active && machine.inventoryReady ? " is-live" : ""}`}>
+                      {machine.active && machine.inventoryReady
+                        ? t("gasboxMachineLive")
+                        : t("gasboxMachineNeedsFunding")}
+                    </span>
+                  </div>
                   <div className="gasbox-machine-info">
                     <span className="gasbox-machine-name">{machine.name}</span>
                     {machine.description && (
                       <span className="gasbox-machine-desc">{machine.description}</span>
                     )}
-                    <span className="gasbox-machine-cost">{machine.price} GAS</span>
                     <div className="gasbox-machine-meta">
                       <span>{machine.itemCount} {t("items")}</span>
+                      <span>{machine.topPrize || t("gasboxNoAvailablePrize")}</span>
+                    </div>
+                    <div className="gasbox-machine-foot">
+                      <span className="gasbox-machine-cost">{machine.price} GAS</span>
                       <span title={t("estPlaysHint")}>{machine.plays} {t("estPlays").toLowerCase()}</span>
                     </div>
                   </div>
@@ -513,6 +555,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton variant="ghost" size="sm" onClick={handleCloseStudio}>
               {t("backToMarket")}
             </NeoButton>
+          </div>
+
+          <div className="gasbox-studio-summary" aria-label={t("gasboxStudioSummary")}>
+            <span>
+              <Gift aria-hidden="true" />
+              {t("gasboxStudioPrizeCount", { count: studioItems.length })}
+            </span>
+            <span>
+              <Coins aria-hidden="true" />
+              {t("totalWeightLabel")}: {studioTotalWeight}
+            </span>
+            <span>
+              <ShieldCheck aria-hidden="true" />
+              {t("gasboxStudioSafety")}
+            </span>
           </div>
 
           <div className="gasbox-studio-grid">
@@ -650,6 +707,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             })}
 
             <NeoButton variant="secondary" size="sm" onClick={addStudioItem}>
+              <Gift aria-hidden="true" />
               {t("addItem")}
             </NeoButton>
           </div>
@@ -676,73 +734,108 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {selectedMachine && (
         <NeoCard variant="erobo" className="gasbox-pull-card">
           <div className="gasbox-selected-display">
-            <div className="gasbox-selected-header">
-              <div className="gasbox-selected-icon" aria-hidden="true">{machineMark(selectedMachine)}</div>
-              <div className="gasbox-selected-info">
-                <h3 className="gasbox-selected-name">
-                  {selectedMachineName || selectedMachine.name}
-                </h3>
-                {selectedMachine.description && (
-                  <p className="gasbox-selected-desc">{selectedMachine.description}</p>
-                )}
-                <div className="gasbox-selected-tags">
-                  {selectedMachine.category && (
-                    <span className="gasbox-tag">{selectedMachine.category}</span>
-                  )}
-                  {selectedMachine.tagsList?.map((tag) => (
-                    <span key={tag} className="gasbox-tag">{tag}</span>
-                  ))}
+            <div className="gasbox-pull-stage">
+              <figure className="gasbox-stage-art">
+                <picture aria-hidden="true">
+                  <source srcSet="logo.avif" type="image/avif" />
+                  <source srcSet="logo.webp" type="image/webp" />
+                  <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                </picture>
+                <figcaption>
+                  <span>{t("gasboxPrizeFocus")}</span>
+                  <strong>{prizeFocusLabel}</strong>
+                  <small>{t("gasboxPrizeFocusOdds")}: {prizeFocusOddsLabel}</small>
+                </figcaption>
+              </figure>
+
+              <div className="gasbox-play-console">
+                <div className="gasbox-selected-header">
+                  <div className="gasbox-selected-icon" aria-hidden="true">{machineMark(selectedMachine)}</div>
+                  <div className="gasbox-selected-info">
+                    <h3 className="gasbox-selected-name">
+                      {selectedMachineName || selectedMachine.name}
+                    </h3>
+                    {selectedMachine.description && (
+                      <p className="gasbox-selected-desc">{selectedMachine.description}</p>
+                    )}
+                    <div className="gasbox-selected-tags">
+                      {selectedMachine.category && (
+                        <span className="gasbox-tag">{selectedMachine.category}</span>
+                      )}
+                      {selectedMachine.tagsList?.map((tag) => (
+                        <span key={tag} className="gasbox-tag">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className={`gasbox-status-banner${selectedMachineReady ? " is-ready" : " is-blocked"}`} aria-label={t("gasboxReadinessTitle")}>
-              <strong>{pullReadinessTitle}</strong>
-              <p>{pullReadinessCopy}</p>
-            </div>
+                <div className={`gasbox-status-banner${selectedMachineReady ? " is-ready" : " is-blocked"}`} aria-label={t("gasboxReadinessTitle")}>
+                  <strong>{pullReadinessTitle}</strong>
+                  <p>{pullReadinessCopy}</p>
+                </div>
 
-            <div className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}>
-              <NeoButton
-                variant="primary"
-                size="lg"
-                block
-                loading={isPulling}
-                disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
-                className="gasbox-pull-btn"
-                onClick={handlePull}
-              >
-                <div className="gasbox-pull-btn-content">
-                  <span className="gasbox-pull-btn-text">
-                    {betPhase === "committing"
-                      ? t("gasboxCommitting")
-                      : betPhase === "settling"
-                        ? t("gasboxRevealing")
-                        : isPulling
-                          ? t("pulling")
-                          : t("pull")}
-                  </span>
-                  <span className="gasbox-pull-btn-cost">
+                <div className="gasbox-pull-intent" aria-label={t("gasboxPullIntent")}>
+                  <span>
+                    <Coins aria-hidden="true" />
                     {selectedMachine.price} GAS
                   </span>
+                  <span>
+                    <ShieldCheck aria-hidden="true" />
+                    {t("gasboxIntentEscrow")}
+                  </span>
+                  <span>
+                    <Sparkles aria-hidden="true" />
+                    {t("gasboxIntentReveal")}
+                  </span>
                 </div>
-              </NeoButton>
-              <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  disabled={isPulling}
-                  onClick={() => dispatch("refreshMachines")}
-                >
-                  {t("refreshMachines")}
-                </NeoButton>
-                <NeoButton
-                  variant="ghost"
-                  size="sm"
-                  disabled={isPulling}
-                  onClick={() => dispatch("openStudio")}
-                >
-                  {t("openStudio")}
-                </NeoButton>
+
+                <div className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}>
+                  <NeoButton
+                    variant="primary"
+                    size="lg"
+                    block
+                    loading={isPulling}
+                    disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
+                    className="gasbox-pull-btn"
+                    onClick={handlePull}
+                  >
+                    <div className="gasbox-pull-btn-content">
+                      <Ticket aria-hidden="true" />
+                      <span className="gasbox-pull-btn-text">
+                        {betPhase === "committing"
+                          ? t("gasboxCommitting")
+                          : betPhase === "settling"
+                            ? t("gasboxRevealing")
+                            : isPulling
+                              ? t("pulling")
+                              : t("pull")}
+                      </span>
+                      <span className="gasbox-pull-btn-cost">
+                        {selectedMachine.price} GAS
+                      </span>
+                    </div>
+                  </NeoButton>
+                  <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
+                    <NeoButton
+                      variant="secondary"
+                      size="sm"
+                      disabled={isPulling}
+                      onClick={() => dispatch("refreshMachines")}
+                    >
+                      <RefreshCw aria-hidden="true" />
+                      {t("refreshMachines")}
+                    </NeoButton>
+                    <NeoButton
+                      variant="ghost"
+                      size="sm"
+                      disabled={isPulling}
+                      onClick={() => dispatch("openStudio")}
+                    >
+                      <Sparkles aria-hidden="true" />
+                      {t("openStudio")}
+                    </NeoButton>
+                  </div>
+                </div>
               </div>
             </div>
 

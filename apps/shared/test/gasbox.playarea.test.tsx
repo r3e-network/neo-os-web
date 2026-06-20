@@ -26,13 +26,25 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxEscrowSafetyDesc:
       "Prizes are escrowed before activation, odds remain inspectable, and pulls require the selected machine to be active.",
     gasboxEscrowSafetyTitle: "Escrow and odds safety",
+    gasboxHeroCopy:
+      "GasBox keeps the fun path simple: compare funded machines, confirm the GAS pull in your wallet, then reveal a prize paid from escrow.",
+    gasboxHeroEscrow: "Escrowed prizes",
+    gasboxHeroPrize: "Paid on-chain",
+    gasboxHeroProofs: "Game safety signals",
+    gasboxHeroReveal: "Next-block reveal",
+    gasboxHeroTitle: "Pick a capsule machine, pull on-chain, reveal the prize.",
+    gasboxIntentEscrow: "Escrow checked",
+    gasboxIntentReveal: "Reveal next",
     gasboxInventoryActionRequired: "Inventory needs funding before players can pull.",
     gasboxInventoryReady: "Escrow funded and available for draws.",
     gasboxLiveStatus: "Live market status",
+    gasboxMachineLive: "Live",
+    gasboxMachineNeedsFunding: "Needs funding",
     gasboxNoAvailablePrize: "No available prize",
     gasboxOddsCoverage: "Readable odds",
     gasboxPending: "Sync pending",
     gasboxPlayerRoute: "Player route",
+    gasboxPullIntent: "Pull confirmation details",
     gasboxPrizeFocus: "Prize focus",
     gasboxPrizeFocusOdds: "Drop chance",
     gasboxPullBlockedInactive:
@@ -82,6 +94,9 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxCreatorEarningsTitle: "Creator earnings",
     gasboxRevenueAvailable: "Accrued play revenue is available to withdraw to your wallet.",
     gasboxRevenueNone: "No withdrawable revenue yet.",
+    gasboxStudioPrizeCount: `${params?.count ?? 0} prize rows`,
+    gasboxStudioSafety: "Funds largest prize",
+    gasboxStudioSummary: "Studio setup summary",
     derivedTierLabel: "Tier",
     derivedTierExplain: "Rarity tiers are derived from each item's weight share.",
     rarityCommon: "COMMON",
@@ -215,6 +230,9 @@ describe("GasBox PlayArea", () => {
     );
 
     expect(screen.getByText("Pull decision")).toBeTruthy();
+    expect(screen.getByText("Pick a capsule machine, pull on-chain, reveal the prize.")).toBeTruthy();
+    expect(screen.getByText("Escrow checked")).toBeTruthy();
+    expect(screen.getByText("Next-block reveal")).toBeTruthy();
     expect(screen.getByText("Ready for pull")).toBeTruthy();
     expect(screen.getByText("Escrow funded and available for draws.")).toBeTruthy();
     expect(screen.getByText("5%")).toBeTruthy();
