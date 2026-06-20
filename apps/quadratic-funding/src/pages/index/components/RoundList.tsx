@@ -1,3 +1,4 @@
+import { Coins } from "lucide-react";
 import { NeoCard, NeoButton } from "@shared/components-react";
 
 export interface RoundItem {
@@ -47,7 +48,12 @@ export default function RoundList({
       title={t("roundsTitle")}
       className="qf-round-panel"
       header={
-        <NeoButton size="sm" variant="secondary" disabled={isRefreshing} onClick={onRefresh}>
+        <NeoButton
+          size="sm"
+          variant="secondary"
+          disabled={isRefreshing}
+          onClick={onRefresh}
+        >
           {t("refresh")}
         </NeoButton>
       }
@@ -55,15 +61,13 @@ export default function RoundList({
       {rounds.length === 0 ? (
         <div className="qf-empty-ledger">
           <span className="qf-empty-ledger__icon" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <ellipse cx="12" cy="6" rx="8" ry="3" />
-              <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
-              <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" />
-            </svg>
+            <Coins />
           </span>
           <strong>{t("qfNoRoundTitle")}</strong>
           <span>{t("qfNoRoundBody")}</span>
-          <span className="qf-empty-ledger__preview">{t("qfRoundsEmptyPreview")}</span>
+          <span className="qf-empty-ledger__preview">
+            {t("qfRoundsEmptyPreview")}
+          </span>
         </div>
       ) : (
         <div className="qf-round-list">
@@ -79,17 +83,25 @@ export default function RoundList({
               >
                 <span className="qf-round-card-top">
                   <strong>{String(round.title || `#${round.id}`)}</strong>
-                  <span className={`qf-status-pill ${String(round.status || "active")}`}>
+                  <span
+                    className={`qf-status-pill ${String(round.status || "active")}`}
+                  >
                     {roundStatusLabel(round)}
                   </span>
                 </span>
                 <span className="qf-round-card-copy">
-                  {String(round.description || t("roundDescriptionPlaceholder"))}
+                  {String(
+                    round.description || t("roundDescriptionPlaceholder"),
+                  )}
                 </span>
                 <span className="qf-round-card-grid">
                   <span>
                     <small>{t("matchingRemaining")}</small>
-                    <b>{formatAmount(round.matchingRemaining ?? round.matchingPool)}</b>
+                    <b>
+                      {formatAmount(
+                        round.matchingRemaining ?? round.matchingPool,
+                      )}
+                    </b>
                   </span>
                   <span>
                     <small>{t("totalContributed")}</small>
@@ -97,7 +109,10 @@ export default function RoundList({
                   </span>
                   <span>
                     <small>{t("roundSchedule")}</small>
-                    <b>{formatSchedule(round.startTime)} - {formatSchedule(round.endTime)}</b>
+                    <b>
+                      {formatSchedule(round.startTime)} -{" "}
+                      {formatSchedule(round.endTime)}
+                    </b>
                   </span>
                   <span>
                     <small>{t("roundCreator")}</small>
