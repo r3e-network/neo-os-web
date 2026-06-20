@@ -1,6 +1,6 @@
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { StateView } from "@shared/components";
-import { Copy } from "lucide-react";
+import { Copy, FileBadge, RefreshCw } from "lucide-react";
 import type { TemplateItem } from "../types";
 
 interface TemplateListProps {
@@ -43,6 +43,7 @@ export default function TemplateList({
           loading={refreshing}
           onClick={onRefresh}
         >
+          <RefreshCw size={15} aria-hidden="true" />
           {t("refresh")}
         </NeoButton>
       </div>
@@ -78,6 +79,9 @@ export default function TemplateList({
               <article key={template.id} className="template-card">
                 <div className="template-card__main">
                   <div className="template-card__title-row">
+                    <span className="template-card__icon" aria-hidden="true">
+                      <FileBadge size={18} />
+                    </span>
                     <strong>{template.name || `#${template.id}`}</strong>
                     <span
                       className={`template-status ${
