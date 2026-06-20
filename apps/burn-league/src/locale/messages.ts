@@ -4,6 +4,10 @@ const appMessages = {
   // App translations
   title: { en: "Burn League", zh: "燃烧联盟" },
   subtitle: { en: "Burn tokens, earn rewards", zh: "燃烧代币，赚取奖励" },
+  arenaAlt: {
+    en: "Golden Burn League arena with GAS tokens flowing into a prize brazier",
+    zh: "金色燃烧联盟竞技场，GAS 代币流向奖池燃烧台",
+  },
   totalBurned: { en: "Total Burned", zh: "总燃烧量" },
   youBurned: { en: "You Burned", zh: "你的燃烧量" },
   yourBurns: { en: "Your Burns", zh: "你的燃烧量" },
@@ -28,6 +32,13 @@ const appMessages = {
   burnRangeError: {
     en: "Enter a burn amount from {min} to {max} GAS.",
     zh: "请输入 {min} 到 {max} GAS 的燃烧数量。",
+  },
+  fuelConsole: { en: "Fuel console", zh: "燃料控制台" },
+  fuelDialLabel: { en: "Burn fuel", zh: "燃烧燃料" },
+  fuelMeter: { en: "Burn fuel meter", zh: "燃烧燃料仪表" },
+  burnRouteLabel: {
+    en: "Burn flow from entry amount to prize pool and projected rank",
+    zh: "燃烧从参赛数量流向奖池与预计排名的路径",
   },
   seasonStatus: { en: "Season status", zh: "赛季状态" },
   liveLeague: { en: "Live league", zh: "实时联赛" },
