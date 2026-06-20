@@ -7,6 +7,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
+import {
+  ChevronDown,
+  Fingerprint,
+  Search,
+  ShieldCheck,
+  TriangleAlert,
+  Wallet,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -68,7 +76,11 @@ export default function PlayArea({
   // edits it). registerAccount requires the backup owner to sign, so the
   // connected wallet is the only value that will not abort the transaction.
   useEffect(() => {
-    if (!backupOwnerTouched && !backupOwner.trim() && connectedWalletHash.trim()) {
+    if (
+      !backupOwnerTouched &&
+      !backupOwner.trim() &&
+      connectedWalletHash.trim()
+    ) {
       setBackupOwner(connectedWalletHash.trim());
     }
   }, [connectedWalletHash, backupOwnerTouched, backupOwner]);
@@ -97,8 +109,14 @@ export default function PlayArea({
   // The backup owner must equal the connected wallet (it witnesses the tx).
   // Compare bare lowercase hashes; only meaningful once a wallet is connected
   // and a backup owner is entered.
-  const backupOwnerNormalized = backupOwner.trim().replace(/^0x/i, "").toLowerCase();
-  const walletNormalized = connectedWalletHash.trim().replace(/^0x/i, "").toLowerCase();
+  const backupOwnerNormalized = backupOwner
+    .trim()
+    .replace(/^0x/i, "")
+    .toLowerCase();
+  const walletNormalized = connectedWalletHash
+    .trim()
+    .replace(/^0x/i, "")
+    .toLowerCase();
   const backupOwnerMismatch =
     Boolean(walletNormalized) &&
     Boolean(backupOwnerNormalized) &&
@@ -150,54 +168,57 @@ export default function PlayArea({
   return (
     <div className="aa-account-play-area">
       <section className="account-hero">
-        <div className="account-hero__intro">
-          <span className="account-hero__badge" aria-hidden="true">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
-          </span>
-          <div className="account-hero__heading">
-            <span className="account-hero__eyebrow">
-              {t("accountHeroEyebrow")}
+        <div className="account-hero__copy">
+          <div className="account-hero__intro">
+            <span className="account-hero__badge" aria-hidden="true">
+              <ShieldCheck />
             </span>
-            <h2>{t("accountHeroTitle")}</h2>
+            <div className="account-hero__heading">
+              <span className="account-hero__eyebrow">
+                {t("accountHeroEyebrow")}
+              </span>
+              <h2>{t("accountHeroTitle")}</h2>
+            </div>
+          </div>
+          <p>{t("accountHeroCopy")}</p>
+          <div
+            className="account-hero__meta"
+            aria-label={t("accountMetricsLabel")}
+          >
+            <div className="account-hero__stat">
+              <span>{t("network")}</span>
+              <strong>{networkDisplay || DASH}</strong>
+            </div>
+            <div className="account-hero__stat account-hero__stat--wide">
+              <span>{t("defaultVerifier")}</span>
+              <strong title={defaultVerifierDisplay || undefined}>
+                {defaultVerifierDisplay || DASH}
+              </strong>
+            </div>
           </div>
         </div>
-        <p>{t("accountHeroCopy")}</p>
         <div
-          className="account-hero__meta"
-          aria-label={t("accountMetricsLabel")}
+          className="account-hero__visual"
+          role="img"
+          aria-label={t("accountHeroVisualAlt")}
         >
-          <div className="account-hero__stat">
-            <span>{t("network")}</span>
-            <strong>{networkDisplay || DASH}</strong>
-          </div>
-          <div className="account-hero__stat account-hero__stat--wide">
-            <span>{t("defaultVerifier")}</span>
-            <strong title={defaultVerifierDisplay || undefined}>
-              {defaultVerifierDisplay || DASH}
-            </strong>
-          </div>
+          <img
+            src="./account-control-center.jpg"
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
+          <span>
+            <Fingerprint aria-hidden="true" />
+            {t("accountHeroVisualBadge")}
+          </span>
         </div>
       </section>
 
       <section className="account-workspace">
         <NeoCard
           variant="erobo"
-          title={
-            t("accountInspectorTitle") ||
-            t("inspectorTitle")
-          }
+          title={t("accountInspectorTitle") || t("inspectorTitle")}
           className="account-command"
         >
           <div className="account-form">
@@ -208,7 +229,9 @@ export default function PlayArea({
               placeholder={t("accountIdPlaceholder")}
               onChange={(v) => setAccountId(v)}
             />
-            {!canInspect && <p className="account-hint">{t("inspectBlocked")}</p>}
+            {!canInspect && (
+              <p className="account-hint">{t("inspectBlocked")}</p>
+            )}
             <div className="account-action-grid">
               <NeoButton
                 variant="primary"
@@ -217,6 +240,7 @@ export default function PlayArea({
                 aria-label={t("inspect")}
                 onClick={() => dispatch("inspect", accountId)}
               >
+                <Search aria-hidden="true" />
                 {t("inspect")}
               </NeoButton>
               <NeoButton
@@ -224,6 +248,7 @@ export default function PlayArea({
                 aria-label={t("connectWallet")}
                 onClick={() => dispatch("connect")}
               >
+                <Wallet aria-hidden="true" />
                 {t("connectWallet")}
               </NeoButton>
             </div>
@@ -284,20 +309,10 @@ export default function PlayArea({
             <details className="account-optional" open>
               <summary>
                 <span>{t("optionalFieldsSummary")}</span>
-                <svg
+                <ChevronDown
                   className="account-optional__chevron"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
                   aria-hidden="true"
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                />
               </summary>
               <div className="account-optional__body">
                 <NeoInput
@@ -358,23 +373,14 @@ export default function PlayArea({
               </p>
             )}
             {networkIsMainnet && (
-              <p className="account-caution account-caution--danger" role="alert">
-                <svg
+              <p
+                className="account-caution account-caution--danger"
+                role="alert"
+              >
+                <TriangleAlert
                   className="account-caution__glyph"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
                   aria-hidden="true"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
+                />
                 <span className="account-caution__text">
                   {t("mainnetCautionLead")}
                   <strong>{t("mainnetCautionEmphasis")}</strong>
@@ -400,6 +406,7 @@ export default function PlayArea({
                 )
               }
             >
+              <ShieldCheck aria-hidden="true" />
               {t("register")}
             </NeoButton>
           </div>

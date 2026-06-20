@@ -11,6 +11,14 @@ const appMessages = {
     en: "Inspect the live verifier, hook, and recovery owner before registering a new account shell with an explicit escape window.",
     zh: "注册新的账户壳前，先查询链上 verifier、hook 与恢复 owner，再用明确的逃生窗口提交。",
   },
+  accountHeroVisualAlt: {
+    en: "Smart account shell with verifier key and backup owner route",
+    zh: "带 verifier 密钥与 backup owner 路径的智能账户壳",
+  },
+  accountHeroVisualBadge: {
+    en: "Verifier route preview",
+    zh: "Verifier 路径预览",
+  },
   accountMetricsLabel: {
     en: "AA account environment summary",
     zh: "AA 账户环境摘要",
