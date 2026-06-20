@@ -2,299 +2,631 @@
 @use "@shared/styles/playarea-base";
 
 .flashloan-play-area {
-  --fl-accent: var(--ns-brand, #16c784);
-  --fl-accent-strong: var(--ns-brand-strong, #0fb174);
-  --fl-accent-soft: var(--ns-brand-soft, #e4f8f0);
+  --fl-ink: #102019;
+  --fl-text: #354a40;
+  --fl-muted: #6f7f77;
+  --fl-surface: #ffffff;
+  --fl-surface-soft: #f7fbf8;
+  --fl-surface-warm: #fff9eb;
+  --fl-line: rgba(16, 32, 25, 0.11);
+  --fl-line-strong: rgba(16, 32, 25, 0.18);
+  --fl-brand: #16c784;
+  --fl-brand-strong: #087a53;
+  --fl-brand-deep: #064f38;
+  --fl-brand-soft: #e4f8f0;
+  --fl-blue: #2474e8;
+  --fl-blue-soft: #eaf3ff;
+  --fl-gold: #bf7f17;
+  --fl-gold-soft: #fff2cf;
+  --fl-danger: #c13737;
+  --fl-danger-soft: #ffe7e7;
+  --fl-shadow: 0 18px 46px rgba(41, 67, 54, 0.11);
+  --fl-shadow-soft: 0 10px 26px rgba(41, 67, 54, 0.08);
 
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  color: var(--ns-ink, #1e1e2e);
+  display: grid;
+  gap: 16px;
+  min-height: 320px;
+  padding: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(228, 248, 240, 0.74) 0%,
+      rgba(255, 249, 235, 0.54) 42%,
+      transparent 74%
+    ),
+    linear-gradient(180deg, #fbfff9 0%, #f5faf6 48%, #fffaf0 100%);
+  color: var(--fl-ink);
+  font-family: $font-family;
+  letter-spacing: 0;
+}
+
+.flashloan-play-area .neo-card {
+  min-width: 0;
+  border: 1px solid var(--fl-line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--fl-shadow-soft);
+}
+
+.flashloan-play-area .neo-btn {
+  gap: 7px;
+}
+
+.flashloan-play-area .neo-btn--primary:not(:disabled) {
+  border-color: var(--fl-brand-strong);
+  background: var(--fl-brand-strong);
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(8, 122, 83, 0.18);
+}
+
+.flashloan-play-area .neo-btn--primary:not(:disabled):hover,
+.flashloan-play-area .neo-btn--primary:not(:disabled):focus-visible {
+  border-color: var(--fl-brand-deep);
+  background: var(--fl-brand-deep);
+  color: #ffffff;
 }
 
 /* ============================================================
  *  Hero
  * ============================================================ */
-.flashloan-hero__head {
+.flashloan-hero {
+  overflow: hidden;
+  padding: 0;
+}
+
+.flashloan-hero__layout {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(180px, auto);
-  align-items: center;
+  grid-template-columns: minmax(0, 0.96fr) minmax(300px, 0.82fr);
   gap: 18px;
-  margin-bottom: 22px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.flashloan-hero__content {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  align-content: center;
+}
+
+.flashloan-hero__lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
 }
 
 .flashloan-hero__badge {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   width: 52px;
   height: 52px;
-  flex-shrink: 0;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--fl-accent-soft, #e4f8f0);
-  color: var(--fl-accent-strong, #0fb174);
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: 14px;
+  background: var(--fl-brand-soft);
+  color: var(--fl-brand-strong);
+  box-shadow: 0 10px 24px rgba(22, 199, 132, 0.13);
 }
 
 .flashloan-hero__text {
-  min-width: 0;
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  min-width: 0;
 }
 
-.flashloan-hero__eyebrow {
+.flashloan-hero__eyebrow,
+.flashloan-card-eyebrow {
   margin: 0;
+  color: var(--fl-brand-strong);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 850;
+  line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--fl-accent-strong, #0fb174);
+  letter-spacing: 0;
 }
 
 .flashloan-hero__title {
   margin: 0;
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  color: var(--ns-ink, #1e1e2e);
+  color: var(--fl-ink);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: 0;
 }
 
 .flashloan-hero__subtitle {
+  max-width: 600px;
   margin: 0;
-  max-width: 640px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--ns-text-2, #5b6478);
+  color: var(--fl-text);
+  font-size: 15px;
+  font-weight: 620;
+  line-height: 1.5;
 }
 
 .flashloan-wallet {
-  min-width: 0;
   display: grid;
-  gap: 3px;
-  justify-items: end;
-  padding: 12px 14px;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  background: var(--fl-surface-soft);
+  color: var(--fl-muted);
+}
+
+.flashloan-wallet svg {
+  color: var(--fl-brand-strong);
 }
 
 .flashloan-wallet__label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--fl-text);
+  font-size: 12px;
+  font-weight: 820;
+  white-space: nowrap;
 }
 
 .flashloan-wallet__value {
-  max-width: 220px;
+  min-width: 0;
+  max-width: 280px;
   overflow: hidden;
+  color: var(--fl-muted);
+  font-size: 12px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
 }
 
 .flashloan-wallet--connected {
-  border-color: rgba(22, 199, 132, 0.3);
-  background: var(--ns-brand-soft, #e4f8f0);
+  border-color: rgba(22, 199, 132, 0.32);
+  background: var(--fl-brand-soft);
 }
 
-.flashloan-wallet--connected .flashloan-wallet__label {
-  color: var(--ns-brand-strong, #0fb174);
+.flashloan-wallet--connected .flashloan-wallet__value {
+  color: var(--fl-brand-deep);
+}
+
+.flashloan-service-notice {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid rgba(191, 127, 23, 0.22);
+  border-radius: 12px;
+  background: var(--fl-gold-soft);
+  color: #7a4b08;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.flashloan-service-notice svg {
+  color: var(--fl-gold);
+}
+
+.flashloan-service-notice__title {
+  color: var(--fl-ink);
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .flashloan-hero__stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .flashloan-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
   gap: 5px;
   min-width: 0;
-  padding: 14px 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
+  padding: 13px 14px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--fl-shadow-soft);
+}
+
+.flashloan-stat svg {
+  color: var(--fl-brand-strong);
 }
 
 .flashloan-stat__value {
-  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
+  color: var(--fl-ink);
+  font-size: 21px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .flashloan-stat__label {
-  font-size: 10px;
-  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fl-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ns-text-muted, #8a92a6);
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.flashloan-hero__art {
+  position: relative;
+  min-height: 300px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--fl-line);
+  border-radius: 14px;
+  background: var(--fl-surface-warm);
+  box-shadow: var(--fl-shadow);
+}
+
+.flashloan-hero__art img,
+.flashloan-liquidity-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flashloan-hero__art figcaption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  gap: 4px;
+  max-width: 320px;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--fl-shadow-soft);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.flashloan-hero__art figcaption span,
+.flashloan-hero__art figcaption strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flashloan-hero__art figcaption span {
+  color: var(--fl-brand-strong);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.flashloan-hero__art figcaption strong {
+  color: var(--fl-ink);
+  font-size: 16px;
+  font-weight: 900;
 }
 
 /* ============================================================
- *  Service notice (read-failure banner — keep last good snapshot)
+ *  Guidance
  * ============================================================ */
-.flashloan-service-notice {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 18px;
-  padding: 0.875rem 1.125rem;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-warning-soft, #fff3dd);
-  /* Darkened amber so body + title text clear AA (>=4.5:1) on warning-soft */
-  color: #92400e;
-  font-size: 0.8125rem;
+.flashloan-guidance-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid rgba(191, 127, 23, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 242, 207, 0.86) 0%,
+    rgba(255, 255, 255, 0.92) 72%
+  );
+  box-shadow: var(--fl-shadow-soft);
+}
+
+.flashloan-guidance-strip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--fl-gold);
+}
+
+.flashloan-guidance-strip strong {
+  display: block;
+  color: var(--fl-ink);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.flashloan-guidance-strip p {
+  margin: 4px 0 0;
+  color: #5f4216;
+  font-size: 13px;
+  font-weight: 620;
   line-height: 1.5;
 }
 
-.flashloan-service-notice__title {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-ink, #1e1e2e);
-}
-
-/* Power-user / LP framing banner above the borrow workspace. */
-.flashloan-instruction {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  margin-bottom: 18px;
-  padding: 0.875rem 1.125rem;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.flashloan-instruction__badge {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-brand-deep, #0b5e3e);
-}
-
-.flashloan-instruction__note {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: var(--ns-text-2, #5b6478);
-}
-
 /* ============================================================
- *  Workspace layout
+ *  Shared card chrome
  * ============================================================ */
 .flashloan-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
-  gap: 1.25rem;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.86fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .flashloan-workspace--secondary {
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
 }
 
 .flashloan-request-card,
 .flashloan-preview-card,
+.flashloan-liquidity-card,
 .flashloan-lookup-card,
 .flashloan-recent-card {
-  min-width: 0;
   width: 100%;
+  min-width: 0;
 }
 
 .flashloan-card-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 1rem;
+  margin-bottom: 14px;
 }
 
 .flashloan-card-heading {
-  min-width: 0;
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .flashloan-card-heading--solo {
-  margin-bottom: 1rem;
-}
-
-.flashloan-card-eyebrow {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--fl-accent-strong, #0fb174);
+  margin-bottom: 12px;
 }
 
 .flashloan-section-title {
   margin: 0;
-  min-width: 0;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  color: var(--fl-ink);
+  font-size: 19px;
+  font-weight: 900;
   line-height: 1.2;
-  color: var(--ns-ink, #1e1e2e);
+  letter-spacing: 0;
 }
 
-/* Neutral muted chip — toned down so method names don't compete with content */
 .flashloan-method-pill {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  flex-shrink: 0;
-  max-width: 180px;
-  min-height: 28px;
+  max-width: 190px;
+  min-height: 30px;
   padding: 0 11px;
-  border-radius: var(--ns-radius-full, 9999px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
   overflow: hidden;
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  background: var(--fl-surface-soft);
+  color: var(--fl-muted);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Fee-rate pill keeps the accent — it is informational data, not a method name */
 .flashloan-method-pill--rate {
-  border-color: rgba(22, 199, 132, 0.24);
-  background: var(--fl-accent-soft, #e4f8f0);
-  color: var(--ns-brand-deep, #0b5e3e);
+  border-color: rgba(22, 199, 132, 0.28);
+  background: var(--fl-brand-soft);
+  color: var(--fl-brand-deep);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
 }
 
 /* ============================================================
- *  Request form
+ *  Request desk
  * ============================================================ */
+.flashloan-deal-ticket {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(228, 248, 240, 0.92) 0%,
+    rgba(255, 255, 255, 0.92) 70%
+  );
+}
+
+.flashloan-deal-ticket__amount {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.flashloan-deal-ticket__amount span,
+.flashloan-deal-ticket__amount small {
+  color: var(--fl-brand-deep);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.flashloan-deal-ticket__amount strong {
+  color: var(--fl-ink);
+  font-size: 30px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.flashloan-deal-ticket__amount small {
+  color: var(--fl-muted);
+  text-transform: none;
+}
+
+.flashloan-deal-ticket__route {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.flashloan-route-node-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.flashloan-route-node-wrap:last-child {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.flashloan-route-node {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.flashloan-route-node svg,
+.flashloan-route-arrow {
+  color: var(--fl-brand-strong);
+}
+
+.flashloan-route-node span {
+  color: var(--fl-text);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.flashloan-route-node strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fl-ink);
+  font-size: 12px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flashloan-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.flashloan-readiness {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-surface-soft);
+}
+
+.flashloan-readiness svg {
+  color: var(--fl-muted);
+}
+
+.flashloan-readiness span {
+  color: var(--fl-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.flashloan-readiness strong {
+  color: var(--fl-text);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
+.flashloan-readiness--ready {
+  border-color: rgba(22, 199, 132, 0.24);
+  background: var(--fl-brand-soft);
+}
+
+.flashloan-readiness--ready svg,
+.flashloan-readiness--ready span,
+.flashloan-readiness--ready strong {
+  color: var(--fl-brand-deep);
+}
+
 .flashloan-loan-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
+  display: grid;
+  gap: 12px;
+}
+
+.flashloan-control-panel {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.flashloan-control-panel .neo-input__wrapper,
+.flashloan-liquidity-form .neo-input__wrapper,
+.flashloan-lookup-row .neo-input__wrapper {
+  border-color: var(--fl-line);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.flashloan-control-panel .neo-input__field,
+.flashloan-liquidity-form .neo-input__field,
+.flashloan-lookup-row .neo-input__field {
+  color: var(--fl-ink);
+  font-weight: 760;
+}
+
+.flashloan-control-panel .neo-input__label,
+.flashloan-liquidity-form .neo-input__label,
+.flashloan-lookup-row .neo-input__label {
+  color: var(--fl-muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .flashloan-presets {
@@ -304,37 +636,39 @@
 }
 
 .flashloan-preset {
-  min-height: 38px;
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface, #ffffff);
-  color: var(--ns-text, #2a2d3d);
+  min-height: 42px;
+  border: 1px solid var(--fl-line-strong);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--fl-text);
+  cursor: pointer;
   font: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
   transition:
     border-color var(--ns-t-fast, 150ms) ease,
     background var(--ns-t-fast, 150ms) ease,
-    color var(--ns-t-fast, 150ms) ease;
+    color var(--ns-t-fast, 150ms) ease,
+    transform var(--ns-t-fast, 150ms) ease;
 }
 
 .flashloan-preset:hover {
-  border-color: var(--fl-accent, #16c784);
-  color: var(--fl-accent-strong, #0fb174);
+  border-color: var(--fl-brand);
+  color: var(--fl-brand-deep);
+  transform: translateY(-1px);
 }
 
 .flashloan-preset:focus-visible {
   outline: none;
-  border-color: var(--fl-accent, #16c784);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  border-color: var(--fl-brand);
+  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
 }
 
 .flashloan-preset--active {
-  border-color: var(--fl-accent, #16c784);
-  background: var(--fl-accent-soft, #e4f8f0);
-  color: var(--fl-accent-strong, #0fb174);
+  border-color: rgba(22, 199, 132, 0.42);
+  background: var(--fl-brand-soft);
+  color: var(--fl-brand-deep);
 }
 
 .flashloan-fixed-callback {
@@ -342,49 +676,48 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  margin: 0;
-  padding: 0.75rem 0.875rem;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  font-size: 0.8125rem;
-  line-height: 1.45;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-surface-soft);
 }
 
 .flashloan-fixed-callback span {
-  min-width: 0;
+  color: var(--fl-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 850;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-text-muted, #8a92a6);
 }
 
 .flashloan-fixed-callback strong {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--ns-brand-deep, #0b5e3e);
+  color: var(--fl-brand-deep);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .flashloan-callback-note {
   margin: 0;
-  font-size: 0.78125rem;
+  color: var(--fl-text);
+  font-size: 13px;
+  font-weight: 620;
   line-height: 1.55;
-  color: var(--ns-text-2, #5b6478);
 }
 
 .flashloan-callback-link {
-  color: var(--ns-brand-deep, #0b5e3e);
-  font-weight: 700;
+  color: var(--fl-brand-deep);
+  font-weight: 850;
   text-decoration: none;
-  border-bottom: 1px solid rgba(22, 199, 132, 0.32);
+  border-bottom: 1px solid rgba(22, 199, 132, 0.34);
 }
 
 .flashloan-callback-link:hover,
 .flashloan-callback-link:focus-visible {
   outline: none;
-  border-bottom-color: var(--fl-accent, #16c784);
+  border-bottom-color: var(--fl-brand);
 }
 
 .flashloan-actions {
@@ -392,32 +725,29 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   align-items: center;
-  margin-top: 0.25rem;
 }
 
 .flashloan-actions > :only-child {
   grid-column: 1 / -1;
 }
 
-/* Soft-tinted disabled primary CTA — keeps accent affordance instead of
- * reading as a broken flat-grey button (overrides shared NeoButton default). */
 .flashloan-actions .neo-btn--primary:disabled,
 .flashloan-lookup-row .neo-btn:disabled {
-  background: var(--fl-accent-soft, #e4f8f0);
   border-color: rgba(22, 199, 132, 0.24);
-  color: var(--fl-accent-strong, #0fb174);
-  opacity: 0.75;
+  background: var(--fl-brand-soft);
+  color: var(--fl-brand-deep);
+  opacity: 0.7;
 }
 
 .flashloan-validation-error {
   margin: 0;
-  padding: 0.625rem 0.75rem;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid rgba(234, 57, 67, 0.22);
-  background: var(--ns-danger-soft, #fde7e9);
-  color: var(--ns-down, #ea3943);
-  font-size: 0.8125rem;
-  font-weight: 700;
+  padding: 10px 12px;
+  border: 1px solid rgba(193, 55, 55, 0.22);
+  border-radius: 12px;
+  background: var(--fl-danger-soft);
+  color: var(--fl-danger);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 /* ============================================================
@@ -431,49 +761,55 @@
 
 .flashloan-preview-item,
 .flashloan-request-summary > div {
-  min-width: 0;
   display: grid;
-  gap: 5px;
-  padding: 13px 14px;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
+  gap: 6px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-surface-soft);
 }
 
 .flashloan-preview-item span,
 .flashloan-request-summary > div span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--fl-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 850;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-text-muted, #8a92a6);
+  letter-spacing: 0;
+}
+
+.flashloan-preview-item span svg {
+  color: var(--fl-brand-strong);
 }
 
 .flashloan-preview-item strong,
 .flashloan-request-summary > div strong {
   min-width: 0;
   overflow: hidden;
+  color: var(--fl-ink);
+  font-size: 16px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
-/* Total repayment — accent-emphasized */
 .flashloan-preview-item--total {
-  border-color: rgba(22, 199, 132, 0.22);
-  background: var(--fl-accent-soft, #e4f8f0);
+  border-color: rgba(22, 199, 132, 0.26);
+  background: var(--fl-brand-soft);
 }
 
-.flashloan-preview-item--total span {
-  color: var(--ns-brand-deep, #0b5e3e);
-}
-
-.flashloan-preview-item--total strong {
-  color: var(--ns-brand-deep, #0b5e3e);
+.flashloan-preview-item--total span,
+.flashloan-preview-item--total strong,
+.flashloan-preview-item--total span svg {
+  color: var(--fl-brand-deep);
 }
 
 .flashloan-flow {
@@ -481,43 +817,43 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-top: 1rem;
+  margin-top: 14px;
 }
 
-.flashloan-flow > span:not(.flashloan-flow-arrow) {
+.flashloan-flow > span {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0 14px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--fl-accent-soft, #e4f8f0);
-  color: var(--fl-accent-strong, #0fb174);
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 999px;
+  background: var(--fl-brand-soft);
+  color: var(--fl-brand-deep);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 850;
 }
 
 .flashloan-flow-arrow {
-  color: var(--ns-text-faint, #aeb4c2);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
+  color: var(--fl-muted);
 }
 
 .flashloan-request-summary {
   display: grid;
   gap: 8px;
-  margin-top: 1rem;
+  margin-top: 14px;
 }
 
 .flashloan-request-summary p,
 .flashloan-empty {
   margin: 0;
-  padding: 1.25rem 1rem;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.8125rem;
+  padding: 18px 14px;
+  border: 1px dashed var(--fl-line-strong);
+  border-radius: 12px;
+  background: var(--fl-surface-soft);
+  color: var(--fl-muted);
+  font-size: 13px;
+  font-weight: 680;
   line-height: 1.5;
   text-align: center;
 }
@@ -525,46 +861,112 @@
 /* ============================================================
  *  Liquidity provider surface
  * ============================================================ */
-.flashloan-liquidity-card {
+.flashloan-liquidity-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.flashloan-liquidity-media {
+  position: relative;
+  min-height: 250px;
+  overflow: hidden;
+  border: 1px solid var(--fl-line);
+  border-radius: 14px;
+  background: var(--fl-surface-warm);
+}
+
+.flashloan-liquidity-media img {
+  object-position: center;
+}
+
+.flashloan-liquidity-media__caption {
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 13px;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.87);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.flashloan-liquidity-media__caption span {
+  color: var(--fl-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.flashloan-liquidity-media__caption strong {
+  color: var(--fl-ink);
+  font-size: 22px;
+  font-weight: 930;
+  font-variant-numeric: tabular-nums;
+}
+
+.flashloan-liquidity-copy {
+  display: grid;
+  gap: 12px;
   min-width: 0;
-  width: 100%;
 }
 
 .flashloan-liquidity-info {
-  margin: 0 0 1rem;
-  font-size: 0.8125rem;
+  margin: 0;
+  color: var(--fl-text);
+  font-size: 13px;
+  font-weight: 640;
   line-height: 1.55;
-  color: var(--ns-text-2, #5b6478);
 }
 
-/* Provider fee-share / distributeFees disclosure — subtly emphasized. */
 .flashloan-liquidity-info--share {
-  margin-top: -0.5rem;
-  font-weight: 500;
+  padding: 11px 12px;
+  border: 1px solid rgba(36, 116, 232, 0.16);
+  border-radius: 12px;
+  background: var(--fl-blue-soft);
+  color: #214c88;
 }
 
 .flashloan-liquidity-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 1rem;
 }
 
 .flashloan-liquidity-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-surface-soft);
 }
 
 .flashloan-liquidity-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(92px, auto));
+  gap: 9px;
 }
 
 /* ============================================================
- *  Lookup
+ *  Lookup and history
  * ============================================================ */
+.flashloan-lookup-hint {
+  margin: 0 0 12px;
+  color: var(--fl-text);
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.5;
+}
+
 .flashloan-lookup-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -573,10 +975,10 @@
 }
 
 .flashloan-loan-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  margin-top: 1rem;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin-top: 12px;
 }
 
 .flashloan-loan-row,
@@ -585,64 +987,71 @@
   display: grid;
   grid-template-columns: 0.7fr 1fr 0.85fr 0.85fr;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .flashloan-loan-row {
-  padding: 0.875rem;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  padding: 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-surface-soft);
 }
 
 .flashloan-loan-callback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   margin: 0;
-  padding: 0.875rem;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 0.78125rem;
-  line-height: 1.6;
-  color: var(--ns-text-2, #5b6478);
-  word-break: break-word;
+  padding: 12px;
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--fl-text);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .flashloan-loan-callback strong {
+  color: var(--fl-ink);
   font-family: var(--font-sans, inherit);
-  color: var(--ns-ink, #1e1e2e);
 }
 
-/* ============================================================
- *  Recent executions table
- * ============================================================ */
+.flashloan-loan-callback svg {
+  color: var(--fl-brand-strong);
+}
+
 .flashloan-table {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
 }
 
 .flashloan-table-header {
-  padding: 0.625rem 0.875rem;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fl-line);
+  background: var(--fl-surface-soft);
 }
 
 .flashloan-table-header span {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--fl-muted);
+  font-size: 11px;
+  font-weight: 850;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
 }
 
 .flashloan-table-row {
-  min-height: 46px;
-  padding: 0.625rem 0.875rem;
-  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  min-height: 48px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--fl-line);
   transition: background var(--ns-t-fast, 150ms) ease;
 }
 
@@ -651,7 +1060,7 @@
 }
 
 .flashloan-table-row:hover {
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: var(--fl-surface-soft);
 }
 
 .flashloan-cell-pool,
@@ -664,24 +1073,18 @@
   white-space: nowrap;
 }
 
-.flashloan-cell-pool {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-}
-
+.flashloan-cell-pool,
 .flashloan-cell-amount {
-  font-size: 0.8125rem;
-  color: var(--ns-ink, #1e1e2e);
-  font-weight: 800;
+  color: var(--fl-ink);
+  font-size: 13px;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
 }
 
 .flashloan-cell-fee {
-  font-size: 0.8125rem;
-  color: var(--ns-text-2, #5b6478);
-  font-weight: 700;
+  color: var(--fl-muted);
+  font-size: 13px;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
 }
 
@@ -691,61 +1094,99 @@
   align-self: center;
   width: fit-content;
   max-width: 100%;
-  padding: 3px 9px;
-  border-radius: var(--ns-radius-full, 9999px);
-  font-size: 0.6875rem;
-  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .flashloan-status--active {
-  background: var(--ns-warning-soft, #fff3dd);
-  color: #b45309;
+  background: var(--fl-gold-soft);
+  color: #7a4b08;
 }
 
 .flashloan-status--repaid {
-  background: var(--ns-success-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  background: var(--fl-brand-soft);
+  color: var(--fl-brand-deep);
 }
 
 .flashloan-status--liquidated {
-  background: var(--ns-danger-soft, #fde7e9);
-  color: var(--ns-down, #ea3943);
+  background: var(--fl-danger-soft);
+  color: var(--fl-danger);
 }
 
 /* ============================================================
  *  Responsive
  * ============================================================ */
+@media (max-width: 1040px) {
+  .flashloan-hero__layout,
+  .flashloan-liquidity-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .flashloan-hero__art {
+    min-height: 260px;
+  }
+
+  .flashloan-liquidity-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 860px) {
-  .flashloan-hero__head {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .flashloan-wallet {
-    grid-column: 1 / -1;
-    justify-items: start;
-  }
-
-  .flashloan-wallet__value {
-    max-width: 100%;
-  }
-
   .flashloan-hero__stats,
   .flashloan-workspace,
   .flashloan-workspace--secondary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .flashloan-deal-ticket__route,
+  .flashloan-readiness-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .flashloan-route-node-wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .flashloan-route-arrow {
+    display: none;
+  }
 }
 
 @media (max-width: 620px) {
   .flashloan-play-area {
-    padding: 0.875rem;
-    gap: 1rem;
+    gap: 13px;
+    padding: 12px;
+  }
+
+  .flashloan-hero__layout {
+    padding: 12px;
+  }
+
+  .flashloan-hero__lead {
+    align-items: flex-start;
+  }
+
+  .flashloan-hero__badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
   }
 
   .flashloan-hero__title {
-    font-size: 26px;
+    font-size: 28px;
+  }
+
+  .flashloan-hero__subtitle {
+    font-size: 14px;
+  }
+
+  .flashloan-wallet {
+    width: 100%;
+    grid-template-columns: auto auto minmax(0, 1fr);
   }
 
   .flashloan-hero__stats,
@@ -754,17 +1195,21 @@
   .flashloan-preview-grid,
   .flashloan-liquidity-stats,
   .flashloan-actions,
-  .flashloan-lookup-row {
+  .flashloan-lookup-row,
+  .flashloan-liquidity-form {
     grid-template-columns: 1fr;
   }
 
   .flashloan-card-head {
-    align-items: flex-start;
     flex-direction: column;
   }
 
   .flashloan-method-pill {
     max-width: 100%;
+  }
+
+  .flashloan-presets {
+    grid-template-columns: 1fr;
   }
 
   .flashloan-loan-row,

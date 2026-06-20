@@ -21,6 +21,9 @@ function t(key: string, params?: Record<string, string | number>) {
     title: "Flash Loan",
     eyebrow: "Atomic liquidity",
     flashloanInfo: "Callback contract receives and repays in one transaction.",
+    flashloanHeroImageAlt: "Flash loan route",
+    flashloanHeroArtKicker: "Live pool route",
+    flashloanHeroArtTitle: "Borrow, execute, repay",
     walletRequired: "Wallet required",
     walletConnected: "Wallet connected",
     requestLoanEyebrow: "Atomic liquidity",
@@ -33,6 +36,17 @@ function t(key: string, params?: Record<string, string | number>) {
     callbackMethod: "Callback Method",
     callbackPrerequisite: "Every loan needs an onFlashLoan callback contract.",
     viewCallbackExample: "View onFlashLoan example",
+    requestTicketEyebrow: "Execution ticket",
+    requestTicketTitle: "Flash-loan execution ticket",
+    amountTicketHint: "Principal routed atomically through the callback",
+    readinessWallet: "Wallet",
+    readinessWalletReady: "Connected",
+    readinessWalletAction: "Connect before signing",
+    readinessCallback: "Callback",
+    readinessCallbackReady: "Contract target set",
+    readinessCallbackMissing: "Add callback contract",
+    readinessRepayment: "Repayment guard",
+    readinessRepaymentGuard: "Principal + fee must return in one tx",
     connectWallet: "Connect Wallet",
     connectAndSign: "Connect and Sign",
     signRequestFlashLoan: "Sign requestFlashLoan",
@@ -53,6 +67,11 @@ function t(key: string, params?: Record<string, string | number>) {
     liquidityEyebrow: "Provide liquidity",
     liquidityTitle: "Provide Liquidity",
     liquidityInfo: "Deposit GAS to back flash loans and earn fees.",
+    poolReservoir: "Pool reservoir",
+    providerShare: "Provider Share",
+    protocolShare: "Protocol Share",
+    liquidityFeeShareNote:
+      "Providers earn {share}% and protocol earns {protocol}%.",
     liquidityAmount: "Amount",
     liquidityAmountPlaceholder: "Enter GAS amount",
     yourLiquidity: "Your Liquidity",
@@ -89,7 +108,9 @@ function launch(url: string) {
   return parseMiniAppLaunchContext(url, "miniapp-flashloan");
 }
 
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function baseState(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     isLoading: false,
     address: "",
@@ -158,8 +179,12 @@ describe("Flashloan PlayArea", () => {
       />,
     );
 
-    expect((screen.getByLabelText("Loan Amount") as HTMLInputElement).value).toBe("1");
-    expect((screen.getByLabelText("Callback Contract") as HTMLInputElement).value).toBe(CALLBACK);
+    expect(
+      (screen.getByLabelText("Loan Amount") as HTMLInputElement).value,
+    ).toBe("1");
+    expect(
+      (screen.getByLabelText("Callback Contract") as HTMLInputElement).value,
+    ).toBe(CALLBACK);
 
     fireEvent.click(screen.getByRole("button", { name: "Connect and Sign" }));
 
@@ -217,7 +242,9 @@ describe("Flashloan PlayArea", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Amount"), {
+      target: { value: "5" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
 
     await waitFor(() => {
@@ -232,11 +259,15 @@ describe("Flashloan PlayArea", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea {...props({ dispatch })} />);
 
-    fireEvent.change(screen.getByLabelText("Amount"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Amount"), {
+      target: { value: "2" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Withdraw" }));
 
     await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("withdrawLiquidity", { amount: "2" });
+      expect(dispatch).toHaveBeenCalledWith("withdrawLiquidity", {
+        amount: "2",
+      });
     });
   });
 });
