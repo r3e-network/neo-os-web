@@ -1,9 +1,18 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Council Governance", zh: "议会治理" },
+  // App translations
+  title: { en: "Council Governance", zh: "议会治理" },
   liveGovernance: { en: "Live on-chain governance", zh: "链上实时治理" },
+  heroImageAlt: {
+    en: "Bright Neo council chamber with a quorum ring and on-chain voting panels",
+    zh: "明亮的 Neo 议会厅，展示法定人数环和链上投票面板",
+  },
+  quorumChamber: { en: "Quorum chamber", zh: "法定人数议事厅" },
+  quorumRing: {
+    en: "Votes converge into one auditable council decision.",
+    zh: "投票汇聚为一个可审计的议会决策。",
+  },
   governanceSummary: {
     en: "Create council proposals, inspect live quorum, and cast on-chain for or against votes from one focused workspace.",
     zh: "在一个工作台里创建议会提案、查看实时法定人数，并发起链上赞成或反对投票。",
@@ -35,16 +44,28 @@ title: { en: "Council Governance", zh: "议会治理" },
   methodExecFeeFactor: { en: "Set Exec Fee Factor", zh: "设置执行费系数" },
   methodStoragePrice: { en: "Set Storage Price", zh: "设置存储价格" },
   methodMaxBlockSize: { en: "Set Max Block Size", zh: "设置区块最大大小" },
-  methodMaxTransactions: { en: "Set Max Transactions/Block", zh: "设置每块最大交易数" },
+  methodMaxTransactions: {
+    en: "Set Max Transactions/Block",
+    zh: "设置每块最大交易数",
+  },
   methodMaxSystemFee: { en: "Set Max System Fee", zh: "设置最大系统费用" },
   yes: { en: "Yes", zh: "赞成" },
   no: { en: "No", zh: "反对" },
   for: { en: "For", zh: "赞成" },
   against: { en: "Against", zh: "反对" },
-  notCandidate: { en: "Only top 21 council members can vote", zh: "仅前 21 名议会成员可投票" },
-  notCandidateCreate: { en: "Only top 21 council members can create proposals", zh: "仅前 21 名议会成员可创建提案" },
+  notCandidate: {
+    en: "Only top 21 council members can vote",
+    zh: "仅前 21 名议会成员可投票",
+  },
+  notCandidateCreate: {
+    en: "Only top 21 council members can create proposals",
+    zh: "仅前 21 名议会成员可创建提案",
+  },
   connectWallet: { en: "Connect wallet to vote", zh: "连接钱包以投票" },
-  connectWalletCreate: { en: "Connect wallet to create a proposal", zh: "连接钱包以创建提案" },
+  connectWalletCreate: {
+    en: "Connect wallet to create a proposal",
+    zh: "连接钱包以创建提案",
+  },
   connectWalletReadOnly: {
     en: "Connect a council wallet to create proposals or vote. Proposal data remains readable.",
     zh: "连接议会钱包后可创建提案或投票；提案数据仍可只读查看。",
@@ -53,22 +74,34 @@ title: { en: "Council Governance", zh: "议会治理" },
     en: "This wallet is not a current council member, so the app is in read-only mode.",
     zh: "当前钱包不是现任议会成员，因此小程序处于只读模式。",
   },
-  eligibleToVote: { en: "Council member verified. Proposal writes are enabled.", zh: "已验证为议会成员，可发起提案和投票。" },
-  alreadyVoted: { en: "You already voted on this proposal", zh: "您已对该提案投票" },
+  eligibleToVote: {
+    en: "Council member verified. Proposal writes are enabled.",
+    zh: "已验证为议会成员，可发起提案和投票。",
+  },
+  alreadyVoted: {
+    en: "You already voted on this proposal",
+    zh: "您已对该提案投票",
+  },
   alreadyVotedLabel: { en: "Voted", zh: "已投票" },
   externalProposalReadOnly: {
     en: "Mirrored from Neo Community; open details here, vote through the native governance flow when eligible.",
     zh: "该提案同步自 Neo Community；可在此查看详情，符合资格时通过原生治理流程投票。",
   },
   voteRecorded: { en: "Vote recorded", zh: "投票已记录" },
-  proposalNotActive: { en: "This proposal is not active", zh: "该提案当前不可投票" },
+  proposalNotActive: {
+    en: "This proposal is not active",
+    zh: "该提案当前不可投票",
+  },
   loadingProposals: { en: "Loading proposals...", zh: "加载提案中..." },
   loadingProposalsHint: {
     en: "Reading the latest entries from the governance contract.",
     zh: "正在从治理合约读取最新条目。",
   },
   failedToLoadProposals: { en: "Failed to load proposals", zh: "加载提案失败" },
-  failedToLoadCandidates: { en: "Failed to load council candidates", zh: "加载议会候选人失败" },
+  failedToLoadCandidates: {
+    en: "Failed to load council candidates",
+    zh: "加载议会候选人失败",
+  },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
   yourVotingPower: { en: "Your Voting Power", zh: "您的投票权重" },
   councilMember: { en: "Council Member", zh: "议会成员" },
@@ -100,15 +133,30 @@ title: { en: "Council Governance", zh: "议会治理" },
   titlePlaceholder: { en: "Enter proposal title", zh: "输入提案标题" },
   descPlaceholder: { en: "Enter proposal description", zh: "输入提案描述" },
   proposalTitlePlaceholder: { en: "Enter proposal title", zh: "输入提案标题" },
-  proposalDescPlaceholder: { en: "Enter proposal description", zh: "输入提案描述" },
+  proposalDescPlaceholder: {
+    en: "Enter proposal description",
+    zh: "输入提案描述",
+  },
   proposalDescription: { en: "Description", zh: "描述" },
-  fillAllFields: { en: "Please enter a title and description", zh: "请填写标题和描述" },
-  policyFieldsRequired: { en: "Select a policy method and value", zh: "请选择策略方法并填写数值" },
-  invalidPolicyValue: { en: "Enter a valid policy value", zh: "请输入有效的策略数值" },
+  fillAllFields: {
+    en: "Please enter a title and description",
+    zh: "请填写标题和描述",
+  },
+  policyFieldsRequired: {
+    en: "Select a policy method and value",
+    zh: "请选择策略方法并填写数值",
+  },
+  invalidPolicyValue: {
+    en: "Enter a valid policy value",
+    zh: "请输入有效的策略数值",
+  },
   proposalSubmitted: { en: "Proposal submitted", zh: "提案已提交" },
   proposalCreated: { en: "Proposal created", zh: "提案已创建" },
   proposalFinalized: { en: "Proposal finalized", zh: "提案已定案" },
-  proposalExecuted: { en: "Policy change executed on-chain", zh: "策略变更已在链上执行" },
+  proposalExecuted: {
+    en: "Policy change executed on-chain",
+    zh: "策略变更已在链上执行",
+  },
   proposalRevoked: { en: "Proposal revoked", zh: "提案已撤回" },
   finalizeProposal: { en: "Finalize Proposal", zh: "定案提案" },
   executeProposal: { en: "Execute Policy", zh: "执行策略" },
@@ -173,9 +221,9 @@ title: { en: "Council Governance", zh: "议会治理" },
     en: "Track status from review through execution.",
     zh: "从审议到执行全程可追踪。",
   },
-    quickActions: { en: "Quick Actions", zh: "快捷操作" },
-    totalProposals: { en: "Total Proposals", zh: "提案总数" },
-    votingPower: { en: "Voting Power", zh: "投票权重" },
+  quickActions: { en: "Quick Actions", zh: "快捷操作" },
+  totalProposals: { en: "Total Proposals", zh: "提案总数" },
+  votingPower: { en: "Voting Power", zh: "投票权重" },
   // The eligibility stat means "are you 1 of the 21 council members" — surface it
   // as a seat status, not a bare 1/0 weight a newcomer can't interpret.
   councilSeat: { en: "Council Seat", zh: "议会席位" },
@@ -198,9 +246,18 @@ title: { en: "Council Governance", zh: "议会治理" },
   passLine: { en: "Pass line", zh: "通过线" },
   // One-line caption under the Council Seat stat so eligibility is explained in
   // the stat block, not only in the access strip.
-  seatCaptionConnect: { en: "Connect a council wallet to vote", zh: "连接议会钱包即可投票" },
-  seatCaptionVerified: { en: "You can propose and vote", zh: "可发起提案并投票" },
-  seatCaptionReadOnly: { en: "Viewing in read-only mode", zh: "以只读模式查看" },
+  seatCaptionConnect: {
+    en: "Connect a council wallet to vote",
+    zh: "连接议会钱包即可投票",
+  },
+  seatCaptionVerified: {
+    en: "You can propose and vote",
+    zh: "可发起提案并投票",
+  },
+  seatCaptionReadOnly: {
+    en: "Viewing in read-only mode",
+    zh: "以只读模式查看",
+  },
   // Time-sensitivity cue for an active proposal whose voting window closes soon.
   endingSoon: { en: "Ending soon", zh: "即将结束" },
 } as const;
