@@ -1,327 +1,407 @@
 @use "@shared/styles/tokens.scss" as *;
 
 .multisig-play-area {
-  --multisig-ink: var(--ns-ink, #1e1e2e);
-  --multisig-muted: var(--ns-text-muted, #8a92a6);
-  --multisig-body: var(--ns-text-2, #5b6478);
-  --multisig-soft: var(--ns-surface-subtle, #f7f8fa);
-  --multisig-panel: var(--ns-surface, #ffffff);
-  --multisig-border: var(--ns-border, rgba(20, 22, 38, 0.06));
-  --multisig-green: var(--ns-brand, #16c784);
-  --multisig-green-strong: var(--ns-brand-strong, #0fb174);
-  --multisig-green-soft: var(--ns-brand-soft, #e4f8f0);
+  --ms-ink: #17211c;
+  --ms-text: #35443c;
+  --ms-muted: #6f7b73;
+  --ms-line: rgba(23, 33, 28, 0.1);
+  --ms-line-strong: rgba(23, 33, 28, 0.18);
+  --ms-surface: rgba(255, 255, 255, 0.92);
+  --ms-surface-strong: #ffffff;
+  --ms-surface-soft: #f7faf4;
+  --ms-brand: #16a66f;
+  --ms-brand-strong: #087b50;
+  --ms-brand-soft: #e2f7ec;
+  --ms-gold: #d8a038;
+  --ms-gold-soft: #fff2ca;
+  --ms-danger: #b42318;
+  --ms-radius: 12px;
+  --ms-radius-sm: 10px;
+  --ms-shadow: 0 16px 42px rgba(30, 50, 38, 0.09);
+  --ms-shadow-soft: 0 8px 20px rgba(30, 50, 38, 0.07);
 
   width: 100%;
   min-height: 100%;
-  padding: 16px;
-  background: #f5f7fa;
-  color: var(--multisig-ink);
+  padding: 18px 12px 24px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255, 221, 158, 0.34), transparent 34%),
+    linear-gradient(180deg, #fffaf0 0%, #fbfdf8 48%, #f2f8f5 100%);
+  color: var(--ms-ink);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
+}
+
+.multisig-play-area * {
+  min-width: 0;
+  letter-spacing: 0;
+}
+
+.multisig-play-area .neo-input__label,
+.multisig-play-area .neo-input__hint {
+  color: var(--ms-muted);
+  font-weight: 750;
+}
+
+.multisig-play-area .neo-input__wrapper {
+  min-height: 44px;
+  border-color: var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+}
+
+.multisig-play-area .neo-input__field {
+  color: var(--ms-ink);
+  font-weight: 650;
+}
+
+.multisig-play-area .neo-input__field::placeholder {
+  color: #9aa59e;
 }
 
 .multisig-shell {
-  width: min(100%, 960px);
+  width: min(100%, 1260px);
   margin: 0 auto;
-  letter-spacing: 0;
 }
 
 .multisig-main {
-  min-width: 0;
   display: grid;
   gap: 16px;
-  letter-spacing: 0;
 }
 
 .multisig-hero {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 24px;
-  border: 1px solid var(--multisig-border);
-  border-radius: var(--ns-radius-lg, 20px);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 360px);
+  gap: 24px;
+  min-height: 360px;
+  padding: 26px;
   overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--ms-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--ms-shadow);
+}
+
+.multisig-hero__image,
+.multisig-hero__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.multisig-hero__image {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.multisig-hero__shade {
+  z-index: -1;
   background:
-    linear-gradient(135deg, #ffffff 0%, #ffffff 54%, var(--ns-brand-soft, #e4f8f0) 100%);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-  letter-spacing: 0;
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78) 42%, rgba(255, 255, 255, 0.22) 78%),
+    linear-gradient(0deg, rgba(255, 250, 240, 0.92), rgba(255, 250, 240, 0.1) 58%);
+}
+
+.multisig-hero__copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-self: start;
+  gap: 14px;
+  max-width: 680px;
 }
 
 .multisig-hero-accent {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--ns-radius-sm, 14px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  letter-spacing: 0;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(22, 166, 111, 0.22);
+  border-radius: var(--ms-radius);
+  background: rgba(226, 247, 236, 0.86);
+  color: var(--ms-brand-strong);
+  box-shadow: var(--ms-shadow-soft);
 }
 
-.multisig-hero-accent svg {
-  display: block;
-}
-
-.multisig-hero-eyebrow {
-  color: var(--multisig-green-strong);
+.multisig-hero-eyebrow,
+.multisig-hero__glass span,
+.multisig-board__head span,
+.multisig-section-heading > strong,
+.multisig-proposal-preview__copy span,
+.multisig-approval-card__head span,
+.multisig-request-id-row > span,
+.multisig-roster-title,
+.multisig-request-details span {
+  color: var(--ms-muted);
   font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
+  font-weight: 850;
+  line-height: 1.25;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
 }
 
 .multisig-hero h2 {
-  margin: 2px 0 0;
-  color: var(--multisig-ink);
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1.18;
-  letter-spacing: -0.02em;
+  margin: 5px 0 0;
+  color: var(--ms-ink);
+  font-size: 32px;
+  font-weight: 850;
+  line-height: 1.08;
+  text-wrap: balance;
 }
 
 .multisig-hero p {
-  max-width: 64ch;
-  margin: 2px 0 0;
-  color: var(--multisig-body);
+  max-width: 610px;
+  margin: 9px 0 0;
+  color: var(--ms-text);
   font-size: 14px;
+  font-weight: 620;
   line-height: 1.55;
-  letter-spacing: 0;
 }
 
-.multisig-hero-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 16px;
-  border-top: 1px solid var(--multisig-border);
-  letter-spacing: 0;
-}
-
-.multisig-hero-tile {
+.multisig-hero-flow {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--multisig-border);
-  border-radius: var(--ns-radius-sm, 14px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
-  letter-spacing: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
 }
 
-.multisig-hero-tile small {
-  color: var(--multisig-muted);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.multisig-hero-flow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid rgba(22, 166, 111, 0.18);
+  border-radius: 999px;
+  background: rgba(226, 247, 236, 0.88);
+  color: var(--ms-brand-strong);
+  font-size: 12px;
+  font-weight: 780;
 }
 
-.multisig-hero-tile strong {
-  color: var(--multisig-ink);
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.2;
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0;
+.multisig-hero__glass {
+  display: grid;
+  align-content: end;
+  gap: 12px;
+}
+
+.multisig-hero__vault-card,
+.multisig-hero__proposal-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(23, 33, 28, 0.11);
+  border-radius: var(--ms-radius);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--ms-shadow-soft);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.multisig-hero__glass strong {
+  color: var(--ms-ink);
+  font-size: 22px;
+  font-weight: 860;
+  line-height: 1.12;
+}
+
+.multisig-hero__glass small {
+  color: var(--ms-text);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .multisig-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(360px, 0.98fr) minmax(0, 1.02fr);
   gap: 16px;
   align-items: start;
-  letter-spacing: 0;
 }
 
 .multisig-request-panel,
 .multisig-activity-panel,
 .multisig-signer-panel,
 .multisig-load-panel {
-  min-width: 0;
-  border-radius: var(--ns-radius-lg, 20px);
   display: grid;
-  gap: 14px;
   align-content: start;
-  letter-spacing: 0;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius);
+  background: var(--ms-surface);
+  box-shadow: var(--ms-shadow);
 }
 
 .multisig-aside {
-  min-width: 0;
   display: grid;
-  gap: 16px;
   align-content: start;
+  gap: 16px;
   position: sticky;
   top: 12px;
-  align-self: start;
-  letter-spacing: 0;
-}
-
-.multisig-signer-panel,
-.multisig-load-panel {
-  gap: 10px;
-}
-
-.multisig-signal-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
-  border-top: 1px solid var(--ns-border-subtle, #eef0f3);
-  letter-spacing: 0;
-}
-
-.multisig-signal-row:first-of-type {
-  border-top: none;
-}
-
-.multisig-signal-row > span {
-  min-width: 0;
-  color: var(--multisig-muted);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0;
-}
-
-.multisig-signal-row > strong {
-  flex-shrink: 0;
-  color: var(--multisig-ink);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.3;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  letter-spacing: 0;
-}
-
-.multisig-signer-panel > p,
-.multisig-load-panel > p {
-  margin: -2px 0 2px;
-  color: var(--multisig-body);
-  font-size: 13px;
-  line-height: 1.5;
-  letter-spacing: 0;
-}
-
-/* "Execution route" glossary, collapsed by default — pure reference. */
-.multisig-route-details {
-  margin-top: 2px;
-  border-top: 1px solid var(--ns-border-subtle, #eef0f3);
-  padding-top: 8px;
-}
-
-.multisig-route-details > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  list-style: none;
-  cursor: pointer;
-  color: var(--multisig-muted);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  user-select: none;
-}
-
-.multisig-route-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-.multisig-route-details > summary::after {
-  content: "";
-  flex-shrink: 0;
-  width: 7px;
-  height: 7px;
-  transform: translateY(-1px) rotate(45deg);
-  border-right: 2px solid var(--multisig-muted);
-  border-bottom: 2px solid var(--multisig-muted);
-  transition: transform 0.15s ease;
-}
-
-.multisig-route-details[open] > summary::after {
-  transform: translateY(2px) rotate(-135deg);
-}
-
-.multisig-route-details > summary:focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  border-radius: var(--ns-radius-sm, 8px);
-}
-
-.multisig-route-details > p {
-  margin: 8px 0 2px;
-  color: var(--multisig-body);
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .multisig-section-heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: var(--multisig-ink);
-  letter-spacing: 0;
 }
 
 .multisig-section-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
+  color: var(--ms-ink);
   font-size: 18px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.multisig-section-heading > span svg,
+.multisig-board__seal svg,
+.multisig-hero-flow svg,
+.multisig-approval-card svg {
+  flex: 0 0 auto;
 }
 
 .multisig-section-heading > strong {
-  flex-shrink: 0;
-  padding: 4px 10px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--multisig-muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-  letter-spacing: 0;
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--ms-surface-soft);
+  color: var(--ms-muted);
 }
 
-.multisig-request-panel > p {
-  margin: -2px 0 2px;
-  color: var(--multisig-body);
-  font-size: 14px;
+.multisig-request-panel > p,
+.multisig-signer-panel > p,
+.multisig-load-panel > p {
+  margin: -3px 0 2px;
+  color: var(--ms-text);
+  font-size: 13px;
+  font-weight: 610;
   line-height: 1.55;
-  letter-spacing: 0;
 }
 
-.multisig-form-grid {
+.multisig-board {
   display: grid;
   gap: 12px;
-  margin-top: 6px;
-  letter-spacing: 0;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 166, 111, 0.2);
+  border-radius: var(--ms-radius);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(226, 247, 236, 0.74)),
+    var(--ms-surface-strong);
 }
 
+.multisig-board__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.36fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.multisig-board__head > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.multisig-board__head strong {
+  color: var(--ms-ink);
+  font-size: 22px;
+  font-weight: 860;
+  line-height: 1.1;
+}
+
+.multisig-board__progress,
+.multisig-approval-card__track {
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 166, 111, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.multisig-board__progress span,
+.multisig-approval-card__track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ms-brand), #cfa15e);
+}
+
+.multisig-board__signers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 9px;
+}
+
+.multisig-board__signer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.multisig-board__signer.is-approved {
+  border-color: rgba(22, 166, 111, 0.32);
+  background: rgba(226, 247, 236, 0.92);
+}
+
+.multisig-board__signer.is-you {
+  box-shadow: inset 0 0 0 2px rgba(22, 166, 111, 0.14);
+}
+
+.multisig-board__seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ms-brand-strong);
+  box-shadow: var(--ms-shadow-soft);
+}
+
+.multisig-board__signer strong,
+.multisig-proposal-preview__copy strong,
+.multisig-approval-card__head strong,
+.multisig-request-id-row > strong,
+.multisig-request-details strong,
+.multisig-signal-row > strong {
+  min-width: 0;
+  color: var(--ms-ink);
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.multisig-board__signer small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ms-muted);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.multisig-form-grid,
 .multisig-signer-grid {
   display: grid;
   gap: 12px;
-  letter-spacing: 0;
 }
 
-// Dynamic signer rows: input + inline remove button, plus an add-row button.
 .multisig-signer-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -329,151 +409,46 @@
   align-items: end;
 }
 
+.multisig-signer-remove,
+.multisig-signer-add,
+.multisig-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: #fff;
+  color: var(--ms-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 780;
+}
+
 .multisig-signer-remove {
-  align-self: end;
   width: 38px;
   height: 38px;
-  border: 1px solid var(--multisig-border);
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--multisig-soft);
-  color: var(--multisig-muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+}
 
-  &:hover {
-    color: var(--ns-danger, #ef4444);
-    border-color: var(--ns-danger, #ef4444);
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  }
+.multisig-signer-remove:hover {
+  border-color: rgba(180, 35, 24, 0.35);
+  color: var(--ms-danger);
 }
 
 .multisig-signer-add {
   justify-self: start;
-  padding: 6px 12px;
-  border: 1px dashed var(--multisig-border);
-  border-radius: var(--ns-radius-sm, 12px);
-  background: transparent;
-  color: #097a50;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    background: var(--multisig-green-soft);
-    border-color: var(--multisig-green);
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  }
+  min-height: 38px;
+  padding: 8px 12px;
+  border-style: dashed;
+  color: var(--ms-brand-strong);
 }
 
-// Connected-as line in the hero.
-.multisig-hero-connected {
-  margin-top: 10px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--multisig-muted);
-}
-
-// Request ID row with copy affordance.
-.multisig-request-id-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-
-  > span {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--multisig-muted);
-  }
-
-  > strong {
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--multisig-ink);
-  }
-}
-
-.multisig-copy-btn {
-  padding: 3px 10px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--multisig-green-strong);
-  background: var(--multisig-green-soft);
-  border: 1px solid transparent;
-  border-radius: var(--ns-radius-sm, 8px);
-  cursor: pointer;
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: var(--multisig-green);
-    color: #ffffff;
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  }
-}
-
-// Signer roster in the aside.
-.multisig-roster {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--multisig-border);
-}
-
-.multisig-roster-title {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--multisig-muted);
-}
-
-.multisig-roster-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 8px;
-  border-radius: var(--ns-radius-sm, 10px);
-  background: var(--multisig-soft);
-
-  &.is-you {
-    background: var(--multisig-green-soft);
-  }
-}
-
-.multisig-roster-hash {
-  font-family: var(--ns-font-mono, ui-monospace, monospace);
-  font-size: 0.75rem;
-  color: var(--multisig-body);
-}
-
-.multisig-roster-you {
-  font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--multisig-green-strong);
+.multisig-signer-add:hover,
+.multisig-copy-btn:hover,
+.multisig-icon-button:hover {
+  border-color: rgba(22, 166, 111, 0.34);
+  background: var(--ms-brand-soft);
+  color: var(--ms-brand-strong);
 }
 
 .multisig-form-row {
@@ -481,24 +456,19 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   align-items: start;
-  letter-spacing: 0;
 }
 
 .multisig-form-row--transfer {
   grid-template-columns: minmax(0, 1fr) minmax(140px, 0.36fr);
 }
 
-// Normalize NeoSelect to match NeoInput and remove the duplicate native arrow.
-// A legacy global `.neo-select` rule paints a background-image chevron while the
-// native <select> arrow also shows; scope here to keep a single custom chevron.
 .multisig-play-area .neo-select {
   width: auto;
   padding: 0;
-  background: none;
-  border: none;
+  border: 0;
   border-radius: 0;
+  background: none;
   box-shadow: none;
-  appearance: none;
 }
 
 .multisig-play-area .neo-select__field {
@@ -509,113 +479,176 @@
   -moz-appearance: none;
 }
 
-.multisig-play-area .neo-select__wrapper::after {
-  content: "";
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  width: 9px;
-  height: 9px;
-  transform: translateY(-65%) rotate(45deg);
-  border-right: 2px solid var(--multisig-muted);
-  border-bottom: 2px solid var(--multisig-muted);
-  pointer-events: none;
-}
-
 .multisig-request-hint {
   margin: 0;
   padding: 10px 12px;
-  /* Neutral pre-input guidance (not a warning): use the muted surface like the
-     other AA hint banners; the .is-ready variant below turns brand-green. */
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 14px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-2, #5b6478);
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: var(--ms-surface-soft);
+  color: var(--ms-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 620;
   line-height: 1.45;
-  letter-spacing: 0;
 }
 
 .multisig-request-hint.is-ready {
-  border-color: rgba(22, 199, 132, 0.24);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--multisig-green-strong);
+  border-color: rgba(22, 166, 111, 0.24);
+  background: var(--ms-brand-soft);
+  color: var(--ms-brand-strong);
 }
 
-/* Pre-input guidance on a pristine create form. Neutral helper tone (not a
-   warning): a quiet muted surface with a soft brand rule so it reads as "fill
-   this in", never as a validation error. */
 .multisig-request-hint--guide {
-  border-color: var(--ns-border-subtle, #eef0f3);
-  border-left: 3px solid var(--multisig-green);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--multisig-body);
-  font-weight: 600;
+  border-color: rgba(22, 166, 111, 0.18);
+  background: #f8fbf7;
 }
 
-/* Informational pooled-balance disclosure — softer weight than a gating hint. */
 .multisig-request-hint--info {
-  font-weight: 500;
+  font-weight: 540;
 }
 
-/* v2 RequestUnfunded notice: a threshold approval found the vault underfunded
-   and the contract auto-cancelled the request — amber warning treatment. */
 .multisig-request-hint--unfunded {
-  border-color: rgba(217, 119, 6, 0.28);
-  background: #fdf6ec;
-  color: #b45309;
+  border-color: rgba(216, 160, 56, 0.36);
+  background: #fff8e5;
+  color: #8a5a0a;
 }
 
-.multisig-receipt,
-.multisig-request-details {
+.multisig-receipt {
   display: grid;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid rgba(22, 199, 132, 0.24);
-  border-radius: var(--ns-radius-sm, 14px);
-  background: #effbf5;
-  letter-spacing: 0;
+  gap: 7px;
+  padding: 13px;
+  border: 1px solid rgba(22, 166, 111, 0.22);
+  border-radius: var(--ms-radius);
+  background: rgba(226, 247, 236, 0.72);
 }
 
-.multisig-receipt span,
-.multisig-request-details span {
-  color: var(--multisig-muted);
+.multisig-receipt span {
+  color: var(--ms-muted);
   font-size: 12px;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.multisig-receipt strong,
-.multisig-request-details strong {
-  min-width: 0;
-  color: var(--multisig-ink);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.25;
-  word-break: break-word;
-  letter-spacing: 0;
+  font-weight: 780;
 }
 
 .multisig-receipt em {
-  color: var(--multisig-body);
+  color: var(--ms-text);
   font-size: 13px;
   font-style: normal;
   line-height: 1.4;
-  letter-spacing: 0;
+}
+
+.multisig-proposal-preview {
+  position: relative;
+  display: grid;
+  min-height: 210px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 160, 56, 0.22);
+  border-radius: var(--ms-radius);
+  background: #fff;
+  box-shadow: var(--ms-shadow-soft);
+}
+
+.multisig-proposal-preview__art {
+  position: absolute;
+  inset: 0;
+  background-image: url("/multisig-proposal-card.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.multisig-proposal-preview__copy {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  display: grid;
+  gap: 8px;
+  margin: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--ms-radius);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 30px rgba(30, 50, 38, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.multisig-proposal-preview__copy strong {
+  font-size: 1.32rem;
+}
+
+.multisig-proposal-preview__copy div,
+.multisig-approval-card__route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.multisig-proposal-preview__copy small,
+.multisig-approval-card__route span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ms-text);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.multisig-request-id-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.multisig-copy-btn {
+  min-height: 30px;
+  padding: 5px 10px;
+  color: var(--ms-brand-strong);
+}
+
+.multisig-approval-card {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(22, 166, 111, 0.24);
+  border-radius: var(--ms-radius);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(226, 247, 236, 0.76));
+}
+
+.multisig-approval-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
 }
 
 .multisig-request-details {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-color: var(--multisig-border);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius);
+  background: var(--ms-surface-soft);
+}
+
+.multisig-request-details > div,
+.multisig-signal-row {
+  display: grid;
+  gap: 4px;
+}
+
+.multisig-request-details strong {
+  font-size: 13px;
 }
 
 .multisig-primary-actions {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
-  letter-spacing: 0;
 }
 
 .multisig-primary-actions--row {
@@ -624,127 +657,220 @@
 
 .multisig-primary-actions .neo-btn,
 .multisig-load-box .neo-btn {
-  border-radius: var(--ns-radius-full, 9999px);
-  font-weight: 700;
+  gap: 7px;
+  border-radius: 10px;
+  font-weight: 780;
   white-space: nowrap;
-  letter-spacing: 0;
 }
 
-// Soft-tinted disabled primary CTA so the brand affordance is preserved
-// instead of collapsing into flat grey that blends into the form. Full opacity
-// + a deeper soft fill + darkened text keep the label legible (>=4.5:1), and a
-// solid brand border makes the button shape unambiguous so it still reads as
-// "the button you press once the form is valid".
+.multisig-primary-actions .neo-btn--primary {
+  background: var(--ms-brand-strong);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(8, 123, 80, 0.24);
+}
+
+.multisig-primary-actions .neo-btn--primary:hover:not(:disabled) {
+  background: #066542;
+}
+
 .multisig-primary-actions .neo-btn--primary:disabled {
-  background: #d4f3e6;
-  border: 1px solid var(--multisig-green);
+  border: 1px solid rgba(22, 166, 111, 0.28);
+  background: #d6f1e4;
   color: #0a6b48;
-  box-shadow: none;
   opacity: 1;
+  box-shadow: none;
 }
 
-// Compact load rows in the aside "Load vault or request" panel. These are a
-// secondary entry path, so they sit quietly under the create flow.
-.multisig-load-box {
-  display: grid;
+.multisig-signal-row {
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: end;
-  letter-spacing: 0;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid var(--ms-line);
 }
 
-// De-emphasized secondary action: the Load buttons are a side path, so they are
-// smaller and lighter than the headline Create Vault CTA — no full-width sweep,
-// no brand fill.
-.multisig-load-panel .multisig-load-btn {
-  align-self: end;
-  min-height: 38px;
-  padding: 0 16px;
-  font-size: 0.8125rem;
-  font-weight: 600;
+.multisig-signal-row:first-of-type {
+  border-top: 0;
+}
+
+.multisig-signal-row > span {
+  color: var(--ms-muted);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.3;
+}
+
+.multisig-roster {
+  display: grid;
+  gap: 8px;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--ms-line);
+}
+
+.multisig-roster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.multisig-roster-row.is-you {
+  border-color: rgba(22, 166, 111, 0.24);
+  background: var(--ms-brand-soft);
+}
+
+.multisig-roster-hash {
+  color: var(--ms-text);
+  font-family: var(--ns-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.multisig-roster-you {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ms-brand-strong);
+  font-size: 10px;
+  font-weight: 850;
 }
 
 .multisig-empty-line {
   margin: 0;
   padding: 18px 4px;
-  color: var(--multisig-muted);
+  color: var(--ms-muted);
   font-size: 13px;
   line-height: 1.45;
   text-align: center;
-  letter-spacing: 0;
 }
 
 .multisig-history-list {
   display: grid;
   gap: 10px;
-  letter-spacing: 0;
 }
 
 .multisig-history-card {
-  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 7px 12px;
   align-items: center;
-  padding: 14px;
-  border: 1px solid var(--multisig-border);
-  border-radius: var(--ns-radius-sm, 14px);
-  color: var(--multisig-ink);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  padding: 13px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ms-ink);
   cursor: pointer;
   text-align: left;
-  letter-spacing: 0;
   transition:
-    border-color var(--ns-t-fast, 150ms) ease,
-    box-shadow var(--ns-t-fast, 150ms) ease,
-    transform var(--ns-t-fast, 150ms) ease;
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
 
-  &:hover {
-    border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-    box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-color: var(--multisig-green);
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  }
+.multisig-history-card:hover {
+  border-color: var(--ms-line-strong);
+  box-shadow: var(--ms-shadow-soft);
+  transform: translateY(-1px);
 }
 
 .multisig-history-card span {
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
   overflow: hidden;
+  color: var(--ms-ink);
+  font-size: 13px;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: 0;
 }
 
 .multisig-history-card strong {
-  padding: 3px 9px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--multisig-green-strong);
-  font-size: 12px;
-  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--ms-brand-soft);
+  color: var(--ms-brand-strong);
+  font-size: 11px;
+  font-weight: 820;
   white-space: nowrap;
-  letter-spacing: 0;
 }
 
 .multisig-history-card em {
   grid-column: 1 / -1;
-  color: var(--multisig-muted);
+  color: var(--ms-muted);
   font-size: 12px;
   font-style: normal;
   line-height: 1.25;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
+}
+
+.multisig-load-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.multisig-load-panel .multisig-load-btn {
+  align-self: end;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.multisig-route-details {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ms-line);
+}
+
+.multisig-route-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ms-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  list-style: none;
+  user-select: none;
+}
+
+.multisig-route-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.multisig-route-details > summary svg {
+  flex: 0 0 auto;
+  color: var(--ms-brand-strong);
+  transition: transform 0.15s ease;
+}
+
+.multisig-route-details[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.multisig-route-details > p {
+  margin: 9px 0 2px;
+  color: var(--ms-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.multisig-signer-remove:focus-visible,
+.multisig-signer-add:focus-visible,
+.multisig-copy-btn:focus-visible,
+.multisig-history-card:focus-visible,
+.multisig-route-details > summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 166, 111, 0.2);
 }
 
 @media (max-width: 1080px) {
-  .multisig-workspace {
+  .multisig-workspace,
+  .multisig-hero {
     grid-template-columns: 1fr;
   }
 
@@ -753,34 +879,56 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .multisig-play-area {
-    padding: 12px;
+    padding: 14px 10px 18px;
   }
 
   .multisig-hero {
+    min-height: 520px;
     padding: 20px;
   }
 
-  .multisig-hero-facts {
-    grid-template-columns: 1fr;
+  .multisig-hero h2 {
+    font-size: 26px;
   }
 
-  .multisig-hero-tile strong {
-    white-space: normal;
-  }
-
+  .multisig-hero__copy,
+  .multisig-board__head,
   .multisig-form-row,
   .multisig-form-row--transfer,
-  .multisig-request-details {
-    grid-template-columns: 1fr;
-  }
-
-  .multisig-primary-actions--row {
-    grid-template-columns: 1fr;
-  }
-
+  .multisig-request-details,
+  .multisig-primary-actions--row,
   .multisig-load-box {
     grid-template-columns: 1fr;
+  }
+
+  .multisig-request-panel,
+  .multisig-activity-panel,
+  .multisig-signer-panel,
+  .multisig-load-panel {
+    padding: 14px;
+  }
+
+  .multisig-section-heading,
+  .multisig-approval-card__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .multisig-primary-actions .neo-btn,
+  .multisig-load-box .neo-btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .multisig-history-card,
+  .multisig-route-details > summary svg {
+    transition: none;
+  }
+
+  .multisig-history-card:hover {
+    transform: none;
   }
 }
