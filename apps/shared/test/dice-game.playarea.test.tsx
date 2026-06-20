@@ -11,6 +11,11 @@ afterEach(() => cleanup());
 
 function t(key: string) {
   const messages: Record<string, string> = {
+    currentRound: "Current round",
+    faceTrayHint: "Tap a die to set the roll target",
+    gameTableCaption: "Ready on the table",
+    pickYourFace: "Pick your lucky face",
+    stakeRackTitle: "Chip rack",
     diceCommitStep: "Commit stake",
     diceHeroSubtitle: "Pick a face and submit the GAS stake.",
     diceHeroTitle: "VRF game desk",
@@ -107,15 +112,27 @@ describe("Dice Game PlayArea", () => {
   });
 
   it("applies stake presets and updates the payout summary", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "1.00 GAS" }));
 
     expect((screen.getByLabelText("Stake") as HTMLInputElement).value).toBe(
       "1.00",
     );
-    expect(screen.getAllByText("5.70 GAS").length).toBeGreaterThan(0);
-    expect(screen.getByText("4.70 GAS")).toBeTruthy();
+    expect(screen.getByText("Potential payout: 5.70 GAS")).toBeTruthy();
+    const roundSummary = container.querySelector(".dice-current-round__copy");
+    expect(roundSummary?.textContent).toContain("5.70 GAS");
+    expect(roundSummary?.textContent).toContain("4.70 GAS");
+  });
+
+  it("renders a game table image and current-round controls", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector('.dice-stage__table source[srcset="./dice-stage.avif"]')).toBeTruthy();
+    expect(screen.getByText("Ready on the table")).toBeTruthy();
+    expect(screen.getByText("Current round")).toBeTruthy();
+    expect(screen.getByText("Pick your lucky face")).toBeTruthy();
+    expect(screen.getByText("Chip rack")).toBeTruthy();
   });
 
   it("renders real local roll history instead of placeholder rows", () => {

@@ -38,6 +38,11 @@ const appMessages = {
   dicePayoutLabel: { en: "Payout", zh: "赔付" },
   diceBetSummary: { en: "Bet summary", zh: "下注摘要" },
   diceRoundSummary: { en: "Round summary", zh: "回合摘要" },
+  currentRound: { en: "Current round", zh: "当前回合" },
+  pickYourFace: { en: "Pick your lucky face", zh: "选择你的幸运点数" },
+  faceTrayHint: { en: "Tap a die to set the roll target", zh: "点按骰子设置目标点数" },
+  stakeRackTitle: { en: "Chip rack", zh: "筹码架" },
+  gameTableCaption: { en: "Ready on the table", zh: "游戏台已就绪" },
   stakePresets: { en: "Stake presets", zh: "筹码预设" },
   netWinLabel: { en: "Net win", zh: "净收益" },
   stakeHelp: {
