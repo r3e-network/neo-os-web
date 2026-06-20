@@ -3,6 +3,17 @@
  */
 
 import { useState } from "react";
+import {
+  Anchor,
+  BadgeCheck,
+  Copy,
+  FileCheck2,
+  FileText,
+  Fingerprint,
+  SearchCheck,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -35,13 +46,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [content, setContent] = useState("");
   const [verifyId, setVerifyId] = useState("");
 
-  const canCreate = content.trim().length > 0;
+  const trimmedContent = content.trim();
+  const canCreate = trimmedContent.length > 0;
+  const looksLikeSha256 = /^[a-fA-F0-9]{64}$/.test(trimmedContent);
+  const contentKind = looksLikeSha256 ? t("documentTypeHash") : t("documentTypeText");
+  const previewTitle = trimmedContent ? contentKind : t("documentPreviewEmptyTitle");
+  const previewBody = trimmedContent || t("documentPreviewEmpty");
 
   return (
     <div className="proof-play-area">
       <ProofHero t={t} />
 
-      {/* Stat tiles — the single stat surface (shows 0 / — when empty) */}
       <div className="proof-stats" role="group" aria-label={t("proofStats")}>
         <div className="proof-stat">
           <span className="proof-stat__label">{t("totalProofs")}</span>
@@ -57,224 +72,284 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      {/* Primary action — create a proof */}
-      <NeoCard title={t("createProof")}>
-        <div className="proof-form">
-          <NeoInput
-            value={content}
-            type="textarea"
-            label={t("enterContent")}
-            placeholder={t("contentPlaceholder")}
-            onChange={(val) => setContent(val)}
-          />
-          <NeoButton
-            variant="primary"
-            size="lg"
-            block
-            className="proof-cta"
-            loading={isCreating}
-            disabled={!canCreate}
-            aria-label={t("createProof")}
-            onClick={async () => {
-              // Preserve the user's input until the proof is actually saved.
-              // Clearing synchronously before the async dispatch resolves would
-              // lose their text if hashing/persistence rejected.
-              try {
-                await dispatch("createProof", content);
-                setContent("");
-              } catch {
-                // Keep `content` intact so the user can retry without retyping.
-              }
-            }}
-          >
-            {isCreating ? t("creating") : t("createProof")}
-          </NeoButton>
-          {!canCreate && !isCreating && (
-            <p className="proof-cta-hint">{t("createDisabledHint")}</p>
-          )}
-        </div>
-      </NeoCard>
+      <section className="proof-workbench" aria-label={t("proofWorkspace")}>
+        <NeoCard className="proof-composer">
+          <div className="proof-panel-head">
+            <span className="proof-panel-head__icon" aria-hidden="true">
+              <FileCheck2 size={20} />
+            </span>
+            <div>
+              <span>{t("createPanelKicker")}</span>
+              <h3>{t("createPanelTitle")}</h3>
+              <p>{t("createPanelBody")}</p>
+            </div>
+          </div>
 
-      {/* Secondary action — verify by id, digest, or original content */}
-      <NeoCard title={t("verifyProof")}>
-        <div className="proof-form verify-panel__body">
-          <NeoInput
-            value={verifyId}
-            type="text"
-            label={t("proofLookup")}
-            placeholder={t("verifyPlaceholder")}
-            error={verifyError ? t("invalidProof") : ""}
-            onChange={(val) => {
-              setVerifyId(val);
-              if (verifyError) dispatch("clearVerifyError");
-            }}
-          />
-          <NeoButton
-            variant="secondary"
-            block
-            loading={isVerifying}
-            disabled={!verifyId.trim()}
-            aria-label={t("verifyProof")}
-            onClick={() => dispatch("verifyProof", verifyId)}
-          >
-            {isVerifying ? t("verifying") : t("verifyProof")}
-          </NeoButton>
-          {verifiedProof ? (
-            <div className="verify-result">
-              <span className="verify-result__label">{t("validProof")}</span>
-              <div className="verify-result__row">
-                <span>{t("proofId")}</span>
-                <span className="mono">#{verifiedProof.id}</span>
+          <div className="proof-document-preview" aria-label={t("documentPreviewLabel")}>
+            <div className="proof-document-preview__paper">
+              <span className="proof-document-preview__seal" aria-hidden="true">
+                <Fingerprint size={26} />
+              </span>
+              <span className="proof-document-preview__type">{previewTitle}</span>
+              <p>{previewBody}</p>
+            </div>
+            <div className="proof-document-preview__meta">
+              <span>
+                <small>{t("contentChars")}</small>
+                <strong>{trimmedContent.length}</strong>
+              </span>
+              <span>
+                <small>{t("anchorStatus")}</small>
+                <strong>{t("localOnly")}</strong>
+              </span>
+              <span>
+                <small>{t("proofDigest")}</small>
+                <strong>{canCreate ? t("pendingDigest") : t("notAvailable")}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div className="proof-form proof-form--composer">
+            <NeoInput
+              value={content}
+              type="textarea"
+              label={t("enterContent")}
+              placeholder={t("contentPlaceholder")}
+              onChange={(val) => setContent(val)}
+            />
+            <div className="proof-privacy-note">
+              <ShieldCheck size={16} aria-hidden="true" />
+              <span>{t("proofPrivacy")}</span>
+            </div>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              className="proof-cta"
+              loading={isCreating}
+              disabled={!canCreate}
+              aria-label={t("createProof")}
+              onClick={async () => {
+                // Preserve the user's input until the proof is actually saved.
+                // Clearing synchronously before the async dispatch resolves would
+                // lose their text if hashing/persistence rejected.
+                try {
+                  await dispatch("createProof", content);
+                  setContent("");
+                } catch {
+                  // Keep `content` intact so the user can retry without retyping.
+                }
+              }}
+            >
+              <FileCheck2 size={17} aria-hidden="true" />
+              {isCreating ? t("creating") : t("createProof")}
+            </NeoButton>
+            {!canCreate && !isCreating && (
+              <p className="proof-cta-hint">{t("createDisabledHint")}</p>
+            )}
+          </div>
+        </NeoCard>
+
+        <div className="proof-side-rail">
+          <NeoCard className="proof-verifier">
+            <div className="proof-panel-head proof-panel-head--compact">
+              <span className="proof-panel-head__icon" aria-hidden="true">
+                <SearchCheck size={20} />
+              </span>
+              <div>
+                <span>{t("verifyPanelKicker")}</span>
+                <h3>{t("verifyPanelTitle")}</h3>
+                <p>{t("verifyPanelBody")}</p>
               </div>
-              <div className="verify-result__row">
-                <span>{t("timestamp")}</span>
-                <span className="mono">{new Date(verifiedProof.timestamp).toLocaleString()}</span>
-              </div>
-              <div className="verify-result__row">
-                <span>{t("proofDigest")}</span>
-                <span className="mono verify-result__hash">{verifiedProof.contentHash}</span>
-              </div>
-              <div className="verify-result__row">
-                <span>{t("anchorStatus")}</span>
-                <span
-                  className={`proof-anchor-badge ${verifiedProof.anchored ? "is-anchored" : "is-local"}`}
-                >
-                  {verifiedProof.anchored ? t("anchoredOnChain") : t("localOnly")}
-                </span>
-              </div>
-              {verifiedProof.anchored && verifiedProof.anchorTxid && (
-                <>
+            </div>
+
+            <div className="proof-form verify-panel__body">
+              <NeoInput
+                value={verifyId}
+                type="text"
+                label={t("proofLookup")}
+                placeholder={t("verifyPlaceholder")}
+                error={verifyError ? t("invalidProof") : ""}
+                onChange={(val) => {
+                  setVerifyId(val);
+                  if (verifyError) dispatch("clearVerifyError");
+                }}
+              />
+              <NeoButton
+                variant="secondary"
+                block
+                loading={isVerifying}
+                disabled={!verifyId.trim()}
+                aria-label={t("verifyProof")}
+                onClick={() => dispatch("verifyProof", verifyId)}
+              >
+                <SearchCheck size={17} aria-hidden="true" />
+                {isVerifying ? t("verifying") : t("verifyProof")}
+              </NeoButton>
+              {verifiedProof ? (
+                <div className="verify-result">
+                  <span className="verify-result__label">
+                    <BadgeCheck size={16} aria-hidden="true" />
+                    {t("validProof")}
+                  </span>
                   <div className="verify-result__row">
-                    <span>{t("anchorTxid")}</span>
-                    <a
-                      className="mono verify-result__hash verify-result__txlink"
-                      href={explorerTxUrl(verifiedProof.anchorTxid)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={t("viewOnExplorer")}
+                    <span>{t("proofId")}</span>
+                    <span className="mono">#{verifiedProof.id}</span>
+                  </div>
+                  <div className="verify-result__row">
+                    <span>{t("timestamp")}</span>
+                    <span className="mono">{new Date(verifiedProof.timestamp).toLocaleString()}</span>
+                  </div>
+                  <div className="verify-result__row">
+                    <span>{t("proofDigest")}</span>
+                    <span className="mono verify-result__hash">{verifiedProof.contentHash}</span>
+                  </div>
+                  <div className="verify-result__row">
+                    <span>{t("anchorStatus")}</span>
+                    <span
+                      className={`proof-anchor-badge ${verifiedProof.anchored ? "is-anchored" : "is-local"}`}
                     >
-                      {verifiedProof.anchorTxid}
-                    </a>
+                      {verifiedProof.anchored ? t("anchoredOnChain") : t("localOnly")}
+                    </span>
                   </div>
-                  <div className="verify-result__note">
-                    <strong>{t("howToVerifyTitle")}</strong>
-                    <span>{t("howToVerifyBody")}</span>
+                  {verifiedProof.anchored && verifiedProof.anchorTxid && (
+                    <>
+                      <div className="verify-result__row">
+                        <span>{t("anchorTxid")}</span>
+                        <a
+                          className="mono verify-result__hash verify-result__txlink"
+                          href={explorerTxUrl(verifiedProof.anchorTxid)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={t("viewOnExplorer")}
+                        >
+                          {verifiedProof.anchorTxid}
+                        </a>
+                      </div>
+                      <div className="verify-result__note">
+                        <strong>{t("howToVerifyTitle")}</strong>
+                        <span>{t("howToVerifyBody")}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="verify-result__row">
+                    <span>{t("contentPreview")}</span>
+                    <span className="verify-result__preview">{verifiedProof.content}</span>
                   </div>
-                </>
-              )}
-              <div className="verify-result__row">
-                <span>{t("contentPreview")}</span>
-                <span className="verify-result__preview">{verifiedProof.content}</span>
-              </div>
-              {!verifiedProof.anchored && (
-                <>
-                  <p className="verify-result__cost-note">{t("anchorCostNote")}</p>
-                  <NeoButton
-                    variant="primary"
-                    size="sm"
-                    loading={isAnchoring && anchoringId === verifiedProof.id}
-                    disabled={isAnchoring}
-                    aria-label={t("anchorOnChain")}
-                    onClick={() => dispatch("anchorProof", verifiedProof.id)}
-                  >
-                    {t("anchorOnChain")}
-                  </NeoButton>
-                </>
+                  {!verifiedProof.anchored && (
+                    <>
+                      <p className="verify-result__cost-note">{t("anchorCostNote")}</p>
+                      <NeoButton
+                        variant="primary"
+                        size="sm"
+                        loading={isAnchoring && anchoringId === verifiedProof.id}
+                        disabled={isAnchoring}
+                        aria-label={t("anchorOnChain")}
+                        onClick={() => dispatch("anchorProof", verifiedProof.id)}
+                      >
+                        <Anchor size={15} aria-hidden="true" />
+                        {t("anchorOnChain")}
+                      </NeoButton>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <p className="verify-result__empty">{t("verifyEmpty")}</p>
               )}
             </div>
+          </NeoCard>
+
+          {totalProofs === 0 ? (
+            <div className="empty-state">
+              <span className="empty-badge" aria-hidden="true">
+                <FileText size={22} />
+              </span>
+              <span className="empty-text">{t("noProofs")}</span>
+              <span className="empty-hint">{t("noProofsHint")}</span>
+            </div>
           ) : (
-            <p className="verify-result__empty">{t("verifyEmpty")}</p>
+            <NeoCard
+              className="proof-ledger"
+              title={t("recentProofs")}
+              header={
+                <NeoButton
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t("clearAllProofs")}
+                  onClick={() => dispatch("clearProofs")}
+                >
+                  {t("clearAllProofs")}
+                </NeoButton>
+              }
+            >
+              <ul className="proof-list">
+                {proofList.map((proof) => (
+                  <li key={proof.id} className="proof-list__item">
+                    <div className="proof-list__main">
+                      <span className="proof-list__id mono">#{proof.id}</span>
+                      <span className="proof-list__hash mono">{proof.contentHash}</span>
+                      <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
+                      <span
+                        className={`proof-anchor-badge ${proof.anchored ? "is-anchored" : "is-local"}`}
+                      >
+                        {proof.anchored ? t("anchoredOnChain") : t("localOnly")}
+                      </span>
+                    </div>
+                    <div className="proof-list__actions">
+                      <NeoButton
+                        variant="secondary"
+                        size="sm"
+                        aria-label={t("verify")}
+                        onClick={() => dispatch("verifyProof", String(proof.id))}
+                      >
+                        <SearchCheck size={15} aria-hidden="true" />
+                        {t("verify")}
+                      </NeoButton>
+                      {!proof.anchored && (
+                        <NeoButton
+                          variant="ghost"
+                          size="sm"
+                          loading={isAnchoring && anchoringId === proof.id}
+                          disabled={isAnchoring}
+                          aria-label={t("anchorOnChain")}
+                          onClick={() => dispatch("anchorProof", proof.id)}
+                        >
+                          <Anchor size={15} aria-hidden="true" />
+                          {t("anchorShort")}
+                        </NeoButton>
+                      )}
+                      <NeoButton
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("copyDigest")}
+                        onClick={() => dispatch("copyProofDigest", proof.id)}
+                      >
+                        <Copy size={15} aria-hidden="true" />
+                      </NeoButton>
+                      <NeoButton
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("copyReference")}
+                        onClick={() => dispatch("copyProofReference", proof.id)}
+                      >
+                        <FileText size={15} aria-hidden="true" />
+                      </NeoButton>
+                      <NeoButton
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("deleteProof")}
+                        onClick={() => dispatch("deleteProof", proof.id)}
+                      >
+                        <Trash2 size={15} aria-hidden="true" />
+                      </NeoButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </NeoCard>
           )}
         </div>
-      </NeoCard>
-
-      {/* Recent proofs / empty state */}
-      {totalProofs === 0 ? (
-        <div className="empty-state">
-          <span className="empty-badge" aria-hidden="true">
-            <span className="empty-icon">&#x2726;</span>
-          </span>
-          <span className="empty-text">{t("noProofs")}</span>
-          <span className="empty-hint">{t("noProofsHint")}</span>
-        </div>
-      ) : (
-        <NeoCard
-          title={t("recentProofs")}
-          header={
-            <NeoButton
-              variant="ghost"
-              size="sm"
-              aria-label={t("clearAllProofs")}
-              onClick={() => dispatch("clearProofs")}
-            >
-              {t("clearAllProofs")}
-            </NeoButton>
-          }
-        >
-          <ul className="proof-list">
-            {proofList.map((proof) => (
-              <li key={proof.id} className="proof-list__item">
-                <div className="proof-list__main">
-                  <span className="proof-list__id mono">#{proof.id}</span>
-                  <span className="proof-list__hash mono">{proof.contentHash}</span>
-                  <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
-                  <span
-                    className={`proof-anchor-badge ${proof.anchored ? "is-anchored" : "is-local"}`}
-                  >
-                    {proof.anchored ? t("anchoredOnChain") : t("localOnly")}
-                  </span>
-                </div>
-                <div className="proof-list__actions">
-                  <NeoButton
-                    variant="secondary"
-                    size="sm"
-                    aria-label={t("verify")}
-                    onClick={() => dispatch("verifyProof", String(proof.id))}
-                  >
-                    {t("verify")}
-                  </NeoButton>
-                  {!proof.anchored && (
-                    <NeoButton
-                      variant="ghost"
-                      size="sm"
-                      loading={isAnchoring && anchoringId === proof.id}
-                      disabled={isAnchoring}
-                      aria-label={t("anchorOnChain")}
-                      onClick={() => dispatch("anchorProof", proof.id)}
-                    >
-                      {t("anchorShort")}
-                    </NeoButton>
-                  )}
-                  <NeoButton
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("copyDigest")}
-                    onClick={() => dispatch("copyProofDigest", proof.id)}
-                  >
-                    &#x2398;
-                  </NeoButton>
-                  <NeoButton
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("copyReference")}
-                    onClick={() => dispatch("copyProofReference", proof.id)}
-                  >
-                    &#x29C9;
-                  </NeoButton>
-                  <NeoButton
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("deleteProof")}
-                    onClick={() => dispatch("deleteProof", proof.id)}
-                  >
-                    &#x2715;
-                  </NeoButton>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </NeoCard>
-      )}
+      </section>
     </div>
   );
 }
