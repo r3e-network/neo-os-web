@@ -23,7 +23,12 @@
   background: linear-gradient(135deg, #fbfff8 0%, #eefaf4 52%, #fff8ea 100%);
   color: var(--dice-text);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
   letter-spacing: 0;
 }
@@ -62,7 +67,11 @@
   overflow: hidden;
   border: 1px solid rgba(22, 199, 132, 0.12);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 255, 250, 0.88)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(246, 255, 250, 0.88)
+    ),
     var(--dice-surface);
 }
 
@@ -280,7 +289,11 @@
   align-content: start;
   border: 1px solid rgba(246, 200, 106, 0.18);
   background:
-    linear-gradient(180deg, rgba(255, 250, 240, 0.92), rgba(255, 255, 255, 0.88)),
+    linear-gradient(
+      180deg,
+      rgba(255, 250, 240, 0.92),
+      rgba(255, 255, 255, 0.88)
+    ),
     var(--dice-surface);
 }
 
@@ -300,7 +313,11 @@
   overflow: hidden;
   border: 1px solid rgba(246, 200, 106, 0.28);
   border-radius: 20px;
-  background: linear-gradient(145deg, rgba(255, 252, 244, 0.94), rgba(255, 255, 255, 0.82));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 252, 244, 0.94),
+    rgba(255, 255, 255, 0.82)
+  );
 }
 
 .dice-current-round__face {
@@ -309,9 +326,7 @@
   width: 66px;
   aspect-ratio: 1;
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, #ffffff, #fff8e7),
-    var(--dice-surface);
+  background: linear-gradient(180deg, #ffffff, #fff8e7), var(--dice-surface);
   color: var(--dice-gold-strong);
   box-shadow:
     0 14px 24px rgba(107, 60, 2, 0.12),
@@ -446,7 +461,11 @@
   gap: 11px;
   padding: 12px;
   border-color: rgba(246, 200, 106, 0.28);
-  background: linear-gradient(180deg, rgba(255, 251, 241, 0.92), rgba(255, 255, 255, 0.84));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 251, 241, 0.92),
+    rgba(255, 255, 255, 0.84)
+  );
 }
 
 .dice-face-tray__head,
@@ -463,16 +482,20 @@
   letter-spacing: 0;
 }
 
+.dice-face-tray__head > span,
+.dice-face-tray__head > strong,
+.dice-chip-rack__head > span {
+  min-width: 0;
+}
+
 .dice-face-tray__head strong {
   min-width: 0;
-  overflow: hidden;
   color: var(--dice-gold-strong);
   font-size: 12px;
   font-weight: 850;
   text-align: right;
-  text-overflow: ellipsis;
   text-transform: none;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .dice-chip-rack__head {
@@ -516,8 +539,11 @@
   padding: 8px;
   border: 1px solid rgba(20, 22, 38, 0.07);
   border-radius: 17px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 255, 251, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(247, 255, 251, 0.96) 100%
+  );
   color: var(--dice-text-2);
   font: inherit;
   font-size: 12px;
@@ -548,8 +574,7 @@
 .dice-face-grid__item--active {
   border-color: rgba(246, 200, 106, 0.78);
   background:
-    linear-gradient(180deg, #fff4cb 0%, #ffffff 68%),
-    var(--dice-surface);
+    linear-gradient(180deg, #fff4cb 0%, #ffffff 68%), var(--dice-surface);
   color: #6b3c02;
   box-shadow:
     0 16px 28px rgba(246, 200, 106, 0.22),
@@ -705,8 +730,7 @@
   padding: 8px 6px;
   border: 1px solid rgba(200, 143, 34, 0.34);
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, #fffaf0 0%, #f7d78d 45%, #c98a23 100%);
+  background: linear-gradient(180deg, #fffaf0 0%, #f7d78d 45%, #c98a23 100%);
   color: #5f3c03;
   font: inherit;
   font-weight: 800;
@@ -724,8 +748,7 @@
 
 .dice-preset-chip:hover:not(:disabled) {
   border-color: rgba(22, 199, 132, 0.42);
-  background:
-    linear-gradient(180deg, #f9fff7 0%, #d8f3e6 44%, #0a8050 100%);
+  background: linear-gradient(180deg, #f9fff7 0%, #d8f3e6 44%, #0a8050 100%);
   color: #ffffff;
   transform: translateY(-1px);
 }
@@ -747,8 +770,7 @@
 
 .dice-preset-chip--active {
   border-color: rgba(22, 199, 132, 0.64);
-  background:
-    linear-gradient(180deg, #e9fff4 0%, #5bd69d 46%, #0a8050 100%);
+  background: linear-gradient(180deg, #e9fff4 0%, #5bd69d 46%, #0a8050 100%);
   color: #ffffff;
   box-shadow:
     0 14px 24px rgba(10, 128, 80, 0.22),
@@ -1253,6 +1275,12 @@
   animation: dice-float 4.2s var(--ns-ease-smooth, ease-in-out) infinite;
 }
 
+.dice-stage__die--selected {
+  animation:
+    dice-select-pop 0.42s var(--ns-ease-smooth, ease-out),
+    dice-float 4.2s var(--ns-ease-smooth, ease-in-out) 0.42s infinite;
+}
+
 .dice-stage__die--rolling {
   animation: dice-shake 0.58s var(--ns-ease-smooth, ease-in-out) infinite;
   filter: saturate(1.08) brightness(1.06);
@@ -1371,27 +1399,65 @@
 }
 
 @keyframes dice-shake {
-  0%, 100% { transform: rotate(-4deg) translateY(0); }
-  25% { transform: rotate(3deg) translateY(-3px); }
-  50% { transform: rotate(-2deg) translateY(0); }
-  75% { transform: rotate(4deg) translateY(-2px); }
+  0%,
+  100% {
+    transform: rotate(-4deg) translateY(0);
+  }
+  25% {
+    transform: rotate(3deg) translateY(-3px);
+  }
+  50% {
+    transform: rotate(-2deg) translateY(0);
+  }
+  75% {
+    transform: rotate(4deg) translateY(-2px);
+  }
 }
 @keyframes dice-pop {
-  0% { transform: scale(0.9); }
-  60% { transform: scale(1.06); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes dice-select-pop {
+  0% {
+    transform: translateY(8px) rotate(-8deg) scale(0.94);
+  }
+  55% {
+    transform: translateY(-7px) rotate(4deg) scale(1.04);
+  }
+  100% {
+    transform: translateY(0) rotate(-1deg) scale(1);
+  }
 }
 @keyframes dice-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 @keyframes dice-float {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-6px) rotate(1deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dice-stage__die--rolling,
   .dice-stage__die--won,
-  .dice-stage__die--idle { animation: none; }
-  .dice-result__spinner { animation-duration: 1.4s; }
+  .dice-stage__die--selected,
+  .dice-stage__die--idle {
+    animation: none;
+  }
+  .dice-result__spinner {
+    animation-duration: 1.4s;
+  }
 }
