@@ -19,7 +19,10 @@ const appMessages = {
   lastTxid: { en: "Last tx", zh: "最近交易" },
   anchorLinked: { en: "Anchor linked", zh: "Anchor 已连接" },
   anchorMissing: { en: "Waiting for anchor", zh: "等待 Anchor" },
-  anchorAwaitingLaunch: { en: "Open a OneGate anchor link", zh: "打开 OneGate Anchor 链接" },
+  anchorAwaitingLaunch: {
+    en: "Open a OneGate anchor link",
+    zh: "打开 OneGate Anchor 链接",
+  },
   anchorAwaitingInput: {
     en: "Enter or open an anchor link to begin",
     zh: "输入或打开 Anchor 链接以开始",
@@ -29,7 +32,10 @@ const appMessages = {
     zh: "格式：custom-anchor:slug:nonce",
   },
   anchorWorkspaceLabel: { en: "Transaction route", zh: "交易路径" },
-  anchorWorkspaceTitle: { en: "Anchor routing workspace", zh: "Anchor 路由工作台" },
+  anchorWorkspaceTitle: {
+    en: "Anchor routing workspace",
+    zh: "Anchor 路由工作台",
+  },
   anchorWorkspaceBody: {
     en: "User actions stay scoped to the anchor appId while the 21-agent AA route remains visible before signing.",
     zh: "用户操作按 Anchor appId 隔离，签名前可见 21-agent AA 路由状态。",
@@ -38,6 +44,19 @@ const appMessages = {
   anchorFlowOpen: { en: "Open anchor", zh: "打开 Anchor" },
   anchorFlowAction: { en: "Choose action", zh: "选择操作" },
   anchorFlowSign: { en: "Sign wallet tx", zh: "钱包签名" },
+  anchorStageAlt: {
+    en: "Glass governance anchor with twenty-one agent nodes.",
+    zh: "玻璃治理 Anchor 与二十一个 agent 节点。",
+  },
+  anchorStageLabel: { en: "Shared voting route", zh: "共享投票路径" },
+  anchorStageValueReady: {
+    en: "21-agent anchor in focus",
+    zh: "21-agent Anchor 就绪",
+  },
+  anchorStageValueIdle: {
+    en: "Connect or register an anchor",
+    zh: "连接或注册 Anchor",
+  },
   actionPanelLabel: { en: "Wallet actions", zh: "钱包操作" },
   actionPanelTitle: { en: "Stake, redeem, or claim", zh: "质押、赎回或领取" },
   actionPanelBody: {
@@ -46,11 +65,20 @@ const appMessages = {
   },
   launchSource: { en: "Launch source", zh: "启动来源" },
   userRoute: { en: "User route", zh: "用户路径" },
-  userRouteBody: { en: "Stake, redeem, or claim from the same anchor.", zh: "在同一 Anchor 内质押、赎回或领取。" },
+  userRouteBody: {
+    en: "Stake, redeem, or claim from the same anchor.",
+    zh: "在同一 Anchor 内质押、赎回或领取。",
+  },
   adminRoute: { en: "Admin route", zh: "管理员路径" },
-  adminRouteBody: { en: "Agent movement stays outside the user flow.", zh: "Agent 调仓不进入用户流程。" },
+  adminRouteBody: {
+    en: "Agent movement stays outside the user flow.",
+    zh: "Agent 调仓不进入用户流程。",
+  },
   safetyRail: { en: "Safety rail", zh: "安全边界" },
-  safetyRailBody: { en: "Funds remain scoped by anchor appId.", zh: "资金按 Anchor appId 隔离。" },
+  safetyRailBody: {
+    en: "Funds remain scoped by anchor appId.",
+    zh: "资金按 Anchor appId 隔离。",
+  },
   stakeTitle: { en: "Stake", zh: "质押" },
   stakeDescription: {
     en: "Lock NEO into this custom anchor. The contract routes voting through the anchor's 21 AA agents.",
@@ -72,13 +100,25 @@ const appMessages = {
   refreshStatus: { en: "Refresh status", zh: "刷新状态" },
   workflowReady: { en: "Ready", zh: "准备就绪" },
   statusLoaded: { en: "Anchor status loaded", zh: "Anchor 状态已加载" },
-  refreshingStatus: { en: "Refreshing anchor status", zh: "正在刷新 Anchor 状态" },
+  refreshingStatus: {
+    en: "Refreshing anchor status",
+    zh: "正在刷新 Anchor 状态",
+  },
   workflowFailed: { en: "Action failed", zh: "操作失败" },
-  stakeSubmitting: { en: "Submitting stake transaction", zh: "正在提交质押交易" },
-  withdrawSubmitting: { en: "Submitting redeem transaction", zh: "正在提交赎回交易" },
+  stakeSubmitting: {
+    en: "Submitting stake transaction",
+    zh: "正在提交质押交易",
+  },
+  withdrawSubmitting: {
+    en: "Submitting redeem transaction",
+    zh: "正在提交赎回交易",
+  },
   claimSubmitting: { en: "Submitting reward claim", zh: "正在提交奖励领取" },
   stakeSubmitted: { en: "Stake transaction submitted", zh: "质押交易已提交" },
-  withdrawSubmitted: { en: "Redeem transaction submitted", zh: "赎回交易已提交" },
+  withdrawSubmitted: {
+    en: "Redeem transaction submitted",
+    zh: "赎回交易已提交",
+  },
   claimSubmitted: { en: "Reward claim submitted", zh: "奖励领取已提交" },
   submitting: { en: "Submitting...", zh: "提交中..." },
   invalidAnchorId: {
@@ -96,10 +136,16 @@ const appMessages = {
     en: "This anchor id is not registered yet. Register it below, or pick one from the list.",
     zh: "该 Anchor ID 尚未注册。可在下方注册，或从列表中选择一个。",
   },
-  anchorAlreadyRegistered: { en: "That anchor id is already registered.", zh: "该 Anchor ID 已被注册。" },
+  anchorAlreadyRegistered: {
+    en: "That anchor id is already registered.",
+    zh: "该 Anchor ID 已被注册。",
+  },
   anchorNotRegisteredBadge: { en: "Not registered", zh: "未注册" },
   registerPanelLabel: { en: "Create anchor", zh: "创建 Anchor" },
-  registerPanelTitle: { en: "Register a custom anchor", zh: "注册自定义 Anchor" },
+  registerPanelTitle: {
+    en: "Register a custom anchor",
+    zh: "注册自定义 Anchor",
+  },
   registerPanelBody: {
     en: "Pick a unique id (custom-anchor:slug:nonce) and a mode. Registration costs a 1 GAS prepaid fee; you become the anchor admin.",
     zh: "选择唯一 ID（custom-anchor:slug:nonce）和模式。注册需预付 1 GAS 费用；你将成为该 Anchor 管理员。",
@@ -111,12 +157,15 @@ const appMessages = {
   registerSubmitting: { en: "Registering anchor", zh: "正在注册 Anchor" },
   registerSubmitted: { en: "Anchor registered", zh: "Anchor 已注册" },
   registerAgentsNote: {
-    en: "Registering provisions all 21 AA agents in the same flow (3 wallet transactions: AA accounts → anchor app → agent council), so your anchor starts earning immediately. Externally-created anchors that skipped this stay at 0/21 until their operator provisions agents.",
-    zh: "注册会在同一流程中配置全部 21 个 AA agent（3 笔钱包交易：AA 账户 → Anchor app → agent council），因此你的 Anchor 立即开始产生收益。未经此流程在外部创建的 Anchor 会停留在 0/21，直到运营方配置 agent。",
+    en: "Registering provisions all 21 AA agents in the same flow (3 wallet transactions: AA accounts, anchor app, and agent council), so your anchor starts earning immediately. Externally-created anchors that skipped this stay at 0/21 until their operator provisions agents.",
+    zh: "注册会在同一流程中配置全部 21 个 AA agent（3 笔钱包交易：AA 账户、Anchor app 和 agent council），因此你的 Anchor 立即开始产生收益。未经此流程在外部创建的 Anchor 会停留在 0/21，直到运营方配置 agent。",
   },
 
   // Candidate council (21 compressed public keys) for agent provisioning
-  registerCandidatesLabel: { en: "Council candidates (21 public keys)", zh: "Council 候选人（21 个公钥）" },
+  registerCandidatesLabel: {
+    en: "Council candidates (21 public keys)",
+    zh: "Council 候选人（21 个公钥）",
+  },
   registerCandidatesHint: {
     en: "One compressed public key (02/03 + 64 hex) per line — exactly 21. These are the council candidates your anchor's 21 agents vote for.",
     zh: "每行一个压缩公钥（02/03 + 64 位十六进制），共 21 个。这些是你的 Anchor 的 21 个 agent 所投票的 council 候选人。",
@@ -125,19 +174,50 @@ const appMessages = {
     en: "02abc...\n03def...\n(21 lines)",
     zh: "02abc...\n03def...\n（共 21 行）",
   },
-  registerCandidatesUseDefault: { en: "Use default candidate set", zh: "使用默认候选集" },
-  registerCandidatesCount: { en: "{count}/21 valid candidate keys", zh: "{count}/21 个有效候选公钥" },
+  registerCandidatesUseDefault: {
+    en: "Use default candidate set",
+    zh: "使用默认候选集",
+  },
+  registerCandidatesCount: {
+    en: "{count}/21 valid candidate keys",
+    zh: "{count}/21 个有效候选公钥",
+  },
   registerCandidatesInvalid: {
     en: "Enter exactly 21 compressed public keys (02/03 + 64 hex), one per line.",
     zh: "请输入正好 21 个压缩公钥（02/03 + 64 位十六进制），每行一个。",
   },
-  registerProvisioningAccounts: { en: "Step 1/3 — registering AA agent accounts", zh: "第 1/3 步 — 注册 AA agent 账户" },
-  registerProvisioningApp: { en: "Step 2/3 — registering the anchor app", zh: "第 2/3 步 — 注册 Anchor app" },
-  registerProvisioningAgents: { en: "Step 3/3 — provisioning the 21 agents", zh: "第 3/3 步 — 配置 21 个 agent" },
+  registerProvisioningAccounts: {
+    en: "Step 1/3 — registering AA agent accounts",
+    zh: "第 1/3 步 — 注册 AA agent 账户",
+  },
+  registerProvisioningApp: {
+    en: "Step 2/3 — registering the anchor app",
+    zh: "第 2/3 步 — 注册 Anchor app",
+  },
+  registerProvisioningAgents: {
+    en: "Step 3/3 — provisioning the 21 agents",
+    zh: "第 3/3 步 — 配置 21 个 agent",
+  },
   registerProvisionedNote: {
     en: "Profit mode defaults to a ready-to-use candidate set; switch to your own keys for Trust (governance) voting.",
     zh: "收益模式默认使用现成的候选集；如需信任（治理）投票，请换成你自己的公钥。",
   },
+  candidateKitTitle: {
+    en: "Council candidate package",
+    zh: "Council 候选人包",
+  },
+  candidateKitEmpty: { en: "No candidates loaded", zh: "尚未加载候选人" },
+  candidateKitPartial: {
+    en: "Candidate package incomplete",
+    zh: "候选人包未完成",
+  },
+  candidateKitReady: { en: "Candidate package ready", zh: "候选人包已就绪" },
+  candidatePreviewTitle: { en: "Candidate preview", zh: "候选人预览" },
+  candidatePreviewEmpty: {
+    en: "Use the default set for Profit mode, or paste your own 21 compressed public keys.",
+    zh: "收益模式可使用默认候选集，也可以粘贴自己的 21 个压缩公钥。",
+  },
+  candidateRemaining: { en: "+{count} more keys", zh: "另有 {count} 个公钥" },
   registerModeTrustDesc: {
     en: "Staked NEO is routed to vote for council candidates via the anchor's 21 agents.",
     zh: "质押的 NEO 通过 Anchor 的 21 个 agent 投票给 council 候选人。",
@@ -157,7 +237,10 @@ const appMessages = {
     en: "Stake anyway — I understand this anchor earns nothing yet",
     zh: "仍然质押——我已了解该 Anchor 目前不产生收益",
   },
-  noAgentsConfirmActive: { en: "Confirmed — staking enabled", zh: "已确认——可以质押" },
+  noAgentsConfirmActive: {
+    en: "Confirmed — staking enabled",
+    zh: "已确认——可以质押",
+  },
 
   // Reward-model explainer
   rewardModelTitle: { en: "How rewards work", zh: "奖励如何产生" },
@@ -174,7 +257,10 @@ const appMessages = {
   // Anchor discovery
   discoverLabel: { en: "Browse anchors", zh: "浏览 Anchor" },
   discoverTitle: { en: "Registered anchors", zh: "已注册的 Anchor" },
-  discoverEmpty: { en: "No registered anchors found yet.", zh: "暂未发现已注册的 Anchor。" },
+  discoverEmpty: {
+    en: "No registered anchors found yet.",
+    zh: "暂未发现已注册的 Anchor。",
+  },
   discoverRefresh: { en: "Refresh list", zh: "刷新列表" },
   discoverUse: { en: "Use", zh: "使用" },
   modeTrust: { en: "Trust", zh: "信任" },
@@ -191,7 +277,10 @@ const appMessages = {
   recoverNeo: { en: "Recover NEO", zh: "取回 NEO" },
   recoverGas: { en: "Recover GAS", zh: "取回 GAS" },
   recoverSubmitting: { en: "Recovering credit", zh: "正在取回额度" },
-  recoverSubmitted: { en: "Credit recovered to your wallet", zh: "额度已取回到你的钱包" },
+  recoverSubmitted: {
+    en: "Credit recovered to your wallet",
+    zh: "额度已取回到你的钱包",
+  },
   noCreditToRecover: { en: "No recoverable credit.", zh: "没有可取回的额度。" },
 
   readyForAnchor: { en: "Anchor ready", zh: "Anchor 已就绪" },
