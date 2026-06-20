@@ -1,8 +1,8 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Neo Name Service", zh: "Neo 域名服务" },
+  // App translations
+  title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   searchPlaceholder: { en: "Search for a .neo domain", zh: "搜索 .neo 域名" },
   available: { en: "Available", zh: "可用" },
   taken: { en: "Taken", zh: "已被占用" },
@@ -35,8 +35,14 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   renewed: { en: "renewed!", zh: "已续费！" },
   registrationFailed: { en: "Registration failed", zh: "注册失败" },
   renewalFailed: { en: "Renewal failed", zh: "续费失败" },
-  availabilityFailed: { en: "Failed to check availability", zh: "查询可用性失败" },
-  connectWalletFirst: { en: "Please connect your wallet first", zh: "请先连接钱包" },
+  availabilityFailed: {
+    en: "Failed to check availability",
+    zh: "查询可用性失败",
+  },
+  connectWalletFirst: {
+    en: "Please connect your wallet first",
+    zh: "请先连接钱包",
+  },
   unknownOwner: { en: "Unknown", zh: "未知" },
   managing: { en: "Managing", zh: "管理中" },
   tabRegister: { en: "Register", zh: "注册" },
@@ -45,6 +51,39 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   docSubtitle: {
     en: "Human-readable .neo domain names for Neo addresses",
     zh: "Neo 地址的人类可读 .neo 域名",
+  },
+  heroCopy: {
+    en: "Find a clean .neo name, check its owner and price, then register or manage it from the same wallet-safe workspace.",
+    zh: "查找简洁的 .neo 名称，确认所有者与价格，然后在同一个钱包安全工作台中注册或管理。",
+  },
+  heroAlt: {
+    en: "Glass registry desk with floating identity cards for Neo names",
+    zh: "带有悬浮身份卡片的 Neo 域名玻璃注册台",
+  },
+  routeLabel: { en: "Name lifecycle", zh: "域名生命周期" },
+  routeSearch: { en: "Search", zh: "搜索" },
+  routePrice: { en: "Price", zh: "价格" },
+  routeOwn: { en: "Own", zh: "拥有" },
+  walletReady: { en: "Wallet ready", zh: "钱包已就绪" },
+  walletNeeded: { en: "Connect to register", zh: "连接后可注册" },
+  finderEyebrow: { en: "Domain finder", zh: "域名查找器" },
+  finderTitle: {
+    en: "Search a name before you spend GAS",
+    zh: "先查名称，再花费 GAS",
+  },
+  resultAvailableCopy: {
+    en: "This name is open. Review the annual GAS cost, then register it to your wallet.",
+    zh: "该名称可注册。确认年度 GAS 费用后，即可注册到您的钱包。",
+  },
+  resultTakenCopy: {
+    en: "This name already belongs to another owner. Use the owner record to verify where it resolves.",
+    zh: "该名称已有所有者。可通过所有者记录确认它当前归属与解析情况。",
+  },
+  resultIdleEyebrow: { en: "Ready to inspect", zh: "准备查询" },
+  resultIdleTitle: { en: "Choose a .neo name", zh: "选择一个 .neo 名称" },
+  resultIdleCopy: {
+    en: "Type a name or tap a suggestion. Availability, owner and annual price will appear here.",
+    zh: "输入名称或选择建议。可用性、所有者和年度价格会显示在这里。",
   },
   docDescription: {
     en: "Neo Name Service lets you register memorable .neo domains that map to your wallet address. Send and receive assets using simple names like alice.neo instead of complex addresses.",
@@ -98,6 +137,14 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
     en: "Enter a valid Neo N3 address (starts with N, 34 characters).",
     zh: "请输入有效的 Neo N3 地址（以 N 开头，共 34 个字符）。",
   },
+  targetActionCopy: {
+    en: "Point this name at the address people should pay or resolve.",
+    zh: "把该域名指向他人应付款或解析到的地址。",
+  },
+  transferActionCopy: {
+    en: "Move the domain NFT to another Neo address after you verify the receiver.",
+    zh: "确认接收方后，将该域名 NFT 转移到另一个 Neo 地址。",
+  },
   sidebarWallet: { en: "Wallet", zh: "钱包" },
   sidebarExpiringSoon: { en: "Expiring Soon", zh: "即将到期" },
   searchDomain: { en: "Search Domain", zh: "搜索域名" },
@@ -143,7 +190,7 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
     en: "Your domain is an NFT — point it at an address, transfer, or sell it.",
     zh: "您的域名是一个 NFT — 可指向地址、转让或出售。",
   },
-  howRenewLabel: { en: "4 · Renew", zh: "4 · 续费" },
+  howRenewLabel: { en: "3 · Renew", zh: "3 · 续费" },
   howRenewDesc: {
     en: "Renew before expiry to keep ownership; lapsed names can be re-claimed.",
     zh: "在到期前续费以保持所有权；过期的名称可被重新认领。",
