@@ -44,11 +44,17 @@ function t(key: string) {
     updateHook: "Update Hook",
     permissionsHeroTitle: "Permission controls for AA accounts",
     permissionsHeroCopy: "Inspect and rotate AA verifier and hook bindings.",
+    permissionsHeroChip: "Inspect first. Propose second. Confirm later.",
+    permissionsHeroImageAlt: "AA permission security console",
+    permissionsHeroVisualLabel: "Permission boundary",
     permissionsMetricsLabel: "AA permission state",
     permissionsMetricVerifier: "Verifier",
     permissionsMetricHook: "Hook",
     permissionsMetricAccount: "Account",
     permissionsCommandTitle: "Account inspector",
+    permissionsAccountPreview: "Account boundary preview",
+    accountPreviewEmpty: "Paste an AccountId hash to inspect",
+    connectedWallet: "Connected Wallet",
     permissionsFlowLabel: "Permission update workflow",
     permissionsFlowInspect: "Inspect account",
     permissionsFlowInspectDesc: "Load live state first.",
@@ -56,6 +62,8 @@ function t(key: string) {
     permissionsFlowVerifierDesc: "Update authentication logic.",
     permissionsFlowHook: "Update hook",
     permissionsFlowHookDesc: "Change policy hook.",
+    writeStagePropose: "Propose rotation",
+    writeStageConfirm: "Confirm or cancel",
     permissionsStateLabel: "Live state",
     permissionsStateTitle: "Current permissions",
     permissionsStateEmpty: "Inspect an account to load its permissions",
@@ -188,7 +196,7 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
       />,
     );
     // Typing an account id alone must NOT assert configured state.
-    expect(screen.getByText("not inspected")).toBeTruthy();
+    expect(screen.getAllByText("not inspected").length).toBeGreaterThan(0);
     expect(screen.queryByText("configured")).toBeNull();
 
     rerender(
@@ -201,7 +209,7 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
         )}
       />,
     );
-    expect(screen.getByText("configured")).toBeTruthy();
+    expect(screen.getAllByText("configured").length).toBeGreaterThan(0);
   });
 
   it("surfaces a confirm/cancel banner for a pending verifier rotation", async () => {
