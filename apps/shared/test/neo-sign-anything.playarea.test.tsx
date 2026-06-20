@@ -1,0 +1,127 @@
+import React from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { createObservable, type ObservableState } from "../react/context";
+import PlayArea from "../../neo-sign-anything/src/PlayArea";
+
+(globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+afterEach(() => cleanup());
+
+function t(key: string) {
+  const messages: Record<string, string> = {
+    signHeroTitle: "Neo Signature Desk",
+    signHeroKicker: "Wallet-reviewed proof desk",
+    signHeroSubtitle: "Prepare a message and request a wallet signature.",
+    signStageKicker: "Signature desk",
+    signStageTitle: "Review the payload, approve it in wallet, then keep the proof.",
+    signCount: "Signed",
+    broadcastCount: "Posted",
+    signFlowTitle: "Signature flow",
+    signFlowStepOne: "Write message",
+    signFlowStepOneCopy: "Keep it short.",
+    signFlowStepTwo: "Wallet review",
+    signFlowStepTwoCopy: "Approve in wallet.",
+    signFlowStepThree: "Copy proof",
+    signFlowStepThreeCopy: "Copy the evidence.",
+    signatureDeskTitle: "Message composer",
+    messagePreviewLabel: "Message signing preview",
+    messagePreviewEmptyTitle: "Ready for a message",
+    messagePreviewEmpty: "Your message preview will appear here.",
+    messageTypePlain: "Message payload",
+    messageTypeDigest: "File digest",
+    messageBytesLabel: "Message bytes",
+    bytesUnit: "bytes",
+    walletAddress: "Wallet",
+    disconnected: "Disconnected",
+    walletPrompt: "Review",
+    ready: "Ready",
+    awaitingSignature: "Waiting",
+    messageLabel: "Message",
+    messagePlaceholder: "Enter your message here...",
+    signFileBtn: "Hash & load file",
+    hashedFileNotice: "The file is hashed locally.",
+    signBtn: "Sign Message",
+    broadcastBtn: "Broadcast Message (On-chain)",
+    walletPromptCopy: "The wallet prompt opens when you sign or broadcast.",
+    resultPanelTitle: "Proof output",
+    proofEmptyHint: "Sign or broadcast a message to see its proof here.",
+    noSignatureYet: "No signature yet",
+    noBroadcastYet: "No broadcast yet",
+    txPending: "Transaction sent (ID pending)",
+    signatureResult: "Signature",
+    broadcastResult: "Transaction Hash",
+    copySignature: "Copy signature",
+    copyVerifyBundle: "Copy verify bundle",
+    verifyBundleHint: "Copies a verifier bundle.",
+    copyTxHash: "Copy transaction hash",
+    viewOnExplorer: "View on explorer",
+    publicKeyLabel: "Public key",
+    safetyPanelTitle: "Transaction safety",
+    connected: "Connected",
+    safetyPanelCopy: "The miniapp does not handle private keys.",
+    signRouteLabel: "Sign route",
+    signContractRoute: "chain.signMessage",
+    broadcastRouteLabel: "Broadcast route",
+    broadcastContractRoute: "GAS.transfer self -> data",
+    gasAmountLabel: "Transfer amount",
+    privacyLabel: "Privacy",
+    privacyValue: "No secrets",
+    broadcastPanelTitle: "On-chain broadcast",
+    broadcastPanelCopy: "Broadcasting is public and permanent.",
+    networkFeeNote: "Broadcasting still pays normal Neo fees.",
+  };
+  return messages[key] ?? key;
+}
+
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const values: Record<string, unknown> = {
+    address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+    message: "ship release note",
+    signature: "0xsig",
+    publicKey: "02abcdef",
+    txHash: "0xtxhash",
+    txPending: false,
+    isSigning: false,
+    isBroadcasting: false,
+    signCount: 2,
+    broadcastCount: 1,
+    ...overrides,
+  };
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+  );
+}
+
+describe("Neo Sign Anything PlayArea", () => {
+  it("renders the signature workspace and preserves core actions", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    expect(screen.getByText("Neo Signature Desk")).toBeTruthy();
+    expect(screen.getByLabelText("Message signing preview")).toBeTruthy();
+    expect(document.querySelector('.sign-hero-stage img[src="./signature-desk.jpg"]')).toBeTruthy();
+    expect(screen.getByText("Message payload")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign Message" }));
+    expect(dispatch).toHaveBeenCalledWith("signMessage", "ship release note");
+
+    fireEvent.click(screen.getByRole("button", { name: "Broadcast Message (On-chain)" }));
+    expect(dispatch).toHaveBeenCalledWith("broadcastMessage", "ship release note");
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy signature" }));
+    expect(dispatch).toHaveBeenCalledWith("copyToClipboard", "0xsig");
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy transaction hash" }));
+    expect(dispatch).toHaveBeenCalledWith("copyToClipboard", "0xtxhash");
+  });
+
+  it("keeps empty state actions disabled until a message exists", () => {
+    render(<PlayArea t={t} state={state({ message: "", signature: "", txHash: "" })} dispatch={vi.fn()} />);
+
+    expect(screen.getByText("Ready for a message")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Sign Message" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Broadcast Message (On-chain)" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+});
