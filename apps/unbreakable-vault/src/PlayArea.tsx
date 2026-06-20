@@ -1,5 +1,18 @@
 import { useState } from "react";
-import { Flame, Gauge, ShieldCheck, type LucideIcon } from "lucide-react";
+import {
+  ChevronDown,
+  Clock3,
+  Coins,
+  Crosshair,
+  Flame,
+  Gauge,
+  KeyRound,
+  LockKeyhole,
+  PlusCircle,
+  ShieldCheck,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { EmptyStateArt } from "@shared/components-react/illustrations";
@@ -19,9 +32,27 @@ interface PlayAreaProps {
 }
 
 const DIFFICULTY_OPTIONS = [
-  { value: "1", labelKey: "difficultyEasy", hintKey: "difficultyEasyHint", fee: "0.1 GAS", icon: ShieldCheck },
-  { value: "2", labelKey: "difficultyMedium", hintKey: "difficultyMediumHint", fee: "0.5 GAS", icon: Gauge },
-  { value: "3", labelKey: "difficultyHard", hintKey: "difficultyHardHint", fee: "1 GAS", icon: Flame },
+  {
+    value: "1",
+    labelKey: "difficultyEasy",
+    hintKey: "difficultyEasyHint",
+    fee: "0.1 GAS",
+    icon: ShieldCheck,
+  },
+  {
+    value: "2",
+    labelKey: "difficultyMedium",
+    hintKey: "difficultyMediumHint",
+    fee: "0.5 GAS",
+    icon: Gauge,
+  },
+  {
+    value: "3",
+    labelKey: "difficultyHard",
+    hintKey: "difficultyHardHint",
+    fee: "1 GAS",
+    icon: Flame,
+  },
 ] satisfies ReadonlyArray<{
   value: string;
   labelKey: string;
@@ -61,7 +92,13 @@ function netPayoutGas(bountyBase: unknown): string {
   return baseUnitsToGas(net);
 }
 
-export default function PlayArea({ t, state, dispatch, setStatus, launchContext }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  setStatus,
+  launchContext,
+}: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
 
   const myVaultCount = num("myVaultCount");
@@ -71,7 +108,8 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
   const attemptSecret = str("attemptSecret", "");
   const attemptFeeDisplay = str("attemptFeeDisplay", "0");
   const createdVaultId = val<string | number | null>("createdVaultId") ?? null;
-  const vaultDetails = val<Record<string, unknown> | null>("vaultDetails") ?? null;
+  const vaultDetails =
+    val<Record<string, unknown> | null>("vaultDetails") ?? null;
   const recentVaults = val<unknown[]>("recentVaults") ?? [];
   const myVaults = val<unknown[]>("myVaults") ?? [];
   const isLoading = bool("isLoading");
@@ -90,7 +128,10 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
   const isMainnet = launchContext?.network === "mainnet";
   const bountyValue = Number.parseFloat(bounty);
   // A mistyped secret locks the bounty until expiry — block submit on mismatch.
-  const secretMismatch = secret.trim() !== "" && confirmSecret.trim() !== "" && secret !== confirmSecret;
+  const secretMismatch =
+    secret.trim() !== "" &&
+    confirmSecret.trim() !== "" &&
+    secret !== confirmSecret;
   const canSubmitCreate =
     Number.isFinite(bountyValue) &&
     bountyValue >= 1 &&
@@ -175,7 +216,11 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
   const handleIncreaseBounty = async () => {
     if (!vaultDetails || !topUpAmount.trim()) return;
     try {
-      await dispatch("increaseBounty", String(vaultDetails.id), topUpAmount.trim());
+      await dispatch(
+        "increaseBounty",
+        String(vaultDetails.id),
+        topUpAmount.trim(),
+      );
       setTopUpAmount("");
     } catch (error) {
       setStatus?.(
@@ -185,18 +230,39 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
     }
   };
 
-  const vaultStatus = vaultDetails ? String(vaultDetails.status ?? "active") : "";
+  const vaultStatus = vaultDetails
+    ? String(vaultDetails.status ?? "active")
+    : "";
   const statusLabelKey = STATUS_LABEL_KEYS[vaultStatus] ?? "active";
 
   // Details fetched into vaultDetails that a challenger needs BEFORE paying.
   const detailTitle = vaultDetails?.title ? String(vaultDetails.title) : "";
-  const detailHint = vaultDetails?.description ? String(vaultDetails.description) : "";
-  const detailBountyGas = vaultDetails ? baseUnitsToGas(vaultDetails.bounty) : "0";
-  const detailNetPayoutGas = vaultDetails ? netPayoutGas(vaultDetails.bounty) : "0";
+  const detailHint = vaultDetails?.description
+    ? String(vaultDetails.description)
+    : "";
+  const detailBountyGas = vaultDetails
+    ? baseUnitsToGas(vaultDetails.bounty)
+    : "0";
+  const detailNetPayoutGas = vaultDetails
+    ? netPayoutGas(vaultDetails.bounty)
+    : "0";
   const detailAttempts = vaultDetails ? Number(vaultDetails.attempts ?? 0) : 0;
-  const detailRemainingDays = vaultDetails ? Number(vaultDetails.remainingDays ?? 0) : 0;
+  const detailRemainingDays = vaultDetails
+    ? Number(vaultDetails.remainingDays ?? 0)
+    : 0;
   const detailWinner = vaultDetails?.winner ? String(vaultDetails.winner) : "";
-  const detailDifficulty = vaultDetails?.difficultyName ? String(vaultDetails.difficultyName) : "";
+  const detailDifficulty = vaultDetails?.difficultyName
+    ? String(vaultDetails.difficultyName)
+    : "";
+  const selectedDifficulty =
+    DIFFICULTY_OPTIONS.find((option) => option.value === vaultDifficulty) ??
+    DIFFICULTY_OPTIONS[0];
+  const selectedDifficultyLabel = t(selectedDifficulty.labelKey);
+  const blueprintTitle = title.trim() || t("blueprintUntitled");
+  const blueprintBounty =
+    Number.isFinite(bountyValue) && bountyValue > 0 ? bounty : "0";
+  const secretReady =
+    secret.trim() !== "" && confirmSecret.trim() !== "" && !secretMismatch;
 
   return (
     <div className="vault-play-area">
@@ -214,258 +280,371 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
       </div>
 
       <div className="vault-grid">
-      <NeoCard title={t("createVault")}>
-        <div className="vault-form">
-          {isMainnet && (
-            <p className="vault-mainnet-note" role="note">{t("mainnetVaultNote")}</p>
-          )}
-          <NeoInput
-            label={t("titleLabel")}
-            placeholder={t("titlePlaceholder")}
-            value={title}
-            onChange={setTitle}
-          />
-          <NeoInput
-            label={t("descriptionLabel")}
-            type="textarea"
-            placeholder={t("descriptionPlaceholder")}
-            value={description}
-            onChange={setDescription}
-          />
-          <NeoInput
-            label={t("bountyLabel")}
-            type="number"
-            placeholder={t("bountyPlaceholder")}
-            min={1}
-            hint={t("minBountyNote")}
-            value={bounty}
-            onChange={setBounty}
-          />
-          <div className="vault-difficulty-field">
-            <span>{t("difficultyLabel")}</span>
-            <div className="vault-difficulty-grid" role="radiogroup" aria-label={t("difficultyLabel")}>
-              {DIFFICULTY_OPTIONS.map((option) => {
-                const Icon = option.icon;
-                const selected = vaultDifficulty === option.value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={`${t(option.labelKey)} ${option.fee}`}
-                    className={`vault-difficulty-card${selected ? " is-selected" : ""}`}
-                    onClick={() => state.vaultDifficulty?.set(option.value)}
-                  >
-                    <span className="vault-difficulty-card__icon" aria-hidden="true">
-                      <Icon />
-                    </span>
-                    <span className="vault-difficulty-card__copy">
-                      <strong>{t(option.labelKey)}</strong>
-                      <span>{option.fee}</span>
-                      <small>{t(option.hintKey)}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {/* Both secret entries sit side-by-side on desktop so confirm reads as
-              a check on the field beside it, not another stacked block. */}
-          <div className="vault-form-row">
-            <NeoInput
-              label={t("secretLabel")}
-              type="password"
-              placeholder={t("secretPlaceholder")}
-              value={secret}
-              onChange={setSecret}
-            />
-            <NeoInput
-              label={t("confirmSecretLabel")}
-              type="password"
-              placeholder={t("confirmSecretPlaceholder")}
-              value={confirmSecret}
-              onChange={setConfirmSecret}
-            />
-          </div>
-          {secretMismatch && (
-            <p className="vault-field-error" role="alert">{t("secretMismatch")}</p>
-          )}
-          {/* The four explanatory notes are collapsed behind a disclosure so the
-              primary action rises toward the fold; details stay one tap away. */}
-          <details className="vault-fineprint">
-            <summary>{t("createFineLabel")}</summary>
-            <div className="vault-fineprint-body">
-              <p className="vault-secret-note">{t("secretNote")}</p>
-              <p className="vault-secret-note">{t("difficultyFeeNote")}</p>
-              <p className="vault-secret-note">{t("createFeeNote")}</p>
-            </div>
-          </details>
-          {/* Inline reason mirrors the disabled state so the missing field is
-              named rather than implied by a greyed button. */}
-          <p
-            className={`vault-create-hint${canSubmitCreate ? " vault-create-hint--ready" : ""}`}
-            role={canSubmitCreate ? undefined : "status"}
-          >
-            {t(createHintKey)}
-          </p>
-          <NeoButton
-            variant="primary"
-            size="lg"
-            block
-            loading={isCreating || isLoading}
-            disabled={!canSubmitCreate || isCreating}
-            aria-label={t("createVaultButton")}
-            onClick={handleCreate}
-          >
-            {isCreating
-              ? t("creatingVault")
-              : t("createVaultButton")}
-          </NeoButton>
-        </div>
-      </NeoCard>
-
-      <div className="vault-col">
-      <NeoCard title={t("breakVault")}>
-        <div className="vault-form">
-          <NeoInput
-            label={t("vaultIdLabel")}
-            placeholder={t("vaultIdPlaceholder")}
-            value={vaultIdInput}
-            onChange={(v) => state.vaultIdInput?.set(v)}
-          />
-          <NeoButton
-            variant="secondary"
-            size="sm"
-            disabled={!vaultIdInput || isLoading}
-            onClick={() => handleLoadVault(vaultIdInput)}
-          >
-            {t("loadVault")}
-          </NeoButton>
-          {vaultDetails && (
-            <>
-              {/* What you are trying to break — surfaced BEFORE paying the fee. */}
-              {detailTitle && <p className="vault-detail-title">{detailTitle}</p>}
-              {detailHint && <p className="vault-detail-hint">{detailHint}</p>}
-              <div className="vault-detail-row">
-                <span className="detail-label">{t("vaultStatus")}</span>
-                <span className={`detail-value vault-status-pill vault-status-pill--${statusLabelKey}`}>
-                  {t(statusLabelKey)}
+        <NeoCard title={t("createVault")} className="vault-create-card">
+          <div className="vault-builder">
+            <aside className="vault-blueprint" aria-label={t("blueprintTitle")}>
+              <div className="vault-blueprint__lock" aria-hidden="true">
+                <LockKeyhole size={32} />
+              </div>
+              <div className="vault-blueprint__copy">
+                <span>{t("blueprintTitle")}</span>
+                <strong>{blueprintTitle}</strong>
+                <p>{description.trim() || t("blueprintHintEmpty")}</p>
+              </div>
+              <div className="vault-blueprint__facts">
+                <span>
+                  <Coins size={15} aria-hidden="true" />
+                  {t("bountyLabel")}
+                  <strong>
+                    {blueprintBounty} {t("tokenGas")}
+                  </strong>
+                </span>
+                <span>
+                  <ShieldCheck size={15} aria-hidden="true" />
+                  {t("difficultyLabel")}
+                  <strong>{selectedDifficultyLabel}</strong>
+                </span>
+                <span>
+                  <KeyRound size={15} aria-hidden="true" />
+                  {t("secretLabel")}
+                  <strong>
+                    {secretReady ? t("secretReady") : t("secretWaiting")}
+                  </strong>
                 </span>
               </div>
-              <div className="vault-detail-row">
-                <span className="detail-label">{t("bountyLabel")}</span>
-                <span className="detail-value detail-value--accent">{detailBountyGas} {t("tokenGas")}</span>
+              <div className="vault-blueprint__fee">
+                <span>{t("attemptFee")}</span>
+                <strong>{selectedDifficulty.fee}</strong>
               </div>
-              {/* Failed attempt fees fold into the bounty on-chain — connect the
-                  displayed bounty to the live attempt count below. */}
-              <p className="vault-secret-note">{t("bountyGrowthNote")}</p>
-              {/* What the winner actually receives: bounty minus the fixed 2%
-                  platform fee. Surfaced beside the gross so the challenger can
-                  weigh the attempt fee against the real prize. */}
-              <div className="vault-detail-row">
-                <span className="detail-label">{t("netPayoutLabel")}</span>
-                <span className="detail-value detail-value--accent">{detailNetPayoutGas} {t("tokenGas")}</span>
-              </div>
-              {detailDifficulty && (
-                <div className="vault-detail-row">
-                  <span className="detail-label">{t("difficultyLabel")}</span>
-                  <span className="detail-value">{detailDifficulty}</span>
-                </div>
-              )}
-              <div className="vault-detail-row">
-                <span className="detail-label">{t("attemptFee")}</span>
-                <span className="detail-value">{attemptFeeDisplay} {t("tokenGas")}</span>
-              </div>
-              <div className="vault-detail-row">
-                <span className="detail-label">{t("attempts")}</span>
-                <span className="detail-value">{detailAttempts}</span>
-              </div>
-              {(vaultStatus === "active" || vaultStatus === "claimable") && (
-                <div className="vault-detail-row">
-                  <span className="detail-label">{t("remainingDaysLabel")}</span>
-                  <span className="detail-value">{detailRemainingDays}</span>
-                </div>
-              )}
-              {detailWinner && (
-                <div className="vault-detail-row">
-                  <span className="detail-label">{t("winner")}</span>
-                  <span className="detail-value detail-value--mono">{detailWinner}</span>
-                </div>
-              )}
-              {vaultStatus === "active" && (
-                <NeoInput
-                  label={t("secretAttemptLabel")}
-                  type="password"
-                  placeholder={t("secretAttemptPlaceholder")}
-                  value={attemptSecret}
-                  onChange={(v) => state.attemptSecret?.set(v)}
-                />
-              )}
-            </>
-          )}
-          {vaultStatus === "active" && (
-            <>
+            </aside>
+
+            <div className="vault-form vault-builder-form">
               {isMainnet && (
-                <p className="vault-mainnet-note" role="note">{t("mainnetVaultNote")}</p>
+                <p className="vault-mainnet-note" role="note">
+                  {t("mainnetVaultNote")}
+                </p>
               )}
+              <NeoInput
+                label={t("titleLabel")}
+                placeholder={t("titlePlaceholder")}
+                value={title}
+                onChange={setTitle}
+              />
+              <NeoInput
+                label={t("descriptionLabel")}
+                type="textarea"
+                placeholder={t("descriptionPlaceholder")}
+                value={description}
+                onChange={setDescription}
+              />
+              <NeoInput
+                label={t("bountyLabel")}
+                type="number"
+                placeholder={t("bountyPlaceholder")}
+                min={1}
+                hint={t("minBountyNote")}
+                value={bounty}
+                onChange={setBounty}
+              />
+              <div className="vault-difficulty-field">
+                <span>{t("difficultyLabel")}</span>
+                <div
+                  className="vault-difficulty-grid"
+                  role="radiogroup"
+                  aria-label={t("difficultyLabel")}
+                >
+                  {DIFFICULTY_OPTIONS.map((option) => {
+                    const Icon = option.icon;
+                    const selected = vaultDifficulty === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={`${t(option.labelKey)} ${option.fee}`}
+                        className={`vault-difficulty-card${selected ? " is-selected" : ""}`}
+                        onClick={() => state.vaultDifficulty?.set(option.value)}
+                      >
+                        <span
+                          className="vault-difficulty-card__icon"
+                          aria-hidden="true"
+                        >
+                          <Icon />
+                        </span>
+                        <span className="vault-difficulty-card__copy">
+                          <strong>{t(option.labelKey)}</strong>
+                          <span>{option.fee}</span>
+                          <small>{t(option.hintKey)}</small>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Both secret entries sit side-by-side on desktop so confirm reads as
+              a check on the field beside it, not another stacked block. */}
+              <div className="vault-form-row">
+                <NeoInput
+                  label={t("secretLabel")}
+                  type="password"
+                  placeholder={t("secretPlaceholder")}
+                  value={secret}
+                  onChange={setSecret}
+                />
+                <NeoInput
+                  label={t("confirmSecretLabel")}
+                  type="password"
+                  placeholder={t("confirmSecretPlaceholder")}
+                  value={confirmSecret}
+                  onChange={setConfirmSecret}
+                />
+              </div>
+              {secretMismatch && (
+                <p className="vault-field-error" role="alert">
+                  {t("secretMismatch")}
+                </p>
+              )}
+              {/* The four explanatory notes are collapsed behind a disclosure so the
+              primary action rises toward the fold; details stay one tap away. */}
+              <details className="vault-fineprint">
+                <summary>
+                  <span>{t("createFineLabel")}</span>
+                  <ChevronDown
+                    className="vault-fineprint-icon"
+                    size={15}
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="vault-fineprint-body">
+                  <p className="vault-secret-note">{t("secretNote")}</p>
+                  <p className="vault-secret-note">{t("difficultyFeeNote")}</p>
+                  <p className="vault-secret-note">{t("createFeeNote")}</p>
+                </div>
+              </details>
+              {/* Inline reason mirrors the disabled state so the missing field is
+              named rather than implied by a greyed button. */}
+              <p
+                className={`vault-create-hint${canSubmitCreate ? " vault-create-hint--ready" : ""}`}
+                role={canSubmitCreate ? undefined : "status"}
+              >
+                <span className="vault-create-hint__dot" aria-hidden="true" />
+                <span>{t(createHintKey)}</span>
+              </p>
               <NeoButton
-                variant="danger"
+                variant="primary"
                 size="lg"
                 block
-                loading={isLoading}
-                disabled={!canAttempt}
-                aria-label={t("attemptBreak")}
-                onClick={handleAttemptBreak}
+                loading={isCreating || isLoading}
+                disabled={!canSubmitCreate || isCreating}
+                aria-label={t("createVaultButton")}
+                onClick={handleCreate}
               >
-                {t("attemptBreak")}
+                {isCreating ? t("creatingVault") : t("createVaultButton")}
               </NeoButton>
-              <p className="vault-secret-note">{t("attemptCostNote")}</p>
-              {/* Top up — anyone can grow an active vault's bounty (contract has
-                  increaseBounty, advertised in the operation panel). */}
-              <div className="vault-topup">
-                <NeoInput
-                  label={t("increaseBountyLabel")}
-                  type="number"
-                  min={0}
-                  placeholder={t("increaseBountyPlaceholder")}
-                  value={topUpAmount}
-                  onChange={setTopUpAmount}
-                />
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  loading={isCreating}
-                  disabled={!topUpAmount.trim() || isCreating || isLoading}
-                  aria-label={t("increaseBounty")}
-                  onClick={handleIncreaseBounty}
-                >
-                  {t("increaseBounty")}
-                </NeoButton>
-              </div>
-            </>
-          )}
-          {canReclaim && (
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              loading={isClaiming}
-              disabled={isClaiming || isLoading}
-              aria-label={t("reclaimVault")}
-              onClick={handleSettleVault}
-            >
-              {t("reclaimVault")}
-            </NeoButton>
-          )}
-          {vaultDetails && vaultStatus === "broken" && (
-            <p className="vault-secret-note">{t("bountyPaidNote")}</p>
-          )}
-        </div>
-      </NeoCard>
+            </div>
+          </div>
+        </NeoCard>
 
-      </div>
+        <div className="vault-col">
+          <NeoCard title={t("breakVault")} className="vault-break-card">
+            <div className="vault-form">
+              <div
+                className={`vault-target-card${vaultDetails ? " vault-target-card--loaded" : ""}`}
+              >
+                <span className="vault-target-card__icon" aria-hidden="true">
+                  {vaultDetails ? (
+                    <Trophy size={24} />
+                  ) : (
+                    <Crosshair size={24} />
+                  )}
+                </span>
+                <div className="vault-target-card__copy">
+                  <span>{t("challengeDeskTitle")}</span>
+                  <strong>
+                    {vaultDetails
+                      ? `#${String(vaultDetails.id)}`
+                      : t("challengeDeskEmpty")}
+                  </strong>
+                  <p>
+                    {vaultDetails
+                      ? detailTitle || t("challengeDeskLoaded")
+                      : t("challengeDeskHint")}
+                  </p>
+                </div>
+                <div className="vault-target-card__facts">
+                  <span>
+                    <Coins size={14} aria-hidden="true" />
+                    {vaultDetails
+                      ? `${t("bountyLabel")}: ${detailBountyGas} ${t("tokenGas")}`
+                      : t("notAvailable")}
+                  </span>
+                  <span>
+                    <Clock3 size={14} aria-hidden="true" />
+                    {vaultDetails
+                      ? `${t("remainingDaysLabel")}: ${detailRemainingDays} ${t("daysUnit")}`
+                      : t("notAvailable")}
+                  </span>
+                </div>
+              </div>
+              <NeoInput
+                label={t("vaultIdLabel")}
+                placeholder={t("vaultIdPlaceholder")}
+                value={vaultIdInput}
+                onChange={(v) => state.vaultIdInput?.set(v)}
+              />
+              <NeoButton
+                variant="secondary"
+                size="sm"
+                disabled={!vaultIdInput || isLoading}
+                onClick={() => handleLoadVault(vaultIdInput)}
+              >
+                {t("loadVault")}
+              </NeoButton>
+              {vaultDetails && (
+                <>
+                  {/* What you are trying to break — surfaced BEFORE paying the fee. */}
+                  {detailHint && (
+                    <p className="vault-detail-hint">{detailHint}</p>
+                  )}
+                  <div className="vault-detail-row">
+                    <span className="detail-label">{t("vaultStatus")}</span>
+                    <span
+                      className={`detail-value vault-status-pill vault-status-pill--${statusLabelKey}`}
+                    >
+                      {t(statusLabelKey)}
+                    </span>
+                  </div>
+                  <div className="vault-detail-row">
+                    <span className="detail-label">{t("bountyLabel")}</span>
+                    <span className="detail-value detail-value--accent">
+                      {detailBountyGas} {t("tokenGas")}
+                    </span>
+                  </div>
+                  {/* Failed attempt fees fold into the bounty on-chain — connect the
+                  displayed bounty to the live attempt count below. */}
+                  <p className="vault-secret-note">{t("bountyGrowthNote")}</p>
+                  {/* What the winner actually receives: bounty minus the fixed 2%
+                  platform fee. Surfaced beside the gross so the challenger can
+                  weigh the attempt fee against the real prize. */}
+                  <div className="vault-detail-row">
+                    <span className="detail-label">{t("netPayoutLabel")}</span>
+                    <span className="detail-value detail-value--accent">
+                      {detailNetPayoutGas} {t("tokenGas")}
+                    </span>
+                  </div>
+                  {detailDifficulty && (
+                    <div className="vault-detail-row">
+                      <span className="detail-label">
+                        {t("difficultyLabel")}
+                      </span>
+                      <span className="detail-value">{detailDifficulty}</span>
+                    </div>
+                  )}
+                  <div className="vault-detail-row">
+                    <span className="detail-label">{t("attemptFee")}</span>
+                    <span className="detail-value">
+                      {attemptFeeDisplay} {t("tokenGas")}
+                    </span>
+                  </div>
+                  <div className="vault-detail-row">
+                    <span className="detail-label">{t("attempts")}</span>
+                    <span className="detail-value">{detailAttempts}</span>
+                  </div>
+                  {(vaultStatus === "active" ||
+                    vaultStatus === "claimable") && (
+                    <div className="vault-detail-row">
+                      <span className="detail-label">
+                        {t("remainingDaysLabel")}
+                      </span>
+                      <span className="detail-value">
+                        {detailRemainingDays}
+                      </span>
+                    </div>
+                  )}
+                  {detailWinner && (
+                    <div className="vault-detail-row">
+                      <span className="detail-label">{t("winner")}</span>
+                      <span className="detail-value detail-value--mono">
+                        {detailWinner}
+                      </span>
+                    </div>
+                  )}
+                  {vaultStatus === "active" && (
+                    <NeoInput
+                      label={t("secretAttemptLabel")}
+                      type="password"
+                      placeholder={t("secretAttemptPlaceholder")}
+                      value={attemptSecret}
+                      onChange={(v) => state.attemptSecret?.set(v)}
+                    />
+                  )}
+                </>
+              )}
+              {vaultStatus === "active" && (
+                <>
+                  {isMainnet && (
+                    <p className="vault-mainnet-note" role="note">
+                      {t("mainnetVaultNote")}
+                    </p>
+                  )}
+                  <NeoButton
+                    variant="danger"
+                    size="lg"
+                    block
+                    loading={isLoading}
+                    disabled={!canAttempt}
+                    aria-label={t("attemptBreak")}
+                    onClick={handleAttemptBreak}
+                  >
+                    {t("attemptBreak")}
+                  </NeoButton>
+                  <p className="vault-secret-note">{t("attemptCostNote")}</p>
+                  {/* Top up — anyone can grow an active vault's bounty (contract has
+                  increaseBounty, advertised in the operation panel). */}
+                  <div className="vault-topup">
+                    <NeoInput
+                      label={t("increaseBountyLabel")}
+                      type="number"
+                      min={0}
+                      placeholder={t("increaseBountyPlaceholder")}
+                      value={topUpAmount}
+                      onChange={setTopUpAmount}
+                    />
+                    <NeoButton
+                      variant="secondary"
+                      size="sm"
+                      loading={isCreating}
+                      disabled={!topUpAmount.trim() || isCreating || isLoading}
+                      aria-label={t("increaseBounty")}
+                      onClick={handleIncreaseBounty}
+                    >
+                      <PlusCircle size={16} aria-hidden="true" />
+                      {t("increaseBounty")}
+                    </NeoButton>
+                  </div>
+                </>
+              )}
+              {canReclaim && (
+                <NeoButton
+                  variant="primary"
+                  size="lg"
+                  block
+                  loading={isClaiming}
+                  disabled={isClaiming || isLoading}
+                  aria-label={t("reclaimVault")}
+                  onClick={handleSettleVault}
+                >
+                  {t("reclaimVault")}
+                </NeoButton>
+              )}
+              {vaultDetails && vaultStatus === "broken" && (
+                <p className="vault-secret-note">{t("bountyPaidNote")}</p>
+              )}
+            </div>
+          </NeoCard>
+        </div>
       </div>
 
       {/* Recent Vaults span the full width below the two-column row so the right
@@ -488,11 +667,18 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
                   onClick={() => handleLoadVault(vault.id)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleLoadVault(vault.id); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleLoadVault(vault.id);
+                  }}
                 >
                   <span className="vault-id">#{String(vault.id)}</span>
-                  <span className={`vault-status-pill vault-status-pill--${STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active"}`}>
-                    {t(STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active")}
+                  <span
+                    className={`vault-status-pill vault-status-pill--${STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active"}`}
+                  >
+                    {t(
+                      STATUS_LABEL_KEYS[String(vault.status ?? "active")] ??
+                        "active",
+                    )}
                   </span>
                 </div>
               ))}
@@ -512,11 +698,18 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
                 onClick={() => handleLoadVault(vault.id)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter") handleLoadVault(vault.id); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleLoadVault(vault.id);
+                }}
               >
                 <span className="vault-id">#{String(vault.id)}</span>
-                <span className={`vault-status vault-status-pill vault-status-pill--${STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active"}`}>
-                  {t(STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active")}
+                <span
+                  className={`vault-status vault-status-pill vault-status-pill--${STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active"}`}
+                >
+                  {t(
+                    STATUS_LABEL_KEYS[String(vault.status ?? "active")] ??
+                      "active",
+                  )}
                 </span>
               </div>
             ))}

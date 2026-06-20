@@ -3,6 +3,16 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   title: { en: "Unbreakable Vault", zh: "坚不可摧保险库" },
+  vaultHeroChip: {
+    en: "Build a bounty vault. Publish the challenge. Reward the breaker.",
+    zh: "创建悬赏保险库，发布挑战，奖励破解者。",
+  },
+  vaultHeroImageAlt: {
+    en: "A bright glass bounty vault with GAS chips and challenge panels.",
+    zh: "明亮的玻璃悬赏保险库、GAS 筹码与挑战面板。",
+  },
+  vaultHeroVisualLabel: { en: "Challenge vault", zh: "挑战保险库" },
+  vaultHeroVisualValue: { en: "Bounty live", zh: "悬赏进行中" },
   create: { en: "Create", zh: "创建" },
   break: { en: "Break", zh: "破解" },
   myVaultsStat: { en: "My Vaults", zh: "我的保险库" },
@@ -10,7 +20,10 @@ const appMessages = {
   bountyLabel: { en: "Bounty", zh: "悬赏金" },
   bountyPlaceholder: { en: "Minimum 1", zh: "至少 1" },
   minBountyNote: { en: "Minimum bounty: 1 GAS", zh: "最低悬赏：1 GAS" },
-  netPayoutLabel: { en: "You win (after 2% fee)", zh: "你将获得（扣除 2% 手续费后）" },
+  netPayoutLabel: {
+    en: "You win (after 2% fee)",
+    zh: "你将获得（扣除 2% 手续费后）",
+  },
   bountyGrowthNote: {
     en: "Each failed attempt adds its fee to this bounty — it grows as more people try.",
     zh: "每次失败的尝试都会把费用加入此悬赏——尝试的人越多，悬赏越大。",
@@ -26,14 +39,26 @@ const appMessages = {
   titleLabel: { en: "Vault Title", zh: "保险库标题" },
   titlePlaceholder: { en: "Give your vault a name", zh: "给保险库起个名字" },
   descriptionLabel: { en: "Description", zh: "描述" },
-  descriptionPlaceholder: { en: "Optional hints or lore", zh: "可选提示或背景" },
+  descriptionPlaceholder: {
+    en: "Optional hints or lore",
+    zh: "可选提示或背景",
+  },
   difficultyLabel: { en: "Difficulty", zh: "难度" },
   difficultyEasy: { en: "Easy", zh: "简单" },
   difficultyMedium: { en: "Medium", zh: "中等" },
   difficultyHard: { en: "Hard", zh: "困难" },
-  difficultyEasyHint: { en: "Low attempt fee for broad participation.", zh: "较低尝试费用，适合更多人参与。" },
-  difficultyMediumHint: { en: "Balanced pressure for serious challengers.", zh: "压力适中，适合认真挑战者。" },
-  difficultyHardHint: { en: "High-stakes attempts for premium bounties.", zh: "高投入挑战，适合高额悬赏。" },
+  difficultyEasyHint: {
+    en: "Low attempt fee for broad participation.",
+    zh: "较低尝试费用，适合更多人参与。",
+  },
+  difficultyMediumHint: {
+    en: "Balanced pressure for serious challengers.",
+    zh: "压力适中，适合认真挑战者。",
+  },
+  difficultyHardHint: {
+    en: "High-stakes attempts for premium bounties.",
+    zh: "高投入挑战，适合高额悬赏。",
+  },
   secretLabel: { en: "Vault Secret", zh: "保险库密钥" },
   secretPlaceholder: { en: "Enter a secret phrase", zh: "输入密钥短语" },
   confirmSecretLabel: { en: "Confirm Secret", zh: "确认密钥" },
@@ -41,14 +66,50 @@ const appMessages = {
   secretMismatch: { en: "Secrets do not match", zh: "两次密钥不一致" },
   hashPreview: { en: "On-chain Hash", zh: "链上哈希" },
   createVault: { en: "Create Vault", zh: "创建保险库" },
-  createVaultButton: { en: "Create Vault (bounty + hash)", zh: "创建保险库（悬赏 + 哈希）" },
+  blueprintTitle: { en: "Vault blueprint", zh: "保险库蓝图" },
+  blueprintUntitled: { en: "Untitled bounty vault", zh: "未命名悬赏保险库" },
+  blueprintHintEmpty: {
+    en: "Add a public hint so challengers understand what they are trying to break.",
+    zh: "添加公开提示，让挑战者知道他们正在破解什么。",
+  },
+  secretReady: { en: "Hash ready", zh: "哈希就绪" },
+  secretWaiting: { en: "Secret pending", zh: "等待密钥" },
+  createVaultButton: {
+    en: "Create Vault (bounty + hash)",
+    zh: "创建保险库（悬赏 + 哈希）",
+  },
   creatingVault: { en: "Creating vault...", zh: "正在创建保险库..." },
   createFineLabel: { en: "Fees & secret details", zh: "费用与密钥说明" },
-  createNeedTitle: { en: "Add a vault title to continue.", zh: "请填写保险库标题以继续。" },
-  createNeedBounty: { en: "Enter a bounty of at least 1 GAS.", zh: "请输入至少 1 GAS 的悬赏。" },
-  createNeedSecret: { en: "Enter and confirm a secret phrase.", zh: "请输入并确认密钥短语。" },
-  createReady: { en: "Ready — secret hashed locally before submit.", zh: "已就绪——提交前密钥将在本地哈希。" },
+  createNeedTitle: {
+    en: "Add a vault title to continue.",
+    zh: "请填写保险库标题以继续。",
+  },
+  createNeedBounty: {
+    en: "Enter a bounty of at least 1 GAS.",
+    zh: "请输入至少 1 GAS 的悬赏。",
+  },
+  createNeedSecret: {
+    en: "Enter and confirm a secret phrase.",
+    zh: "请输入并确认密钥短语。",
+  },
+  createReady: {
+    en: "Ready — secret hashed locally before submit.",
+    zh: "已就绪——提交前密钥将在本地哈希。",
+  },
   breakVault: { en: "Break a Vault", zh: "破解保险库" },
+  challengeDeskTitle: { en: "Challenge target", zh: "挑战目标" },
+  challengeDeskEmpty: {
+    en: "Load a vault to challenge",
+    zh: "加载保险库后挑战",
+  },
+  challengeDeskHint: {
+    en: "Enter a vault ID to inspect the bounty, difficulty, attempt fee, and public hint before paying.",
+    zh: "输入保险库编号，先查看悬赏、难度、尝试费用和公开提示，再决定是否支付。",
+  },
+  challengeDeskLoaded: {
+    en: "Vault loaded and ready for inspection.",
+    zh: "保险库已加载，可开始检查。",
+  },
   secretNote: {
     en: "Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty.",
     zh: "密钥在本地哈希，链上仅保存哈希。请妥善保管以领取悬赏。",
@@ -60,7 +121,10 @@ const appMessages = {
   secretAttemptLabel: { en: "Break Secret", zh: "破解密钥" },
   secretAttemptPlaceholder: { en: "Enter secret attempt", zh: "输入尝试密钥" },
   attemptFee: { en: "Attempt Fee", zh: "尝试费用" },
-  attemptFeeNote: { en: "Attempt fee (by difficulty): {fee} {tokenGas}", zh: "尝试费用（按难度）：{fee} {tokenGas}" },
+  attemptFeeNote: {
+    en: "Attempt fee (by difficulty): {fee} {tokenGas}",
+    zh: "尝试费用（按难度）：{fee} {tokenGas}",
+  },
   attemptCostNote: {
     en: "The attempt fee is charged on every try and is non-refundable. A wrong secret forfeits the fee and grows the bounty.",
     zh: "每次尝试都会收取尝试费用且不可退还。密钥错误将损失费用并增加悬赏。",
@@ -86,6 +150,7 @@ const appMessages = {
   winner: { en: "Winner", zh: "获胜者" },
   expiryLabel: { en: "Expiry", zh: "到期日" },
   remainingDaysLabel: { en: "Days Left", zh: "剩余天数" },
+  daysUnit: { en: "days", zh: "天" },
   recentVaults: { en: "Recent Vaults", zh: "最新保险库" },
   noRecentVaults: { en: "No vaults found", zh: "暂无保险库" },
   vaultNotFound: { en: "Vault not found", zh: "未找到保险库" },
@@ -97,15 +162,33 @@ const appMessages = {
   },
   loadFailed: { en: "Failed to load vault", zh: "加载保险库失败" },
   myVaults: { en: "My Vaults", zh: "我的保险库" },
-  invalidDifficulty: { en: "Choose a difficulty (Easy, Medium, or Hard).", zh: "请选择难度（简单、中等或困难）。" },
-  secretRequired: { en: "Enter a secret phrase to lock the vault.", zh: "请输入用于锁定保险库的密钥短语。" },
+  invalidDifficulty: {
+    en: "Choose a difficulty (Easy, Medium, or Hard).",
+    zh: "请选择难度（简单、中等或困难）。",
+  },
+  secretRequired: {
+    en: "Enter a secret phrase to lock the vault.",
+    zh: "请输入用于锁定保险库的密钥短语。",
+  },
   increaseBounty: { en: "Add Bounty", zh: "追加悬赏" },
   increaseBountyLabel: { en: "Increase Bounty (GAS)", zh: "追加悬赏（GAS）" },
-  increaseBountyPlaceholder: { en: "Amount of GAS to add", zh: "要追加的 GAS 数量" },
-  increaseBountySuccess: { en: "Added {amount} {tokenGas} to the bounty", zh: "已向悬赏追加 {amount} {tokenGas}" },
+  increaseBountyPlaceholder: {
+    en: "Amount of GAS to add",
+    zh: "要追加的 GAS 数量",
+  },
+  increaseBountySuccess: {
+    en: "Added {amount} {tokenGas} to the bounty",
+    zh: "已向悬赏追加 {amount} {tokenGas}",
+  },
   increaseBountyFailed: { en: "Failed to increase bounty", zh: "追加悬赏失败" },
-  increaseBountyInvalidId: { en: "Load a vault before adding to its bounty.", zh: "请先加载保险库再追加悬赏。" },
-  increaseBountyInvalidAmount: { en: "Enter a positive GAS amount.", zh: "请输入正的 GAS 数量。" },
+  increaseBountyInvalidId: {
+    en: "Load a vault before adding to its bounty.",
+    zh: "请先加载保险库再追加悬赏。",
+  },
+  increaseBountyInvalidAmount: {
+    en: "Enter a positive GAS amount.",
+    zh: "请输入正的 GAS 数量。",
+  },
   mainnetVaultNote: {
     en: "On mainnet, the GAS deposit and contract call are batched by the host's operation panel. Use the operation panel to create vaults, attempt breaks, or add bounty here.",
     zh: "在主网上，GAS 存入与合约调用由主程序的操作面板合并提交。请通过操作面板创建保险库、尝试破解或追加悬赏。",
@@ -124,8 +207,14 @@ const appMessages = {
     en: "1. Create a vault with bounty, difficulty, and secret hash. 2. Share the vault ID publicly for challengers. 3. Challengers pay 0.1 / 0.5 / 1 GAS based on difficulty. 4. The correct secret wins the bounty; expired vaults can be reclaimed by the creator.",
     zh: "1. 设置悬赏、难度与密钥哈希创建保险库。2. 公开保险库编号吸引挑战者。3. 挑战者按难度支付 0.1 / 0.5 / 1 GAS 尝试破解。4. 密钥正确可获悬赏，过期后创建者可取回。",
   },
-  step1: { en: "Create a vault with bounty, difficulty, and secret hash", zh: "设置悬赏、难度与密钥哈希创建保险库" },
-  step2: { en: "Share the vault ID publicly for challengers", zh: "公开保险库编号吸引挑战者" },
+  step1: {
+    en: "Create a vault with bounty, difficulty, and secret hash",
+    zh: "设置悬赏、难度与密钥哈希创建保险库",
+  },
+  step2: {
+    en: "Share the vault ID publicly for challengers",
+    zh: "公开保险库编号吸引挑战者",
+  },
   step3: {
     en: "Challengers pay 0.1 / 0.5 / 1 GAS based on difficulty",
     zh: "挑战者按难度支付 0.1 / 0.5 / 1 GAS 尝试破解",
@@ -135,11 +224,20 @@ const appMessages = {
     zh: "密钥正确可获悬赏，过期后创建者可取回",
   },
   feature1Name: { en: "Hash-Locked Security", zh: "哈希锁定" },
-  feature1Desc: { en: "Only the SHA-256 hash is stored on-chain.", zh: "链上仅保存 SHA-256 哈希。" },
+  feature1Desc: {
+    en: "Only the SHA-256 hash is stored on-chain.",
+    zh: "链上仅保存 SHA-256 哈希。",
+  },
   feature2Name: { en: "Bounty Growth", zh: "悬赏增长" },
-  feature2Desc: { en: "Every failed attempt adds to the prize pool.", zh: "每次失败尝试都会增加奖池。" },
+  feature2Desc: {
+    en: "Every failed attempt adds to the prize pool.",
+    zh: "每次失败尝试都会增加奖池。",
+  },
   feature3Name: { en: "Difficulty Tiers", zh: "难度分级" },
-  feature3Desc: { en: "Attempt fees scale with difficulty.", zh: "尝试费用随难度提升。" },
+  feature3Desc: {
+    en: "Attempt fees scale with difficulty.",
+    zh: "尝试费用随难度提升。",
+  },
   sidebarDifficulty: { en: "Difficulty", zh: "难度" },
   sidebarAttemptFee: { en: "Attempt Fee", zh: "尝试费用" },
 } as const;
