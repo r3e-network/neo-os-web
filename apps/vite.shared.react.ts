@@ -8,7 +8,7 @@
  *   import { createReactAppConfig } from "../vite.shared.react";
  *   export default createReactAppConfig(__dirname);
  */
-import { defineConfig, UserConfig } from "vite";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "fs";
 import path from "path";
@@ -30,6 +30,21 @@ export interface ReactAppConfigOptions {
   define?: UserConfig["define"];
   /** Override publicDir */
   publicDir?: string;
+}
+
+function copyNeoManifestPlugin(appDir: string, outDir: string): Plugin {
+  return {
+    name: "miniapp-copy-neo-manifest",
+    apply: "build",
+    closeBundle() {
+      const source = path.join(appDir, "neo-manifest.json");
+      if (!fs.existsSync(source)) return;
+
+      const target = path.resolve(appDir, outDir, "neo-manifest.json");
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(source, target);
+    },
+  };
 }
 
 /**
@@ -64,9 +79,10 @@ export function createReactAppConfig(appDir: string, options: ReactAppConfigOpti
   const optionAliases = options.alias
     ? Object.entries(options.alias).map(([find, replacement]) => ({ find, replacement }))
     : [];
+  const outDir = typeof options.build?.outDir === "string" ? options.build.outDir : "dist";
 
   return defineConfig({
-    plugins: [react(), ...(options.plugins ?? [])],
+    plugins: [react(), copyNeoManifestPlugin(appDir, outDir), ...(options.plugins ?? [])],
     base: options.base ?? "./",
     resolve: {
       alias: [

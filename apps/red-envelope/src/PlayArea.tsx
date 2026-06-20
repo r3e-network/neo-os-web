@@ -5,12 +5,22 @@
  * who arrives from OneGate QR sees the one job they came to do.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import {
+  ChevronDown,
+  Coins,
+  Gift,
+  PackageOpen,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  WalletCards,
+} from "lucide-react";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -85,7 +95,6 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const openingId = val<string | null>("openingId", null);
   const envelopes = (val("envelopes") ?? []) as Envelope[];
   const claims = (val("claims") ?? []) as Claim[];
-  const envelopeCount = val<number>("envelopeCount", envelopes.length) ?? envelopes.length;
   const claimCount = val<number>("claimCount", claims.length) ?? claims.length;
   const poolCount = val<number>("poolCount", 0) ?? 0;
   const totalCreated = val<number>("totalCreated", 0) ?? 0;
@@ -93,7 +102,10 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const prepaidCredit = val<number>("prepaidCredit", 0) ?? 0;
   const lastCreatedEnvelopeId = val<string>("lastCreatedEnvelopeId", "") ?? "";
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
-  const launchedCreateForm = getLaunchCreateForm(launchContext);
+  const launchedCreateForm = useMemo(
+    () => getLaunchCreateForm(launchContext),
+    [launchContext],
+  );
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
   const [activeTab, setActiveTab] = useState<"claim" | "create">("claim");
   const [createForm, setCreateForm] = useState({
@@ -108,7 +120,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
   useEffect(() => {
     setCreateForm(launchedCreateForm);
-  }, [launchedCreateForm.amount, launchedCreateForm.count, launchedCreateForm.expiryHours]);
+  }, [launchedCreateForm]);
 
   const activeEnvelopes = envelopes.filter((env) => {
     if (env.active === false) return false;
@@ -176,25 +188,65 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const hasActivity = activeEnvelopes.length > 0 || recentClaims.length > 0;
   const reclaimables = envelopes.filter((env) => env.reclaimable);
   const hasRecovery = reclaimables.length > 0 || prepaidCredit > 0;
+  const previewAmount =
+    activeTab === "create"
+      ? Number.isFinite(createAmount)
+        ? formatGas(createAmount)
+        : formatGas(0)
+      : targetEnvelope
+        ? formatGas(targetEnvelope.remainingAmount ?? targetEnvelope.totalAmount ?? targetEnvelope.amount)
+        : formatGas(claimableGas);
+  const previewPacketLabel =
+    activeTab === "create"
+      ? `${Number.isFinite(createCount) ? createCount : 0} ${t("packetCount")}`
+      : targetEnvelope
+        ? `${selectedRemaining}/${selectedTotal || "?"} ${t("remainingPacketsLabel")}`
+        : t("needsEnvelopeId");
+  const previewTitle =
+    activeTab === "create"
+      ? t("createPreviewTitle")
+      : targetEnvelope
+        ? t("readyToClaim")
+        : t("needsEnvelopeId");
 
   return (
     <div className="redenv-play-area">
       <div className="redenv-shell">
         <section className="redenv-main" aria-label={t("redEnvelopeHeroTitle")}>
           <div className="redenv-hero">
+            <img
+              className="redenv-hero__image"
+              src="./red-envelope-stage.jpg"
+              alt=""
+              aria-hidden="true"
+            />
+            <div className="redenv-hero__shade" aria-hidden="true" />
             <div className="redenv-hero-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-                <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.14" />
-                <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.7" />
-                <path d="M8 3c1.3 2.3 2.6 3.6 4 3.6S14.7 5.3 16 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="12" cy="13.5" r="2.9" fill="var(--redenv-gold-strong)" />
-                <path d="M12 11.6v3.8M10.6 13.5h2.8" stroke="#ffffff" strokeWidth="1.1" strokeLinecap="round" />
-              </svg>
+              <Gift size={24} />
             </div>
             <div className="redenv-hero-copy">
               <span>{t("shareReadyTitle")}</span>
               <h2>{t("redEnvelopeHeroTitle")}</h2>
               <p>{t("redEnvelopeHeroSubtitle")}</p>
+              <div className="redenv-hero-flow" aria-label={t("claimFlowTitle")}>
+                <span>
+                  <PackageOpen size={14} />
+                  {t("claimRouteOne")}
+                </span>
+                <span>
+                  <ShieldCheck size={14} />
+                  {t("claimRouteTwo")}
+                </span>
+                <span>
+                  <Coins size={14} />
+                  {t("claimRouteThree")}
+                </span>
+              </div>
+            </div>
+            <div className="redenv-hero-card" aria-label={t("claimablePool")}>
+              <span>{t("claimablePool")}</span>
+              <strong>{formatGas(claimableGas)}</strong>
+              <small>{t("availableEnvelopes")}: {activeEnvelopes.length}</small>
             </div>
           </div>
 
@@ -235,6 +287,26 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               </button>
             </div>
 
+            <section className="redenv-envelope-preview" aria-label={t("createPreviewTitle")}>
+              <div className="redenv-envelope-preview__art" aria-hidden="true">
+                <img src="./red-envelope-claim-card.jpg" alt="" />
+              </div>
+              <div className="redenv-envelope-preview__copy">
+                <span>{activeTab === "claim" ? t("claimTab") : t("createTab")}</span>
+                <strong>{previewTitle}</strong>
+                <div>
+                  <small>
+                    <Coins size={13} />
+                    {previewAmount}
+                  </small>
+                  <small>
+                    <Sparkles size={13} />
+                    {previewPacketLabel}
+                  </small>
+                </div>
+              </div>
+            </section>
+
             {activeTab === "claim" ? (
               <div className="redenv-claim-body">
                 {targetEnvelope && (
@@ -272,6 +344,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   disabled={isLoading || !selectedEnvelopeId.trim()}
                   onClick={claimSelectedEnvelope}
                 >
+                  <PackageOpen size={16} />
                   {t("claimNow")}
                 </NeoButton>
               </div>
@@ -330,6 +403,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   disabled={isLoading || !canCreateEnvelope}
                   onClick={createEnvelope}
                 >
+                  <Send size={16} />
                   {t("sendRedEnvelope")}
                 </NeoButton>
 
@@ -352,6 +426,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                           dispatch("shareEnvelope", { envelopeId: lastCreatedEnvelopeId })
                         }
                       >
+                        <WalletCards size={15} />
                         {t("copyShareLink")}
                       </NeoButton>
                       <NeoButton
@@ -381,12 +456,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 hint={t("noPoolsHint")}
                 icon={
                   <span className="redenv-empty-art" aria-hidden="true">
-                    <svg viewBox="0 0 96 80" width="116" height="96" fill="none">
-                      <rect x="14" y="14" width="68" height="54" rx="9" fill="var(--redenv-accent-soft)" stroke="var(--redenv-accent)" strokeWidth="2" />
-                      <path d="M14 23l34 22 34-22" stroke="var(--redenv-accent)" strokeWidth="2" strokeLinejoin="round" />
-                      <circle cx="48" cy="40" r="12" fill="var(--redenv-gold-soft)" stroke="var(--redenv-gold-strong)" strokeWidth="2" />
-                      <path d="M48 34v12M44 38h8M44 43h8" stroke="var(--redenv-gold-strong)" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
+                    <img src="./red-envelope-claim-card.jpg" alt="" />
                   </span>
                 }
               />
@@ -474,23 +544,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             <summary>
               <span className="redenv-summary-label">
                 <span className="redenv-summary-badge" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-                    <path
-                      d="M12 3l7 3v5c0 4.2-2.9 7.3-7 8.5C7.9 18.3 5 15.2 5 11V6l7-3z"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinejoin="round"
-                    />
-                    <path d="M9.2 11.7l1.9 1.9 3.7-3.9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ShieldCheck size={16} />
                 </span>
                 {t("safetyPanelTitle")}
               </span>
               <span className="redenv-summary-value">
                 <strong>{t("osGuarded")}</strong>
-                <svg className="redenv-summary-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <ChevronDown className="redenv-summary-chevron" size={16} aria-hidden="true" />
               </span>
             </summary>
             <div className="redenv-details-body">
@@ -517,12 +577,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           <div className="redenv-modal">
             <div className="redenv-modal-content">
               <div className="redenv-modal-icon" aria-hidden="true">
-                <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
-                  <circle cx="24" cy="24" r="16" fill="var(--redenv-gold-soft)" stroke="var(--redenv-gold-strong)" strokeWidth="2.4" />
-                  <path d="M24 14v20M18 19h12M18 26h12" stroke="var(--redenv-gold-strong)" strokeWidth="2.4" strokeLinecap="round" />
-                  <path d="M40 10l1.3 3.4L45 14.7l-3.4 1.3L40 19l-1.3-3.4L35 14.7l3.4-1.3z" fill="var(--redenv-gold-strong)" />
-                  <path d="M9 30l.9 2.4 2.4.9-2.4.9L9 37l-.9-2.4L5.7 33.7l2.4-.9z" fill="var(--redenv-gold-strong)" />
-                </svg>
+                <img src="./red-envelope-claim-card.jpg" alt="" />
+                <Sparkles size={22} />
               </div>
               <h3 className="redenv-modal-title">{t("congratulations")}</h3>
               <p className="redenv-modal-caption">{t("luckyReceivedLabel")}</p>
