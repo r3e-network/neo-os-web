@@ -7,6 +7,17 @@
  */
 
 import { useEffect, useState } from "react";
+import {
+  CircleAlert,
+  Coins,
+  Gauge,
+  Landmark,
+  LockKeyhole,
+  PlusCircle,
+  RefreshCw,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -231,6 +242,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     hasLoanDisplay.toLowerCase() === "yes" ||
     Boolean((loan as LoanData | null)?.active) ||
     Boolean((loan as LoanData | null)?.borrowed);
+  const riskTone = hf >= 2 ? "safe" : hf >= 1.2 ? "caution" : "danger";
+  const selectedLtvOption = ltvOptions.find((option) => option.tier === selectedTier);
+  const borrowInputValue = localCollateralAmt || collateralAmount;
+  const previewCollateralLabel =
+    Number.isFinite(collateralNum) && collateralNum > 0
+      ? `${collateralNum.toLocaleString(undefined, { maximumFractionDigits: 2 })} NEO`
+      : "0 NEO";
+  const expectedBorrowLabel =
+    expectedBorrow > 0 ? `${expectedBorrow.toFixed(2)} GAS` : "0.00 GAS";
 
   /* Outstanding GAS debt (whole GAS) drives the repay "Max" chip. The repay
      validation accepts up to 8 decimals, so trim the fill value to 8 dp and
@@ -245,305 +265,307 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="selfloan-play-area">
       {/* ==================== Hero ==================== */}
       <div className="selfloan-hero">
-        <div className="selfloan-hero-lead">
-          <span className="selfloan-hero-badge" aria-hidden="true">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="7" width="18" height="13" rx="2" />
-              <path d="M3 11h18" />
-              <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-              <circle cx="12" cy="15" r="1.5" />
-            </svg>
-          </span>
-          <div className="selfloan-hero-copy">
-            <span className="selfloan-hero-eyebrow">
-              {t("eyebrow")}
+        <img className="selfloan-hero-image" src="./self-loan-vault-stage.jpg" alt="" aria-hidden="true" />
+        <div className="selfloan-hero-shade" aria-hidden="true" />
+        <div className="selfloan-hero-content">
+          <div className="selfloan-hero-lead">
+            <span className="selfloan-hero-badge" aria-hidden="true">
+              <Landmark size={24} />
             </span>
-            <h2 className="selfloan-hero-title">{t("title")}</h2>
-            <p className="selfloan-hero-subtitle">
-              {t("docSubtitle")}
-            </p>
+            <div className="selfloan-hero-copy">
+              <span className="selfloan-hero-eyebrow">
+                {t("eyebrow")}
+              </span>
+              <h2 className="selfloan-hero-title">{t("title")}</h2>
+              <p className="selfloan-hero-subtitle">
+                {t("docSubtitle")}
+              </p>
+            </div>
+          </div>
+          <div className="selfloan-hero-flow" aria-label={t("loanTerms")}>
+            <span><LockKeyhole size={14} />{t("amountToLock")}</span>
+            <span><Gauge size={14} />{selectedLtvOption?.label ?? t("ltvTier")}</span>
+            <span><Coins size={14} />{t("borrowedLabel")}</span>
           </div>
         </div>
-        <div className="selfloan-hero-stats">
-          <div className="selfloan-hero-stat">
-            <span className="selfloan-hero-stat-value">
-              {displayTotalLoans}
-            </span>
-            <span className="selfloan-hero-stat-label">
-              {t("totalLoans")}
-            </span>
-          </div>
-          <div className="selfloan-hero-stat">
-            <span className="selfloan-hero-stat-value">
-              {displayTotalBorrowed}
-            </span>
-            <span className="selfloan-hero-stat-label">
-              {t("totalBorrowed")}
-            </span>
-          </div>
-          <div className="selfloan-hero-stat">
-            <span className="selfloan-hero-stat-value">
-              {displayTotalRepaid}
-            </span>
-            <span className="selfloan-hero-stat-label">
-              {t("totalRepaid")}
-            </span>
-          </div>
+        <div className="selfloan-hero-panel" aria-label={t("loanStatsTitle")}>
+          <span>{t("poolAvailable")}</span>
+          <strong>{poolDisplay}</strong>
+          <small>{neoPriceDisplay ? t("rateValue", { price: neoPriceDisplay }) : t("custodyStatus")}</small>
         </div>
       </div>
 
-      {/* ==================== Loan Status Card ==================== */}
-      {hasLoan && (
+      <div className="selfloan-hero-stats">
+        <div className="selfloan-hero-stat">
+          <span className="selfloan-hero-stat-value">
+            {displayTotalLoans}
+          </span>
+          <span className="selfloan-hero-stat-label">
+            {t("totalLoans")}
+          </span>
+        </div>
+        <div className="selfloan-hero-stat">
+          <span className="selfloan-hero-stat-value">
+            {displayTotalBorrowed}
+          </span>
+          <span className="selfloan-hero-stat-label">
+            {t("totalBorrowed")}
+          </span>
+        </div>
+        <div className="selfloan-hero-stat">
+          <span className="selfloan-hero-stat-value">
+            {displayTotalRepaid}
+          </span>
+          <span className="selfloan-hero-stat-label">
+            {t("totalRepaid")}
+          </span>
+        </div>
+      </div>
+
+      <div className={`selfloan-command-grid${hasLoan ? " selfloan-command-grid--with-loan" : ""}`}>
+        {/* ==================== Loan Status Card ==================== */}
+        {hasLoan && (
+          <NeoCard
+            variant="erobo"
+            title={t("loanStatus")}
+            className="selfloan-position-card"
+          >
+            <div className="selfloan-status">
+              <div className="selfloan-position-head">
+                <span className={`selfloan-risk-pill selfloan-risk-pill--${riskTone}`}>
+                  <ShieldCheck size={15} />
+                  {healthLabel}
+                </span>
+                <strong>{displayBorrowed} GAS</strong>
+                <small>{t("borrowed")}</small>
+              </div>
+
+              <div className="selfloan-status-row">
+                <div className="selfloan-status-item">
+                  <span className="selfloan-status-label">
+                    {t("collateral")}
+                  </span>
+                  <span className="selfloan-status-value">
+                    {displayCollateral} NEO
+                  </span>
+                </div>
+                <div className="selfloan-status-item">
+                  <span className="selfloan-status-label">
+                    {t("currentLTV")}
+                  </span>
+                  <span className="selfloan-status-value">
+                    {displayCurrentLTV}
+                  </span>
+                </div>
+              </div>
+
+              {/* Health Factor Gauge */}
+              <div className="selfloan-health">
+                <div className="selfloan-health-header">
+                  <span className="selfloan-health-label">
+                    {healthMetricLabel || t("healthFactor")}
+                  </span>
+                  <span
+                    className="selfloan-health-value"
+                    style={{ color: healthColor }}
+                  >
+                    {displayHealthFactor}
+                  </span>
+                </div>
+                <div className="selfloan-health-track">
+                  <div
+                    className="selfloan-health-bar"
+                    style={{
+                      width: `${healthPercent}%`,
+                      background: healthColor,
+                    }}
+                  />
+                </div>
+                {/* Endpoint labels describe the ratio extremes, not a liquidation
+                    event — this product never force-liquidates, so the low end is
+                    "Under-collateralized", not "Liquidation". */}
+                <div className="selfloan-health-markers">
+                  <span>{t("underCollateralized")}</span>
+                  <span className="selfloan-health-status-label" style={{ color: healthColor }}>
+                    {healthLabel}
+                  </span>
+                  <span>{t("safe")}</span>
+                </div>
+              </div>
+            </div>
+          </NeoCard>
+        )}
+
+        {/* ==================== Borrow Form ==================== */}
         <NeoCard
           variant="erobo"
-          title={t("loanStatus")}
+          title={t("borrow")}
+          className="selfloan-borrow-card"
         >
-          <div className="selfloan-status">
-            <div className="selfloan-status-row">
-              <div className="selfloan-status-item">
-                <span className="selfloan-status-label">
-                  {t("collateral")}
-                </span>
-                <span className="selfloan-status-value">
-                  {displayCollateral} NEO
-                </span>
-              </div>
-              <div className="selfloan-status-item">
-                <span className="selfloan-status-label">
-                  {t("borrowed")}
-                </span>
-                <span className="selfloan-status-value">
-                  {displayBorrowed} GAS
-                </span>
-              </div>
-              <div className="selfloan-status-item">
-                <span className="selfloan-status-label">
-                  {t("currentLTV")}
-                </span>
-                <span className="selfloan-status-value">
-                  {displayCurrentLTV}
-                </span>
+          <div className="selfloan-vault-console">
+            <div className="selfloan-vault-preview" aria-label={t("estimatedBorrow")}>
+              <img src="./self-loan-vault-stage.jpg" alt="" aria-hidden="true" />
+              <div className="selfloan-vault-preview-card">
+                <span>{t("takeSelfLoan")}</span>
+                <strong>{expectedBorrowLabel}</strong>
+                <small>{previewCollateralLabel} · {ltvPct > 0 ? `${ltvPct}%` : "—"} {t("ltvLabel")}</small>
               </div>
             </div>
 
-            {/* Health Factor Gauge */}
-            <div className="selfloan-health">
-              <div className="selfloan-health-header">
-                <span className="selfloan-health-label">
-                  {healthMetricLabel || t("healthFactor")}
+            <div className="selfloan-form">
+              <div className="selfloan-balance-strip">
+                <span>
+                  <WalletCards size={14} />
+                  {t("yourBalance")}: <strong>{displayNeoBalance} NEO</strong>
+                </span>
+                <span>
+                  <Coins size={14} />
+                  {t("poolAvailable")}: <strong>{poolDisplay}</strong>
+                </span>
+              </div>
+
+              <div className="selfloan-collateral-entry">
+                <NeoInput
+                  label={t("collateralAmount")}
+                  placeholder="0.00"
+                  type="number"
+                  value={borrowInputValue}
+                  suffix="NEO"
+                  onChange={handleSetCollateralAmount}
+                />
+                <div className="selfloan-borrow-output">
+                  <span>{feeBps > 0 ? t("estimatedBorrowNet") : t("estimatedBorrow")}</span>
+                  <strong>{expectedBorrowLabel}</strong>
+                  {feeBps > 0 && grossBorrow > 0 && (
+                    <small>
+                      {t("originationFee", { percent: feePercent })}: {feeAmount.toFixed(2)} GAS
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              {/* LTV Tier Selector */}
+              <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier")}>
+                {ltvOptions.map((option) => (
+                  <button
+                    key={option.tier}
+                    type="button"
+                    className={
+                      "selfloan-ltv-tier" +
+                      (option.tier === selectedTier ? " is-active" : "")
+                    }
+                    aria-pressed={option.tier === selectedTier}
+                    onClick={() => handleSelectTier(option.tier)}
+                  >
+                    <span className="selfloan-ltv-tier-label">{option.label}</span>
+                    <span className="selfloan-ltv-tier-percent">{option.percent}%</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Rate the debt is sized by + pool liquidity available to disburse.
+                  Both come straight from the contract (neoPrice / pool); hidden when
+                  no price is configured so the borrow math stays honest. */}
+              <div className="selfloan-market-grid">
+                {neoPriceDisplay && (
+                  <div className="selfloan-market-tile">
+                    <span>{t("rateLabel")}</span>
+                    <strong>{t("rateValue", { price: neoPriceDisplay })}</strong>
+                  </div>
+                )}
+                <div className="selfloan-market-tile">
+                  <span>{t("selectedLTV")}</span>
+                  <strong style={{ color: ltvColor }}>
+                    {ltvPct > 0 ? `${ltvPct}%` : "—"}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Honest disclosure: the borrow size is derived from an operator-set
+                  neoPrice (not a market oracle), and the 0.5% fee is the pool's
+                  revenue — both are read straight from the contract above. */}
+              <p className="selfloan-rate-fee-note" role="note">
+                {t("rateFeeNote")}
+              </p>
+
+              {/* LTV Selector / Indicator */}
+              <div className="selfloan-ltv-indicator">
+                <span className="selfloan-ltv-label">
+                  {t("selectedLTV")}
                 </span>
                 <span
-                  className="selfloan-health-value"
-                  style={{ color: healthColor }}
+                  className="selfloan-ltv-value"
+                  style={{ color: ltvColor }}
                 >
-                  {displayHealthFactor}
+                  {ltvPct > 0 ? `${ltvPct}%` : "—"}
                 </span>
+                <div className="selfloan-ltv-track">
+                  <div
+                    className="selfloan-ltv-bar"
+                    style={{
+                      width: `${Math.min(ltvPct, 100)}%`,
+                      background: `linear-gradient(90deg, #13966d, ${ltvColor})`,
+                    }}
+                  />
+                </div>
+                <div className="selfloan-ltv-hints">
+                  <span>{t("conservative")}</span>
+                  <span>{t("aggressive")}</span>
+                </div>
               </div>
-              <div className="selfloan-health-track">
-                <div
-                  className="selfloan-health-bar"
-                  style={{
-                    width: `${healthPercent}%`,
-                    background: healthColor,
-                  }}
-                />
+
+              <div className="selfloan-cta">
+                {!isConnected ? (
+                  <div className="selfloan-connect-prompt" role="note">
+                    <span className="selfloan-connect-prompt-icon" aria-hidden="true">
+                      <LockKeyhole size={16} />
+                    </span>
+                    <span className="selfloan-connect-prompt-text">
+                      {t("connectWalletToUse")}
+                    </span>
+                  </div>
+                ) : hasActiveLoan ? (
+                  /* One loan per address — block the Borrow path up front (the
+                     contract would otherwise revert in step 2, AFTER the NEO
+                     deposit lands) and point at Add Collateral / Repay. */
+                  <div className="selfloan-connect-prompt" role="note">
+                    <span className="selfloan-connect-prompt-icon" aria-hidden="true">
+                      <CircleAlert size={16} />
+                    </span>
+                    <span className="selfloan-connect-prompt-text">
+                      {t("loanAlreadyActiveHint")}
+                    </span>
+                  </div>
+                ) : (
+                  <NeoButton
+                    variant="primary"
+                    block
+                    loading={isBorrowing}
+                    disabled={!localCollateralAmt || isBorrowing}
+                    onClick={handleBorrow}
+                  >
+                    {t("borrow")}
+                  </NeoButton>
+                )}
               </div>
-              {/* Endpoint labels describe the ratio extremes, not a liquidation
-                  event — this product never force-liquidates, so the low end is
-                  "Under-collateralized", not "Liquidation". */}
-              <div className="selfloan-health-markers">
-                <span>{t("underCollateralized")}</span>
-                <span className="selfloan-health-status-label" style={{ color: healthColor }}>
-                  {healthLabel}
+
+              {/* Custody disclosure — the locked collateral simply sits in the
+                  SelfLoan contract and is returned in full on repayment. The
+                  contract has NO voting/ProfitAnchor path, so this states the real
+                  disposition of the funds rather than implying they earn/vote. */}
+              <div className="selfloan-vote-route" role="note">
+                <span className="selfloan-vote-route-eyebrow">
+                  <ShieldCheck size={14} />
+                  {t("custodyTitle")}
                 </span>
-                <span>{t("safe")}</span>
+                <p className="selfloan-vote-route-copy">
+                  <strong>{t("custodyValue")}</strong> · {t("custodyBadge")}
+                </p>
               </div>
             </div>
           </div>
         </NeoCard>
-      )}
-
-      {/* ==================== Borrow Form ==================== */}
-      <NeoCard
-        variant="erobo"
-        title={t("borrow")}
-      >
-        <div className="selfloan-form">
-          <div className="selfloan-balance-hint">
-            {t("yourBalance")}:{" "}
-            <strong>{displayNeoBalance} NEO</strong>
-          </div>
-          <NeoInput
-            label={t("collateralAmount")}
-            placeholder="0.00"
-            type="number"
-            value={localCollateralAmt || collateralAmount}
-            suffix="NEO"
-            onChange={handleSetCollateralAmount}
-          />
-          {/* LTV Tier Selector */}
-          <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier")}>
-            {ltvOptions.map((option) => (
-              <button
-                key={option.tier}
-                type="button"
-                className={
-                  "selfloan-ltv-tier" +
-                  (option.tier === selectedTier ? " is-active" : "")
-                }
-                aria-pressed={option.tier === selectedTier}
-                onClick={() => handleSelectTier(option.tier)}
-              >
-                <span className="selfloan-ltv-tier-label">{option.label}</span>
-                <span className="selfloan-ltv-tier-percent">{option.percent}%</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Rate the debt is sized by + pool liquidity available to disburse.
-              Both come straight from the contract (neoPrice / pool); hidden when
-              no price is configured so the borrow math stays honest. */}
-          {neoPriceDisplay && (
-            <div className="selfloan-balance-hint">
-              {t("rateLabel")}:{" "}
-              <strong>{t("rateValue", { price: neoPriceDisplay })}</strong>
-            </div>
-          )}
-          <div className="selfloan-balance-hint">
-            {t("poolAvailable")}: <strong>{poolDisplay}</strong>
-          </div>
-
-          {/* Expected borrow (collateral × LTV, net of origination fee) */}
-          <div className="selfloan-balance-hint">
-            {feeBps > 0 ? t("estimatedBorrowNet") : t("estimatedBorrow")}
-            :{" "}
-            <strong>
-              {expectedBorrow > 0 ? expectedBorrow.toFixed(2) : "0.00"} GAS
-            </strong>
-          </div>
-          {feeBps > 0 && grossBorrow > 0 && (
-            <div className="selfloan-balance-hint">
-              {t("originationFee", { percent: feePercent })}
-              : <strong>{feeAmount.toFixed(2)} GAS</strong>
-            </div>
-          )}
-
-          {/* Honest disclosure: the borrow size is derived from an operator-set
-              neoPrice (not a market oracle), and the 0.5% fee is the pool's
-              revenue — both are read straight from the contract above. */}
-          <p className="selfloan-rate-fee-note" role="note">
-            {t("rateFeeNote")}
-          </p>
-
-          {/* LTV Selector / Indicator */}
-          <div className="selfloan-ltv-indicator">
-            <span className="selfloan-ltv-label">
-              {t("selectedLTV")}
-            </span>
-            <span
-              className="selfloan-ltv-value"
-              style={{ color: ltvColor }}
-            >
-              {ltvPct > 0 ? `${ltvPct}%` : "—"}
-            </span>
-            <div className="selfloan-ltv-track">
-              <div
-                className="selfloan-ltv-bar"
-                style={{
-                  width: `${Math.min(ltvPct, 100)}%`,
-                  background: `linear-gradient(90deg, #16c784, ${ltvColor})`,
-                }}
-              />
-            </div>
-            <div className="selfloan-ltv-hints">
-              <span>{t("conservative")}</span>
-              <span>{t("aggressive")}</span>
-            </div>
-          </div>
-
-          <div className="selfloan-cta">
-            {!isConnected ? (
-              <div className="selfloan-connect-prompt" role="note">
-                <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="4" y="11" width="16" height="9" rx="2" />
-                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                  </svg>
-                </span>
-                <span className="selfloan-connect-prompt-text">
-                  {t("connectWalletToUse")}
-                </span>
-              </div>
-            ) : hasActiveLoan ? (
-              /* One loan per address — block the Borrow path up front (the
-                 contract would otherwise revert in step 2, AFTER the NEO
-                 deposit lands) and point at Add Collateral / Repay. */
-              <div className="selfloan-connect-prompt" role="note">
-                <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 11v5" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                </span>
-                <span className="selfloan-connect-prompt-text">
-                  {t("loanAlreadyActiveHint")}
-                </span>
-              </div>
-            ) : (
-              <NeoButton
-                variant="primary"
-                block
-                loading={isBorrowing}
-                disabled={!localCollateralAmt || isBorrowing}
-                onClick={handleBorrow}
-              >
-                {t("borrow")}
-              </NeoButton>
-            )}
-          </div>
-
-          {/* Custody disclosure — the locked collateral simply sits in the
-              SelfLoan contract and is returned in full on repayment. The
-              contract has NO voting/ProfitAnchor path, so this states the real
-              disposition of the funds rather than implying they earn/vote. */}
-          <div className="selfloan-vote-route" role="note">
-            <span className="selfloan-vote-route-eyebrow">
-              {t("custodyTitle")}
-            </span>
-            <p className="selfloan-vote-route-copy">
-              <strong>{t("custodyValue")}</strong> · {t("custodyBadge")}
-            </p>
-          </div>
-        </div>
-      </NeoCard>
+      </div>
 
       {/* ==================== Repay Section ==================== */}
       {hasLoan && (
@@ -580,6 +602,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={!localRepayAmt || isRepaying}
               onClick={handleRepay}
             >
+              <RefreshCw size={16} />
               {t("repay")}
             </NeoButton>
           </div>
@@ -612,6 +635,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={!localAddCollateral || isAddingCollateral}
               onClick={handleAddCollateral}
             >
+              <PlusCircle size={16} />
               {t("addCollateral")}
             </NeoButton>
           </div>

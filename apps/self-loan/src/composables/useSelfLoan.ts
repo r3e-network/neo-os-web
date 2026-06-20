@@ -92,6 +92,16 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error ?? "");
 }
 
+function isContractContextPending(error: unknown): boolean {
+  const message = errorMessage(error).toLowerCase();
+  return message.includes("contract address not configured") || message.includes("contract not configured");
+}
+
+function warnLoadFailure(scope: string, error: unknown): void {
+  if (isContractContextPending(error)) return;
+  console.warn(`[useSelfLoan] ${scope} failed:`, errorMessage(error));
+}
+
 // ============================================================================
 // Amount helpers (NEO integer vs GAS base units kept strictly separate)
 // ============================================================================
@@ -390,7 +400,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         platformFeeBps: Number(parseBigInt(fee)) >= 0 ? Number(parseBigInt(fee)) : prev.platformFeeBps,
       });
     } catch (e) {
-      console.warn("[useSelfLoan] loadPlatformStats failed:", errorMessage(e));
+      warnLoadFailure("loadPlatformStats", e);
     }
   };
 
@@ -407,7 +417,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       neoPriceBase.set(base > 0n ? base : 0n);
       neoPrice.set(base > 0n ? gasFromBaseUnits(base) : 0);
     } catch (e) {
-      console.warn("[useSelfLoan] loadNeoPrice failed:", errorMessage(e));
+      warnLoadFailure("loadNeoPrice", e);
       neoPriceBase.set(0n);
       neoPrice.set(0);
     }
@@ -423,7 +433,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       const raw = await chain.read("pool", []);
       poolGas.set(Math.max(0, gasFromBaseUnits(parseBigInt(raw))));
     } catch (e) {
-      console.warn("[useSelfLoan] loadPool failed:", errorMessage(e));
+      warnLoadFailure("loadPool", e);
       poolGas.set(0);
     }
   };
@@ -443,7 +453,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       );
       neoBalance.set(Math.max(0, Number(parseBigInt(raw))));
     } catch (e) {
-      console.warn("[useSelfLoan] loadBalance failed:", errorMessage(e));
+      warnLoadFailure("loadBalance", e);
     }
   };
 
@@ -477,7 +487,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         ltvPercent: ltvBps ? ltvBps / 100 : selectedLtvPercent.get(),
       });
     } catch (e) {
-      console.warn("[useSelfLoan] loadLoanPosition failed:", errorMessage(e));
+      warnLoadFailure("loadLoanPosition", e);
       loan.set({ borrowed: 0, collateralLocked: 0, active: false });
     }
   };
@@ -503,7 +513,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // repayCredit is GAS base units — ÷1e8 for display.
       repayCredit.set(gasFromBaseUnits(parseBigInt(repayRaw)));
     } catch (e) {
-      console.warn("[useSelfLoan] loadReclaimable failed:", errorMessage(e));
+      warnLoadFailure("loadReclaimable", e);
       collateralCredit.set(0);
       repayCredit.set(0);
     }
@@ -523,7 +533,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         totalRepaid: gasFromBaseUnits(parseBigInt(repaidRaw)),
       });
     } catch (e) {
-      console.warn("[useSelfLoan] loadStats failed:", errorMessage(e));
+      warnLoadFailure("loadStats", e);
     }
   };
 

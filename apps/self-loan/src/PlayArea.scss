@@ -2,42 +2,85 @@
 @use "@shared/styles/playarea-base";
 
 .selfloan-play-area {
-  // ----- Single-hue accent system (green) + Neo Soft tokens -----
-  --sl-accent: var(--ns-brand, #16c784);
-  // Darker shade of the same brand green used for accent TEXT/icons so it meets
-  // WCAG 2.1 AA (>=4.5:1) on the light surfaces (#fff / accent-tint / accent-soft).
-  // The brand-strong token (#0fb174) is too light as foreground text (~2.8:1).
-  --sl-accent-strong: #0a6e4a;
-  --sl-accent-soft: var(--ns-brand-soft, #e4f8f0);
-  --sl-accent-tint: #f1fbf7;
-  --sl-accent-line: rgba(22, 199, 132, 0.18);
+  --sl-ink: #201c17;
+  --sl-muted: #72695f;
+  --sl-soft: #f7f2e8;
+  --sl-paper: rgba(255, 255, 255, 0.9);
+  --sl-cream: #fbf6eb;
+  --sl-cream-strong: #f0e4ce;
+  --sl-green: #15966f;
+  --sl-green-strong: #087353;
+  --sl-green-soft: #e6f7ef;
+  --sl-gold: #c88722;
+  --sl-gold-soft: #fff0cf;
+  --sl-coral: #d85f4f;
+  --sl-coral-soft: #ffebe6;
+  --sl-blue: #317a98;
+  --sl-blue-soft: #e3f3f8;
+  --sl-line: rgba(88, 66, 36, 0.14);
+  --sl-shadow: 0 18px 46px rgba(79, 56, 28, 0.13);
+  --sl-shadow-soft: 0 10px 28px rgba(79, 56, 28, 0.09);
+  --sl-radius: 18px;
 
-  padding: 1rem;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  position: relative;
+  padding: 18px;
+  color: var(--sl-ink);
+  background: linear-gradient(180deg, #fff9ed 0%, #f8f2e6 42%, #f5f8ef 100%);
 }
 
-// ---------- Hero ----------
 .selfloan-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 18px 24px;
-  padding: 22px 24px;
+  position: relative;
+  min-height: 300px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+  align-items: end;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid var(--sl-line);
+  border-radius: 22px;
+  background: var(--sl-cream);
+  box-shadow: var(--sl-shadow);
+}
+
+.selfloan-hero-image,
+.selfloan-hero-shade {
+  position: absolute;
+  inset: 0;
+}
+
+.selfloan-hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.selfloan-hero-shade {
   background:
-    radial-gradient(120% 120% at 0% 0%, rgba(22, 199, 132, 0.1), transparent 60%),
-    linear-gradient(150deg, var(--sl-accent-tint) 0%, var(--ns-surface, #ffffff) 58%);
-  border: 1px solid var(--sl-accent-line);
-  border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+    linear-gradient(90deg, rgba(255, 250, 239, 0.98) 0%, rgba(255, 250, 239, 0.9) 36%, rgba(255, 250, 239, 0.18) 72%),
+    linear-gradient(0deg, rgba(255, 250, 239, 0.52), rgba(255, 250, 239, 0.08));
+}
+
+.selfloan-hero-content,
+.selfloan-hero-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.selfloan-hero-content {
+  display: grid;
+  gap: 18px;
+  align-self: center;
+  max-width: 560px;
 }
 
 .selfloan-hero-lead {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   min-width: 0;
 }
@@ -49,420 +92,617 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface, #ffffff);
-  color: var(--sl-accent-strong);
-  box-shadow: 0 4px 12px rgba(22, 199, 132, 0.18);
+  border: 1px solid rgba(21, 150, 111, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--sl-green-strong);
+  box-shadow: 0 10px 24px rgba(21, 150, 111, 0.13);
 }
 
 .selfloan-hero-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 7px;
   min-width: 0;
 }
 
 .selfloan-hero-eyebrow {
   display: block;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--sl-accent-strong);
+  letter-spacing: 0;
+  color: var(--sl-green-strong);
 }
 
 .selfloan-hero-title {
   margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.02em;
-  color: var(--ns-ink, #1e1e2e);
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: 0;
+  color: var(--sl-ink);
 }
 
 .selfloan-hero-subtitle {
+  max-width: 480px;
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--ns-text-2, #5b6478);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.45;
+  color: #3d352d;
 }
 
-// ---------- Stat strip ----------
-.selfloan-hero-stats {
+.selfloan-hero-flow {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 9px;
+}
+
+.selfloan-hero-flow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 8px 11px;
+  border: 1px solid rgba(21, 150, 111, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--sl-green-strong);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 8px 20px rgba(79, 56, 28, 0.07);
+}
+
+.selfloan-hero-panel {
+  align-self: end;
+  justify-self: end;
+  display: grid;
+  gap: 5px;
+  min-width: 220px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: var(--sl-radius);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: var(--sl-shadow-soft);
+  -webkit-backdrop-filter: blur(13px);
+  backdrop-filter: blur(13px);
+}
+
+.selfloan-hero-panel span,
+.selfloan-hero-panel small {
+  font-size: 12px;
+  font-weight: 760;
+  color: var(--sl-muted);
+}
+
+.selfloan-hero-panel strong {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--sl-ink);
+  line-height: 1.05;
+}
+
+.selfloan-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .selfloan-hero-stat {
-  flex: 1 1 auto;
-  min-width: 104px;
-  text-align: center;
-  padding: 12px 16px;
-  border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: rgba(255, 255, 255, 0.7);
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--sl-line);
+  border-radius: var(--sl-radius);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--sl-shadow-soft);
 }
 
 .selfloan-hero-stat-value {
   display: block;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--sl-ink);
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+  line-height: 1.08;
+  letter-spacing: 0;
 }
 
 .selfloan-hero-stat-label {
   display: block;
-  margin-top: 5px;
+  margin-top: 6px;
   font-size: 11px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 800;
+  color: var(--sl-muted);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
 }
 
-// ---------- Loan Status ----------
-.selfloan-status {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.selfloan-status-row {
+.selfloan-command-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  gap: 14px;
 }
 
-.selfloan-status-item {
-  text-align: center;
-  padding: 12px 10px;
-  border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
+.selfloan-command-grid--with-loan {
+  grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.28fr);
+  align-items: start;
 }
 
-.selfloan-status-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-bottom: 0.3rem;
-}
-
-.selfloan-status-value {
-  display: block;
-  font-size: 1.125rem;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-}
-
-// ---------- Health Factor Gauge ----------
-.selfloan-health {
-  padding: 14px 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-}
-
-.selfloan-health-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.selfloan-health-label {
-  font-size: 11px;
-  color: var(--ns-text-muted, #8a92a6);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-}
-
-.selfloan-health-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.selfloan-health-track {
-  height: 6px;
-  background: linear-gradient(90deg,
-    rgba(239, 68, 68, 0.3) 0%,
-    rgba(245, 158, 11, 0.3) 40%,
-    rgba(16, 185, 129, 0.3) 100%
-  );
-  border-radius: 3px;
+.selfloan-borrow-card,
+.selfloan-position-card {
   overflow: hidden;
 }
 
-.selfloan-health-bar {
+.selfloan-vault-console {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.86fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.selfloan-vault-preview {
+  position: relative;
+  min-height: 350px;
+  overflow: hidden;
+  border: 1px solid rgba(21, 150, 111, 0.18);
+  border-radius: var(--sl-radius);
+  background: var(--sl-cream);
+  box-shadow: var(--sl-shadow-soft);
+}
+
+.selfloan-vault-preview img {
+  width: 100%;
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease, background 0.4s ease;
+  min-height: 350px;
+  object-fit: cover;
+  object-position: 58% center;
 }
 
-.selfloan-health-markers {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--ns-text-muted, #8a92a6);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.selfloan-vault-preview-card {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--sl-shadow-soft);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
-.selfloan-health-status-label {
-  font-weight: 700;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.selfloan-vault-preview-card span,
+.selfloan-vault-preview-card small {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--sl-muted);
 }
 
-// ---------- Form ----------
+.selfloan-vault-preview-card strong {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--sl-ink);
+  line-height: 1.08;
+}
+
 .selfloan-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
-// ---------- Repay field with Max chip ----------
+.selfloan-balance-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.selfloan-balance-strip span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--sl-line);
+  border-radius: 14px;
+  background: var(--sl-soft);
+  color: var(--sl-muted);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.selfloan-balance-strip strong,
+.selfloan-balance-hint strong {
+  color: var(--sl-green-strong);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.selfloan-collateral-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.66fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.selfloan-borrow-output {
+  min-height: 98px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid rgba(200, 135, 34, 0.26);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fffaf0, var(--sl-gold-soft));
+}
+
+.selfloan-borrow-output span,
+.selfloan-borrow-output small {
+  font-size: 12px;
+  font-weight: 800;
+  color: #76581c;
+}
+
+.selfloan-borrow-output strong {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--sl-ink);
+  line-height: 1.1;
+}
+
 .selfloan-repay-field {
   position: relative;
-
-  .selfloan-max-chip {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0.125rem 0.5rem;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--sl-accent-strong);
-    background: var(--sl-accent-soft);
-    border: 1px solid var(--sl-accent-line);
-    border-radius: var(--ns-radius-sm, 8px);
-    cursor: pointer;
-    transition: background 0.15s ease;
-
-    &:hover {
-      background: var(--sl-accent-tint);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
 }
 
-// ---------- Balance Hint ----------
+.selfloan-max-chip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: 26px;
+  padding: 4px 10px;
+  border: 1px solid rgba(21, 150, 111, 0.18);
+  border-radius: 999px;
+  background: var(--sl-green-soft);
+  color: var(--sl-green-strong);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.selfloan-max-chip:hover {
+  background: #d7f1e5;
+  transform: translateY(-1px);
+}
+
+.selfloan-max-chip:focus-visible,
+.selfloan-ltv-tier:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(21, 150, 111, 0.2);
+}
+
 .selfloan-balance-hint {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--ns-text-2, #5b6478);
-  padding: 0.125rem 0;
-
-  strong {
-    color: var(--sl-accent-strong);
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-  }
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--sl-muted);
+  font-size: 13px;
+  font-weight: 700;
 }
 
-// ---------- Rate / fee honesty note ----------
-// A quiet caption clarifying the operator-set price + fee destination so the
-// borrow math is not mistaken for a live market oracle.
 .selfloan-rate-fee-note {
-  margin: 4px 0 0;
-  font-size: 0.6875rem;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(49, 122, 152, 0.18);
+  border-radius: 14px;
+  background: var(--sl-blue-soft);
+  color: #31596a;
+  font-size: 12px;
+  font-weight: 650;
   line-height: 1.5;
-  color: var(--ns-text-3, #8a90a2);
 }
 
-// ---------- Vote-routing disclosure (demoted footnote inside Borrow card) ----------
-// Compact, low-weight note so it reads as a qualifier to the Borrow form above
-// it rather than a peer card competing for the eye.
 .selfloan-vote-route {
-  margin-top: 4px;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--sl-accent-tint);
-  border: 1px solid var(--sl-accent-line);
+  padding: 12px;
+  border: 1px solid rgba(21, 150, 111, 0.2);
+  border-radius: 15px;
+  background: var(--sl-green-soft);
 }
 
 .selfloan-vote-route-eyebrow {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--sl-green-strong);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--sl-accent-strong);
 }
 
 .selfloan-vote-route-copy {
-  margin: 3px 0 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--ns-text-2, #5b6478);
-
-  strong {
-    font-weight: 700;
-    color: var(--ns-ink, #1e1e2e);
-  }
+  margin: 5px 0 0;
+  color: var(--sl-muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
 }
 
-// ---------- LTV Indicator ----------
+.selfloan-vote-route-copy strong {
+  color: var(--sl-ink);
+  font-weight: 850;
+}
+
 .selfloan-ltv-tiers {
-  display: flex;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
 }
 
 .selfloan-ltv-tier {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 12px 8px;
+  display: grid;
+  gap: 4px;
+  min-height: 74px;
+  padding: 12px 10px;
+  border: 1px solid var(--sl-line);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--sl-muted);
   cursor: pointer;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
-  color: var(--ns-text-2, #5b6478);
-  transition:
-    border-color 0.2s ease,
-    background 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
 
-  &:hover:not(.is-active) {
-    border-color: var(--sl-accent-line);
-    background: var(--ns-surface, #ffffff);
-  }
+.selfloan-ltv-tier:hover:not(.is-active) {
+  border-color: rgba(21, 150, 111, 0.26);
+  background: #fffdf8;
+  transform: translateY(-1px);
+}
 
-  &:focus-visible {
-    outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  }
-
-  &.is-active {
-    border-color: var(--sl-accent);
-    background: var(--sl-accent-soft);
-    color: var(--ns-ink, #1e1e2e);
-    box-shadow: 0 2px 10px rgba(22, 199, 132, 0.14);
-  }
+.selfloan-ltv-tier.is-active {
+  border-color: rgba(21, 150, 111, 0.42);
+  background: linear-gradient(145deg, #ffffff, var(--sl-green-soft));
+  box-shadow: 0 12px 26px rgba(21, 150, 111, 0.12);
 }
 
 .selfloan-ltv-tier-label {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
+  color: inherit;
 }
 
 .selfloan-ltv-tier-percent {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--sl-ink);
   font-variant-numeric: tabular-nums;
-  color: var(--ns-ink, #1e1e2e);
-
-  .selfloan-ltv-tier.is-active & {
-    color: var(--sl-accent-strong);
-  }
 }
 
-.selfloan-ltv-indicator {
+.selfloan-ltv-tier.is-active .selfloan-ltv-tier-percent {
+  color: var(--sl-green-strong);
+}
+
+.selfloan-market-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.selfloan-market-tile {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--sl-line);
+  border-radius: 15px;
+  background: var(--sl-soft);
+}
+
+.selfloan-market-tile span {
+  color: var(--sl-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.selfloan-market-tile strong {
+  color: var(--sl-ink);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.selfloan-ltv-indicator,
+.selfloan-health {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding: 14px 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid var(--sl-line);
+  border-radius: 16px;
+  background: #fffdf8;
 }
 
-.selfloan-ltv-label {
+.selfloan-ltv-label,
+.selfloan-health-label {
+  color: var(--sl-muted);
   font-size: 11px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 850;
+  letter-spacing: 0;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
 }
 
-.selfloan-ltv-value {
-  font-size: 1.0625rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+.selfloan-ltv-value,
+.selfloan-health-value {
   margin-left: auto;
+  font-size: 18px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
-.selfloan-ltv-track {
+.selfloan-ltv-track,
+.selfloan-health-track {
   width: 100%;
-  height: 6px;
-  background: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 999px;
+  height: 8px;
   overflow: hidden;
+  border-radius: 999px;
+  background: rgba(88, 66, 36, 0.1);
 }
 
-.selfloan-ltv-bar {
+.selfloan-ltv-bar,
+.selfloan-health-bar {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, background 0.3s ease;
 }
 
-.selfloan-ltv-hints {
+.selfloan-ltv-hints,
+.selfloan-health-markers {
   width: 100%;
   display: flex;
   justify-content: space-between;
+  gap: 8px;
+  color: var(--sl-muted);
   font-size: 10px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 800;
+  letter-spacing: 0;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
-// ---------- Primary CTA ----------
-// Keep the primary action unmistakable even while disabled: a soft-tinted
-// green affordance instead of the flat grey shared-disabled bar.
+.selfloan-status {
+  display: grid;
+  gap: 12px;
+}
+
+.selfloan-position-head {
+  display: grid;
+  gap: 6px;
+  padding: 15px;
+  border: 1px solid rgba(21, 150, 111, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(230, 247, 239, 0.88)),
+    var(--sl-green-soft);
+}
+
+.selfloan-position-head strong {
+  color: var(--sl-ink);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.selfloan-position-head small {
+  color: var(--sl-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.selfloan-risk-pill {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.selfloan-risk-pill--safe {
+  background: var(--sl-green-soft);
+  color: var(--sl-green-strong);
+}
+
+.selfloan-risk-pill--caution {
+  background: var(--sl-gold-soft);
+  color: #8b5808;
+}
+
+.selfloan-risk-pill--danger {
+  background: var(--sl-coral-soft);
+  color: #a53125;
+}
+
+.selfloan-status-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.selfloan-status-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--sl-line);
+  border-radius: 15px;
+  background: var(--sl-soft);
+}
+
+.selfloan-status-label {
+  color: var(--sl-muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.selfloan-status-value {
+  color: var(--sl-ink);
+  font-size: 17px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.selfloan-health-header {
+  display: contents;
+}
+
+.selfloan-health-track {
+  background: linear-gradient(90deg, rgba(216, 95, 79, 0.24), rgba(200, 135, 34, 0.24), rgba(21, 150, 111, 0.24));
+}
+
+.selfloan-health-status-label {
+  font-weight: 900;
+}
+
 .selfloan-cta {
   .neo-btn--primary:disabled {
-    background: var(--sl-accent-soft);
-    border-color: var(--sl-accent-line);
-    color: var(--sl-accent-strong);
+    background: var(--sl-green-soft);
+    border-color: rgba(21, 150, 111, 0.2);
+    color: var(--sl-green-strong);
     box-shadow: none;
     opacity: 1;
   }
+
+  .neo-btn svg {
+    flex: 0 0 auto;
+  }
 }
 
-// ---------- Connect-wallet prompt (shown when disconnected) ----------
 .selfloan-connect-prompt {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 14px 16px;
-  border: 1px dashed var(--sl-accent-line);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--sl-accent-tint);
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(21, 150, 111, 0.28);
+  border-radius: 16px;
+  background: var(--sl-green-soft);
+  color: var(--sl-green-strong);
   text-align: center;
 }
 
@@ -470,146 +710,188 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  color: var(--sl-accent-strong);
 }
 
 .selfloan-connect-prompt-text {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--sl-accent-strong);
+  font-size: 13px;
+  font-weight: 800;
 }
 
-// ---------- Loan History ----------
 .selfloan-history {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .selfloan-history-item {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 9px;
   padding: 10px 12px;
-  border: 1px solid var(--sl-accent-line);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--sl-accent-tint);
+  border: 1px solid var(--sl-line);
+  border-radius: 15px;
+  background: var(--sl-soft);
 }
 
 .selfloan-history-icon {
-  font-size: 1rem;
+  font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .selfloan-history-label {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--ns-ink, #1e1e2e);
+  color: var(--sl-ink);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .selfloan-history-timestamp {
   margin-left: auto;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--ns-text-2, #5b6478);
+  color: var(--sl-muted);
+  font-size: 12px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
 .selfloan-history-amount {
   flex-shrink: 0;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--sl-accent-strong);
+  color: var(--sl-green-strong);
+  font-size: 13px;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
 }
 
 .selfloan-history-empty {
   padding: 18px 12px;
+  color: var(--sl-muted);
   text-align: center;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--ns-text-2, #5b6478);
+  font-size: 13px;
+  font-weight: 650;
 }
 
-// ---------- Loading Overlay ----------
 .selfloan-loading-overlay {
   position: absolute;
   inset: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(2px);
-  border-radius: var(--ns-radius-lg, 20px);
-  z-index: 10;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.875rem;
-  font-weight: 600;
+  gap: 12px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--sl-muted);
+  font-size: 14px;
+  font-weight: 760;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .selfloan-loading-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-top-color: var(--sl-accent);
+  border: 3px solid rgba(21, 150, 111, 0.14);
+  border-top-color: var(--sl-green);
   border-radius: 50%;
   animation: selfloan-spin 0.8s linear infinite;
 }
 
 @keyframes selfloan-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-// ---------- Responsive ----------
-@media (max-width: 520px) {
+@media (max-width: 980px) {
+  .selfloan-command-grid--with-loan,
+  .selfloan-vault-console {
+    grid-template-columns: 1fr;
+  }
+
+  .selfloan-vault-preview {
+    min-height: 260px;
+  }
+
+  .selfloan-vault-preview img {
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 620px) {
+  .selfloan-play-area {
+    padding: 10px;
+  }
+
   .selfloan-hero {
-    padding: 20px 18px;
-    gap: 16px;
+    grid-template-columns: 1fr;
+    min-height: 440px;
+    padding: 18px;
+  }
+
+  .selfloan-hero-shade {
+    background:
+      linear-gradient(180deg, rgba(255, 250, 239, 0.95) 0%, rgba(255, 250, 239, 0.74) 48%, rgba(255, 250, 239, 0.18) 100%),
+      linear-gradient(0deg, rgba(255, 250, 239, 0.46), rgba(255, 250, 239, 0.1));
+  }
+
+  .selfloan-hero-image {
+    object-position: 62% center;
+  }
+
+  .selfloan-hero-lead {
+    align-items: flex-start;
   }
 
   .selfloan-hero-title {
-    font-size: 23px;
+    font-size: 26px;
   }
 
-  .selfloan-hero-stats {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+  .selfloan-hero-subtitle {
+    font-size: 14px;
   }
 
-  .selfloan-hero-stat {
+  .selfloan-hero-panel {
+    justify-self: stretch;
     min-width: 0;
-    padding: 12px 8px;
   }
 
-  .selfloan-hero-stat-value {
-    font-size: 17px;
-  }
-
+  .selfloan-hero-stats,
+  .selfloan-balance-strip,
+  .selfloan-collateral-entry,
+  .selfloan-market-grid,
   .selfloan-status-row {
-    gap: 0.5rem;
+    grid-template-columns: 1fr;
   }
 
-  .selfloan-status-item {
-    padding: 12px 6px;
+  .selfloan-ltv-tiers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
   }
 
-  .selfloan-status-value {
-    font-size: 1rem;
+  .selfloan-ltv-tier {
+    min-height: 68px;
+    padding: 10px 7px;
+  }
+
+  .selfloan-ltv-tier-percent {
+    font-size: 17px;
   }
 }
 
-@media (max-width: 380px) {
-  .selfloan-hero-stat-label,
-  .selfloan-status-label {
-    letter-spacing: 0.06em;
+@media (max-width: 390px) {
+  .selfloan-hero {
+    min-height: 470px;
+  }
+
+  .selfloan-hero-flow span {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .selfloan-ltv-tiers {
+    grid-template-columns: 1fr;
   }
 }
