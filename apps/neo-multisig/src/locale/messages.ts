@@ -26,6 +26,15 @@ const appMessages = {
     en: "Deposit GAS or NEO into a shared vault, propose a spend, and let the contract release funds once the approval threshold is met.",
     zh: "将 GAS 或 NEO 存入共管金库，发起支出请求，达到批准阈值后由合约自动放行。",
   },
+  multisigHeroSnapshot: { en: "Vault snapshot", zh: "金库快照" },
+  multisigBoardTitle: { en: "Signer board", zh: "签名人看板" },
+  multisigSignerApproved: { en: "Approved", zh: "已批准" },
+  multisigSignerWaiting: { en: "Waiting", zh: "待签署" },
+  multisigSignerDraft: { en: "Ready", zh: "已填写" },
+  multisigProposalPreview: { en: "Proposal docket", zh: "提案单" },
+  multisigApprovalBoard: { en: "Approval board", zh: "批准看板" },
+  multisigAmountPreview: { en: "Amount to release", zh: "待放行金额" },
+  multisigRecipientPreview: { en: "Recipient pending", zh: "待填写接收方" },
 
   multisigVaultTitle: { en: "Custody vault", zh: "共管金库" },
   multisigVaultCopy: {
