@@ -32,7 +32,7 @@ const truncateAddress = (addr: string) =>
 
 export default function ContractList({
   contracts,
-  address,
+  address: _address,
   onSign,
   onBreak,
   onCancel,

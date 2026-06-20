@@ -1,9 +1,17 @@
 import { useState } from "react";
+import {
+  BadgeCheck,
+  Clock3,
+  Coins,
+  FileText,
+  HeartHandshake,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ContractList from "./components/ContractList";
-import PactGlyph from "./components/PactGlyph";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -13,6 +21,9 @@ interface PlayAreaProps {
 }
 
 const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
+
+const truncate = (value: string) =>
+  value.length > 24 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
@@ -76,6 +87,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const durationPresets = ["30", "90", "365"];
 
   const hasContracts = contractCount > 0;
+  const previewTitle = title.trim() || t("pactPreviewUntitled");
+  const previewPartner = partner.trim() ? truncate(partner.trim()) : t("pactPreviewPartner");
+  const previewStake = stake.trim() || "0";
+  const previewDays = days.trim() || "90";
+  const previewTerms = terms.trim() || t("pactPreviewTerms");
 
   const handleCreate = async () => {
     if (!canSubmit) return;
@@ -100,63 +116,113 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="breakup-play-area">
-      {/* Hero — badge + title + subtitle, with a single compact metrics line */}
       <div className="breakup-hero">
-        <div className="breakup-hero-head">
-          <div className="breakup-hero-badge">
-            <PactGlyph size={40} title={t("heroIconTitle")} />
-          </div>
-          <div className="breakup-hero-copy">
-            <span className="breakup-hero-eyebrow">{t("contractTitle")}</span>
-            <h1 className="breakup-hero-title">{t("title")}</h1>
-            <p className="breakup-hero-subtitle">
-              {t("subtitle")}
-            </p>
-          </div>
+        <img className="breakup-hero-image" src="./pact-table.jpg" alt={t("heroImageAlt")} />
+        <div className="breakup-hero-shade" aria-hidden="true" />
+        <div className="breakup-hero-content">
+          <span className="breakup-hero-badge" aria-hidden="true">
+            <HeartHandshake size={24} strokeWidth={2.1} />
+          </span>
+          <span className="breakup-hero-eyebrow">{t("contractTitle")}</span>
+          <h1 className="breakup-hero-title">{t("title")}</h1>
+          <p className="breakup-hero-subtitle">
+            {t("subtitle")}
+          </p>
           <ul className="breakup-hero-tags" aria-label={t("howItWorksTitle")}>
-            <li className="breakup-hero-tag">{t("heroTagStakeBacked")}</li>
-            <li className="breakup-hero-tag">{t("heroTagOnChain")}</li>
-            <li className="breakup-hero-tag">{t("heroTagRefundable")}</li>
+            <li className="breakup-hero-tag">
+              <Coins size={14} strokeWidth={2} aria-hidden="true" />
+              {t("heroTagStakeBacked")}
+            </li>
+            <li className="breakup-hero-tag">
+              <ShieldCheck size={14} strokeWidth={2} aria-hidden="true" />
+              {t("heroTagOnChain")}
+            </li>
+            <li className="breakup-hero-tag">
+              <BadgeCheck size={14} strokeWidth={2} aria-hidden="true" />
+              {t("heroTagRefundable")}
+            </li>
           </ul>
-        </div>
 
-        {hasContracts && (
-          <div className="breakup-hero-metrics" role="group">
-            <span className="breakup-metric">
-              <strong>{activeCount}</strong> {t("active")}
-            </span>
-            <span className="breakup-metric-sep" aria-hidden="true" />
-            <span className="breakup-metric">
-              <strong>{pendingCount}</strong> {t("pending")}
-            </span>
-            <span className="breakup-metric-sep" aria-hidden="true" />
-            <span className="breakup-metric">
-              <strong>{brokenCount}</strong> {t("broken")}
-            </span>
-            <span className="breakup-metric-sep" aria-hidden="true" />
-            <span className="breakup-metric">
-              <strong>{contractCount}</strong> {t("total")}
-            </span>
-          </div>
-        )}
+          {hasContracts && (
+            <div className="breakup-hero-metrics" role="group">
+              <span className="breakup-metric">
+                <strong>{activeCount}</strong> {t("active")}
+              </span>
+              <span className="breakup-metric">
+                <strong>{pendingCount}</strong> {t("pending")}
+              </span>
+              <span className="breakup-metric">
+                <strong>{brokenCount}</strong> {t("broken")}
+              </span>
+              <span className="breakup-metric">
+                <strong>{contractCount}</strong> {t("total")}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Primary action — Create Contract form, surfaced immediately */}
-      <NeoCard title={t("newContract")} className="breakup-create-card">
-        <div className="create-contract-section">
-          <p className="contract-description">
-            {t("contractDescription")}
-          </p>
-          <p className="contract-economics-note">
-            {t("clause1")}
-          </p>
-          <NeoInput
-            label={t("partnerAddress")}
-            placeholder="N..."
-            value={partner}
-            error={partnerLooksInvalid ? t("partnerInvalid") : ""}
-            onChange={setPartner}
-          />
+      <section className="breakup-builder" aria-label={t("newContract")}>
+        <div className="breakup-pact-preview">
+          <span className="breakup-preview-label">{t("pactPreview")}</span>
+          <strong>{previewTitle}</strong>
+          <p>{previewTerms}</p>
+          <div className="breakup-preview-meta">
+            <span>
+              <UserRound size={15} strokeWidth={2} aria-hidden="true" />
+              {previewPartner}
+            </span>
+            <span>
+              <Coins size={15} strokeWidth={2} aria-hidden="true" />
+              {previewStake} GAS
+            </span>
+            <span>
+              <Clock3 size={15} strokeWidth={2} aria-hidden="true" />
+              {previewDays} {t("daysSuffix")}
+            </span>
+          </div>
+          <div className="breakup-preview-rule">
+            <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
+            <span>{t("pactPreviewRule")}</span>
+          </div>
+        </div>
+
+        <div className="breakup-builder-panel">
+          <div className="breakup-builder-head">
+            <span className="breakup-builder-eyebrow">{t("newContract")}</span>
+            <h2>{t("builderTitle")}</h2>
+            <p>{t("contractDescription")}</p>
+          </div>
+          <div className="breakup-builder-note">
+            <FileText size={16} strokeWidth={2} aria-hidden="true" />
+            <span>{t("clause1")}</span>
+          </div>
+          <div className="breakup-builder-step">
+            <span className="breakup-step-index">01</span>
+            <span>{t("builderStepPartner")}</span>
+          </div>
+          <div className="breakup-field-grid">
+            <NeoInput
+              label={t("partnerAddress")}
+              placeholder="N..."
+              value={partner}
+              error={partnerLooksInvalid ? t("partnerInvalid") : ""}
+              onChange={setPartner}
+            />
+            <NeoInput
+              label={t("titleLabel")}
+              placeholder={t("contractTitlePlaceholder")}
+              value={title}
+              required
+              error={titleTooLong ? t("titleTooLong") : ""}
+              hint={titleTooLong ? "" : t("titleCounter", { count: title.trim().length, max: TITLE_MAX })}
+              onChange={setTitle}
+            />
+          </div>
+          <div className="breakup-builder-step">
+            <span className="breakup-step-index">02</span>
+            <span>{t("builderStepStake")}</span>
+          </div>
           <div className="create-contract-grid">
             <div className="breakup-field-stack">
               <NeoInput
@@ -207,19 +273,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </div>
           </div>
-          <NeoInput
-            label={t("titleLabel")}
-            placeholder={t("contractTitlePlaceholder")}
-            value={title}
-            required
-            error={titleTooLong ? t("titleTooLong") : ""}
-            hint={titleTooLong ? "" : t("titleCounter", { count: title.trim().length, max: TITLE_MAX })}
-            onChange={setTitle}
-          />
+          <div className="breakup-builder-step">
+            <span className="breakup-step-index">03</span>
+            <span>{t("builderStepTerms")}</span>
+          </div>
           <NeoInput
             label={t("contractTerms")}
             placeholder={t("contractTermsPlaceholder")}
             type="textarea"
+            className="breakup-terms-input"
             value={terms}
             error={termsTooLong ? t("termsTooLong") : ""}
             hint={termsTooLong ? "" : t("termsCounter", { count: terms.trim().length, max: TERMS_MAX })}
@@ -253,7 +315,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             )}
           </div>
         </div>
-      </NeoCard>
+      </section>
 
       {/* How-it-works explainer — fills the empty/first-paint viewport with the
           pact lifecycle so the lower page is not a void. Hidden once there are
