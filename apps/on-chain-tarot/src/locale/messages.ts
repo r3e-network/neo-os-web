@@ -13,7 +13,22 @@ const appMessages = {
   drawing: { en: "Drawing...", zh: "抽取中..." },
   drawAgain: { en: "Draw Again", zh: "再次抽取" },
   questionLabel: { en: "Your question", zh: "你的问题" },
-  questionPlaceholder: { en: "Ask a question...", zh: "输入你的问题..." },
+  questionPlaceholder: {
+    en: "Type a focused question, or pick an intent above.",
+    zh: "输入一个明确问题，或选择上方意图。",
+  },
+  questionPresetClarity: {
+    en: "What needs clarity right now?",
+    zh: "现在最需要看清什么？",
+  },
+  questionPresetDecision: {
+    en: "Which path should I choose?",
+    zh: "我该选择哪条路径？",
+  },
+  questionPresetMomentum: {
+    en: "Where is momentum building?",
+    zh: "势能正在哪里聚集？",
+  },
   defaultQuestion: { en: "tarot", zh: "塔罗" },
   yourReading: { en: "Your Reading", zh: "您的解读" },
   readingSummary: { en: "Your Reading", zh: "您的解读" },
@@ -29,8 +44,14 @@ const appMessages = {
     zh: "链上抽取的三张牌解读。",
   },
   readingPending: { en: "Reading pending", zh: "解读确认中" },
-  readingUnavailable: { en: "On-chain reading is not available yet", zh: "链上解读暂不可用" },
-  walletNotConnected: { en: "Connect your wallet to draw", zh: "请连接钱包以抽牌" },
+  readingUnavailable: {
+    en: "On-chain reading is not available yet",
+    zh: "链上解读暂不可用",
+  },
+  walletNotConnected: {
+    en: "Connect your wallet to draw",
+    zh: "请连接钱包以抽牌",
+  },
   depositPrepaidNoReading: {
     en: "Draw fee prepaid, but the reading did not complete. The credit is held on the contract and will be reused on your next draw.",
     zh: "抽牌费用已预付，但解读未完成。该额度已保存在合约中，将在你下次抽牌时复用。",
@@ -46,7 +67,19 @@ const appMessages = {
     en: "Ask a focused question, pay the on-chain draw fee, then reveal Past, Present, and Future cards drawn on-chain with a clear wallet-reviewed route.",
     zh: "输入明确问题，支付链上抽牌费用，然后按过去、现在、未来揭示由链上抽取的结果，并清楚查看钱包确认路径。",
   },
-  oracleRequestTitle: { en: "Neo N3 share-ready reading", zh: "Neo N3 可分享读牌" },
+  tarotStageAlt: {
+    en: "Three Neo tarot cards arranged on a bright reading table.",
+    zh: "三张 Neo 塔罗牌摆放在明亮读牌桌上。",
+  },
+  dealTableLabel: { en: "Reading table", zh: "读牌桌" },
+  dealTableReady: {
+    en: "Past, Present, Future ready",
+    zh: "过去、现在、未来已就位",
+  },
+  oracleRequestTitle: {
+    en: "Neo N3 share-ready reading",
+    zh: "Neo N3 可分享读牌",
+  },
   readingFlowTitle: { en: "Reading flow", zh: "读牌流程" },
   readingStepOne: { en: "Write the question", zh: "写下问题" },
   readingStepOneCopy: {
@@ -64,6 +97,12 @@ const appMessages = {
     zh: "每张牌在用户点击过去、现在、未来前保持封存。",
   },
   oraclePromptLabel: { en: "Question prompt", zh: "问题提示" },
+  readingIntentTitle: { en: "Reading intent", zh: "读牌意图" },
+  readingIntentCopy: {
+    en: "Choose a quick intent or write one focused question. The prompt stays local; only the draw and card ids are handled on-chain.",
+    zh: "选择快捷意图或写下一个明确问题。问题保留在本地；链上只处理抽牌和卡牌编号。",
+  },
+  quickIntentLabel: { en: "Quick reading intents", zh: "快捷读牌意图" },
   requestReady: { en: "Ready", zh: "就绪" },
   awaitingCards: { en: "Awaiting draw", zh: "等待抽牌" },
   awaitingDraw: { en: "Awaiting draw", zh: "等待抽牌" },
@@ -116,13 +155,22 @@ const appMessages = {
     en: "On-Chain Tarot provides mystical three-card readings drawn on-chain. Ask your question, pay a 0.1 GAS draw fee to the contract, and the contract picks three distinct Past-Present-Future cards using Neo N3's Runtime.GetRandom in the same transaction, so the reading is authoritative and auditable from the ReadingDrawn event.",
     zh: "链上塔罗提供在链上抽取的神秘三牌解读。提出问题，向合约支付 0.1 GAS 抽牌费用，合约即在同一笔交易中使用 Neo N3 的 Runtime.GetRandom 抽出三张不同的过去-现在-未来牌，解读具权威性，可凭 ReadingDrawn 事件审计。",
   },
-  step1: { en: "Connect your wallet and enter your question.", zh: "连接钱包并输入你的问题。" },
-  step2: { en: "Pay the 0.1 GAS draw fee to the contract.", zh: "向合约支付 0.1 GAS 抽牌费用。" },
+  step1: {
+    en: "Connect your wallet and enter your question.",
+    zh: "连接钱包并输入你的问题。",
+  },
+  step2: {
+    en: "Pay the 0.1 GAS draw fee to the contract.",
+    zh: "向合约支付 0.1 GAS 抽牌费用。",
+  },
   step3: {
     en: "The contract draws your three cards on-chain in the same transaction.",
     zh: "合约在同一笔交易中于链上抽出你的三张牌。",
   },
-  step4: { en: "Flip each card to reveal your Past, Present, and Future.", zh: "翻转每张牌揭示你的过去、现在和未来。" },
+  step4: {
+    en: "Flip each card to reveal your Past, Present, and Future.",
+    zh: "翻转每张牌揭示你的过去、现在和未来。",
+  },
   feature1Name: { en: "On-Chain Draw", zh: "链上抽牌" },
   feature1Desc: {
     en: "Cards are drawn on-chain by the contract using Neo N3's Runtime.GetRandom, so anyone can audit the reading from the ReadingDrawn event.",
@@ -162,7 +210,10 @@ const appMessages = {
     zh: "未完成的抽牌费用所剩的 GAS。下次抽牌会复用，也可立即提取。",
   },
   withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
-  creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
+  creditWithdrawn: {
+    en: "Withdrew {amount} {tokenGas} prepaid credit",
+    zh: "已提取预付额度 {amount} {tokenGas}",
+  },
   noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
   tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
