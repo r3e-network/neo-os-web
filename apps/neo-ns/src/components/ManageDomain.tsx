@@ -3,6 +3,7 @@
  */
 
 import { useState } from "react";
+import { ArrowLeft, KeyRound, Send, Settings2 } from "lucide-react";
 import { NeoButton, NeoInput, NeoCard } from "@shared/components-react";
 import type { Domain } from "../hooks/useNeoNS";
 
@@ -22,7 +23,12 @@ interface ManageDomainProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function ManageDomain({ t, domain, loading, dispatch }: ManageDomainProps) {
+export default function ManageDomain({
+  t,
+  domain,
+  loading,
+  dispatch,
+}: ManageDomainProps) {
   const [targetAddress, setTargetAddress] = useState("");
   const [transferAddress, setTransferAddress] = useState("");
 
@@ -30,11 +36,25 @@ export default function ManageDomain({ t, domain, loading, dispatch }: ManageDom
   const transferInvalid = isAddressFieldInvalid(transferAddress);
 
   return (
-    <NeoCard variant="erobo">
+    <NeoCard variant="erobo" className="nns-manage-card">
       <div className="manage-panel">
         <div className="manage-header">
-          <h3>{t("manageTitle")}: {domain.name}</h3>
-          <NeoButton variant="secondary" onClick={() => dispatch("cancelManage")}>{t("cancelManage")}</NeoButton>
+          <div className="manage-heading">
+            <span className="manage-heading__icon" aria-hidden="true">
+              <Settings2 size={20} />
+            </span>
+            <div>
+              <span>{t("manageTitle")}</span>
+              <h3>{domain.name}</h3>
+            </div>
+          </div>
+          <NeoButton
+            variant="secondary"
+            onClick={() => dispatch("cancelManage")}
+          >
+            <ArrowLeft size={15} aria-hidden="true" />
+            {t("cancelManage")}
+          </NeoButton>
         </div>
 
         <div className="manage-info">
@@ -44,7 +64,11 @@ export default function ManageDomain({ t, domain, loading, dispatch }: ManageDom
           </div>
           <div className="info-row">
             <span className="info-label">{t("currentExpiry")}</span>
-            <span className="info-value">{domain.expiry > 0 ? new Date(domain.expiry).toLocaleDateString() : "—"}</span>
+            <span className="info-value">
+              {domain.expiry > 0
+                ? new Date(domain.expiry).toLocaleDateString()
+                : "—"}
+            </span>
           </div>
           <div className="info-row">
             <span className="info-label">{t("currentTarget")}</span>
@@ -52,9 +76,23 @@ export default function ManageDomain({ t, domain, loading, dispatch }: ManageDom
           </div>
         </div>
 
-        <div className="manage-action-group">
+        <section className="manage-action-group">
+          <div className="manage-action-intro">
+            <span aria-hidden="true">
+              <KeyRound size={18} />
+            </span>
+            <div>
+              <strong>{t("setTarget")}</strong>
+              <p>{t("targetActionCopy")}</p>
+            </div>
+          </div>
           <div className="manage-action">
-            <NeoInput value={targetAddress} label={t("setTarget")} placeholder={t("targetAddress")} onChange={(v) => setTargetAddress(v)} />
+            <NeoInput
+              value={targetAddress}
+              label={t("setTarget")}
+              placeholder={t("targetAddress")}
+              onChange={(v) => setTargetAddress(v)}
+            />
             <NeoButton
               variant="primary"
               loading={loading}
@@ -64,12 +102,30 @@ export default function ManageDomain({ t, domain, loading, dispatch }: ManageDom
               {t("setTarget")}
             </NeoButton>
           </div>
-          {targetInvalid && <p className="field-error" role="alert">{t("invalidAddressHint")}</p>}
-        </div>
+          {targetInvalid && (
+            <p className="field-error" role="alert">
+              {t("invalidAddressHint")}
+            </p>
+          )}
+        </section>
 
-        <div className="manage-action-group">
+        <section className="manage-action-group">
+          <div className="manage-action-intro">
+            <span aria-hidden="true">
+              <Send size={18} />
+            </span>
+            <div>
+              <strong>{t("transferDomain")}</strong>
+              <p>{t("transferActionCopy")}</p>
+            </div>
+          </div>
           <div className="manage-action">
-            <NeoInput value={transferAddress} label={t("transferDomain")} placeholder={t("receiverAddress")} onChange={(v) => setTransferAddress(v)} />
+            <NeoInput
+              value={transferAddress}
+              label={t("transferDomain")}
+              placeholder={t("receiverAddress")}
+              onChange={(v) => setTransferAddress(v)}
+            />
             <NeoButton
               variant="primary"
               loading={loading}
@@ -79,8 +135,12 @@ export default function ManageDomain({ t, domain, loading, dispatch }: ManageDom
               {t("transferDomain")}
             </NeoButton>
           </div>
-          {transferInvalid && <p className="field-error" role="alert">{t("invalidAddressHint")}</p>}
-        </div>
+          {transferInvalid && (
+            <p className="field-error" role="alert">
+              {t("invalidAddressHint")}
+            </p>
+          )}
+        </section>
       </div>
     </NeoCard>
   );
