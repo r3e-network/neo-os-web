@@ -1,9 +1,7 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/playarea-base";
 
-// Single league hue — the brand green. The flame mark, eyebrow, presets, CTA,
-// section titles and leaderboard ranks all share it so the surface reads as one
-// accent (the old violet game-icon clash is gone). Red stays for danger only.
+// Brand green drives the league, while amber marks prize moments and warnings.
 $burn-accent: var(--ns-brand, #16c784);
 $burn-accent-strong: var(--ns-brand-strong, #0fb174);
 $burn-accent-soft: var(--ns-brand-soft, #e4f8f0);
@@ -31,21 +29,48 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 /* ── Hero ─────────────────────────────────────────────── */
 .burn-league-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px 24px;
-  padding: 24px 28px;
-  background: var(--ns-surface, #ffffff);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 280px;
+  overflow: hidden;
+  background: #f8f1df;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
+.burn-league-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.burn-league-hero-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.burn-league-hero-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+  gap: 18px;
+  align-items: end;
+  min-height: 280px;
+  padding: 28px;
+  background:
+    linear-gradient(90deg, rgba(255, 250, 238, 0.96) 0%, rgba(255, 250, 238, 0.78) 42%, rgba(255, 250, 238, 0.1) 100%),
+    linear-gradient(0deg, rgba(15, 72, 54, 0.2), rgba(15, 72, 54, 0));
+}
+
 .burn-league-hero-lead {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 14px;
   min-width: 0;
 }
@@ -61,8 +86,9 @@ $burn-amber: var(--ns-warning, #f5a623);
   font-size: 24px;
   line-height: 1;
   border-radius: var(--ns-radius-md, 16px);
-  background: $burn-accent-soft;
-  color: $burn-accent-strong;
+  background: rgba(255, 255, 255, 0.86);
+  color: $burn-accent-deep;
+  box-shadow: 0 14px 34px rgba(17, 80, 55, 0.16);
 
   /* While a season is live the flame breathes — a subtle game-idle pulse. */
   &.is-live svg {
@@ -106,15 +132,17 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 .burn-league-hero-title {
   margin: 0;
-  font-size: 24px;
+  max-width: 360px;
+  font-size: 30px;
   font-weight: 800;
   line-height: 1.12;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
 }
 
 .burn-league-hero-subtitle {
   margin: 0;
+  max-width: 360px;
   font-size: 13px;
   font-weight: 500;
   color: var(--ns-text-2, #5b6478);
@@ -194,12 +222,21 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 /* ── Focal prize pool (right side of hero) ─────────────── */
 .burn-league-hero-pool {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 4px;
+  align-self: end;
+  justify-content: center;
+  min-width: 0;
+  min-height: 154px;
+  padding: 18px;
   text-align: right;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 46px rgba(18, 80, 55, 0.14);
+  backdrop-filter: blur(10px);
 }
 
 .burn-league-hero-pool-label {
@@ -211,11 +248,11 @@ $burn-amber: var(--ns-warning, #f5a623);
 }
 
 .burn-league-hero-pool-value {
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 900;
   line-height: 1.05;
-  letter-spacing: -0.025em;
-  color: $burn-accent-strong;
+  letter-spacing: 0;
+  color: $burn-accent-deep;
   font-variant-numeric: tabular-nums;
 }
 
@@ -234,7 +271,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   margin: 2px 0;
   border-radius: var(--ns-radius-md, 16px);
   background: $burn-accent-soft;
-  color: $burn-accent-strong;
+  color: $burn-accent-deep;
 }
 
 .burn-league-hero-pool.is-empty {
@@ -269,7 +306,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   strong {
     font-size: 12px;
     font-weight: 800;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     text-transform: none;
     color: var(--ns-text, #2a2d3d);
     font-variant-numeric: tabular-nums;
@@ -318,7 +355,7 @@ $burn-amber: var(--ns-warning, #f5a623);
 .burn-league-season-status {
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: $burn-accent-strong;
 
   .burn-league-season--ended & {
@@ -358,7 +395,7 @@ $burn-amber: var(--ns-warning, #f5a623);
 .burn-league-season-countdown {
   font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: $burn-accent-strong;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
@@ -418,7 +455,7 @@ $burn-amber: var(--ns-warning, #f5a623);
 .burn-league-service-notice__title {
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--ns-warning, #b76b00);
 }
 
@@ -510,15 +547,12 @@ $burn-amber: var(--ns-warning, #f5a623);
 }
 
 .burn-league-howto-caret {
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
+  flex: 0 0 auto;
+  transform: rotate(0deg);
   transition: transform var(--ns-t-fast, 150ms) ease;
 
   .burn-league-howto-toggle[aria-expanded="true"] & {
-    transform: rotate(-135deg);
+    transform: rotate(180deg);
   }
 }
 
@@ -530,11 +564,9 @@ $burn-amber: var(--ns-warning, #f5a623);
   margin: 0 0 16px;
   padding: 0;
   list-style: none;
-  counter-reset: burn-step;
 }
 
 .burn-league-howto-step {
-  counter-increment: burn-step;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -545,32 +577,30 @@ $burn-amber: var(--ns-warning, #f5a623);
   font-size: 12px;
   font-weight: 700;
   color: var(--ns-text-2, #5b6478);
+}
 
-  &::before {
-    content: counter(burn-step);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: var(--ns-radius-full, 9999px);
-    background: $burn-accent-soft;
-    color: $burn-accent-strong;
-    font-size: 11px;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-  }
+.burn-league-howto-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $burn-accent-soft;
+  color: $burn-accent-strong;
+  font-size: 11px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
 
-  /* The payoff step wears the full accent so the "win" reads as the goal. */
-  &.is-prize {
-    background: $burn-accent;
-    border-color: transparent;
+.burn-league-howto-step.is-prize {
+  background: $burn-accent;
+  border-color: transparent;
+  color: #ffffff;
+
+  .burn-league-howto-step-index {
+    background: rgba(255, 255, 255, 0.24);
     color: #ffffff;
-
-    &::before {
-      background: rgba(255, 255, 255, 0.24);
-      color: #ffffff;
-    }
   }
 }
 
@@ -592,6 +622,144 @@ $burn-amber: var(--ns-warning, #f5a623);
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.burn-league-fuel-console {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(220px, 0.92fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.burn-league-fuel-control,
+.burn-league-route {
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  background: #fbf8ef;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.burn-league-fuel-control {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.burn-league-fuel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.burn-league-fuel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: #ffffff;
+  color: $burn-accent-deep;
+  box-shadow: 0 8px 22px rgba(22, 109, 76, 0.1);
+}
+
+.burn-league-fuel-copy {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.burn-league-fuel-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.burn-league-fuel-value {
+  color: $burn-accent-deep;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.burn-league-fuel-meter {
+  position: relative;
+  height: 16px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: #efe5cf;
+  border: 1px solid rgba(118, 83, 26, 0.12);
+}
+
+.burn-league-fuel-meter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0a8050, #18c88a, #f5a623);
+  transition: width 260ms var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.burn-league-fuel-meter__spark {
+  position: absolute;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.86);
+  opacity: 0;
+  transform: translateY(-50%);
+  animation: burn-league-meter-spark 1.7s ease-in-out infinite;
+}
+
+.burn-league-fuel-meter__spark--one {
+  left: 22%;
+}
+
+.burn-league-fuel-meter__spark--two {
+  left: 54%;
+  animation-delay: 360ms;
+}
+
+.burn-league-fuel-meter__spark--three {
+  left: 78%;
+  animation-delay: 720ms;
+}
+
+.burn-league-amount-input {
+  .neo-input__label {
+    color: $burn-accent-deep;
+    font-weight: 800;
+  }
+
+  .neo-input__wrapper {
+    min-height: 58px;
+    border-color: rgba(22, 199, 132, 0.24);
+    background: #ffffff;
+  }
+
+  .neo-input__field {
+    height: 56px;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .neo-input__suffix {
+    color: $burn-accent-deep;
+    font-size: 12px;
+    font-weight: 900;
+  }
 }
 
 .burn-league-presets {
@@ -619,13 +787,93 @@ $burn-amber: var(--ns-warning, #f5a623);
   &:hover,
   &.is-active {
     border-color: rgba(22, 199, 132, 0.34);
-    background: $burn-accent-soft;
+    background: #ffffff;
     color: $burn-accent-deep;
   }
 
   &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
+  }
+}
+
+.burn-league-route {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.burn-league-route-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.burn-league-route-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--ns-radius-sm, 12px);
+  color: $burn-accent-deep;
+  background: $burn-accent-soft;
+}
+
+.burn-league-route-node.is-pool .burn-league-route-icon {
+  color: #8a5a05;
+  background: #fff1c9;
+}
+
+.burn-league-route-node.is-rank .burn-league-route-icon {
+  color: #0b5d95;
+  background: #e4f2ff;
+}
+
+.burn-league-route-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  span {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
+  strong {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
+
+.burn-league-route-rail {
+  position: relative;
+  display: block;
+  width: 2px;
+  height: 18px;
+  margin-left: 28px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(22, 199, 132, 0.16);
+
+  span {
+    display: block;
+    width: 100%;
+    height: 65%;
+    border-radius: inherit;
+    background: $burn-accent;
+    animation: burn-league-route-flow 1.45s ease-in-out infinite;
   }
 }
 
@@ -704,8 +952,7 @@ $burn-amber: var(--ns-warning, #f5a623);
     min-width: 0;
   }
 
-  /* Skin the primary CTA to the app's violet anchor (the shared
-     primary variant is brand-green) so icon, chips and CTA share one hue. */
+  /* Skin the primary CTA to a deeper green so white text meets contrast. */
   .neo-btn--primary {
     // AA: white-on-#16c784 is ~2.2:1. The CTA uses the darker brand green
     // (#0a8050 = 4.98:1, hover #086a45) while chips/labels keep $burn-accent.
@@ -777,38 +1024,28 @@ $burn-amber: var(--ns-warning, #f5a623);
     opacity var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
     transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
     visibility var(--ns-t-fast, 150ms);
-
-  span {
-    position: relative;
-    padding-left: 18px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--ns-text-2, #5b6478);
-
-    &::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 6px;
-      width: 8px;
-      height: 8px;
-      border-radius: var(--ns-radius-full, 9999px);
-      background: $burn-accent;
-    }
-  }
 }
 
 .burn-league-review-tip__heading {
-  padding-left: 0 !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6) !important;
+  color: var(--ns-text-muted, #8a92a6);
+}
 
-  &::before {
-    display: none;
+.burn-league-review-tip__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ns-text-2, #5b6478);
+
+  svg {
+    flex: 0 0 auto;
+    color: $burn-accent-deep;
   }
 }
 
@@ -880,7 +1117,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   margin: 0;
   font-size: 14px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
 }
 
@@ -959,6 +1196,14 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 /* ── Mobile ── */
 @media (max-width: 720px) {
+  .burn-league-fuel-console {
+    grid-template-columns: 1fr;
+  }
+
+  .burn-league-route {
+    grid-template-columns: 1fr;
+  }
+
   .burn-league-action-buttons {
     grid-template-columns: 1fr;
   }
@@ -991,8 +1236,14 @@ $burn-amber: var(--ns-warning, #f5a623);
    left-aligned full-width row so the focal number never crowds the title. */
 @media (max-width: 600px) {
   .burn-league-hero {
-    flex-direction: column;
-    align-items: flex-start;
+    min-height: auto;
+  }
+
+  .burn-league-hero-panel {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 22px;
+    background: rgba(255, 250, 238, 0.9);
   }
 
   .burn-league-hero-pool {
@@ -1009,7 +1260,7 @@ $burn-amber: var(--ns-warning, #f5a623);
 }
 
 @media (max-width: 480px) {
-  .burn-league-hero {
+  .burn-league-hero-panel {
     padding: 20px 18px;
   }
 
@@ -1073,7 +1324,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   margin: 0 0 8px;
   font-size: 20px;
   font-weight: 900;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
 }
 
@@ -1147,6 +1398,19 @@ $burn-amber: var(--ns-warning, #f5a623);
   100% { opacity: 0; transform: translateY(105vh) rotate(540deg); }
 }
 
+@keyframes burn-league-meter-spark {
+  0% { opacity: 0; transform: translateY(-50%) scale(0.7); }
+  25% { opacity: 0.9; }
+  70% { opacity: 0.2; transform: translateY(-50%) scale(1.15); }
+  100% { opacity: 0; transform: translateY(-50%) scale(0.7); }
+}
+
+@keyframes burn-league-route-flow {
+  0% { transform: translateY(-110%); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(165%); opacity: 0; }
+}
+
 @keyframes burn-league-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1166,6 +1430,10 @@ $burn-amber: var(--ns-warning, #f5a623);
     display: none;
   }
   .burn-league-celebrate-icon.is-win svg {
+    animation: none;
+  }
+  .burn-league-fuel-meter__spark,
+  .burn-league-route-rail span {
     animation: none;
   }
 }
