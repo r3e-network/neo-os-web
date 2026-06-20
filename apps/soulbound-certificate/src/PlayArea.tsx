@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Share2 } from "lucide-react";
+import {
+  BadgeCheck,
+  Copy,
+  FileBadge,
+  ScanLine,
+  Share2,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -17,6 +25,9 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+const EMPTY_TEMPLATES: TemplateItem[] = [];
+const EMPTY_CERTIFICATES: CertificateItem[] = [];
+
 function tokenLabel(tokenId: string) {
   if (!tokenId) return "";
   return tokenId.length > 18 ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}` : tokenId;
@@ -33,53 +44,15 @@ function formatTimestamp(seconds: number): string {
   return date.toLocaleString();
 }
 
-/**
- * Identity badge glyph rendered in the app's own accent (inherits currentColor
- * from the hero badge), so the header stays monochromatic with the green
- * platform accent instead of the shared coral identity tile.
- */
-function IdentityGlyph({ title }: { title: string }) {
-  return (
-    <svg
-      className="hero-badge__glyph"
-      width={26}
-      height={26}
-      viewBox="0 0 48 48"
-      fill="none"
-      role="img"
-      aria-label={title}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <title>{title}</title>
-      <rect
-        x="11"
-        y="13"
-        width="26"
-        height="22"
-        rx="6"
-        fill="currentColor"
-        fillOpacity="0.22"
-      />
-      <circle cx="24" cy="22" r="4.4" fill="currentColor" />
-      <path
-        d="M16.5 32c1.6-4 13.4-4 15 0"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state as ObservableState);
 
   const templatesCount = num("templatesCount");
   const certificatesCount = num("certificatesCount");
   const activeTemplatesCount = num("activeTemplatesCount");
-  const templates = val<TemplateItem[]>("templates", []) ?? [];
-  const certificates = val<CertificateItem[]>("certificates", []) ?? [];
+  const templates = val<TemplateItem[]>("templates", EMPTY_TEMPLATES) ?? EMPTY_TEMPLATES;
+  const certificates =
+    val<CertificateItem[]>("certificates", EMPTY_CERTIFICATES) ?? EMPTY_CERTIFICATES;
   const verifiedCertificate = val<CertificateItem | null>(
     "verifiedCertificate",
     null,
@@ -220,32 +193,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="certificate-play-area">
       <section className="certificate-hero" aria-label={t("title")}>
-        <div className="hero-lead">
-          <div className="hero-badge">
-            <IdentityGlyph title={t("title")} />
+        <div className="hero-copy">
+          <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
+          <h2 className="hero-title">{t("certificateHeroTitle")}</h2>
+          <p className="hero-subtitle">{t("docSubtitle")}</p>
+          <div className="hero-proof-row" aria-label={t("certificateTrustSignals")}>
+            <span>
+              <BadgeCheck aria-hidden="true" />
+              {t("soulboundBadge")}
+            </span>
+            <span>
+              <ShieldCheck aria-hidden="true" />
+              {t("certificateProofPermanent")}
+            </span>
+            <span>
+              <ScanLine aria-hidden="true" />
+              {t("certificateProofVerify")}
+            </span>
           </div>
-          <div className="hero-copy">
-            <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
-            <h2 className="hero-title">{t("title")}</h2>
-            <p className="hero-subtitle">{t("docSubtitle")}</p>
-            {hasMetrics && (
-              <p className="hero-metrics">
-                <span>
-                  <strong>{templatesCount}</strong> {t("templatesTab")}
-                </span>
-                <span aria-hidden="true">·</span>
-                <span>
-                  <strong>{activeTemplatesCount}</strong> {t("sidebarActive")}
-                </span>
-                <span aria-hidden="true">·</span>
-                <span>
-                  <strong>{certificatesCount}</strong> {t("certificatesTab")}
-                </span>
-              </p>
-            )}
-          </div>
+          {hasMetrics && (
+            <p className="hero-metrics">
+              <span>
+                <strong>{templatesCount}</strong> {t("templatesTab")}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>
+                <strong>{activeTemplatesCount}</strong> {t("sidebarActive")}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>
+                <strong>{certificatesCount}</strong> {t("certificatesTab")}
+              </span>
+            </p>
+          )}
         </div>
-
+        <picture className="certificate-hero__art" aria-hidden="true">
+          <source srcSet="banner.avif" type="image/avif" />
+          <source srcSet="banner.webp" type="image/webp" />
+          <img src="banner.jpg" alt="" loading="eager" decoding="async" />
+        </picture>
         <div className="connect-prompt">
           {hasAddress ? (
             <span className="wallet-chip">
@@ -280,119 +266,127 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="certificate-column">
         <div className="issue-panel-anchor" ref={issuePanelRef}>
         <NeoCard title={t("issueCertificate")} className="certificate-panel">
-          <p className="panel-copy">{t("issueHelp")}</p>
-
-          {selectedTemplate && (
-            <div className="selected-template">
-              <span>{t("selectedTemplate")}</span>
-              <strong>{`${selectedTemplate.name} #${selectedTemplate.id}`}</strong>
+          <div className="issue-studio">
+            <div className="issue-artboard">
+              <div className="issue-artboard__head">
+                <span>
+                  <FileBadge aria-hidden="true" />
+                  {t("certificatePreviewLabel")}
+                </span>
+                <strong>{selectedTemplate?.name || t("certificateTitlePlaceholder")}</strong>
+              </div>
+              <CertificatePreview
+                draft
+                issuerName={selectedTemplate?.issuerName || ""}
+                title={selectedTemplate?.name || ""}
+                recipientName={issueForm.recipientName}
+                achievement={issueForm.achievement}
+                sealLabel={t("soulboundBadge")}
+                awardedToLabel={t("awardedTo")}
+                achievementLabel={t("forAchievement")}
+                titlePlaceholder={t("certificateTitlePlaceholder")}
+                recipientPlaceholder={t("awardedToPlaceholder")}
+                achievementPlaceholder={t("achievementPreviewPlaceholder")}
+                issuerPlaceholder={t("issuerPreviewPlaceholder")}
+              />
             </div>
-          )}
 
-          {!selectedTemplate && issuableTemplates.length > 0 && (
-            <div className="template-picker" role="list">
-              {issuableTemplates.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  role="listitem"
-                  className="template-chip"
-                  onClick={() => selectTemplateForIssue(template)}
-                >
-                  <span className="template-chip__name">
-                    {template.name || `#${template.id}`}
-                  </span>
-                  <span className="template-chip__meta">#{template.id}</span>
-                </button>
-              ))}
+            <div className="issue-controls">
+              <p className="panel-copy">{t("issueHelp")}</p>
+
+              {selectedTemplate && (
+                <div className="selected-template">
+                  <span>{t("selectedTemplate")}</span>
+                  <strong>{`${selectedTemplate.name} #${selectedTemplate.id}`}</strong>
+                </div>
+              )}
+
+              {!selectedTemplate && issuableTemplates.length > 0 && (
+                <div className="template-picker" role="list">
+                  {issuableTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      type="button"
+                      role="listitem"
+                      className="template-chip"
+                      onClick={() => selectTemplateForIssue(template)}
+                    >
+                      <span className="template-chip__name">
+                        {template.name || `#${template.id}`}
+                      </span>
+                      <span className="template-chip__meta">#{template.id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="certificate-form-grid certificate-form-grid--issue">
+                <label className="certificate-field">
+                  <span>{t("templateId")}</span>
+                  <input
+                    value={issueForm.templateId}
+                    placeholder={t("templateIdPlaceholder")}
+                    onChange={(event) =>
+                      updateIssueForm("templateId", event.currentTarget.value)
+                    }
+                  />
+                </label>
+                <label className="certificate-field">
+                  <span>{t("issueRecipient")}</span>
+                  <input
+                    value={issueForm.recipient}
+                    placeholder={t("issueRecipientPlaceholder")}
+                    onChange={(event) =>
+                      updateIssueForm("recipient", event.currentTarget.value)
+                    }
+                  />
+                </label>
+                <label className="certificate-field">
+                  <span>{t("recipientName")}</span>
+                  <input
+                    value={issueForm.recipientName}
+                    maxLength={60}
+                    placeholder={t("recipientNamePlaceholder")}
+                    onChange={(event) =>
+                      updateIssueForm("recipientName", event.currentTarget.value)
+                    }
+                  />
+                </label>
+                <label className="certificate-field">
+                  <span>{t("achievement")}</span>
+                  <input
+                    value={issueForm.achievement}
+                    maxLength={120}
+                    placeholder={t("achievementPlaceholder")}
+                    onChange={(event) =>
+                      updateIssueForm("achievement", event.currentTarget.value)
+                    }
+                  />
+                </label>
+                <label className="certificate-field certificate-field--wide">
+                  <span>{t("memo")}</span>
+                  <input
+                    value={issueForm.memo}
+                    maxLength={160}
+                    placeholder={t("memoPlaceholder")}
+                    onChange={(event) =>
+                      updateIssueForm("memo", event.currentTarget.value)
+                    }
+                  />
+                </label>
+              </div>
+
+              <NeoButton
+                variant="primary"
+                block
+                loading={isIssuing}
+                disabled={!issueFormValid || isIssuing}
+                onClick={submitIssueCertificate}
+              >
+                {isIssuing ? t("issuing") : t("issue")}
+              </NeoButton>
             </div>
-          )}
-
-          <div className="certificate-form-grid">
-            <label className="certificate-field">
-              <span>{t("templateId")}</span>
-              <input
-                value={issueForm.templateId}
-                placeholder={t("templateIdPlaceholder")}
-                onChange={(event) =>
-                  updateIssueForm("templateId", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("issueRecipient")}</span>
-              <input
-                value={issueForm.recipient}
-                placeholder={t("issueRecipientPlaceholder")}
-                onChange={(event) =>
-                  updateIssueForm("recipient", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("recipientName")}</span>
-              <input
-                value={issueForm.recipientName}
-                maxLength={60}
-                placeholder={t("recipientNamePlaceholder")}
-                onChange={(event) =>
-                  updateIssueForm("recipientName", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("achievement")}</span>
-              <input
-                value={issueForm.achievement}
-                maxLength={120}
-                placeholder={t("achievementPlaceholder")}
-                onChange={(event) =>
-                  updateIssueForm("achievement", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("memo")}</span>
-              <input
-                value={issueForm.memo}
-                maxLength={160}
-                placeholder={t("memoPlaceholder")}
-                onChange={(event) =>
-                  updateIssueForm("memo", event.currentTarget.value)
-                }
-              />
-            </label>
           </div>
-
-          <div className="issue-preview">
-            <span className="issue-preview__label">
-              {t("certificatePreviewLabel")}
-            </span>
-            <CertificatePreview
-              draft
-              issuerName={selectedTemplate?.issuerName || ""}
-              title={selectedTemplate?.name || ""}
-              recipientName={issueForm.recipientName}
-              achievement={issueForm.achievement}
-              sealLabel={t("soulboundBadge")}
-              awardedToLabel={t("awardedTo")}
-              achievementLabel={t("forAchievement")}
-              titlePlaceholder={t("certificateTitlePlaceholder")}
-              recipientPlaceholder={t("awardedToPlaceholder")}
-              achievementPlaceholder={t("achievementPreviewPlaceholder")}
-              issuerPlaceholder={t("issuerPreviewPlaceholder")}
-            />
-          </div>
-
-          <NeoButton
-            variant="primary"
-            block
-            loading={isIssuing}
-            disabled={!issueFormValid || isIssuing}
-            onClick={submitIssueCertificate}
-          >
-            {isIssuing ? t("issuing") : t("issue")}
-          </NeoButton>
         </NeoCard>
         </div>
 
@@ -466,7 +460,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="panel-head">
               <p className="panel-copy">{t("createTemplateHelp")}</p>
             </div>
-            <div className="certificate-form-grid">
+            <div className="template-lab">
+              <div className="template-lab__preview">
+                <span className="template-lab__label">
+                  <Sparkles aria-hidden="true" />
+                  {t("templatePreviewLabel")}
+                </span>
+                <CertificatePreview
+                  draft
+                  issuerName={createForm.issuerName}
+                  title={createForm.name}
+                  recipientName={t("awardedToPlaceholder")}
+                  achievement={createForm.description || createForm.category}
+                  sealLabel={t("soulboundBadge")}
+                  awardedToLabel={t("awardedTo")}
+                  achievementLabel={t("forAchievement")}
+                  titlePlaceholder={t("certificateTitlePlaceholder")}
+                  recipientPlaceholder={t("awardedToPlaceholder")}
+                  achievementPlaceholder={t("achievementPreviewPlaceholder")}
+                  issuerPlaceholder={t("issuerPreviewPlaceholder")}
+                />
+              </div>
+              <div className="certificate-form-grid certificate-form-grid--template">
                   <label className="certificate-field">
                     <span>{t("templateName")}</span>
                     <input
@@ -529,7 +544,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       }
                     />
                   </label>
-                </div>
+              </div>
+            </div>
                 <NeoButton
                   variant="primary"
                   block

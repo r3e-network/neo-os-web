@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Award } from "lucide-react";
 
 interface CertificatePreviewProps {
   /** Issuer / organisation name shown along the top of the credential. */
@@ -88,36 +89,7 @@ export default function CertificatePreview({
 
         <div className="certificate-artifact__foot">
           <span className="certificate-artifact__seal" aria-hidden="true">
-            <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-              <circle
-                cx="24"
-                cy="22"
-                r="13"
-                fill="currentColor"
-                fillOpacity="0.14"
-              />
-              <circle
-                cx="24"
-                cy="22"
-                r="13"
-                stroke="currentColor"
-                strokeWidth="2"
-                fill="none"
-              />
-              <path
-                d="M19 22.5l3.4 3.4L29 19"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-              <path
-                d="M19 33l5-2 5 2-2-7h-6l-2 7z"
-                fill="currentColor"
-                fillOpacity="0.85"
-              />
-            </svg>
+            <Award size={34} strokeWidth={1.9} />
           </span>
           <span className="certificate-artifact__seal-label">{sealLabel}</span>
         </div>
