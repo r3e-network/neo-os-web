@@ -1,186 +1,434 @@
-/**
- * Breakup Contract PlayArea — Neo Soft (light) system.
- *
- * Accent identity: GREEN (#16C784 / strong #0FB174 / soft #E4F8F0) — the Neo
- * Soft accent on a light surface (no error-like pink/red heroes).
- *
- * Layout intent:
- *   - One centered single column of white cards (radius 20, soft shadow) on a
- *     subtle canvas so the page never reads as a thin form.
- *   - Leads with a purposeful hero: accent icon badge + title + subtitle, with
- *     a SINGLE compact metrics line beneath (active · pending · broken · total)
- *     once contracts exist, or a muted "no contracts yet" line when empty.
- *   - The ONE primary action ("New Contract" form) is surfaced immediately
- *     after the hero. Stake + duration sit in a 2-column row with compact
- *     quick-pick preset chips beneath each input.
- *   - The contract list becomes proper cards with header, status chip, meta
- *     rows and actions — and is only rendered once there is something to show
- *     (contracts, a last-submitted note, or an index notice).
- *   - The "index unavailable" notice is a small inline hint inside the
- *     Contracts card, not a full-width top band.
- */
-
 @use "@shared/styles/tokens.scss" as *;
 
-/* ── Neo Soft tokens (resolved locals w/ fallbacks) ───────────────── */
-$ns-bg: var(--ns-surface, #ffffff);
-$ns-subtle: var(--ns-surface-subtle, #f7f8fa);
-$ns-border: var(--ns-border, rgba(20, 22, 38, 0.06));
-$ns-border-strong: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-$ns-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-$ns-radius: var(--ns-radius-lg, 20px);
-
-$ns-ink: var(--ns-ink, #1e1e2e);
-$ns-text: var(--ns-text, #2a2d3d);
-$ns-text-2: var(--ns-text-2, #5b6478);
-$ns-text-muted: var(--ns-text-muted, #8a92a6);
-$ns-text-faint: var(--ns-text-faint, #aeb4c2);
-
-/* Accent — GREEN (Neo Soft) */
-$ac: var(--ns-brand, #16c784);
-$ac-strong: var(--ns-brand-strong, #0fb174);
-$ac-soft: var(--ns-brand-soft, #e4f8f0);
-$ac-border: rgba(22, 199, 132, 0.22);
-
-/* Status tones */
-$tone-success: var(--ns-brand, #16c784);
-$tone-success-soft: var(--ns-brand-soft, #e4f8f0);
-$tone-warning: var(--ns-warning-strong, #b9791a);
-$tone-warning-soft: var(--ns-warning-soft, #fff3dd);
-
-/* ============================================================
- *  Root canvas — one centered column
- * ============================================================ */
+$pact-green: var(--ns-brand, #16c784);
+$pact-green-deep: var(--ns-brand-strong, #0a8050);
+$pact-green-soft: var(--ns-brand-soft, #e4f8f0);
+$pact-coral: #d97757;
+$pact-coral-soft: #fff0ea;
+$pact-ink: var(--ns-ink, #17202b);
+$pact-text: var(--ns-text, #2a2d3d);
+$pact-muted: var(--ns-text-2, #5b6478);
+$pact-faint: var(--ns-text-muted, #8a92a6);
+$pact-line: var(--ns-border, rgba(20, 22, 38, 0.08));
+$pact-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 
 .breakup-play-area {
   display: flex;
+  max-width: 1120px;
   flex-direction: column;
-  gap: 20px;
-  padding: 24px 20px 32px;
-  max-width: 1040px;
+  gap: 18px;
   margin: 0 auto;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: $ns-text;
-  background: $ns-subtle;
-  border-radius: 0;
-  border: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 22px;
+  overflow: hidden;
+  color: $pact-text;
+  background:
+    radial-gradient(circle at 7% 5%, rgba(217, 119, 87, 0.12), transparent 24%),
+    radial-gradient(circle at 95% 8%, rgba(22, 199, 132, 0.14), transparent 28%),
+    linear-gradient(180deg, #f7fbf9 0%, #f4f7fb 100%);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ============================================================
- *  1. Hero card — icon badge + title + subtitle + stat strip
- * ============================================================ */
+.breakup-play-area * {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
 
 .breakup-hero {
+  position: relative;
+  min-height: 356px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 24px;
+  background: #10201b;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+  isolation: isolate;
+}
+
+.breakup-hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.02);
+  transform: scale(1.01);
+}
+
+.breakup-hero-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(8, 18, 18, 0.82) 0%, rgba(12, 28, 25, 0.66) 42%, rgba(15, 23, 42, 0.04) 82%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
+}
+
+.breakup-hero-content {
+  position: relative;
+  z-index: 2;
   display: flex;
+  min-height: 356px;
+  max-width: 650px;
   flex-direction: column;
-  gap: 18px;
-  padding: 24px 26px 26px;
-  border-radius: $ns-radius;
-  background: linear-gradient(135deg, rgba(228, 248, 240, 0.55) 0%, $ns-bg 58%);
-  border: 1px solid $ns-border;
-  box-shadow: $ns-shadow;
-}
-
-.breakup-hero-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 18px;
-}
-
-/* Right-aligned value-prop chips keep the wide hero from reading half-empty
-   before any contract exists. */
-.breakup-hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 0 auto;
-  padding: 0;
-  list-style: none;
-  justify-content: flex-end;
-}
-
-.breakup-hero-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid $ac-border;
-  background: rgba(255, 255, 255, 0.72);
-  color: $ac-strong;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  white-space: nowrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 34px;
+  color: #ffffff;
 }
 
 .breakup-hero-badge {
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  flex-shrink: 0;
-  border-radius: var(--ns-radius-lg, 20px);
-  background: $ac-soft;
-  color: $ac-strong;
-  border: 1px solid $ac-border;
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-  font-size: 22px;
-  line-height: 1;
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #bff4df;
+  backdrop-filter: blur(18px);
 }
 
-.breakup-hero-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 200px;
-  flex: 1 1 auto;
+.breakup-hero-eyebrow,
+.breakup-builder-eyebrow,
+.breakup-preview-label,
+.breakup-builder-step,
+.contract-label {
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .breakup-hero-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: $ac-strong;
-  line-height: 1;
+  color: #bff4df;
 }
 
 .breakup-hero-title {
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: $ns-ink;
-  line-height: 1.15;
+  max-width: 540px;
+  color: #ffffff !important;
+  font-size: clamp(30px, 4.8vw, 52px);
+  font-weight: 850;
+  line-height: 1.04;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
 }
 
-.breakup-create-card,
+.breakup-hero-subtitle {
+  max-width: 520px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.65;
+}
+
+.breakup-hero-tags,
+.breakup-hero-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breakup-hero-tag,
+.breakup-metric {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 750;
+  backdrop-filter: blur(18px);
+}
+
+.breakup-metric strong {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.breakup-builder,
 .breakup-list-card,
-.breakup-howitworks-card {
-  min-width: 0;
-
-  // Tighten the shared card title to match the premium type scale
-  .neo-card__title {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: $ns-ink;
-  }
+.breakup-howitworks-card,
+.breakup-credit-card {
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
-/* How-it-works explainer (empty-state filler) */
+.breakup-builder {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  gap: 18px;
+  padding: 18px;
+}
+
+.breakup-pact-preview {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.9), rgba(255, 240, 234, 0.8)),
+    #ffffff;
+  color: $pact-ink;
+}
+
+.breakup-preview-label {
+  color: $pact-green-deep;
+}
+
+.breakup-pact-preview strong {
+  color: $pact-ink;
+  font-size: 26px;
+  font-weight: 850;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.breakup-pact-preview p {
+  margin: 0;
+  color: $pact-muted;
+  font-size: 13px;
+  line-height: 1.58;
+}
+
+.breakup-preview-meta {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.breakup-preview-meta span,
+.breakup-preview-rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  color: $pact-muted;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.breakup-preview-meta svg,
+.breakup-preview-rule svg {
+  flex-shrink: 0;
+  color: $pact-green-deep;
+}
+
+.breakup-preview-rule {
+  margin-top: 6px;
+  border-color: rgba(217, 119, 87, 0.24);
+  background: rgba(255, 240, 234, 0.8);
+  color: #7d4631;
+}
+
+.breakup-builder-panel {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  padding: 2px;
+}
+
+.breakup-builder-head {
+  display: grid;
+  gap: 5px;
+}
+
+.breakup-builder-eyebrow,
+.breakup-builder-step {
+  color: $pact-green-deep;
+}
+
+.breakup-builder-head h2 {
+  margin: 0;
+  color: $pact-ink;
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.breakup-builder-head p {
+  margin: 0;
+  color: $pact-muted;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.breakup-builder-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid rgba(217, 119, 87, 0.24);
+  border-radius: 14px;
+  background: $pact-coral-soft;
+  color: #7d4631;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.breakup-builder-note svg {
+  flex-shrink: 0;
+  color: $pact-coral;
+}
+
+.breakup-builder-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breakup-step-index {
+  display: inline-flex;
+  min-width: 30px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: $pact-green-soft;
+  color: $pact-green-deep;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.breakup-field-grid,
+.create-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.breakup-field-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakup-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.breakup-preset {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(20, 22, 38, 0.12);
+  border-radius: 9999px;
+  background: #ffffff;
+  color: $pact-muted;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.breakup-preset:hover,
+.breakup-preset.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(10, 128, 80, 0.34);
+  background: $pact-green-soft;
+  color: $pact-green-deep;
+}
+
+.breakup-preset:focus-visible,
+.breakup-play-area button:focus-visible {
+  outline: none;
+  box-shadow: $pact-focus;
+}
+
+.breakup-terms-input .neo-input__textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.breakup-create-cta.neo-btn--primary:disabled {
+  background: #9fd9c1;
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.breakup-create-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakup-create-hint {
+  margin: 0;
+  color: $pact-faint;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.breakup-create-hint.is-ready {
+  color: $pact-green-deep;
+}
+
+.breakup-action-notice,
+.breakup-last-submit {
+  padding: 12px 14px;
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: 14px;
+  background: $pact-green-soft;
+  color: $pact-green-deep;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.breakup-last-submit {
+  margin-bottom: 14px;
+}
+
+.breakup-howitworks-card,
+.breakup-list-card,
+.breakup-credit-card {
+  min-width: 0;
+}
+
+.breakup-howitworks-card .neo-card__title,
+.breakup-list-card .neo-card__title,
+.breakup-credit-card .neo-card__title {
+  color: $pact-ink;
+  font-size: 18px;
+  font-weight: 850;
+}
+
 .breakup-howitworks {
   display: grid;
   gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
-  counter-reset: none;
 }
 
 .breakup-howitworks-step {
@@ -191,268 +439,71 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
 
 .breakup-howitworks-num {
   display: grid;
-  place-items: center;
-  flex-shrink: 0;
   width: 30px;
   height: 30px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid rgba(22, 199, 132, 0.22);
   border-radius: 50%;
-  background: $ac-soft;
-  color: $ac-strong;
-  border: 1px solid $ac-border;
+  background: $pact-green-soft;
+  color: $pact-green-deep;
   font-size: 14px;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+  font-weight: 850;
 }
 
 .breakup-howitworks-text {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 3px;
-  min-width: 0;
-
-  strong {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: $ns-ink;
-    line-height: 1.25;
-  }
-
-  span {
-    font-size: 13px;
-    font-weight: 500;
-    color: $ns-text-2;
-    line-height: 1.5;
-  }
 }
 
-.breakup-hero-subtitle {
-  margin: 0;
+.breakup-howitworks-text strong {
+  color: $pact-ink;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.breakup-howitworks-text span {
+  color: $pact-muted;
   font-size: 13px;
   font-weight: 500;
-  color: $ns-text-2;
-  line-height: 1.4;
-}
-
-/* Single compact metrics line inside the hero card */
-.breakup-hero-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  font-size: 13px;
-  color: $ns-text-2;
-}
-
-.breakup-metric {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-weight: 600;
-
-  strong {
-    font-size: 16px;
-    font-weight: 800;
-    color: $ac-strong;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-}
-
-.breakup-metric-sep {
-  width: 1px;
-  height: 14px;
-  background: $ns-border-strong;
-}
-
-/* ============================================================
- *  2. Create-contract form
- * ============================================================ */
-
-.create-contract-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.contract-description {
-  margin: 0 0 2px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: $ns-text-2;
-}
-
-.contract-economics-note {
-  position: relative;
-  margin: 0 0 4px;
-  padding: 12px 14px 12px 16px;
-  border: 1px solid $ac-border;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(228, 248, 240, 0.7) 0%, $ns-subtle 100%);
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.55;
-  color: $ns-text;
-
-  /* Accent rail keeps the note warm and on-hue without a second color. */
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 8px auto 8px 0;
-    width: 3px;
-    border-radius: 999px;
-    background: $ac;
-  }
-}
-
-/* Group stake + duration into a balanced 2-up row */
-.create-contract-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.breakup-field-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.breakup-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.breakup-preset {
-  appearance: none;
-  border: 1px solid $ns-border-strong;
-  background: $ns-subtle;
-  color: $ns-text-2;
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: var(--ns-radius-full, 999px);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-
-  &:hover {
-    border-color: $ac-border;
-    color: $ac-strong;
-  }
-
-  &:focus-visible {
-    outline: none;
-    border-color: $ac-border;
-    box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
-  }
-
-  &.is-active {
-    border-color: $ac-border;
-    background: $ac-soft;
-    color: #0f6b48;
-  }
-}
-
-/* Disabled "Create Contract" CTA — override the shared washed mint-outline
-   convention with a muted-but-solid desaturated brand fill so the primary
-   action reads as a real (currently inactive) button, not a broken/empty pill.
-   Text stays solid white for legibility; reverts to the full brand fill once
-   the form is valid and the button enables. */
-.breakup-create-cta.neo-btn--primary:disabled {
-  background: #9fd9c1;
-  border-color: transparent;
-  color: #ffffff;
-  box-shadow: none;
-}
-
-/* CTA + inline "why disabled" prompt stacked together */
-.breakup-create-action {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Single-line helper under the primary action: names the first unmet field
-   while disabled, then turns into a calm ready confirmation once valid. */
-.breakup-create-hint {
-  margin: 0;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.5;
-  color: $ns-text-muted;
-
-  &.is-ready {
-    color: $ac-strong;
-  }
-}
-
-.breakup-action-notice,
-.breakup-last-submit {
-  padding: 12px 14px;
-  border-radius: 14px;
-  font-size: 12px;
   line-height: 1.5;
 }
 
-.breakup-action-notice {
-  border: 1px solid rgba(22, 199, 132, 0.22);
-  background: $tone-success-soft;
-  color: #0f6b48;
-  font-weight: 700;
-}
-
-.breakup-last-submit {
-  margin-bottom: 14px;
-  border: 1px solid rgba(22, 199, 132, 0.22);
-  background: $tone-success-soft;
-  color: #0f6b48;
-  font-weight: 700;
-}
-
-/* Demoted "index unavailable" notice — a small inline hint, not a top band */
 .breakup-service-hint {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   gap: 4px 8px;
+  align-items: baseline;
   margin: 0 0 12px;
   padding: 10px 12px;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid rgba(185, 121, 26, 0.22);
-  background: $tone-warning-soft;
+  border: 1px solid rgba(217, 119, 87, 0.24);
+  border-radius: 12px;
+  background: $pact-coral-soft;
   color: #5d420d;
+}
 
-  strong {
-    font-size: 11px;
-    font-weight: 800;
-    color: $tone-warning;
-  }
+.breakup-service-hint strong {
+  color: #9a4d32;
+  font-size: 11px;
+  font-weight: 850;
+}
 
-  span {
-    font-size: 12px;
-    line-height: 1.5;
-  }
+.breakup-service-hint span {
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .breakup-list-empty {
   margin: 0;
   padding: 4px 2px;
+  color: $pact-faint;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.55;
-  color: $ns-text-muted;
 }
-
-/* ============================================================
- *  4. Contract list (previously unstyled)
- * ============================================================ */
 
 .contracts-list {
   display: flex;
@@ -465,25 +516,25 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
   flex-direction: column;
   gap: 14px;
   padding: 18px 20px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  transition: box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  border: 1px solid $pact-line;
+  border-radius: 16px;
+  background: #f7faf9;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
 
-  &:hover {
-    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-    transform: translateY(-2px);
-  }
+.contract-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
 
-  &--active {
-    border-color: $ac-border;
-    box-shadow: 0 0 0 1px $ac-border inset;
-  }
+.contract-card--active {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow: 0 0 0 1px rgba(22, 199, 132, 0.22) inset;
+}
 
-  &--broken {
-    opacity: 0.82;
-  }
+.contract-card--broken {
+  opacity: 0.86;
 }
 
 .contract-header {
@@ -494,199 +545,229 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
 }
 
 .contract-title {
+  color: $pact-ink;
   font-size: 15px;
-  font-weight: 700;
-  color: $ns-ink;
-  letter-spacing: -0.01em;
+  font-weight: 850;
   line-height: 1.2;
 }
 
 .contract-status {
   flex-shrink: 0;
   padding: 4px 11px;
+  border: 1px solid $pact-line;
   border-radius: 9999px;
+  background: #ffffff;
+  color: $pact-muted;
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 850;
   text-transform: uppercase;
-  background: $ns-bg;
-  color: $ns-text-2;
-  border: 1px solid $ns-border;
+  letter-spacing: 0.1em;
+}
 
-  &--success {
-    background: $tone-success-soft;
-    color: $tone-success;
-  }
-  &--warning {
-    background: $tone-warning-soft;
-    color: $tone-warning;
-  }
-  &--danger {
-    background: $ac-soft;
-    color: $ac-strong;
-  }
-  &--ghost {
-    background: $ns-bg;
-    color: $ns-text-muted;
-  }
+.contract-status--success {
+  background: $pact-green-soft;
+  color: $pact-green-deep;
+}
+
+.contract-status--warning {
+  background: $pact-coral-soft;
+  color: #9a4d32;
+}
+
+.contract-status--danger {
+  background: $pact-coral-soft;
+  color: #9a4d32;
+}
+
+.contract-status--ghost {
+  background: #ffffff;
+  color: $pact-faint;
 }
 
 .contract-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .contract-meta-row {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: $ns-bg;
-  border: 1px solid $ns-border;
-  min-width: 0;
+  border: 1px solid $pact-line;
+  border-radius: 12px;
+  background: #ffffff;
 }
 
 .contract-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: $ns-text-muted;
+  color: $pact-faint;
 }
 
 .contract-value {
-  font-size: 13px;
-  font-weight: 700;
-  color: $ns-ink;
-  font-variant-numeric: tabular-nums;
   overflow: hidden;
+  color: $pact-ink;
+  font-size: 13px;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
-
-  &.mono {
-    font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
-    font-size: 12px;
-    font-weight: 600;
-  }
 }
 
-.contract-terms {
+.contract-value.mono {
+  font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.contract-terms,
+.contract-device-note {
   margin: 0;
   padding: 12px 14px;
   border-radius: 12px;
-  background: $ns-bg;
-  border: 1px solid $ns-border;
   font-size: 12px;
   line-height: 1.6;
-  color: $ns-text-2;
+}
+
+.contract-terms {
+  border: 1px solid $pact-line;
+  background: #ffffff;
+  color: $pact-muted;
+}
+
+.contract-device-note {
+  border: 1px solid rgba(217, 119, 87, 0.24);
+  background: $pact-coral-soft;
+  color: #5d420d;
 }
 
 .contract-actions {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
 }
 
-/* Device-local terms notice on a partner's card: only the stake + duration are
- * on-chain; the title/terms live on the creator's device. */
-.contract-device-note {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: $tone-warning-soft;
-  border: 1px solid rgba(185, 121, 26, 0.22);
-  color: #5d420d;
-  font-size: 12px;
-  line-height: 1.55;
+.breakup-credit-copy {
+  margin: 0 0 14px;
+  color: $pact-muted;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
-/* ============================================================
- *  Stranded stake-credit recovery card
- * ============================================================ */
-
-.breakup-credit-card {
-  .breakup-credit-copy {
-    margin: 0 0 14px;
-    font-size: 13px;
-    line-height: 1.6;
-    color: $ns-text-2;
-  }
-
-  .breakup-credit-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 14px 16px;
-    border-radius: var(--ns-radius-md, 14px);
-    background: $ac-soft;
-    border: 1px solid rgba(15, 177, 116, 0.22);
-  }
-
-  .breakup-credit-amount {
-    font-size: 14px;
-    color: $ns-text-2;
-
-    strong {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: $ac-strong;
-    }
-  }
+.breakup-credit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  border-radius: 14px;
+  background: $pact-green-soft;
 }
 
-/* ============================================================
- *  5. Empty state — centered, padded, never a tall void
- * ============================================================ */
+.breakup-credit-amount {
+  color: $pact-muted;
+  font-size: 14px;
+}
+
+.breakup-credit-amount strong {
+  color: $pact-green-deep;
+  font-size: 20px;
+  font-weight: 850;
+}
 
 .empty-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
   gap: 8px;
   padding: 32px 24px;
-  text-align: center;
-  color: $ns-text-muted;
+  color: $pact-faint;
   font-size: 13px;
   font-weight: 500;
-
-  strong {
-    color: $ns-ink;
-    font-size: 14px;
-  }
-
-  span {
-    max-width: 30ch;
-    line-height: 1.55;
-  }
+  text-align: center;
 }
 
-/* ============================================================
- *  Responsive
- * ============================================================ */
+.empty-state strong {
+  color: $pact-ink;
+  font-size: 14px;
+}
 
-@media (max-width: 560px) {
-  .breakup-play-area {
-    padding: 14px 12px 22px;
+.empty-state span {
+  max-width: 30ch;
+  line-height: 1.55;
+}
+
+@media (max-width: 780px) {
+  .breakup-builder {
+    grid-template-columns: 1fr;
   }
 
-  .breakup-hero {
-    border-radius: 16px;
-  }
-
+  .breakup-field-grid,
   .create-contract-grid,
   .contract-meta {
     grid-template-columns: 1fr;
   }
+}
 
-  .breakup-hero-tags {
-    margin-left: 0;
-    justify-content: flex-start;
+@media (max-width: 560px) {
+  .breakup-play-area {
+    gap: 14px;
+    padding: 14px 12px 22px;
+  }
+
+  .breakup-hero,
+  .breakup-hero-content {
+    min-height: 430px;
+  }
+
+  .breakup-hero-content {
+    padding: 24px 20px;
+    justify-content: flex-end;
+  }
+
+  .breakup-hero-shade {
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.06) 0%, rgba(6, 18, 17, 0.82) 58%, rgba(6, 18, 17, 0.9) 100%);
+  }
+
+  .breakup-hero-tags,
+  .breakup-hero-metrics {
     width: 100%;
+  }
+
+  .breakup-hero-tag,
+  .breakup-metric {
+    flex: 1 1 46%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .breakup-builder {
+    padding: 16px;
+  }
+
+  .breakup-create-cta {
+    width: 100%;
+  }
+
+  .contract-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breakup-preset,
+  .contract-card {
+    transition: none;
+  }
+
+  .breakup-preset:hover,
+  .breakup-preset.is-active,
+  .contract-card:hover {
+    transform: none;
   }
 }
