@@ -20,9 +20,7 @@
   display: grid;
   min-height: 100%;
   padding: 24px;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(255, 248, 231, 0.96), rgba(255, 255, 255, 0) 34%),
-    linear-gradient(135deg, #f9fff9 0%, #eefaf4 52%, #fff9ec 100%);
+  background: linear-gradient(135deg, #fbfff8 0%, #eefaf4 52%, #fff8ea 100%);
   color: var(--dice-text);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -79,22 +77,10 @@
   border-radius: 24px;
   background: #f7fff7;
   color: var(--dice-text);
-  isolation: isolate;
   overflow: hidden;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.58),
     0 18px 34px rgba(20, 22, 38, 0.1);
-}
-
-.dice-stage__visual::after {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  content: "";
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0) 46%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 58%, rgba(255, 248, 231, 0.34) 100%);
-  pointer-events: none;
 }
 
 .dice-stage__table {
@@ -272,13 +258,10 @@
   font-weight: 700;
   line-height: 1.4;
 }
-.dice-edge-note::before {
+
+.dice-edge-note svg {
   flex-shrink: 0;
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--dice-warning);
+  color: var(--dice-warning);
 }
 
 .dice-pending-reassure {
@@ -292,8 +275,8 @@
 .dice-bet-panel {
   grid-area: bet;
   display: grid;
-  gap: 18px;
-  padding: 22px;
+  gap: 14px;
+  padding: 18px;
   align-content: start;
   border: 1px solid rgba(246, 200, 106, 0.18);
   background:
@@ -313,21 +296,19 @@
   gap: 13px;
   align-items: center;
   min-width: 0;
-  padding: 14px;
+  padding: 12px;
   overflow: hidden;
   border: 1px solid rgba(246, 200, 106, 0.28);
   border-radius: 20px;
-  background:
-    radial-gradient(circle at 10% 10%, rgba(246, 200, 106, 0.22), rgba(255, 255, 255, 0) 42%),
-    rgba(255, 255, 255, 0.82);
+  background: linear-gradient(145deg, rgba(255, 252, 244, 0.94), rgba(255, 255, 255, 0.82));
 }
 
 .dice-current-round__face {
   display: grid;
   place-items: center;
-  width: 74px;
+  width: 66px;
   aspect-ratio: 1;
-  border-radius: 22px;
+  border-radius: 20px;
   background:
     linear-gradient(180deg, #ffffff, #fff8e7),
     var(--dice-surface);
@@ -350,7 +331,7 @@
 
 .dice-current-round__face strong {
   color: var(--dice-gold-strong);
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -448,17 +429,24 @@
 .dice-face-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .dice-face-tray,
 .dice-chip-rack {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid rgba(20, 22, 38, 0.06);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.76);
+}
+
+.dice-chip-rack {
+  gap: 11px;
+  padding: 12px;
+  border-color: rgba(246, 200, 106, 0.28);
+  background: linear-gradient(180deg, rgba(255, 251, 241, 0.92), rgba(255, 255, 255, 0.84));
 }
 
 .dice-face-tray__head,
@@ -496,16 +484,38 @@
   flex: 0 0 auto;
 }
 
+.dice-chip-rack__visual {
+  display: block;
+  height: 136px;
+  min-height: 96px;
+  overflow: hidden;
+  border: 1px solid rgba(246, 200, 106, 0.34);
+  border-radius: 17px;
+  background: #fff8e8;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 10px 22px rgba(107, 60, 2, 0.1);
+}
+
+.dice-chip-rack__visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  object-position: center;
+}
+
 .dice-face-grid__item {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   place-items: center;
   gap: 6px;
   min-width: 0;
-  min-height: 102px;
-  padding: 9px;
+  min-height: 88px;
+  padding: 8px;
   border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: 19px;
+  border-radius: 17px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 255, 251, 0.96) 100%);
   color: var(--dice-text-2);
@@ -553,7 +563,7 @@
 
 .dice-face-grid__die {
   display: block;
-  width: min(100%, 68px);
+  width: min(100%, 56px);
   aspect-ratio: 1;
   border-radius: 14px;
   overflow: hidden;
@@ -594,20 +604,41 @@
 
 .dice-stake-field {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr);
+  gap: 8px 12px;
+  align-items: center;
   color: var(--dice-muted);
   font-size: 11px;
   font-weight: 700;
 }
 
+.dice-stake-field > span:first-child {
+  color: var(--dice-text-2);
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.dice-stake-field__control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  min-height: 44px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
 .dice-stake-field input {
   width: 100%;
   min-width: 0;
-  min-height: 46px;
-  padding: 0 14px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--ns-radius-md, 16px);
-  background: rgba(255, 255, 255, 0.88);
+  min-height: 42px;
+  padding: 0 8px 0 15px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--dice-text);
   font: inherit;
   font-size: 15px;
@@ -621,17 +652,31 @@
 }
 
 .dice-stake-field input:focus {
+  background: transparent;
+  box-shadow: none;
+}
+
+.dice-stake-field__control:focus-within {
   border-color: rgba(22, 199, 132, 0.58);
   background: #ffffff;
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
-.dice-stake-field input[aria-invalid="true"] {
+.dice-stake-field__control--invalid {
   border-color: rgba(220, 38, 38, 0.42);
   background: #fff7f7;
 }
 
+.dice-stake-field__control b {
+  padding-right: 14px;
+  color: var(--dice-gold-strong);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
 .dice-stake-field em {
+  grid-column: 1 / -1;
   color: var(--dice-muted);
   font-size: 12px;
   font-style: normal;
@@ -646,21 +691,30 @@
 .dice-stake-presets {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 9px;
 }
 
-.dice-stake-presets button {
+.dice-preset-chip {
+  position: relative;
   min-width: 0;
-  min-height: 38px;
-  padding: 0 8px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--dice-surface);
-  color: var(--dice-text-2);
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border: 1px solid rgba(200, 143, 34, 0.34);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, #fffaf0 0%, #f7d78d 45%, #c98a23 100%);
+  color: #5f3c03;
   font: inherit;
-  font-size: 12px;
   font-weight: 800;
+  line-height: 1;
   cursor: pointer;
+  box-shadow:
+    0 10px 18px rgba(107, 60, 2, 0.13),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.48);
   transition:
     border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
     background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
@@ -668,35 +722,49 @@
     transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
 }
 
-.dice-stake-presets button:hover:not(:disabled) {
-  border-color: rgba(22, 199, 132, 0.34);
-  background: var(--dice-accent-soft);
-  color: var(--dice-accent-strong);
+.dice-preset-chip:hover:not(:disabled) {
+  border-color: rgba(22, 199, 132, 0.42);
+  background:
+    linear-gradient(180deg, #f9fff7 0%, #d8f3e6 44%, #0a8050 100%);
+  color: #ffffff;
   transform: translateY(-1px);
 }
 
-.dice-stake-presets button:focus-visible {
+.dice-preset-chip:focus-visible {
   outline: none;
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
-.dice-stake-presets button:disabled {
+.dice-preset-chip:disabled {
   cursor: not-allowed;
   opacity: 0.62;
 }
 
-.dice-stake-presets button.dice-preset--unpayable {
+.dice-preset-chip--unpayable {
   opacity: 0.4;
   text-decoration: line-through;
 }
 
-/* Selected preset: a clear green highlight so the active stake is as obvious as
-   the selected face (previously no preset showed as chosen). */
-.dice-stake-presets button.dice-preset--active {
-  border-color: var(--dice-accent-strong, #0a8050);
-  background: var(--dice-accent-soft, #e4f8f0);
-  color: var(--ns-brand-deep, #0b5e3e);
-  box-shadow: inset 0 0 0 1px var(--dice-accent-strong, #0a8050);
+.dice-preset-chip--active {
+  border-color: rgba(22, 199, 132, 0.64);
+  background:
+    linear-gradient(180deg, #e9fff4 0%, #5bd69d 46%, #0a8050 100%);
+  color: #ffffff;
+  box-shadow:
+    0 14px 24px rgba(10, 128, 80, 0.22),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.56);
+}
+
+.dice-preset-chip__value {
+  font-size: 15px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.dice-preset-chip__unit {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .dice-credit-banner {
@@ -835,23 +903,20 @@
   display: none;
 }
 
-.dice-route-panel > summary::after {
-  content: "+";
-  margin-left: auto;
-  color: var(--dice-muted);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.dice-route-panel[open] > summary::after {
-  content: "−";
-}
-
 .dice-route-panel > summary:focus-visible {
   outline: none;
   border-radius: var(--ns-radius-sm, 12px);
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+}
+
+.dice-route-toggle {
+  flex: 0 0 auto;
+  color: var(--dice-muted);
+  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+}
+
+.dice-route-panel[open] .dice-route-toggle {
+  transform: rotate(180deg);
 }
 
 .dice-route-body {
