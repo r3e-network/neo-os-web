@@ -1875,11 +1875,20 @@
   }
 
   .domain-factory-hero__status {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    display: inline-flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: flex-start;
+    justify-self: start;
+    min-width: 0;
     gap: 8px;
-    padding: 10px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .domain-factory-hero__meta {
+    display: none;
   }
 
   .domain-factory-hero__metalabel {
@@ -1894,6 +1903,13 @@
   }
 
   .domain-factory-hero__status small {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    border-radius: 999px;
+    background: var(--ns-surface-subtle, #f7f8fa);
     font-size: 11px;
     white-space: nowrap;
   }
@@ -1916,11 +1932,11 @@
   }
 
   .domain-factory-token-rail {
-    min-height: 282px;
+    min-height: 238px;
   }
 
   .domain-factory-token-rail__content {
-    min-height: 282px;
+    min-height: 238px;
     padding: 14px;
     background:
       linear-gradient(
@@ -1944,12 +1960,37 @@
     font-size: 1.22rem;
   }
 
+  .domain-factory-token-rail__stats,
+  .domain-factory-app-rail__stats,
+  .domain-factory-drop-rail__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .domain-factory-token-rail__stats div,
+  .domain-factory-app-rail__stats div,
+  .domain-factory-drop-rail__stats div {
+    padding: 8px;
+  }
+
+  .domain-factory-token-rail__stats dt,
+  .domain-factory-app-rail__stats dt,
+  .domain-factory-drop-rail__stats dt {
+    font-size: 9.5px;
+  }
+
+  .domain-factory-token-rail__stats dd,
+  .domain-factory-app-rail__stats dd,
+  .domain-factory-drop-rail__stats dd {
+    font-size: 0.78rem;
+  }
+
   .domain-factory-app-rail {
-    min-height: 306px;
+    min-height: 254px;
   }
 
   .domain-factory-app-rail__content {
-    min-height: 306px;
+    min-height: 254px;
     padding: 14px;
     background:
       linear-gradient(
