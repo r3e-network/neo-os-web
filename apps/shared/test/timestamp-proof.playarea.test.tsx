@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -234,5 +235,20 @@ describe("Timestamp Proof PlayArea", () => {
 
     expect(container.textContent).not.toContain("contractMissing");
     expect(container.textContent).not.toContain("anchorProof");
+  });
+
+  it("keeps active timestamp CTAs visually distinct from disabled styling", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../timestamp-proof/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(
+      /\.proof-cta\.neo-btn--primary,\s*\.verify-result \.neo-btn--primary\s*\{[\s\S]*color:\s*#ffffff/,
+    );
+    expect(styles).toMatch(
+      /\.proof-cta\.neo-btn--primary:disabled:not\(\.neo-btn--loading\),\s*\.verify-result \.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/,
+    );
+    expect(styles).toMatch(/background:\s*var\(--ns-surface-subtle/);
   });
 });
