@@ -424,94 +424,94 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
               </div>
 
-              <div className="selfloan-collateral-entry">
-                <NeoInput
-                  label={t("collateralAmount")}
-                  placeholder="0.00"
-                  type="number"
-                  value={borrowInputValue}
-                  suffix="NEO"
-                  onChange={handleSetCollateralAmount}
-                />
-                <div className="selfloan-borrow-output">
-                  <span>{feeBps > 0 ? t("estimatedBorrowNet") : t("estimatedBorrow")}</span>
-                  <strong>{expectedBorrowLabel}</strong>
-                  {feeBps > 0 && grossBorrow > 0 && (
-                    <small>
-                      {t("originationFee", { percent: feePercent })}: {feeAmount.toFixed(2)} GAS
-                    </small>
-                  )}
+              <div className="selfloan-borrow-desk">
+                <div className="selfloan-collateral-entry">
+                  <NeoInput
+                    label={t("collateralAmount")}
+                    placeholder="0.00"
+                    type="number"
+                    value={borrowInputValue}
+                    suffix="NEO"
+                    onChange={handleSetCollateralAmount}
+                  />
+                  <div className="selfloan-borrow-output">
+                    <span>
+                      <Coins size={14} aria-hidden="true" />
+                      {feeBps > 0 ? t("estimatedBorrowNet") : t("estimatedBorrow")}
+                    </span>
+                    <strong>{expectedBorrowLabel}</strong>
+                    {feeBps > 0 && grossBorrow > 0 && (
+                      <small>
+                        {t("originationFee", { percent: feePercent })}: {feeAmount.toFixed(2)} GAS
+                      </small>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* LTV Tier Selector */}
-              <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier")}>
-                {ltvOptions.map((option) => (
-                  <button
-                    key={option.tier}
-                    type="button"
-                    className={
-                      "selfloan-ltv-tier" +
-                      (option.tier === selectedTier ? " is-active" : "")
-                    }
-                    aria-pressed={option.tier === selectedTier}
-                    onClick={() => handleSelectTier(option.tier)}
-                  >
-                    <span className="selfloan-ltv-tier-label">{option.label}</span>
-                    <span className="selfloan-ltv-tier-percent">{option.percent}%</span>
-                  </button>
-                ))}
-              </div>
+                {/* LTV selector and risk meter are combined so the borrow path reads
+                    like one control desk instead of a repeated form stack. */}
+                <div className="selfloan-ltv-desk">
+                  <div className="selfloan-ltv-desk-head">
+                    <span className="selfloan-ltv-label">
+                      {t("selectedLTV")}
+                    </span>
+                    <span
+                      className="selfloan-ltv-value"
+                      style={{ color: ltvColor }}
+                    >
+                      {ltvPct > 0 ? `${ltvPct}%` : "—"}
+                    </span>
+                  </div>
+                  <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier")}>
+                    {ltvOptions.map((option) => (
+                      <button
+                        key={option.tier}
+                        type="button"
+                        className={
+                          "selfloan-ltv-tier" +
+                          (option.tier === selectedTier ? " is-active" : "")
+                        }
+                        aria-pressed={option.tier === selectedTier}
+                        onClick={() => handleSelectTier(option.tier)}
+                      >
+                        <span className="selfloan-ltv-tier-label">{option.label}</span>
+                        <span className="selfloan-ltv-tier-percent">{option.percent}%</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="selfloan-ltv-track">
+                    <div
+                      className="selfloan-ltv-bar"
+                      style={{
+                        width: `${Math.min(ltvPct, 100)}%`,
+                        background: `linear-gradient(90deg, #13966d, ${ltvColor})`,
+                      }}
+                    />
+                  </div>
+                  <div className="selfloan-ltv-hints">
+                    <span>{t("conservative")}</span>
+                    <span>{t("aggressive")}</span>
+                  </div>
+                </div>
 
-              {/* Rate the debt is sized by + pool liquidity available to disburse.
-                  Both come straight from the contract (neoPrice / pool); hidden when
-                  no price is configured so the borrow math stays honest. */}
-              <div className="selfloan-market-grid">
+                {/* Rate the debt is sized by + pool liquidity available to disburse.
+                    Both come straight from the contract (neoPrice / pool); hidden when
+                    no price is configured so the borrow math stays honest. */}
                 {neoPriceDisplay && (
-                  <div className="selfloan-market-tile">
-                    <span>{t("rateLabel")}</span>
-                    <strong>{t("rateValue", { price: neoPriceDisplay })}</strong>
+                  <div className="selfloan-market-grid">
+                    <div className="selfloan-market-tile">
+                      <span>{t("rateLabel")}</span>
+                      <strong>{t("rateValue", { price: neoPriceDisplay })}</strong>
+                    </div>
                   </div>
                 )}
-                <div className="selfloan-market-tile">
-                  <span>{t("selectedLTV")}</span>
-                  <strong style={{ color: ltvColor }}>
-                    {ltvPct > 0 ? `${ltvPct}%` : "—"}
-                  </strong>
-                </div>
-              </div>
 
-              {/* Honest disclosure: the borrow size is derived from an operator-set
-                  neoPrice (not a market oracle), and the 0.5% fee is the pool's
-                  revenue — both are read straight from the contract above. */}
-              <p className="selfloan-rate-fee-note" role="note">
-                {t("rateFeeNote")}
-              </p>
-
-              {/* LTV Selector / Indicator */}
-              <div className="selfloan-ltv-indicator">
-                <span className="selfloan-ltv-label">
-                  {t("selectedLTV")}
-                </span>
-                <span
-                  className="selfloan-ltv-value"
-                  style={{ color: ltvColor }}
-                >
-                  {ltvPct > 0 ? `${ltvPct}%` : "—"}
-                </span>
-                <div className="selfloan-ltv-track">
-                  <div
-                    className="selfloan-ltv-bar"
-                    style={{
-                      width: `${Math.min(ltvPct, 100)}%`,
-                      background: `linear-gradient(90deg, #13966d, ${ltvColor})`,
-                    }}
-                  />
-                </div>
-                <div className="selfloan-ltv-hints">
-                  <span>{t("conservative")}</span>
-                  <span>{t("aggressive")}</span>
-                </div>
+                {/* Honest disclosure: the borrow size is derived from an operator-set
+                    neoPrice (not a market oracle), and the 0.5% fee is the pool's
+                    revenue — both are read straight from the contract above. */}
+                <p className="selfloan-rate-fee-note" role="note">
+                  {t("rateFeeNote")}
+                </p>
               </div>
 
               <div className="selfloan-cta">
