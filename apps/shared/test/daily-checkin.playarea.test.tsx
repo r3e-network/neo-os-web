@@ -141,6 +141,7 @@ describe("Daily Check-in PlayArea", () => {
   it("renders the full check-in, reward, history, and evidence workflow", () => {
     render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
 
+    expect(document.querySelector('.checkin-streak-stage img[src="./streak-plaza.jpg"]')).toBeTruthy();
     expect(screen.getAllByText("6 Day Streak").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Check In Now" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Claim Rewards" })).toBeTruthy();

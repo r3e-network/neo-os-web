@@ -179,6 +179,121 @@ $amber: #f59e0b;
   }
 }
 
+.checkin-streak-stage {
+  position: relative;
+  display: grid;
+  min-height: 238px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: $ns-radius;
+  background: #f4fbf3;
+  box-shadow: $ns-shadow;
+}
+
+.checkin-streak-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.checkin-streak-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.42) 58%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+}
+
+.checkin-streak-stage figcaption,
+.checkin-streak-stage__tokens {
+  position: relative;
+  z-index: 1;
+}
+
+.checkin-streak-stage figcaption {
+  align-self: end;
+  display: grid;
+  gap: 4px;
+  width: min(100% - 28px, 360px);
+  margin: 14px;
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 28px rgba(20, 22, 38, 0.12);
+}
+
+.checkin-streak-stage figcaption span {
+  color: $ac-ink;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.checkin-streak-stage figcaption strong {
+  color: $ns-ink;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.checkin-streak-stage figcaption small {
+  color: $ns-text-2;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.checkin-streak-stage__tokens {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: min(310px, calc(100% - 28px));
+}
+
+.checkin-streak-stage__tokens span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(20, 22, 38, 0.1);
+}
+
+.checkin-streak-stage__tokens small {
+  overflow: hidden;
+  color: $ns-text-muted;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.checkin-streak-stage__tokens strong {
+  overflow: hidden;
+  color: $ac-ink;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Icon badge — the streak figure, accent-ringed */
 .checkin-fire-ring {
   position: relative;
@@ -198,7 +313,7 @@ $amber: #f59e0b;
   font-size: 32px;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: $ac-strong;
   font-variant-numeric: tabular-nums;
 }
@@ -219,7 +334,7 @@ $amber: #f59e0b;
 .checkin-hero-eyebrow {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ac-strong;
 }
@@ -233,7 +348,7 @@ $amber: #f59e0b;
   font-weight: 800;
   line-height: 1.15;
   color: $ns-ink;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   text-transform: none;
   font-variant-numeric: tabular-nums;
 }
@@ -407,7 +522,7 @@ $amber: #f59e0b;
   margin: 0 0 14px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ns-text-muted;
 }
@@ -426,7 +541,7 @@ $amber: #f59e0b;
 .checkin-progress-text {
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ns-text-muted;
 
@@ -443,7 +558,7 @@ $amber: #f59e0b;
   color: $ac-ink;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
 }
 
 .checkin-week-row {
@@ -463,7 +578,7 @@ $amber: #f59e0b;
   color: $ns-text-2;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   position: relative;
   transition: all 140ms ease;
 
@@ -564,7 +679,7 @@ $amber: #f59e0b;
   font-weight: 700;
   color: $ac-strong;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-shadow: none !important;
 }
 
@@ -572,7 +687,7 @@ $amber: #f59e0b;
   margin-top: 0;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ac-strong;
 }
@@ -658,7 +773,7 @@ $amber: #f59e0b;
   color: $ns-text-muted;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -697,7 +812,7 @@ $amber: #f59e0b;
   color: $ns-text-muted;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -758,7 +873,7 @@ $amber: #f59e0b;
   font-size: 10px;
   font-weight: 800;
   font-style: normal;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -871,7 +986,7 @@ $amber: #f59e0b;
 .checkin-stat-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ns-text-muted;
 }
@@ -911,7 +1026,7 @@ $amber: #f59e0b;
 .checkin-reward-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ns-text-muted;
 }
@@ -963,7 +1078,7 @@ $amber: #f59e0b;
   font-size: 13px;
   font-weight: 800;
   color: $ns-ink;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .checkin-milestone-reward {
@@ -1008,7 +1123,7 @@ $amber: #f59e0b;
 .checkin-history-streak {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   color: $ns-text-muted;
 }
 
@@ -1090,7 +1205,7 @@ $amber: #f59e0b;
   color: $ns-text-muted;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -1218,7 +1333,7 @@ $amber: #f59e0b;
   font-size: 12px;
   font-weight: 700;
   color: $ns-text-2;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1275,7 +1390,7 @@ $amber: #f59e0b;
 .checkin-meta-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ns-text-muted;
 }
@@ -1348,7 +1463,7 @@ $amber: #f59e0b;
 .checkin-plan-eyebrow {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ns-text-muted;
 }
@@ -1356,7 +1471,7 @@ $amber: #f59e0b;
 .checkin-plan-title {
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: $ns-text;
 }
 
@@ -1455,7 +1570,7 @@ $amber: #f59e0b;
 .checkin-reward-reveal__eyebrow {
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $ac-strong;
 }
@@ -1463,7 +1578,7 @@ $amber: #f59e0b;
 .checkin-reward-reveal__title {
   font-size: 18px;
   font-weight: 900;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: $ns-ink;
   font-variant-numeric: tabular-nums;
 }
