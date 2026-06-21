@@ -341,6 +341,9 @@ export default function PlayArea({
   const [token, setToken] = useState<StreamToken>(launchToken);
   const [amountTouched, setAmountTouched] = useState(false);
   const [durationTouched, setDurationTouched] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(
+    Boolean(launchTitle || launchNotes),
+  );
 
   useEffect(() => {
     setRecipient(launchRecipient);
@@ -351,6 +354,7 @@ export default function PlayArea({
     setToken(launchToken);
     setAmountTouched(Boolean(launchAmount));
     setDurationTouched(Boolean(launchDuration));
+    setDetailsOpen(Boolean(launchTitle || launchNotes));
   }, [
     launchAmount,
     launchDuration,
@@ -667,28 +671,25 @@ export default function PlayArea({
             "Create a funded payment stream through the shared vault and vesting modules.",
           )}
         </p>
-        <div className="shared-pay-hero__stats" aria-label="Stream totals">
-          <span className={hasStreams ? undefined : "is-empty"}>
-            <strong>{totalStreamsLabel}</strong>
-            {copy("totalStreams", "Total Streams")}
-          </span>
-          <span className={hasStreams ? undefined : "is-empty"}>
-            <strong>{activeStreamsLabel}</strong>
-            {copy("active", "Active")}
-          </span>
-          <span className={hasStreams ? undefined : "is-empty"}>
-            <strong>{createdStreamsLabel}</strong>
-            {copy("createdByYou", "Created by You")}
-          </span>
-          <span className={hasStreams ? undefined : "is-empty"}>
-            <strong>{beneficiaryLabel}</strong>
-            {copy("youAreBeneficiary", "You're Beneficiary")}
-          </span>
-        </div>
-        {!hasStreams && (
-          <p className="shared-pay-hero__empty-note">
-            {copy("awaitingActivity", "Awaiting activity")}
-          </p>
+        {hasStreams && (
+          <div className="shared-pay-hero__stats" aria-label="Stream totals">
+            <span>
+              <strong>{totalStreamsLabel}</strong>
+              {copy("totalStreams", "Total Streams")}
+            </span>
+            <span>
+              <strong>{activeStreamsLabel}</strong>
+              {copy("active", "Active")}
+            </span>
+            <span>
+              <strong>{createdStreamsLabel}</strong>
+              {copy("createdByYou", "Created by You")}
+            </span>
+            <span>
+              <strong>{beneficiaryLabel}</strong>
+              {copy("youAreBeneficiary", "You're Beneficiary")}
+            </span>
+          </div>
         )}
       </section>
 
@@ -705,197 +706,208 @@ export default function PlayArea({
           title={copy("createStream", "Create Stream")}
           className="shared-pay-card shared-pay-card--form"
         >
-          <div className="shared-pay-composer">
-            <div className="shared-pay-composer__amount">
-              <span className="shared-pay-composer__label">
-                {copy("amount", "Amount")}
-              </span>
-              <NeoInput
-                placeholder="0.00"
-                suffix={token}
-                type="number"
-                min={0}
-                value={amount}
-                error={
-                  !amountTouched || amountReady
-                    ? ""
-                    : copy("invalidAmount", "Enter an amount")
-                }
-                required
-                aria-label={copy("amount", "Amount")}
-                onChange={(value) => {
-                  setAmount(value);
-                  setAmountTouched(true);
-                }}
-              />
-            </div>
-
-            <fieldset
-              className="shared-pay-asset-switch"
-              aria-label={copy("token", "Token")}
-            >
-              {(["GAS", "NEO"] as const).map((asset) => (
-                <button
-                  key={asset}
-                  type="button"
-                  className={token === asset ? "is-active" : undefined}
-                  aria-pressed={token === asset}
-                  onClick={() => setToken(asset)}
-                >
-                  <strong>{asset}</strong>
-                  <span>
-                    {asset === "GAS"
-                      ? copy("gasAssetHint", "Fees + streams")
-                      : copy("neoAssetHint", "Whole-token streams")}
+          <div className="shared-pay-composer-shell">
+            <div className="shared-pay-composer-main">
+              <div className="shared-pay-composer">
+                <div className="shared-pay-composer__amount">
+                  <span className="shared-pay-composer__label">
+                    {copy("amount", "Amount")}
                   </span>
-                </button>
-              ))}
-            </fieldset>
+                  <NeoInput
+                    placeholder="0.00"
+                    suffix={token}
+                    type="number"
+                    min={0}
+                    value={amount}
+                    error={
+                      !amountTouched || amountReady
+                        ? ""
+                        : copy("invalidAmount", "Enter an amount")
+                    }
+                    required
+                    aria-label={copy("amount", "Amount")}
+                    onChange={(value) => {
+                      setAmount(value);
+                      setAmountTouched(true);
+                    }}
+                  />
+                </div>
 
-            <div className="shared-pay-form shared-pay-form--compact">
-              <NeoInput
-                label={copy("recipient", "Recipient Address")}
-                placeholder={copy("recipientPlaceholder", "N3 address...")}
-                value={recipient}
-                error={
-                  recipientReady
-                    ? ""
-                    : copy("invalidAddress", "Enter a valid Neo N3 address")
-                }
-                required
-                onChange={setRecipient}
-              />
-              <NeoInput
-                label={copy("duration", "Duration")}
-                placeholder={copy("durationPlaceholder", "Number of days")}
-                suffix={copy("days", "days")}
-                type="number"
-                min={1}
-                max={365}
-                value={duration}
-                error={
-                  !durationTouched || durationReady
-                    ? ""
-                    : copy("intervalInvalid", "Use 1 to 365 days")
-                }
-                required
-                onChange={(value) => {
-                  setDuration(value);
-                  setDurationTouched(true);
-                }}
-              />
+                <fieldset
+                  className="shared-pay-asset-switch"
+                  aria-label={copy("token", "Token")}
+                >
+                  {(["GAS", "NEO"] as const).map((asset) => (
+                    <button
+                      key={asset}
+                      type="button"
+                      className={token === asset ? "is-active" : undefined}
+                      aria-pressed={token === asset}
+                      onClick={() => setToken(asset)}
+                    >
+                      <strong>{asset}</strong>
+                      <span>
+                        {asset === "GAS"
+                          ? copy("gasAssetHint", "Fees + streams")
+                          : copy("neoAssetHint", "Whole-token streams")}
+                      </span>
+                    </button>
+                  ))}
+                </fieldset>
+
+                <div className="shared-pay-form shared-pay-form--compact">
+                  <NeoInput
+                    label={copy("recipient", "Recipient Address")}
+                    placeholder={copy("recipientPlaceholder", "N3 address...")}
+                    value={recipient}
+                    error={
+                      recipientReady
+                        ? ""
+                        : copy("invalidAddress", "Enter a valid Neo N3 address")
+                    }
+                    required
+                    onChange={setRecipient}
+                  />
+                  <NeoInput
+                    label={copy("duration", "Duration")}
+                    placeholder={copy("durationPlaceholder", "Number of days")}
+                    suffix={copy("days", "days")}
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={duration}
+                    error={
+                      !durationTouched || durationReady
+                        ? ""
+                        : copy("intervalInvalid", "Use 1 to 365 days")
+                    }
+                    required
+                    onChange={(value) => {
+                      setDuration(value);
+                      setDurationTouched(true);
+                    }}
+                  />
+                </div>
+
+                <details
+                  className="shared-pay-advanced"
+                  open={detailsOpen}
+                  onToggle={(event) => {
+                    setDetailsOpen(event.currentTarget.open);
+                  }}
+                >
+                  <summary>{copy("streamMetadata", "Stream details")}</summary>
+                  <div className="shared-pay-form shared-pay-form--compact">
+                    <NeoInput
+                      label={copy("vaultName", "Stream name")}
+                      placeholder={copy("vaultNamePlaceholder", "Monthly payroll stream")}
+                      value={title}
+                      onChange={setTitle}
+                    />
+                    <NeoInput
+                      label={copy("notes", "Notes (optional)")}
+                      placeholder={copy("notesPlaceholder", "Add context for the recipient")}
+                      value={notes}
+                      onChange={setNotes}
+                    />
+                  </div>
+                </details>
+              </div>
+
+              <div className="shared-pay-presets" aria-label="Stream presets">
+                {STREAM_PRESETS.map((preset) => {
+                  const isActive = activePresetId === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className={isActive ? "is-active" : undefined}
+                      aria-pressed={isActive}
+                      onClick={() => applyPreset(preset.values)}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                className={`shared-pay-actions${isDirty ? " is-dirty" : ""}`}
+              >
+                <NeoButton
+                  variant="primary"
+                  className="shared-pay-create-cta"
+                  block
+                  loading={isCreating}
+                  disabled={!canSubmit}
+                  onClick={createStream}
+                >
+                  {buttonLabel}
+                </NeoButton>
+                {isDirty && (
+                  <NeoButton variant="secondary" onClick={clearDraft}>
+                    {copy("clear", "Clear")}
+                  </NeoButton>
+                )}
+              </div>
             </div>
 
-            <details
-              className="shared-pay-advanced"
-              open={title.trim().length > 0 || notes.trim().length > 0}
+            <aside
+              className={`shared-pay-review-panel${canSubmit ? " is-ready" : ""}`}
+              aria-label={copy("transactionPreview", "Transaction preview")}
             >
-              <summary>{copy("streamMetadata", "Stream details")}</summary>
-              <div className="shared-pay-form shared-pay-form--compact">
-                <NeoInput
-                  label={copy("vaultName", "Stream name")}
-                  placeholder={copy("vaultNamePlaceholder", "Monthly payroll stream")}
-                  value={title}
-                  onChange={setTitle}
-                />
-                <NeoInput
-                  label={copy("notes", "Notes (optional)")}
-                  placeholder={copy("notesPlaceholder", "Add context for the recipient")}
-                  value={notes}
-                  onChange={setNotes}
-                />
-              </div>
-            </details>
-          </div>
-
-          <div className="shared-pay-presets" aria-label="Stream presets">
-            {STREAM_PRESETS.map((preset) => {
-              const isActive = activePresetId === preset.id;
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={isActive ? "is-active" : undefined}
-                  aria-pressed={isActive}
-                  onClick={() => applyPreset(preset.values)}
+              <div className="shared-pay-review-panel__top">
+                <span>{copy("transactionPreview", "Transaction preview")}</span>
+                <strong
+                  className={canSubmit ? undefined : "shared-pay-review__pending"}
                 >
-                  {preset.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            className={`shared-pay-actions${isDirty ? " is-dirty" : ""}`}
-          >
-            <NeoButton
-              variant="primary"
-              block
-              loading={isCreating}
-              disabled={!canSubmit}
-              onClick={createStream}
-            >
-              {buttonLabel}
-            </NeoButton>
-            {isDirty && (
-              <NeoButton variant="secondary" onClick={clearDraft}>
-                {copy("clear", "Clear")}
-              </NeoButton>
-            )}
-          </div>
-
-          <details className="shared-pay-review" open={canSubmit}>
-            <summary>
-              <span>{copy("transactionPreview", "Transaction preview")}</span>
-              <strong
-                className={canSubmit ? undefined : "shared-pay-review__pending"}
-              >
-                {summaryLabel}
-              </strong>
-            </summary>
-            <div className="shared-pay-summary">
-              <div>
-                <span>{copy("recipient", "Recipient Address")}</span>
-                <strong>{recipientLabel}</strong>
-              </div>
-              <div>
-                <span>{copy("totalAmount", "Total amount")}</span>
-                <strong>{totalLabel}</strong>
-              </div>
-              <div>
-                <span>{releaseRateLabel}</span>
-                <strong>{releaseLabel}</strong>
-              </div>
-              <div>
-                <span>{copy("intervalLabel", "Interval")}</span>
-                <strong>{scheduleLabel}</strong>
-              </div>
-              <div>
-                <span>{copy("network", "Network")}</span>
-                <strong>{networkLabel}</strong>
-              </div>
-              <div>
-                <span>{copy("networkFee", "Network fee")}</span>
-                <strong className="shared-pay-summary__muted">
-                  {copy("networkFeeValue", "Estimated in GAS at signing")}
+                  {summaryLabel}
                 </strong>
               </div>
-            </div>
-            <p className="shared-pay-review__hint">
-              {copy(
-                "transactionPreviewHint",
-                "Funds lock in the stream immediately. The wallet shows the exact GAS network fee before you sign.",
-              )}
-            </p>
-            {rateRoundsToZero && (
-              <p className="shared-pay-review__warning" role="alert">
+              <div className="shared-pay-summary">
+                <div>
+                  <span>{copy("recipient", "Recipient Address")}</span>
+                  <strong>{recipientLabel}</strong>
+                </div>
+                <div>
+                  <span>{copy("totalAmount", "Total amount")}</span>
+                  <strong>{totalLabel}</strong>
+                </div>
+                <div>
+                  <span>{releaseRateLabel}</span>
+                  <strong>{releaseLabel}</strong>
+                </div>
+                <div>
+                  <span>{copy("intervalLabel", "Interval")}</span>
+                  <strong>{scheduleLabel}</strong>
+                </div>
+                <div>
+                  <span>{copy("network", "Network")}</span>
+                  <strong>{networkLabel}</strong>
+                </div>
+                <div>
+                  <span>{copy("networkFee", "Network fee")}</span>
+                  <strong className="shared-pay-summary__muted">
+                    {copy("networkFeeValue", "Estimated in GAS at signing")}
+                  </strong>
+                </div>
+              </div>
+              <p className="shared-pay-review__hint">
                 {copy(
-                  "rateRoundsToZero",
-                  "Amount is too small for this duration — increase the amount or shorten the duration.",
+                  "transactionPreviewHint",
+                  "Funds lock in the stream immediately. The wallet shows the exact GAS network fee before you sign.",
                 )}
               </p>
-            )}
-          </details>
+              {rateRoundsToZero && (
+                <p className="shared-pay-review__warning" role="alert">
+                  {copy(
+                    "rateRoundsToZero",
+                    "Amount is too small for this duration — increase the amount or shorten the duration.",
+                  )}
+                </p>
+              )}
+            </aside>
+          </div>
         </NeoCard>
       </div>
 

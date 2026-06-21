@@ -25,7 +25,7 @@
     margin: 0.2rem 0 0;
     font-size: 1.75rem;
     line-height: 1.16;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     font-weight: 800;
     color: var(--ns-ink, #1e1e2e);
   }
@@ -80,7 +80,7 @@
     color: var(--ns-text-muted, #8a92a6);
     font-size: 0.66rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -90,24 +90,9 @@
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
-  span.is-empty strong {
-    color: var(--ns-text-muted, #8a92a6);
-    font-weight: 600;
-  }
-}
-
-.shared-pay-hero__empty-note {
-  margin: 0.55rem 0 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  line-height: 1.35;
-  text-align: center;
-  text-transform: uppercase;
 }
 
 .shared-pay-eyebrow {
@@ -121,7 +106,7 @@
   color: var(--ns-violet-strong, #0fb174);
   font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -145,6 +130,19 @@
 
 .shared-pay-primary {
   display: block;
+}
+
+.shared-pay-composer-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.72fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.shared-pay-composer-main {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
 }
 
 .shared-pay-stream-grid {
@@ -189,7 +187,7 @@
     min-height: 66px;
     padding: 0 0.15rem;
     color: var(--ns-ink, #1e1e2e);
-    font-size: clamp(2rem, 7vw, 3.15rem);
+    font-size: 2.55rem;
     font-weight: 800;
     letter-spacing: 0;
   }
@@ -206,7 +204,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -223,8 +221,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    min-height: 58px;
-    padding: 0.75rem 0.85rem;
+    min-height: 46px;
+    padding: 0.58rem 0.75rem;
     border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
     border-radius: var(--ns-radius-md, 16px);
     background: var(--ns-surface, #ffffff);
@@ -238,9 +236,9 @@
 
     strong {
       color: var(--ns-ink, #1e1e2e);
-      font-size: 1rem;
+      font-size: 0.92rem;
       font-weight: 900;
-      letter-spacing: 0.02em;
+      letter-spacing: 0;
     }
 
     span {
@@ -398,82 +396,85 @@
   }
 }
 
-.shared-pay-review {
-  margin-top: 0.85rem;
+.shared-pay-actions .shared-pay-create-cta.neo-btn--primary:not(:disabled):not([aria-disabled="true"]) {
+  border: 1px solid #0a7a52;
+  background: #0a7a52;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(22, 199, 132, 0.2);
+
+  &:hover {
+    background: #086d49;
+    border-color: #086d49;
+  }
+}
+
+.shared-pay-review-panel {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.9rem;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface, #ffffff);
+  background:
+    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 42%),
+    var(--ns-surface, #ffffff);
 
-  summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    min-height: 44px;
-    padding: 0.6rem 0.95rem;
-    cursor: pointer;
-    list-style: none;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 0.8rem;
-    font-weight: 800;
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    &::after {
-      content: "▾";
-      margin-left: 0.35rem;
-      color: var(--ns-text-muted, #8a92a6);
-      font-size: 0.7rem;
-      transition: transform 0.15s ease;
-    }
-
-    strong {
-      color: var(--ns-ink, #1e1e2e);
-      font-size: 0.9rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    // Closed-state placeholder: "Enter details" should read as a muted prompt,
-    // not a real zero-value transaction.
-    strong.shared-pay-review__pending {
-      color: var(--ns-text-muted, #8a92a6);
-      font-weight: 700;
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
-
-  &[open] summary::after {
-    transform: rotate(180deg);
+  &.is-ready {
+    border-color: rgba(22, 199, 132, 0.2);
   }
 
   .shared-pay-summary {
-    margin: 0 0.7rem 0.7rem;
+    margin: 0;
+  }
+}
+
+.shared-pay-review-panel__top {
+  display: grid;
+  gap: 0.28rem;
+
+  span {
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: 0;
+    text-transform: uppercase;
   }
 
-  &__hint {
-    margin: 0 0.7rem 0.7rem;
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 0.74rem;
-    line-height: 1.5;
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 1.38rem;
+    line-height: 1.05;
+    font-weight: 900;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
   }
 
-  &__warning {
-    margin: 0 0.7rem 0.7rem;
-    padding: 0.6rem 0.75rem;
-    border: 1px solid var(--ns-danger-border, rgba(220, 38, 38, 0.22));
-    border-radius: var(--ns-radius-sm, 12px);
-    background: var(--ns-danger-soft, #fdecec);
-    color: var(--ns-danger-strong, #b42318);
-    font-size: 0.78rem;
-    font-weight: 700;
-    line-height: 1.4;
-  }
+}
+
+.shared-pay-review__pending {
+  color: var(--ns-text-muted, #8a92a6) !important;
+  font-weight: 700 !important;
+}
+
+.shared-pay-review__hint {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.shared-pay-review__warning {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--ns-danger-border, rgba(220, 38, 38, 0.22));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-danger-soft, #fdecec);
+  color: var(--ns-danger-strong, #b42318);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .shared-pay-summary {
@@ -615,7 +616,7 @@
   color: var(--ns-text-2, #5b6478);
   font-size: 0.64rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   text-transform: uppercase;
 
   &--active {
@@ -728,6 +729,7 @@
 }
 
 @media (max-width: 920px) {
+  .shared-pay-composer-shell,
   .shared-pay-stream-grid {
     grid-template-columns: 1fr;
   }
@@ -742,13 +744,36 @@
     padding: 0.85rem;
   }
 
+  .shared-pay-composer__amount {
+    padding: 0.8rem;
+  }
+
+  .shared-pay-composer__amount .neo-input__wrapper,
+  .shared-pay-composer__amount .neo-input__field {
+    min-height: 56px;
+  }
+
+  .shared-pay-composer__amount .neo-input__field {
+    font-size: 2rem;
+  }
+
+  .shared-pay-asset-switch button {
+    min-height: 42px;
+    padding: 0.5rem 0.62rem;
+  }
+
   .shared-pay-form {
     grid-template-columns: 1fr;
   }
 
   .shared-pay-actions,
+  .shared-pay-actions.is-dirty,
   .shared-pay-stream {
     grid-template-columns: 1fr;
+  }
+
+  .shared-pay-review-panel {
+    padding: 0.75rem;
   }
 
   .shared-pay-summary div,
