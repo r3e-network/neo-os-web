@@ -71,7 +71,7 @@
 .private-transfer__hero h2 {
   max-width: 11ch;
   margin: 0;
-  font-size: clamp(2.05rem, 4vw, 3.35rem);
+  font-size: 54px;
   font-weight: 900;
   line-height: 0.98;
   letter-spacing: 0;
@@ -1224,6 +1224,7 @@
 
   .private-transfer__hero h2 {
     max-width: none;
+    font-size: 44px;
   }
 
   .private-transfer__stage {
