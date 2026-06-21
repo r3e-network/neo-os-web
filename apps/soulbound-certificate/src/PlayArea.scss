@@ -59,7 +59,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   margin: 0 0 4px;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $soul-accent-strong;
 }
@@ -451,7 +451,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: $soul-accent-strong;
   font-size: 11px;
   font-weight: 850;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -521,6 +521,46 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: #0b5e3e;
   font-size: 11px;
   font-weight: 850;
+}
+
+.certificate-wallet-gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-md);
+  background:
+    linear-gradient(135deg, rgba(232, 248, 239, 0.86), rgba(255, 255, 255, 0.92));
+  color: var(--ns-ink);
+
+  div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  strong {
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  span {
+    color: var(--ns-text-2);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .neo-btn {
+    flex: 0 0 auto;
+  }
+}
+
+.certificate-wallet-gate--drawer {
+  margin-top: 12px;
 }
 
 .template-lab {
@@ -757,7 +797,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
     color: var(--ns-text-muted);
     font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -862,7 +902,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   margin: 0 0 8px;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ns-text-muted);
 }
@@ -912,7 +952,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .certificate-artifact__issuer {
   font-size: 11px;
   font-weight: 850;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: #9a7b32;
   overflow-wrap: anywhere;
@@ -943,7 +983,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .certificate-artifact__caption {
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: #a99668;
 }
@@ -990,7 +1030,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .certificate-artifact__seal-label {
   font-size: 11px;
   font-weight: 850;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: #9a7b32;
 }
@@ -1014,7 +1054,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
     color: var(--ns-text-muted);
     font-size: 10px;
     font-weight: 800;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -1060,7 +1100,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .certificate-detail__qr-caption {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ns-text-muted);
 }
@@ -1192,7 +1232,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .template-actions {
   display: grid;
-  grid-template-columns: minmax(116px, 1fr) minmax(96px, 0.8fr) 38px 38px;
+  grid-template-columns: minmax(116px, 1fr) minmax(96px, 0.8fr) 38px;
   gap: 8px;
   align-content: start;
   min-width: min(100%, 330px);
@@ -1301,7 +1341,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   padding: 3px 9px;
   border-radius: var(--ns-radius-xs);
 
@@ -1319,12 +1359,14 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1240px) {
   .issue-studio,
   .template-lab {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 980px) {
   .template-card {
     flex-direction: column;
   }
@@ -1376,8 +1418,17 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
     align-items: stretch;
   }
 
+  .certificate-wallet-gate {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .certificate-wallet-gate .neo-btn {
+    width: 100%;
+  }
+
   .template-actions {
-    grid-template-columns: 1fr 1fr 38px 38px;
+    grid-template-columns: 1fr 1fr 38px;
   }
 
   .selected-template {

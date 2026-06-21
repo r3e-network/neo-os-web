@@ -9,6 +9,15 @@ const appMessages = {
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
+  walletRequiredTitle: { en: "Wallet required", zh: "需要连接钱包" },
+  walletRequiredIssueHint: {
+    en: "Connect the issuer wallet before minting a soulbound certificate.",
+    zh: "签发灵魂绑定证书前，请先连接发行方钱包。",
+  },
+  walletRequiredTemplateHint: {
+    en: "Connect the issuer wallet before creating an on-chain template.",
+    zh: "创建链上模板前，请先连接发行方钱包。",
+  },
   issuerWorkspaceTitle: { en: "Issuer workspace", zh: "发行方工作台" },
   certificateHeroTitle: { en: "Design a credential, issue it on-chain, verify it anywhere.", zh: "设计凭证，链上签发，随处核验。" },
   certificateTrustSignals: { en: "Credential trust signals", zh: "凭证可信信号" },
