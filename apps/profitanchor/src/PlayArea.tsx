@@ -320,7 +320,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <button
                 key={preset}
                 type="button"
-                className={amountInput === preset ? "is-active" : undefined}
+                className={normalizedAmount === preset ? "is-active" : undefined}
                 disabled={isBusy}
                 onClick={() => setAmountInput(preset)}
               >
