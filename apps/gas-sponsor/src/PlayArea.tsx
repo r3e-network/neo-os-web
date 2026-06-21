@@ -113,6 +113,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="gas-refill-hero__media" aria-hidden="true">
           <img src="./gas-sponsor-refill-station.jpg" alt="" />
+          <div className="gas-refill-hero__station-card">
+            <span>{t("stationCardLabel")}</span>
+            <strong>
+              {remainingQuotaDisplay} {t("tokenGas")}
+            </strong>
+            <small>{t("stationCardCopy")}</small>
+          </div>
         </div>
       </section>
 

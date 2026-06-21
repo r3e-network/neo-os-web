@@ -226,6 +226,14 @@ const appMessages = {
     en: "New-wallet gas lane",
     zh: "新钱包 GAS 补给通道",
   },
+  stationCardLabel: {
+    en: "Today available",
+    zh: "今日可补给",
+  },
+  stationCardCopy: {
+    en: "Daily sponsor lane for low-balance wallets",
+    zh: "面向低余额钱包的每日赞助通道",
+  },
   statusSnapshot: {
     en: "Wallet and eligibility status",
     zh: "钱包与资格状态",
