@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import {
   NeoButton,
-  NeoInput,
   type ConsoleFieldOption,
   type ConsoleResult,
 } from "@shared/components-react";
@@ -112,19 +111,22 @@ export default function PlayArea({
   );
   const workflowOptions = workflowField?.options ?? [];
   const privacyOptions = privacyField?.options ?? [];
+  const workflowValue = values.workflow ?? "";
+  const privacyValue = values.privacy ?? "";
+  const inputValue = values.input ?? "";
   const selectedWorkflow =
-    workflowOptions.find((option) => option.value === values.workflow) ??
+    workflowOptions.find((option) => option.value === workflowValue) ??
     workflowOptions[0];
   const selectedPrivacy =
-    privacyOptions.find((option) => option.value === values.privacy) ??
+    privacyOptions.find((option) => option.value === privacyValue) ??
     privacyOptions[0];
   const selectedWorkflowLabel = selectedWorkflow
     ? optionLabel(selectedWorkflow, t)
-    : values.workflow;
+    : workflowValue;
   const selectedPrivacyLabel = selectedPrivacy
     ? optionLabel(selectedPrivacy, t)
-    : values.privacy;
-  const privacySealed = values.privacy !== "public";
+    : privacyValue;
+  const privacySealed = privacyValue !== "public";
   const inputValid = draftResult.payload.inputValid === true;
   const draftOk = draftResult.payload.status !== "input_required";
   const resultOk = result?.payload.status !== "input_required";
@@ -148,7 +150,7 @@ export default function PlayArea({
     {
       key: "size",
       label: t("computeInputSize"),
-      value: t("computeInputBytes", { count: values.input.length }),
+      value: t("computeInputBytes", { count: inputValue.length }),
     },
   ];
 
@@ -174,7 +176,9 @@ export default function PlayArea({
       const count = Number(state.requestCount?.get?.() ?? 0);
       setObservable(state, "requestCount", count + 1);
     }
-    setStatus(next.status, ok ? "success" : "warning");
+    if (!ok) {
+      setStatus(next.status, "warning");
+    }
   }
 
   function buildPreview() {
@@ -287,154 +291,192 @@ export default function PlayArea({
           </div>
 
           <section
-            className="compute-workflow-panel"
-            aria-label={t("computeWorkflowTitle")}
+            className="compute-capsule-panel"
+            aria-label={t("computeCapsuleTitle")}
           >
-            <div className="compute-section-copy">
-              <small>{t("computeWorkflowTitle")}</small>
-              <strong>{t("computeWorkflowCopy")}</strong>
-            </div>
-            <div
-              className="compute-workflow-grid"
-              role="radiogroup"
-              aria-label={t("workflow")}
-            >
-              {workflowOptions.map((option) => {
-                const selected = values.workflow === option.value;
-                const label = optionLabel(option, t);
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={`${t("workflow")}: ${label}`}
-                    className={`compute-choice-card${
-                      selected ? " compute-choice-card--selected" : ""
-                    }`}
-                    onClick={() => updateValue("workflow", option.value)}
-                  >
-                    <span aria-hidden="true">{workflowIcon(option.value)}</span>
-                    <strong>{label}</strong>
-                    <small>{workflowHint(option.value, t)}</small>
-                    {selected && (
-                      <span
-                        className="compute-choice-card__check"
-                        aria-hidden="true"
-                      >
-                        <Check size={14} />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section
-            className="compute-privacy-panel"
-            aria-label={t("computePrivacyTitle")}
-          >
-            <div className="compute-section-copy">
-              <small>{t("computePrivacyTitle")}</small>
-              <strong>{t("computePrivacyCopy")}</strong>
-            </div>
-            <div
-              className="compute-privacy-grid"
-              role="radiogroup"
-              aria-label={t("privacy")}
-            >
-              {privacyOptions.map((option) => {
-                const selected = values.privacy === option.value;
-                const label = optionLabel(option, t);
-                const isPublic = option.value === "public";
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={`${t("privacy")}: ${label}`}
-                    className={`compute-choice-card${
-                      selected ? " compute-choice-card--selected" : ""
-                    }`}
-                    onClick={() => updateValue("privacy", option.value)}
-                  >
-                    <span aria-hidden="true">
-                      {isPublic ? (
-                        <UnlockKeyhole size={18} />
-                      ) : (
-                        <LockKeyhole size={18} />
-                      )}
-                    </span>
-                    <strong>{label}</strong>
-                    <small>
-                      {isPublic
-                        ? t("privacyPublicHint")
-                        : t("privacySealedHint")}
-                    </small>
-                    {selected && (
-                      <span
-                        className="compute-choice-card__check"
-                        aria-hidden="true"
-                      >
-                        <Check size={14} />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section
-            className="compute-input-panel"
-            aria-label={t("computeInputTitle")}
-          >
-            <div className="compute-section-copy">
-              <small>{t("computeInputTitle")}</small>
-              <strong>
-                {privacySealed
-                  ? t("computeInputSealedCopy")
-                  : t("computeInputPublicCopy")}
-              </strong>
-            </div>
-            <div className="compute-input-shell">
-              <NeoInput
-                type="textarea"
-                label={t("input")}
-                value={values.input}
-                placeholder={t("inputPlaceholder")}
-                hint={inputValid ? t("computeInputReadyHint") : ""}
-                error={inputValid ? "" : t("computeInputInvalidHint")}
-                onChange={(value) => updateValue("input", value)}
-              />
-              <div
+            <div className="compute-capsule-panel__head">
+              <div className="compute-section-copy">
+                <small>{t("computeCapsuleTitle")}</small>
+                <strong>{t("computeCapsuleCopy")}</strong>
+              </div>
+              <span
                 className={`compute-valid-chip${
-                  inputValid
+                  draftOk
                     ? " compute-valid-chip--ok"
                     : " compute-valid-chip--warn"
                 }`}
               >
-                {inputValid ? (
+                {draftOk ? (
                   <Check size={15} aria-hidden="true" />
                 ) : (
                   <FileJson2 size={15} aria-hidden="true" />
                 )}
-                {t("inputValid")}: {boolLabel(inputValid, t)}
-              </div>
+                {draftOk ? t("computeValidationReady") : draftResult.status}
+              </span>
             </div>
-            <div className="compute-digest-strip">
-              <span>
-                <small>{t("inputDigest")}</small>
-                <strong>{inputDigest}</strong>
-              </span>
-              <span>
-                <small>{t("computeVisibility")}</small>
-                <strong>
-                  {privacySealed ? t("inputRedacted") : t("inputPublic")}
-                </strong>
-              </span>
+
+            <div className="compute-capsule-board">
+              <div className="compute-stage-block">
+                <div className="compute-stage-block__copy">
+                  <span aria-hidden="true">
+                    <BrainCircuit size={18} />
+                  </span>
+                  <div>
+                    <small>{t("computeWorkflowTitle")}</small>
+                    <strong>{t("computeWorkflowCopy")}</strong>
+                  </div>
+                </div>
+                <div
+                  className="compute-workflow-grid"
+                  role="radiogroup"
+                  aria-label={t("workflow")}
+                >
+                  {workflowOptions.map((option) => {
+                    const selected = workflowValue === option.value;
+                    const label = optionLabel(option, t);
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={`${t("workflow")}: ${label}`}
+                        className={`compute-choice-card${
+                          selected ? " compute-choice-card--selected" : ""
+                        }`}
+                        onClick={() => updateValue("workflow", option.value)}
+                      >
+                        <span aria-hidden="true">{workflowIcon(option.value)}</span>
+                        <strong>{label}</strong>
+                        <small>{workflowHint(option.value, t)}</small>
+                        {selected && (
+                          <span
+                            className="compute-choice-card__check"
+                            aria-hidden="true"
+                          >
+                            <Check size={14} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="compute-stage-block">
+                <div className="compute-stage-block__copy">
+                  <span aria-hidden="true">
+                    <LockKeyhole size={18} />
+                  </span>
+                  <div>
+                    <small>{t("computePrivacyTitle")}</small>
+                    <strong>{t("computePrivacyCopy")}</strong>
+                  </div>
+                </div>
+                <div
+                  className="compute-privacy-grid"
+                  role="radiogroup"
+                  aria-label={t("privacy")}
+                >
+                  {privacyOptions.map((option) => {
+                    const selected = privacyValue === option.value;
+                    const label = optionLabel(option, t);
+                    const isPublic = option.value === "public";
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={`${t("privacy")}: ${label}`}
+                        className={`compute-choice-card${
+                          selected ? " compute-choice-card--selected" : ""
+                        }`}
+                        onClick={() => updateValue("privacy", option.value)}
+                      >
+                        <span aria-hidden="true">
+                          {isPublic ? (
+                            <UnlockKeyhole size={18} />
+                          ) : (
+                            <LockKeyhole size={18} />
+                          )}
+                        </span>
+                        <strong>{label}</strong>
+                        <small>
+                          {isPublic
+                            ? t("privacyPublicHint")
+                            : t("privacySealedHint")}
+                        </small>
+                        {selected && (
+                          <span
+                            className="compute-choice-card__check"
+                            aria-hidden="true"
+                          >
+                            <Check size={14} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <label
+                className={`compute-input-capsule${
+                  inputValid ? " compute-input-capsule--ok" : " compute-input-capsule--warn"
+                }`}
+              >
+                <span className="compute-input-capsule__icon" aria-hidden="true">
+                  <FileJson2 size={18} />
+                </span>
+                <span className="compute-input-capsule__copy">
+                  <small>{t("computeInputTitle")}</small>
+                  <strong>
+                    {privacySealed
+                      ? t("computeInputSealedCopy")
+                      : t("computeInputPublicCopy")}
+                  </strong>
+                </span>
+                <span
+                  className={`compute-valid-chip${
+                    inputValid
+                      ? " compute-valid-chip--ok"
+                      : " compute-valid-chip--warn"
+                  }`}
+                >
+                  {inputValid ? (
+                    <Check size={15} aria-hidden="true" />
+                  ) : (
+                    <FileJson2 size={15} aria-hidden="true" />
+                  )}
+                  {t("inputValid")}: {boolLabel(inputValid, t)}
+                </span>
+                <textarea
+                  aria-label={t("input")}
+                  value={inputValue}
+                  placeholder={t("inputPlaceholder")}
+                  onChange={(event) =>
+                    updateValue("input", event.currentTarget.value)
+                  }
+                />
+                <small className="compute-input-capsule__hint">
+                  {inputValid
+                    ? t("computeInputReadyHint")
+                    : t("computeInputInvalidHint")}
+                </small>
+                <div className="compute-digest-strip">
+                  <span>
+                    <small>{t("inputDigest")}</small>
+                    <strong>{inputDigest}</strong>
+                  </span>
+                  <span>
+                    <small>{t("computeVisibility")}</small>
+                    <strong>
+                      {privacySealed ? t("inputRedacted") : t("inputPublic")}
+                    </strong>
+                  </span>
+                </div>
+              </label>
             </div>
           </section>
 
