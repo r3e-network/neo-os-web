@@ -40,6 +40,14 @@ function t(key: string) {
     awaitingSignature: "Waiting",
     messageLabel: "Message",
     messagePlaceholder: "Enter your message here...",
+    messageTemplateLabel: "Message starters",
+    templateReleaseLabel: "Release proof",
+    templateReleaseBody: "I confirm this release note is accurate, reviewed, and approved for publication.",
+    templateDigestLabel: "File digest",
+    templateDigestBody: "sha256:<paste digest here>\nI confirm this file digest matches the reviewed artifact.",
+    templateApprovalLabel: "Approval note",
+    templateApprovalBody: "I approve this request after reviewing the destination, amount, and purpose.",
+    messageTooLong: "Message is too long for on-chain broadcast.",
     signFileBtn: "Hash & load file",
     hashedFileNotice: "The file is hashed locally.",
     signBtn: "Sign Message",
@@ -102,7 +110,13 @@ describe("Neo Sign Anything PlayArea", () => {
     expect(screen.getByText("Neo Signature Desk")).toBeTruthy();
     expect(screen.getByLabelText("Message signing preview")).toBeTruthy();
     expect(document.querySelector('.sign-hero-stage img[src="./signature-desk.jpg"]')).toBeTruthy();
-    expect(screen.getByText("Message payload")).toBeTruthy();
+    expect(screen.getAllByText("Message payload").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Release proof" }));
+    expect(dispatch).toHaveBeenCalledWith(
+      "setMessage",
+      "I confirm this release note is accurate, reviewed, and approved for publication.",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Sign Message" }));
     expect(dispatch).toHaveBeenCalledWith("signMessage", "ship release note");

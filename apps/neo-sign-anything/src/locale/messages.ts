@@ -82,6 +82,22 @@ const appMessages = {
   messageBytesLabel: { en: "Message bytes", zh: "信息字节" },
   messageLabel: { en: "Message", zh: "信息" },
   messagePlaceholder: { en: "Enter your message here...", zh: "在此输入您的信息..." },
+  messageTemplateLabel: { en: "Message starters", zh: "消息模板" },
+  templateReleaseLabel: { en: "Release proof", zh: "发布证明" },
+  templateReleaseBody: {
+    en: "I confirm this release note is accurate, reviewed, and approved for publication.",
+    zh: "我确认此发布说明准确、已审阅，并批准发布。",
+  },
+  templateDigestLabel: { en: "File digest", zh: "文件摘要" },
+  templateDigestBody: {
+    en: "sha256:<paste digest here>\nI confirm this file digest matches the reviewed artifact.",
+    zh: "sha256:<在此粘贴摘要>\n我确认此文件摘要与已审阅的交付物一致。",
+  },
+  templateApprovalLabel: { en: "Approval note", zh: "批准说明" },
+  templateApprovalBody: {
+    en: "I approve this request after reviewing the destination, amount, and purpose.",
+    zh: "我已核对目标、金额与用途，并批准此请求。",
+  },
   messageTooLong: { en: "Message is too long for on-chain broadcast.", zh: "信息过长，无法上链广播。" },
   signBtn: { en: "Sign Message", zh: "签名信息" },
   broadcastBtn: { en: "Broadcast Message (On-chain)", zh: "广播信息 (上链)" },
