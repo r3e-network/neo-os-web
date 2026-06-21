@@ -103,6 +103,19 @@ const appMessages = {
     zh: "在浏览器中封装收款方、金额、备注与 note secret，交由 Morpheus 隐私计算处理。本步骤生成一个加密意图引用 — 本应用不会转移任何资金。",
   },
   heroBadge: { en: "No on-chain zk curve dependency", zh: "无需链上 zk 曲线依赖" },
+  heroStageAria: {
+    en: "Private transfer sealed package preview",
+    zh: "隐私转账封装包预览",
+  },
+  heroStageTitle: {
+    en: "Recipient details stay sealed until Morpheus opens the intent inside confidential compute.",
+    zh: "收款细节会保持封装，直到 Morpheus 在隐私计算中打开该意图。",
+  },
+  composerTitle: { en: "Seal desk", zh: "封装台" },
+  composerSubtitle: {
+    en: "Choose the lane, fill the intent, then create the encrypted reference.",
+    zh: "选择通道、填写意图，然后生成加密引用。",
+  },
 
   // Form
   formNetworkLabel: { en: "Network", zh: "网络" },
