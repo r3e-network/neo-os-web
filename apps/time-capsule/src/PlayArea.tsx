@@ -369,6 +369,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </section>
           </div>
 
+          <div className="capsule-mobile-action">
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              loading={isCreating}
+              disabled={!canCreate || isBusy}
+              aria-label={t("createCapsuleButton")}
+              onClick={() => dispatch("createCapsule")}
+            >
+              {isCreating ? t("creatingCapsule") : t("createCapsuleButton")}
+            </NeoButton>
+            <span>
+              <CheckCircle2 size={15} aria-hidden="true" />
+              {t("depositNote")}
+            </span>
+          </div>
+
           <aside
             className="capsule-preview-panel"
             aria-label={t("sealPreview")}
@@ -413,17 +431,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {t("depositNote")}
               </span>
             </div>
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              loading={isCreating}
-              disabled={!canCreate || isBusy}
-              aria-label={t("createCapsuleButton")}
-              onClick={() => dispatch("createCapsule")}
-            >
-              {isCreating ? t("creatingCapsule") : t("createCapsuleButton")}
-            </NeoButton>
+            <div className="capsule-preview-primary">
+              <NeoButton
+                variant="primary"
+                size="lg"
+                block
+                loading={isCreating}
+                disabled={!canCreate || isBusy}
+                aria-label={t("createCapsuleButton")}
+                onClick={() => dispatch("createCapsule")}
+              >
+                {isCreating ? t("creatingCapsule") : t("createCapsuleButton")}
+              </NeoButton>
+            </div>
           </aside>
         </div>
       </section>
