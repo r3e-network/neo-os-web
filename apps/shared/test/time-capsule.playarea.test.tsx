@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -153,5 +154,19 @@ describe("Time Capsule PlayArea", () => {
     expect(privateVisibility.getAttribute("aria-checked")).toBe("false");
     expect(publicVisibility.getAttribute("aria-checked")).toBe("true");
     expect((screen.getByRole("spinbutton", { name: "Lock Duration" }) as HTMLInputElement).value).toBe("365");
+  });
+
+  it("keeps the create CTA active/loading colors separate from disabled styling", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../time-capsule/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(
+      /\.neo-btn--primary:not\(:disabled\),\s*\.neo-btn--primary\.neo-btn--loading\s*\{[\s\S]*color:\s*#ffffff/,
+    );
+    expect(styles).toMatch(
+      /\.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/,
+    );
   });
 });

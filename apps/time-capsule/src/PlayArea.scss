@@ -16,23 +16,28 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-text, #2a2d3d);
   position: relative;
 
-  .neo-btn--primary:not(:disabled) {
-    background: $accent;
-    box-shadow: 0 2px 10px rgba(22, 199, 132, 0.28);
+  .neo-btn--primary:not(:disabled),
+  .neo-btn--primary.neo-btn--loading {
+    // Filled CTAs use the darker brand green so white text remains AA-readable.
+    background: #0a8050;
+    border-color: #0a8050;
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(10, 128, 80, 0.28);
 
     &:hover:not(:disabled) {
-      background: $accent-strong;
-      box-shadow: 0 4px 16px rgba(22, 199, 132, 0.32);
+      background: #086a45;
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(10, 128, 80, 0.32);
     }
   }
 
   // Soft-tinted disabled primary — keeps the green brand-soft affordance
   // ($accent-soft tint + muted green text) instead of collapsing to a flat grey
   // bar that reads as broken.
-  .neo-btn--primary:disabled {
+  .neo-btn--primary:disabled:not(.neo-btn--loading) {
     background: $accent-soft;
-    border-color: transparent;
-    color: rgba(15, 177, 116, 0.55);
+    border-color: rgba(15, 177, 116, 0.24);
+    color: var(--ns-brand-deep, #0b5e3e);
     box-shadow: none;
   }
 }
