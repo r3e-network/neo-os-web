@@ -1,4 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  Clock3,
+  Coins,
+  Gift,
+  Sparkles,
+  Users,
+  WalletCards,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
 import { formatGas } from "@shared/utils/format";
@@ -51,6 +59,8 @@ const CLAIM_PROGRESS_STEPS = [
   { key: "confirming", label: "claimProgressConfirming" },
   { key: "paid", label: "claimProgressPaid" },
 ] as const;
+const TOTAL_AMOUNT_PRESETS = ["20", "50", "100"];
+const CLAIM_SLOT_PRESETS = ["10", "25", "50"];
 
 function resolveClaimProgress(
   progress: string,
@@ -167,6 +177,14 @@ export default function PlayArea({
   const [expiryHours, setExpiryHours] = useState("24");
   const [poolId, setPoolId] = useState(currentPoolId);
   const [topUpAmount, setTopUpAmount] = useState("");
+  const displayTotalAmount = totalAmount.trim()
+    ? `${totalAmount.trim()} GAS`
+    : t("rewardPoolUnset");
+  const displayRewardRange = `${minClaim || "1"}-${maxClaim || "5"} GAS`;
+  const displayClaimSlots = maxClaims.trim()
+    ? t("rewardSlotsCount", { count: maxClaims.trim() })
+    : t("rewardSlotsUnset");
+  const displayExpiry = t("rewardExpiryHours", { hours: expiryHours || "24" });
 
   useEffect(() => {
     const nextKey = currentClaimKey || launchClaimKey;
@@ -493,124 +511,91 @@ export default function PlayArea({
               warm, gifting-framed copy so the default screen reads as a social
               gift, not an admin console. */}
           <header className="gas-pool-workspace-hero">
-            <img
-              className="gas-pool-workspace-hero__logo"
-              src={`${import.meta.env.BASE_URL}onegate-logo.png`}
-              alt=""
-              aria-hidden="true"
-              width={52}
-              height={52}
-            />
             <div className="gas-pool-workspace-hero__copy">
-              <span className="gas-pool-workspace-hero__eyebrow">
-                {t("workspaceHeroEyebrow")}
-              </span>
+              <div className="gas-pool-workspace-hero__brand">
+                <img
+                  className="gas-pool-workspace-hero__logo"
+                  src={`${import.meta.env.BASE_URL}onegate-logo.png`}
+                  alt=""
+                  aria-hidden="true"
+                  width={52}
+                  height={52}
+                />
+                <span className="gas-pool-workspace-hero__eyebrow">
+                  {t("workspaceHeroEyebrow")}
+                </span>
+              </div>
               <h2>{t("workspaceHeroTitle")}</h2>
               <p>{t("workspaceHeroSubtitle")}</p>
+              <div className="gas-pool-workspace-hero__proofs">
+                <span>
+                  <Gift size={15} aria-hidden="true" />
+                  {t("heroProofGift")}
+                </span>
+                <span>
+                  <WalletCards size={15} aria-hidden="true" />
+                  {t("heroProofOneGate")}
+                </span>
+                <span>
+                  <Sparkles size={15} aria-hidden="true" />
+                  {t("heroProofRandom")}
+                </span>
+              </div>
             </div>
+            <figure className="gas-pool-vault-stage" aria-label={t("vaultStageAria")}>
+              <img
+                src="./gas-vault-stage.jpg"
+                alt=""
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                <span>{t("samplePreviewTitle")}</span>
+                <strong>{t("sampleCongratsTitle")}</strong>
+                <small>{t("sampleRewardLabel")}: 12.40 GAS</small>
+              </figcaption>
+            </figure>
           </header>
 
-          {/* Two-path chooser: orient a first-time visitor before any forms —
-              "give a reward" (the funding flow below) vs "I have a claim link"
-              (recipients who arrive without a QR). */}
-          <div className="gas-pool-paths" role="note">
-            <span className="gas-pool-paths__title">{t("pathChooserTitle")}</span>
-            <div className="gas-pool-paths__grid">
-              <div className="gas-pool-path gas-pool-path--primary">
-                <span className="gas-pool-path__icon" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="20"
-                    height="20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="8" width="18" height="13" rx="2" />
-                    <path d="M3 12h18M12 8v13" />
-                    <path d="M12 8S9.5 3.5 7 5s1 3 5 3M12 8s2.5-4.5 5-3-1 3-5 3" />
-                  </svg>
-                </span>
-                <strong>{t("pathGiveTitle")}</strong>
-                <p>{t("pathGiveBody")}</p>
-              </div>
-              <div className="gas-pool-path">
-                <span className="gas-pool-path__icon" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="20"
-                    height="20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                    <path d="M14 14h3v3M21 14v7M14 21h3" />
-                  </svg>
-                </span>
-                <strong>{t("pathClaimTitle")}</strong>
-                <p>{t("pathClaimBody")}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Static preview of the recipient's delight — shows the creator the
-              warm "you won" card their campaign produces, so the social payoff
-              is visible from the workspace. Sample data only; decorative. */}
-          <div className="gas-pool-sample" aria-hidden="true">
-            <div className="gas-pool-sample__head">
-              <span className="gas-pool-sample__eyebrow">
-                {t("samplePreviewTitle")}
+          <div className="gas-pool-reward-desk" aria-label={t("rewardPlanTitle")}>
+            <span className="gas-pool-reward-desk__title">
+              {t("rewardPlanTitle")}
+            </span>
+            <div className="gas-pool-reward-desk__grid">
+              <span>
+                <Coins size={15} aria-hidden="true" />
+                <small>{t("totalAmount")}</small>
+                <strong>{displayTotalAmount}</strong>
               </span>
-              <span className="gas-pool-sample__tag">
-                {t("samplePreviewBadge")}
+              <span>
+                <Sparkles size={15} aria-hidden="true" />
+                <small>{t("rewardRange")}</small>
+                <strong>{displayRewardRange}</strong>
               </span>
-            </div>
-            <div className="gas-pool-sample__card">
-              <div className="gas-pool-sample__badge">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="8" width="18" height="13" rx="2" />
-                  <path d="M3 12h18M12 8v13" />
-                  <path d="M12 8S9.5 3.5 7 5s1 3 5 3M12 8s2.5-4.5 5-3-1 3-5 3" />
-                </svg>
-              </div>
-              <div className="gas-pool-sample__body">
-                <strong className="gas-pool-sample__title">
-                  {t("sampleCongratsTitle")}
-                </strong>
-                <p className="gas-pool-sample__copy">{t("sampleCongratsBody")}</p>
-                <div className="gas-pool-sample__reward">
-                  <span>{t("sampleRewardLabel")}</span>
-                  <strong>12.40 GAS</strong>
-                </div>
-                <span className="gas-pool-sample__luck">
-                  {t("sampleLuckLabel")}
-                </span>
-              </div>
+              <span>
+                <Users size={15} aria-hidden="true" />
+                <small>{t("maxClaims")}</small>
+                <strong>{displayClaimSlots}</strong>
+              </span>
+              <span>
+                <Clock3 size={15} aria-hidden="true" />
+                <small>{t("expiryHours")}</small>
+                <strong>{displayExpiry}</strong>
+              </span>
             </div>
           </div>
 
           <div className="gas-pool-grid">
             <div className="gas-pool-form gas-pool-form--primary">
-              <h2>{t("createPoolTitle")}</h2>
-              <p className="gas-pool-form__description">
-                {t("createPoolDescription")}
-              </p>
+              <div className="gas-pool-form__head">
+                <div>
+                  <span>{t("createPoolTitle")}</span>
+                  <h2>{t("createPoolDeskTitle")}</h2>
+                </div>
+                <p className="gas-pool-form__description">
+                  {t("createPoolDescription")}
+                </p>
+              </div>
               <div className="gas-pool-form__group">
                 <label className="gas-pool-form__field">
                   <span>{t("totalAmount")}</span>
@@ -622,6 +607,21 @@ export default function PlayArea({
                     onChange={(event) => setTotalAmount(event.target.value)}
                   />
                 </label>
+                <div
+                  className="gas-pool-quick-picks"
+                  aria-label={t("totalAmountHint")}
+                >
+                  {TOTAL_AMOUNT_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={totalAmount === preset ? "is-active" : ""}
+                      onClick={() => setTotalAmount(preset)}
+                    >
+                      {preset} GAS
+                    </button>
+                  ))}
+                </div>
                 <small className="gas-pool-form__sublabel">
                   {t("totalAmountHint")}
                 </small>
@@ -663,6 +663,21 @@ export default function PlayArea({
                       onChange={(event) => setMaxClaims(event.target.value)}
                     />
                   </label>
+                  <div
+                    className="gas-pool-quick-picks"
+                    aria-label={t("maxClaimsHint")}
+                  >
+                    {CLAIM_SLOT_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        className={maxClaims === preset ? "is-active" : ""}
+                        onClick={() => setMaxClaims(preset)}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                   <small className="gas-pool-form__sublabel">
                     {t("maxClaimsHint")}
                   </small>
@@ -693,98 +708,100 @@ export default function PlayArea({
               </button>
             </div>
 
-            <div className="gas-pool-form gas-pool-form--manage">
-              <span className="gas-pool-form__kicker">
-                {t("manageExistingTitle")}
-              </span>
-              <h2>{t("poolControlsTitle")}</h2>
-              <label className="gas-pool-form__field">
-                <span>{t("poolIdLabel")}</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={poolId}
-                  placeholder={t("poolIdPlaceholder")}
-                  onChange={(event) => setPoolId(event.target.value)}
-                />
-              </label>
-              <label className="gas-pool-form__field">
-                <span>{t("topUpAmount")}</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  value={topUpAmount}
-                  onChange={(event) => setTopUpAmount(event.target.value)}
-                />
-              </label>
-              {!hasPoolTarget && (
-                <p className="gas-pool-form__hint">{t("poolControlsHint")}</p>
-              )}
-              <div className="gas-pool-actions">
-                <button
-                  type="button"
-                  className="gas-pool-claim-only__button"
-                  onClick={inspectPool}
-                  disabled={isLoading || !hasPoolTarget}
-                >
-                  {isLoading ? t("loadingPool") : t("inspectPool")}
-                </button>
-                <button
-                  type="button"
-                  className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
-                  onClick={submitTopUp}
-                  disabled={isFunding || !hasPoolTarget}
-                >
-                  {isFunding ? t("addingGas") : t("topUpPool")}
-                </button>
-                <button
-                  type="button"
-                  className="gas-pool-claim-only__button gas-pool-claim-only__button--outline gas-pool-actions__recover"
-                  onClick={submitRefund}
-                  disabled={isRefunding || !hasPoolTarget}
-                >
-                  {isRefunding ? t("recoveringGas") : t("refundPool")}
-                </button>
-              </div>
-
-              <div className="gas-pool-credit">
-                <span>{t("gasCredit")}</span>
-                <strong>{formatGas(gasCredit, 4)} GAS</strong>
-                <div className="gas-pool-credit__actions">
+            <details className="gas-pool-manage-drawer">
+              <summary>
+                <span>{t("manageExistingTitle")}</span>
+                <strong>{t("poolControlsTitle")}</strong>
+              </summary>
+              <div className="gas-pool-form gas-pool-form--manage">
+                <label className="gas-pool-form__field">
+                  <span>{t("poolIdLabel")}</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={poolId}
+                    placeholder={t("poolIdPlaceholder")}
+                    onChange={(event) => setPoolId(event.target.value)}
+                  />
+                </label>
+                <label className="gas-pool-form__field">
+                  <span>{t("topUpAmount")}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={topUpAmount}
+                    onChange={(event) => setTopUpAmount(event.target.value)}
+                  />
+                </label>
+                {!hasPoolTarget && (
+                  <p className="gas-pool-form__hint">{t("poolControlsHint")}</p>
+                )}
+                <div className="gas-pool-actions">
+                  <button
+                    type="button"
+                    className="gas-pool-claim-only__button"
+                    onClick={inspectPool}
+                    disabled={isLoading || !hasPoolTarget}
+                  >
+                    {isLoading ? t("loadingPool") : t("inspectPool")}
+                  </button>
                   <button
                     type="button"
                     className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
-                    onClick={checkGasCredit}
-                    disabled={isCreditLoading}
+                    onClick={submitTopUp}
+                    disabled={isFunding || !hasPoolTarget}
                   >
-                    {isCreditLoading
-                      ? t("checkingGasCredit")
-                      : t("checkGasCredit")}
+                    {isFunding ? t("addingGas") : t("topUpPool")}
                   </button>
                   <button
                     type="button"
-                    className="gas-pool-claim-only__button gas-pool-claim-only__button--outline"
-                    onClick={withdrawGasCredit}
-                    disabled={isWithdrawingCredit}
+                    className="gas-pool-claim-only__button gas-pool-claim-only__button--outline gas-pool-actions__recover"
+                    onClick={submitRefund}
+                    disabled={isRefunding || !hasPoolTarget}
                   >
-                    {isWithdrawingCredit
-                      ? t("withdrawingGasCredit")
-                      : t("withdrawGasCredit")}
+                    {isRefunding ? t("recoveringGas") : t("refundPool")}
                   </button>
                 </div>
-              </div>
 
-              {creatorStatusLabel && (
-                <div
-                  className={`gas-pool-claim-status gas-pool-claim-status--${claimStatus}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {creatorStatusLabel}
+                <div className="gas-pool-credit">
+                  <span>{t("gasCredit")}</span>
+                  <strong>{formatGas(gasCredit, 4)} GAS</strong>
+                  <div className="gas-pool-credit__actions">
+                    <button
+                      type="button"
+                      className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
+                      onClick={checkGasCredit}
+                      disabled={isCreditLoading}
+                    >
+                      {isCreditLoading
+                        ? t("checkingGasCredit")
+                        : t("checkGasCredit")}
+                    </button>
+                    <button
+                      type="button"
+                      className="gas-pool-claim-only__button gas-pool-claim-only__button--outline"
+                      onClick={withdrawGasCredit}
+                      disabled={isWithdrawingCredit}
+                    >
+                      {isWithdrawingCredit
+                        ? t("withdrawingGasCredit")
+                        : t("withdrawGasCredit")}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {creatorStatusLabel && (
+                  <div
+                    className={`gas-pool-claim-status gas-pool-claim-status--${claimStatus}`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {creatorStatusLabel}
+                  </div>
+                )}
+              </div>
+            </details>
           </div>
         </section>
       )}
