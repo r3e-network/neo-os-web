@@ -50,6 +50,17 @@ const appMessages = {
   tipRouteDirect: { en: "GAS goes through the tip contract", zh: "GAS 经由打赏合约处理" },
   tipRouteClaimable: { en: "Developers withdraw claimable tips", zh: "开发者领取可提取打赏" },
   tipRouteAnonymous: { en: "Anonymous mode is contract-backed", zh: "匿名模式由合约记录" },
+  supportStageEyebrow: { en: "Support board", zh: "支持看板" },
+  supportStageTitle: {
+    en: "Pick a builder, place a GAS tip, and keep the thank-you trail on-chain.",
+    zh: "选择建设者，送出 GAS 打赏，并把感谢轨迹留在链上。",
+  },
+  supportStageCopy: {
+    en: "The board turns the contract route into a visible supporter-to-builder flow.",
+    zh: "看板把合约路径变成清晰可见的支持者到建设者流程。",
+  },
+  supportStageDevelopers: { en: "Builders", zh: "建设者" },
+  supportStageDirectTips: { en: "Direct tips", zh: "直接打赏" },
   noDevelopers: { en: "Be the first to say thanks", zh: "成为第一个道谢的人" },
   noDevelopersHint: {
     en: "No developers on the board yet. Enter a developer's ID in the tip form to support them directly.",

@@ -149,6 +149,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span>{t("tipRouteAnonymous")}</span>
         </div>
 
+        <figure className="tipping-support-stage" aria-label={t("supportStageTitle")}>
+          <img src="./support-board-stage.jpg" alt="" loading="eager" decoding="async" />
+          <figcaption>
+            <span>{t("supportStageEyebrow")}</span>
+            <strong>{t("supportStageTitle")}</strong>
+            <small>{t("supportStageCopy")}</small>
+          </figcaption>
+          <div className="tipping-support-stage__metrics" aria-hidden="true">
+            <span>
+              <small>{t("supportStageDevelopers")}</small>
+              <strong>{developerCount || developers.length}</strong>
+            </span>
+            <span>
+              <small>{t("supportStageDirectTips")}</small>
+              <strong>{recentTipCount || recentTips.length}</strong>
+            </span>
+          </div>
+        </figure>
+
         {address && (
           <button
             type="button"
