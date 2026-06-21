@@ -290,6 +290,11 @@ const appMessages = {
     en: "Build a small, reviewable compute package with an explicit privacy boundary.",
     zh: "构建简洁、可审阅、隐私边界明确的计算包。",
   },
+  computeCapsuleTitle: { en: "Compute capsule", zh: "计算胶囊" },
+  computeCapsuleCopy: {
+    en: "Assemble workflow, privacy, and input as one package before reviewing the digest.",
+    zh: "把工作流、隐私和输入组装成一个包，再审阅摘要。",
+  },
   computeWorkflowTitle: { en: "Compute workflow", zh: "计算工作流" },
   computeWorkflowCopy: {
     en: "Choose the operation shape that downstream dispatch should execute.",

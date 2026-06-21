@@ -314,7 +314,8 @@
 
 .compute-workflow-panel,
 .compute-privacy-panel,
-.compute-input-panel {
+.compute-input-panel,
+.compute-capsule-panel {
   display: grid;
   gap: 12px;
   padding: 14px;
@@ -327,6 +328,95 @@
       rgba(255, 255, 255, 0) 72%
     ),
     var(--ns-surface-subtle, #f7f8fa);
+}
+
+.compute-capsule-panel {
+  gap: 14px;
+}
+
+.compute-capsule-panel__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.compute-capsule-board {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(34, 211, 238, 0.16) 0 1px,
+      transparent 1px 100%
+    )
+    28px 0 / 1px 100% no-repeat,
+    rgba(255, 255, 255, 0.7);
+}
+
+.compute-stage-block,
+.compute-input-capsule {
+  min-width: 0;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.compute-stage-block {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.compute-stage-block__copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.compute-stage-block__copy > span,
+.compute-input-capsule__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: #e6fbff;
+  color: #0e7490;
+}
+
+.compute-stage-block__copy div,
+.compute-input-capsule__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.compute-stage-block__copy small,
+.compute-input-capsule__copy small {
+  color: #0e7490;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.compute-stage-block__copy strong,
+.compute-input-capsule__copy strong {
+  color: var(--ns-ink, #111827);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.3;
 }
 
 .compute-workflow-grid {
@@ -441,6 +531,60 @@
   border: 1px solid rgba(245, 158, 11, 0.28);
   background: #fff7ed;
   color: #9a3412;
+}
+
+.compute-input-capsule {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px;
+}
+
+.compute-input-capsule--ok {
+  border-color: rgba(34, 211, 238, 0.24);
+}
+
+.compute-input-capsule--warn {
+  border-color: rgba(245, 158, 11, 0.3);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 237, 0.84), rgba(255, 255, 255, 0)),
+    rgba(255, 255, 255, 0.88);
+}
+
+.compute-input-capsule textarea {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+  min-height: 122px;
+  padding: 13px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ns-ink, #111827);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 720;
+  letter-spacing: 0;
+  outline: none;
+  resize: vertical;
+}
+
+.compute-input-capsule textarea:focus {
+  border-color: rgba(34, 211, 238, 0.52);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(34, 211, 238, 0.2));
+}
+
+.compute-input-capsule__hint {
+  grid-column: 1 / -1;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.compute-input-capsule .compute-digest-strip {
+  grid-column: 1 / -1;
 }
 
 .compute-digest-strip {
@@ -648,7 +792,7 @@
   }
 
   .compute-hero {
-    min-height: 520px;
+    min-height: 400px;
     padding: 20px;
     border-radius: var(--ns-radius-lg, 20px);
   }
@@ -663,16 +807,133 @@
   }
 
   .compute-hero h2 {
-    font-size: 32px;
+    font-size: 29px;
   }
 
-  .compute-flow,
+  .compute-hero__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .compute-hero__metrics span {
+    min-height: 48px;
+    padding: 9px 10px;
+  }
+
+  .compute-hero__metrics small {
+    font-size: 9.5px;
+  }
+
+  .compute-hero__metrics strong {
+    font-size: 11.5px;
+  }
+
+  .compute-flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .compute-flow span {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 5px;
+    padding: 10px 7px;
+    text-align: center;
+  }
+
+  .compute-flow svg {
+    grid-row: auto;
+  }
+
+  .compute-flow strong {
+    font-size: 11px;
+    white-space: normal;
+  }
+
+  .compute-flow small {
+    display: none;
+  }
+
+  .compute-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .compute-privacy-grid,
-  .compute-summary-strip,
   .compute-result-rows,
   .compute-input-shell,
   .compute-digest-strip {
     grid-template-columns: 1fr;
+  }
+
+  .compute-capsule-panel .compute-workflow-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .compute-capsule-panel .compute-privacy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compute-capsule-panel .compute-choice-card {
+    justify-items: center;
+    gap: 5px;
+    min-height: 76px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .compute-capsule-panel .compute-choice-card > span:first-child {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--ns-radius-sm, 12px);
+  }
+
+  .compute-capsule-panel .compute-choice-card strong {
+    font-size: 11.5px;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .compute-capsule-panel .compute-choice-card small {
+    display: none;
+  }
+
+  .compute-capsule-panel .compute-choice-card__check {
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .compute-capsule-panel {
+    padding: 12px;
+  }
+
+  .compute-capsule-panel__head,
+  .compute-input-capsule {
+    grid-template-columns: 1fr;
+  }
+
+  .compute-capsule-panel__head .compute-valid-chip,
+  .compute-input-capsule .compute-valid-chip {
+    justify-self: start;
+    min-height: 34px;
+    border-radius: var(--ns-radius-full, 999px);
+  }
+
+  .compute-capsule-board {
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .compute-stage-block,
+  .compute-input-capsule {
+    padding: 12px;
+  }
+
+  .compute-input-capsule textarea,
+  .compute-input-capsule__hint,
+  .compute-input-capsule .compute-digest-strip {
+    grid-column: auto;
   }
 
   .compute-request-card,
