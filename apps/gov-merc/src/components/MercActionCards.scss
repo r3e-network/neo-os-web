@@ -2,20 +2,149 @@
 @use "@shared/styles/variables.scss" as *;
 @use "../pages/index/gov-merc-theme.scss" as *;
 
-.gov-merc-action-card {
+.gov-merc-action-lane {
   display: grid;
   gap: 12px;
   min-width: 0;
   padding: 16px;
+  border: 1px solid rgba(15, 177, 116, 0.16);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(245, 250, 248, 0.94)),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05)),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+
+  &--earn {
+    border-top: 3px solid var(--ns-brand, #16c784);
+  }
+
+  &--bid {
+    border-color: rgba(15, 177, 116, 0.24);
+    background:
+      linear-gradient(150deg, rgba(228, 248, 240, 0.92), rgba(255, 255, 255, 0.98)),
+      var(--ns-surface, #ffffff);
+  }
+
+  > p {
+    margin: -4px 0 0;
+    color: #455c51;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: 0;
+  }
+}
+
+.gov-merc-action-lane__head,
+.gov-merc-action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gov-merc-action-lane__head {
+  span {
+    min-width: 0;
+    color: #102019;
+    font-size: 18px;
+    font-weight: 850;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+  }
+}
+
+.gov-merc-token-tag {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+
+  &--neo {
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-deep, #0b5e3e);
+  }
+
+  &--gas {
+    background: #ffffff;
+    color: #38554a;
+    box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.3);
+  }
+}
+
+.gov-merc-balance-strip,
+.gov-merc-bid-floor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 177, 116, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+
+  span {
+    color: var(--ns-text-muted, #66756e);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  strong {
+    color: var(--ns-ink, #102019);
+    font-size: 14px;
+    font-weight: 850;
+    line-height: 1.2;
+    text-align: right;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.gov-merc-bid-floor {
+  border-color: rgba(15, 177, 116, 0.22);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.gov-merc-action-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 
   &:hover {
     border-color: rgba(15, 177, 116, 0.22);
     box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+    transform: translateY(-1px);
+  }
+
+  &--primary {
+    border-color: rgba(15, 177, 116, 0.24);
+  }
+
+  &--secondary {
+    background: rgba(255, 255, 255, 0.74);
   }
 
   > div:first-child {
@@ -24,53 +153,11 @@
     min-width: 0;
   }
 
-  // A thin top accent disambiguates the token without a second hue: NEO actions
-  // read as the solid brand, the GAS bid as a softer outlined variant.
-  &--neo {
-    border-top: 2px solid var(--ns-brand, #16c784);
-  }
-
-  &--gas {
-    border-top: 2px dashed rgba(15, 177, 116, 0.5);
-  }
-
-  .gov-merc-action-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+  .gov-merc-action-head span {
     min-width: 0;
-  }
-
-  .gov-merc-token-tag {
-    flex: 0 0 auto;
-    padding: 2px 8px;
-    border-radius: var(--ns-radius-full, 9999px);
-    font-size: 9px;
-    font-style: normal;
-    font-weight: 800;
-    line-height: 1.4;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    white-space: nowrap;
-
-    &--neo {
-      background: var(--ns-brand-soft, #e4f8f0);
-      // AA: #0fb174 on the soft-green tag is ~2.5:1; deep brand is ~7:1.
-      color: var(--ns-brand-deep, #0b5e3e);
-    }
-
-    &--gas {
-      background: var(--ns-surface-subtle, #f1f4f2);
-      color: #38554a;
-      box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.3);
-    }
-  }
-
-  span {
     color: #102019;
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 850;
     line-height: 1.2;
     letter-spacing: -0.01em;
   }
@@ -84,7 +171,7 @@
   }
 
   .neo-btn {
-    min-height: 42px;
+    min-height: 44px;
     border-radius: 14px;
     white-space: normal;
     line-height: 1.18;
@@ -100,8 +187,99 @@
     margin: 0;
     color: #c0392b;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 650;
     line-height: 1.35;
     letter-spacing: 0;
+  }
+}
+
+.gov-merc-action-lane > .gov-merc-field-error {
+  margin: 0;
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.gov-merc-action-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(128px, 0.44fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.gov-merc-action-lane--bid .gov-merc-action-control {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.gov-merc-withdraw-drawer {
+  display: grid;
+  gap: 10px;
+
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid rgba(15, 177, 116, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--ns-brand-deep, #0b5e3e);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 850;
+    line-height: 1.2;
+    letter-spacing: 0;
+    list-style: none;
+    user-select: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translateY(-1px);
+      transition: transform 0.18s ease;
+    }
+  }
+
+  &:not([open]) > .gov-merc-action-card {
+    display: none;
+  }
+
+  &[open] summary {
+    margin-bottom: 10px;
+  }
+
+  &[open] summary::after {
+    transform: rotate(-135deg) translateY(-1px);
+  }
+
+  summary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.2);
+  }
+}
+
+@media (max-width: 720px) {
+  .gov-merc-action-lane {
+    padding: 14px;
+  }
+
+  .gov-merc-action-control {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .gov-merc-action-card {
+    padding: 12px;
   }
 }

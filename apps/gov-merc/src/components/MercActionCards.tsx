@@ -42,88 +42,117 @@ export default function MercActionCards({
     isPositiveAmount(withdrawAmount) && withdrawParsed > userDeposits;
   return (
     <>
-      <div className="gov-merc-action-card gov-merc-action-card--neo">
-        <div>
-          <div className="gov-merc-action-head">
-            <span>{t("depositNeo")}</span>
-            <em className="gov-merc-token-tag gov-merc-token-tag--neo">{t("tokenTagStake")}</em>
-          </div>
-          <p>{t("actionDepositHint")}</p>
+      <div className="gov-merc-action-lane gov-merc-action-lane--earn">
+        <div className="gov-merc-action-lane__head">
+          <span>{t("earnLaneTitle")}</span>
+          <em className="gov-merc-token-tag gov-merc-token-tag--neo">{t("tokenTagStake")}</em>
         </div>
-        <NeoInput
-          value={depositAmount}
-          type="number"
-          min={0}
-          suffix="NEO"
-          placeholder={t("enterAmount")}
-          label={t("depositAmount")}
-          onChange={(value) => onAmountChange("depositAmount", value)}
-        />
-        <NeoButton
-          variant="primary"
-          loading={isBusy}
-          disabled={isBusy || !isPositiveAmount(depositAmount)}
-          onClick={() => dispatch("depositNeo")}
-        >
-          {t("depositNeo")}
-        </NeoButton>
+        <p>{t("earnLaneCopy")}</p>
+        <div className="gov-merc-balance-strip">
+          <span>{t("stakedBalanceLabel")}</span>
+          <strong>{userDeposits.toLocaleString()} NEO</strong>
+        </div>
+
+        <div className="gov-merc-action-card gov-merc-action-card--neo gov-merc-action-card--primary">
+          <div>
+            <div className="gov-merc-action-head">
+              <span>{t("depositNeo")}</span>
+            </div>
+            <p>{t("actionDepositHint")}</p>
+          </div>
+          <div className="gov-merc-action-control">
+            <NeoInput
+              value={depositAmount}
+              type="number"
+              min={0}
+              suffix="NEO"
+              placeholder={t("enterAmount")}
+              label={t("depositAmount")}
+              onChange={(value) => onAmountChange("depositAmount", value)}
+            />
+            <NeoButton
+              variant="primary"
+              loading={isBusy}
+              disabled={isBusy || !isPositiveAmount(depositAmount)}
+              onClick={() => dispatch("depositNeo")}
+            >
+              {t("depositNeo")}
+            </NeoButton>
+          </div>
+        </div>
+
+        <details className="gov-merc-withdraw-drawer">
+          <summary>{t("withdrawDrawerTitle")}</summary>
+          <div className="gov-merc-action-card gov-merc-action-card--neo gov-merc-action-card--secondary">
+            <div>
+              <div className="gov-merc-action-head">
+                <span>{t("withdrawNeo")}</span>
+              </div>
+              <p>{t("actionWithdrawHint")}</p>
+            </div>
+            <div className="gov-merc-action-control">
+              <NeoInput
+                value={withdrawAmount}
+                type="number"
+                min={0}
+                suffix="NEO"
+                placeholder={t("enterAmount")}
+                label={t("withdrawAmount")}
+                onChange={(value) => onAmountChange("withdrawAmount", value)}
+              />
+              <NeoButton
+                variant="secondary"
+                loading={isBusy}
+                disabled={isBusy || !isPositiveAmount(withdrawAmount) || withdrawOverBalance}
+                onClick={() => dispatch("withdrawNeo")}
+              >
+                {t("withdrawNeo")}
+              </NeoButton>
+            </div>
+            {withdrawOverBalance ? (
+              <p className="gov-merc-field-error">{t("withdrawExceeds")}</p>
+            ) : null}
+          </div>
+        </details>
       </div>
 
-      <div className="gov-merc-action-card gov-merc-action-card--neo">
-        <div>
-          <div className="gov-merc-action-head">
-            <span>{t("withdrawNeo")}</span>
-            <em className="gov-merc-token-tag gov-merc-token-tag--neo">{t("tokenTagStake")}</em>
-          </div>
-          <p>{t("actionWithdrawHint")}</p>
+      <div className="gov-merc-action-lane gov-merc-action-lane--bid">
+        <div className="gov-merc-action-lane__head">
+          <span>{t("bidLaneTitle")}</span>
+          <em className="gov-merc-token-tag gov-merc-token-tag--gas">{t("tokenTagBid")}</em>
         </div>
-        <NeoInput
-          value={withdrawAmount}
-          type="number"
-          min={0}
-          suffix="NEO"
-          placeholder={t("enterAmount")}
-          label={t("withdrawAmount")}
-          onChange={(value) => onAmountChange("withdrawAmount", value)}
-        />
-        <NeoButton
-          variant="secondary"
-          loading={isBusy}
-          disabled={isBusy || !isPositiveAmount(withdrawAmount) || withdrawOverBalance}
-          onClick={() => dispatch("withdrawNeo")}
-        >
-          {t("withdrawNeo")}
-        </NeoButton>
-        {withdrawOverBalance ? (
-          <p className="gov-merc-field-error">{t("withdrawExceeds")}</p>
-        ) : null}
-      </div>
-
-      <div className="gov-merc-action-card gov-merc-action-card--gas">
-        <div>
-          <div className="gov-merc-action-head">
-            <span>{t("placeBid")}</span>
-            <em className="gov-merc-token-tag gov-merc-token-tag--gas">{t("tokenTagBid")}</em>
-          </div>
-          <p>{t("actionBidHint", { min: minBid, tokenGas: t("tokenGas") })}</p>
+        <p>{t("bidLaneCopy")}</p>
+        <div className="gov-merc-bid-floor">
+          <span>{t("minBidLabel")}</span>
+          <strong>{minBid} {t("tokenGas")}</strong>
         </div>
-        <NeoInput
-          value={bidAmount}
-          type="number"
-          min={minBid}
-          suffix="GAS"
-          placeholder={String(minBid)}
-          label={t("bidAmount")}
-          onChange={(value) => onAmountChange("bidAmount", value)}
-        />
-        <NeoButton
-          variant="secondary"
-          loading={isBusy}
-          disabled={isBusy || biddingClosed || !isPositiveAmount(bidAmount)}
-          onClick={() => dispatch("placeBid")}
-        >
-          {t("placeBid")}
-        </NeoButton>
+        <div className="gov-merc-action-card gov-merc-action-card--gas gov-merc-action-card--primary">
+          <div>
+            <div className="gov-merc-action-head">
+              <span>{t("placeBid")}</span>
+            </div>
+            <p>{t("actionBidHint", { min: minBid, tokenGas: t("tokenGas") })}</p>
+          </div>
+          <div className="gov-merc-action-control">
+            <NeoInput
+              value={bidAmount}
+              type="number"
+              min={minBid}
+              suffix="GAS"
+              placeholder={String(minBid)}
+              label={t("bidAmount")}
+              onChange={(value) => onAmountChange("bidAmount", value)}
+            />
+            <NeoButton
+              variant="primary"
+              loading={isBusy}
+              disabled={isBusy || biddingClosed || !isPositiveAmount(bidAmount)}
+              onClick={() => dispatch("placeBid")}
+            >
+              {t("placeBid")}
+            </NeoButton>
+          </div>
+        </div>
         {biddingClosed ? (
           <p className="gov-merc-field-error">{t("biddingClosedHint")}</p>
         ) : null}
