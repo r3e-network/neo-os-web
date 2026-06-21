@@ -11,8 +11,8 @@ const appMessages = {
     zh: "用匹配资金放大公共物品资助",
   },
   qfHeroSubtitle: {
-    en: "Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console.",
-    zh: "在一个清爽的资助控制台里创建轮次、登记项目、捐助 GAS 并结算匹配金额。",
+    en: "Discover public-good projects, contribute GAS, and let the matching pool amplify broad community support.",
+    zh: "发现公共物品项目、捐助 GAS，并让匹配资金池放大更广泛的社区支持。",
   },
   qfFundingDeskAlt: {
     en: "Quadratic funding allocation desk",
@@ -32,8 +32,8 @@ const appMessages = {
   qfTrustItemThree: { en: "On-chain close", zh: "链上结算" },
   qfNoRoundTitle: { en: "No funding round selected", zh: "尚未选择资助轮次" },
   qfNoRoundBody: {
-    en: "Create a GAS matching round or refresh the contract to load active community rounds.",
-    zh: "创建一个 GAS 匹配轮次，或刷新合约读取进行中的社区轮次。",
+    en: "Refresh the contract to load active community rounds, or open Rounds if you need to start one.",
+    zh: "刷新合约读取进行中的社区轮次；如需发起新轮次，请进入轮次页。",
   },
   qfRoundsEmptyPreview: {
     en: "Once a round exists, each card shows its title, matching pool, schedule and matched totals.",
@@ -71,6 +71,17 @@ const appMessages = {
     en: "Contribution calls are signed against the selected round and project ID.",
     zh: "捐助交易会按已选轮次和项目 ID 发起签名。",
   },
+  qfDonorDeskTitle: {
+    en: "Back a project and grow its match",
+    zh: "支持项目并放大匹配额",
+  },
+  qfDonorDeskSubtitle: {
+    en: "Pick a project, choose a GAS amount, and see why broad donor support matters before signing.",
+    zh: "选择项目、设定 GAS 金额，并在签名前理解为什么更广泛的捐助者支持更重要。",
+  },
+  qfPickProject: { en: "Pick a project", zh: "选择项目" },
+  qfDonationTicket: { en: "Donation ticket", zh: "捐助票据" },
+  qfAmountPresets: { en: "Donation amount presets", zh: "捐助金额快捷选项" },
   qfAmplifyTitle: {
     en: "Why your donation is amplified",
     zh: "为什么你的捐助会被放大",

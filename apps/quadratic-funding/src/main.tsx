@@ -64,7 +64,7 @@ defineMiniApp({
     });
 
     ctx.registerAction("switchTab", async (...args: unknown[]) => {
-      await qf.onTabChange(String(args[0] ?? "rounds"));
+      await qf.onTabChange(String(args[0] ?? "contribute"));
     });
 
     ctx.registerAction("selectRound", async (...args: unknown[]) => {
