@@ -479,7 +479,7 @@
 }
 
 .ticket-create-preview--stage .ticket-create-preview__body strong {
-  font-size: clamp(1.45rem, 2.4vw, 2.25rem);
+  font-size: 1.9rem;
 }
 
 .ticket-event-list--rail {
@@ -1484,12 +1484,13 @@
 
 @media (max-width: 640px) {
   .ticket-play-area {
-    gap: 14px;
-    padding: 14px 10px 18px;
+    gap: 10px;
+    padding: 10px 8px 16px;
   }
 
   .ticket-studio {
-    padding: 12px;
+    gap: 12px;
+    padding: 10px;
   }
 
   .ticket-stage,
@@ -1502,22 +1503,82 @@
     font-size: 1.35rem;
   }
 
+  .ticket-studio__head p,
+  .ticket-gate__head p {
+    display: none;
+  }
+
+  .ticket-studio__steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
   .ticket-studio__steps span {
-    flex: 1 1 100%;
+    min-height: 30px;
+    padding: 6px;
+    font-size: 11px;
     justify-content: center;
+    text-align: center;
+    white-space: normal;
   }
 
   .ticket-hero {
-    min-height: 520px;
-    padding: 20px;
+    min-height: 430px;
+    padding: 16px;
   }
 
   .ticket-hero h2 {
     font-size: 25px;
   }
 
+  .ticket-hero p {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .ticket-hero__flow {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .ticket-hero__flow span {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .ticket-hero__side {
+    gap: 8px;
+  }
+
+  .ticket-hero__mini-pass,
+  .ticket-hero__wallet {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .ticket-metrics {
+    gap: 6px;
+  }
+
+  .ticket-metrics div {
+    padding: 10px;
+  }
+
+  .ticket-metrics strong {
+    font-size: 18px;
+  }
+
+  .ticket-studio__grid--has-events .ticket-gate {
+    order: 1;
+  }
+
+  .ticket-studio__grid--has-events .ticket-stage {
+    order: 2;
+  }
+
   .ticket-hero__copy,
-  .ticket-metrics,
   .ticket-create-fields--identity,
   .ticket-create-fields--schedule,
   .ticket-create-preview__meta,
@@ -1563,7 +1624,16 @@
   }
 
   .ticket-create-preview--stage {
-    min-height: 430px;
+    min-height: 300px;
+  }
+
+  .ticket-create-preview--stage .ticket-create-preview__body {
+    margin: 10px;
+    padding: 12px;
+  }
+
+  .ticket-create-preview--stage .ticket-create-preview__body strong {
+    font-size: 1.32rem;
   }
 }
 
