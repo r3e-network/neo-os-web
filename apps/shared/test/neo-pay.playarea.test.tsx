@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -26,6 +26,7 @@ function t(key: string) {
     token: "Token",
     notes: "Notes (optional)",
     notesPlaceholder: "Add context for the recipient",
+    reviewStream: "Complete stream details",
     yourCreatedStreams: "Your Created Streams",
     streamsYouReceive: "Streams You Receive",
     noCreatedStreams: "You haven't created any streams yet",
@@ -116,8 +117,44 @@ describe("NeoPay PlayArea launch params", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "The payment stream index is not available",
     );
-    expect(screen.getByRole("button", { name: "Create Stream" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Complete stream details" }),
+    ).toBeTruthy();
     expect(screen.queryByText(/OS service error|os-vesting-list|Not Found/i)).toBeNull();
+  });
+
+  it("keeps the createStream payload at the PlayArea boundary", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state()}
+        dispatch={dispatch}
+        launchContext={parseMiniAppLaunchContext(
+          "https://neomini.app/miniapps/neo-pay/index.html?source=embed&network=testnet",
+          "miniapp-neo-pay",
+        )}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Recipient Address"), {
+      target: { value: "  NtestRecipient111111111111111111111111111  " },
+    });
+    fireEvent.change(screen.getByLabelText("Amount"), {
+      target: { value: "1.25" },
+    });
+    fireEvent.change(screen.getByLabelText("Duration"), {
+      target: { value: "7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Stream" }));
+
+    expect(dispatch).toHaveBeenCalledWith("createStream", {
+      recipient: "  NtestRecipient111111111111111111111111111  ",
+      amount: "1.25",
+      duration: "7",
+      token: "GAS",
+      notes: "",
+    });
   });
 
   it("renders OS stream records with business fields and fixed8 amounts", () => {
