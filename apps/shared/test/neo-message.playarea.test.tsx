@@ -121,10 +121,13 @@ describe("Neo Message PlayArea", () => {
     render(<PlayArea {...props(vi.fn(), appState)} />);
 
     expect(screen.getAllByText(`0/${MAX_BODY_LENGTH}`)).toHaveLength(2);
+    const meter = screen.getByRole("progressbar", { name: "Length" });
+    expect(meter.getAttribute("aria-valuenow")).toBe("0");
 
     const textarea = screen.getByLabelText("Message");
     fireEvent.change(textarea, { target: { value: "hello" } });
     expect(appState.composeForm?.get()).toMatchObject({ body: "hello" });
+    expect(meter.getAttribute("aria-valuenow")).toBe("5");
     expect(screen.getAllByText("hello").length).toBeGreaterThanOrEqual(1);
 
     // Over-long input is clamped to MAX_BODY_LENGTH on change.
@@ -151,6 +154,23 @@ describe("Neo Message PlayArea", () => {
     const dateInput = container.querySelector('input[type="datetime-local"]') as HTMLInputElement;
     expect(dateInput).toBeTruthy();
     expect(dateInput.getAttribute("min")).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  });
+
+  it("keeps public-reveal send disabled until a reveal date is valid", () => {
+    const appState = state({
+      composeForm: {
+        recipient: RECIPIENT,
+        body: "hello",
+        lockMode: "timed",
+        revealDate: "",
+      },
+    });
+    render(<PlayArea {...props(vi.fn(), appState)} />);
+
+    fireEvent.click(screen.getByLabelText("I understand this message will become public on-chain at the reveal time."));
+
+    expect(screen.getByText("Choose a valid reveal date.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Schedule public reveal" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("renders a Load older button only when more pages exist and dispatches loadOlder", () => {

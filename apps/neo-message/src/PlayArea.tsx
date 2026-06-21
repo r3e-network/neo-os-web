@@ -26,6 +26,7 @@ import {
   addressesEqual,
   needsPublicRevealAck,
   isEvmAddress,
+  validateCompose,
   MAX_BODY_LENGTH,
   type ComposeForm,
   type MessageView,
@@ -118,6 +119,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isTimed = form.lockMode === "timed";
   const connected = address.length > 0;
   const bodyLength = (form.body ?? "").length;
+  const bodyUsage = Math.min(100, Math.round((bodyLength / MAX_BODY_LENGTH) * 100));
   const dateMin = localDateTimeMin();
   const recipientValue = String(form.recipient ?? "").trim();
   const recipientIsValid = isEvmAddress(recipientValue);
@@ -142,13 +144,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     (recipientIsValid ? shortAddress(recipientValue) : t("recipientPreviewEmpty"));
   const draftPreview = draftBody || t("messageDraftEmpty");
   const deliveryPreview = isTimed ? t("publicRevealLabel") : t("privateSealLabel");
-  const readinessLabel = !recipientIsValid
-    ? t("readinessNeedRecipient")
-    : !draftBody
-      ? t("readinessNeedMessage")
-      : sendBlockedByAck
-        ? t("readinessNeedAck")
-        : t("readinessReady");
+  const composeValidation = validateCompose(form);
+  const sendBlockedByValidation = !composeValidation.ok;
+  const readinessLabel = sendBlockedByValidation
+    ? t(composeValidation.error ?? "statusFailed")
+    : sendBlockedByAck
+      ? t("readinessNeedAck")
+      : t("readinessReady");
 
   const onRecipientNicknameChange = (value: string) => {
     setRecipientNickname(value);
@@ -347,6 +349,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={form.body ?? ""}
                 onChange={(e) => setForm({ body: e.target.value.slice(0, MAX_BODY_LENGTH) })}
               />
+              <div
+                className="nm-message-composer__meter"
+                role="progressbar"
+                aria-label={t("characterBudgetLabel")}
+                aria-valuemin={0}
+                aria-valuemax={MAX_BODY_LENGTH}
+                aria-valuenow={bodyLength}
+              >
+                <span style={{ width: `${bodyUsage}%` }} />
+              </div>
               {bodyLength > MAX_BODY_LENGTH ? (
                 <span className="nm-message-composer__error">{t("bodyTooLong")}</span>
               ) : null}
@@ -427,7 +439,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   variant="primary"
                   size="lg"
                   loading={isSending}
-                  disabled={isSending || sendBlockedByAck}
+                  disabled={isSending || sendBlockedByAck || sendBlockedByValidation}
                   onClick={() => dispatch("sendMessage")}
                 >
                   <SendHorizontal size={17} aria-hidden="true" />
