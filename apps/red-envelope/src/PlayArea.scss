@@ -543,6 +543,10 @@
   font-weight: 760;
 }
 
+.redenv-play-area .redenv-create-body .redenv-helper--error {
+  color: var(--re-red-strong);
+}
+
 .redenv-share-card {
   display: grid;
   gap: 12px;
@@ -951,13 +955,24 @@
   .redenv-selected-card,
   .redenv-create-grid,
   .redenv-create-summary,
-  .redenv-activity-grid,
-  .redenv-ticket-route {
+  .redenv-activity-grid {
     grid-template-columns: 1fr;
   }
 
   .redenv-claim-ticket {
     grid-template-columns: 1fr;
+  }
+
+  .redenv-ticket-route {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .redenv-ticket-route span {
+    min-height: 28px;
+    padding: 0 6px;
+    font-size: 10px;
   }
 
   .redenv-tabs {
