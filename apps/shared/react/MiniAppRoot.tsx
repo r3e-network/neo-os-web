@@ -304,8 +304,6 @@ export function MiniAppRoot({
     if (setupRanRef.current) return;
     setupRanRef.current = true;
 
-    let cleanupFn: (() => void) | undefined;
-
     const runSetup = async () => {
       // Subscribe to platform events
       const stopNotificationEvents = services.events.on(
@@ -374,7 +372,6 @@ export function MiniAppRoot({
           }
 
           if (result?.cleanup) {
-            cleanupFn = result.cleanup;
             services.lifecycle.registerCleanup(result.cleanup);
           }
         } catch (err) {
@@ -669,28 +666,35 @@ function StandaloneDappSurface({
         .standalone-dapp-root .status-toast {
           position: fixed;
           top: auto;
-          bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+          bottom: calc(20px + env(safe-area-inset-bottom, 0px));
           left: 50%;
           transform: translateX(-50%);
-          z-index: 80;
+          z-index: 1000;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
           width: max-content;
-          max-width: min(calc(100vw - 32px), 520px);
-          padding: 8px 16px;
-          border-radius: 999px;
+          max-width: min(calc(100vw - 32px), 680px);
+          padding: 11px 14px;
+          border-radius: 14px;
           background: #ffffff !important;
           color: #18181b !important;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 600;
-          line-height: 1.35;
-          text-align: center;
+          line-height: 1.4;
+          text-align: left;
           white-space: normal;
+          opacity: 1 !important;
           pointer-events: none;
-          border: 1px solid #e6e8ea;
-          box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.18);
+          border: 1px solid #dfe4ea;
+          box-shadow:
+            0 20px 46px -18px rgba(15, 23, 42, 0.42),
+            0 1px 2px rgba(15, 23, 42, 0.08);
+          animation: standalone-toast-enter 180ms ease-out both !important;
+        }
+        .standalone-dapp-root .status-toast > span:last-child {
+          color: inherit !important;
         }
         .standalone-dapp-root .status-toast .toast-dot {
           width: 6px;
@@ -698,9 +702,40 @@ function StandaloneDappSurface({
           border-radius: 999px;
           background: #00b87a;
         }
+        .standalone-dapp-root .status-toast.success {
+          background: #f0fdf4 !important;
+          color: #065f46 !important;
+          border-color: #bbf7d0;
+        }
+        .standalone-dapp-root .status-toast.warning {
+          background: #fffbeb !important;
+          color: #92400e !important;
+          border-color: #fde68a;
+        }
+        .standalone-dapp-root .status-toast.info {
+          background: #f0f9ff !important;
+          color: #075985 !important;
+          border-color: #bae6fd;
+        }
+        .standalone-dapp-root .status-toast.error,
+        .standalone-dapp-root .status-toast.danger {
+          background: #fff6f6 !important;
+          color: #7f1d1d !important;
+          border-color: #fecaca;
+        }
         .standalone-dapp-root .status-toast.error .toast-dot,
         .standalone-dapp-root .status-toast.danger .toast-dot {
           background: #d93f3f;
+        }
+        @keyframes standalone-toast-enter {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(8px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
         }
         /* Scrollbar styling for consistency. */
         .standalone-dapp-root ::-webkit-scrollbar {

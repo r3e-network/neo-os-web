@@ -443,13 +443,19 @@
 
   // Single accent hue: scope the primary CTA to the green brand accent so it matches the hero
   .neo-btn--primary {
-    // AA: white-on-#0fb174 is ~2.8:1. The draw CTA uses the darker brand green
-    // (#0a8050 = 4.98:1, hover #086a45); --tarot-green stays for labels/borders.
-    background: #0a8050;
-    box-shadow: 0 2px 10px rgba(10, 128, 80, 0.28);
+    &:not(:disabled),
+    &.neo-btn--loading {
+      // AA: white-on-#0fb174 is ~2.8:1. The draw CTA uses the darker brand green
+      // (#0a8050 = 4.98:1, hover #086a45); --tarot-green stays for labels/borders.
+      background: #0a8050;
+      border-color: #0a8050;
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(10, 128, 80, 0.28);
+    }
 
     &:hover:not(:disabled) {
       background: #086a45;
+      color: #ffffff;
       box-shadow: 0 6px 18px rgba(10, 128, 80, 0.34);
     }
   }
