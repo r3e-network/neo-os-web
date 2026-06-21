@@ -146,31 +146,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {messageBytes}/1024 {t("bytesUnit")}
                 </strong>
               </div>
-              <div className="sign-document-preview" aria-label={t("messagePreviewLabel")}>
-                <div className="sign-document-preview__paper">
-                  <span className="sign-document-preview__seal" aria-hidden="true">
-                    <ShieldCheck size={25} />
-                  </span>
-                  <span className="sign-document-preview__type">{previewTitle}</span>
-                  <p>{previewCopy}</p>
-                </div>
-                <div className="sign-document-preview__meta">
-                  <span>
-                    <small>{t("messageBytesLabel")}</small>
-                    <strong>
-                      {messageBytes}/1024 {t("bytesUnit")}
-                    </strong>
-                  </span>
-                  <span>
-                    <small>{t("walletAddress")}</small>
-                    <strong>{address ? shortValue(address) : t("disconnected")}</strong>
-                  </span>
-                  <span>
-                    <small>{t("walletPrompt")}</small>
-                    <strong>{canSubmit ? t("ready") : t("awaitingSignature")}</strong>
-                  </span>
-                </div>
-              </div>
               <label className="sign-message-field">
                 <span>{t("messageLabel")}</span>
                 <textarea
@@ -226,6 +201,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {!address && (
                 <p className="sign-wallet-note">{t("walletPromptCopy")}</p>
               )}
+              <div className="sign-document-preview" aria-label={t("messagePreviewLabel")}>
+                <div className="sign-document-preview__paper">
+                  <span className="sign-document-preview__seal" aria-hidden="true">
+                    <ShieldCheck size={25} />
+                  </span>
+                  <span className="sign-document-preview__type">{previewTitle}</span>
+                  <p>{previewCopy}</p>
+                </div>
+                <div className="sign-document-preview__meta">
+                  <span>
+                    <small>{t("messageBytesLabel")}</small>
+                    <strong>
+                      {messageBytes}/1024 {t("bytesUnit")}
+                    </strong>
+                  </span>
+                  <span>
+                    <small>{t("walletAddress")}</small>
+                    <strong>{address ? shortValue(address) : t("disconnected")}</strong>
+                  </span>
+                  <span>
+                    <small>{t("walletPrompt")}</small>
+                    <strong>{canSubmit ? t("ready") : t("awaitingSignature")}</strong>
+                  </span>
+                </div>
+              </div>
             </NeoCard>
 
             <NeoCard variant="erobo" className="sign-result-panel">
