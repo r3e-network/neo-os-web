@@ -361,6 +361,10 @@ describe("GasBox PlayArea", () => {
 
     // Studio now uses app-native picker cards instead of browser-native selects.
     expect(container.querySelector("select")).toBeNull();
+    // Machine setup is presented as a cabinet blueprint instead of a flat form.
+    expect(container.querySelector(".gasbox-studio-cabinet")).not.toBeNull();
+    expect(container.querySelectorAll(".gasbox-cabinet-card").length).toBe(2);
+    expect(container.querySelector(".gasbox-capsule-editor")).not.toBeNull();
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
     expect(screen.getByText("Tier")).toBeTruthy();
