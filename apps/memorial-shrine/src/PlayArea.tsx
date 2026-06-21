@@ -367,28 +367,6 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
       {showCreateForm && (
         <section className="memorial-studio" aria-label={t("memoryStudio")}>
-          <div className="studio-preview">
-            <div className="studio-preview__media">
-              {previewPhotoSrc ? (
-                <img
-                  src={previewPhotoSrc}
-                  alt=""
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-              ) : (
-                <ImageIcon size={24} strokeWidth={1.9} aria-hidden="true" />
-              )}
-            </div>
-            <span className="studio-preview__label">{t("previewLabel")}</span>
-            <strong>{previewName}</strong>
-            <span className="studio-preview__years">{previewYears}</span>
-            <span className="studio-preview__relation">{previewRelation}</span>
-            <p>{previewBio}</p>
-            <blockquote>{previewObituary}</blockquote>
-          </div>
-
           <div className="create-form-panel">
             <div className="create-form__head">
               <span>{t("memoryStudio")}</span>
@@ -412,6 +390,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 {deathYearError || birthYearError}
               </p>
             )}
+            <div className="studio-mobile-publish">
+              <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial")}>
+                <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+                {t("createMemorial")}
+              </NeoButton>
+              <span>{t("studioStepPublish")}</span>
+            </div>
             <div className="studio-step">
               <span className="studio-step__index">02</span>
               <span>{t("studioStepStory")}</span>
@@ -430,6 +415,28 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 {t("createMemorial")}
               </NeoButton>
             </div>
+          </div>
+
+          <div className="studio-preview">
+            <div className="studio-preview__media">
+              {previewPhotoSrc ? (
+                <img
+                  src={previewPhotoSrc}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <ImageIcon size={24} strokeWidth={1.9} aria-hidden="true" />
+              )}
+            </div>
+            <span className="studio-preview__label">{t("previewLabel")}</span>
+            <strong>{previewName}</strong>
+            <span className="studio-preview__years">{previewYears}</span>
+            <span className="studio-preview__relation">{previewRelation}</span>
+            <p>{previewBio}</p>
+            <blockquote>{previewObituary}</blockquote>
           </div>
         </section>
       )}
