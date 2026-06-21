@@ -104,6 +104,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     (project) => String(project.id ?? "") === contributeProjectId.trim(),
   );
   const contributionAmountPresets = ["1", "2", "5", "10"];
+  const canRegisterProject = Boolean(
+    selectedRound &&
+      projectName.trim() &&
+      !isRegisteringProject,
+  );
+  const canContribute = Boolean(
+    selectedRound &&
+      contributeProjectId.trim() &&
+      contributeAmount.trim() &&
+      !isContributing,
+  );
 
   const workflowTabs = [
     {
@@ -131,6 +142,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const submitRegisterProject = async () => {
+    if (!canRegisterProject) return;
     const ok = (await dispatch("registerProject", {
       name: projectName,
       description: projectDescription,
@@ -144,6 +156,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const submitContribute = async () => {
+    if (!canContribute) return;
     const ok = (await dispatch("contribute", {
       projectId: contributeProjectId,
       amount: contributeAmount,
@@ -310,7 +323,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <NeoButton
                     variant="primary"
                     loading={isRegisteringProject}
-                    disabled={isRegisteringProject || !selectedRound}
+                    disabled={!canRegisterProject}
                     onClick={submitRegisterProject}
                   >
                     {isRegisteringProject
@@ -546,7 +559,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <NeoButton
                     variant="primary"
                     loading={isContributing}
-                    disabled={!selectedRound || isContributing}
+                    disabled={!canContribute}
                     onClick={submitContribute}
                   >
                     {isContributing ? t("contributing") : t("contribute")}

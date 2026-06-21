@@ -685,8 +685,9 @@
 }
 
 .qf-donation-ticket > .neo-btn:disabled {
-  background: #d9f5e8;
-  color: var(--ns-brand-deep, #0b5e3e);
+  border: 1px solid var(--ns-border-strong, #d7dbe3);
+  background: var(--ns-surface-subtle, #eef0f4);
+  color: var(--ns-text-2, #5b6478);
   box-shadow: none;
   opacity: 1;
 }
@@ -1300,25 +1301,25 @@
 
 @media (max-width: 760px) {
   .qf-play-area {
-    padding: 16px;
+    padding: 12px;
   }
 
   .qf-main-column,
   .qf-side-stack {
-    gap: 16px;
+    gap: 12px;
   }
 
   .qf-hero {
-    gap: 12px;
-    padding: 18px;
+    gap: 10px;
+    padding: 14px;
   }
 
   .qf-hero-art {
-    min-height: 220px;
+    min-height: 136px;
   }
 
   .qf-hero h1 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .qf-hero p {
@@ -1332,16 +1333,61 @@
   }
 
   .qf-donor-workbench {
-    padding: 14px;
+    gap: 12px;
+    padding: 12px;
   }
 
   .qf-project-market,
   .qf-donation-ticket {
-    padding: 14px;
+    gap: 10px;
+    padding: 12px;
   }
 
   .qf-donor-head > div:first-child > strong {
-    font-size: 20px;
+    font-size: 19px;
+  }
+
+  .qf-donor-head > div:first-child > p {
+    display: none;
+  }
+
+  .qf-donor-head .qf-contribute-summary {
+    padding: 12px;
+  }
+
+  .qf-amplify-note {
+    padding: 9px 10px;
+  }
+
+  .qf-amplify-note > p:not(.qf-amplify-estimate) {
+    display: none;
+  }
+
+  .qf-project-picks {
+    gap: 8px;
+  }
+
+  .qf-project-pick {
+    gap: 5px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .qf-project-pick > span:not(.qf-project-pick__title) {
+    max-height: 36px;
+    overflow: hidden;
+  }
+
+  .qf-donation-ticket > strong {
+    font-size: 18px;
+  }
+
+  .qf-donation-ticket .neo-input__field {
+    min-height: 42px;
+  }
+
+  .qf-donation-ticket > .neo-btn {
+    min-height: 42px;
   }
 
   .qf-round-preview,
@@ -1356,10 +1402,20 @@
 }
 
 @media (max-width: 420px) {
-  .qf-hero-actions,
   .qf-panel-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .qf-hero-actions {
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+
+  .qf-hero-actions .neo-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 10px;
   }
 
   .qf-amount-presets {
