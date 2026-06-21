@@ -70,7 +70,8 @@
   border-radius: 10px;
 }
 
-.ticket-play-area .neo-btn--primary {
+.ticket-play-area .neo-btn--primary,
+.ticket-play-area .neo-btn--primary.neo-btn--loading {
   background: var(--tk-brand-strong);
   color: #ffffff;
   box-shadow: 0 5px 16px rgba(10, 128, 80, 0.24);
@@ -80,10 +81,11 @@
   background: #086a45;
 }
 
-.ticket-play-area .neo-btn--primary:disabled {
-  border-color: rgba(10, 128, 80, 0.18);
-  background: var(--tk-brand-soft);
-  color: var(--tk-brand-deep);
+.ticket-play-area .neo-btn--primary:disabled:not(.neo-btn--loading) {
+  border-color: var(--ns-border-strong, #d7dbe3);
+  background: var(--ns-surface-subtle, #eef0f4);
+  color: var(--ns-text-2, #5b6478);
+  opacity: 1;
   box-shadow: none;
 }
 

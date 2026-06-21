@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -152,10 +153,26 @@ function state(
 
 describe("Event Ticket Pass PlayArea", () => {
   it("renders the complete organizer and check-in workflow", () => {
+    const event = {
+      id: "evt-1",
+      creator: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+      name: "Neo Summit",
+      venue: "Neo Hall",
+      startTime: 1781955600,
+      endTime: 1781988000,
+      maxSupply: 120n,
+      minted: 1n,
+      notes: "",
+      active: true,
+    };
     render(
       <PlayArea
         t={t}
-        state={state()}
+        state={state({
+          events: [event],
+          selectedEventId: "evt-1",
+          selectedEvent: event,
+        })}
         dispatch={vi.fn(async () => undefined)}
       />,
     );
@@ -280,5 +297,21 @@ describe("Event Ticket Pass PlayArea", () => {
       tokenId: "1-1",
       recipient: "NUVPACMnKFhpuHjsRjhUvXz1XhqfGZYVtY",
     });
+  });
+
+  it("keeps loading and disabled primary CTAs visually distinct", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../event-ticket-pass/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(
+      /\.ticket-play-area \.neo-btn--primary,\s*\.ticket-play-area \.neo-btn--primary\.neo-btn--loading\s*\{[\s\S]*color:\s*#ffffff/,
+    );
+    expect(styles).toMatch(
+      /\.ticket-play-area \.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/,
+    );
+    expect(styles).toMatch(/background:\s*var\(--ns-surface-subtle/);
+    expect(styles).toMatch(/color:\s*var\(--ns-text-2/);
   });
 });
