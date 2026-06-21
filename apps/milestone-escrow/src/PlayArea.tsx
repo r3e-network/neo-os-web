@@ -184,11 +184,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         key={option}
                         type="button"
                         role="radio"
+                        aria-label={option === "NEO" ? t("assetNeo") : t("assetGas")}
                         aria-checked={asset === option}
                         className={`asset-select__option${asset === option ? " asset-select__option--active" : ""}`}
                         onClick={() => setAsset(option)}
                       >
-                        {option === "NEO" ? (t("assetNeo")) : (t("assetGas"))}
+                        <span className="asset-select__option-name">
+                          {option === "NEO" ? (t("assetNeo")) : (t("assetGas"))}
+                        </span>
+                        <span className="asset-select__option-hint">
+                          {option === "NEO" ? (t("assetNeoHint")) : (t("assetGasHint"))}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -199,24 +205,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span className="milestone-fields__label">{t("milestones")}</span>
                   {milestoneAmounts.map((amt, index) => (
                     <div key={index} className="milestone-row">
-                      <div className="milestone-row__input">
-                        <NeoInput
-                          value={amt}
-                          label={t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`}
-                          placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder"))}
-                          onChange={(value: string) => setMilestoneAmount(index, value)}
-                        />
+                      <span className="milestone-row__step" aria-hidden="true">
+                        {index + 1}
+                      </span>
+                      <div className="milestone-row__body">
+                        <div className="milestone-row__toolbar">
+                          <span>{t("milestonePayout")}</span>
+                          {milestoneAmounts.length > MIN_MILESTONES && (
+                            <button
+                              type="button"
+                              className="milestone-row__remove"
+                              aria-label={t("removeMilestone", { index: index + 1 }) || `Remove milestone ${index + 1}`}
+                              onClick={() => removeMilestone(index)}
+                            >
+                              {t("remove")}
+                            </button>
+                          )}
+                        </div>
+                        <div className="milestone-row__input">
+                          <NeoInput
+                            value={amt}
+                            label={t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`}
+                            placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder"))}
+                            suffix={asset}
+                            hint={index === 0 ? t("totalHint") : ""}
+                            onChange={(value: string) => setMilestoneAmount(index, value)}
+                          />
+                        </div>
                       </div>
-                      {milestoneAmounts.length > MIN_MILESTONES && (
-                        <button
-                          type="button"
-                          className="milestone-row__remove"
-                          aria-label={t("removeMilestone", { index: index + 1 }) || `Remove milestone ${index + 1}`}
-                          onClick={() => removeMilestone(index)}
-                        >
-                          {t("remove")}
-                        </button>
-                      )}
                     </div>
                   ))}
                   <div className="milestone-fields__footer">
