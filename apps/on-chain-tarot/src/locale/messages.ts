@@ -102,6 +102,16 @@ const appMessages = {
     en: "Choose a quick intent or write one focused question. The prompt stays local; only the draw and card ids are handled on-chain.",
     zh: "选择快捷意图或写下一个明确问题。问题保留在本地；链上只处理抽牌和卡牌编号。",
   },
+  intentionDeckLabel: { en: "Intention deck", zh: "意图牌组" },
+  questionPreviewLabel: { en: "Reading slip", zh: "读牌签" },
+  questionPreviewFallback: {
+    en: "Choose an intent to place your question on the reading slip.",
+    zh: "选择一个意图，把问题放到读牌签上。",
+  },
+  questionCharacterCount: {
+    en: "{count}/{max} characters",
+    zh: "{count}/{max} 字",
+  },
   quickIntentLabel: { en: "Quick reading intents", zh: "快捷读牌意图" },
   requestReady: { en: "Ready", zh: "就绪" },
   awaitingCards: { en: "Awaiting draw", zh: "等待抽牌" },

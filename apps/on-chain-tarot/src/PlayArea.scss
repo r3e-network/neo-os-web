@@ -307,14 +307,14 @@
 
   textarea {
     width: 100%;
-    min-height: 94px;
+    min-height: 70px;
     resize: none;
-    padding: 14px;
-    border: 1px solid var(--tarot-border);
-    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(15, 177, 116, 0.2);
+    border-radius: 16px;
     outline: none;
     color: var(--tarot-ink);
-    background: var(--ns-surface-subtle, #f7f8fa);
+    background: rgba(255, 255, 255, 0.84);
     font:
       600 14px/1.5 Inter,
       ui-sans-serif,
@@ -331,7 +331,10 @@
 
     &:focus {
       border-color: rgba(15, 177, 116, 0.55);
-      box-shadow: 0 0 0 3px rgba(15, 177, 116, 0.14);
+      background: #ffffff;
+      box-shadow:
+        0 0 0 3px rgba(15, 177, 116, 0.14),
+        0 10px 24px rgba(20, 22, 38, 0.08);
     }
   }
 }
@@ -345,18 +348,127 @@
   letter-spacing: 0;
 }
 
-.tarot-question-presets {
+.tarot-intention-board {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(15, 177, 116, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(228, 248, 240, 0.78)),
+    var(--tarot-panel);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58),
+    0 12px 28px rgba(20, 22, 38, 0.08);
+  letter-spacing: 0;
+}
+
+.tarot-intention-board.is-ready {
+  border-color: rgba(15, 177, 116, 0.34);
+  background:
+    linear-gradient(135deg, #ffffff, rgba(228, 248, 240, 0.9)),
+    var(--tarot-panel);
+}
+
+.tarot-intention-deck {
+  position: relative;
+  width: 92px;
+  height: 118px;
+  min-width: 0;
+}
+
+.tarot-intention-deck__card {
+  position: absolute;
+  inset: 0 auto auto 18px;
+  display: block;
+  width: 62px;
+  aspect-ratio: 107 / 150;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow:
+    0 14px 26px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(15, 23, 42, 0.16);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.tarot-intention-deck__card--1 {
+  transform: translate(-18px, 14px) rotate(-10deg);
+}
+
+.tarot-intention-deck__card--2 {
+  transform: translate(0, 2px) rotate(0deg);
+}
+
+.tarot-intention-deck__card--3 {
+  transform: translate(18px, 14px) rotate(10deg);
+}
+
+.tarot-intention-slip {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(246, 200, 106, 0.28);
+  border-radius: 16px;
+  background: rgba(255, 252, 244, 0.82);
+  color: var(--tarot-body);
+  letter-spacing: 0;
+}
+
+.tarot-intention-slip span {
+  color: var(--ns-brand-deep, #0b5e3e);
+  font-size: 10.5px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.tarot-intention-slip strong {
+  color: var(--tarot-ink);
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+}
+
+.tarot-intention-slip small {
+  color: var(--tarot-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.tarot-question-presets {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  max-width: 100%;
+  padding: 0;
   letter-spacing: 0;
 
   button {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 7px;
+    align-items: center;
+    flex: 1 1 146px;
     min-width: 0;
-    min-height: 38px;
-    padding: 9px 11px;
+    min-height: 42px;
+    padding: 9px 12px;
     border: 1px solid rgba(15, 177, 116, 0.18);
-    border-radius: var(--ns-radius-sm, 12px);
+    border-radius: var(--ns-radius-full, 999px);
     background: var(--tarot-violet-soft);
     color: var(--ns-brand-deep, #0b5e3e);
     font: inherit;
@@ -381,6 +493,17 @@
     &:focus-visible {
       outline: 2px solid var(--tarot-green);
       outline-offset: 2px;
+    }
+
+    svg {
+      flex: 0 0 auto;
+    }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }
@@ -906,6 +1029,47 @@
     bottom: 10px;
     left: 10px;
     padding: 9px 11px;
+  }
+
+  .tarot-intention-board {
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .tarot-intention-deck {
+    width: 82px;
+    height: 108px;
+  }
+
+  .tarot-intention-deck__card {
+    left: 16px;
+    width: 56px;
+    border-radius: 10px;
+  }
+
+  .tarot-intention-deck__card--1 {
+    transform: translate(-13px, 13px) rotate(-10deg);
+  }
+
+  .tarot-intention-deck__card--3 {
+    transform: translate(13px, 13px) rotate(10deg);
+  }
+
+  .tarot-intention-slip {
+    padding: 11px;
+  }
+
+  .tarot-intention-slip strong {
+    font-size: 12.5px;
+  }
+
+  .tarot-question-presets button {
+    flex-basis: 140px;
+  }
+
+  .tarot-question-field textarea {
+    min-height: 64px;
   }
 
   .tarot-reading-grid {
