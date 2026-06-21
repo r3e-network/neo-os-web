@@ -82,16 +82,19 @@ const appMessages = {
   },
   readingFlowTitle: { en: "Reading flow", zh: "读牌流程" },
   readingStepOne: { en: "Write the question", zh: "写下问题" },
+  readingStepOneShort: { en: "Ask", zh: "提问" },
   readingStepOneCopy: {
     en: "The prompt is capped at 200 characters and kept on your device — it is not stored on-chain.",
     zh: "问题限制为 200 个字符，仅保存在你的设备上，不会上链存储。",
   },
   readingStepTwo: { en: "Pay the draw fee", zh: "支付抽牌费用" },
+  readingStepTwoShort: { en: "Pay", zh: "付款" },
   readingStepTwoCopy: {
     en: "You pay the on-chain draw fee in GAS to the contract; it credits your draw balance, then the contract draws your three cards in the same transaction.",
     zh: "你向合约支付链上 GAS 抽牌费用；费用记入你的抽牌额度，随后合约在同一笔交易中抽出你的三张牌。",
   },
   readingStepThree: { en: "Reveal the spread", zh: "揭示牌阵" },
+  readingStepThreeShort: { en: "Reveal", zh: "揭示" },
   readingStepThreeCopy: {
     en: "Each card stays sealed until the recipient taps Past, Present, and Future.",
     zh: "每张牌在用户点击过去、现在、未来前保持封存。",

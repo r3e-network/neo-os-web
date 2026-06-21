@@ -112,88 +112,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="tarot-workspace">
-            <NeoCard variant="erobo" className="tarot-spread-panel">
-              <div className="tarot-section-heading">
-                <span>{t("spreadPanelTitle")}</span>
-                <strong>
-                  {hasDrawn
-                    ? allFlipped
-                      ? t("allRevealed")
-                      : t("tapToReveal")
-                    : t("awaitingCards")}
-                </strong>
-              </div>
-              <div className="tarot-reading-grid">
-                {spreadKeys.map((spreadKey, index) => {
-                  const card = drawn[index];
-                  return card ? (
-                    <button
-                      key={`${card.id}-${index}`}
-                      className={`tarot-card-slot${card.flipped ? " tarot-card-slot--flipped" : ""}`}
-                      onClick={() => dispatch("flipCard", index)}
-                      type="button"
-                      aria-label={
-                        card.flipped
-                          ? card.name
-                          : `${t("tapToReveal")} ${t(spreadKey)}`
-                      }
-                    >
-                      <span className="tarot-card-position">
-                        {t(spreadKey)}
-                      </span>
-                      <span className="tarot-card-frame">
-                        <span className="tarot-card-face tarot-card-back">
-                          <img
-                            src={card.backImage || TAROT_CARD_BACK}
-                            alt={t("cardBackAlt")}
-                          />
-                          <span>{t("tapToReveal")}</span>
-                        </span>
-                        <span className="tarot-card-face tarot-card-front">
-                          <img
-                            src={card.image}
-                            alt={t("cardImageAlt", { name: card.name })}
-                          />
-                        </span>
-                      </span>
-                      <span className="tarot-card-caption">
-                        <span>
-                          {card.flipped ? card.name : t("hiddenCard")}
-                        </span>
-                        <small>
-                          {card.flipped
-                            ? cardKeywords(card)
-                            : t("oracleSealed")}
-                        </small>
-                      </span>
-                    </button>
-                  ) : (
-                    <div
-                      key={spreadKey}
-                      className="tarot-card-slot tarot-card-slot--empty"
-                    >
-                      <span className="tarot-card-position">
-                        {t(spreadKey)}
-                      </span>
-                      <span className="tarot-card-frame">
-                        <span className="tarot-card-face tarot-card-back">
-                          <img src={TAROT_CARD_BACK} alt={t("cardBackAlt")} />
-                        </span>
-                      </span>
-                      <span className="tarot-card-caption tarot-card-caption--empty">
-                        <span aria-hidden="true">—</span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              {!hasDrawn && (
-                <p className="tarot-spread-empty-hint">
-                  {t("submitQuestionFirst")}
-                </p>
-              )}
-            </NeoCard>
-
             <NeoCard variant="erobo" className="tarot-question-panel">
               <div className="tarot-section-heading">
                 <span>{t("readingIntentTitle")}</span>
@@ -256,23 +174,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   }}
                 />
               </label>
-              <div
-                className="tarot-route-strip"
-                aria-label={t("readingFlowTitle")}
-              >
-                <span className={question.trim() ? "is-ready" : ""}>
-                  <Send size={16} aria-hidden="true" />
-                  <small>{t("readingStepOne")}</small>
-                </span>
-                <span className={hasDrawn ? "is-ready" : ""}>
-                  <WalletCards size={16} aria-hidden="true" />
-                  <small>{t("readingStepTwo")}</small>
-                </span>
-                <span className={allFlipped ? "is-ready" : ""}>
-                  <Eye size={16} aria-hidden="true" />
-                  <small>{t("readingStepThree")}</small>
-                </span>
-              </div>
               <div className="tarot-action-row">
                 {!hasDrawn ? (
                   <>
@@ -295,6 +196,107 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <RotateCcw size={15} aria-hidden="true" />
                     {t("drawAgain")}
                   </NeoButton>
+                )}
+              </div>
+              <div
+                className="tarot-route-strip"
+                aria-label={t("readingFlowTitle")}
+              >
+                <span className={question.trim() ? "is-ready" : ""}>
+                  <Send size={16} aria-hidden="true" />
+                  <small>{t("readingStepOneShort")}</small>
+                </span>
+                <span className={hasDrawn ? "is-ready" : ""}>
+                  <WalletCards size={16} aria-hidden="true" />
+                  <small>{t("readingStepTwoShort")}</small>
+                </span>
+                <span className={allFlipped ? "is-ready" : ""}>
+                  <Eye size={16} aria-hidden="true" />
+                  <small>{t("readingStepThreeShort")}</small>
+                </span>
+              </div>
+            </NeoCard>
+
+            <NeoCard variant="erobo" className="tarot-spread-panel">
+              <div className="tarot-section-heading">
+                <span>{t("spreadPanelTitle")}</span>
+                <strong>
+                  {hasDrawn
+                    ? allFlipped
+                      ? t("allRevealed")
+                      : t("tapToReveal")
+                    : t("awaitingCards")}
+                </strong>
+              </div>
+              <div className="tarot-spread-table">
+                <div className="tarot-reading-grid">
+                  {spreadKeys.map((spreadKey, index) => {
+                    const card = drawn[index];
+                    return card ? (
+                      <button
+                        key={`${card.id}-${index}`}
+                        className={`tarot-card-slot${card.flipped ? " tarot-card-slot--flipped" : ""}`}
+                        onClick={() => dispatch("flipCard", index)}
+                        type="button"
+                        aria-label={
+                          card.flipped
+                            ? card.name
+                            : `${t("tapToReveal")} ${t(spreadKey)}`
+                        }
+                      >
+                        <span className="tarot-card-position">
+                          {t(spreadKey)}
+                        </span>
+                        <span className="tarot-card-frame">
+                          <span className="tarot-card-face tarot-card-back">
+                            <img
+                              src={card.backImage || TAROT_CARD_BACK}
+                              alt={t("cardBackAlt")}
+                            />
+                            <span>{t("tapToReveal")}</span>
+                          </span>
+                          <span className="tarot-card-face tarot-card-front">
+                            <img
+                              src={card.image}
+                              alt={t("cardImageAlt", { name: card.name })}
+                            />
+                          </span>
+                        </span>
+                        <span className="tarot-card-caption">
+                          <span>
+                            {card.flipped ? card.name : t("hiddenCard")}
+                          </span>
+                          <small>
+                            {card.flipped
+                              ? cardKeywords(card)
+                              : t("oracleSealed")}
+                          </small>
+                        </span>
+                      </button>
+                    ) : (
+                      <div
+                        key={spreadKey}
+                        className="tarot-card-slot tarot-card-slot--empty"
+                      >
+                        <span className="tarot-card-position">
+                          {t(spreadKey)}
+                        </span>
+                        <span className="tarot-card-frame">
+                          <span className="tarot-card-face tarot-card-back">
+                            <img src={TAROT_CARD_BACK} alt={t("cardBackAlt")} />
+                          </span>
+                        </span>
+                        <span className="tarot-card-caption tarot-card-caption--empty">
+                          <span aria-hidden="true">—</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {!hasDrawn && (
+                  <p className="tarot-spread-empty-hint">
+                    {t("submitQuestionFirst")}
+                  </p>
                 )}
               </div>
             </NeoCard>
