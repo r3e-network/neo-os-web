@@ -968,8 +968,8 @@
   }
 
   .sign-hero {
-    gap: 16px;
-    padding: 16px;
+    gap: 12px;
+    padding: 14px;
   }
 
   .sign-hero-head {
@@ -985,12 +985,31 @@
     font-size: 20px;
   }
 
+  .sign-hero .sign-hero-copy > p {
+    line-height: 1.42;
+  }
+
   .sign-hero-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sign-hero-stage {
-    min-height: 220px;
+    min-height: 150px;
+  }
+
+  .sign-hero-stage figcaption {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    padding: 9px 10px;
+  }
+
+  .sign-hero-stage figcaption strong {
+    font-size: 12px;
+  }
+
+  .sign-message-field textarea {
+    min-height: 132px;
   }
 
   .sign-document-preview__meta {
