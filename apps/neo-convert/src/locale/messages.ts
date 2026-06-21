@@ -10,8 +10,32 @@ const appMessages = {
         zh: "Neo N3 工具箱"
     },
     heroSubtitle: {
-        en: "Securely generate accounts and convert keys client-side.",
-        zh: "安全地在本地生成账户并转换密钥格式。"
+        en: "A local key workbench for generating accounts, deriving addresses, and checking Neo N3 formats without sending secrets anywhere.",
+        zh: "本地密钥工作台，用于生成账户、推导地址并校验 Neo N3 格式，密钥不会发送到任何地方。"
+    },
+    localOnlyPill: {
+        en: "Local-only key work",
+        zh: "密钥本地处理"
+    },
+    formatAutodetectPill: {
+        en: "Format auto-detect",
+        zh: "格式自动识别"
+    },
+    paperWalletPill: {
+        en: "Paper wallet export",
+        zh: "纸钱包导出"
+    },
+    workbenchStageEyebrow: {
+        en: "Secure workbench",
+        zh: "安全工作台"
+    },
+    workbenchStageTitle: {
+        en: "Paste, derive, reveal only when you choose.",
+        zh: "粘贴、推导，并且只在你选择时显示密钥。"
+    },
+    workbenchStageCopy: {
+        en: "The default view keeps secrets masked and makes every derived value inspectable before copy or export.",
+        zh: "默认视图会隐藏敏感信息，并让每个推导值在复制或导出前都可检查。"
     },
     accountsGenerated: {
         en: "Accounts",
@@ -29,9 +53,25 @@ const appMessages = {
         en: "Generate New Account",
         zh: "生成新账户"
     },
+    generatePanelTitle: {
+        en: "Create an offline-ready wallet",
+        zh: "创建可离线备份的钱包"
+    },
+    generatePanelCopy: {
+        en: "Generate a Neo N3 account locally, review the address, then reveal private material only when you are ready to back it up.",
+        zh: "在本地生成 Neo N3 账户，先核对地址，只在准备备份时显示私钥材料。"
+    },
     convertKey: {
         en: "Convert Key",
         zh: "转换密钥"
+    },
+    convertPanelTitle: {
+        en: "Decode a key, address, or script",
+        zh: "解析密钥、地址或脚本"
+    },
+    convertPanelCopy: {
+        en: "Paste once and the tool derives the readable address, script hash, public key, WIF, or opcode view it can safely produce.",
+        zh: "粘贴一次，工具会推导可安全生成的地址、脚本哈希、公钥、WIF 或操作码视图。"
     },
     convertHint: {
         en: "Paste a WIF, private key, public key, or NeoVM script — everything is processed on your device.",
@@ -273,6 +313,7 @@ const appMessages = {
     // "What you can paste" reference card — fills the resting lower viewport
     // with purposeful guidance instead of leaving a large blank canvas.
     formatsTitle: { en: "What you can paste", zh: "可粘贴的格式" },
+    formatRailTitle: { en: "Supported formats", zh: "支持的格式" },
     formatWifLabel: { en: "WIF", zh: "WIF" },
     formatWifDesc: {
         en: "Wallet Import Format private key (starts with K/L).",
@@ -296,6 +337,27 @@ const appMessages = {
     onDeviceNote: {
         en: "Key generation and conversion run entirely on your device — keys are never transmitted. The optional balance view makes read-only RPC calls when a wallet is connected.",
         zh: "密钥的生成与转换完全在您的设备上运行——密钥永不外传。仅当连接钱包查看余额时，才会发起只读 RPC 调用。"
+    },
+    safetyTitle: { en: "Safety model", zh: "安全模型" },
+    safetyLocal: {
+        en: "Secrets stay in this device session",
+        zh: "密钥仅留在当前设备会话"
+    },
+    safetyReveal: {
+        en: "Private values stay masked by default",
+        zh: "私密值默认隐藏"
+    },
+    safetyRpc: {
+        en: "Balances are optional read-only RPC",
+        zh: "余额为可选只读 RPC"
+    },
+    emptyOutputTitle: {
+        en: "Output appears after a valid paste",
+        zh: "粘贴有效内容后显示输出"
+    },
+    emptyOutputCopy: {
+        en: "Unknown or malformed input will show a clear status instead of filling this panel with noise.",
+        zh: "未知或格式错误的输入会显示清晰状态，不会把这里塞满无意义内容。"
     },
     // Inline caveat on the balance tiles: this is the one feature that talks to
     // a node, in contrast to the fully on-device key tooling.
