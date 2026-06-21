@@ -51,9 +51,14 @@ function t(key: string) {
     networkTestnet: "Neo N3 Testnet",
     status: "Status",
     asset: "Asset",
+    assetGasHint: "Fee token, fine-grained",
+    assetGasMeta: "8 decimals",
+    assetNeoHint: "Governance token",
+    assetNeoMeta: "Whole units",
     amount: "Amount",
     recipient: "Recipient",
     memo: "Memo",
+    memoDetails: "Memo / reference",
     amountPresets: "Amount presets",
     reviewTitle: "Transfer review",
     reviewAsset: "Asset",
@@ -183,6 +188,35 @@ describe("Neo Treasury PlayArea", () => {
         amount: "0.1",
         recipient: RECIPIENT,
         memo: "ops",
+      });
+    });
+  });
+
+  it("switches the payout asset with the visual asset cards before submit", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(
+      <PlayArea
+        {...props({
+          dispatch,
+          launchContext: launch(
+            `https://neomini.app/miniapps/neo-treasury/index.html?network=testnet&operation=submitDisbursement&asset=GAS&amount=1&recipient=${RECIPIENT}`,
+          ),
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Governance token/ }));
+
+    expect(screen.getByText("Whole units")).toBeTruthy();
+    expect(screen.getByText("1 NEO")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Sign Disbursement/ }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("submitDisbursement", {
+        asset: "NEO",
+        amount: "1",
+        recipient: RECIPIENT,
+        memo: "",
       });
     });
   });
