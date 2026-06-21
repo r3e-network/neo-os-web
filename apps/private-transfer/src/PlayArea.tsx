@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Check,
+  ChevronDown,
   CircleAlert,
   Clock3,
   Copy,
@@ -471,9 +472,6 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
   return (
     <div className="private-transfer">
       <section className="private-transfer__hero">
-        <div className="private-transfer__hero-icon" aria-hidden="true">
-          <LockKeyhole size={24} />
-        </div>
         <div className="private-transfer__hero-body">
           <span className="private-transfer__eyebrow">{t("heroEyebrow")}</span>
           <h2>{t("heroTitle")}</h2>
@@ -485,10 +483,29 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
             <span className="private-transfer__badge">{t("heroBadge")}</span>
           </div>
         </div>
+        <figure className="private-transfer__stage" aria-label={t("heroStageAria")}>
+          <img
+            src="./private-transfer-stage.jpg"
+            alt=""
+            decoding="async"
+            loading="eager"
+          />
+          <figcaption>
+            <span>{t("statusBlockHeader")}</span>
+            <strong>{t("heroStageTitle")}</strong>
+          </figcaption>
+        </figure>
       </section>
 
       <section className="private-transfer__grid">
         <div className="private-transfer__panel">
+          <div className="private-transfer__composer-head">
+            <div>
+              <span>{t("composerTitle")}</span>
+              <strong>{t("composerSubtitle")}</strong>
+            </div>
+            <em>{networkLabelFor(network)} · {asset}</em>
+          </div>
           <div className="private-transfer__form-grid">
             <section className="private-transfer__choice-field" aria-label={t("formNetworkLabel")}>
               <div className="private-transfer__choice-head">
@@ -837,10 +854,10 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
               onClick={handleClearHistory}
               aria-label={t("historyClearAria")}
             >
-              {t("historyClear")}
-            </button>
-          )}
-        </div>
+                {t("historyClear")}
+              </button>
+            )}
+          </div>
         {history.length === 0 ? (
           <StateView
             kind="empty"
@@ -901,12 +918,14 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
         )}
       </section>
 
-      <details className="private-transfer__steps" open>
+      <details className="private-transfer__steps">
         <summary>
           <span>{t("stepsTitle")}</span>
-          <span className="private-transfer__steps-chevron" aria-hidden="true">
-            ⌄
-          </span>
+          <ChevronDown
+            className="private-transfer__steps-chevron"
+            size={16}
+            aria-hidden="true"
+          />
         </summary>
         <div className="private-transfer__steps-grid">
           {(
