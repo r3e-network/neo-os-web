@@ -29,7 +29,7 @@ export default function TokenIcon({ symbol, className = "" }: TokenIconProps) {
   return (
     <span className={classes} aria-hidden="true">
       {imageUrl ? (
-        <img src={imageUrl} alt="" loading="lazy" decoding="async" />
+        <img src={imageUrl} alt="" loading="eager" decoding="async" />
       ) : (
         <span>{fallback}</span>
       )}

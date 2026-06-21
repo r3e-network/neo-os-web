@@ -147,6 +147,11 @@
   overflow-wrap: anywhere;
 }
 
+.swap-hero-token .neo-swap-token-icon {
+  width: 42px;
+  height: 42px;
+}
+
 .swap-hero-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
