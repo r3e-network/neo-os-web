@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NeoCard, NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { formatNum } from "@shared/utils/format";
 import MercHeroStats from "./components/MercHeroStats";
 import MercActionCards, { type AmountField } from "./components/MercActionCards";
 import MercBidsList from "./components/MercBidsList";
@@ -107,12 +108,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
           <div className="gov-merc-scoreboard">
+            <div className="gov-merc-market-plate">
+              <img src="./logo.svg" alt="" aria-hidden="true" />
+              <div>
+                <span>{t("marketPlateLabel")}</span>
+                <strong>{t("marketPlateEpoch", { epoch: currentEpoch })}</strong>
+                <em>
+                  {t("marketPlateTopBid", {
+                    amount: formatNum(highestBid, 2),
+                    tokenGas: t("tokenGas"),
+                  })}
+                </em>
+              </div>
+            </div>
             <MercHeroStats
               t={t}
               totalPool={totalPool}
               bidCount={bidCount}
-              currentEpoch={currentEpoch}
-              highestBid={highestBid}
               lastDistributed={lastDistributed}
             />
           </div>
