@@ -131,10 +131,13 @@ const appMessages = {
   assetLabel: { en: "Asset", zh: "资产" },
   assetGas: { en: "GAS", zh: "GAS" },
   assetNeo: { en: "NEO", zh: "NEO" },
+  multisigGasAssetHint: { en: "Fee token, 8 decimals", zh: "手续费资产，8 位小数" },
+  multisigNeoAssetHint: { en: "Whole-token custody", zh: "整数单位托管" },
   toAddressLabel: { en: "Recipient Address", zh: "接收地址" },
   toAddressPlaceholder: { en: "N3 address", zh: "N3 地址" },
   amountLabel: { en: "Amount", zh: "数量" },
   amountPlaceholder: { en: "0.00", zh: "0.00" },
+  multisigMemoDetails: { en: "Signer note / memo", zh: "签名人备注 / Memo" },
   memoLabel: { en: "Memo (optional)", zh: "备注（可选）" },
   memoPlaceholder: { en: "Short note for signers", zh: "给签名人的备注" },
 
