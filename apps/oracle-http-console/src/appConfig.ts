@@ -282,6 +282,11 @@ const appMessages = {
     en: "Shape the web-data read as a small, auditable oracle intent.",
     zh: "把 Web 数据读取整理成简洁、可审计的预言机意图。",
   },
+  httpPipelineTitle: { en: "Request pipeline", zh: "请求管线" },
+  httpPipelineCopy: {
+    en: "Compose the source, extraction path, and optional body as one reviewable oracle route.",
+    zh: "把数据源、抽取路径和可选请求体编排成一条可审阅的预言机路线。",
+  },
   httpMethodTitle: { en: "Transport mode", zh: "传输方式" },
   httpMethodCopy: {
     en: "Pick the request style before the digest is computed.",
