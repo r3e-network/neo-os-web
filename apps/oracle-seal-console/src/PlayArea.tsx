@@ -117,7 +117,9 @@ export default function PlayArea({
   const draftOk = draftResult.payload.status !== "input_required";
   const resultOk = result?.payload.status !== "input_required";
   const payloadDigest = String(draftResult.payload.payloadDigest ?? "");
-  const recipientLabel = values.recipient.trim() || t("digestPlaceholder");
+  const recipientValue = values.recipient ?? "";
+  const payloadValue = values.payload ?? "";
+  const recipientLabel = recipientValue.trim() || t("digestPlaceholder");
   const summaryItems = [
     {
       key: "protection",
@@ -163,7 +165,9 @@ export default function PlayArea({
       const count = Number(state.requestCount?.get?.() ?? 0);
       setObservable(state, "requestCount", count + 1);
     }
-    setStatus(next.status, ok ? "success" : "warning");
+    if (!ok) {
+      setStatus(next.status, "warning");
+    }
   }
 
   function buildPreview() {
@@ -284,16 +288,6 @@ export default function PlayArea({
             ))}
           </div>
 
-          <div
-            className="seal-quick-actions"
-            aria-label={t("sealReceipt")}
-          >
-            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
-              <Play size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.primaryActionKey)}</span>
-            </NeoButton>
-          </div>
-
           <section
             className="seal-purpose-panel"
             aria-label={t("sealPurposeTitle")}
@@ -303,7 +297,7 @@ export default function PlayArea({
               <strong>{t("sealPurposeCopy")}</strong>
             </div>
             <div
-              className="seal-purpose-grid"
+              className="seal-purpose-track"
               role="radiogroup"
               aria-label={t("purpose")}
             >
@@ -317,17 +311,24 @@ export default function PlayArea({
                     role="radio"
                     aria-checked={selected}
                     aria-label={`${t("purpose")}: ${label}`}
-                    className={`seal-choice-card${
-                      selected ? " seal-choice-card--selected" : ""
+                    className={`seal-purpose-chip${
+                      selected ? " seal-purpose-chip--selected" : ""
                     }`}
                     onClick={() => updateValue("purpose", option.value)}
                   >
-                    <span aria-hidden="true">{purposeIcon(option.value)}</span>
-                    <strong>{label}</strong>
-                    <small>{purposeHint(option.value, t)}</small>
+                    <span
+                      className="seal-purpose-chip__icon"
+                      aria-hidden="true"
+                    >
+                      {purposeIcon(option.value)}
+                    </span>
+                    <span className="seal-purpose-chip__copy">
+                      <strong>{label}</strong>
+                      <small>{purposeHint(option.value, t)}</small>
+                    </span>
                     {selected && (
                       <span
-                        className="seal-choice-card__check"
+                        className="seal-purpose-chip__check"
                         aria-hidden="true"
                       >
                         <Check size={14} />
@@ -340,40 +341,14 @@ export default function PlayArea({
           </section>
 
           <section
-            className="seal-recipient-panel"
-            aria-label={t("sealRecipientTitle")}
+            className="seal-composer-panel"
+            aria-label={t("sealComposerTitle")}
           >
-            <div className="seal-section-copy">
-              <small>{t("sealRecipientTitle")}</small>
-              <strong>{t("sealRecipientCopy")}</strong>
-            </div>
-            <NeoInput
-              label={t("recipient")}
-              value={values.recipient}
-              placeholder={t("recipientPlaceholder")}
-              hint={t("recipientHint")}
-              onChange={(value) => updateValue("recipient", value)}
-            />
-          </section>
-
-          <section
-            className="seal-payload-panel"
-            aria-label={t("sealPayloadTitle")}
-          >
-            <div className="seal-section-copy">
-              <small>{t("sealPayloadTitle")}</small>
-              <strong>{t("sealPayloadCopy")}</strong>
-            </div>
-            <div className="seal-payload-shell">
-              <NeoInput
-                type="textarea"
-                label={t("payload")}
-                value={values.payload}
-                placeholder={t("payloadPlaceholder")}
-                hint={payloadValid ? t("payloadReadyHint") : ""}
-                error={payloadValid ? "" : t("payloadInvalidHint")}
-                onChange={(value) => updateValue("payload", value)}
-              />
+            <div className="seal-composer-head">
+              <div className="seal-section-copy">
+                <small>{t("sealComposerTitle")}</small>
+                <strong>{t("sealComposerCopy")}</strong>
+              </div>
               <span
                 className={`seal-valid-chip${
                   payloadValid
@@ -389,17 +364,55 @@ export default function PlayArea({
                 {t("payloadValid")}: {boolLabel(payloadValid, t)}
               </span>
             </div>
-            <div className="seal-digest-strip">
-              <span>
-                <small>{t("payloadDigest")}</small>
-                <strong>{payloadDigest}</strong>
-              </span>
-              <span>
-                <small>{t("sealPayloadSize")}</small>
-                <strong>
-                  {t("sealPayloadChars", { count: values.payload.length })}
-                </strong>
-              </span>
+
+            <div className="seal-composer-grid">
+              <div className="seal-route-lane">
+                <div className="seal-lane-head">
+                  <Route size={17} aria-hidden="true" />
+                  <span>
+                    <small>{t("sealRecipientTitle")}</small>
+                    <strong>{t("sealRecipientCopy")}</strong>
+                  </span>
+                </div>
+                <NeoInput
+                  label={t("recipient")}
+                  value={recipientValue}
+                  placeholder={t("recipientPlaceholder")}
+                  hint={t("recipientHint")}
+                  onChange={(value) => updateValue("recipient", value)}
+                />
+              </div>
+
+              <div className="seal-editor-lane">
+                <div className="seal-lane-head">
+                  <FileJson2 size={17} aria-hidden="true" />
+                  <span>
+                    <small>{t("sealPayloadTitle")}</small>
+                    <strong>{t("sealPayloadCopy")}</strong>
+                  </span>
+                </div>
+                <NeoInput
+                  type="textarea"
+                  label={t("payload")}
+                  value={payloadValue}
+                  placeholder={t("payloadPlaceholder")}
+                  hint={payloadValid ? t("payloadReadyHint") : ""}
+                  error={payloadValid ? "" : t("payloadInvalidHint")}
+                  onChange={(value) => updateValue("payload", value)}
+                />
+                <div className="seal-digest-strip">
+                  <span>
+                    <small>{t("payloadDigest")}</small>
+                    <strong>{payloadDigest}</strong>
+                  </span>
+                  <span>
+                    <small>{t("sealPayloadSize")}</small>
+                    <strong>
+                      {t("sealPayloadChars", { count: payloadValue.length })}
+                    </strong>
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
 
