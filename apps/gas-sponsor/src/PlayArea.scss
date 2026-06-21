@@ -18,6 +18,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   width: min(100%, 1040px);
   margin: 0 auto;
   padding: 16px 14px 28px;
+  box-sizing: border-box;
   color: $gas-text;
   font-family:
     Inter,
@@ -25,6 +26,12 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+}
+
+.gas-sponsor-play-area *,
+.gas-sponsor-play-area *::before,
+.gas-sponsor-play-area *::after {
+  box-sizing: border-box;
 }
 
 .gas-refill-hero,
@@ -671,32 +678,101 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   padding: 18px;
 }
 
-.pay-forward,
-.donate-form,
-.send-form {
-  display: flex;
-  flex-direction: column;
+.pay-forward {
+  display: grid;
+  gap: 14px;
+}
+
+.pay-forward__intro {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(10, 128, 80, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.86), #ffffff),
+    $gas-surface;
+}
+
+.pay-forward__intro p {
+  margin: 0 0 5px;
+  color: $gas-text;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.42;
+}
+
+.pay-forward__intro strong {
+  color: $gas-accent-deep;
+  font-size: 12px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-forward__mark,
+.pay-forward-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(10, 128, 80, 0.18);
+  border-radius: 8px;
+  background: $gas-accent-soft;
+  color: $gas-accent-deep;
+}
+
+.pay-forward__mark {
+  width: 44px;
+  height: 44px;
+}
+
+.pay-forward-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.form-hint {
+.pay-forward-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid $gas-border;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 22px rgba(20, 22, 38, 0.05);
+}
+
+.pay-forward-card__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.pay-forward-card__icon {
+  width: 38px;
+  height: 38px;
+}
+
+.pay-forward-card__head p,
+.pay-forward-card__note {
   margin: 0;
   color: $gas-muted;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 650;
   line-height: 1.45;
 }
 
-.pay-forward .donate-form,
-.pay-forward .send-form {
-  padding-top: 14px;
-  border-top: 1px solid $gas-border;
+.pay-forward-card__fields {
+  display: grid;
+  gap: 11px;
 }
 
 .pay-forward-section-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  display: block;
 }
 
 .pay-forward-empty {
@@ -721,10 +797,28 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   line-height: 1.5;
 }
 
+.pool-address {
+  display: grid;
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid rgba(10, 128, 80, 0.12);
+  border-radius: 8px;
+  background: rgba(228, 248, 240, 0.5);
+}
+
+.pool-address span {
+  color: $gas-muted;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .pool-address code {
-  color: $gas-ink;
+  color: $gas-accent-deep;
   font-family: $font-mono;
   font-size: 12px;
+  font-weight: 750;
   word-break: break-all;
 }
 
@@ -753,6 +847,10 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   .gas-tank-panel {
     border-right: 0;
     border-bottom: 1px solid $gas-border;
+  }
+
+  .pay-forward-actions {
+    grid-template-columns: 1fr;
   }
 }
 
