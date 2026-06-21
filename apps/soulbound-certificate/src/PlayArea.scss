@@ -40,7 +40,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   padding: 28px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(235, 249, 241, 0.92) 100%);
-  border: 1px solid rgba($soul-accent, 0.16);
+  border: 1px solid rgba(22, 199, 132, 0.16);
   border-radius: var(--ns-radius-lg);
   box-shadow: 0 20px 50px rgba(33, 85, 58, 0.12);
 }
@@ -94,7 +94,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   gap: 7px;
   min-width: 0;
   padding: 8px 11px;
-  border: 1px solid rgba($soul-accent, 0.16);
+  border: 1px solid rgba(22, 199, 132, 0.16);
   border-radius: var(--ns-radius-full, 9999px);
   background: rgba(255, 255, 255, 0.78);
   color: #0b5e3e;
@@ -161,7 +161,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   align-items: center;
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid rgba($soul-accent, 0.28);
+  border: 1px solid rgba(22, 199, 132, 0.28);
   border-radius: var(--ns-radius-sm);
   background: $soul-accent-soft;
   color: $soul-accent-strong;
@@ -175,7 +175,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid rgba($soul-accent, 0.25);
+  border: 1px solid rgba(22, 199, 132, 0.25);
   border-radius: var(--ns-radius-sm);
   background: $soul-accent-soft;
   color: $soul-accent-strong;
@@ -229,11 +229,11 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   &:focus-visible {
     outline: none;
     border-color: $soul-accent;
-    box-shadow: 0 0 0 3px rgba($soul-accent, 0.16);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
   }
 
   &.is-active {
-    border-color: rgba($soul-accent, 0.3);
+    border-color: rgba(22, 199, 132, 0.3);
     background: var(--ns-surface);
     color: $soul-accent-strong;
     box-shadow: var(--ns-shadow-sm);
@@ -308,14 +308,14 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   &:hover {
     transform: translateY(-1px);
-    border-color: rgba($soul-accent, 0.32);
+    border-color: rgba(22, 199, 132, 0.32);
     background: var(--ns-surface);
   }
 
   &:focus-visible {
     outline: none;
     border-color: $soul-accent;
-    box-shadow: 0 0 0 3px rgba($soul-accent, 0.16);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
   }
 
   .template-chip__name {
@@ -409,6 +409,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 }
 
 .certificate-panel,
+.certificate-drawer,
 .templates-card,
 .verify-card,
 .certificates-card {
@@ -429,7 +430,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   gap: 12px;
   min-width: 0;
   padding: 16px;
-  border: 1px solid rgba($soul-accent, 0.12);
+  border: 1px solid rgba(22, 199, 132, 0.12);
   border-radius: var(--ns-radius-lg);
   background:
     radial-gradient(90% 70% at 18% 0%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0) 60%),
@@ -489,6 +490,39 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   background: rgba(255, 255, 255, 0.82);
 }
 
+.issue-flow-card {
+  display: grid;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid rgba(22, 199, 132, 0.12);
+  border-radius: var(--ns-radius-md);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(237, 249, 241, 0.9));
+
+  .panel-copy {
+    margin: 0;
+  }
+}
+
+.issue-flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.issue-flow-steps span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-full, 999px);
+  background: rgba(255, 255, 255, 0.72);
+  color: #0b5e3e;
+  font-size: 11px;
+  font-weight: 850;
+}
+
 .template-lab {
   display: grid;
   grid-template-columns: minmax(240px, 0.86fr) minmax(0, 1.14fr);
@@ -520,6 +554,18 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .issue-controls .certificate-form-grid,
 .template-lab .certificate-form-grid {
   margin-bottom: 0;
+}
+
+.issue-controls > .certificate-form-grid--issue > .certificate-field:first-child {
+  grid-column: 1 / -1;
+}
+
+.certificate-form-grid--drawer {
+  padding-top: 12px;
+}
+
+.certificate-form-grid--drawer .certificate-field:first-child {
+  grid-column: auto;
 }
 
 .certificate-field {
@@ -563,7 +609,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   textarea:focus {
     border-color: $soul-accent;
     background: var(--ns-surface);
-    box-shadow: 0 0 0 3px rgba($soul-accent, 0.14);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.14);
   }
 
   input[aria-invalid="true"] {
@@ -573,6 +619,127 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .certificate-field--wide {
   grid-column: 1 / -1;
+}
+
+.certificate-drawer {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 253, 251, 0.94));
+  box-shadow: var(--ns-shadow-sm);
+}
+
+.certificate-drawer > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 14px 16px;
+  color: var(--ns-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.certificate-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.certificate-drawer > summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.certificate-drawer > summary > span svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: $soul-accent-strong;
+}
+
+.certificate-drawer > summary > strong {
+  color: var(--ns-text-muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.certificate-drawer > summary > svg:last-child {
+  width: 17px;
+  height: 17px;
+  color: var(--ns-text-muted);
+  transition: transform 0.16s ease;
+}
+
+.certificate-drawer[open] > summary {
+  border-bottom: 1px solid var(--ns-border);
+  background: rgba(246, 251, 248, 0.72);
+}
+
+.certificate-drawer[open] > summary > svg:last-child {
+  transform: rotate(180deg);
+}
+
+.certificate-drawer > summary:focus {
+  outline: none;
+}
+
+.certificate-drawer > summary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px rgba(22, 199, 132, 0.16);
+}
+
+.certificate-drawer > :not(summary) {
+  margin: 0 16px 16px;
+}
+
+.certificate-drawer--compact {
+  border-radius: var(--ns-radius-md);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: none;
+}
+
+.certificate-drawer--compact > summary {
+  min-height: 50px;
+  padding: 11px 13px;
+}
+
+.certificate-drawer:focus {
+  outline: none;
+}
+
+.certificate-drawer:focus-visible {
+  border-color: rgba(22, 199, 132, 0.34);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
+}
+
+.drawer-copy-block {
+  padding-top: 14px;
+
+  .panel-copy {
+    margin: 0;
+  }
+}
+
+.template-studio-drawer {
+  border-color: rgba(22, 199, 132, 0.16);
+}
+
+.verify-drawer {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 253, 0.96));
+}
+
+.verify-drawer .panel-copy {
+  margin-top: 14px;
 }
 
 .selected-template {
@@ -630,14 +797,14 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    border-color: rgba($soul-accent, 0.32);
+    border-color: rgba(22, 199, 132, 0.32);
     background: var(--ns-surface);
   }
 
   &:focus-visible {
     outline: none;
     border-color: $soul-accent;
-    box-shadow: 0 0 0 3px rgba($soul-accent, 0.16);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
   }
 
   &:disabled {
@@ -651,7 +818,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   border-color: transparent;
   background: $soul-accent;
   color: #fff;
-  box-shadow: 0 12px 24px rgba($soul-accent, 0.18);
+  box-shadow: 0 12px 24px rgba(22, 199, 132, 0.18);
 
   &:hover:not(:disabled) {
     background: $soul-accent-strong;
@@ -670,6 +837,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
    Scoped to the issue/create/verify panels so only the form submit buttons are
    affected. */
 .certificate-panel,
+.certificate-drawer,
 .verify-card {
   .neo-btn--primary:disabled {
     background: var(--ns-surface-subtle, #eef0f4);
@@ -1043,7 +1211,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   cursor: pointer;
 
   &:hover {
-    border-color: rgba($soul-accent, 0.32);
+    border-color: rgba(22, 199, 132, 0.32);
     color: $soul-accent-strong;
   }
 
@@ -1051,7 +1219,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
     outline: none;
     border-color: $soul-accent;
     color: $soul-accent-strong;
-    box-shadow: 0 0 0 3px rgba($soul-accent, 0.16);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
   }
 }
 
@@ -1172,6 +1340,27 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   .certificate-detail dl,
   .certificate-artifact__facts {
     grid-template-columns: 1fr;
+  }
+
+  .certificate-drawer > summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+  }
+
+  .certificate-drawer > summary > strong {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .certificate-drawer > summary > svg:last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .certificate-drawer > :not(summary) {
+    margin-right: 12px;
+    margin-left: 12px;
   }
 
   .certificate-artifact__recipient {
