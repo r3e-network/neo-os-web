@@ -330,6 +330,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     (sum, item) => sum + (Number(item.weight) || 0),
     0,
   );
+  const studioMachineLabel = machineName.trim() || t("studioPreviewMachineName");
+  const studioPriceLabel = machinePrice.trim()
+    ? `${machinePrice.trim()} GAS`
+    : t("studioPreviewPriceUnset");
 
   const resetStudioForm = () => {
     setMachineName("");
@@ -572,7 +576,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
-          <div className="gasbox-studio-grid">
+          <div className="gasbox-studio-blueprint" aria-label={t("studioBlueprintLabel")}>
+            <figure className="gasbox-studio-machine-preview">
+              <picture aria-hidden="true">
+                <source srcSet="logo.avif" type="image/avif" />
+                <source srcSet="logo.webp" type="image/webp" />
+                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+              </picture>
+              <figcaption>
+                <span>{t("studioBlueprintLabel")}</span>
+                <strong>{studioMachineLabel}</strong>
+                <small>{studioPriceLabel}</small>
+              </figcaption>
+            </figure>
+            <div className="gasbox-studio-blueprint__console">
+              <p>{t("studioPreviewHint")}</p>
+              <div className="gasbox-studio-blueprint__stats">
+                <span>
+                  <Gem aria-hidden="true" />
+                  <small>{t("studioBlueprintAsset")}</small>
+                  <strong>{prizeAsset}</strong>
+                </span>
+                <span>
+                  <Gift aria-hidden="true" />
+                  <small>{t("studioBlueprintPrizes")}</small>
+                  <strong>{studioItems.length}</strong>
+                </span>
+                <span>
+                  <Coins aria-hidden="true" />
+                  <small>{t("studioBlueprintWeight")}</small>
+                  <strong>{studioTotalWeight}</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="gasbox-studio-grid gasbox-studio-grid--machine">
             <label className="gasbox-field">
               <span>{t("machineNameLabel")}</span>
               <input
@@ -644,6 +683,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 .toLowerCase()}`;
               return (
               <div key={index} className="gasbox-studio-item">
+                <div className="gasbox-studio-item__header">
+                  <span
+                    className={`gasbox-studio-item__capsule ${rarityClass(derivedRarity)}`}
+                    aria-hidden="true"
+                  >
+                    <RarityMark rarity={derivedRarity} />
+                  </span>
+                  <span className="gasbox-studio-item__title">
+                    <small>{t("studioCapsuleLabel", { index: index + 1 })}</small>
+                    <strong>
+                      {item.name.trim() || t("studioCapsuleFallback")}
+                    </strong>
+                  </span>
+                  <span className="gasbox-derived-tier gasbox-studio-item__tier">
+                    <small>{t("derivedTierLabel")}</small>
+                    <strong
+                      className={`gasbox-derived-tier__value ${rarityClass(derivedRarity)}`}
+                      aria-label={t("derivedTierHint")}
+                    >
+                      {t(rarityKey) || derivedRarity}
+                      {itemWeight > 0 && (
+                        <span className="gasbox-derived-tier__share">
+                          {" "}
+                          {formatPercent(share, "—")}
+                        </span>
+                      )}
+                    </strong>
+                  </span>
+                </div>
                 <div className="gasbox-studio-item__row">
                   <label className="gasbox-field">
                     <span>{t("itemNamePlaceholder")}</span>
@@ -665,21 +733,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
                     />
                   </label>
-                  <div className="gasbox-field gasbox-field--narrow gasbox-derived-tier">
-                    <span>{t("derivedTierLabel")}</span>
-                    <strong
-                      className={`gasbox-derived-tier__value ${rarityClass(derivedRarity)}`}
-                      aria-label={t("derivedTierHint")}
-                    >
-                      {t(rarityKey) || derivedRarity}
-                      {itemWeight > 0 && (
-                        <span className="gasbox-derived-tier__share">
-                          {" "}
-                          {formatPercent(share, "—")}
-                        </span>
-                      )}
-                    </strong>
-                  </div>
                 </div>
                 <div className="gasbox-studio-item__row">
                   <label className="gasbox-field">

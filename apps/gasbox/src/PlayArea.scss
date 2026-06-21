@@ -153,7 +153,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -821,7 +821,7 @@
 .gasbox-check__status {
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -846,7 +846,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1118,14 +1118,14 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .gasbox-result-rarity {
   font-size: 0.6875rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -1359,7 +1359,7 @@
   color: var(--ns-brand-strong, #0fb174);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -1408,6 +1408,133 @@
   flex: 0 0 auto;
 }
 
+.gasbox-studio-blueprint {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(18, 114, 75, 0.12);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(228, 248, 240, 0.72)),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 14px 30px rgba(32, 78, 52, 0.08);
+}
+
+.gasbox-studio-machine-preview {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 190px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(18, 114, 75, 0.12);
+  border-radius: var(--ns-radius-md, 16px);
+  background: #f5fbf5;
+  box-shadow: 0 14px 28px rgba(32, 78, 52, 0.12);
+}
+
+.gasbox-studio-machine-preview picture,
+.gasbox-studio-machine-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gasbox-studio-machine-preview img {
+  object-fit: cover;
+  object-position: 58% center;
+}
+
+.gasbox-studio-machine-preview figcaption {
+  position: absolute;
+  inset: auto 12px 12px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(20, 32, 21, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.gasbox-studio-machine-preview figcaption span,
+.gasbox-studio-blueprint__stats small {
+  color: var(--ns-brand-deep, #0b5e3e);
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.gasbox-studio-machine-preview figcaption strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.gasbox-studio-machine-preview figcaption small {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.gasbox-studio-blueprint__console {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.gasbox-studio-blueprint__console p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.gasbox-studio-blueprint__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  min-width: 0;
+}
+
+.gasbox-studio-blueprint__stats span {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(18, 114, 75, 0.1);
+}
+
+.gasbox-studio-blueprint__stats svg {
+  width: 17px;
+  height: 17px;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.gasbox-studio-blueprint__stats strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.95rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
 .gasbox-studio-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1415,6 +1542,11 @@
   padding: 14px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.gasbox-studio-grid--machine {
+  background:
+    linear-gradient(135deg, rgba(247, 248, 250, 0.95), rgba(255, 253, 247, 0.95));
 }
 
 .gasbox-field {
@@ -1430,13 +1562,12 @@
 .gasbox-field > span {
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
 }
 
-.gasbox-field input,
-.gasbox-field textarea {
+.gasbox-field input {
   width: 100%;
   box-sizing: border-box;
   min-height: 42px;
@@ -1450,25 +1581,18 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.gasbox-field input:hover,
-.gasbox-field textarea:hover {
+.gasbox-field input:hover {
   border-color: var(--ns-border-strong, #d4d8e2);
 }
 
-.gasbox-field input:focus,
-.gasbox-field textarea:focus {
+.gasbox-field input:focus {
   outline: none;
   border-color: var(--ns-brand, #16c784);
   box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.16);
 }
 
-.gasbox-field input::placeholder,
-.gasbox-field textarea::placeholder {
+.gasbox-field input::placeholder {
   color: var(--ns-text-faint, #aeb4c2);
-}
-
-.gasbox-field textarea {
-  resize: vertical;
 }
 
 .gasbox-prize-asset-field {
@@ -1576,7 +1700,7 @@
 .gasbox-studio-items__header span {
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
 }
@@ -1591,9 +1715,73 @@
   display: grid;
   gap: 10px;
   padding: 14px;
-  border-radius: var(--ns-radius-md, 14px);
-  border: 1px solid rgba(18, 114, 75, 0.08);
-  background: #ffffff;
+  border-radius: var(--ns-radius-lg, 18px);
+  border: 1px solid rgba(18, 114, 75, 0.1);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(228, 248, 240, 0.72), transparent 44%),
+    #ffffff;
+  box-shadow: 0 10px 24px rgba(20, 22, 38, 0.05);
+}
+
+.gasbox-studio-item__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  min-width: 0;
+}
+
+.gasbox-studio-item__capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background:
+    radial-gradient(circle at 50% 30%, #ffffff 0%, currentColor 115%);
+  box-shadow:
+    0 12px 20px rgba(20, 22, 38, 0.1),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.64);
+}
+
+.gasbox-studio-item__capsule svg {
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+}
+
+.gasbox-studio-item__title {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gasbox-studio-item__title small,
+.gasbox-studio-item__tier small {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.gasbox-studio-item__title strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.98rem;
+  font-weight: 850;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.gasbox-studio-item__tier {
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+  min-width: 112px;
 }
 
 .gasbox-studio-item__row {
@@ -1615,21 +1803,6 @@
   flex: 0 0 auto;
 }
 
-// Read-only weight-derived rarity tier preview (replaces the dead rarity select).
-.gasbox-studio-item__row .gasbox-derived-tier {
-  flex: 0 1 120px;
-  display: grid;
-  gap: 6px;
-}
-
-.gasbox-derived-tier > span {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ns-text-muted, #8a92a6);
-}
-
 .gasbox-derived-tier__value {
   display: inline-flex;
   align-items: baseline;
@@ -1640,7 +1813,7 @@
   background: var(--ns-surface-subtle, #f7f8fa);
   font-size: 0.8125rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .gasbox-derived-tier__share {
@@ -1714,7 +1887,7 @@
     color: var(--ns-text-2, #5b6478);
     font-size: 0.6875rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -1875,6 +2048,18 @@
 }
 
 @media (max-width: 640px) {
+  .gasbox-studio-blueprint {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-studio-machine-preview {
+    min-height: 184px;
+  }
+
+  .gasbox-studio-blueprint__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .gasbox-studio-grid {
     grid-template-columns: 1fr;
   }
@@ -1886,5 +2071,25 @@
   .gasbox-studio-item__row .gasbox-field,
   .gasbox-studio-item__row .gasbox-field--narrow {
     flex: 1 1 100%;
+  }
+
+  .gasbox-studio-item__header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .gasbox-studio-item__tier {
+    grid-column: 1 / -1;
+    justify-items: stretch;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 460px) {
+  .gasbox-studio-blueprint__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-studio-machine-preview figcaption {
+    inset: auto 10px 10px;
   }
 }
