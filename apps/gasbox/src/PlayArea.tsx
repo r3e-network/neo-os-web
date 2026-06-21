@@ -653,29 +653,51 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
 
-          <div className="gasbox-studio-grid gasbox-studio-grid--machine">
-            <label className="gasbox-field">
-              <span>{t("machineNameLabel")}</span>
-              <input
-                type="text"
-                value={machineName}
-                placeholder={t("machineNamePlaceholder")}
-                onChange={(e) => setMachineName(e.target.value)}
-              />
-            </label>
-            <label className="gasbox-field">
-              <span>{t("pricePerPlayLabel")}</span>
-              <input
-                type="number"
-                min="0"
-                step="0.0001"
-                value={machinePrice}
-                placeholder={t("pricePlaceholder")}
-                onChange={(e) => setMachinePrice(e.target.value)}
-              />
-            </label>
-            <div className="gasbox-field gasbox-field--wide gasbox-prize-asset-field">
-              <span>{t("prizeAssetLabel")}</span>
+          <div className="gasbox-studio-cabinet">
+            <div className="gasbox-cabinet-card gasbox-cabinet-card--identity">
+              <div className="gasbox-cabinet-card__head">
+                <span aria-hidden="true">
+                  <GachaMark />
+                </span>
+                <div>
+                  <small>{t("studioBlueprintLabel")}</small>
+                  <strong>{studioMachineLabel}</strong>
+                </div>
+              </div>
+              <div className="gasbox-cabinet-controls">
+                <label className="gasbox-field gasbox-field--plaque">
+                  <span>{t("machineNameLabel")}</span>
+                  <input
+                    type="text"
+                    value={machineName}
+                    placeholder={t("machineNamePlaceholder")}
+                    onChange={(e) => setMachineName(e.target.value)}
+                  />
+                </label>
+                <label className="gasbox-field gasbox-field--price">
+                  <span>{t("pricePerPlayLabel")}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.0001"
+                    value={machinePrice}
+                    placeholder={t("pricePlaceholder")}
+                    onChange={(e) => setMachinePrice(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="gasbox-cabinet-card gasbox-cabinet-card--asset">
+              <div className="gasbox-cabinet-card__head">
+                <span aria-hidden="true">
+                  <Gem />
+                </span>
+                <div>
+                  <small>{t("prizeAssetLabel")}</small>
+                  <strong>{prizeAsset}</strong>
+                </div>
+              </div>
               <div
                 className="gasbox-asset-choice-list"
                 role="radiogroup"
@@ -754,8 +776,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </strong>
                   </span>
                 </div>
-                <div className="gasbox-studio-item__row">
-                  <label className="gasbox-field">
+                <div className="gasbox-capsule-editor">
+                  <label className="gasbox-field gasbox-capsule-name-field">
                     <span>{t("itemNamePlaceholder")}</span>
                     <input
                       type="text"
@@ -764,30 +786,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       onChange={(e) => updateStudioItem(index, { name: e.target.value })}
                     />
                   </label>
-                  <label className="gasbox-field gasbox-field--narrow">
-                    <span>{t("weightLabel")}</span>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={item.weight}
-                      placeholder={t("weightPlaceholder")}
-                      onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
-                    />
-                  </label>
-                </div>
-                <div className="gasbox-studio-item__row">
-                  <label className="gasbox-field">
-                    <span>{t("prizePerWinLabel")} ({prizeAsset})</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step={prizeAsset === "NEO" ? "1" : "0.0001"}
-                      value={item.amount}
-                      placeholder={t("tokenAmountPlaceholder")}
-                      onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
-                    />
-                  </label>
+                  <div className="gasbox-capsule-dials">
+                    <label className="gasbox-field gasbox-capsule-dial">
+                      <span>{t("weightLabel")}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={item.weight}
+                        placeholder={t("weightPlaceholder")}
+                        onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
+                      />
+                    </label>
+                    <label className="gasbox-field gasbox-capsule-dial">
+                      <span>{t("prizePerWinLabel")} ({prizeAsset})</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step={prizeAsset === "NEO" ? "1" : "0.0001"}
+                        value={item.amount}
+                        placeholder={t("tokenAmountPlaceholder")}
+                        onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
+                      />
+                    </label>
+                  </div>
                   <NeoButton
                     variant="ghost"
                     size="sm"

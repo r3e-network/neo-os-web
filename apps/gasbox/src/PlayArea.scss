@@ -1754,7 +1754,8 @@
   overflow-wrap: anywhere;
 }
 
-.gasbox-studio-grid {
+.gasbox-studio-grid,
+.gasbox-studio-cabinet {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
@@ -1766,6 +1767,84 @@
 .gasbox-studio-grid--machine {
   background:
     linear-gradient(135deg, rgba(247, 248, 250, 0.95), rgba(255, 253, 247, 0.95));
+}
+
+.gasbox-studio-cabinet {
+  grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+  padding: 0;
+  background: transparent;
+}
+
+.gasbox-cabinet-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(18, 114, 75, 0.1);
+  border-radius: var(--ns-radius-lg, 18px);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 247, 223, 0.8), transparent 46%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 251, 245, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64),
+    0 10px 24px rgba(20, 22, 38, 0.05);
+}
+
+.gasbox-cabinet-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gasbox-cabinet-card__head > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.gasbox-cabinet-card__head svg {
+  width: 21px;
+  height: 21px;
+}
+
+.gasbox-cabinet-card__head div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gasbox-cabinet-card__head small {
+  color: var(--ns-brand-deep, #0b5e3e);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.gasbox-cabinet-card__head strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasbox-cabinet-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 0.36fr);
+  gap: 10px;
+  min-width: 0;
 }
 
 .gasbox-field {
@@ -1812,6 +1891,22 @@
 
 .gasbox-field input::placeholder {
   color: var(--ns-text-faint, #aeb4c2);
+}
+
+.gasbox-field--plaque input {
+  min-height: 48px;
+  border-color: rgba(18, 114, 75, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.gasbox-field--price input,
+.gasbox-capsule-dial input {
+  min-height: 48px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .gasbox-prize-asset-field {
@@ -2003,25 +2098,6 @@
   min-width: 112px;
 }
 
-.gasbox-studio-item__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.gasbox-studio-item__row .gasbox-field {
-  flex: 1 1 160px;
-}
-
-.gasbox-studio-item__row .gasbox-field--narrow {
-  flex: 0 1 110px;
-}
-
-.gasbox-studio-item__row .neo-btn {
-  flex: 0 0 auto;
-}
-
 .gasbox-derived-tier__value {
   display: inline-flex;
   align-items: baseline;
@@ -2048,6 +2124,30 @@
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.45;
+}
+
+.gasbox-capsule-editor {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 0.86fr) auto;
+  gap: 10px;
+  align-items: end;
+  min-width: 0;
+  padding: 10px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid rgba(18, 114, 75, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.gasbox-capsule-dials {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.42fr) minmax(124px, 0.58fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.gasbox-capsule-editor .neo-btn {
+  min-height: 48px;
+  white-space: nowrap;
 }
 
 // Creator earnings panel (Withdraw Revenue) — visible only to the creator.
@@ -2279,17 +2379,45 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .gasbox-studio-grid {
+  .gasbox-studio-grid,
+  .gasbox-studio-cabinet,
+  .gasbox-capsule-editor {
     grid-template-columns: 1fr;
+  }
+
+  .gasbox-cabinet-controls {
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 0.34fr);
   }
 
   .gasbox-asset-choice-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
-  .gasbox-studio-item__row .gasbox-field,
-  .gasbox-studio-item__row .gasbox-field--narrow {
-    flex: 1 1 100%;
+  .gasbox-asset-choice {
+    display: grid;
+    justify-items: center;
+    gap: 7px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .gasbox-asset-choice__icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .gasbox-asset-choice__copy span {
+    display: none;
+  }
+
+  .gasbox-capsule-editor {
+    padding: 9px;
+  }
+
+  .gasbox-capsule-dials {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gasbox-studio-item__header {
@@ -2310,5 +2438,37 @@
 
   .gasbox-studio-machine-preview figcaption {
     inset: auto 10px 10px;
+  }
+
+  .gasbox-studio-cabinet,
+  .gasbox-cabinet-card,
+  .gasbox-studio-item {
+    gap: 10px;
+  }
+
+  .gasbox-cabinet-card,
+  .gasbox-studio-item {
+    padding: 12px;
+  }
+
+  .gasbox-field--price input,
+  .gasbox-capsule-dial input {
+    text-align: left;
+  }
+
+  .gasbox-cabinet-card__head > span {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .gasbox-cabinet-card__head strong {
+    font-size: 0.92rem;
+  }
+
+  .gasbox-field--plaque input,
+  .gasbox-field--price input,
+  .gasbox-capsule-dial input {
+    min-height: 42px;
   }
 }
