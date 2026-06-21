@@ -152,6 +152,12 @@ $accent-soft: #e4f8f0;
     }
   }
 
+  .nm-network-card {
+    .neo-card__content {
+      padding-top: 12px;
+    }
+  }
+
   .nm-load-more {
     display: flex;
     justify-content: center;
@@ -167,12 +173,14 @@ $accent-soft: #e4f8f0;
 
   .nm-compose-shell {
     display: grid;
-    grid-template-columns: minmax(280px, 0.86fr) minmax(0, 1.14fr);
+    grid-template-columns: minmax(0, 1.14fr) minmax(280px, 0.86fr);
+    grid-template-areas: "form preview";
     gap: 18px;
     align-items: stretch;
   }
 
   .nm-letter-preview {
+    grid-area: preview;
     position: relative;
     display: grid;
     grid-template-rows: auto auto minmax(150px, 1fr) auto;
@@ -332,6 +340,7 @@ $accent-soft: #e4f8f0;
   }
 
   .nm-form {
+    grid-area: form;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -901,17 +910,20 @@ $accent-soft: #e4f8f0;
   @media (max-width: 820px) {
     .nm-compose-shell {
       grid-template-columns: 1fr;
+      grid-template-areas:
+        "form"
+        "preview";
     }
 
     .nm-letter-preview {
-      min-height: 320px;
+      min-height: 260px;
     }
   }
 
   @media (max-width: 560px) {
     .nm-hero {
       min-height: 0;
-      padding: 18px;
+      padding: 16px;
 
       .nm-hero-content {
         padding: 0;
@@ -933,13 +945,55 @@ $accent-soft: #e4f8f0;
       grid-template-columns: 1fr;
       gap: 14px;
     }
+
+    .nm-network-card {
+      .neo-card__header {
+        padding-bottom: 8px;
+      }
+
+      .neo-card__content {
+        padding-top: 10px;
+      }
+    }
+
+    .nm-network-warning {
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .nm-compose-card {
+      .neo-card__content {
+        padding-top: 12px;
+      }
+    }
+
+    .nm-compose-shell {
+      gap: 14px;
+    }
+
     .nm-letter-preview {
-      min-height: 290px;
+      grid-template-rows: auto auto minmax(92px, 1fr) auto;
+      min-height: 218px;
+      gap: 12px;
       padding: 16px;
     }
-    .nm-letter-preview__meta {
-      grid-template-columns: 1fr;
+
+    .nm-letter-preview__body {
+      max-height: 5.6em;
+      -webkit-line-clamp: 3;
+      font-size: 14px;
     }
+
+    .nm-letter-preview__meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .nm-letter-preview__meta span {
+      padding: 9px 10px;
+    }
+
     .nm-mode-toggle {
       grid-template-columns: 1fr;
     }
