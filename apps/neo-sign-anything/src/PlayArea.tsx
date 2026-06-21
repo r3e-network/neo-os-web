@@ -53,6 +53,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const messageBytes = messageByteLength(message);
   const canSubmit = message.trim().length > 0 && messageBytes <= 1024;
   const canBroadcast = canSubmit;
+  const actionBusy = isSigning || isBroadcasting;
   const signaturePreview = signature ? shortValue(signature) : t("noSignatureYet");
   const txHashPreview = txHash
     ? shortValue(txHash)
@@ -63,7 +64,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isDigestMessage = /^sha256:[0-9a-f]{64}$/i.test(trimmedMessage);
   const messageKind = isDigestMessage ? t("messageTypeDigest") : t("messageTypePlain");
   const previewTitle = trimmedMessage ? messageKind : t("messagePreviewEmptyTitle");
-  const previewCopy = trimmedMessage || t("messagePreviewEmpty");
+  const previewStatus = canSubmit ? t("ready") : t("awaitingSignature");
   const byteUsage = Math.min(100, Math.round((messageBytes / 1024) * 100));
   const isOverLimit = messageBytes > 1024;
   const messageTemplates = [
@@ -183,18 +184,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </button>
                   ))}
                 </div>
-                <label className="sign-message-field">
-                  <span>
-                    {t("messageLabel")}
-                    <em>{messageKind}</em>
-                  </span>
-                  <textarea
-                    value={message}
-                    placeholder={t("messagePlaceholder")}
-                    rows={6}
-                    onChange={(event) => dispatch("setMessage", event.currentTarget.value)}
-                  />
-                </label>
+                <div className="sign-document-preview sign-document-preview--editor" aria-label={t("messagePreviewLabel")}>
+                  <div className="sign-document-preview__paper">
+                    <div className="sign-document-preview__toolbar">
+                      <span className="sign-document-preview__type">{previewTitle}</span>
+                      <span className={canSubmit ? "is-ready" : ""}>
+                        <ShieldCheck size={14} aria-hidden="true" />
+                        {previewStatus}
+                      </span>
+                    </div>
+                    <span className="sign-document-preview__seal" aria-hidden="true">
+                      <ShieldCheck size={25} />
+                    </span>
+                    <label className="sign-message-field sign-message-field--paper">
+                      <span>
+                        {t("messageLabel")}
+                        <em>{messageKind}</em>
+                      </span>
+                      <textarea
+                        value={message}
+                        placeholder={t("messagePlaceholder")}
+                        rows={7}
+                        onChange={(event) => dispatch("setMessage", event.currentTarget.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="sign-document-preview__meta">
+                    <span>
+                      <small>{t("messageBytesLabel")}</small>
+                      <strong>
+                        {messageBytes}/1024 {t("bytesUnit")}
+                      </strong>
+                    </span>
+                    <span>
+                      <small>{t("walletAddress")}</small>
+                      <strong>{address ? shortValue(address) : t("disconnected")}</strong>
+                    </span>
+                    <span>
+                      <small>{t("walletPrompt")}</small>
+                      <strong>{previewStatus}</strong>
+                    </span>
+                  </div>
+                </div>
                 <div
                   className={`sign-byte-meter${isOverLimit ? " is-over" : ""}`}
                   role="progressbar"
@@ -236,7 +267,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <NeoButton
                   variant="primary"
                   loading={isSigning}
-                  disabled={!canSubmit || isSigning}
+                  disabled={!canSubmit || actionBusy}
                   onClick={() => dispatch("signMessage", message)}
                 >
                   <FileSignature size={17} aria-hidden="true" />
@@ -245,7 +276,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <NeoButton
                   variant="secondary"
                   loading={isBroadcasting}
-                  disabled={!canBroadcast || isBroadcasting}
+                  disabled={!canBroadcast || actionBusy}
                   onClick={() => dispatch("broadcastMessage", message)}
                 >
                   <RadioTower size={17} aria-hidden="true" />
@@ -255,31 +286,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {!address && (
                 <p className="sign-wallet-note">{t("walletPromptCopy")}</p>
               )}
-              <div className="sign-document-preview" aria-label={t("messagePreviewLabel")}>
-                <div className="sign-document-preview__paper">
-                  <span className="sign-document-preview__seal" aria-hidden="true">
-                    <ShieldCheck size={25} />
-                  </span>
-                  <span className="sign-document-preview__type">{previewTitle}</span>
-                  <p>{previewCopy}</p>
-                </div>
-                <div className="sign-document-preview__meta">
-                  <span>
-                    <small>{t("messageBytesLabel")}</small>
-                    <strong>
-                      {messageBytes}/1024 {t("bytesUnit")}
-                    </strong>
-                  </span>
-                  <span>
-                    <small>{t("walletAddress")}</small>
-                    <strong>{address ? shortValue(address) : t("disconnected")}</strong>
-                  </span>
-                  <span>
-                    <small>{t("walletPrompt")}</small>
-                    <strong>{canSubmit ? t("ready") : t("awaitingSignature")}</strong>
-                  </span>
-                </div>
-              </div>
             </NeoCard>
 
             <NeoCard variant="erobo" className="sign-result-panel">
