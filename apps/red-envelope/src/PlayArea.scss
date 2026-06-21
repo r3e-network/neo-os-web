@@ -513,30 +513,6 @@
   gap: 12px;
 }
 
-.redenv-activity-empty {
-  padding: 22px 18px;
-  border: 1px solid rgba(223, 76, 66, 0.16);
-  border-radius: var(--re-radius);
-  background: var(--re-surface-soft);
-}
-
-.redenv-empty-art {
-  display: inline-flex;
-  width: 148px;
-  max-width: 100%;
-  overflow: hidden;
-  border: 1px solid rgba(223, 76, 66, 0.16);
-  border-radius: var(--re-radius);
-  box-shadow: var(--re-shadow-soft);
-}
-
-.redenv-empty-art img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-}
-
 .redenv-list {
   display: grid;
   gap: 8px;
@@ -798,7 +774,7 @@
 
   .redenv-hero {
     grid-template-columns: 1fr;
-    min-height: 520px;
+    min-height: 450px;
     padding: 20px;
   }
 
