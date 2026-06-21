@@ -15,6 +15,12 @@ interface MilestoneHeroProps {
 export default function MilestoneHero({ t, progressPercent, checkpoints, hasEscrows, activeCount, completedCount, totalEscrows }: MilestoneHeroProps) {
   return (
     <div className="hero-container">
+      <picture className="hero-media" aria-hidden="true">
+        <source srcSet="./banner.avif" type="image/avif" />
+        <source srcSet="./banner.webp" type="image/webp" />
+        <img src="./banner.jpg" alt="" decoding="async" loading="eager" />
+      </picture>
+      <div className="hero-media-shade" aria-hidden="true" />
       <div className="hero-head">
         <div className="hero-badge" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

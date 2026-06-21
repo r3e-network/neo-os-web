@@ -69,6 +69,7 @@ const appMessages = {
   howItWorks: { en: "How it works", zh: "运作方式" },
   stepLabel: { en: "Step {n}", zh: "第 {n} 步" },
   previewLabel: { en: "Sample escrow", zh: "示例托管" },
+  planPreview: { en: "Release plan", zh: "释放计划" },
   previewNetwork: { en: "Neo N3 - Milestone Escrow", zh: "Neo N3 · 里程碑托管" },
   connectToStart: { en: "Connect a wallet to create your first escrow", zh: "连接钱包以创建你的第一个托管" },
   // Hero stat sublabels — clarify exactly what each tile counts.

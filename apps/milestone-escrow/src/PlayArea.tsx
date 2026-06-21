@@ -105,6 +105,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalDisplay = asset === "NEO"
     ? String(Math.trunc(totalAmount))
     : totalAmount.toFixed(8).replace(/\.?0+$/, "") || "0";
+  const previewBeneficiary = beneficiary.trim() || t("beneficiaryPlaceholder");
+  const previewMilestones = milestoneAmounts.map((amount, index) => {
+    const trimmed = amount.trim();
+    return {
+      label: t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`,
+      amount: parseAmount(trimmed) > 0 ? `${trimmed} ${asset}` : `-- ${asset}`,
+    };
+  });
 
   // Lightweight client-side gating: require a beneficiary and at least one
   // positive milestone amount before the (async, on-chain) submit is enabled.
@@ -173,91 +181,116 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {showCreateForm && (
             <NeoCard variant="erobo" className="create-form-card">
-              <div className="create-form">
-                <NeoInput value={escrowName} label={t("escrowName")} placeholder={t("escrowNamePlaceholder")} onChange={setEscrowName} />
-                <NeoInput value={beneficiary} label={t("beneficiaryAddress")} placeholder={t("beneficiaryPlaceholder")} onChange={setBeneficiary} />
-                <div className="asset-select" role="radiogroup" aria-label={t("assetType")}>
-                  <span className="asset-select__label">{t("assetType")}</span>
-                  <div className="asset-select__options">
-                    {(["GAS", "NEO"] as const).map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        role="radio"
-                        aria-label={option === "NEO" ? t("assetNeo") : t("assetGas")}
-                        aria-checked={asset === option}
-                        className={`asset-select__option${asset === option ? " asset-select__option--active" : ""}`}
-                        onClick={() => setAsset(option)}
-                      >
-                        <span className="asset-select__option-name">
-                          {option === "NEO" ? (t("assetNeo")) : (t("assetGas"))}
-                        </span>
-                        <span className="asset-select__option-hint">
-                          {option === "NEO" ? (t("assetNeoHint")) : (t("assetGasHint"))}
-                        </span>
-                      </button>
-                    ))}
+              <div className="create-contract-studio">
+                <div className="create-form">
+                  <NeoInput value={escrowName} label={t("escrowName")} placeholder={t("escrowNamePlaceholder")} onChange={setEscrowName} />
+                  <NeoInput value={beneficiary} label={t("beneficiaryAddress")} placeholder={t("beneficiaryPlaceholder")} onChange={setBeneficiary} />
+                  <div className="asset-select" role="radiogroup" aria-label={t("assetType")}>
+                    <span className="asset-select__label">{t("assetType")}</span>
+                    <div className="asset-select__options">
+                      {(["GAS", "NEO"] as const).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          role="radio"
+                          aria-label={option === "NEO" ? t("assetNeo") : t("assetGas")}
+                          aria-checked={asset === option}
+                          className={`asset-select__option${asset === option ? " asset-select__option--active" : ""}`}
+                          onClick={() => setAsset(option)}
+                        >
+                          <span className="asset-select__option-name">
+                            {option === "NEO" ? (t("assetNeo")) : (t("assetGas"))}
+                          </span>
+                          <span className="asset-select__option-hint">
+                            {option === "NEO" ? (t("assetNeoHint")) : (t("assetGasHint"))}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                {/* Milestone repeater — 1-12 staged releases, each with its own
+                  {/* Milestone repeater — 1-12 staged releases, each with its own
                     amount. The sum is shown live and must equal the deposit. */}
-                <div className="milestone-fields" role="group" aria-label={t("milestones")}>
-                  <span className="milestone-fields__label">{t("milestones")}</span>
-                  {milestoneAmounts.map((amt, index) => (
-                    <div key={index} className="milestone-row">
-                      <span className="milestone-row__step" aria-hidden="true">
-                        {index + 1}
-                      </span>
-                      <div className="milestone-row__body">
-                        <div className="milestone-row__toolbar">
-                          <span>{t("milestonePayout")}</span>
-                          {milestoneAmounts.length > MIN_MILESTONES && (
-                            <button
-                              type="button"
-                              className="milestone-row__remove"
-                              aria-label={t("removeMilestone", { index: index + 1 }) || `Remove milestone ${index + 1}`}
-                              onClick={() => removeMilestone(index)}
-                            >
-                              {t("remove")}
-                            </button>
-                          )}
-                        </div>
-                        <div className="milestone-row__input">
-                          <NeoInput
-                            value={amt}
-                            label={t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`}
-                            placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder"))}
-                            suffix={asset}
-                            hint={index === 0 ? t("totalHint") : ""}
-                            onChange={(value: string) => setMilestoneAmount(index, value)}
-                          />
+                  <div className="milestone-fields" role="group" aria-label={t("milestones")}>
+                    <span className="milestone-fields__label">{t("milestones")}</span>
+                    {milestoneAmounts.map((amt, index) => (
+                      <div key={index} className="milestone-row">
+                        <span className="milestone-row__step" aria-hidden="true">
+                          {index + 1}
+                        </span>
+                        <div className="milestone-row__body">
+                          <div className="milestone-row__toolbar">
+                            <span>{t("milestonePayout")}</span>
+                            {milestoneAmounts.length > MIN_MILESTONES && (
+                              <button
+                                type="button"
+                                className="milestone-row__remove"
+                                aria-label={t("removeMilestone", { index: index + 1 }) || `Remove milestone ${index + 1}`}
+                                onClick={() => removeMilestone(index)}
+                              >
+                                {t("remove")}
+                              </button>
+                            )}
+                          </div>
+                          <div className="milestone-row__input">
+                            <NeoInput
+                              value={amt}
+                              label={t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`}
+                              placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder"))}
+                              suffix={asset}
+                              hint={index === 0 ? t("totalHint") : ""}
+                              onChange={(value: string) => setMilestoneAmount(index, value)}
+                            />
+                          </div>
                         </div>
                       </div>
+                    ))}
+                    <div className="milestone-fields__footer">
+                      <button
+                        type="button"
+                        className="milestone-add"
+                        disabled={milestoneAmounts.length >= MAX_MILESTONES}
+                        onClick={addMilestone}
+                      >
+                        + {t("addMilestone")}
+                      </button>
+                      <span className="milestone-total">
+                        <span className="milestone-total__label">{t("totalAmount")}</span>
+                        <span className="milestone-total__value">{totalDisplay} {asset}</span>
+                      </span>
                     </div>
-                  ))}
-                  <div className="milestone-fields__footer">
-                    <button
-                      type="button"
-                      className="milestone-add"
-                      disabled={milestoneAmounts.length >= MAX_MILESTONES}
-                      onClick={addMilestone}
-                    >
-                      + {t("addMilestone")}
-                    </button>
-                    <span className="milestone-total">
-                      <span className="milestone-total__label">{t("totalAmount")}</span>
-                      <span className="milestone-total__value">{totalDisplay} {asset}</span>
-                    </span>
                   </div>
+                  <NeoInput className="escrow-description-input" value={description} type="textarea" label={t("description")} placeholder={t("descriptionPlaceholder")} onChange={setDescription} />
+                  {/* No-fee value prop + two-signature disclosure: the standalone
+                      contract takes a deposit first, then the createEscrow call. */}
+                  <p className="create-form__note" role="note">{t("noFeeNotice")}</p>
+                  <p className="create-form__note" role="note">{t("twoStepSignNotice", { asset })}</p>
+                  <NeoButton variant="primary" loading={isCreating} disabled={!canSubmit} onClick={handleCreate} aria-label={t("submit")}>
+                    {t("submit")}
+                  </NeoButton>
                 </div>
-                <NeoInput value={description} type="textarea" label={t("description")} placeholder={t("descriptionPlaceholder")} onChange={setDescription} />
-                {/* No-fee value prop + two-signature disclosure: the standalone
-                    contract takes a deposit first, then the createEscrow call. */}
-                <p className="create-form__note" role="note">{t("noFeeNotice")}</p>
-                <p className="create-form__note" role="note">{t("twoStepSignNotice", { asset })}</p>
-                <NeoButton variant="primary" loading={isCreating} disabled={!canSubmit} onClick={handleCreate} aria-label={t("submit")}>
-                  {t("submit")}
-                </NeoButton>
+                <aside className="create-plan-preview" aria-label={t("planPreview")}>
+                  <div className="create-plan-preview__card">
+                    <span className="create-plan-preview__eyebrow">{t("planPreview")}</span>
+                    <strong>{escrowName.trim() || t("escrowNamePlaceholder")}</strong>
+                    <span className="create-plan-preview__beneficiary">{previewBeneficiary}</span>
+                    <div className="create-plan-preview__total">
+                      <small>{t("totalAmount")}</small>
+                      <span>
+                        <b>{totalDisplay}</b>
+                        <em>{asset}</em>
+                      </span>
+                    </div>
+                    <ol className="create-plan-preview__steps">
+                      {previewMilestones.map((milestone) => (
+                        <li key={milestone.label}>
+                          <span>{milestone.label}</span>
+                          <strong>{milestone.amount}</strong>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                  <p className="create-plan-preview__note">{t("twoStepSignNotice", { asset })}</p>
+                </aside>
               </div>
             </NeoCard>
           )}
