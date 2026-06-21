@@ -6,7 +6,9 @@ import {
   ExternalLink,
   FileCheck2,
   FileSignature,
+  FileText,
   RadioTower,
+  ScrollText,
   ShieldCheck,
   Upload,
   WalletCards,
@@ -62,6 +64,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const messageKind = isDigestMessage ? t("messageTypeDigest") : t("messageTypePlain");
   const previewTitle = trimmedMessage ? messageKind : t("messagePreviewEmptyTitle");
   const previewCopy = trimmedMessage || t("messagePreviewEmpty");
+  const byteUsage = Math.min(100, Math.round((messageBytes / 1024) * 100));
+  const isOverLimit = messageBytes > 1024;
+  const messageTemplates = [
+    {
+      key: "release",
+      label: t("templateReleaseLabel"),
+      body: t("templateReleaseBody"),
+      Icon: FileText,
+    },
+    {
+      key: "digest",
+      label: t("templateDigestLabel"),
+      body: t("templateDigestBody"),
+      Icon: FileCheck2,
+    },
+    {
+      key: "approval",
+      label: t("templateApprovalLabel"),
+      body: t("templateApprovalBody"),
+      Icon: ScrollText,
+    },
+  ];
 
   // A self-describing verify bundle: everything a third party needs to confirm
   // authorship off-chain (address ⇄ public key ⇄ message ⇄ signature). The
@@ -146,15 +170,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {messageBytes}/1024 {t("bytesUnit")}
                 </strong>
               </div>
-              <label className="sign-message-field">
-                <span>{t("messageLabel")}</span>
-                <textarea
-                  value={message}
-                  placeholder={t("messagePlaceholder")}
-                  rows={6}
-                  onChange={(event) => dispatch("setMessage", event.currentTarget.value)}
-                />
-              </label>
+              <div className="sign-composer-shell">
+                <div className="sign-template-rail" aria-label={t("messageTemplateLabel")}>
+                  {messageTemplates.map(({ key, label, body, Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => void dispatch("setMessage", body)}
+                    >
+                      <Icon size={15} aria-hidden="true" />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+                <label className="sign-message-field">
+                  <span>
+                    {t("messageLabel")}
+                    <em>{messageKind}</em>
+                  </span>
+                  <textarea
+                    value={message}
+                    placeholder={t("messagePlaceholder")}
+                    rows={6}
+                    onChange={(event) => dispatch("setMessage", event.currentTarget.value)}
+                  />
+                </label>
+                <div
+                  className={`sign-byte-meter${isOverLimit ? " is-over" : ""}`}
+                  role="progressbar"
+                  aria-label={t("messageBytesLabel")}
+                  aria-valuemin={0}
+                  aria-valuemax={1024}
+                  aria-valuenow={Math.min(messageBytes, 1024)}
+                >
+                  <span style={{ width: `${byteUsage}%` }} />
+                </div>
+                {isOverLimit && (
+                  <p className="sign-composer-alert">{t("messageTooLong")}</p>
+                )}
+              </div>
               <div className="sign-file-row">
                 <input
                   ref={fileInputRef}
