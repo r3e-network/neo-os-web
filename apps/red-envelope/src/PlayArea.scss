@@ -480,9 +480,11 @@
 
 .redenv-preset-group {
   display: grid;
-  gap: 7px;
+  grid-template-columns: minmax(82px, 0.42fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
   min-width: 0;
-  padding: 10px;
+  padding: 9px;
   border: 1px solid rgba(105, 50, 43, 0.08);
   border-radius: var(--re-radius-sm);
   background: rgba(255, 255, 255, 0.72);
@@ -490,11 +492,14 @@
 
 .redenv-preset-group div {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  min-width: 0;
 }
 
 .redenv-preset-group button {
-  min-height: 34px;
+  min-height: 36px;
+  padding: 0 8px;
   border: 1px solid var(--re-line);
   border-radius: 999px;
   background: #fff;
@@ -503,6 +508,7 @@
   font: inherit;
   font-size: 12px;
   font-weight: 780;
+  line-height: 1.12;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -613,6 +619,48 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.redenv-envelope-dials {
+  padding: 10px;
+  border: 1px solid rgba(223, 76, 66, 0.12);
+  border-radius: var(--re-radius);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 243, 0.98), rgba(255, 255, 255, 0.9)),
+    #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+}
+
+.redenv-envelope-dials .neo-input {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--re-line);
+  border-radius: var(--re-radius-sm);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.redenv-envelope-dials .neo-input__label {
+  color: var(--re-red-strong);
+  font-size: 10.5px;
+  font-weight: 860;
+}
+
+.redenv-envelope-dials .neo-input__wrapper {
+  min-height: 48px;
+  border-color: rgba(223, 76, 66, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.redenv-envelope-dials .neo-input__field {
+  font-size: 18px;
+  font-weight: 880;
+  text-align: center;
+}
+
+.redenv-envelope-dials .neo-input__suffix {
+  color: var(--re-muted);
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .redenv-create-summary {
@@ -953,10 +1001,17 @@
 
   .redenv-metrics,
   .redenv-selected-card,
-  .redenv-create-grid,
   .redenv-create-summary,
   .redenv-activity-grid {
     grid-template-columns: 1fr;
+  }
+
+  .redenv-create-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .redenv-envelope-dials .neo-input:nth-child(3) {
+    grid-column: 1 / -1;
   }
 
   .redenv-claim-ticket {

@@ -465,7 +465,10 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                     </div>
                   </div>
                 </section>
-                <div className="redenv-create-grid">
+                <div
+                  className="redenv-create-grid redenv-envelope-dials"
+                  aria-label={t("createPreviewTitle")}
+                >
                   <NeoInput
                     value={createForm.amount}
                     type="number"
@@ -513,7 +516,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   <p className="redenv-helper">{t("createReadyDesc")}</p>
                 )}
                 <NeoButton
-                  variant="secondary"
+                  variant="primary"
                   loading={isLoading}
                   disabled={isLoading || !canCreateEnvelope}
                   onClick={createEnvelope}

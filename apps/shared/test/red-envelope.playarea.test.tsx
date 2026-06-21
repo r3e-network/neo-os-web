@@ -168,6 +168,8 @@ describe("Red Envelope PlayArea", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Create" }));
 
+    expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
+    expect(document.querySelectorAll(".redenv-preset-group").length).toBe(3);
     expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.1");
     expect((screen.getByLabelText("Packet count") as HTMLInputElement).value).toBe("100");
     expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(true);
