@@ -7,7 +7,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -186,8 +185,27 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const createEnvelope = () => dispatch("createEnvelope", createForm);
 
   const hasActivity = activeEnvelopes.length > 0 || recentClaims.length > 0;
+  const hasHeroStats = activeEnvelopes.length > 0 || claimCount > 0 || claimableGas > 0;
   const reclaimables = envelopes.filter((env) => env.reclaimable);
   const hasRecovery = reclaimables.length > 0 || prepaidCredit > 0;
+  const trimmedEnvelopeId = selectedEnvelopeId.trim();
+  const heroCardTitle = hasHeroStats
+    ? t("claimablePool")
+    : targetEnvelope
+      ? t("readyToClaim")
+      : t("claimTab");
+  const heroCardValue = hasHeroStats
+    ? formatGas(claimableGas)
+    : targetEnvelope
+      ? `#${shortId(String(targetEnvelope.id))}`
+      : trimmedEnvelopeId
+        ? `#${shortId(trimmedEnvelopeId)}`
+        : t("needsEnvelopeId");
+  const heroCardHint = hasHeroStats
+    ? `${t("availableEnvelopes")}: ${activeEnvelopes.length}`
+    : trimmedEnvelopeId
+      ? t("claimOperationDesc")
+      : t("claimNeedIdDesc");
   const previewAmount =
     activeTab === "create"
       ? Number.isFinite(createAmount)
@@ -201,13 +219,17 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       ? `${Number.isFinite(createCount) ? createCount : 0} ${t("packetCount")}`
       : targetEnvelope
         ? `${selectedRemaining}/${selectedTotal || "?"} ${t("remainingPacketsLabel")}`
-        : t("needsEnvelopeId");
+        : trimmedEnvelopeId
+          ? t("ready")
+          : t("needsEnvelopeId");
   const previewTitle =
     activeTab === "create"
       ? t("createPreviewTitle")
       : targetEnvelope
         ? t("readyToClaim")
-        : t("needsEnvelopeId");
+        : trimmedEnvelopeId
+          ? t("readyToClaim")
+          : t("needsEnvelopeId");
 
   return (
     <div className="redenv-play-area">
@@ -243,27 +265,29 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 </span>
               </div>
             </div>
-            <div className="redenv-hero-card" aria-label={t("claimablePool")}>
-              <span>{t("claimablePool")}</span>
-              <strong>{formatGas(claimableGas)}</strong>
-              <small>{t("availableEnvelopes")}: {activeEnvelopes.length}</small>
+            <div className="redenv-hero-card" aria-label={heroCardTitle}>
+              <span>{heroCardTitle}</span>
+              <strong>{heroCardValue}</strong>
+              <small>{heroCardHint}</small>
             </div>
           </div>
 
-          <div className="redenv-metrics" aria-label={t("claimablePool")}>
-            <div>
-              <span>{t("availableEnvelopes")}</span>
-              <strong>{activeEnvelopes.length}</strong>
+          {hasHeroStats && (
+            <div className="redenv-metrics" aria-label={t("claimablePool")}>
+              <div>
+                <span>{t("availableEnvelopes")}</span>
+                <strong>{activeEnvelopes.length}</strong>
+              </div>
+              <div>
+                <span>{t("claimablePool")}</span>
+                <strong>{formatGas(claimableGas)}</strong>
+              </div>
+              <div>
+                <span>{t("recentClaimsTitle")}</span>
+                <strong>{claimCount}</strong>
+              </div>
             </div>
-            <div>
-              <span>{t("claimablePool")}</span>
-              <strong>{formatGas(claimableGas)}</strong>
-            </div>
-            <div>
-              <span>{t("recentClaimsTitle")}</span>
-              <strong>{claimCount}</strong>
-            </div>
-          </div>
+          )}
 
           <NeoCard variant="erobo" className="redenv-action-panel">
             <div className="redenv-tabs" role="tablist" aria-label={t("claimFlowTitle")}>
@@ -443,24 +467,12 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             )}
           </NeoCard>
 
-          <NeoCard variant="erobo" className="redenv-activity-panel">
-            <div className="redenv-section-heading">
-              <span>{t("availablePools")}</span>
-              <strong>{poolCount || recentClaims.length}</strong>
-            </div>
-            {!hasActivity ? (
-              <StateView
-                kind="empty"
-                className="redenv-activity-empty"
-                title={t("noPools")}
-                hint={t("noPoolsHint")}
-                icon={
-                  <span className="redenv-empty-art" aria-hidden="true">
-                    <img src="./red-envelope-claim-card.jpg" alt="" />
-                  </span>
-                }
-              />
-            ) : (
+          {hasActivity && (
+            <NeoCard variant="erobo" className="redenv-activity-panel">
+              <div className="redenv-section-heading">
+                <span>{t("availablePools")}</span>
+                <strong>{poolCount || recentClaims.length}</strong>
+              </div>
               <div className="redenv-activity-grid">
                 {activeEnvelopes.length > 0 && (
                   <div className="redenv-list">
@@ -498,8 +510,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   </div>
                 )}
               </div>
-            )}
-          </NeoCard>
+            </NeoCard>
+          )}
 
           {hasRecovery && (
             <NeoCard variant="erobo" className="redenv-recovery-panel">
