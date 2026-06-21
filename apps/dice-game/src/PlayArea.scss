@@ -306,10 +306,13 @@
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 13px;
+  grid-template-areas:
+    "die copy icon"
+    "stats stats stats";
+  gap: 12px 14px;
   align-items: center;
   min-width: 0;
-  padding: 12px;
+  padding: 14px;
   overflow: hidden;
   border: 1px solid rgba(246, 200, 106, 0.28);
   border-radius: 20px;
@@ -320,11 +323,14 @@
   );
 }
 
-.dice-current-round__face {
+.dice-current-round__die-card {
+  grid-area: die;
   display: grid;
+  gap: 7px;
   place-items: center;
-  width: 66px;
-  aspect-ratio: 1;
+  width: 82px;
+  min-height: 88px;
+  padding: 8px;
   border-radius: 20px;
   background: linear-gradient(180deg, #ffffff, #fff8e7), var(--dice-surface);
   color: var(--dice-gold-strong);
@@ -333,28 +339,39 @@
     inset 0 0 0 1px rgba(246, 200, 106, 0.38);
 }
 
-.dice-current-round__face span {
-  max-width: 60px;
+.dice-current-round__die {
+  display: block;
+  width: 54px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow:
+    0 12px 20px rgba(107, 60, 2, 0.16),
+    0 0 0 2px rgba(255, 255, 255, 0.72);
+}
+
+.dice-current-round__die img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dice-current-round__die-card span {
+  max-width: 72px;
   color: var(--dice-text-2);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 850;
-  line-height: 1.05;
+  line-height: 1.1;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0;
 }
 
-.dice-current-round__face strong {
-  color: var(--dice-gold-strong);
-  font-size: 30px;
-  font-weight: 900;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
 .dice-current-round__copy {
+  grid-area: copy;
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -368,28 +385,65 @@
 
 .dice-current-round__copy strong {
   min-width: 0;
-  overflow: hidden;
-  color: var(--dice-text);
-  font-size: 20px;
+  color: var(--dice-gold-strong);
+  font-size: 40px;
   font-weight: 900;
-  line-height: 1.14;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 0.95;
   font-variant-numeric: tabular-nums;
 }
 
 .dice-current-round__copy em {
-  overflow: hidden;
   color: var(--dice-text-2);
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+.dice-current-round__stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(246, 200, 106, 0.22);
+}
+
+.dice-current-round__stats span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 0 0 1px rgba(246, 200, 106, 0.14);
+}
+
+.dice-current-round__stats em {
+  min-width: 0;
+  color: var(--dice-text-2);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 850;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.dice-current-round__stats strong {
+  min-width: 0;
+  color: var(--dice-text);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .dice-current-round__icon {
+  grid-area: icon;
   color: var(--dice-gold-strong);
 }
 
@@ -1197,6 +1251,51 @@
     padding: 16px;
   }
 
+  .dice-current-round {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "die copy"
+      "stats stats";
+    gap: 10px 12px;
+    padding: 12px;
+  }
+
+  .dice-current-round__die-card {
+    width: 76px;
+    min-height: 82px;
+  }
+
+  .dice-current-round__die {
+    width: 50px;
+    border-radius: 13px;
+  }
+
+  .dice-current-round__copy strong {
+    font-size: 34px;
+  }
+
+  .dice-current-round__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding-top: 10px;
+  }
+
+  .dice-current-round__stats span {
+    padding: 8px 7px;
+  }
+
+  .dice-current-round__stats em {
+    font-size: 8.5px;
+  }
+
+  .dice-current-round__stats strong {
+    font-size: 11.5px;
+  }
+
+  .dice-current-round__icon {
+    display: none;
+  }
+
   .dice-face-grid {
     gap: 6px;
   }
@@ -1215,6 +1314,21 @@
   .dice-face-grid__die {
     width: min(100%, 56px);
     border-radius: 12px;
+  }
+
+  .dice-stake-field {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .dice-stake-field__control {
+    min-height: 52px;
+  }
+
+  .dice-stake-field input {
+    min-height: 50px;
+    padding-left: 18px;
+    font-size: 18px;
   }
 
   .dice-status-bar {
@@ -1378,8 +1492,14 @@
   color: #ffffff;
 }
 .dice-trust-line {
-  margin: 10px 0 0;
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-left: 3px solid var(--dice-accent);
+  border-radius: 14px;
+  background: rgba(240, 251, 250, 0.82);
   font-size: 12px;
+  font-weight: 650;
   line-height: 1.5;
   color: var(--dice-text-2);
 }
