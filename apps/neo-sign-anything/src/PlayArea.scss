@@ -33,6 +33,13 @@
     linear-gradient(315deg, var(--sign-sky), var(--sign-accent-soft));
   color: var(--sign-ink);
   letter-spacing: 0;
+  box-sizing: border-box;
+}
+
+.sign-play-area *,
+.sign-play-area *::before,
+.sign-play-area *::after {
+  box-sizing: border-box;
 }
 
 .sign-shell {
@@ -509,6 +516,69 @@
   white-space: nowrap;
 }
 
+.sign-composer-shell {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--sign-radius);
+  background:
+    linear-gradient(135deg, rgba(255, 248, 237, 0.82), rgba(255, 255, 255, 0.7) 54%),
+    var(--sign-panel);
+}
+
+.sign-template-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+}
+
+.sign-template-rail button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--sign-radius-sm);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--sign-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    border-color var(--sign-t-fast) var(--sign-ease),
+    background var(--sign-t-fast) var(--sign-ease),
+    color var(--sign-t-fast) var(--sign-ease),
+    transform var(--sign-t-fast) var(--sign-ease);
+}
+
+.sign-template-rail button svg {
+  flex: none;
+  color: #9b6a1d;
+}
+
+.sign-template-rail button span {
+  min-width: 0;
+  white-space: normal;
+}
+
+.sign-template-rail button:hover {
+  border-color: rgba(15, 177, 116, 0.34);
+  background: var(--sign-accent-soft);
+  color: var(--sign-accent-strong);
+  transform: translateY(-1px);
+}
+
+.sign-template-rail button:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+}
+
 .sign-message-field {
   display: grid;
   gap: 8px;
@@ -519,16 +589,37 @@
   letter-spacing: 0;
 }
 
+.sign-message-field > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sign-message-field > span > em {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  color: #9b6a1d;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .sign-message-field textarea {
   width: 100%;
-  min-height: 160px;
+  min-height: 184px;
   resize: vertical;
-  padding: 16px;
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  padding: 18px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
   border-radius: var(--sign-radius-md);
   outline: none;
   color: var(--sign-ink);
-  background: var(--sign-panel);
+  background:
+    linear-gradient(160deg, #ffffff 0%, #fffaf0 100%);
   font: 500 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
   text-transform: none;
@@ -545,12 +636,45 @@
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
+.sign-byte-meter {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(20, 22, 38, 0.08);
+}
+
+.sign-byte-meter span {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--sign-accent), #f6c86a);
+  transition: width var(--sign-t-fast) var(--sign-ease);
+}
+
+.sign-byte-meter.is-over span {
+  background: var(--sign-danger);
+}
+
+.sign-composer-alert {
+  margin: -2px 0 0;
+  color: var(--sign-danger);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .sign-file-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 0;
+  padding: 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--sign-radius-md);
+  background: var(--sign-soft);
 }
 
 .sign-file-row .neo-btn {
@@ -1009,7 +1133,11 @@
   }
 
   .sign-message-field textarea {
-    min-height: 132px;
+    min-height: 150px;
+  }
+
+  .sign-template-rail {
+    grid-template-columns: 1fr;
   }
 
   .sign-document-preview__meta {
