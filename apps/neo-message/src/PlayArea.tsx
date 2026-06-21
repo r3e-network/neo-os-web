@@ -280,7 +280,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </div>
 
       {!networkSupported ? (
-        <NeoCard title={t("networkCardTitle")}>
+        <NeoCard title={t("networkCardTitle")} className="nm-network-card">
           <div className="nm-network-warning" role="status">
             <AlertTriangle className="nm-network-warning-icon" aria-hidden="true" />
             <span>{hasWallet ? t("errorWrongNetwork") : t("errorNoEvmWallet")}</span>
@@ -301,30 +301,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard title={t("composeTitle")} className="nm-compose-card">
         <div className="nm-compose-shell">
-          <aside className="nm-letter-preview" aria-label={t("messagePreviewTitle")}>
-            <div className="nm-letter-preview__top">
-              <span className={`nm-letter-preview__seal${isTimed ? " is-public" : ""}`} aria-hidden="true">
-                {isTimed ? <Eye size={22} /> : <EyeOff size={22} />}
-              </span>
-              <span className="nm-letter-preview__mode">{deliveryPreview}</span>
-            </div>
-            <div className="nm-letter-preview__to">
-              <span>{t("recipientPreviewLabel")}</span>
-              <strong>{recipientPreview}</strong>
-            </div>
-            <p className="nm-letter-preview__body">{draftPreview}</p>
-            <div className="nm-letter-preview__meta">
-              <span>
-                <small>{t("characterBudgetLabel")}</small>
-                <strong>{t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}</strong>
-              </span>
-              <span>
-                <small>{t("deliveryPreviewLabel")}</small>
-                <strong>{isTimed ? t("modeTimed") : t("modeRecipient")}</strong>
-              </span>
-            </div>
-          </aside>
-
           <div className="nm-form">
             <div className="nm-compose-intro">
               <span className="nm-compose-intro__icon" aria-hidden="true">
@@ -460,6 +436,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </div>
           </div>
+
+          <aside className="nm-letter-preview" aria-label={t("messagePreviewTitle")}>
+            <div className="nm-letter-preview__top">
+              <span className={`nm-letter-preview__seal${isTimed ? " is-public" : ""}`} aria-hidden="true">
+                {isTimed ? <Eye size={22} /> : <EyeOff size={22} />}
+              </span>
+              <span className="nm-letter-preview__mode">{deliveryPreview}</span>
+            </div>
+            <div className="nm-letter-preview__to">
+              <span>{t("recipientPreviewLabel")}</span>
+              <strong>{recipientPreview}</strong>
+            </div>
+            <p className="nm-letter-preview__body">{draftPreview}</p>
+            <div className="nm-letter-preview__meta">
+              <span>
+                <small>{t("characterBudgetLabel")}</small>
+                <strong>{t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}</strong>
+              </span>
+              <span>
+                <small>{t("deliveryPreviewLabel")}</small>
+                <strong>{isTimed ? t("modeTimed") : t("modeRecipient")}</strong>
+              </span>
+            </div>
+          </aside>
         </div>
       </NeoCard>
 
