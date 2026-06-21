@@ -87,6 +87,10 @@ function getLaunchCreateForm(context: MiniAppLaunchContext) {
   };
 }
 
+const AMOUNT_PRESETS = ["0.5", "1", "3"];
+const PACKET_PRESETS = ["4", "8", "16"];
+const EXPIRY_PRESETS = ["12", "24", "72"];
+
 export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { bool, val } = useStateBindings(state);
   const isLoading = bool("isLoading");
@@ -230,6 +234,19 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         : trimmedEnvelopeId
           ? t("readyToClaim")
           : t("needsEnvelopeId");
+  const createStatusTitle = canCreateEnvelope
+    ? t("readyToSendEnvelope")
+    : t("adjustEnvelopeSetup");
+  const claimTicketTitle = targetEnvelope
+    ? t("claimTicketReady")
+    : trimmedEnvelopeId
+      ? t("claimTicketPrepared")
+      : t("claimTicketEmpty");
+  const claimTicketValue = targetEnvelope
+    ? formatGas(targetEnvelope.remainingAmount ?? targetEnvelope.totalAmount ?? targetEnvelope.amount)
+    : trimmedEnvelopeId
+      ? `#${shortId(trimmedEnvelopeId)}`
+      : t("scanOrPasteEnvelope");
 
   return (
     <div className="redenv-play-area">
@@ -333,6 +350,27 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
             {activeTab === "claim" ? (
               <div className="redenv-claim-body">
+                <section className="redenv-claim-ticket" aria-label={t("claimTicketTitle")}>
+                  <div className="redenv-ticket-stamp" aria-hidden="true">
+                    <PackageOpen size={18} />
+                  </div>
+                  <div className="redenv-ticket-copy">
+                    <span>{claimTicketTitle}</span>
+                    <strong>{claimTicketValue}</strong>
+                    <small>
+                      {targetEnvelope
+                        ? t("claimTicketReadyDesc")
+                        : trimmedEnvelopeId
+                          ? t("claimTicketPreparedDesc")
+                          : t("claimTicketEmptyDesc")}
+                    </small>
+                  </div>
+                  <div className="redenv-ticket-route" aria-label={t("claimFlowTitle")}>
+                    <span>{t("claimRouteOne")}</span>
+                    <span>{t("claimRouteTwo")}</span>
+                    <span>{t("claimRouteThree")}</span>
+                  </div>
+                </section>
                 {targetEnvelope && (
                   <div className="redenv-selected-card">
                     <div>
@@ -374,6 +412,59 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               </div>
             ) : (
               <div className="redenv-create-body">
+                <section className="redenv-gift-builder" aria-label={t("giftBuilderTitle")}>
+                  <div className="redenv-gift-builder__head">
+                    <span>{t("giftBuilderTitle")}</span>
+                    <strong>{createStatusTitle}</strong>
+                  </div>
+                  <div className="redenv-preset-board">
+                    <div className="redenv-preset-group">
+                      <span>{t("totalGas")}</span>
+                      <div>
+                        {AMOUNT_PRESETS.map((amount) => (
+                          <button
+                            key={amount}
+                            type="button"
+                            className={createForm.amount === amount ? "is-selected" : ""}
+                            onClick={() => setCreateField("amount", amount)}
+                          >
+                            {formatGas(amount)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="redenv-preset-group">
+                      <span>{t("packetCount")}</span>
+                      <div>
+                        {PACKET_PRESETS.map((count) => (
+                          <button
+                            key={count}
+                            type="button"
+                            className={createForm.count === count ? "is-selected" : ""}
+                            onClick={() => setCreateField("count", count)}
+                          >
+                            {t("packetPreset", { count })}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="redenv-preset-group">
+                      <span>{t("expiryHours")}</span>
+                      <div>
+                        {EXPIRY_PRESETS.map((hours) => (
+                          <button
+                            key={hours}
+                            type="button"
+                            className={createForm.expiryHours === hours ? "is-selected" : ""}
+                            onClick={() => setCreateField("expiryHours", hours)}
+                          >
+                            {t("hourPreset", { hours })}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <div className="redenv-create-grid">
                   <NeoInput
                     value={createForm.amount}
