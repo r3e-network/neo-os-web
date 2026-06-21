@@ -24,6 +24,8 @@ type AnchorActionHistoryItem = {
   at?: string;
 };
 
+const STAKE_AMOUNT_PRESETS = ["1", "10", "25", "100"];
+
 function normalizeNeoAmount(value: string): string {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return value.trim();
@@ -176,31 +178,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="profitanchor-play-area">
       <section className="anchor-primary-card anchor-primary-card--profit">
-        <div className="anchor-primary-head">
-          <span className="anchor-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="5" r="3" />
-              <path d="M12 8v8" />
-              <path d="M5 12a7 7 0 0 0 14 0" />
-              <path d="M5 12H3" />
-              <path d="M21 12h-2" />
-            </svg>
-          </span>
-          <div>
+        <div className="anchor-primary-copy">
+          <div className="anchor-primary-brand">
+            <span className="anchor-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="5" r="3" />
+                <path d="M12 8v8" />
+                <path d="M5 12a7 7 0 0 0 14 0" />
+                <path d="M5 12H3" />
+                <path d="M21 12h-2" />
+              </svg>
+            </span>
             <span className="anchor-kicker">{t("appName")}</span>
-            <h2>{t("heroTitle")}</h2>
-            <p>{t("heroDescription")}</p>
-            <div className="anchor-hero-facts">
-              <span className="anchor-hero-fact">
-                <span className="anchor-hero-dot" aria-hidden="true" />
-                {routeStatus}
-              </span>
-              <span className="anchor-hero-fact">
-                {t("registeredAgentsCopy", { count: agentTotal })}
-              </span>
-            </div>
+          </div>
+          <h2>{t("heroTitle")}</h2>
+          <p>{t("heroDescription")}</p>
+          <div className="anchor-hero-facts" aria-label={t("heroFactsLabel")}>
+            <span className="anchor-hero-fact">
+              <span className="anchor-hero-dot" aria-hidden="true" />
+              {routeStatus}
+            </span>
+            <span className="anchor-hero-fact">
+              {t("registeredAgentsCopy", { count: agentTotal })}
+            </span>
+            <span className="anchor-hero-fact">{t("heroFactVariable")}</span>
           </div>
         </div>
+        <figure className="anchor-stage-card" aria-label={t("stageAria")}>
+          <img
+            src="./profitanchor-stage.jpg"
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption>
+            <span>{t("stageCaption")}</span>
+            <strong>
+              {hasData ? effectiveRateDisplay : placeholder}
+              {hasData && <em>{t("effectiveRateUnit")}</em>}
+            </strong>
+            <small>{t("effectiveRate")}</small>
+          </figcaption>
+        </figure>
       </section>
 
       <section className="anchor-rate-band" aria-label={t("rateBandTitle")}>
@@ -295,6 +314,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             />
           </label>
           <span className="anchor-field-hint">{t("wholeNeoHint")}</span>
+
+          <div className="anchor-amount-presets" aria-label={t("stakePresetLabel")}>
+            {STAKE_AMOUNT_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={amountInput === preset ? "is-active" : undefined}
+                disabled={isBusy}
+                onClick={() => setAmountInput(preset)}
+              >
+                {preset} NEO
+              </button>
+            ))}
+          </div>
 
           <p
             className={`anchor-inline-status${amountIsValid ? " is-ready" : " is-blocked"}`}
