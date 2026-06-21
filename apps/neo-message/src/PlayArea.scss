@@ -373,6 +373,122 @@ $accent-soft: #e4f8f0;
     }
   }
 
+  .nm-seal-desk {
+    display: grid;
+    grid-template-columns: minmax(230px, 0.95fr) minmax(180px, 0.78fr);
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid rgba(10, 128, 80, 0.14);
+    border-radius: 20px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(239, 250, 244, 0.9)),
+      var(--ns-surface, #fff);
+    box-shadow: 0 16px 38px rgba(10, 128, 80, 0.1);
+  }
+
+  .nm-seal-desk__image {
+    position: relative;
+    overflow: hidden;
+    min-height: 178px;
+    margin: 0;
+    border-radius: 16px;
+    background: #edf8f1;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 178px;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    figcaption {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      left: 10px;
+      display: grid;
+      gap: 4px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 10px 26px rgba(20, 24, 40, 0.12);
+    }
+
+    span {
+      color: $accent-strong;
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+
+    strong {
+      color: var(--ns-ink, #1c2030);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+  }
+
+  .nm-seal-desk__steps {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-content: stretch;
+
+    > span {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      column-gap: 9px;
+      row-gap: 3px;
+      min-width: 0;
+      min-height: 54px;
+      padding: 13px 12px;
+      border: 1px solid rgba(10, 128, 80, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 8px 22px rgba(20, 24, 40, 0.06);
+    }
+
+    svg {
+      grid-row: 1 / span 2;
+      align-self: center;
+      width: 19px;
+      height: 19px;
+      color: $accent-strong;
+    }
+
+    small,
+    strong {
+      overflow: hidden;
+      min-width: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    small {
+      color: var(--ns-text-muted, #6b7180);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+
+    strong {
+      color: var(--ns-ink, #1c2030);
+      font-size: 13px;
+      font-weight: 850;
+      line-height: 1.2;
+    }
+  }
+
   // Address + optional nickname side by side, so a faceless 0x… can carry a
   // human label without crowding the layout.
   .nm-recipient-row {
@@ -920,6 +1036,10 @@ $accent-soft: #e4f8f0;
         "preview";
     }
 
+    .nm-seal-desk {
+      grid-template-columns: 1fr;
+    }
+
     .nm-letter-preview {
       min-height: 260px;
     }
@@ -949,6 +1069,34 @@ $accent-soft: #e4f8f0;
     .nm-recipient-row {
       grid-template-columns: 1fr;
       gap: 14px;
+    }
+
+    .nm-seal-desk {
+      padding: 10px;
+      border-radius: 18px;
+    }
+
+    .nm-seal-desk__image {
+      min-height: 150px;
+
+      img {
+        min-height: 150px;
+      }
+
+      figcaption {
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        padding: 9px 10px;
+      }
+    }
+
+    .nm-seal-desk__steps {
+      grid-template-columns: 1fr;
+
+      > span {
+        min-height: 58px;
+      }
     }
 
     .nm-network-card {
