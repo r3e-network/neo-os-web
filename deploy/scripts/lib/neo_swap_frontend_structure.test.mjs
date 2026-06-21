@@ -36,8 +36,14 @@ test("Neo Swap renders a DeFi-native route console with real assets", () => {
     "neo-swap-hero-panel",
     "neo-swap-main-grid",
     "neo-swap-swap-card",
-    "neo-swap-token-field",
-    "neo-swap-detail-panel",
+    "neo-swap-preview",
+    "neo-swap-disclosure",
+    "neo-swap-trade-workspace",
+    "neo-swap-deal-ticket",
+    "neo-swap-asset-card",
+    "neo-swap-quote-metrics",
+    "neo-swap-route-review",
+    "neo-swap-route-facts",
     "neo-swap-side-stack",
     "neo-swap-token-button",
     "neo-swap-token-modal",
@@ -93,9 +99,10 @@ test("Neo Swap renders a DeFi-native route console with real assets", () => {
   }
 
   assert.match(styles, /\.neo-swap-play-area\s*\{[^}]*display:\s*grid/s);
-  assert.match(styles, /\.neo-swap-main-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.62fr\) minmax\(310px,\s*0\.38fr\)/s);
+  assert.match(styles, /\.neo-swap-main-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.05fr\) minmax\(300px,\s*0\.45fr\)/s);
   assert.match(styles, /\.neo-swap-hero-panel\s*\{[^}]*background:\s*transparent/s);
-  assert.match(styles, /\.neo-swap-detail-panel\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(styles, /\.neo-swap-quote-metrics\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(styles, /\.neo-swap-route-facts\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
   assert.match(styles, /\.neo-swap-token-button \.neo-swap-token-icon\s*\{/);
   assert.match(styles, /\.neo-swap-token-modal\s*\{/);
   assert.match(heroStyles, /\.swap-hero-content\s*\{[^}]*position:\s*relative/s);
