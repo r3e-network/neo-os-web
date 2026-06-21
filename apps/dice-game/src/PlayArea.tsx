@@ -393,6 +393,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </div>
 
+            <button
+              type="submit"
+              className="dice-roll-button"
+              disabled={isSubmitting || !stakeIsValid}
+            >
+              <Dices size={19} aria-hidden="true" />
+              {isSubmitting ? t("statusSubmitting") : t("rollAction")}
+            </button>
+
             <div className="dice-face-tray">
               <div className="dice-face-tray__head">
                 <span>{t("pickYourFace")}</span>
@@ -499,15 +508,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </em>
               </label>
             </div>
-
-            <button
-              type="submit"
-              className="dice-roll-button"
-              disabled={isSubmitting || !stakeIsValid}
-            >
-              <Dices size={19} aria-hidden="true" />
-              {isSubmitting ? t("statusSubmitting") : t("rollAction")}
-            </button>
 
             {!isEvmChain && (
               <p className="dice-trust-line">{t("vrfTrustLine")}</p>
