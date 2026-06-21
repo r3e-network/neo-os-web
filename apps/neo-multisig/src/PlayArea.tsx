@@ -3,7 +3,6 @@ import {
   NeoButton,
   NeoCard,
   NeoInput,
-  NeoSelect,
 } from "@shared/components-react";
 import {
   ArrowRight,
@@ -57,6 +56,41 @@ interface UnfundedNotice {
 
 /** Default signer slots on first paint (a common 2-of-3 board). */
 const INITIAL_SIGNER_SLOTS = 3;
+
+interface AssetChoiceGroupProps {
+  label: string;
+  value: VaultAsset;
+  onChange: (value: VaultAsset) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+function AssetChoiceGroup({ label, value, onChange, t }: AssetChoiceGroupProps) {
+  const choices: Array<{ value: VaultAsset; label: string; hint: string }> = [
+    { value: "GAS", label: t("assetGas"), hint: t("multisigGasAssetHint") },
+    { value: "NEO", label: t("assetNeo"), hint: t("multisigNeoAssetHint") },
+  ];
+
+  return (
+    <fieldset className="multisig-asset-toggle" aria-label={label}>
+      <legend>{label}</legend>
+      {choices.map((choice) => (
+        <button
+          key={choice.value}
+          type="button"
+          className={
+            "multisig-asset-toggle__option" +
+            (value === choice.value ? " is-active" : "")
+          }
+          aria-pressed={value === choice.value}
+          onClick={() => onChange(choice.value)}
+        >
+          <strong>{choice.label}</strong>
+          <span>{choice.hint}</span>
+        </button>
+      ))}
+    </fieldset>
+  );
+}
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { bool, str, val } = useStateBindings(state);
@@ -435,7 +469,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
               </section>
 
-              <div className="multisig-form-grid">
+              <div className="multisig-create-console">
                 <div className="multisig-signer-grid" aria-label={t("ariaSigners")}>
                   {signers.map((signer, index) => {
                     // Hide the × on the minimum required rows while they're still
@@ -478,14 +512,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   )}
                 </div>
 
-                <div className="multisig-form-row">
-                  <NeoSelect
-                    value={threshold}
-                    label={t("thresholdLabel")}
-                    options={thresholdOptions}
-                    onChange={setThreshold}
-                  />
-                </div>
+                <section
+                  className="multisig-threshold-panel"
+                  aria-label={t("thresholdLabel")}
+                >
+                  <div className="multisig-threshold-panel__head">
+                    <span>{t("thresholdLabel")}</span>
+                    <strong>
+                      {thresholdNumber} / {signerDenominator}
+                    </strong>
+                  </div>
+                  <div className="multisig-threshold-chips">
+                    {thresholdOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={
+                          "multisig-threshold-chip" +
+                          (threshold === option.value ? " is-active" : "")
+                        }
+                        aria-pressed={threshold === option.value}
+                        onClick={() => setThreshold(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
               </div>
 
               {createBlockedReason ? (
@@ -524,24 +577,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <strong>{t("multisigStepDeposit")}</strong>
                   </div>
                   <p>{t("multisigDepositCopy")}</p>
-                  <div className="multisig-form-row multisig-form-row--transfer">
-                    <NeoInput
-                      value={depositAmount}
-                      label={t("amountLabel")}
-                      placeholder={t("amountPlaceholder")}
-                      suffix={depositAsset}
-                      onChange={setDepositAmount}
-                    />
-                    <NeoSelect
-                      value={depositAsset}
+                  <div className="multisig-transfer-console">
+                    <div className="multisig-amount-panel">
+                      <NeoInput
+                        value={depositAmount}
+                        label={t("amountLabel")}
+                        placeholder={t("amountPlaceholder")}
+                        suffix={depositAsset}
+                        onChange={setDepositAmount}
+                      />
+                    </div>
+                    <AssetChoiceGroup
                       label={t("assetLabel")}
-                      options={[
-                        { value: "GAS", label: t("assetGas") },
-                        { value: "NEO", label: t("assetNeo") },
-                      ]}
-                      onChange={(value) =>
-                        setDepositAsset(value === "NEO" ? "NEO" : "GAS")
-                      }
+                      value={depositAsset}
+                      onChange={setDepositAsset}
+                      t={t}
                     />
                   </div>
                   <div className="multisig-primary-actions">
@@ -574,42 +624,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       </div>
                     </div>
                   </section>
-                  <div className="multisig-form-grid">
-                    <div className="multisig-form-row multisig-form-row--transfer">
+                  <div className="multisig-spend-console">
+                    <div className="multisig-recipient-panel">
                       <NeoInput
                         value={recipient}
                         label={t("toAddressLabel")}
                         placeholder={t("toAddressPlaceholder")}
                         onChange={setRecipient}
                       />
-                      <NeoSelect
-                        value={spendAsset}
+                    </div>
+                    <div className="multisig-transfer-console">
+                      <div className="multisig-amount-panel">
+                        <NeoInput
+                          value={spendAmount}
+                          label={t("amountLabel")}
+                          placeholder={t("amountPlaceholder")}
+                          suffix={spendAsset}
+                          onChange={setSpendAmount}
+                        />
+                      </div>
+                      <AssetChoiceGroup
                         label={t("assetLabel")}
-                        options={[
-                          { value: "GAS", label: t("assetGas") },
-                          { value: "NEO", label: t("assetNeo") },
-                        ]}
-                        onChange={(value) =>
-                          setSpendAsset(value === "NEO" ? "NEO" : "GAS")
-                        }
+                        value={spendAsset}
+                        onChange={setSpendAsset}
+                        t={t}
                       />
                     </div>
-                    <div className="multisig-form-row multisig-form-row--transfer">
+                    <details
+                      className="multisig-memo-drawer"
+                      open={memo.trim().length > 0}
+                    >
+                      <summary>
+                        <span>{t("multisigMemoDetails")}</span>
+                        <ChevronDown size={16} aria-hidden="true" />
+                      </summary>
                       <NeoInput
-                        value={spendAmount}
-                        label={t("amountLabel")}
-                        placeholder={t("amountPlaceholder")}
-                        suffix={spendAsset}
-                        onChange={setSpendAmount}
+                        value={memo}
+                        type="textarea"
+                        label={t("memoLabel")}
+                        placeholder={t("memoPlaceholder")}
+                        onChange={setMemo}
                       />
-                    </div>
-                    <NeoInput
-                      value={memo}
-                      type="textarea"
-                      label={t("memoLabel")}
-                      placeholder={t("memoPlaceholder")}
-                      onChange={setMemo}
-                    />
+                    </details>
                   </div>
                   {spendExceedsBalance && (
                     <p className="multisig-request-hint" aria-live="polite">
