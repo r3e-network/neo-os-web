@@ -12,9 +12,9 @@ export const manifest: MiniAppManifest = {
   shell: "launcher",
 
   tabs: [
-    { key: "rounds", labelKey: "tabRounds", icon: "target", default: true },
+    { key: "contribute", labelKey: "tabContribute", icon: "heart", default: true },
     { key: "projects", labelKey: "tabProjects", icon: "folder" },
-    { key: "contribute", labelKey: "tabContribute", icon: "heart" },
+    { key: "rounds", labelKey: "tabRounds", icon: "target" },
   ],
 
   stats: [
