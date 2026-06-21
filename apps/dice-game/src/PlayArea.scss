@@ -543,8 +543,8 @@
 
 .dice-face-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .dice-face-tray,
@@ -558,14 +558,27 @@
 }
 
 .dice-chip-rack {
-  gap: 11px;
-  padding: 12px;
-  border-color: rgba(246, 200, 106, 0.28);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 251, 241, 0.92),
-    rgba(255, 255, 255, 0.84)
-  );
+  position: relative;
+  isolation: isolate;
+  gap: 12px;
+  padding: 14px;
+  overflow: hidden;
+  border-color: rgba(246, 200, 106, 0.34);
+  background: #fff8e8;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.54),
+    0 14px 28px rgba(107, 60, 2, 0.1);
+}
+
+.dice-chip-rack::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(255, 252, 244, 0.96) 0%, rgba(255, 252, 244, 0.78) 48%, rgba(255, 252, 244, 0.95) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.86));
+  pointer-events: none;
 }
 
 .dice-face-tray__head,
@@ -601,6 +614,8 @@
 .dice-chip-rack__head {
   justify-content: flex-start;
   color: var(--dice-accent-strong);
+  position: relative;
+  z-index: 2;
 }
 
 .dice-chip-rack__head svg {
@@ -608,16 +623,19 @@
 }
 
 .dice-chip-rack__visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   display: block;
-  height: 136px;
-  min-height: 96px;
+  height: auto;
+  min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(246, 200, 106, 0.34);
-  border-radius: 17px;
+  border: 0;
+  border-radius: inherit;
   background: #fff8e8;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
-    0 10px 22px rgba(107, 60, 2, 0.1);
+  box-shadow: none;
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .dice-chip-rack__visual img {
@@ -626,19 +644,19 @@
   height: 100%;
   min-height: 0;
   object-fit: cover;
-  object-position: center;
+  object-position: center 46%;
 }
 
 .dice-face-grid__item {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   place-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
-  min-height: 88px;
-  padding: 8px;
+  min-height: 72px;
+  padding: 6px 5px;
   border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: 17px;
+  border-radius: 15px;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.94) 0%,
@@ -688,9 +706,9 @@
 
 .dice-face-grid__die {
   display: block;
-  width: min(100%, 56px);
+  width: min(100%, 44px);
   aspect-ratio: 1;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   background: #0f4c39;
   box-shadow:
@@ -716,9 +734,9 @@
 .dice-face-grid__item span {
   display: inline-grid;
   place-items: center;
-  min-width: 26px;
-  min-height: 22px;
-  padding: 0 8px;
+  min-width: 22px;
+  min-height: 20px;
+  padding: 0 6px;
   border-radius: var(--ns-radius-full, 999px);
   background: rgba(20, 22, 38, 0.05);
 }
@@ -728,13 +746,21 @@
 }
 
 .dice-stake-field {
+  position: relative;
+  z-index: 2;
   display: grid;
-  grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr);
-  gap: 8px 12px;
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+  gap: 8px 10px;
   align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(246, 200, 106, 0.24);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
   color: var(--dice-muted);
   font-size: 11px;
   font-weight: 700;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .dice-stake-field > span:first-child {
@@ -815,6 +841,8 @@
 }
 
 .dice-stake-presets {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 9px;
@@ -1360,35 +1388,58 @@
     gap: 6px;
   }
 
-  .dice-bet-summary,
-  .dice-stake-presets {
+  .dice-bet-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .dice-stake-presets {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+  }
+
   .dice-face-grid__item {
-    min-height: 86px;
-    padding: 7px;
-    border-radius: 15px;
+    min-height: 66px;
+    padding: 6px 4px;
+    border-radius: 14px;
   }
 
   .dice-face-grid__die {
-    width: min(100%, 56px);
-    border-radius: 12px;
+    width: min(100%, 40px);
+    border-radius: 11px;
+  }
+
+  .dice-chip-rack {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .dice-preset-chip {
+    min-height: 48px;
+    padding: 6px 4px;
+  }
+
+  .dice-preset-chip__value {
+    font-size: 13px;
+  }
+
+  .dice-preset-chip__unit {
+    font-size: 8px;
   }
 
   .dice-stake-field {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 0.34fr) minmax(0, 0.66fr);
     align-items: stretch;
+    padding: 9px;
   }
 
   .dice-stake-field__control {
-    min-height: 52px;
+    min-height: 44px;
   }
 
   .dice-stake-field input {
-    min-height: 50px;
-    padding-left: 18px;
-    font-size: 18px;
+    min-height: 42px;
+    padding-left: 14px;
+    font-size: 16px;
   }
 
   .dice-status-bar {

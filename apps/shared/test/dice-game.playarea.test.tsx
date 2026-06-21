@@ -129,6 +129,8 @@ describe("Dice Game PlayArea", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
     expect(container.querySelector('.dice-stage__table source[srcset="./dice-stage.avif"]')).toBeTruthy();
+    expect(container.querySelector('.dice-chip-rack__visual img[src="./dice-chip-rack.jpg"]')).toBeTruthy();
+    expect(container.querySelectorAll(".dice-face-grid__item").length).toBe(6);
     expect(screen.getByText("Ready on the table")).toBeTruthy();
     expect(screen.getByText("Current round")).toBeTruthy();
     expect(screen.getByText("Pick your lucky face")).toBeTruthy();
