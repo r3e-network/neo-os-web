@@ -763,8 +763,9 @@
   line-height: 1.4;
 }
 
-.dice-stake-field input[aria-invalid="true"] + em {
+.dice-stake-field:has(.dice-stake-field__control--invalid) em {
   color: #b42318;
+  font-weight: 750;
 }
 
 .dice-stake-presets {
