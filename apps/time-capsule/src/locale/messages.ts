@@ -73,6 +73,11 @@ const appMessages = {
   categoryMemorial: { en: "Memorial", zh: "纪念" },
   categoryAnnouncement: { en: "Announcement", zh: "公告" },
   categorySecret: { en: "Secret", zh: "秘密" },
+  categoryPersonalShort: { en: "Me", zh: "私人" },
+  categoryGiftShort: { en: "Gift", zh: "礼物" },
+  categoryMemorialShort: { en: "Memory", zh: "纪念" },
+  categoryAnnouncementShort: { en: "News", zh: "公告" },
+  categorySecretShort: { en: "Secret", zh: "秘密" },
   categoryPersonalHint: {
     en: "A note for your future self",
     zh: "写给未来自己的笔记",
