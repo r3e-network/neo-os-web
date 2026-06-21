@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { NeoCard } from "@shared/components-react";
-import { CategoryIcon, EmptyStateArt } from "@shared/components-react/illustrations";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { formatNumber } from "@shared/utils/format";
@@ -109,9 +109,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="dev-tipping-play-area">
       {/* Hero: identity + stats + wallet */}
       <NeoCard variant="erobo" className="tipping-hero">
+        <picture className="tipping-hero__media" aria-hidden="true">
+          <source srcSet="./banner.avif" type="image/avif" />
+          <source srcSet="./banner.webp" type="image/webp" />
+          <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
+        </picture>
+        <div className="tipping-hero__shade" aria-hidden="true" />
         <div className="tipping-hero__head">
           <span className="tipping-hero__badge">
-            <CategoryIcon name="social" size={40} title={t("title")} />
+            <picture aria-hidden="true">
+              <source srcSet="./logo.avif" type="image/avif" />
+              <source srcSet="./logo.webp" type="image/webp" />
+              <img src="./logo.jpg" alt="" loading="eager" decoding="async" />
+            </picture>
           </span>
           <div className="tipping-hero__text">
             <span className="tipping-hero__eyebrow">{t("subtitle")}</span>
@@ -132,6 +142,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="tipping-stat-label">{t("recentTips")}</span>
             </div>
           </div>
+        </div>
+        <div className="tipping-hero__route" aria-label={t("tipRouteTitle")}>
+          <span>{t("tipRouteDirect")}</span>
+          <span>{t("tipRouteClaimable")}</span>
+          <span>{t("tipRouteAnonymous")}</span>
         </div>
 
         {address && (
@@ -159,9 +174,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ) : (
             <>
               <div className="tipping-empty">
-                <EmptyStateArt size={150} title={t("noDevelopers")} />
-                <span className="tipping-empty__title">{t("noDevelopers")}</span>
-                <span className="tipping-empty__hint">{t("noDevelopersHint") || t("docSubtitle")}</span>
+                <span className="tipping-empty__badge" aria-hidden="true">
+                  <CategoryIcon name="social" size={58} title={t("title")} />
+                </span>
+                <span className="tipping-empty__title">{t("supportBoardTitle")}</span>
+                <span className="tipping-empty__hint">{t("supportBoardHint") || t("noDevelopersHint")}</span>
+                <div className="tipping-empty__route" aria-label={t("tipRouteTitle")}>
+                  <span>{t("step2")}</span>
+                  <span>{t("step3")}</span>
+                  <span>{t("step4")}</span>
+                </div>
               </div>
 
               <details className="tipping-guide">
