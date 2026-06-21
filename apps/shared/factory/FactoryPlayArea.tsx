@@ -240,6 +240,7 @@ function TemplateLaunchPicker({
               type="button"
               role="radio"
               aria-checked={selected}
+              aria-label={`${label}: ${option.label}`}
               className={`domain-factory-template-card${
                 selected ? " domain-factory-template-card--active" : ""
               }`}
@@ -760,6 +761,25 @@ export function FactoryPlayArea({
     );
   }
 
+  function renderDeploymentSetup(children: ReactNode) {
+    return (
+      <details className="domain-factory-setup">
+        <summary>
+          <span>
+            <strong>{t("deploymentSetup")}</strong>
+            <small>{t("deploymentSetupHint")}</small>
+          </span>
+          <ChevronDown
+            className="domain-factory-setup__chevron"
+            size={16}
+            aria-hidden="true"
+          />
+        </summary>
+        <div className="domain-factory-setup__body">{children}</div>
+      </details>
+    );
+  }
+
   return (
     <div className={`domain-factory domain-factory--${kind}`}>
       <section className="domain-factory-hero">
@@ -775,7 +795,14 @@ export function FactoryPlayArea({
               {t("factoryOverview")}
             </span>
             <h2>{t("title")}</h2>
-            <p>{t("subtitle")}</p>
+            <p>
+              <span className="domain-factory-hero__subtitle-full">
+                {t("subtitle")}
+              </span>
+              <span className="domain-factory-hero__subtitle-short">
+                {t("subtitleShort")}
+              </span>
+            </p>
           </div>
         </div>
         <div
@@ -874,13 +901,6 @@ export function FactoryPlayArea({
               </section>
             )}
 
-            <ChoiceField
-              label={t("network")}
-              value={activeNetwork}
-              options={networkOptions}
-              onChange={setNetwork}
-            />
-
             {kind === "nep17" && (
               <>
                 <NeoInput
@@ -897,53 +917,14 @@ export function FactoryPlayArea({
                     }
                   />
                   <NeoInput
-                    label={t("decimals")}
+                    label={t("initialSupply")}
                     type="number"
-                    value={nep17.decimals}
-                    min={0}
-                    max={8}
-                    onChange={(decimals) =>
-                      setNep17((draft) => ({ ...draft, decimals }))
+                    value={nep17.initialSupply}
+                    onChange={(initialSupply) =>
+                      setNep17((draft) => ({ ...draft, initialSupply }))
                     }
                   />
                 </div>
-                <NeoInput
-                  label={t("initialSupply")}
-                  type="number"
-                  value={nep17.initialSupply}
-                  onChange={(initialSupply) =>
-                    setNep17((draft) => ({ ...draft, initialSupply }))
-                  }
-                />
-                <div className="domain-factory-field">
-                  <NeoInput
-                    label={t("owner")}
-                    value={nep17.owner}
-                    placeholder="N..."
-                    onChange={(owner) =>
-                      setNep17((draft) => ({
-                        ...draft,
-                        owner,
-                        treasury: draft.treasury || owner,
-                      }))
-                    }
-                  />
-                  {renderUseMyAddress(nep17.owner, () =>
-                    setNep17((draft) => ({
-                      ...draft,
-                      owner: walletAddress,
-                      treasury: draft.treasury || walletAddress,
-                    })),
-                  )}
-                </div>
-                <NeoInput
-                  label={t("treasury")}
-                  value={nep17.treasury}
-                  placeholder="N..."
-                  onChange={(treasury) =>
-                    setNep17((draft) => ({ ...draft, treasury }))
-                  }
-                />
                 <ToggleField
                   label={t("mintable")}
                   icon={Coins}
@@ -952,6 +933,55 @@ export function FactoryPlayArea({
                     setNep17((draft) => ({ ...draft, mintable }))
                   }
                 />
+                {renderDeploymentSetup(
+                  <>
+                    <ChoiceField
+                      label={t("network")}
+                      value={activeNetwork}
+                      options={networkOptions}
+                      onChange={setNetwork}
+                    />
+                    <NeoInput
+                      label={t("decimals")}
+                      type="number"
+                      value={nep17.decimals}
+                      min={0}
+                      max={8}
+                      onChange={(decimals) =>
+                        setNep17((draft) => ({ ...draft, decimals }))
+                      }
+                    />
+                    <div className="domain-factory-field">
+                      <NeoInput
+                        label={t("owner")}
+                        value={nep17.owner}
+                        placeholder="N..."
+                        onChange={(owner) =>
+                          setNep17((draft) => ({
+                            ...draft,
+                            owner,
+                            treasury: draft.treasury || owner,
+                          }))
+                        }
+                      />
+                      {renderUseMyAddress(nep17.owner, () =>
+                        setNep17((draft) => ({
+                          ...draft,
+                          owner: walletAddress,
+                          treasury: draft.treasury || walletAddress,
+                        })),
+                      )}
+                    </div>
+                    <NeoInput
+                      label={t("treasury")}
+                      value={nep17.treasury}
+                      placeholder="N..."
+                      onChange={(treasury) =>
+                        setNep17((draft) => ({ ...draft, treasury }))
+                      }
+                    />
+                  </>,
+                )}
               </>
             )}
 
@@ -961,6 +991,13 @@ export function FactoryPlayArea({
                   className="domain-factory-drop-rail"
                   aria-label={t("dropStudio")}
                 >
+                  <img
+                    className="domain-factory-drop-rail__image"
+                    src="./nft-drop-preview.jpg"
+                    alt=""
+                    loading="eager"
+                    decoding="async"
+                  />
                   <span
                     className="domain-factory-drop-rail__icon"
                     aria-hidden="true"
@@ -1024,26 +1061,6 @@ export function FactoryPlayArea({
                     setNep11((draft) => ({ ...draft, royaltyBps }))
                   }
                 />
-                <NeoInput
-                  label={t("baseUri")}
-                  value={nep11.baseUri}
-                  onChange={(baseUri) =>
-                    setNep11((draft) => ({ ...draft, baseUri }))
-                  }
-                />
-                <div className="domain-factory-field">
-                  <NeoInput
-                    label={t("owner")}
-                    value={nep11.owner}
-                    placeholder="N..."
-                    onChange={(owner) =>
-                      setNep11((draft) => ({ ...draft, owner }))
-                    }
-                  />
-                  {renderUseMyAddress(nep11.owner, () =>
-                    setNep11((draft) => ({ ...draft, owner: walletAddress })),
-                  )}
-                </div>
                 <ToggleField
                   label={t("transferable")}
                   icon={Ticket}
@@ -1052,6 +1069,36 @@ export function FactoryPlayArea({
                     setNep11((draft) => ({ ...draft, transferable }))
                   }
                 />
+                {renderDeploymentSetup(
+                  <>
+                    <ChoiceField
+                      label={t("network")}
+                      value={activeNetwork}
+                      options={networkOptions}
+                      onChange={setNetwork}
+                    />
+                    <NeoInput
+                      label={t("baseUri")}
+                      value={nep11.baseUri}
+                      onChange={(baseUri) =>
+                        setNep11((draft) => ({ ...draft, baseUri }))
+                      }
+                    />
+                    <div className="domain-factory-field">
+                      <NeoInput
+                        label={t("owner")}
+                        value={nep11.owner}
+                        placeholder="N..."
+                        onChange={(owner) =>
+                          setNep11((draft) => ({ ...draft, owner }))
+                        }
+                      />
+                      {renderUseMyAddress(nep11.owner, () =>
+                        setNep11((draft) => ({ ...draft, owner: walletAddress })),
+                      )}
+                    </div>
+                  </>,
+                )}
               </>
             )}
 
@@ -1080,19 +1127,6 @@ export function FactoryPlayArea({
                     setMiniapp((draft) => ({ ...draft, templateKind }))
                   }
                 />
-                <div className="domain-factory-field">
-                  <NeoInput
-                    label={t("admin")}
-                    value={miniapp.admin}
-                    placeholder="N..."
-                    onChange={(admin) =>
-                      setMiniapp((draft) => ({ ...draft, admin }))
-                    }
-                  />
-                  {renderUseMyAddress(miniapp.admin, () =>
-                    setMiniapp((draft) => ({ ...draft, admin: walletAddress })),
-                  )}
-                </div>
                 <div className="domain-factory-form__row domain-factory-form__row--toggles">
                   <ToggleField
                     label={t("needsOracle")}
@@ -1111,6 +1145,32 @@ export function FactoryPlayArea({
                     }
                   />
                 </div>
+                {renderDeploymentSetup(
+                  <>
+                    <ChoiceField
+                      label={t("network")}
+                      value={activeNetwork}
+                      options={networkOptions}
+                      onChange={setNetwork}
+                    />
+                    <div className="domain-factory-field">
+                      <NeoInput
+                        label={t("admin")}
+                        value={miniapp.admin}
+                        placeholder="N..."
+                        onChange={(admin) =>
+                          setMiniapp((draft) => ({ ...draft, admin }))
+                        }
+                      />
+                      {renderUseMyAddress(miniapp.admin, () =>
+                        setMiniapp((draft) => ({
+                          ...draft,
+                          admin: walletAddress,
+                        })),
+                      )}
+                    </div>
+                  </>,
+                )}
               </>
             )}
 

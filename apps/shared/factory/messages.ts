@@ -4,6 +4,10 @@ export const factoryMessages = {
     en: "Deploy assets, collections, and miniapps from audited on-chain templates with only initialization parameters.",
     zh: "基于已审计的链上模板部署资产、集合和小程序，只提交初始化参数。",
   },
+  subtitleShort: {
+    en: "Design a governed template package before wallet approval.",
+    zh: "先设计受治理模板包，再交给钱包确认。",
+  },
   playTab: { en: "Factory", zh: "工厂" },
   activityTab: { en: "Activity", zh: "动态" },
   docsTab: { en: "Docs", zh: "文档" },
@@ -332,6 +336,11 @@ export const factoryMessages = {
 
   // ── Form & misc ──
   useMyAddress: { en: "Use my address", zh: "使用我的地址" },
+  deploymentSetup: { en: "Deployment setup", zh: "部署设置" },
+  deploymentSetupHint: {
+    en: "Network, owner, treasury, and metadata details.",
+    zh: "网络、Owner、金库和元数据细节。",
+  },
   royaltyHelper: {
     en: "{bps} bps = {percent}% of each sale",
     zh: "{bps} bps = 每笔销售的 {percent}%",
