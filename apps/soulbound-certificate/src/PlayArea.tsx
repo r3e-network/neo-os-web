@@ -160,6 +160,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasAddress = Boolean(address);
   const hasMetrics =
     templatesCount > 0 || certificatesCount > 0 || activeTemplatesCount > 0;
+  const issueTemplateLabel = selectedTemplate
+    ? `${selectedTemplate.name} #${selectedTemplate.id}`
+    : issueForm.templateId.trim()
+      ? `#${issueForm.templateId.trim()}`
+      : t("noTemplateSelected");
+  const issueRecipientLabel =
+    issueForm.recipientName.trim() || t("awardedToPlaceholder");
+  const issueWalletLabel =
+    issueForm.recipient.trim()
+      ? formatHash(issueForm.recipient.trim(), 8, 6)
+      : t("issueRecipientPlaceholder");
+  const issueAchievementLabel =
+    issueForm.achievement.trim() || t("achievementPreviewPlaceholder");
 
   const updateCreateForm = (key: keyof typeof createForm, value: string) => {
     setCreateForm((current) => ({ ...current, [key]: value }));
@@ -269,6 +282,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard title={t("issueCertificate")} className="certificate-panel">
               <div className="issue-studio">
                 <div className="issue-artboard">
+                  <figure className="certificate-atelier">
+                    <img
+                      src="./certificate-atelier.jpg"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <figcaption>
+                      <span>{t("certificateAtelierLabel")}</span>
+                      <strong>{t("certificateAtelierCaption")}</strong>
+                    </figcaption>
+                  </figure>
                   <div className="issue-artboard__head">
                     <span>
                       <FileBadge aria-hidden="true" />
@@ -336,6 +361,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         ? `${selectedTemplate.name} #${selectedTemplate.id}`
                         : t("noTemplateSelected")}
                     </strong>
+                  </div>
+
+                  <div className="issue-dossier" aria-label={t("issueDossierLabel")}>
+                    <div className="issue-dossier__head">
+                      <span>{t("issueDossierLabel")}</span>
+                      <strong>{selectedTemplate ? t("statusActive") : t("templateIdRequired")}</strong>
+                    </div>
+                    <div className="issue-dossier__grid">
+                      <span>
+                        <FileBadge aria-hidden="true" />
+                        <small>{t("selectedTemplate")}</small>
+                        <strong>{issueTemplateLabel}</strong>
+                      </span>
+                      <span>
+                        <BadgeCheck aria-hidden="true" />
+                        <small>{t("recipientName")}</small>
+                        <strong>{issueRecipientLabel}</strong>
+                      </span>
+                      <span>
+                        <ShieldCheck aria-hidden="true" />
+                        <small>{t("issueRecipient")}</small>
+                        <strong>{issueWalletLabel}</strong>
+                      </span>
+                      <span>
+                        <Sparkles aria-hidden="true" />
+                        <small>{t("achievement")}</small>
+                        <strong>{issueAchievementLabel}</strong>
+                      </span>
+                    </div>
                   </div>
 
                   {!selectedTemplate && issuableTemplates.length > 0 && (
