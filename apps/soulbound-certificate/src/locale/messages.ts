@@ -46,6 +46,10 @@ const appMessages = {
     en: "Define the issuer, category, supply cap, and certificate description before signing the template on-chain.",
     zh: "先定义发行方、分类、供应上限与证书描述，然后链上签名创建模板。",
   },
+  createTemplateDrawerHint: {
+    en: "Open only when you need a new credential design",
+    zh: "需要新凭证设计时再展开",
+  },
 
   yourTemplates: { en: "Your Templates", zh: "我的模板" },
   refresh: { en: "Refresh", zh: "刷新" },
@@ -66,6 +70,12 @@ const appMessages = {
   issueCertificate: { en: "Issue Certificate", zh: "签发证书" },
   selectedTemplate: { en: "Selected template", zh: "已选模板" },
   noTemplateSelected: { en: "Choose a template or enter an ID", zh: "选择模板或输入 ID" },
+  issueFlowLabel: { en: "Issue flow", zh: "签发流程" },
+  issueFlowTemplate: { en: "Pick template", zh: "选模板" },
+  issueFlowRecipient: { en: "Add recipient", zh: "填收件人" },
+  issueFlowMint: { en: "Mint certificate", zh: "链上签发" },
+  issueAdvancedTitle: { en: "Template ID and memo", zh: "模板 ID 与备注" },
+  issueAdvancedHint: { en: "Advanced setup", zh: "高级设置" },
   templateId: { en: "Template ID", zh: "模板 ID" },
   templateIdPlaceholder: { en: "1", zh: "1" },
   templateIdRequired: { en: "Template ID required", zh: "需要模板 ID" },
@@ -127,6 +137,10 @@ const appMessages = {
   verifyHelp: {
     en: "Enter a token ID to see who earned the certificate, what they achieved, and whether it's still valid.",
     zh: "输入 Token ID，即可查看证书的获得者、成就内容，以及它是否仍然有效。",
+  },
+  verifyDrawerHint: {
+    en: "Check a shared credential by token ID",
+    zh: "用 Token ID 查询共享凭证",
   },
   verifyFailed: { en: "Certificate lookup failed", zh: "证书查询失败" },
   revoke: { en: "Revoke", zh: "撤销" },
