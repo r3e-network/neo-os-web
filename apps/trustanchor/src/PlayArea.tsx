@@ -24,6 +24,8 @@ type AnchorActionHistoryItem = {
   at?: string;
 };
 
+const STAKE_AMOUNT_PRESETS = ["1", "10", "25", "100"];
+
 function normalizeNeoAmount(value: string): string {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return value.trim();
@@ -129,28 +131,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="trustanchor-play-area">
       <section className="anchor-primary-card anchor-primary-card--trust">
-        <div className="anchor-primary-card__lead">
-          <span className="anchor-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
-          </span>
-          <div className="anchor-primary-card__copy">
+        <div className="anchor-primary-card__copy">
+          <div className="anchor-primary-card__brand">
+            <span className="anchor-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </span>
             <span className="anchor-kicker">{t("appName")}</span>
-            <h2>{t("heroTitle")}</h2>
-            <p>{t("heroDescription")}</p>
-            {!hasData && (
-              <p className="anchor-connect-prompt">{t("connectPrompt")}</p>
-            )}
           </div>
+          <h2>{t("heroTitle")}</h2>
+          <p>{t("heroDescription")}</p>
+          <div className="anchor-hero-facts" aria-label={t("heroFactsLabel")}>
+            <span>{t("heroFactAgents")}</span>
+            <span>{t("heroFactReserve")}</span>
+            <span>{t("heroFactVariable")}</span>
+          </div>
+          {!hasData && (
+            <p className="anchor-connect-prompt">{t("connectPrompt")}</p>
+          )}
         </div>
-        <div className="anchor-score">
-          <span className={hasData ? undefined : "anchor-score__placeholder"}>
-            {hasData ? myStakeDisplay : placeholder}
-          </span>
-          <small>{t("myStake")}</small>
-        </div>
+        <figure className="anchor-stage-card" aria-label={t("stageAria")}>
+          <img
+            src="./trustanchor-stage.jpg"
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption>
+            <span>{t("stageCaption")}</span>
+            <strong className={hasData ? undefined : "anchor-score__placeholder"}>
+              {hasData ? myStakeDisplay : placeholder}
+            </strong>
+            <small>{t("myStake")}</small>
+          </figcaption>
+        </figure>
       </section>
 
       <div className="anchor-stat-grid">
@@ -213,6 +229,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onChange={(event) => setAmountInput(event.currentTarget.value)}
               />
             </label>
+
+            <div className="anchor-amount-presets" aria-label={t("stakePresetLabel")}>
+              {STAKE_AMOUNT_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  className={amountInput === preset ? "is-active" : undefined}
+                  disabled={isBusy}
+                  onClick={() => setAmountInput(preset)}
+                >
+                  {preset} NEO
+                </button>
+              ))}
+            </div>
 
             <div className="anchor-action-buttons" aria-label={t("actionPanelTitle")}>
               <button

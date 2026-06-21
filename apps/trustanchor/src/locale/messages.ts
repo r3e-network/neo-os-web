@@ -8,6 +8,15 @@ const appMessages = {
     en: "The governance-aligned anchor: your staked NEO is voted by 21 anchor agents toward council stability, and you claim the GAS those votes earn. This is a separate pool from ProfitAnchor — manual 21-agent routing is handled in TrustAnchor Admin.",
     zh: "治理优先的锚点：你质押的 NEO 由 21 个锚点 agent 投票以维护 council 稳定，你领取这些投票产生的 GAS。这是与 ProfitAnchor 独立的资金池——21 个 AA agent 的手动调仓由 TrustAnchor Admin 处理。",
   },
+  heroFactsLabel: { en: "TrustAnchor guarantees", zh: "TrustAnchor 保障" },
+  heroFactAgents: { en: "21 AA routes", zh: "21 条 AA 路由" },
+  heroFactReserve: { en: "Shared GAS reserve", zh: "共享 GAS 储备" },
+  heroFactVariable: { en: "Variable rewards", zh: "浮动奖励" },
+  stageAria: {
+    en: "TrustAnchor governance route preview",
+    zh: "TrustAnchor 治理路由预览",
+  },
+  stageCaption: { en: "Governance anchor", zh: "治理锚点" },
   earnTitle: { en: "How you earn", zh: "你如何赚取收益" },
   earnLine1: {
     en: "Your staked NEO is voted by the anchor's 21 AA agents for Neo council candidates.",
@@ -183,6 +192,7 @@ const appMessages = {
   toAgentId: { en: "To agent", zh: "目标 agent" },
   agentId: { en: "Agent ID", zh: "Agent ID" },
   neoAmount: { en: "NEO amount", zh: "NEO 数量" },
+  stakePresetLabel: { en: "Stake amount presets", zh: "质押数量快捷选择" },
   candidatePublicKey: { en: "Candidate public key", zh: "候选人公钥" },
   verificationScriptHash: { en: "Verification script hash", zh: "Verification script hash" },
   anchorTransferSubmitted: { en: "Agent transfer submitted", zh: "Agent 调仓交易已提交" },
