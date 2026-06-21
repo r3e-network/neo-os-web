@@ -26,7 +26,7 @@
   min-height: 300px;
   padding: 18px 12px 24px;
   background:
-    radial-gradient(circle at 82% 0%, rgba(255, 229, 159, 0.34), transparent 32%),
+    linear-gradient(135deg, rgba(228, 248, 240, 0.7) 0%, rgba(255, 244, 207, 0.48) 42%, rgba(234, 242, 255, 0.42) 100%),
     linear-gradient(180deg, #f6fbf8 0%, #fbfcfa 42%, #f3f7f5 100%);
   color: var(--ns-ink);
   font-family: $font-family;
