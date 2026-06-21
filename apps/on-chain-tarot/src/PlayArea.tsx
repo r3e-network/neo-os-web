@@ -52,6 +52,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const prepaidCredit = num("prepaidCredit");
   const revealCount = drawn.filter((card) => card.flipped).length;
   const oracleReady = readingMode === "oracle";
+  const questionText = question.trim();
+  const questionMeter = t("questionCharacterCount", {
+    count: question.length,
+    max: 200,
+  });
   const formatGas = (value: number) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${t("tokenGas")}`;
 
@@ -198,6 +203,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <p className="tarot-intent-copy">{t("readingIntentCopy")}</p>
               <div
+                className={`tarot-intention-board${questionText ? " is-ready" : ""}`}
+                aria-label={t("questionPreviewLabel")}
+              >
+                <div
+                  className="tarot-intention-deck"
+                  aria-label={t("intentionDeckLabel")}
+                >
+                  {[0, 1, 2].map((item) => (
+                    <span
+                      key={item}
+                      className={`tarot-intention-deck__card tarot-intention-deck__card--${item + 1}`}
+                      aria-hidden="true"
+                    >
+                      <img src={TAROT_CARD_BACK} alt="" />
+                    </span>
+                  ))}
+                </div>
+                <div className="tarot-intention-slip">
+                  <span>{t("questionPreviewLabel")}</span>
+                  <strong>
+                    {questionText || t("questionPreviewFallback")}
+                  </strong>
+                  <small>{questionMeter}</small>
+                </div>
+              </div>
+              <div
                 className="tarot-question-presets"
                 aria-label={t("quickIntentLabel")}
               >
@@ -208,7 +239,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={question === t(key) ? "is-active" : ""}
                     onClick={() => dispatch("setQuestion", t(key))}
                   >
-                    {t(key)}
+                    <Sparkles size={14} aria-hidden="true" />
+                    <span>{t(key)}</span>
                   </button>
                 ))}
               </div>
@@ -218,7 +250,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   value={question}
                   placeholder={t("questionPlaceholder")}
                   maxLength={200}
-                  rows={3}
+                  rows={2}
                   onChange={(event) => {
                     void dispatch("setQuestion", event.currentTarget.value);
                   }}
