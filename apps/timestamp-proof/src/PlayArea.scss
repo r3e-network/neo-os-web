@@ -433,14 +433,15 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
     background: linear-gradient(135deg, $accent-strong, #1d4ed8);
     box-shadow: 0 4px 16px rgba(22, 199, 132, 0.28);
   }
+}
 
-  &:disabled {
-    border-color: transparent;
-    background: $accent-soft;
-    color: $accent-strong;
-    opacity: 0.86;
-    box-shadow: none;
-  }
+.proof-cta.neo-btn--primary:disabled:not(.neo-btn--loading),
+.verify-result .neo-btn--primary:disabled:not(.neo-btn--loading) {
+  border-color: var(--ns-border-strong, #d7dbe3);
+  background: var(--ns-surface-subtle, #eef0f4);
+  color: var(--ns-text-2, #5b6478);
+  opacity: 1;
+  box-shadow: none;
 }
 
 .proof-verifier .neo-btn,
