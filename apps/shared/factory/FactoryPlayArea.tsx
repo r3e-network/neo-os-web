@@ -751,6 +751,38 @@ export function FactoryPlayArea({
   const miniappServiceLabel = miniappServices.length
     ? miniappServices.join(" · ")
     : t("previewServiceNone");
+  const artifactStatusLabel = t(
+    ARTIFACT_STATUS_KEYS[currentPlan.templateArtifact.status],
+  );
+  const firstBlockingError = currentPlan.blockingErrors[0];
+  const firstBlockingLabel = firstBlockingError
+    ? ERROR_KEYS[firstBlockingError]
+      ? t(ERROR_KEYS[firstBlockingError])
+      : firstBlockingError.replace(/_/g, " ")
+    : "";
+  const readinessTitle = storedPlan
+    ? storedPlan.publishable
+      ? t("packageReady")
+      : t("packageBlocked")
+    : currentPlan.blockingErrors.length
+      ? t("planDraftNeedsWork")
+      : t("planDraftReady");
+  const readinessDetail = storedPlan
+    ? storedPlan.publishable
+      ? t("planLockedDetail")
+      : firstBlockingLabel || t("planBlockedDetail")
+    : currentPlan.blockingErrors.length
+      ? firstBlockingLabel
+      : t("planDraftReadyDetail");
+  const nextStepLabel = storedPlan
+    ? canExecute
+      ? t(
+          kind === "miniapp" ? "executeRecordAction" : "executeDeployAction",
+        )
+      : canSign
+        ? t("signPlanAction")
+        : t("fixBlockingIssues")
+    : t("generatePlan");
 
   function renderUseMyAddress(currentValue: string, apply: () => void) {
     if (!walletAddress || currentValue === walletAddress) return null;
@@ -1207,125 +1239,167 @@ export function FactoryPlayArea({
             title={t("publishPackage")}
           >
             <div className="domain-factory-package">
-              <div className="domain-factory-package__meta">
-                <div>
-                  <span>{t("packageId")}</span>
-                  <strong>{currentPlan.packageId}</strong>
+              <section
+                className="domain-factory-command"
+                aria-label={t("nextStep")}
+              >
+                <div className="domain-factory-command__copy">
+                  <span>{t("nextStep")}</span>
+                  <strong>{nextStepLabel}</strong>
+                  <p>{readinessDetail}</p>
                 </div>
-                <div>
-                  <span>{t("packageDigestFull")}</span>
-                  <strong>{currentPlan.digest}</strong>
-                </div>
-                <div>
-                  <span>{t("artifactStatusLabel")}</span>
-                  <strong>
-                    {t(
-                      ARTIFACT_STATUS_KEYS[currentPlan.templateArtifact.status],
-                    )}
-                  </strong>
-                </div>
-                {feeEstimate ? (
-                  <div>
-                    <span>{t("estimatedFee")}</span>
-                    <strong>
-                      {t("estimatedFeeValue", { amount: feeEstimate })}
-                    </strong>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="domain-factory-alerts">
-                <div>
-                  <h3>{t("blockingErrors")}</h3>
-                  {currentPlan.blockingErrors.length === 0 ? (
-                    <p>{t("noErrors")}</p>
+                <div className="domain-factory-command__facts">
+                  <span>
+                    <small>{t("planStatus")}</small>
+                    <strong>{readinessTitle}</strong>
+                  </span>
+                  <span>
+                    <small>{t("artifactStatusLabel")}</small>
+                    <strong>{artifactStatusLabel}</strong>
+                  </span>
+                  {feeEstimate ? (
+                    <span>
+                      <small>{t("estimatedFee")}</small>
+                      <strong>
+                        {t("estimatedFeeValue", { amount: feeEstimate })}
+                      </strong>
+                    </span>
                   ) : (
-                    <ul>
-                      {currentPlan.blockingErrors.map((code) => (
-                        <li key={code}>
-                          {ERROR_KEYS[code]
-                            ? t(ERROR_KEYS[code])
-                            : code.replace(/_/g, " ")}
-                        </li>
-                      ))}
-                    </ul>
+                    <span>
+                      <small>{t("network")}</small>
+                      <strong>{networkLabel}</strong>
+                    </span>
                   )}
                 </div>
-                <div>
-                  <h3>{t("warnings")}</h3>
-                  {currentPlan.warnings.length === 0 ? (
-                    <p>{t("noWarnings")}</p>
-                  ) : (
-                    <ul>
-                      {currentPlan.warnings.map((code) => (
-                        <li key={code}>
-                          {WARNING_KEYS[code]
-                            ? t(WARNING_KEYS[code])
-                            : code.replace(/_/g, " ")}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
+              </section>
 
-              <details className="domain-factory-json-disclosure">
-                <summary>
-                  <span>{t("viewPackagePayload")}</span>
-                  <ChevronDown
-                    className="domain-factory-json-disclosure__chevron"
-                    size={14}
-                    aria-hidden="true"
-                  />
-                </summary>
-                <pre className="domain-factory-json">{packageJson}</pre>
-              </details>
-
-              <div
-                className={`domain-factory-actions${
-                  !storedPlan
-                    ? " domain-factory-actions--draft"
-                    : canExecute
+              {storedPlan ? (
+                <div
+                  className={`domain-factory-actions${
+                    canExecute
                       ? " domain-factory-actions--execute-ready"
                       : canSign
                         ? " domain-factory-actions--sign-ready"
                         : ""
-                }`}
-              >
-                <NeoButton
-                  variant="secondary"
-                  className="domain-factory-actions__copy"
-                  onClick={() => copyText(packageJson, "package")}
+                  }`}
                 >
-                  {copyLabel("package", "copyPackage")}
-                </NeoButton>
-                {storedPlan ? (
-                  <>
-                    <NeoButton
-                      variant={canExecute ? "secondary" : "success"}
-                      className="domain-factory-actions__sign"
-                      disabled={!canSign || isSigning}
-                      loading={isSigning}
-                      onClick={() => dispatch("signCurrentPlan")}
-                    >
-                      {t("signPlanAction")}
-                    </NeoButton>
-                    <NeoButton
-                      variant={canExecute ? "primary" : "secondary"}
-                      className="domain-factory-actions__execute"
-                      disabled={!canExecute || isExecuting}
-                      loading={isExecuting}
-                      onClick={() => dispatch("executePlan")}
-                    >
-                      {t(
-                        kind === "miniapp"
-                          ? "executeRecordAction"
-                          : "executeDeployAction",
+                  <NeoButton
+                    variant="secondary"
+                    className="domain-factory-actions__copy"
+                    onClick={() => copyText(packageJson, "package")}
+                  >
+                    {copyLabel("package", "copyPackage")}
+                  </NeoButton>
+                  <NeoButton
+                    variant={canExecute ? "secondary" : "success"}
+                    className="domain-factory-actions__sign"
+                    disabled={!canSign || isSigning}
+                    loading={isSigning}
+                    onClick={() => dispatch("signCurrentPlan")}
+                  >
+                    {t("signPlanAction")}
+                  </NeoButton>
+                  <NeoButton
+                    variant={canExecute ? "primary" : "secondary"}
+                    className="domain-factory-actions__execute"
+                    disabled={!canExecute || isExecuting}
+                    loading={isExecuting}
+                    onClick={() => dispatch("executePlan")}
+                  >
+                    {t(
+                      kind === "miniapp"
+                        ? "executeRecordAction"
+                        : "executeDeployAction",
+                    )}
+                  </NeoButton>
+                </div>
+              ) : null}
+
+              <details className="domain-factory-plan-details">
+                <summary>
+                  <span>
+                    <strong>{t("planDetails")}</strong>
+                    <small>{t("planDetailsHint")}</small>
+                  </span>
+                  <ChevronDown
+                    className="domain-factory-plan-details__chevron"
+                    size={16}
+                    aria-hidden="true"
+                  />
+                </summary>
+
+                <div className="domain-factory-plan-details__body">
+                  <div className="domain-factory-package__meta">
+                    <div>
+                      <span>{t("packageId")}</span>
+                      <strong>{currentPlan.packageId}</strong>
+                    </div>
+                    <div>
+                      <span>{t("packageDigestFull")}</span>
+                      <strong>{currentPlan.digest}</strong>
+                    </div>
+                    <div>
+                      <span>{t("artifactStatusLabel")}</span>
+                      <strong>{artifactStatusLabel}</strong>
+                    </div>
+                    {feeEstimate ? (
+                      <div>
+                        <span>{t("estimatedFee")}</span>
+                        <strong>
+                          {t("estimatedFeeValue", { amount: feeEstimate })}
+                        </strong>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="domain-factory-alerts">
+                    <div>
+                      <h3>{t("blockingErrors")}</h3>
+                      {currentPlan.blockingErrors.length === 0 ? (
+                        <p>{t("noErrors")}</p>
+                      ) : (
+                        <ul>
+                          {currentPlan.blockingErrors.map((code) => (
+                            <li key={code}>
+                              {ERROR_KEYS[code]
+                                ? t(ERROR_KEYS[code])
+                                : code.replace(/_/g, " ")}
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                    </NeoButton>
-                  </>
-                ) : null}
-              </div>
+                    </div>
+                    <div>
+                      <h3>{t("warnings")}</h3>
+                      {currentPlan.warnings.length === 0 ? (
+                        <p>{t("noWarnings")}</p>
+                      ) : (
+                        <ul>
+                          {currentPlan.warnings.map((code) => (
+                            <li key={code}>
+                              {WARNING_KEYS[code]
+                                ? t(WARNING_KEYS[code])
+                                : code.replace(/_/g, " ")}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  <details className="domain-factory-json-disclosure">
+                    <summary>
+                      <span>{t("viewPackagePayload")}</span>
+                      <ChevronDown
+                        className="domain-factory-json-disclosure__chevron"
+                        size={14}
+                        aria-hidden="true"
+                      />
+                    </summary>
+                    <pre className="domain-factory-json">{packageJson}</pre>
+                  </details>
+                </div>
+              </details>
 
               {previewReadyButUnsaved ? (
                 <div className="domain-factory-hint">{t("noPlanToSign")}</div>
@@ -1382,7 +1456,18 @@ export function FactoryPlayArea({
             </div>
           </NeoCard>
 
-          <NeoCard variant="erobo" title={t("deployChecklist")}>
+          <details className="domain-factory-secondary-details domain-factory-checklist-details">
+            <summary>
+              <span>
+                <strong>{t("deployChecklist")}</strong>
+                <small>{t("deployChecklistHint")}</small>
+              </span>
+              <ChevronDown
+                className="domain-factory-secondary-details__chevron"
+                size={16}
+                aria-hidden="true"
+              />
+            </summary>
             {/* Before a plan is generated the checklist shows the live preview's
                 provisional steps; render them in the neutral draft palette
                 (matching the hero's DRAFT pill) so a fresh form doesn't paint a
@@ -1408,7 +1493,7 @@ export function FactoryPlayArea({
                 </li>
               ))}
             </ol>
-          </NeoCard>
+          </details>
 
           <details className="domain-factory-secondary-details">
             <summary>

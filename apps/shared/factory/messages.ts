@@ -55,6 +55,27 @@ export const factoryMessages = {
   },
   packageReady: { en: "Template plan ready", zh: "模板计划已就绪" },
   packageBlocked: { en: "Fix blocking issues", zh: "请修复阻断问题" },
+  planDraftReady: { en: "Ready to generate", zh: "可生成计划" },
+  planDraftNeedsWork: { en: "Complete setup first", zh: "请先完成设置" },
+  planDraftReadyDetail: {
+    en: "Generate a plan to lock this preview into a signable, reviewable package.",
+    zh: "生成计划后，此预览会锁定为可签名、可复核的部署包。",
+  },
+  planLockedDetail: {
+    en: "Plan is locked. Review details, sign with the owner wallet, then execute when the template is available.",
+    zh: "计划已锁定。复核细节后用 Owner 钱包签名，并在模板可用时执行。",
+  },
+  planBlockedDetail: {
+    en: "Resolve the listed issue before signing or executing.",
+    zh: "请先解决列出的问题，再签名或执行。",
+  },
+  fixBlockingIssues: { en: "Fix blocking issues", zh: "修复阻断问题" },
+  nextStep: { en: "Next step", zh: "下一步" },
+  planDetails: { en: "Plan details", zh: "计划细节" },
+  planDetailsHint: {
+    en: "Digest, validation, and JSON payload.",
+    zh: "摘要、校验结果和 JSON 载荷。",
+  },
   planSigned: { en: "Template plan signed", zh: "模板计划已签名" },
   signFailed: { en: "Signing failed", zh: "签名失败" },
   noPlanToSign: {
@@ -67,6 +88,10 @@ export const factoryMessages = {
   copyLink: { en: "Copy OneGate link", zh: "复制 OneGate 链接" },
   publishPackage: { en: "Template deployment plan", zh: "模板部署计划" },
   deployChecklist: { en: "Deploy checklist", zh: "部署清单" },
+  deployChecklistHint: {
+    en: "Validation, template, execution, and registry steps.",
+    zh: "校验、模板、执行和注册表步骤。",
+  },
   oneGateLaunch: { en: "OneGate launch URL", zh: "OneGate 启动链接" },
   blockingErrors: { en: "Blocking errors", zh: "阻断错误" },
   warnings: { en: "Warnings", zh: "提醒" },
