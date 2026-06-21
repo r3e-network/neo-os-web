@@ -380,6 +380,52 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   .connect-prompt {
     justify-content: flex-start;
   }
+
+  .issue-studio {
+    gap: 10px;
+  }
+
+  .issue-artboard {
+    padding: 12px;
+  }
+
+  .issue-artboard .certificate-atelier {
+    min-height: 0;
+    height: 0;
+    margin: 0;
+    opacity: 0;
+    border: 0;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  .issue-artboard .certificate-atelier img {
+    min-height: 1px;
+    height: 1px;
+  }
+
+  .issue-controls {
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .issue-flow-card {
+    padding: 10px;
+  }
+
+  .issue-flow-card .panel-copy {
+    display: none;
+  }
+
+  .issue-flow-steps {
+    gap: 6px;
+  }
+
+  .issue-flow-steps span {
+    min-height: 26px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
 }
 
 /* ── Loading ────────────────────────────────────────── */
@@ -532,9 +578,9 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .issue-controls {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  padding: 16px;
+  padding: 14px;
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-lg);
   background: rgba(255, 255, 255, 0.82);
@@ -542,8 +588,8 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .issue-flow-card {
   display: grid;
-  gap: 11px;
-  padding: 14px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid rgba(22, 199, 132, 0.12);
   border-radius: var(--ns-radius-md);
   background:
@@ -638,7 +684,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .issue-controls .certificate-form-grid,
@@ -837,8 +883,8 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
-  padding: 12px 14px;
+  margin-bottom: 0;
+  padding: 11px 12px;
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-sm);
   background: var(--ns-surface-subtle);
@@ -869,7 +915,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   display: grid;
   gap: 10px;
   min-width: 0;
-  margin-bottom: 14px;
+  margin-bottom: 0;
   padding: 13px;
   border: 1px solid rgba(22, 199, 132, 0.14);
   border-radius: var(--ns-radius-md);

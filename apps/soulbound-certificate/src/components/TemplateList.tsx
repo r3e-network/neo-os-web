@@ -8,9 +8,7 @@ interface TemplateListProps {
   refreshing: boolean;
   togglingId: string | null;
   hasAddress: boolean;
-  connecting?: boolean;
   onRefresh: () => void;
-  onConnect: () => void;
   onIssue: (template: TemplateItem) => void;
   onToggle: (template: TemplateItem) => void;
   onCopyIssueLink: (template: TemplateItem) => void;
@@ -26,9 +24,7 @@ export default function TemplateList({
   refreshing,
   togglingId,
   hasAddress,
-  connecting = false,
   onRefresh,
-  onConnect,
   onIssue,
   onToggle,
   onCopyIssueLink,
@@ -52,17 +48,6 @@ export default function TemplateList({
           kind="empty"
           title={t("walletNotConnected")}
           hint={t("walletNotConnectedHint")}
-          action={
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              loading={connecting}
-              disabled={connecting}
-              onClick={onConnect}
-            >
-              {t("connectWallet")}
-            </NeoButton>
-          }
         />
       ) : templates.length === 0 ? (
         <StateView
