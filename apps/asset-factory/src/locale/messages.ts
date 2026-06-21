@@ -11,6 +11,10 @@ const appMessages = {
     en: "Configure a NEP-17 token from an audited on-chain template — supply, owner, treasury, and minting policy. Deploy works only on networks where a factory admin has preloaded the artifact; elsewhere you sign and export a plan.",
     zh: "基于已审计链上模板配置 NEP-17 资产（供应量、Owner、金库、增发策略）。仅在 Factory 管理员已预置工件的网络上可部署；其他网络只能签名并导出计划。",
   },
+  subtitleShort: {
+    en: "Design a NEP-17 token package; deploy after template availability is verified.",
+    zh: "先设计 NEP-17 资产包；验证模板可用后再部署。",
+  },
   factoryOverview: { en: "Asset factory", zh: "资产工厂" },
   activeTemplate: { en: "Asset template", zh: "资产模板" },
   // Sign purpose in product terms: a portable issuer commitment, useful even

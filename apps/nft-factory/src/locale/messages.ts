@@ -11,6 +11,10 @@ const appMessages = {
     en: "Configure a NEP-11 collection, pass, or soulbound drop from a governed on-chain template. Deploy works only on networks where a factory admin has preloaded the artifact; elsewhere you sign and export a plan.",
     zh: "基于受治理链上模板配置 NEP-11 集合、通行证或灵魂绑定发行。仅在 Factory 管理员已预置工件的网络上可部署；其他网络只能签名并导出计划。",
   },
+  subtitleShort: {
+    en: "Design a NEP-11 drop package; deploy after template availability is verified.",
+    zh: "先设计 NEP-11 发行包；验证模板可用后再部署。",
+  },
   factoryOverview: { en: "NFT factory", zh: "NFT 工厂" },
   activeTemplate: { en: "Collection template", zh: "集合模板" },
   // Royalty consequence: a marketplace-honored, owner-routed cut on secondary
