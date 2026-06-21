@@ -11,7 +11,9 @@ import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { amountToBaseUnits } from "@shared/utils/amounts";
 import type { StreamItem } from "./types";
+import { deriveSchedule } from "./composables/deriveSchedule";
 import {
   canClaim,
   deriveSchedulePreview,
@@ -144,6 +146,7 @@ export default function PlayArea({
   const [duration, setDuration] = useState(launchDuration);
   const [token, setToken] = useState(launchToken);
   const [notes, setNotes] = useState(launchNotes);
+  const [detailsOpen, setDetailsOpen] = useState(Boolean(launchNotes));
 
   useEffect(() => {
     if (launchRecipient) setRecipient(launchRecipient);
@@ -151,17 +154,25 @@ export default function PlayArea({
     if (launchDuration) setDuration(launchDuration);
     if (launchToken) setToken(launchToken);
     if (launchNotes) setNotes(launchNotes);
+    setDetailsOpen(Boolean(launchNotes));
   }, [launchAmount, launchDuration, launchNotes, launchRecipient, launchToken]);
 
   /* ---------- Handlers ---------- */
   const handleCreateStream = async () => {
-    if (!recipient || !amount || !duration) return;
-    await dispatch("createStream", { recipient, amount, duration, token, notes });
+    if (!canCreateStream) return;
+    await dispatch("createStream", {
+      recipient,
+      amount,
+      duration,
+      token,
+      notes,
+    });
     setRecipient("");
     setAmount("");
     setDuration("");
     setToken("GAS");
     setNotes("");
+    setDetailsOpen(false);
   };
 
   const handleCancel = async (id: string) => {
@@ -296,6 +307,71 @@ export default function PlayArea({
   // indivisible integer count) and streams them directly. GAS stays the
   // default; NEO is offered for indivisible whole-token streams.
   const tokenOptions = ["GAS", "NEO"] as const;
+  const amountInput = amount.trim();
+  const durationInput = duration.trim();
+  const amountValue = Number.parseFloat(amountInput);
+  const durationValue = Number.parseInt(durationInput, 10);
+  const derivedSchedule = useMemo(
+    () => deriveSchedule(amountInput, durationInput, token),
+    [amountInput, durationInput, token],
+  );
+  const totalBaseUnits = amountToBaseUnits(amountInput, token);
+  const rateBaseUnits = amountToBaseUnits(derivedSchedule.rate, token);
+  const amountReady = totalBaseUnits > 0n && rateBaseUnits > 0n;
+  const durationReady =
+    /^\d+$/u.test(durationInput) && durationValue >= 1 && durationValue <= 365;
+  const canCreateStream =
+    recipient.trim().length > 0 && amountReady && durationReady && !isCreating;
+  const draftHasValue =
+    recipient.trim().length > 0 ||
+    amount.trim().length > 0 ||
+    duration.trim().length > 0 ||
+    notes.trim().length > 0 ||
+    token !== "GAS";
+  const totalLabel = amountReady ? `${formatNumber(amountValue)} ${token}` : `0 ${token}`;
+  const recipientPreview = recipient.trim()
+    ? formatAddress(recipient.trim())
+    : t("recipientPlaceholder");
+  const releaseLabel =
+    schedulePreview?.kind === "linear" || schedulePreview?.kind === "cliff"
+      ? `${schedulePreview.amount} ${token}`
+      : `0 ${token}`;
+  const releaseRateLabel =
+    schedulePreview?.kind === "cliff" ? t("rateAmount") : t("releasePerDay");
+  const durationLabel = durationReady
+    ? `${durationValue} ${t("days")}`
+    : t("durationPlaceholder");
+  const networkLabel =
+    launchContext.network === "mainnet" ? t("networkMainnet") : t("networkTestnet");
+  const submitLabel = canCreateStream ? t("createStream") : t("reviewStream");
+  const showStreamLists = hasStreamActivity || isListLoading;
+  const streamPresets = [
+    { id: "weekly-gas", amount: "12", duration: "7", token: "GAS" as const },
+    { id: "monthly-gas", amount: "60", duration: "30", token: "GAS" as const },
+    { id: "quarter-neo", amount: "90", duration: "90", token: "NEO" as const },
+  ];
+  const activePresetId =
+    streamPresets.find(
+      (preset) =>
+        preset.amount === amount.trim() &&
+        preset.duration === duration.trim() &&
+        preset.token === token,
+    )?.id ?? "";
+
+  function applyPreset(preset: (typeof streamPresets)[number]) {
+    setAmount(preset.amount);
+    setDuration(preset.duration);
+    setToken(preset.token);
+  }
+
+  function clearDraft() {
+    setRecipient("");
+    setAmount("");
+    setDuration("");
+    setToken("GAS");
+    setNotes("");
+    setDetailsOpen(false);
+  }
 
   return (
     <div className="neopay-play-area">
@@ -327,25 +403,18 @@ export default function PlayArea({
           </div>
         </div>
 
-        {/* Boxed stat tiles stay present at first run; zeroes plus a plain
-            caption read as an empty wallet state instead of a broken feed. */}
-        <div className="neopay-hero-summary" role="group" aria-label={t("ariaStreams")}>
-          <div className="neopay-hero-stat">
-            <span className={`neopay-hero-stat-value${hasStreamActivity ? "" : " neopay-hero-stat-value--empty"}`}>
-              {totalStreamCount}
-            </span>
-            <span className="neopay-hero-stat-label">{t("totalStreams")}</span>
+        {hasStreamActivity && (
+          <div className="neopay-hero-summary" role="group" aria-label={t("ariaStreams")}>
+            <div className="neopay-hero-stat">
+              <span className="neopay-hero-stat-value">{totalStreamCount}</span>
+              <span className="neopay-hero-stat-label">{t("totalStreams")}</span>
+            </div>
+            <span className="neopay-hero-stat-divider" aria-hidden="true" />
+            <div className="neopay-hero-stat">
+              <span className="neopay-hero-stat-value">{activeCount}</span>
+              <span className="neopay-hero-stat-label">{t("active")}</span>
+            </div>
           </div>
-          <span className="neopay-hero-stat-divider" aria-hidden="true" />
-          <div className="neopay-hero-stat">
-            <span className={`neopay-hero-stat-value${hasStreamActivity ? "" : " neopay-hero-stat-value--empty"}`}>
-              {activeCount}
-            </span>
-            <span className="neopay-hero-stat-label">{t("active")}</span>
-          </div>
-        </div>
-        {!hasStreamActivity && (
-          <p className="neopay-hero-empty-note">{t("awaitingActivity")}</p>
         )}
       </div>
 
@@ -362,102 +431,180 @@ export default function PlayArea({
       <NeoCard
         variant="erobo"
         title={t("createStream")}
+        className="neopay-card neopay-card--form"
       >
-        <div className="neopay-form">
-          <NeoInput
-            label={t("recipient")}
-            placeholder={
-              t("recipientPlaceholder")
-            }
-            value={recipient}
-            onChange={setRecipient}
-          />
-          <NeoInput
-            label={t("amount")}
-            placeholder="0.00"
-            type="number"
-            value={amount}
-            suffix={token}
-            onChange={setAmount}
-          />
-          <NeoInput
-            label={t("duration")}
-            placeholder={t("durationPlaceholder")}
-            type="number"
-            value={duration}
-            suffix={t("days")}
-            onChange={setDuration}
-          />
-          <NeoInput
-            label={t("notes")}
-            placeholder={t("notesPlaceholder")}
-            value={notes}
-            onChange={setNotes}
-          />
+        <div className="neopay-composer-shell">
+          <div className="neopay-composer-main">
+            <div className="neopay-composer">
+              <div className="neopay-composer__amount">
+                <span className="neopay-composer__label">{t("amount")}</span>
+                <NeoInput
+                  placeholder="0.00"
+                  type="number"
+                  value={amount}
+                  suffix={token}
+                  aria-label={t("amount")}
+                  onChange={setAmount}
+                />
+              </div>
 
-          {/* Token Selector */}
-          <div className="neopay-token-selector">
-            <span className="neopay-token-label">
-              {t("token")}
-            </span>
-            <div className="neopay-token-options">
-              {tokenOptions.map((tk) => (
-                <button
-                  key={tk}
-                  className={`neopay-token-option ${token === tk ? "neopay-token-option--active" : ""}`}
-                  onClick={() => setToken(tk)}
-                  type="button"
-                >
-                  {tk}
-                </button>
-              ))}
+              <fieldset className="neopay-asset-switch" aria-label={t("token")}>
+                {tokenOptions.map((tk) => (
+                  <button
+                    key={tk}
+                    className={`neopay-token-option${token === tk ? " neopay-token-option--active is-active" : ""}`}
+                    onClick={() => setToken(tk)}
+                    type="button"
+                    aria-label={tk}
+                    aria-pressed={token === tk}
+                  >
+                    <strong>{tk}</strong>
+                    <span aria-hidden="true">
+                      {tk === "GAS" ? t("gasAssetHint") : t("neoAssetHint")}
+                    </span>
+                  </button>
+                ))}
+              </fieldset>
+
+              <div className="neopay-form-grid">
+                <NeoInput
+                  label={t("recipient")}
+                  placeholder={t("recipientPlaceholder")}
+                  value={recipient}
+                  onChange={setRecipient}
+                />
+                <NeoInput
+                  label={t("duration")}
+                  placeholder={t("durationPlaceholder")}
+                  type="number"
+                  value={duration}
+                  suffix={t("days")}
+                  onChange={setDuration}
+                />
+              </div>
+
+              <details
+                className="neopay-advanced"
+                open={detailsOpen}
+                onToggle={(event) => {
+                  setDetailsOpen(event.currentTarget.open);
+                }}
+              >
+                <summary>{t("streamMetadata")}</summary>
+                <NeoInput
+                  label={t("notes")}
+                  placeholder={t("notesPlaceholder")}
+                  value={notes}
+                  onChange={setNotes}
+                />
+              </details>
+            </div>
+
+            <div className="neopay-presets" aria-label={t("createStream")}>
+              {streamPresets.map((preset) => {
+                const selected = activePresetId === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={selected ? "is-active" : undefined}
+                    aria-pressed={selected}
+                    onClick={() => applyPreset(preset)}
+                  >
+                    {preset.amount} {preset.token} / {preset.duration}d
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={`neopay-actions${draftHasValue ? " is-dirty" : ""}`}>
+              <NeoButton
+                variant="primary"
+                className="neopay-create-cta"
+                block
+                loading={isCreating}
+                disabled={!canCreateStream}
+                onClick={handleCreateStream}
+              >
+                {submitLabel}
+              </NeoButton>
+              {draftHasValue && (
+                <NeoButton variant="secondary" onClick={clearDraft}>
+                  {t("clear")}
+                </NeoButton>
+              )}
             </div>
           </div>
 
-          {/* Schedule disclosure: per-day release for the linear case, an
-              explicit cliff warning when a sub-1-NEO/day total collapses to a
-              single end-of-term release. */}
-          {schedulePreview?.kind === "linear" && (
-            <p className="neopay-form-disclosure" role="note">
-              {t("schedulePreview", {
-                amount: schedulePreview.amount,
-                token,
-                days: schedulePreview.days,
-              })}
-            </p>
-          )}
-          {schedulePreview?.kind === "cliff" && (
-            <p className="neopay-form-disclosure neopay-form-disclosure--warn" role="note">
-              {t("neoCliffNotice", {
-                amount: schedulePreview.amount,
-                days: schedulePreview.days,
-              })}
-            </p>
-          )}
-
-          {/* Two-signature disclosure: the standalone contract takes a deposit
-              first, then the createStream call — two wallet prompts. */}
-          <p className="neopay-form-disclosure" role="note">
-            {t("twoStepSignNotice", { token })}
-          </p>
-
-          <NeoButton
-            variant="primary"
-            block
-            loading={isCreating}
-            disabled={!recipient || !amount || !duration || isCreating}
-            onClick={handleCreateStream}
+          <aside
+            className={`neopay-review-panel${canCreateStream ? " is-ready" : ""}`}
+            aria-label={t("transactionPreview")}
           >
-            {t("createStream")}
-          </NeoButton>
+            <div className="neopay-review-panel__top">
+              <span>{t("transactionPreview")}</span>
+              <strong className={canCreateStream ? undefined : "neopay-review__pending"}>
+                {canCreateStream ? totalLabel : t("enterDetails")}
+              </strong>
+            </div>
+            <div className="neopay-summary">
+              <div>
+                <span>{t("recipient")}</span>
+                <strong>{recipientPreview}</strong>
+              </div>
+              <div>
+                <span>{t("totalAmount")}</span>
+                <strong>{totalLabel}</strong>
+              </div>
+              <div>
+                <span>{releaseRateLabel}</span>
+                <strong>{releaseLabel}</strong>
+              </div>
+              <div>
+                <span>{t("intervalLabel")}</span>
+                <strong>{durationLabel}</strong>
+              </div>
+              <div>
+                <span>{t("network")}</span>
+                <strong>{networkLabel}</strong>
+              </div>
+              <div>
+                <span>{t("networkFee")}</span>
+                <strong className="neopay-summary__muted">{t("networkFeeValue")}</strong>
+              </div>
+            </div>
+            <p className="neopay-review__hint">{t("transactionPreviewHint")}</p>
+            {schedulePreview?.kind === "linear" && (
+              <p className="neopay-form-disclosure" role="note">
+                {t("schedulePreview", {
+                  amount: schedulePreview.amount,
+                  token,
+                  days: schedulePreview.days,
+                })}
+              </p>
+            )}
+            {schedulePreview?.kind === "cliff" && (
+              <p className="neopay-form-disclosure neopay-form-disclosure--warn" role="alert">
+                {t("neoCliffNotice", {
+                  amount: schedulePreview.amount,
+                  days: schedulePreview.days,
+                })}
+              </p>
+            )}
+            <p className="neopay-form-disclosure" role="note">
+              {t("twoStepSignNotice", { token })}
+            </p>
+          </aside>
         </div>
       </NeoCard>
 
-      {/* ==================== Your Created Streams ==================== */}
-      <NeoCard
-        variant="erobo"
-        title={`${t("yourCreatedStreams")} (${createdStreams.length})`}
-      >
+      {showStreamLists ? (
+        <div className="neopay-stream-grid">
+          {/* ==================== Your Created Streams ==================== */}
+          <NeoCard
+            variant="erobo"
+            title={`${t("yourCreatedStreams")} (${createdStreams.length})`}
+            className="neopay-card"
+          >
         {isListLoading ? (
           <div className="neopay-loading">
             <div className="neopay-loading-spinner" />
@@ -570,13 +717,14 @@ export default function PlayArea({
             })}
           </div>
         )}
-      </NeoCard>
+          </NeoCard>
 
-      {/* ==================== Streams You Receive ==================== */}
-      <NeoCard
-        variant="erobo"
-        title={`${t("streamsYouReceive")} (${beneficiaryStreams.length})`}
-      >
+          {/* ==================== Streams You Receive ==================== */}
+          <NeoCard
+            variant="erobo"
+            title={`${t("streamsYouReceive")} (${beneficiaryStreams.length})`}
+            className="neopay-card"
+          >
         {isListLoading ? (
           <div className="neopay-loading">
             <div className="neopay-loading-spinner" />
@@ -695,7 +843,31 @@ export default function PlayArea({
             })}
           </div>
         )}
-      </NeoCard>
+          </NeoCard>
+        </div>
+      ) : (
+        <NeoCard
+          variant="default"
+          title={t("howItWorksTitle")}
+          className="neopay-card neopay-howto"
+        >
+          <ol className="neopay-howto__steps">
+            <li>
+              <span className="neopay-howto__num">1</span>
+              <span className="neopay-howto__copy">{t("howStep1")}</span>
+            </li>
+            <li>
+              <span className="neopay-howto__num">2</span>
+              <span className="neopay-howto__copy">{t("howStep2")}</span>
+            </li>
+            <li>
+              <span className="neopay-howto__num">3</span>
+              <span className="neopay-howto__copy">{t("howStep3")}</span>
+            </li>
+          </ol>
+          <p className="neopay-howto__foot">{t("howFootnote")}</p>
+        </NeoCard>
+      )}
     </div>
   );
 }
