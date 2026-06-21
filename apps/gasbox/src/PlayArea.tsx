@@ -4,7 +4,7 @@
  * Interactive market console for machines, on-chain prize escrow, and pulls.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bot,
   Coins,
@@ -181,6 +181,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [showResult, setShowResult] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
+  const [pullPreview, setPullPreview] = useState(false);
+  const pullPreviewTimeout = useRef<number | null>(null);
   const [topUpAmount, setTopUpAmount] = useState("");
 
   const [machineName, setMachineName] = useState("");
@@ -192,6 +194,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [studioError, setStudioError] = useState<string | null>(null);
 
   const selectedMachineReady = Boolean(selectedMachine?.active && selectedMachine?.inventoryReady);
+  const pullAnimating =
+    isPulling ||
+    leverPulled ||
+    pullPreview ||
+    betPhase === "committing" ||
+    betPhase === "settling";
   // Creator earnings flow: surface Withdraw Revenue only to the machine's
   // creator (connected wallet matches creatorHash) and only when there is
   // accrued, withdrawable revenue. Otherwise the control stays hidden.
@@ -258,17 +266,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     await dispatch("selectMachine", id);
   };
 
+  useEffect(
+    () => () => {
+      if (pullPreviewTimeout.current !== null) {
+        window.clearTimeout(pullPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startPullPreview = () => {
+    if (pullPreviewTimeout.current !== null) {
+      window.clearTimeout(pullPreviewTimeout.current);
+    }
+    setPullPreview(true);
+    pullPreviewTimeout.current = window.setTimeout(() => {
+      setPullPreview(false);
+      pullPreviewTimeout.current = null;
+    }, 1400);
+  };
+
   const handlePull = async () => {
     const machineId = selectedMachine?.id;
     if (!machineId) return;
+    startPullPreview();
     setLeverPulled(true);
     // Two-step: commit → wait one block → settle. The dispatch resolves after
     // the whole flow; the result overlay is gated on the settled result, so a
     // committed-but-unrevealed bet shows the pending panel + Reveal button below
     // instead of a (non-existent) result.
-    await dispatch("pull", machineId);
-    setShowResult(true);
-    setTimeout(() => setLeverPulled(false), 600);
+    try {
+      await dispatch("pull", machineId);
+      setShowResult(true);
+    } finally {
+      setTimeout(() => setLeverPulled(false), 600);
+    }
   };
 
   // Reveal-retry: finish a committed bet whose settle timed out. Permissionless
@@ -466,46 +498,56 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         {machines.length === 0 ? (
           <div className="gasbox-market-empty">
-            {/* Game-inviting teaser: a locked sample capsule with hidden odds so
-                a first-time visitor sees the play loop (capsule + rarity tiers)
-                instead of an admin-flavored empty console. The lock + "?" make
-                it honestly inert until a real machine loads. */}
-            <div className="gasbox-teaser" aria-hidden="true">
-              <div className="gasbox-teaser__capsule">
-                <GachaMark className="gasbox-teaser__mark" />
-                <span className="gasbox-teaser__lock">
-                  <LockKeyhole aria-hidden="true" />
-                </span>
+            <div className="gasbox-empty-stage" aria-hidden="true">
+              <picture className="gasbox-empty-stage__machine">
+                <source srcSet="logo.avif" type="image/avif" />
+                <source srcSet="logo.webp" type="image/webp" />
+                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+              </picture>
+              <span className="gasbox-empty-stage__lock">
+                <LockKeyhole aria-hidden="true" />
+              </span>
+              <div className="gasbox-empty-stage__caption">
+                <span>{t("gasboxEmptyStageLabel")}</span>
+                <strong>{t("gasboxEmptyStageHint")}</strong>
               </div>
-              <ul className="gasbox-teaser__odds">
+              <ul className="gasbox-empty-stage__odds">
                 {(["legendary", "epic", "rare", "common"] as const).map((tier) => (
-                  <li key={tier} className={`gasbox-teaser__tier ${rarityClass(tier)}`}>
-                    <RarityMark rarity={tier} className="gasbox-teaser__gem" />
-                    <span className="gasbox-teaser__pct">?</span>
+                  <li key={tier} className={`gasbox-empty-stage__tier ${rarityClass(tier)}`}>
+                    <RarityMark rarity={tier} className="gasbox-empty-stage__gem" />
+                    <span>{t(`rarity${tier.charAt(0).toUpperCase()}${tier.slice(1)}`)}</span>
+                    <strong>?</strong>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="gasbox-market-empty__copy">
-              <span>{t("gasboxMarketEmptyTitle")}</span>
-              <strong>{t("gasboxMarketEmptyTeaser")}</strong>
+            <div className="gasbox-market-empty__content">
+              <div className="gasbox-market-empty__copy">
+                <span>{t("gasboxMarketEmptyTitle")}</span>
+                <strong>{t("gasboxMarketEmptyTeaser")}</strong>
+              </div>
+              <ol className="gasbox-empty-route" aria-label={t("gasboxPlayerRoute")}>
+                <li>{t("gasboxEmptyRouteRefresh")}</li>
+                <li>{t("gasboxEmptyRoutePick")}</li>
+                <li>{t("gasboxEmptyRouteReveal")}</li>
+              </ol>
+              <div className="gasbox-empty-button-row">
+                <NeoButton variant="primary" size="md" onClick={() => dispatch("refreshMachines")}>
+                  <RefreshCw aria-hidden="true" />
+                  {t("refreshMachines")}
+                </NeoButton>
+              </div>
+              <p className="gasbox-empty-creator-line">
+                {t("gasboxEmptyForCreators")}{" "}
+                <button
+                  type="button"
+                  className="gasbox-empty-creator-link"
+                  onClick={() => dispatch("openStudio")}
+                >
+                  {t("openStudio")}
+                </button>
+              </p>
             </div>
-            <div className="gasbox-empty-button-row">
-              <NeoButton variant="primary" size="md" onClick={() => dispatch("refreshMachines")}>
-                <RefreshCw aria-hidden="true" />
-                {t("refreshMachines")}
-              </NeoButton>
-            </div>
-            <p className="gasbox-empty-creator-line">
-              {t("gasboxEmptyForCreators")}{" "}
-              <button
-                type="button"
-                className="gasbox-empty-creator-link"
-                onClick={() => dispatch("openStudio")}
-              >
-                {t("openStudio")}
-              </button>
-            </p>
           </div>
         ) : (
           <div className="gasbox-machine-grid">
@@ -788,12 +830,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard variant="erobo" className="gasbox-pull-card">
           <div className="gasbox-selected-display">
             <div className="gasbox-pull-stage">
-              <figure className="gasbox-stage-art">
+              <figure className={`gasbox-stage-art${pullAnimating ? " gasbox-stage-art--pulling" : ""}`}>
                 <picture aria-hidden="true">
                   <source srcSet="logo.avif" type="image/avif" />
                   <source srcSet="logo.webp" type="image/webp" />
                   <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
                 </picture>
+                {pullAnimating && (
+                  <div className="gasbox-stage-art__capsules" aria-hidden="true">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <picture
+                        key={index}
+                        className={`gasbox-stage-art__capsule gasbox-stage-art__capsule--${index + 1}`}
+                      >
+                        <source srcSet="logo.avif" type="image/avif" />
+                        <source srcSet="logo.webp" type="image/webp" />
+                        <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                      </picture>
+                    ))}
+                  </div>
+                )}
                 <figcaption>
                   <span>{t("gasboxPrizeFocus")}</span>
                   <strong>{prizeFocusLabel}</strong>
@@ -849,7 +905,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     block
                     loading={isPulling}
                     disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
-                    className="gasbox-pull-btn"
+                    className={`gasbox-pull-btn${pullAnimating ? " gasbox-pull-btn--active" : ""}`}
                     onClick={handlePull}
                   >
                     <div className="gasbox-pull-btn-content">
