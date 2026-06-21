@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -20,10 +21,10 @@ interface PlayAreaProps {
 }
 
 const spreadKeys = ["past", "present", "future"] as const;
-const questionPresetKeys = [
-  "questionPresetClarity",
-  "questionPresetDecision",
-  "questionPresetMomentum",
+const questionPresets = [
+  { valueKey: "questionPresetClarity", labelKey: "intentClarityLabel" },
+  { valueKey: "questionPresetDecision", labelKey: "intentDecisionLabel" },
+  { valueKey: "questionPresetMomentum", labelKey: "intentMomentumLabel" },
 ] as const;
 const verificationKeys = [
   "verificationPointFee",
@@ -50,8 +51,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const readingMode = str("readingMode", "idle");
   const drawn = val<Card[]>("drawn") ?? [];
   const prepaidCredit = num("prepaidCredit");
+  const [dealPreview, setDealPreview] = useState(false);
+  const dealPreviewTimeout = useRef<number | null>(null);
   const revealCount = drawn.filter((card) => card.flipped).length;
   const oracleReady = readingMode === "oracle";
+  const isDealing = isLoading || dealPreview;
   const questionText = question.trim();
   const questionMeter = t("questionCharacterCount", {
     count: question.length,
@@ -59,6 +63,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   });
   const formatGas = (value: number) =>
     `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${t("tokenGas")}`;
+
+  useEffect(
+    () => () => {
+      if (dealPreviewTimeout.current !== null) {
+        window.clearTimeout(dealPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startDealPreview = () => {
+    if (dealPreviewTimeout.current !== null) {
+      window.clearTimeout(dealPreviewTimeout.current);
+    }
+    setDealPreview(true);
+    dealPreviewTimeout.current = window.setTimeout(() => {
+      setDealPreview(false);
+      dealPreviewTimeout.current = null;
+    }, 1300);
+  };
+
+  const handleDraw = async () => {
+    startDealPreview();
+    await dispatch("draw");
+  };
 
   return (
     <div className="tarot-play-area">
@@ -150,15 +179,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 className="tarot-question-presets"
                 aria-label={t("quickIntentLabel")}
               >
-                {questionPresetKeys.map((key) => (
+                {questionPresets.map(({ valueKey, labelKey }) => (
                   <button
-                    key={key}
+                    key={valueKey}
                     type="button"
-                    className={question === t(key) ? "is-active" : ""}
-                    onClick={() => dispatch("setQuestion", t(key))}
+                    className={question === t(valueKey) ? "is-active" : ""}
+                    aria-label={t(valueKey)}
+                    title={t(valueKey)}
+                    onClick={() => dispatch("setQuestion", t(valueKey))}
                   >
                     <Sparkles size={14} aria-hidden="true" />
-                    <span>{t(key)}</span>
+                    <span>{t(labelKey)}</span>
                   </button>
                 ))}
               </div>
@@ -181,7 +212,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       variant="primary"
                       loading={isLoading}
                       disabled={isLoading}
-                      onClick={() => dispatch("draw")}
+                      onClick={handleDraw}
                     >
                       {isLoading ? t("drawingCards") : t("drawCards")}
                     </NeoButton>
@@ -228,7 +259,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     : t("awaitingCards")}
                 </strong>
               </div>
-              <div className="tarot-spread-table">
+              <div
+                className={`tarot-spread-table${isDealing && !hasDrawn ? " tarot-spread-table--dealing" : ""}${hasDrawn ? " tarot-spread-table--drawn" : ""}`}
+              >
+                <img
+                  className="tarot-spread-table__mat"
+                  src="./tarot-reading-table.jpg"
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                />
+                {isDealing && !hasDrawn && (
+                  <div className="tarot-dealing-layer" aria-hidden="true">
+                    <span className="tarot-dealing-deck">
+                      {[0, 1, 2].map((item) => (
+                        <img
+                          key={item}
+                          className={`tarot-dealing-deck__card tarot-dealing-deck__card--${item + 1}`}
+                          src={TAROT_CARD_BACK}
+                          alt=""
+                        />
+                      ))}
+                    </span>
+                    {[0, 1, 2].map((item) => (
+                      <img
+                        key={item}
+                        className={`tarot-dealing-card tarot-dealing-card--${item + 1}`}
+                        src={TAROT_CARD_BACK}
+                        alt=""
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="tarot-reading-grid">
                   {spreadKeys.map((spreadKey, index) => {
                     const card = drawn[index];
@@ -295,7 +358,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
                 {!hasDrawn && (
                   <p className="tarot-spread-empty-hint">
-                    {t("submitQuestionFirst")}
+                    {isDealing ? t("dealingCards") : t("submitQuestionFirst")}
                   </p>
                 )}
               </div>
