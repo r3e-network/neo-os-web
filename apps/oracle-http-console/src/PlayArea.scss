@@ -502,7 +502,8 @@
 }
 
 .http-actions,
-.http-payload-actions {
+.http-payload-actions,
+.http-quick-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -510,10 +511,15 @@
 }
 
 .http-actions .neo-btn,
-.http-payload-actions .neo-btn {
+.http-payload-actions .neo-btn,
+.http-quick-actions .neo-btn {
   display: inline-flex;
   gap: 8px;
   align-items: center;
+}
+
+.http-quick-actions {
+  display: none;
 }
 
 .http-result-card {
@@ -696,8 +702,8 @@
   }
 
   .http-hero {
-    min-height: 520px;
-    padding: 20px;
+    min-height: 380px;
+    padding: 18px;
     border-radius: var(--ns-radius-lg, 20px);
   }
 
@@ -711,12 +717,67 @@
   }
 
   .http-hero h2 {
-    font-size: 32px;
+    font-size: 28px;
   }
 
-  .http-flow,
+  .http-hero__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .http-hero__metrics span {
+    min-height: 48px;
+    padding: 9px 10px;
+  }
+
+  .http-hero__metrics small {
+    font-size: 9.5px;
+  }
+
+  .http-hero__metrics strong {
+    font-size: 11.5px;
+  }
+
+  .http-flow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .http-flow span {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 5px;
+    padding: 10px 7px;
+    text-align: center;
+  }
+
+  .http-flow svg {
+    grid-row: auto;
+  }
+
+  .http-flow strong {
+    font-size: 11px;
+    white-space: normal;
+  }
+
+  .http-flow small {
+    display: none;
+  }
+
+  .http-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .http-quick-actions {
+    display: flex;
+  }
+
+  .http-quick-actions .neo-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .http-method-grid,
-  .http-summary-strip,
   .http-result-rows,
   .http-input-with-chip {
     grid-template-columns: 1fr;
