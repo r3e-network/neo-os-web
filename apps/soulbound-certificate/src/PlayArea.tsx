@@ -332,24 +332,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </div>
                   </div>
 
-                  {!hasAddress && (
-                    <div className="certificate-wallet-gate" role="note">
-                      <div>
-                        <strong>{t("walletRequiredTitle")}</strong>
-                        <span>{t("walletRequiredIssueHint")}</span>
-                      </div>
-                      <NeoButton
-                        size="sm"
-                        variant="secondary"
-                        loading={isConnecting}
-                        disabled={isConnecting}
-                        onClick={() => dispatch("connectWallet")}
-                      >
-                        {t("connectWallet")}
-                      </NeoButton>
-                    </div>
-                  )}
-
                   <div
                     className={`selected-template${
                       selectedTemplate ? "" : " is-empty"
@@ -361,35 +343,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         ? `${selectedTemplate.name} #${selectedTemplate.id}`
                         : t("noTemplateSelected")}
                     </strong>
-                  </div>
-
-                  <div className="issue-dossier" aria-label={t("issueDossierLabel")}>
-                    <div className="issue-dossier__head">
-                      <span>{t("issueDossierLabel")}</span>
-                      <strong>{selectedTemplate ? t("statusActive") : t("templateIdRequired")}</strong>
-                    </div>
-                    <div className="issue-dossier__grid">
-                      <span>
-                        <FileBadge aria-hidden="true" />
-                        <small>{t("selectedTemplate")}</small>
-                        <strong>{issueTemplateLabel}</strong>
-                      </span>
-                      <span>
-                        <BadgeCheck aria-hidden="true" />
-                        <small>{t("recipientName")}</small>
-                        <strong>{issueRecipientLabel}</strong>
-                      </span>
-                      <span>
-                        <ShieldCheck aria-hidden="true" />
-                        <small>{t("issueRecipient")}</small>
-                        <strong>{issueWalletLabel}</strong>
-                      </span>
-                      <span>
-                        <Sparkles aria-hidden="true" />
-                        <small>{t("achievement")}</small>
-                        <strong>{issueAchievementLabel}</strong>
-                      </span>
-                    </div>
                   </div>
 
                   {!selectedTemplate && issuableTemplates.length > 0 && (
@@ -454,6 +407,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </label>
                   </div>
 
+                  <NeoButton
+                    variant="primary"
+                    block
+                    loading={isIssuing}
+                    disabled={!hasAddress || !issueFormValid || isIssuing}
+                    onClick={submitIssueCertificate}
+                  >
+                    {isIssuing ? t("issuing") : t("issue")}
+                  </NeoButton>
+
+                  <div className="issue-dossier" aria-label={t("issueDossierLabel")}>
+                    <div className="issue-dossier__head">
+                      <span>{t("issueDossierLabel")}</span>
+                      <strong>
+                        {selectedTemplate
+                          ? t("statusActive")
+                          : t("templateIdRequired")}
+                      </strong>
+                    </div>
+                    <div className="issue-dossier__grid">
+                      <span>
+                        <FileBadge aria-hidden="true" />
+                        <small>{t("selectedTemplate")}</small>
+                        <strong>{issueTemplateLabel}</strong>
+                      </span>
+                      <span>
+                        <BadgeCheck aria-hidden="true" />
+                        <small>{t("recipientName")}</small>
+                        <strong>{issueRecipientLabel}</strong>
+                      </span>
+                      <span>
+                        <ShieldCheck aria-hidden="true" />
+                        <small>{t("issueRecipient")}</small>
+                        <strong>{issueWalletLabel}</strong>
+                      </span>
+                      <span>
+                        <Sparkles aria-hidden="true" />
+                        <small>{t("achievement")}</small>
+                        <strong>{issueAchievementLabel}</strong>
+                      </span>
+                    </div>
+                  </div>
+
                   <details className="certificate-drawer certificate-drawer--compact">
                     <summary>
                       <span>
@@ -490,16 +486,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       </label>
                     </div>
                   </details>
-
-                  <NeoButton
-                    variant="primary"
-                    block
-                    loading={isIssuing}
-                    disabled={!hasAddress || !issueFormValid || isIssuing}
-                    onClick={submitIssueCertificate}
-                  >
-                    {isIssuing ? t("issuing") : t("issue")}
-                  </NeoButton>
                 </div>
               </div>
             </NeoCard>
@@ -562,9 +548,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             refreshing={isRefreshing}
             togglingId={togglingId || null}
             hasAddress={hasAddress}
-            connecting={isConnecting}
             onRefresh={() => dispatch("refreshTemplates")}
-            onConnect={() => dispatch("connectWallet")}
             onIssue={selectTemplateForIssue}
             onToggle={(template) => dispatch("toggleTemplate", template)}
             onCopyIssueLink={(template) => dispatch("copyIssueLink", template)}
@@ -583,23 +567,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="drawer-copy-block">
               <p className="panel-copy">{t("createTemplateHelp")}</p>
             </div>
-            {!hasAddress && (
-              <div className="certificate-wallet-gate certificate-wallet-gate--drawer" role="note">
-                <div>
-                  <strong>{t("walletRequiredTitle")}</strong>
-                  <span>{t("walletRequiredTemplateHint")}</span>
-                </div>
-                <NeoButton
-                  size="sm"
-                  variant="secondary"
-                  loading={isConnecting}
-                  disabled={isConnecting}
-                  onClick={() => dispatch("connectWallet")}
-                >
-                  {t("connectWallet")}
-                </NeoButton>
-              </div>
-            )}
             <div className="template-lab">
               <div className="template-lab__preview">
                 <span className="template-lab__label">
