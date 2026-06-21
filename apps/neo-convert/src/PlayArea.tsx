@@ -5,6 +5,20 @@
  */
 
 import { useState, type KeyboardEvent } from "react";
+import {
+  Copy,
+  Download,
+  Eye,
+  EyeOff,
+  FileCode2,
+  KeyRound,
+  LockKeyhole,
+  QrCode,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -147,6 +161,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // clears the result (so hasConversionResult is false), which previously left
   // the only error feedback as a 3s toast and the panel looking untouched.
   const showConversionStatus = hasConversionResult || conversionStatusType === "error";
+  const formatSpecs = [
+    { key: "wif", icon: KeyRound, label: t("formatWifLabel"), desc: t("formatWifDesc") },
+    {
+      key: "private",
+      icon: LockKeyhole,
+      label: t("formatPrivateKeyLabel"),
+      desc: t("formatPrivateKeyDesc"),
+    },
+    {
+      key: "public",
+      icon: WalletCards,
+      label: t("formatPublicKeyLabel"),
+      desc: t("formatPublicKeyDesc"),
+    },
+    {
+      key: "script",
+      icon: FileCode2,
+      label: t("formatScriptLabel"),
+      desc: t("formatScriptDesc"),
+    },
+  ];
+  const safetyNotes = [
+    { key: "local", icon: ShieldCheck, label: t("safetyLocal") },
+    { key: "reveal", icon: EyeOff, label: t("safetyReveal") },
+    { key: "rpc", icon: RefreshCw, label: t("safetyRpc") },
+  ];
 
   // Enter-to-submit for the converter input. The shared NeoInput renders a real
   // <input> whose keydown bubbles to this wrapper, so catch it here rather than
@@ -180,9 +220,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 size="sm"
                 variant="ghost"
+                className="result-copy-button"
                 onClick={() => dispatch("copy", row.value)}
               >
-                {t("copy")}
+                <Copy size={14} aria-hidden="true" />
+                <span>{t("copy")}</span>
               </NeoButton>
             )}
           </div>
@@ -193,31 +235,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="neo-convert-play-area">
-      {/* Hero — identity + primary generate action in one card */}
-      <NeoCard variant="erobo" className="convert-hero">
-        <div className="convert-hero__head">
-          <div className="convert-hero__badge" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
-              <circle cx="12" cy="16" r="1.5" />
-            </svg>
-          </div>
-          <div className="convert-hero__text">
+      <section className="convert-hero" aria-label={t("heroTitle")}>
+        <img
+          className="convert-hero__image"
+          src="./key-workbench-stage.jpg"
+          alt=""
+          loading="eager"
+          decoding="async"
+        />
+        <div className="convert-hero__shade" aria-hidden="true" />
+        <div className="convert-hero__content">
+          <div className="convert-hero__copy">
             <span className="convert-hero__eyebrow">{t("appTitle")}</span>
-            <h2 className="convert-hero__title">{t("heroTitle")}</h2>
-            <p className="convert-hero__subtitle">
-              {t("heroSubtitle")}
-            </p>
+            <h2>{t("heroTitle")}</h2>
+            <p>{t("heroSubtitle")}</p>
+            <div className="convert-hero__pills" aria-label={t("safetyTitle")}>
+              <span><ShieldCheck size={14} aria-hidden="true" />{t("localOnlyPill")}</span>
+              <span><Sparkles size={14} aria-hidden="true" />{t("formatAutodetectPill")}</span>
+              <span><QrCode size={14} aria-hidden="true" />{t("paperWalletPill")}</span>
+            </div>
           </div>
           <div className="convert-hero__stats">
             <div className="convert-stat">
@@ -242,13 +278,121 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             )}
           </div>
         </div>
+        <div className="convert-stage-caption">
+          <span>{t("workbenchStageEyebrow")}</span>
+          <strong>{t("workbenchStageTitle")}</strong>
+          <small>{t("workbenchStageCopy")}</small>
+        </div>
+      </section>
 
+      <section className="convert-safety-strip" aria-label={t("safetyTitle")}>
         {!walletConnected ? (
           <p className="convert-balance-note">{t("connectForBalances")}</p>
         ) : (
           <p className="convert-balance-note">{t("balanceRpcNote")}</p>
         )}
+        <div className="convert-safety-strip__items">
+          {safetyNotes.map((note) => {
+            const Icon = note.icon;
+            return (
+              <span key={note.key}>
+                <Icon size={15} aria-hidden="true" />
+                {note.label}
+              </span>
+            );
+          })}
+        </div>
+      </section>
 
+      <div className="convert-workbench">
+        <NeoCard variant="erobo" className="convert-panel convert-panel--primary">
+          <div className="convert-panel__head">
+            <span className="convert-panel__icon" aria-hidden="true">
+              <RefreshCw size={20} />
+            </span>
+            <div>
+              <span>{t("convertKey")}</span>
+              <strong>{t("convertPanelTitle")}</strong>
+              <p>{t("convertPanelCopy")}</p>
+            </div>
+          </div>
+          <div className="convert-format-rail" aria-label={t("formatRailTitle")}>
+            {formatSpecs.map((format) => {
+              const Icon = format.icon;
+              return (
+                <span key={format.key}>
+                  <Icon size={14} aria-hidden="true" />
+                  {format.label}
+                </span>
+              );
+            })}
+          </div>
+          <div className="convert-section convert-input-desk">
+            <p className="convert-hint">{t("convertHint")}</p>
+            <div onKeyDown={handleConvertKeyDown}>
+              <NeoInput
+                className="convert-key-input"
+                value={keyInput}
+                onChange={(v) => setKeyInput(v)}
+                placeholder={t("enterKeyPlaceholder")}
+              />
+            </div>
+            <NeoButton
+              variant="primary"
+              block
+              loading={isLoading}
+              disabled={!keyInput.trim()}
+              onClick={() => dispatch("convert", keyInput)}
+            >
+              <RefreshCw size={16} aria-hidden="true" />
+              <span>{t("convert")}</span>
+            </NeoButton>
+            {showConversionStatus ? (
+              <div className={`conversion-status conversion-status--${conversionStatusType}`}>
+                <div className="conversion-status__head">
+                  <span>{statusLabel}</span>
+                  {hasSensitiveConversion && (
+                    <NeoButton
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => dispatch("toggleConversionSecrets")}
+                    >
+                      {showConversionSecrets ? (
+                        <EyeOff size={14} aria-hidden="true" />
+                      ) : (
+                        <Eye size={14} aria-hidden="true" />
+                      )}
+                      <span>{showConversionSecrets ? t("hideSecrets") : t("showSecrets")}</span>
+                    </NeoButton>
+                  )}
+                </div>
+                {/* Success rows when present; an error (e.g. unknownFormat) shows
+                    only the localized status head above with no result body. */}
+                {conversionRows.length > 0 && renderResultRows(conversionRows, showConversionSecrets)}
+              </div>
+            ) : (
+              <div className="convert-empty-output">
+                <FileCode2 size={18} aria-hidden="true" />
+                <div>
+                  <strong>{t("emptyOutputTitle")}</strong>
+                  <span>{t("emptyOutputCopy")}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </NeoCard>
+
+        <NeoCard variant="erobo" className="convert-panel convert-panel--vault">
+          <div className="convert-panel__head">
+            <span className="convert-panel__icon" aria-hidden="true">
+              <KeyRound size={20} />
+            </span>
+            <div>
+              <span>{t("generateNewAccount")}</span>
+              <strong>{t("generatePanelTitle")}</strong>
+              <p>{t("generatePanelCopy")}</p>
+            </div>
+          </div>
         <div className="convert-section">
           <NeoButton
             variant="primary"
@@ -256,7 +400,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             loading={isLoading}
             onClick={() => dispatch("generate")}
           >
-            {t("generateNewAccount")}
+            <Sparkles size={16} aria-hidden="true" />
+            <span>{t("generateNewAccount")}</span>
           </NeoButton>
           {hasGeneratedAccount && generatedAccount && (
             <div className="generated-result">
@@ -266,7 +411,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 variant="secondary"
                 onClick={() => dispatch("toggleGeneratedSecrets")}
               >
-                {showGeneratedSecrets ? t("hideSecrets") : t("showSecrets")}
+                {showGeneratedSecrets ? (
+                  <EyeOff size={14} aria-hidden="true" />
+                ) : (
+                  <Eye size={14} aria-hidden="true" />
+                )}
+                <span>{showGeneratedSecrets ? t("hideSecrets") : t("showSecrets")}</span>
               </NeoButton>
               <NeoButton
                 size="sm"
@@ -274,7 +424,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 disabled={!showGeneratedSecrets}
                 onClick={() => dispatch("downloadPaperWallet")}
               >
-                {t("downloadPdf")}
+                <Download size={14} aria-hidden="true" />
+                <span>{t("downloadPdf")}</span>
               </NeoButton>
               {!showGeneratedSecrets && (
                 <span className="convert-secret-note">
@@ -284,88 +435,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {copyStatus && <span className="convert-copy-status">{copyStatus}</span>}
             </div>
           )}
-        </div>
-      </NeoCard>
-
-      <NeoCard variant="erobo" title={t("convertKey")}>
-        <div className="convert-section">
-          <p className="convert-hint">
-            {t("convertHint")}
-          </p>
-          <div onKeyDown={handleConvertKeyDown}>
-            <NeoInput
-              value={keyInput}
-              onChange={(v) => setKeyInput(v)}
-              placeholder={t("enterKeyPlaceholder")}
-            />
-          </div>
-          <NeoButton
-            variant="primary"
-            block
-            loading={isLoading}
-            disabled={!keyInput.trim()}
-            onClick={() => dispatch("convert", keyInput)}
-          >
-            {t("convert")}
-          </NeoButton>
-          {showConversionStatus && (
-            <div className={`conversion-status conversion-status--${conversionStatusType}`}>
-              <div className="conversion-status__head">
-                <span>{statusLabel}</span>
-                {hasSensitiveConversion && (
-                  <NeoButton
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => dispatch("toggleConversionSecrets")}
-                  >
-                    {showConversionSecrets ? t("hideSecrets") : t("showSecrets")}
-                  </NeoButton>
-                )}
-              </div>
-              {/* Success rows when present; an error (e.g. unknownFormat) shows
-                  only the localized status head above with no result body. */}
-              {conversionRows.length > 0 && renderResultRows(conversionRows, showConversionSecrets)}
+          {!hasGeneratedAccount && (
+            <div className="convert-vault-empty">
+              <LockKeyhole size={22} aria-hidden="true" />
+              <strong>{t("genEmptyState")}</strong>
+              <span>{t("genEmptySub")}</span>
             </div>
           )}
         </div>
       </NeoCard>
+      </div>
 
       {/* Reference card — anchors the resting page with purposeful guidance on
           the accepted input formats plus the on-device security note, instead
           of leaving the lower half of the viewport blank. */}
       <NeoCard variant="erobo" title={t("formatsTitle")} className="convert-formats">
         <ul className="convert-formats__list">
-          <li>
-            <span className="convert-formats__label">{t("formatWifLabel")}</span>
-            <span className="convert-formats__desc">{t("formatWifDesc")}</span>
-          </li>
-          <li>
-            <span className="convert-formats__label">{t("formatPrivateKeyLabel")}</span>
-            <span className="convert-formats__desc">{t("formatPrivateKeyDesc")}</span>
-          </li>
-          <li>
-            <span className="convert-formats__label">{t("formatPublicKeyLabel")}</span>
-            <span className="convert-formats__desc">{t("formatPublicKeyDesc")}</span>
-          </li>
-          <li>
-            <span className="convert-formats__label">{t("formatScriptLabel")}</span>
-            <span className="convert-formats__desc">{t("formatScriptDesc")}</span>
-          </li>
+          {formatSpecs.map((format) => {
+            const Icon = format.icon;
+            return (
+              <li key={format.key}>
+                <Icon size={17} aria-hidden="true" />
+                <span className="convert-formats__label">{format.label}</span>
+                <span className="convert-formats__desc">{format.desc}</span>
+              </li>
+            );
+          })}
         </ul>
         <p className="convert-formats__note">
-          <svg
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
+          <ShieldCheck size={16} aria-hidden="true" />
           <span>{t("onDeviceNote")}</span>
         </p>
       </NeoCard>

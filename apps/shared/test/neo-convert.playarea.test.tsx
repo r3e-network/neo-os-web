@@ -17,21 +17,50 @@ function t(key: string) {
     convertHint:
       "Paste a WIF, private key, public key, or NeoVM script. Everything is processed locally.",
     convertKey: "Convert Key",
+    convertPanelCopy: "Paste once and inspect the safe derived values.",
+    convertPanelTitle: "Decode a key, address, or script",
     detectedPrivKey: "Detected: Private Key",
     disassembledOpcodes: "Disassembled Opcodes",
     downloadPdf: "Download Paper Wallet (PDF)",
+    emptyOutputCopy: "Unknown or malformed input shows a clear status.",
+    emptyOutputTitle: "Output appears after a valid paste",
     enterKeyPlaceholder: "Enter WIF, hex, or address...",
+    formatAutodetectPill: "Format auto-detect",
+    formatPrivateKeyDesc: "64-character hex private key.",
+    formatPrivateKeyLabel: "Private key",
+    formatPublicKeyDesc: "Compressed public key.",
+    formatPublicKeyLabel: "Public key",
+    formatRailTitle: "Supported formats",
+    formatScriptDesc: "Verification script hex.",
+    formatScriptLabel: "NeoVM script",
+    formatsTitle: "What you can paste",
+    formatWifDesc: "Wallet Import Format private key.",
+    formatWifLabel: "WIF",
     gasBalance: "GAS Balance",
+    generatePanelCopy: "Generate a Neo N3 account locally.",
+    generatePanelTitle: "Create an offline-ready wallet",
     generateNewAccount: "Generate New Account",
+    genEmptyState: "Click Generate to create a new Neo N3 account safely on your device.",
+    genEmptySub: "Click Generate to create a new offline wallet",
     heroSubtitle: "Securely generate accounts and convert keys client-side.",
     heroTitle: "Neo N3 Toolset",
     hideSecrets: "Hide secrets",
+    localOnlyPill: "Local-only key work",
     neoBalance: "NEO Balance",
+    onDeviceNote: "Key generation and conversion run entirely on your device.",
+    paperWalletPill: "Paper wallet export",
     paperWalletRequiresReveal:
       "Reveal secrets before exporting the WIF-backed paper wallet.",
     privKeyLabel: "Private Key",
     pubKey: "Public Key",
+    safetyLocal: "Secrets stay in this device session",
+    safetyReveal: "Private values stay masked by default",
+    safetyRpc: "Balances are optional read-only RPC",
+    safetyTitle: "Safety model",
     showSecrets: "Show secrets",
+    workbenchStageCopy: "The default view keeps secrets masked.",
+    workbenchStageEyebrow: "Secure workbench",
+    workbenchStageTitle: "Paste, derive, reveal only when you choose.",
     wifLabel: "WIF",
   };
   return messages[key] ?? key;
@@ -74,6 +103,15 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 }
 
 describe("Neo Convert PlayArea", () => {
+  it("renders the key workbench stage and resting output state", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(
+      document.querySelector('.convert-hero__image[src="./key-workbench-stage.jpg"]'),
+    ).toBeTruthy();
+    expect(screen.getByText("Output appears after a valid paste")).toBeTruthy();
+  });
+
   it("keeps generated private material hidden until the user reveals it", () => {
     const privateKey = "ab".repeat(32);
     const wif = "K".repeat(52);
@@ -162,9 +200,10 @@ describe("Neo Convert PlayArea", () => {
       />,
     );
 
-    expect(
-      screen.getByText("Download Paper Wallet (PDF)").hasAttribute("disabled"),
-    ).toBe(true);
+    const lockedDownloadButton = screen
+      .getByText("Download Paper Wallet (PDF)")
+      .closest("button");
+    expect(lockedDownloadButton?.hasAttribute("disabled")).toBe(true);
     expect(
       screen.getByText(
         "Reveal secrets before exporting the WIF-backed paper wallet.",
@@ -188,8 +227,9 @@ describe("Neo Convert PlayArea", () => {
       />,
     );
 
-    expect(
-      screen.getByText("Download Paper Wallet (PDF)").hasAttribute("disabled"),
-    ).toBe(false);
+    const revealedDownloadButton = screen
+      .getByText("Download Paper Wallet (PDF)")
+      .closest("button");
+    expect(revealedDownloadButton?.hasAttribute("disabled")).toBe(false);
   });
 });
