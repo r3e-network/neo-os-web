@@ -167,6 +167,7 @@ export default function PlayArea({
   // action buttons are all disabled. Show a clear next step instead of an inert
   // button grid.
   const showOnboarding = !anchorLinked && !looseAnchorValid;
+  const showTransactionActions = !showOnboarding || anchorInputTouched;
   const hasStatusError = Boolean(formError || lastError);
   const statusText = hasStatusError
     ? formError || lastError
@@ -386,7 +387,11 @@ export default function PlayArea({
             <Coins size={17} aria-hidden="true" />
             <small>{t("anchorFlowAction")}</small>
             <strong>
-              {amountValid ? `${amountInput} NEO` : t("invalidAmount")}
+              {anchorReady
+                ? amountValid
+                  ? `${amountInput} NEO`
+                  : t("invalidAmount")
+                : t("anchorAwaitingInput")}
             </strong>
           </span>
           <span className={anchorReady && amountValid ? "is-ready" : ""}>
@@ -424,7 +429,9 @@ export default function PlayArea({
         )}
 
         <form
-          className="custom-anchor-form"
+          className={`custom-anchor-form${
+            showOnboarding ? " custom-anchor-form--onboarding" : ""
+          }`}
           onSubmit={(event) => runAction(event, "stake")}
         >
           <div className="custom-anchor-field">
@@ -446,16 +453,18 @@ export default function PlayArea({
               {t("anchorIdHint")}
             </small>
           </div>
-          <label>
-            <span>{t("neoAmount")}</span>
-            <input
-              value={amountInput}
-              onChange={(event) => setAmountInput(event.currentTarget.value)}
-              placeholder="1"
-              inputMode="numeric"
-              aria-invalid={!amountValid}
-            />
-          </label>
+          {showTransactionActions && (
+            <label>
+              <span>{t("neoAmount")}</span>
+              <input
+                value={amountInput}
+                onChange={(event) => setAmountInput(event.currentTarget.value)}
+                placeholder="1"
+                inputMode="numeric"
+                aria-invalid={!amountValid}
+              />
+            </label>
+          )}
           {hasNoAgents && (
             <div className="custom-anchor-no-agents" role="alert">
               <strong>{t("noAgentsTitle")}</strong>
@@ -476,76 +485,91 @@ export default function PlayArea({
               </label>
             </div>
           )}
-          {/* Write actions — the value-moving operations, each tagged with the
-              token it touches so NEO stake vs GAS claim is unmistakable. */}
-          <div className="custom-anchor-action-grid">
-            <button
-              type="submit"
-              className="custom-anchor-button custom-anchor-button--primary custom-anchor-button--action"
-              disabled={stakeDisabled}
-            >
-              <span className="custom-anchor-button__label">
-                {busyAction === "stake" ? t("submitting") : t("stakeAction")}
-              </span>
-              {busyAction !== "stake" && (
-                <span className="custom-anchor-button__tag" aria-hidden="true">
-                  {t("stakeTokenTag")}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              className="custom-anchor-button custom-anchor-button--action"
-              disabled={redeemDisabled}
-              onClick={(event) => runAction(event, "withdraw")}
-            >
-              <span className="custom-anchor-button__label">
-                {busyAction === "withdraw"
-                  ? t("submitting")
-                  : t("withdrawAction")}
-              </span>
-              {busyAction !== "withdraw" && (
-                <span className="custom-anchor-button__tag" aria-hidden="true">
-                  {t("withdrawTokenTag")}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              className="custom-anchor-button custom-anchor-button--action"
-              disabled={looseActionDisabled}
-              onClick={(event) => runAction(event, "claimRewards")}
-            >
-              <span className="custom-anchor-button__label">
-                {busyAction === "claimRewards"
-                  ? t("submitting")
-                  : t("claimAction")}
-              </span>
-              {busyAction !== "claimRewards" && (
-                <span className="custom-anchor-button__tag" aria-hidden="true">
-                  {t("claimTokenTag")}
-                </span>
-              )}
-            </button>
-          </div>
+          {showTransactionActions && (
+            <>
+              {/* Write actions — the value-moving operations, each tagged with the
+                  token it touches so NEO stake vs GAS claim is unmistakable. */}
+              <div className="custom-anchor-action-grid">
+                <button
+                  type="submit"
+                  className="custom-anchor-button custom-anchor-button--primary custom-anchor-button--action"
+                  disabled={stakeDisabled}
+                >
+                  <span className="custom-anchor-button__label">
+                    {busyAction === "stake"
+                      ? t("submitting")
+                      : t("stakeAction")}
+                  </span>
+                  {busyAction !== "stake" && (
+                    <span
+                      className="custom-anchor-button__tag"
+                      aria-hidden="true"
+                    >
+                      {t("stakeTokenTag")}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="custom-anchor-button custom-anchor-button--action"
+                  disabled={redeemDisabled}
+                  onClick={(event) => runAction(event, "withdraw")}
+                >
+                  <span className="custom-anchor-button__label">
+                    {busyAction === "withdraw"
+                      ? t("submitting")
+                      : t("withdrawAction")}
+                  </span>
+                  {busyAction !== "withdraw" && (
+                    <span
+                      className="custom-anchor-button__tag"
+                      aria-hidden="true"
+                    >
+                      {t("withdrawTokenTag")}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="custom-anchor-button custom-anchor-button--action"
+                  disabled={looseActionDisabled}
+                  onClick={(event) => runAction(event, "claimRewards")}
+                >
+                  <span className="custom-anchor-button__label">
+                    {busyAction === "claimRewards"
+                      ? t("submitting")
+                      : t("claimAction")}
+                  </span>
+                  {busyAction !== "claimRewards" && (
+                    <span
+                      className="custom-anchor-button__tag"
+                      aria-hidden="true"
+                    >
+                      {t("claimTokenTag")}
+                    </span>
+                  )}
+                </button>
+              </div>
 
-          {/* Maintenance — a read-only refresh, demoted to a ghost row so the
-              value-moving operations above stay visually dominant. */}
-          <div className="custom-anchor-maintenance">
-            <span className="custom-anchor-maintenance__label">
-              {t("maintenanceLabel")}
-            </span>
-            <button
-              type="button"
-              className="custom-anchor-button custom-anchor-button--ghost"
-              disabled={looseActionDisabled}
-              onClick={(event) => runAction(event, "refreshAnchor")}
-            >
-              {busyAction === "refreshAnchor"
-                ? t("submitting")
-                : t("refreshStatus")}
-            </button>
-          </div>
+              {/* Maintenance — a read-only refresh, demoted to a ghost row so the
+                  value-moving operations above stay visually dominant. */}
+              <div className="custom-anchor-maintenance">
+                <span className="custom-anchor-maintenance__label">
+                  {t("maintenanceLabel")}
+                </span>
+                <button
+                  type="button"
+                  className="custom-anchor-button custom-anchor-button--ghost"
+                  disabled={looseActionDisabled}
+                  onClick={(event) => runAction(event, "refreshAnchor")}
+                >
+                  {busyAction === "refreshAnchor"
+                    ? t("submitting")
+                    : t("refreshStatus")}
+                </button>
+              </div>
+            </>
+          )}
         </form>
 
         {anchorNotRegistered && (
@@ -554,14 +578,16 @@ export default function PlayArea({
           </div>
         )}
 
-        <div
-          className={`custom-anchor-status-strip${
-            hasStatusError ? " error" : anchorReady ? "" : " neutral"
-          }`}
-          role="status"
-        >
-          <span>{statusText}</span>
-        </div>
+        {(!showOnboarding || hasStatusError) && (
+          <div
+            className={`custom-anchor-status-strip${
+              hasStatusError ? " error" : anchorReady ? "" : " neutral"
+            }`}
+            role="status"
+          >
+            <span>{statusText}</span>
+          </div>
+        )}
       </section>
 
       {/* Carded metrics group — tiles wrapped so they stay off the viewport edge, consistent with the rest of the suite */}
