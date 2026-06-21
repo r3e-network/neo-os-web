@@ -124,6 +124,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     [amountInput],
   );
   const numericStake = Number(normalizedAmount);
+  const displayStake =
+    stakeIsValid && Number.isFinite(numericStake)
+      ? `${numericStake.toFixed(2)} GAS`
+      : "--";
   const netPayout =
     stakeIsValid && Number.isFinite(numericStake)
       ? `${(numericStake * PAYOUT_MULTIPLIER - numericStake).toFixed(2)} GAS`
@@ -355,19 +359,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               className="dice-current-round"
               aria-label={t("diceBetSummary")}
             >
-              <div className="dice-current-round__face">
+              <div className="dice-current-round__die-card">
+                <DiceFaceImage
+                  face={faceInput}
+                  className="dice-current-round__die"
+                  alt=""
+                />
                 <span>{t("currentRound")}</span>
-                <strong>{faceInput}</strong>
               </div>
               <div className="dice-current-round__copy">
-                <span>{t("stakeAmount")}</span>
-                <strong>
-                  {stakeIsValid ? `${normalizedAmount} GAS` : "--"}
-                </strong>
-                <em>
-                  {t("payoutPreview")} {activePayout} · {t("netWinLabel")}{" "}
-                  {netPayout}
-                </em>
+                <span>{t("selectedFace")}</span>
+                <strong>{faceInput}</strong>
+                <em>{t("faceTrayHint")}</em>
+              </div>
+              <div className="dice-current-round__stats">
+                <span>
+                  <em>{t("stakeAmount")}</em>
+                  <strong>{displayStake}</strong>
+                </span>
+                <span>
+                  <em>{t("payoutPreview")}</em>
+                  <strong>{activePayout}</strong>
+                </span>
+                <span>
+                  <em>{t("netWinLabel")}</em>
+                  <strong>{netPayout}</strong>
+                </span>
               </div>
               <Trophy
                 className="dice-current-round__icon"

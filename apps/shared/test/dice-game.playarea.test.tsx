@@ -120,7 +120,7 @@ describe("Dice Game PlayArea", () => {
       "1.00",
     );
     expect(screen.getByText("Potential payout: 5.70 GAS")).toBeTruthy();
-    const roundSummary = container.querySelector(".dice-current-round__copy");
+    const roundSummary = container.querySelector(".dice-current-round__stats");
     expect(roundSummary?.textContent).toContain("5.70 GAS");
     expect(roundSummary?.textContent).toContain("4.70 GAS");
   });
