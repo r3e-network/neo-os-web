@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -107,6 +108,18 @@ describe("Breakup Contract PlayArea", () => {
     expect(screen.getByText("Invalid partner address")).toBeTruthy();
     expect((screen.getByLabelText("Stake") as HTMLInputElement).value).toBe("5");
     expect((screen.getByLabelText("Duration") as HTMLInputElement).value).toBe("30");
+  });
+
+  it("keeps disabled and loading create CTAs visually distinct", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../breakup-contract/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(/\.breakup-create-cta\.neo-btn--primary\.neo-btn--loading\s*\{[\s\S]*color:\s*#ffffff/);
+    expect(styles).toMatch(/\.breakup-create-cta\.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/);
+    expect(styles).toMatch(/background:\s*\$pact-green-soft/);
+    expect(styles).toMatch(/color:\s*var\(--ns-brand-deep/);
   });
 
   it("renders actionable contract cards for the current party", () => {
