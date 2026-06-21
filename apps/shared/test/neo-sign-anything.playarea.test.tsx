@@ -138,4 +138,22 @@ describe("Neo Sign Anything PlayArea", () => {
     expect((screen.getByRole("button", { name: "Sign Message" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "Broadcast Message (On-chain)" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("keeps wallet actions mutually exclusive while one is pending", () => {
+    const { rerender } = render(
+      <PlayArea t={t} state={state({ isSigning: true })} dispatch={vi.fn()} />,
+    );
+
+    expect((screen.getByRole("button", { name: "Broadcast Message (On-chain)" }) as HTMLButtonElement).disabled).toBe(true);
+
+    rerender(
+      <PlayArea
+        t={t}
+        state={state({ isBroadcasting: true })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect((screen.getByRole("button", { name: "Sign Message" }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

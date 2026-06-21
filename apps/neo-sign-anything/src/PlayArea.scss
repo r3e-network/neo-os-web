@@ -344,7 +344,7 @@
 
 .sign-workspace {
   display: grid;
-  grid-template-columns: minmax(320px, 0.46fr) minmax(0, 0.54fr);
+  grid-template-columns: minmax(0, 0.58fr) minmax(320px, 0.42fr);
   gap: 20px;
   align-items: stretch;
   letter-spacing: 0;
@@ -398,7 +398,7 @@
 .sign-document-preview {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(20, 22, 38, 0.07);
   border-radius: var(--sign-radius-md);
   background:
@@ -407,11 +407,16 @@
   letter-spacing: 0;
 }
 
+.sign-document-preview--editor {
+  padding: 14px;
+}
+
 .sign-document-preview__paper {
   position: relative;
   display: grid;
-  align-content: end;
-  min-height: 178px;
+  grid-template-rows: auto minmax(180px, 1fr);
+  gap: 10px;
+  min-height: 292px;
   overflow: hidden;
   padding: 18px;
   border: 1px solid rgba(20, 22, 38, 0.08);
@@ -424,7 +429,7 @@
 
 .sign-document-preview__paper::before {
   position: absolute;
-  top: 24px;
+  top: 70px;
   left: 20px;
   width: min(58%, 280px);
   height: 84px;
@@ -434,12 +439,45 @@
     linear-gradient(var(--sign-border) 0 0) 0 26px / 78% 1px no-repeat,
     linear-gradient(var(--sign-border) 0 0) 0 52px / 92% 1px no-repeat;
   content: "";
+  pointer-events: none;
+}
+
+.sign-document-preview__toolbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sign-document-preview__toolbar > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 10px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sign-document-preview__toolbar > span:last-child.is-ready {
+  border-color: rgba(15, 177, 116, 0.26);
+  background: var(--sign-accent-soft);
+  color: var(--sign-accent-strong);
 }
 
 .sign-document-preview__seal {
   position: absolute;
   right: 18px;
-  bottom: 64px;
+  bottom: 26px;
   display: grid;
   width: 68px;
   height: 68px;
@@ -448,6 +486,7 @@
   border-radius: var(--ns-radius-full, 9999px);
   background: rgba(228, 248, 240, 0.76);
   color: var(--sign-accent-strong);
+  pointer-events: none;
 }
 
 .sign-document-preview__type {
@@ -461,22 +500,48 @@
   text-transform: uppercase;
 }
 
-.sign-document-preview__paper p {
+.sign-message-field--paper {
   position: relative;
   z-index: 1;
-  display: -webkit-box;
-  max-width: min(76%, 420px);
-  max-height: 4.6em;
-  margin: 7px 0 0;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sign-message-field--paper > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.sign-message-field--paper textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 16px 96px 18px 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
   color: var(--sign-ink);
+  font: inherit;
   font-size: 15px;
   font-weight: 750;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
+  line-height: 1.55;
+  resize: none;
+  text-transform: none;
   letter-spacing: 0;
+}
+
+.sign-message-field--paper textarea::placeholder {
+  color: rgba(91, 100, 120, 0.76);
+}
+
+.sign-document-preview__paper:focus-within {
+  border-color: rgba(15, 177, 116, 0.34);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .sign-document-preview__meta {
@@ -519,7 +584,7 @@
 .sign-composer-shell {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid rgba(20, 22, 38, 0.08);
   border-radius: var(--sign-radius);
   background:
@@ -636,6 +701,20 @@
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
+.sign-message-field--paper textarea,
+.sign-message-field--paper textarea:focus {
+  min-height: 180px;
+  padding: 16px 96px 18px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.55;
+  resize: none;
+}
+
 .sign-byte-meter {
   position: relative;
   height: 8px;
@@ -737,6 +816,24 @@
   font-weight: 700;
   white-space: nowrap;
   letter-spacing: 0;
+}
+
+.sign-action-grid .neo-btn--primary:not(:disabled) {
+  border-color: rgba(6, 182, 212, 0.36);
+  background: linear-gradient(135deg, var(--sign-accent), #2563eb);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  box-shadow: 0 14px 28px rgba(22, 199, 132, 0.18);
+}
+
+.sign-action-grid .neo-btn--primary:not(:disabled) * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+}
+
+.sign-action-grid .neo-btn--primary:not(:disabled):hover {
+  background: linear-gradient(135deg, var(--sign-accent-strong), #1d4ed8);
+  box-shadow: 0 4px 16px rgba(22, 199, 132, 0.28);
 }
 
 // Keep the primary CTA visibly primary even while disabled: soft-tinted
@@ -1141,22 +1238,53 @@
   }
 
   .sign-document-preview__meta {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sign-document-preview__meta span {
+    padding: 9px 8px;
+  }
+
+  .sign-document-preview__meta small {
+    font-size: 9px;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .sign-document-preview__meta strong {
+    font-size: 11px;
+    white-space: normal;
   }
 
   .sign-document-preview__paper {
-    min-height: 170px;
+    grid-template-rows: auto minmax(178px, 1fr);
+    min-height: 248px;
     padding: 16px;
   }
 
-  .sign-document-preview__paper p {
-    max-width: 100%;
-    padding-right: 64px;
+  .sign-document-preview__paper::before {
+    top: 68px;
+    left: 18px;
+    width: 62%;
+  }
+
+  .sign-document-preview__toolbar > span:last-child {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .sign-message-field--paper textarea,
+  .sign-message-field--paper textarea:focus {
+    min-height: 178px;
+    padding-right: 0;
+    padding-bottom: 72px;
+    font-size: 14px;
   }
 
   .sign-document-preview__seal {
     right: 14px;
-    bottom: 58px;
+    bottom: 18px;
     width: 58px;
     height: 58px;
   }
