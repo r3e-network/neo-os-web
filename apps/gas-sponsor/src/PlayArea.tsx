@@ -246,86 +246,115 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         ) : (
           <div className="pay-forward">
-            <p className="form-hint">{t("payForwardLead")}</p>
-
-            {/* Donate */}
-            <div className="donate-form">
-              <span className="pay-forward-section-label">
-                <Gift size={15} aria-hidden="true" />
-                {t("donate")}
+            <div className="pay-forward__intro">
+              <span className="pay-forward__mark" aria-hidden="true">
+                <Gift size={22} />
               </span>
-              <p className="form-hint">{t("donateSubtitle")}</p>
-              <p className="form-hint">{t("donateLoopNote")}</p>
-              {poolAddress && (
-                <p className="form-hint pool-address">
-                  {t("poolAddressLabel")}: <code>{poolAddress}</code>
-                </p>
-              )}
-              <NeoInput
-                value={donateAmount}
-                type="number"
-                min={0}
-                label={t("donateAmount")}
-                placeholder={t("donateAmountPlaceholder")}
-                suffix={t("tokenGas")}
-                hint={t("balanceAvailable", { amount: chainGasBalanceDisplay })}
-                error={donateError}
-                onChange={(val) => {
-                  setDonateTouched(true);
-                  state.donateAmount?.set(val);
-                }}
-              />
-              <NeoButton
-                variant="success"
-                block
-                loading={isDonating}
-                disabled={loading || !donateAmountValid}
-                aria-label={t("donateAction")}
-                onClick={() => dispatch("donate", donateAmount)}
-              >
-                {isDonating ? t("donating") : t("donateAction")}
-              </NeoButton>
+              <div>
+                <p>{t("payForwardLead")}</p>
+                <strong>
+                  {t("balanceAvailable", { amount: chainGasBalanceDisplay })}
+                </strong>
+              </div>
             </div>
 
-            {/* Send GAS */}
-            <div className="send-form">
-              <span className="pay-forward-section-label">
-                <Send size={15} aria-hidden="true" />
-                {t("sendGas")}
-              </span>
-              <p className="form-hint">{t("sendSubtitle")}</p>
-              <p className="form-hint">{t("sendDirectNote")}</p>
-              <NeoInput
-                value={recipientAddress}
-                label={t("recipient")}
-                placeholder={t("recipientPlaceholder")}
-                error={recipientError}
-                onChange={(val) => state.recipientAddress?.set(val)}
-              />
-              <NeoInput
-                value={sendAmount}
-                type="number"
-                min={0}
-                label={t("sendAmount")}
-                placeholder={t("sendAmountPlaceholder")}
-                suffix={t("tokenGas")}
-                hint={t("balanceAvailable", { amount: chainGasBalanceDisplay })}
-                error={sendAmountError}
-                onChange={(val) => {
-                  setSendTouched(true);
-                  state.sendAmount?.set(val);
-                }}
-              />
-              <NeoButton
-                variant="primary"
-                block
-                loading={isSending}
-                disabled={loading || !canSend}
-                aria-label={t("sendAction")}
-                onClick={() => dispatch("send", recipientAddress, sendAmount)}
-              >
-                {isSending ? t("sending") : t("sendAction")}
-              </NeoButton>
+            <div className="pay-forward-actions">
+              {/* Donate */}
+              <section className="pay-forward-card pay-forward-card--pool">
+                <header className="pay-forward-card__head">
+                  <span className="pay-forward-card__icon" aria-hidden="true">
+                    <Gift size={18} />
+                  </span>
+                  <div>
+                    <span className="pay-forward-section-label">
+                      {t("donate")}
+                    </span>
+                    <p>{t("donateSubtitle")}</p>
+                  </div>
+                </header>
+                {poolAddress && (
+                  <div className="pool-address">
+                    <span>{t("poolAddressLabel")}</span>
+                    <code>{poolAddress}</code>
+                  </div>
+                )}
+                <NeoInput
+                  value={donateAmount}
+                  type="number"
+                  min={0}
+                  label={t("donateAmount")}
+                  placeholder={t("donateAmountPlaceholder")}
+                  suffix={t("tokenGas")}
+                  hint={t("balanceAvailable", { amount: chainGasBalanceDisplay })}
+                  error={donateError}
+                  onChange={(val) => {
+                    setDonateTouched(true);
+                    state.donateAmount?.set(val);
+                  }}
+                />
+                <p className="pay-forward-card__note">{t("donateLoopNote")}</p>
+                <NeoButton
+                  variant="success"
+                  block
+                  loading={isDonating}
+                  disabled={loading || !donateAmountValid}
+                  aria-label={t("donateAction")}
+                  onClick={() => dispatch("donate", donateAmount)}
+                >
+                  {isDonating ? t("donating") : t("donateAction")}
+                </NeoButton>
+              </section>
+
+              {/* Send GAS */}
+              <section className="pay-forward-card pay-forward-card--wallet">
+                <header className="pay-forward-card__head">
+                  <span className="pay-forward-card__icon" aria-hidden="true">
+                    <Send size={18} />
+                  </span>
+                  <div>
+                    <span className="pay-forward-section-label">
+                      {t("sendGas")}
+                    </span>
+                    <p>{t("sendSubtitle")}</p>
+                  </div>
+                </header>
+                <div className="pay-forward-card__fields">
+                  <NeoInput
+                    value={recipientAddress}
+                    label={t("recipient")}
+                    placeholder={t("recipientPlaceholder")}
+                    error={recipientError}
+                    onChange={(val) => state.recipientAddress?.set(val)}
+                  />
+                  <NeoInput
+                    value={sendAmount}
+                    type="number"
+                    min={0}
+                    label={t("sendAmount")}
+                    placeholder={t("sendAmountPlaceholder")}
+                    suffix={t("tokenGas")}
+                    hint={t("balanceAvailable", {
+                      amount: chainGasBalanceDisplay,
+                    })}
+                    error={sendAmountError}
+                    onChange={(val) => {
+                      setSendTouched(true);
+                      state.sendAmount?.set(val);
+                    }}
+                  />
+                </div>
+                <p className="pay-forward-card__note">{t("sendDirectNote")}</p>
+                <NeoButton
+                  variant="primary"
+                  block
+                  loading={isSending}
+                  disabled={loading || !canSend}
+                  aria-label={t("sendAction")}
+                  onClick={() => dispatch("send", recipientAddress, sendAmount)}
+                >
+                  {isSending ? t("sending") : t("sendAction")}
+                </NeoButton>
+              </section>
             </div>
           </div>
         )}
