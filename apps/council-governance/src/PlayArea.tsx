@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
   ChevronRight,
+  Clock3,
   FileCheck2,
   Landmark,
   PencilLine,
   ScrollText,
+  UsersRound,
   X,
 } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
@@ -229,6 +231,17 @@ export default function PlayArea({
         : !hasPolicyDetails
           ? t("policyFieldsRequired")
           : t("eligibleToVote");
+  const proposalTypeLabel = showPolicyFields ? t("policyType") : t("textType");
+  const proposalTypeHelp = showPolicyFields
+    ? t("policyProposalScope")
+    : t("textProposalScope");
+  const draftReadinessLabel = canSubmitProposal
+    ? t("readyToSubmit")
+    : !hasBrief
+      ? t("needsBrief")
+      : !hasPolicyDetails
+        ? t("needsPolicyDetails")
+        : t("needsCouncilEligibility");
 
   const statusLabel = (proposal: Proposal) => {
     const key = proposal.statusKey || "pending";
@@ -430,6 +443,69 @@ export default function PlayArea({
           <div className="council-panel-heading">
             <h3>{t("createProposal")}</h3>
             <p>{t("createProposalHelp")}</p>
+          </div>
+
+          <div className="council-create-dossier">
+            <figure className="council-dossier-image">
+              <img
+                src="./council-chamber.jpg"
+                alt={t("dossierImageAlt")}
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>
+                <span>{t("proposalDossier")}</span>
+                <strong>{proposalTypeLabel}</strong>
+              </figcaption>
+            </figure>
+
+            <section
+              className="council-dossier-board"
+              aria-label={t("proposalDossier")}
+            >
+              <div className="council-dossier-board__head">
+                <span>{t("proposalDossier")}</span>
+                <strong>{draftReadinessLabel}</strong>
+              </div>
+              <p>{t("proposalDossierHelp")}</p>
+
+              <div className="council-dossier-grid">
+                <span>
+                  {showPolicyFields ? (
+                    <Landmark aria-hidden="true" />
+                  ) : (
+                    <ScrollText aria-hidden="true" />
+                  )}
+                  <small>{t("motionType")}</small>
+                  <strong>{proposalTypeLabel}</strong>
+                  <em>{proposalTypeHelp}</em>
+                </span>
+                <span>
+                  <Clock3 aria-hidden="true" />
+                  <small>{t("reviewWindow")}</small>
+                  <strong>{selectedDurationLabel}</strong>
+                  <em>{t("reviewWindowHelp")}</em>
+                </span>
+                <span>
+                  <FileCheck2 aria-hidden="true" />
+                  <small>{t("draftReadiness")}</small>
+                  <strong>{draftReadinessLabel}</strong>
+                  <em>{t("draftReadinessHelp")}</em>
+                </span>
+                <span>
+                  <UsersRound aria-hidden="true" />
+                  <small>{t("quorum")}</small>
+                  <strong>{t("councilOf21")}</strong>
+                  <em>{t("majorityPreview")}</em>
+                </span>
+              </div>
+
+              <div className="council-flow" aria-label={t("governanceFlow")}>
+                <span>{t("flowDraft")}</span>
+                <span>{t("flowReview")}</span>
+                <span>{t("flowVote")}</span>
+              </div>
+            </section>
           </div>
 
           <div className="council-create-workbench">
