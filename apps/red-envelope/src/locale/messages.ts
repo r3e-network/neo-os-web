@@ -73,10 +73,32 @@ const appMessages = {
     en: "Claim the selected GAS envelope. OneGate QR links prefill this ID.",
     zh: "领取选中的 GAS 红包。OneGate 二维码会自动填入这个 ID。",
   },
+  claimTicketTitle: { en: "Claim ticket", zh: "领取票据" },
+  claimTicketReady: { en: "Envelope matched", zh: "已匹配红包" },
+  claimTicketPrepared: { en: "Envelope ID prepared", zh: "红包 ID 已准备" },
+  claimTicketEmpty: { en: "Waiting for envelope", zh: "等待红包" },
+  claimTicketReadyDesc: {
+    en: "This ticket is linked to an active pool. Open once and review the wallet request.",
+    zh: "这张票据已关联可领取奖池。打开一次，并在钱包里核对请求。",
+  },
+  claimTicketPreparedDesc: {
+    en: "The ID is filled. Claiming will ask the contract to verify whether it can be opened.",
+    zh: "ID 已填入。领取时合约会校验红包是否可打开。",
+  },
+  claimTicketEmptyDesc: {
+    en: "Scan a QR, paste a link ID, or pick an open envelope below.",
+    zh: "扫描二维码、粘贴链接 ID，或从下方选择可开的红包。",
+  },
+  scanOrPasteEnvelope: { en: "Scan or paste ID", zh: "扫描或粘贴 ID" },
   createReadyDesc: {
     en: "Ready to send. Each recipient draws a random share of the pool.",
     zh: "可以发送。每位领取者将随机抽取奖池的一份。",
   },
+  giftBuilderTitle: { en: "Gift builder", zh: "红包配置台" },
+  readyToSendEnvelope: { en: "Ready to send", zh: "可以发送" },
+  adjustEnvelopeSetup: { en: "Adjust setup", zh: "调整配置" },
+  packetPreset: { en: "{count} packets", zh: "{count} 个红包" },
+  hourPreset: { en: "{hours}h", zh: "{hours} 小时" },
   sendOperationDesc: {
     en: "Secondary creator flow for sending a lucky GAS envelope.",
     zh: "次要的发红包流程，用于创建拼手气 GAS 红包。",
