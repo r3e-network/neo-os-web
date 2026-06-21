@@ -60,8 +60,12 @@ afterEach(() => cleanup());
 describe("Oracle Compute Lab PlayArea", () => {
   it("builds a sealed preview without leaking the textarea secret", async () => {
     const copy = vi.fn(async () => undefined);
-    const { container } = render(<PlayArea {...props(copy)} />);
+    const setStatus = vi.fn();
+    const { container } = render(
+      <PlayArea {...props(copy)} setStatus={setStatus} />,
+    );
 
+    expect(container.querySelector(".compute-capsule-panel")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Input Payload"), {
       target: { value: "{\"secret\":\"do-not-leak\",\"asset\":\"GAS\"}" },
     });
@@ -72,6 +76,7 @@ describe("Oracle Compute Lab PlayArea", () => {
     expect(payload?.textContent).toContain("inputDigest");
     expect(payload?.textContent).toContain("[sealed input redacted]");
     expect(payload?.textContent).not.toContain("do-not-leak");
+    expect(setStatus).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
     await waitFor(() => expect(copy).toHaveBeenCalled());
@@ -90,5 +95,23 @@ describe("Oracle Compute Lab PlayArea", () => {
     const payload = container.querySelector(".console-tool__payload-card pre");
     expect(payload?.textContent).toContain("\"privacy\": \"public\"");
     expect(payload?.textContent).toContain("public-data");
+  });
+
+  it("keeps malformed JSON blocked with a warning status", () => {
+    const setStatus = vi.fn();
+    render(<PlayArea {...props()} setStatus={setStatus} />);
+
+    fireEvent.change(screen.getByLabelText("Input Payload"), {
+      target: { value: "{\"sample\":" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Build Preview" }));
+
+    expect(
+      screen.getAllByText("Enter a valid JSON input payload").length,
+    ).toBeGreaterThan(0);
+    expect(setStatus).toHaveBeenCalledWith(
+      "Enter a valid JSON input payload",
+      "warning",
+    );
   });
 });
