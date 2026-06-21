@@ -17,7 +17,7 @@
 }
 
 .seal-play-area :is(button, input, textarea):focus-visible,
-.seal-choice-card:focus-visible {
+.seal-purpose-chip:focus-visible {
   outline: none;
   box-shadow: var(--ns-focus-ring);
 }
@@ -28,7 +28,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.62fr);
   gap: 24px;
   align-items: end;
-  min-height: 370px;
+  min-height: 330px;
   overflow: hidden;
   padding: 30px;
   border: 1px solid rgba(79, 70, 229, 0.13);
@@ -344,8 +344,7 @@
 }
 
 .seal-purpose-panel,
-.seal-recipient-panel,
-.seal-payload-panel {
+.seal-composer-panel {
   display: grid;
   gap: 12px;
   padding: 14px;
@@ -360,18 +359,21 @@
     var(--ns-surface-subtle, #f7f8fa);
 }
 
-.seal-purpose-grid {
+.seal-purpose-track {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
-.seal-choice-card {
+.seal-purpose-chip {
   position: relative;
   display: grid;
-  gap: 7px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
   min-width: 0;
-  padding: 13px;
+  min-height: 66px;
+  padding: 10px 12px;
   border: 1px solid rgba(20, 22, 38, 0.07);
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface, #ffffff);
@@ -385,12 +387,12 @@
     transform 0.16s ease;
 }
 
-.seal-choice-card:hover {
+.seal-purpose-chip:hover {
   border-color: rgba(79, 70, 229, 0.34);
   transform: translateY(-1px);
 }
 
-.seal-choice-card--selected {
+.seal-purpose-chip--selected {
   border-color: rgba(79, 70, 229, 0.46);
   background:
     linear-gradient(135deg, rgba(79, 70, 229, 0.14), rgba(14, 165, 233, 0.1)),
@@ -398,37 +400,124 @@
   box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
 
-.seal-choice-card > span:first-child,
-.seal-choice-card__check {
+.seal-purpose-chip__icon,
+.seal-purpose-chip__check {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--ns-radius-md, 16px);
   background: #eef2ff;
   color: #4338ca;
 }
 
-.seal-choice-card strong {
+.seal-purpose-chip__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 18px;
+}
+
+.seal-purpose-chip strong {
+  overflow: hidden;
   color: var(--ns-ink, #111827);
   font-size: 13px;
   font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.seal-choice-card small {
+.seal-purpose-chip small {
   color: var(--ns-text-muted, #8a92a6);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 650;
   line-height: 1.35;
 }
 
-.seal-choice-card__check {
+.seal-purpose-chip__check {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 26px;
-  height: 26px;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+}
+
+.seal-composer-panel {
+  gap: 14px;
+}
+
+.seal-composer-head,
+.seal-lane-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.seal-composer-head {
+  justify-content: space-between;
+}
+
+.seal-lane-head {
+  align-items: flex-start;
+}
+
+.seal-lane-head > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #4338ca;
+}
+
+.seal-lane-head span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.seal-lane-head small {
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.seal-lane-head strong {
+  color: var(--ns-ink, #111827);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.seal-composer-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.seal-route-lane,
+.seal-editor-lane {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.seal-route-lane {
+  align-content: start;
+}
+
+.seal-editor-lane {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(238, 242, 255, 0.5)),
+    rgba(255, 255, 255, 0.78);
 }
 
 .seal-payload-shell {
@@ -440,6 +529,14 @@
 
 .seal-payload-shell .neo-input__textarea {
   min-height: 132px;
+  resize: vertical;
+}
+
+.seal-editor-lane .neo-input__textarea {
+  min-height: 150px;
+  border-radius: var(--ns-radius-md, 16px);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  line-height: 1.55;
   resize: vertical;
 }
 
@@ -653,7 +750,8 @@
 }
 
 @media (max-width: 1080px) {
-  .seal-purpose-grid {
+  .seal-purpose-track,
+  .seal-composer-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -679,7 +777,7 @@
   }
 
   .seal-hero {
-    min-height: 380px;
+    min-height: 300px;
     padding: 18px;
     border-radius: var(--ns-radius-lg, 20px);
   }
@@ -745,18 +843,69 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .seal-quick-actions {
-    display: flex;
+  .seal-purpose-track {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .seal-quick-actions .neo-btn {
-    width: 100%;
-    justify-content: center;
+  .seal-purpose-chip {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 64px;
+    padding: 10px 6px;
+    text-align: center;
   }
 
-  .seal-purpose-grid,
+  .seal-purpose-chip strong {
+    font-size: 11.5px;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .seal-purpose-chip__copy {
+    padding-right: 0;
+  }
+
+  .seal-purpose-chip small {
+    display: none;
+  }
+
+  .seal-purpose-chip__check {
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .seal-composer-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .seal-composer-head .seal-section-copy strong {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .seal-composer-head .seal-valid-chip {
+    justify-self: start;
+    min-height: 38px;
+    margin-left: 0;
+  }
+
+  .seal-route-lane,
+  .seal-editor-lane {
+    padding: 12px;
+  }
+
+  .seal-editor-lane .neo-input__textarea {
+    min-height: 128px;
+  }
+
   .seal-result-rows,
   .seal-payload-shell,
+  .seal-composer-grid,
   .seal-digest-strip {
     grid-template-columns: 1fr;
   }

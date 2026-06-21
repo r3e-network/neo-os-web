@@ -275,18 +275,23 @@ const appMessages = {
   },
   sealPurposeTitle: { en: "Envelope purpose", zh: "信封用途" },
   sealPurposeCopy: {
-    en: "Choose why this reference exists before calculating the checksum.",
-    zh: "计算校验值前先选择引用用途。",
+    en: "Pick the envelope lane.",
+    zh: "选择信封通道。",
+  },
+  sealComposerTitle: { en: "Reference package", zh: "引用包" },
+  sealComposerCopy: {
+    en: "Route plus JSON source.",
+    zh: "路由 + JSON 来源。",
   },
   sealRecipientTitle: { en: "Recipient or route", zh: "接收方或路由" },
   sealRecipientCopy: {
-    en: "Bind the reference to a downstream recipient when needed.",
-    zh: "需要时把引用绑定到后续接收方。",
+    en: "Optional route binding.",
+    zh: "可选路由绑定。",
   },
   sealPayloadTitle: { en: "Payload reference", zh: "载荷引用" },
   sealPayloadCopy: {
-    en: "Paste JSON to checksum it. The visible payload is not encrypted by this builder.",
-    zh: "粘贴 JSON 以生成校验值。该可见载荷不会被本构建器加密。",
+    en: "JSON source, checksum only.",
+    zh: "JSON 来源，仅生成校验值。",
   },
   payloadReadyHint: {
     en: "JSON is valid; only its checksum enters the result payload.",
