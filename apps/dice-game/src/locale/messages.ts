@@ -28,6 +28,11 @@ const appMessages = {
     en: "Your bet commits now and reveals on the next block. The play area stays focused on the roll; the action box holds the transaction.",
     zh: "下注立即提交，并在下一个区块揭晓。中间区域只展示游戏状态，真正的交易动作放在右侧操作框。",
   },
+  throwingTitle: { en: "Dice is rolling", zh: "骰子滚动中" },
+  throwingBody: {
+    en: "The table is locking your chosen face and stake before the wallet returns a chain result.",
+    zh: "游戏台正在锁定你选择的点数和筹码，等待钱包返回链上结果。",
+  },
   diceHeroTitle: { en: "Dice game desk", zh: "骰子游戏台" },
   diceHeroSubtitle: {
     en: "Pick the face in the transaction panel, confirm the GAS stake, and your bet commits on-chain — the next block reveals the roll.",
