@@ -1281,33 +1281,50 @@ export function FactoryPlayArea({
                 <pre className="domain-factory-json">{packageJson}</pre>
               </details>
 
-              <div className="domain-factory-actions">
+              <div
+                className={`domain-factory-actions${
+                  !storedPlan
+                    ? " domain-factory-actions--draft"
+                    : canExecute
+                      ? " domain-factory-actions--execute-ready"
+                      : canSign
+                        ? " domain-factory-actions--sign-ready"
+                        : ""
+                }`}
+              >
                 <NeoButton
                   variant="secondary"
+                  className="domain-factory-actions__copy"
                   onClick={() => copyText(packageJson, "package")}
                 >
                   {copyLabel("package", "copyPackage")}
                 </NeoButton>
-                <NeoButton
-                  variant="success"
-                  disabled={!canSign || isSigning}
-                  loading={isSigning}
-                  onClick={() => dispatch("signCurrentPlan")}
-                >
-                  {t("signPlanAction")}
-                </NeoButton>
-                <NeoButton
-                  variant="primary"
-                  disabled={!canExecute || isExecuting}
-                  loading={isExecuting}
-                  onClick={() => dispatch("executePlan")}
-                >
-                  {t(
-                    kind === "miniapp"
-                      ? "executeRecordAction"
-                      : "executeDeployAction",
-                  )}
-                </NeoButton>
+                {storedPlan ? (
+                  <>
+                    <NeoButton
+                      variant={canExecute ? "secondary" : "success"}
+                      className="domain-factory-actions__sign"
+                      disabled={!canSign || isSigning}
+                      loading={isSigning}
+                      onClick={() => dispatch("signCurrentPlan")}
+                    >
+                      {t("signPlanAction")}
+                    </NeoButton>
+                    <NeoButton
+                      variant={canExecute ? "primary" : "secondary"}
+                      className="domain-factory-actions__execute"
+                      disabled={!canExecute || isExecuting}
+                      loading={isExecuting}
+                      onClick={() => dispatch("executePlan")}
+                    >
+                      {t(
+                        kind === "miniapp"
+                          ? "executeRecordAction"
+                          : "executeDeployAction",
+                      )}
+                    </NeoButton>
+                  </>
+                ) : null}
               </div>
 
               {previewReadyButUnsaved ? (

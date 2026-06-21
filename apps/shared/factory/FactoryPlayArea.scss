@@ -1424,9 +1424,31 @@
 }
 
 .domain-factory-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.12fr);
   gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+.domain-factory-actions .neo-btn {
+  min-height: 44px;
+}
+
+.domain-factory-actions--draft {
+  grid-template-columns: minmax(0, 260px);
+}
+
+.domain-factory-actions .neo-btn:disabled {
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-muted, #8a92a6);
+  box-shadow: none;
+}
+
+.domain-factory-actions--sign-ready .domain-factory-actions__sign:not(:disabled),
+.domain-factory-actions--execute-ready .domain-factory-actions__execute:not(:disabled) {
+  min-height: 46px;
+  font-weight: 800;
 }
 
 .domain-factory-signature,
@@ -1693,12 +1715,14 @@
   gap: 10px;
   margin: 0;
   padding: 0;
+  counter-reset: factory-step;
   list-style: none;
 }
 
 .domain-factory-steps li {
+  counter-increment: factory-step;
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
   padding: 14px;
@@ -1707,16 +1731,43 @@
   background: var(--ns-surface, #ffffff);
 }
 
+.domain-factory-steps li::before {
+  content: counter(factory-step);
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  border-radius: 999px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
 .domain-factory-steps span {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 24px;
+  padding: 0 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.domain-factory-steps li > div {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .domain-factory-step--ready span {
@@ -2041,5 +2092,10 @@
 
   .domain-factory-choice__button {
     min-height: 58px;
+  }
+
+  .domain-factory-actions,
+  .domain-factory-actions--draft {
+    grid-template-columns: 1fr;
   }
 }
