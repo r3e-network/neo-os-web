@@ -69,7 +69,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isRefreshingProjects = bool("isRefreshingProjects");
   const claimableProjectIds = val<string[]>("claimableProjectIds") ?? [];
   const claimingProjectId = str("claimingProjectId", "");
-  const activeTab = str("activeTab", "rounds");
+  const activeTab = str("activeTab", "contribute");
   const matchingPoolDisplay = str("matchingPoolDisplay", "—");
   const selectedRoundDisplay = str("selectedRoundDisplay", "—");
   const roundCount = num("roundCount", rounds.length);
@@ -100,11 +100,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Form-reset counter handed to RoundForm; bumped only after a successful
   // create so the round inputs clear (RoundForm owns its own field state).
   const [roundResetKey, setRoundResetKey] = useState(0);
+  const selectedContributionProject = projects.find(
+    (project) => String(project.id ?? "") === contributeProjectId.trim(),
+  );
+  const contributionAmountPresets = ["1", "2", "5", "10"];
+
   const workflowTabs = [
     {
-      id: "rounds",
-      label: `${t("tabRounds")} (${roundCount})`,
-      Icon: CircleDollarSign,
+      id: "contribute",
+      label: t("tabContribute"),
+      Icon: HandCoins,
     },
     {
       id: "projects",
@@ -112,9 +117,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       Icon: FolderKanban,
     },
     {
-      id: "contribute",
-      label: t("tabContribute"),
-      Icon: HandCoins,
+      id: "rounds",
+      label: `${t("tabRounds")} (${roundCount})`,
+      Icon: CircleDollarSign,
     },
   ];
 
@@ -413,76 +418,142 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
 
           {activeTab === "contribute" && (
-            <NeoCard
-              title={t("quickContribute")}
-              className="qf-contribute-panel"
-            >
-              <div className="qf-contribute-summary">
-                <span>{t("sidebarSelectedRound")}</span>
-                <strong>
-                  {selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}
-                </strong>
+            <section className="qf-donor-workbench" aria-label={t("quickContribute")}>
+              <div className="qf-donor-head">
+                <div>
+                  <span>{t("quickContribute")}</span>
+                  <strong>{t("qfDonorDeskTitle")}</strong>
+                  <p>{t("qfDonorDeskSubtitle")}</p>
+                </div>
+                <div className="qf-contribute-summary">
+                  <span>{t("sidebarSelectedRound")}</span>
+                  <strong>
+                    {selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}
+                  </strong>
+                  <small>{selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}</small>
+                </div>
               </div>
-              {/* Donor value-prop at the moment of contributing: the matching pool
-                  amplifies donations by donor breadth — surfaced here (not just in
-                  the admin panel) so a donor sees WHY many small donations win. */}
-              <div className="qf-amplify-note" role="note">
-                <strong>{t("qfAmplifyTitle")}</strong>
-                <p>{t("qfAmplifyCopy")}</p>
-                {(() => {
-                  const id = contributeProjectId.trim();
-                  if (!id) return null;
-                  const match = suggestedMatches.find((m) => m.id === id);
-                  if (!match) return null;
-                  return (
-                    <p className="qf-amplify-estimate">
-                      {t("qfProjectMatchEstimate", {
-                        id,
-                        match: match.matchDisplay,
-                      })}
-                      <span className="qf-amplify-estimate-hint">
-                        {t("qfProjectMatchHint")}
-                      </span>
-                    </p>
-                  );
-                })()}
+
+              <div className="qf-donor-grid">
+                <div className="qf-project-market">
+                  <div className="qf-amplify-note" role="note">
+                    <strong>{t("qfAmplifyTitle")}</strong>
+                    <p>{t("qfAmplifyCopy")}</p>
+                    {(() => {
+                      const id = contributeProjectId.trim();
+                      if (!id) return null;
+                      const match = suggestedMatches.find((m) => m.id === id);
+                      if (!match) return null;
+                      return (
+                        <p className="qf-amplify-estimate">
+                          {t("qfProjectMatchEstimate", {
+                            id,
+                            match: match.matchDisplay,
+                          })}
+                          <span className="qf-amplify-estimate-hint">
+                            {t("qfProjectMatchHint")}
+                          </span>
+                        </p>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="qf-project-picks" aria-label={t("qfPickProject")}>
+                    <div className="qf-project-picks__head">
+                      <span>{t("qfPickProject")}</span>
+                      <strong>{projects.length ? t("projectsList") : t("emptyProjects")}</strong>
+                    </div>
+                    {projects.length ? (
+                      projects.slice(0, 4).map((project) => {
+                        const id = String(project.id ?? "");
+                        const active = id === contributeProjectId.trim();
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            className={`qf-project-pick${active ? " is-selected" : ""}`}
+                            aria-pressed={active}
+                            onClick={() => setContributeProjectId(id)}
+                          >
+                            <span className="qf-project-pick__title">
+                              <strong>{String(project.name || `#${id}`)}</strong>
+                              <em>
+                                {formatTokenAmount(project.totalContributed)} GAS
+                              </em>
+                            </span>
+                            <span>{String(project.description || t("projectDescriptionPlaceholder"))}</span>
+                            <small>
+                              {t("donors")}: {String(project.contributorCount ?? 0)}
+                            </small>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="qf-empty-ledger qf-empty-ledger--market">
+                        <strong>{t("qfNoProjectsTitle")}</strong>
+                        <span>{t("qfNoProjectsBody")}</span>
+                        <NeoButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => switchTab("projects")}
+                        >
+                          {t("registerProject")}
+                        </NeoButton>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="qf-donation-ticket">
+                  <span>{t("qfDonationTicket")}</span>
+                  <strong>
+                    {selectedContributionProject
+                      ? String(selectedContributionProject.name || `#${selectedContributionProject.id}`)
+                      : t("selectProjectHint")}
+                  </strong>
+                  <div className="qf-amount-presets" aria-label={t("qfAmountPresets")}>
+                    {contributionAmountPresets.map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        className={contributeAmount === amount ? "is-selected" : ""}
+                        onClick={() => setContributeAmount(amount)}
+                      >
+                        {amount} GAS
+                      </button>
+                    ))}
+                  </div>
+                  <div className="qf-form-grid qf-form-grid--donation">
+                    <NeoInput
+                      value={contributeProjectId}
+                      label={t("contributionProjectId")}
+                      placeholder={t("selectProjectHint")}
+                      onChange={setContributeProjectId}
+                    />
+                    <NeoInput
+                      value={contributeAmount}
+                      label={t("contributionAmount")}
+                      placeholder={t("contributionAmountPlaceholder")}
+                      onChange={setContributeAmount}
+                    />
+                    <NeoInput
+                      value={contributionMemo}
+                      label={t("contributionMemo")}
+                      placeholder={t("contributionMemoPlaceholder")}
+                      onChange={setContributionMemo}
+                    />
+                  </div>
+                  <NeoButton
+                    variant="primary"
+                    loading={isContributing}
+                    disabled={!selectedRound || isContributing}
+                    onClick={submitContribute}
+                  >
+                    {isContributing ? t("contributing") : t("contribute")}
+                  </NeoButton>
+                </div>
               </div>
-              <p className="qf-panel-hint">
-                {selectedRound
-                  ? t("qfContributionHint")
-                  : t("selectRoundFirst")}
-              </p>
-              <div className="qf-form-grid">
-                <NeoInput
-                  value={contributeProjectId}
-                  label={t("contributionProjectId")}
-                  placeholder={t("selectProjectHint")}
-                  onChange={setContributeProjectId}
-                />
-                <NeoInput
-                  value={contributeAmount}
-                  label={t("contributionAmount")}
-                  placeholder={t("contributionAmountPlaceholder")}
-                  onChange={setContributeAmount}
-                />
-                <NeoInput
-                  value={contributionMemo}
-                  label={t("contributionMemo")}
-                  placeholder={t("contributionMemoPlaceholder")}
-                  onChange={setContributionMemo}
-                />
-              </div>
-              <div className="qf-panel-footer">
-                <NeoButton
-                  variant="primary"
-                  loading={isContributing}
-                  disabled={!selectedRound || isContributing}
-                  onClick={submitContribute}
-                >
-                  {isContributing ? t("contributing") : t("contribute")}
-                </NeoButton>
-              </div>
-            </NeoCard>
+            </section>
           )}
         </div>
       </div>

@@ -1,5 +1,4 @@
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import type { StatsDisplayItem } from "@shared/components";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
@@ -9,7 +8,7 @@ import { formatAddress } from "@shared/utils/format";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
-  const activeTab = createObservable("rounds");
+  const activeTab = createObservable("contribute");
 
   const {
     address,
@@ -57,7 +56,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     projectStatusClass,
   } = useQuadraticProjects(selectedRound, ensureContractAddress, setStatus);
 
-  const { isContributing, contributeForm, selectProject, contribute, goToContribute } = useQuadraticContributions(
+  const { isContributing, contributeForm, selectProject, contribute } = useQuadraticContributions(
     selectedRound,
     ensureContractAddress,
     setStatus,
