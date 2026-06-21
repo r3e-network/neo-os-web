@@ -6,18 +6,21 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  color: var(--ns-ink, #1e1e2e);
 }
 
 // ---------- Hero ----------
 .neopay-hero {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.25rem 1.25rem 1.375rem;
-  background: var(--ns-surface, #ffffff);
+  gap: 0.95rem;
+  padding: 1.1rem 1.35rem;
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(22, 199, 132, 0.04)),
+    var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
 
 .neopay-hero-top {
@@ -48,7 +51,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   color: var(--ns-brand, #16c784);
 }
 
@@ -56,7 +59,7 @@
   margin: 0.1875rem 0 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
   line-height: 1.2;
 }
@@ -68,9 +71,6 @@
   color: var(--ns-text-2, #5b6478);
 }
 
-// ---------- Hero stat tiles ----------
-// Full-width boxed tiles so the hero keeps its height (and balanced right side)
-// even at zero streams, instead of collapsing to a thin left strip.
 .neopay-hero-summary {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -93,22 +93,16 @@
 .neopay-hero-stat-value {
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
   font-variant-numeric: tabular-nums;
-}
-
-// Muted zero so an empty hero reads as a deliberate first-run state.
-.neopay-hero-stat-value--empty {
-  font-weight: 600;
-  color: var(--ns-text-muted, #8a92a6);
 }
 
 .neopay-hero-stat-label {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -117,17 +111,6 @@
   height: 30px;
   justify-self: center;
   background: var(--ns-border, rgba(20, 22, 38, 0.06));
-}
-
-.neopay-hero-empty-note {
-  margin: -0.45rem 0 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.35;
-  text-align: center;
-  text-transform: uppercase;
 }
 
 .neopay-service-notice {
@@ -147,59 +130,117 @@
   font-weight: 700;
 }
 
-// ---------- Form ----------
-.neopay-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+// ---------- Payment console ----------
+.neopay-card {
+  border-radius: var(--ns-radius-lg, 20px);
 }
 
-// Incomplete primary action is deliberately quiet: it should read as "not ready",
-// not as an enabled pale-green CTA.
-.neopay-form .neo-btn--primary:disabled {
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+.neopay-card--form {
+  min-width: 0;
+}
+
+.neopay-composer-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.72fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.neopay-composer-main,
+.neopay-composer {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.neopay-composer__amount {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(22, 199, 132, 0)),
+    var(--ns-surface-subtle, #f7f8fa);
+
+  .neo-input__wrapper {
+    min-height: 66px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .neo-input__field {
+    min-height: 66px;
+    padding: 0 0.15rem;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .neo-input__suffix {
+    padding-right: 0.2rem;
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 0.9rem;
+    font-weight: 900;
+  }
+}
+
+.neopay-composer__label {
   color: var(--ns-text-muted, #8a92a6);
-  box-shadow: none;
-  opacity: 1;
-}
-
-// ---------- Token Selector ----------
-.neopay-token-selector {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
-}
-
-.neopay-token-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
 }
 
-.neopay-token-options {
-  display: flex;
-  gap: 0.375rem;
+.neopay-asset-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 .neopay-token-option {
-  padding: 0.375rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 46px;
+  padding: 0.58rem 0.75rem;
   border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-xs, 8px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
   color: var(--ns-text-2, #5b6478);
-  font-size: 0.75rem;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 0.92rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  span {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-align: right;
+  }
 
   &:hover {
+    transform: translateY(-1px);
     border-color: rgba(22, 199, 132, 0.3);
-    color: var(--ns-ink, #1e1e2e);
+    box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
   }
 
   &:focus-visible {
@@ -207,10 +248,227 @@
     box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 
-  &--active {
-    border-color: var(--ns-brand, #16c784);
+  &--active,
+  &.is-active {
+    border-color: rgba(22, 199, 132, 0.44);
     background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-deep, #0b5e3e);
+
+    strong,
+    span {
+      color: var(--ns-brand-strong, #0fb174);
+    }
+  }
+}
+
+.neopay-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.46fr);
+  gap: 0.75rem;
+}
+
+.neopay-advanced {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 0 0.9rem;
+    color: var(--ns-text-2, #5b6478);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 850;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: "+";
+      color: var(--ns-brand-strong, #0fb174);
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    }
+  }
+
+  &[open] {
+    padding-bottom: 0.85rem;
+
+    summary::after {
+      content: "-";
+    }
+
+    .neo-input {
+      padding: 0 0.85rem;
+    }
+  }
+}
+
+.neopay-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+
+  button {
+    min-height: 34px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    border-radius: 999px;
+    background: var(--ns-surface-subtle, #f7f8fa);
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      border-color: rgba(22, 199, 132, 0.32);
+      background: var(--ns-brand-soft, #e4f8f0);
+      color: var(--ns-brand-strong, #0fb174);
+    }
+
+    &.is-active {
+      border-color: var(--ns-brand, #16c784);
+      background: var(--ns-brand-soft, #e4f8f0);
+      color: var(--ns-brand-strong, #0fb174);
+    }
+  }
+}
+
+.neopay-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.85rem;
+
+  &.is-dirty {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .neo-btn--primary:disabled,
+  .neo-btn--primary[aria-disabled="true"] {
+    background: var(--ns-surface-subtle, #f7f8fa);
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    color: var(--ns-text-muted, #8a92a6);
+    box-shadow: none;
+    opacity: 1;
+  }
+}
+
+.neopay-actions .neopay-create-cta.neo-btn--primary:not(:disabled):not([aria-disabled="true"]) {
+  border: 1px solid #0a7a52;
+  background: #0a7a52;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(22, 199, 132, 0.2);
+
+  &:hover {
+    background: #086d49;
+    border-color: #086d49;
+  }
+}
+
+.neopay-review-panel {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background:
+    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 42%),
+    var(--ns-surface, #ffffff);
+
+  &.is-ready {
+    border-color: rgba(22, 199, 132, 0.2);
+  }
+}
+
+.neopay-review-panel__top {
+  display: grid;
+  gap: 0.28rem;
+
+  span {
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 1.38rem;
+    line-height: 1.05;
+    font-weight: 900;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.neopay-review__pending {
+  color: var(--ns-text-muted, #8a92a6) !important;
+  font-weight: 700 !important;
+}
+
+.neopay-review__hint {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.neopay-summary {
+  display: grid;
+  gap: 0.5rem;
+
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 42px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-radius: var(--ns-radius-sm, 12px);
+    background: var(--ns-surface-subtle, #f7f8fa);
+  }
+
+  span {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  strong {
+    min-width: 0;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 0.88rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+
+  strong.neopay-summary__muted {
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.78rem;
+    font-weight: 700;
   }
 }
 
@@ -239,7 +497,62 @@
   color: var(--ns-brand, #16c784);
 }
 
+// ---------- First-run guide ----------
+.neopay-howto {
+  .neopay-howto__steps {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+
+  .neopay-howto__num {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .neopay-howto__copy {
+    padding-top: 0.15rem;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .neopay-howto__foot {
+    margin: 0.9rem 0 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+}
+
 // ---------- Stream List ----------
+.neopay-stream-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
 .neopay-stream-list {
   display: flex;
   flex-direction: column;
@@ -307,7 +620,7 @@
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   padding: 0.1875rem 0.5rem;
   border-radius: var(--ns-radius-full, 999px);
   background: var(--ns-surface-subtle, #f7f8fa);
@@ -425,9 +738,63 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 920px) {
+  .neopay-composer-shell,
+  .neopay-stream-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .neopay-play-area {
     padding: 0.75rem;
+  }
+
+  .neopay-hero {
+    padding: 0.85rem;
+  }
+
+  .neopay-composer__amount {
+    padding: 0.8rem;
+  }
+
+  .neopay-composer__amount .neo-input__wrapper,
+  .neopay-composer__amount .neo-input__field {
+    min-height: 56px;
+  }
+
+  .neopay-composer__amount .neo-input__field {
+    font-size: 2rem;
+  }
+
+  .neopay-token-option {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.18rem;
+  }
+
+  .neopay-token-option span {
+    text-align: left;
+  }
+
+  .neopay-form-grid,
+  .neopay-actions,
+  .neopay-actions.is-dirty {
+    grid-template-columns: 1fr;
+  }
+
+  .neopay-review-panel {
+    padding: 0.8rem;
+  }
+
+  .neopay-summary div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.18rem;
+  }
+
+  .neopay-summary strong {
+    text-align: left;
   }
 
   .neopay-stream-item {
