@@ -8,11 +8,11 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 .proof-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.76fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.58fr);
+  gap: 18px;
   align-items: stretch;
   overflow: hidden;
-  padding: 18px;
+  padding: 16px;
   border: 1px solid rgba(20, 22, 38, 0.07);
   border-radius: var(--ns-radius-lg, 20px);
   background:
@@ -28,7 +28,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 .proof-hero__content {
   display: grid;
   align-content: center;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
   padding: 8px 0 8px 4px;
 }
@@ -75,7 +75,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 .proof-hero__title {
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 29px;
+  font-size: 27px;
   font-weight: 850;
   letter-spacing: 0;
   line-height: 1.12;
@@ -122,7 +122,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 .proof-hero__stage {
   position: relative;
   min-width: 0;
-  min-height: 286px;
+  min-height: 220px;
   margin: 0;
   overflow: hidden;
   border: 1px solid rgba(20, 22, 38, 0.08);
@@ -174,14 +174,14 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 
   .proof-hero__stage {
-    min-height: 250px;
+    min-height: 210px;
   }
 }
 
 @media (max-width: 560px) {
   .proof-hero {
-    min-height: 330px;
-    padding: 18px;
+    min-height: 232px;
+    padding: 16px;
   }
 
   .proof-hero__content {
@@ -201,7 +201,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 
   .proof-hero__title {
-    font-size: 24px;
+    font-size: 23px;
   }
 
   .proof-hero__description {
@@ -214,6 +214,11 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
     gap: 8px;
   }
 
+  .proof-hero__steps span {
+    min-height: 32px;
+    padding: 7px 10px;
+  }
+
   .proof-hero__steps span:nth-child(3) {
     display: none;
   }
@@ -224,7 +229,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
     min-height: 100%;
     border: 0;
     border-radius: inherit;
-    opacity: 0.3;
+    opacity: 0.22;
     box-shadow: none;
   }
 
