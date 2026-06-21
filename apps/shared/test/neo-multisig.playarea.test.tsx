@@ -47,11 +47,14 @@ function t(key: string, params?: Record<string, string | number>) {
     multisigHeroSnapshot: "Vault snapshot",
     multisigHeroSubtitle: "Deposit GAS or NEO into a shared vault.",
     multisigHeroTitle: "Multisig Custody Vault",
+    multisigGasAssetHint: "Fee token, 8 decimals",
     multisigInsufficientBalance:
       "Amount exceeds the vault balance ({balance} {asset} available).",
     multisigInvalidSignerAddress: "Each signer must be a valid Neo N3 address.",
+    multisigMemoDetails: "Signer note / memo",
     multisigNeedSigners: "Add at least two signer addresses before creating a vault.",
     multisigNetworkValue: "Neo N3",
+    multisigNeoAssetHint: "Whole-token custody",
     multisigProposeCopy: "Create a spend request from the vault.",
     multisigProposeTitle: "Propose a spend",
     multisigProposalPreview: "Proposal docket",
@@ -225,7 +228,7 @@ describe("Neo Multisig PlayArea", () => {
     render(
       <PlayArea
         t={t}
-        state={baseState({ activeVault: vault(), vaultCount: 1 })}
+        state={baseState({ activeVault: vault({ neoBalance: 3 }), vaultCount: 1 })}
         dispatch={dispatch}
       />,
     );
@@ -251,11 +254,13 @@ describe("Neo Multisig PlayArea", () => {
     );
 
     // Propose a spend
+    const assetButtons = screen.getAllByRole("button", { name: /^NEO/ });
+    fireEvent.click(assetButtons[1]);
     fireEvent.change(screen.getByLabelText("Recipient Address"), {
       target: { value: RECIPIENT },
     });
     fireEvent.change(screen.getAllByLabelText("Amount")[1], {
-      target: { value: "0.5" },
+      target: { value: "1" },
     });
     fireEvent.change(screen.getByLabelText("Memo"), {
       target: { value: "rent" },
@@ -264,9 +269,9 @@ describe("Neo Multisig PlayArea", () => {
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("proposeRequest", {
         vaultId: 7,
-        asset: "GAS",
+        asset: "NEO",
         recipient: RECIPIENT,
-        amount: "0.5",
+        amount: "1",
         memo: "rent",
       }),
     );
