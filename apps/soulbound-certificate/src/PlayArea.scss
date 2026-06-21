@@ -36,8 +36,8 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   grid-template-columns: minmax(0, 0.95fr) minmax(280px, 0.85fr);
   align-items: center;
   gap: 22px;
-  min-height: 360px;
-  padding: 28px;
+  min-height: 318px;
+  padding: 24px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(235, 249, 241, 0.92) 100%);
   border: 1px solid rgba(22, 199, 132, 0.16);
@@ -113,7 +113,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   z-index: 1;
   display: block;
   align-self: stretch;
-  min-height: 244px;
+  min-height: 214px;
   overflow: hidden;
   border-radius: 18px;
   box-shadow: 0 22px 44px rgba(57, 84, 45, 0.16);
@@ -357,12 +357,12 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 @media (max-width: 720px) {
   .certificate-hero {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
     min-height: 0;
-    padding: 16px;
+    padding: 14px;
   }
   .hero-title {
-    font-size: 1.4rem;
+    font-size: 1.28rem;
   }
   .hero-subtitle {
     font-size: 12.5px;
@@ -375,7 +375,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
     font-size: 11px;
   }
   .certificate-hero__art {
-    min-height: 184px;
+    min-height: 132px;
   }
   .connect-prompt {
     justify-content: flex-start;
@@ -418,7 +418,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .issue-studio {
   display: grid;
-  grid-template-columns: minmax(260px, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: minmax(250px, 0.86fr) minmax(0, 1.14fr);
   gap: 16px;
   align-items: start;
   min-width: 0;
@@ -1377,11 +1377,107 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 }
 
 @media (max-width: 560px) {
+  .certificate-play-area {
+    gap: 12px;
+  }
+
+  .certificate-workspace,
+  .certificate-column {
+    gap: 12px;
+  }
+
+  .certificate-status-strip {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .hero-copy {
+    gap: 8px;
+  }
+
+  .hero-proof-row span {
+    min-height: 26px;
+  }
+
+  .hero-metrics {
+    gap: 7px;
+    margin-top: 4px;
+    font-size: 11.5px;
+  }
+
+  .wallet-chip {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .issue-studio,
+  .template-lab {
+    gap: 10px;
+  }
+
+  .issue-artboard,
+  .template-lab__preview,
+  .issue-controls {
+    padding: 12px;
+    border-radius: var(--ns-radius-md);
+  }
+
+  .issue-artboard__head {
+    gap: 8px;
+  }
+
+  .issue-flow-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .issue-flow-card .panel-copy {
+    display: none;
+  }
+
+  .issue-flow-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .issue-flow-steps span {
+    justify-content: center;
+    min-height: 26px;
+    padding: 0 6px;
+    font-size: 10px;
+    text-align: center;
+  }
+
   .certificate-form-grid,
   .template-metrics,
   .certificate-detail dl,
   .certificate-artifact__facts {
     grid-template-columns: 1fr;
+  }
+
+  .certificate-form-grid {
+    gap: 9px;
+  }
+
+  .certificate-field {
+    gap: 5px;
+  }
+
+  .certificate-field span {
+    font-size: 11px;
+  }
+
+  .certificate-field input,
+  .certificate-field textarea {
+    min-height: 40px;
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+
+  .certificate-field textarea {
+    min-height: 72px;
   }
 
   .certificate-drawer > summary {
@@ -1406,11 +1502,21 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 
   .certificate-artifact__recipient {
-    font-size: 20px;
+    font-size: 19px;
   }
 
   .certificate-artifact__title {
-    font-size: 17px;
+    font-size: 16px;
+  }
+
+  .certificate-artifact__frame {
+    gap: 10px;
+    padding: 18px 18px 15px;
+  }
+
+  .certificate-artifact__seal {
+    width: 34px;
+    height: 34px;
   }
 
   .verify-row {
@@ -1432,11 +1538,19 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 
   .selected-template {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 0;
+    padding: 10px 11px;
 
     strong {
       text-align: left;
+      font-size: 11px;
     }
+  }
+
+  .selected-template span {
+    font-size: 9px;
   }
 
   .cert-item,
