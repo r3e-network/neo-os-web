@@ -805,8 +805,8 @@ export default function PlayArea({
                   <strong>{t("candidatePreviewTitle")}</strong>
                   {candidatePreview.length > 0 ? (
                     <ul>
-                      {candidatePreview.map((key) => (
-                        <li key={key}>{truncate(key)}</li>
+                      {candidatePreview.map((key, index) => (
+                        <li key={`${index}-${key}`}>{truncate(key)}</li>
                       ))}
                     </ul>
                   ) : (

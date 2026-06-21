@@ -1,8 +1,15 @@
 .custom-anchor-playarea {
   display: grid;
   gap: 18px;
+  box-sizing: border-box;
   color: var(--ns-ink, #1e1e2e);
   font-variant-numeric: tabular-nums;
+}
+
+.custom-anchor-playarea *,
+.custom-anchor-playarea *::before,
+.custom-anchor-playarea *::after {
+  box-sizing: border-box;
 }
 
 .custom-anchor-hero {
@@ -69,7 +76,7 @@
 .custom-anchor-hero h2 {
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: clamp(1.68rem, 2.6vw, 2.28rem);
+  font-size: 34px;
   font-weight: 900;
   line-height: 1.12;
   letter-spacing: 0;
@@ -406,6 +413,7 @@
 
 .custom-anchor-field-hint {
   display: block;
+  padding: 0 2px;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 600;
@@ -869,17 +877,18 @@
 
 .custom-anchor-candidate-kit {
   display: grid;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(15, 177, 116, 0.16);
   border-radius: var(--ns-radius-lg, 18px);
   background:
     linear-gradient(
       145deg,
-      rgba(228, 248, 240, 0.38),
+      rgba(228, 248, 240, 0.78),
       rgba(255, 255, 255, 0) 64%
     ),
-    var(--ns-surface-subtle, #f7f8fa);
+    var(--ns-surface, #fff);
+  box-shadow: 0 12px 28px rgba(10, 128, 80, 0.06);
 }
 
 .custom-anchor-candidate-kit__head,
@@ -914,9 +923,10 @@
 .custom-anchor-candidate-kit__preview {
   align-items: stretch;
   padding: 12px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
+  border: 1px solid rgba(15, 177, 116, 0.15);
   border-radius: var(--ns-radius-md, 15px);
-  background: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
 }
 
 .custom-anchor-candidate-kit__icon {
@@ -964,6 +974,10 @@
 
 .custom-anchor-candidate-kit__preview li {
   overflow: hidden;
+  padding: 6px 8px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 10px;
+  background: var(--ns-surface-subtle, #f7f8fa);
   color: var(--ns-text-2, #5b6478);
   font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
   font-size: 11.5px;
@@ -980,18 +994,27 @@
 /* Council candidates textarea (21 compressed public keys, one per line). */
 .custom-anchor-candidates {
   width: 100%;
-  min-height: 120px;
-  padding: 10px 12px;
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  min-height: 142px;
+  padding: 13px 14px;
+  border: 1px solid rgba(15, 177, 116, 0.18);
+  border-radius: var(--ns-radius-md, 15px);
+  background:
+    linear-gradient(90deg, rgba(228, 248, 240, 0.5) 0 30px, transparent 30px),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96) 0,
+      rgba(255, 255, 255, 0.96) 29px,
+      rgba(20, 22, 38, 0.045) 30px
+    ),
+    var(--ns-surface, #fff);
   color: var(--ns-ink, #1e1e2e);
   font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 680;
+  line-height: 1.65;
   resize: vertical;
   outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition:
     border-color var(--ns-t-fast, 150ms) ease,
     box-shadow var(--ns-t-fast, 150ms) ease,
@@ -1004,7 +1027,9 @@
   &:focus {
     border-color: var(--ns-brand, #16c784);
     background: var(--ns-surface, #fff);
-    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.18);
+    box-shadow:
+      0 0 0 3px rgba(22, 199, 132, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
   &[aria-invalid="true"] {
