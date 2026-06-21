@@ -60,6 +60,8 @@ function t(key: string, params?: Record<string, string | number>) {
     invalidAddress: "Invalid address",
     sponsorServiceTitle: "Sponsorship unavailable",
     sponsorServiceUnavailable: "The sponsorship service is temporarily unavailable.",
+    stationCardLabel: "Today available",
+    stationCardCopy: "Daily sponsor lane for low-balance wallets",
     notAvailable: "Unavailable",
     connectToRequest: "Connect wallet to request",
   };
@@ -110,6 +112,15 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 }
 
 describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
+  it("renders the refill-station visual and available quota card", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+
+    expect(
+      document.querySelector('.gas-refill-hero__media img[src="./gas-sponsor-refill-station.jpg"]'),
+    ).toBeTruthy();
+    expect(screen.getByText("Today available")).toBeTruthy();
+  });
+
   it("shows the locked pay-it-forward state for an unfunded (eligible) wallet", () => {
     render(<PlayArea t={t} state={state({ isFunded: false })} dispatch={vi.fn(async () => undefined)} />);
 
