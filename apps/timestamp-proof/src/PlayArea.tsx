@@ -91,7 +91,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const previewTitle = trimmedContent
     ? contentKind
     : t("documentPreviewEmptyTitle");
-  const previewBody = trimmedContent || t("documentPreviewEmpty");
+  const previewStatus = canCreate ? t("proofRouteReady") : t("proofRouteWaiting");
 
   return (
     <div className="proof-play-area">
@@ -163,6 +163,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             aria-label={t("documentPreviewLabel")}
           >
             <div className="proof-document-preview__paper">
+              <div className="proof-document-preview__toolbar">
+                <span className="proof-document-preview__type">
+                  {previewTitle}
+                </span>
+                <span className={canCreate ? "is-ready" : ""}>
+                  <Fingerprint size={14} aria-hidden="true" />
+                  {previewStatus}
+                </span>
+              </div>
               <div className="proof-document-preview__lines" aria-hidden="true">
                 <span />
                 <span />
@@ -171,10 +180,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="proof-document-preview__seal" aria-hidden="true">
                 <Fingerprint size={26} />
               </span>
-              <span className="proof-document-preview__type">
-                {previewTitle}
-              </span>
-              <p>{previewBody}</p>
+              <label className="proof-document-preview__field">
+                <span>{t("enterContent")}</span>
+                <textarea
+                  value={content}
+                  placeholder={t("contentPlaceholder")}
+                  onChange={(event) => setContent(event.currentTarget.value)}
+                />
+              </label>
             </div>
             <div className="proof-document-preview__meta">
               <span>
@@ -215,13 +228,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="proof-form proof-form--composer">
-            <NeoInput
-              value={content}
-              type="textarea"
-              label={t("enterContent")}
-              placeholder={t("contentPlaceholder")}
-              onChange={(val) => setContent(val)}
-            />
             <div className="proof-privacy-note">
               <ShieldCheck size={16} aria-hidden="true" />
               <span>{t("proofPrivacy")}</span>
@@ -247,7 +253,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               }}
             >
               <FileCheck2 size={17} aria-hidden="true" />
-              {isCreating ? t("creating") : t("createProof")}
+              <span className="proof-cta__label">
+                {isCreating ? t("creating") : t("createProof")}
+              </span>
             </NeoButton>
             {!canCreate && !isCreating && (
               <p className="proof-cta-hint">{t("createDisabledHint")}</p>
