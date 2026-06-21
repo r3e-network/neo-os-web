@@ -121,7 +121,7 @@ describe("FactoryPlayArea", () => {
     expect(screen.getByRole("radiogroup", { name: "Network" })).toBeTruthy();
     expect(screen.getByRole("radio", { name: "Network: Neo N3 Testnet" }).getAttribute("aria-checked")).toBe("true");
     // The template artifact row is honest about not having a live read yet.
-    expect(screen.getByText("Unverified")).toBeTruthy();
+    expect(screen.getAllByText("Unverified").length).toBeGreaterThan(0);
   });
 
   it("updates miniapp template cards and service switches without native form controls", async () => {
@@ -152,7 +152,9 @@ describe("FactoryPlayArea", () => {
     const state = buildState();
     renderPlayArea(FactoryPlayArea as never, "nep17", state);
 
-    expect(screen.getByText("Owner must be a Neo N3 address or Hash160.")).toBeTruthy();
+    expect(
+      screen.getAllByText("Owner must be a Neo N3 address or Hash160.").length,
+    ).toBeGreaterThan(0);
     act(() => {
       state.walletAddress.set(OWNER);
     });
@@ -174,7 +176,7 @@ describe("FactoryPlayArea", () => {
     const execute = screen.getByRole("button", { name: "Deploy via factory" }) as HTMLButtonElement;
     expect(execute.disabled).toBe(true);
     expect(screen.getByText(/Template artifact not registered on-chain yet/)).toBeTruthy();
-    expect(screen.getByText("Metadata only")).toBeTruthy();
+    expect(screen.getAllByText("Metadata only").length).toBeGreaterThan(0);
   });
 
   it("enables execute for artifact-backed plans and shows the GAS fee estimate row", async () => {
@@ -188,9 +190,9 @@ describe("FactoryPlayArea", () => {
 
     const execute = screen.getByRole("button", { name: "Deploy via factory" }) as HTMLButtonElement;
     expect(execute.disabled).toBe(false);
-    expect(screen.getByText("Estimated network fee")).toBeTruthy();
-    expect(screen.getByText("≈ 10.1235 GAS")).toBeTruthy();
-    expect(screen.getByText("Preloaded on-chain")).toBeTruthy();
+    expect(screen.getAllByText("Estimated network fee").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("≈ 10.1235 GAS").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Preloaded on-chain").length).toBeGreaterThan(0);
 
     act(() => {
       execute.click();
