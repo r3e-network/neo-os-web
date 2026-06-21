@@ -362,6 +362,166 @@
   gap: 14px;
 }
 
+.redenv-claim-ticket,
+.redenv-gift-builder {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(223, 76, 66, 0.18);
+  border-radius: var(--re-radius);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 238, 226, 0.82)),
+    #fff;
+  box-shadow:
+    var(--re-shadow-soft),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+}
+
+.redenv-claim-ticket {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.redenv-ticket-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(223, 76, 66, 0.22);
+  border-radius: var(--re-radius-sm);
+  background: #fff;
+  color: var(--re-red-strong);
+  box-shadow: var(--re-shadow-soft);
+}
+
+.redenv-ticket-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.redenv-ticket-copy span,
+.redenv-gift-builder__head span,
+.redenv-preset-group > span {
+  color: var(--re-muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.redenv-ticket-copy strong {
+  overflow: hidden;
+  color: var(--re-red-strong);
+  font-size: 20px;
+  font-weight: 880;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redenv-ticket-copy small {
+  color: var(--re-text);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.redenv-ticket-route {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(223, 76, 66, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.redenv-ticket-route span {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 248, 243, 0.92);
+  color: var(--re-red-strong);
+  font-size: 11px;
+  font-weight: 820;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.redenv-gift-builder__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.redenv-gift-builder__head strong {
+  max-width: 52%;
+  overflow: hidden;
+  color: var(--re-ink);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redenv-preset-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.redenv-preset-group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(105, 50, 43, 0.08);
+  border-radius: var(--re-radius-sm);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.redenv-preset-group div {
+  display: grid;
+  gap: 6px;
+}
+
+.redenv-preset-group button {
+  min-height: 34px;
+  border: 1px solid var(--re-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--re-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 780;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.redenv-preset-group button:hover {
+  border-color: rgba(223, 76, 66, 0.32);
+  background: #fff8f3;
+}
+
+.redenv-preset-group button.is-selected {
+  border-color: rgba(223, 76, 66, 0.46);
+  background: var(--re-red-soft);
+  color: var(--re-red-strong);
+  box-shadow: inset 0 0 0 1px rgba(223, 76, 66, 0.12);
+}
+
 .redenv-helper {
   margin: -3px 0 0;
   color: var(--re-text);
@@ -749,6 +909,7 @@
 }
 
 .redenv-tab:focus-visible,
+.redenv-preset-group button:focus-visible,
 .redenv-row:focus-visible,
 .redenv-details > summary:focus-visible,
 .redenv-modal-button:focus-visible,
@@ -764,6 +925,10 @@
 
   .redenv-hero-card {
     grid-column: 1 / -1;
+  }
+
+  .redenv-preset-board {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -786,7 +951,12 @@
   .redenv-selected-card,
   .redenv-create-grid,
   .redenv-create-summary,
-  .redenv-activity-grid {
+  .redenv-activity-grid,
+  .redenv-ticket-route {
+    grid-template-columns: 1fr;
+  }
+
+  .redenv-claim-ticket {
     grid-template-columns: 1fr;
   }
 
