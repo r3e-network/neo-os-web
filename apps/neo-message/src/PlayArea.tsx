@@ -142,8 +142,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const recipientPreview =
     recipientNicknameValue.trim() ||
     (recipientIsValid ? shortAddress(recipientValue) : t("recipientPreviewEmpty"));
+  const deskRecipientPreview =
+    recipientIsValid || recipientNicknameValue.trim()
+      ? recipientPreview
+      : t("recipientDeskEmpty");
   const draftPreview = draftBody || t("messageDraftEmpty");
   const deliveryPreview = isTimed ? t("publicRevealLabel") : t("privateSealLabel");
+  const deskDeliveryPreview = isTimed ? t("deliveryDeskTimed") : t("deliveryDeskRecipient");
   const composeValidation = validateCompose(form);
   const sendBlockedByValidation = !composeValidation.ok;
   const readinessLabel = sendBlockedByValidation
@@ -151,6 +156,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : sendBlockedByAck
       ? t("readinessNeedAck")
       : t("readinessReady");
+  const deskReadinessLabel = sendBlockedByValidation
+    ? t("readinessDeskNeedsDetails")
+    : sendBlockedByAck
+      ? t("readinessDeskNeedsAck")
+      : t("readinessDeskReady");
 
   const onRecipientNicknameChange = (value: string) => {
     setRecipientNickname(value);
@@ -313,6 +323,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <p>{t("composeLead")}</p>
               </div>
             </div>
+
+            <section className="nm-seal-desk" aria-label={t("sealedDeskLabel")}>
+              <figure className="nm-seal-desk__image">
+                <img src="./sealed-message-desk.jpg" alt="" loading="lazy" decoding="async" />
+                <figcaption>
+                  <span>{t("sealedDeskLabel")}</span>
+                  <strong>{t("sealedDeskCaption")}</strong>
+                </figcaption>
+              </figure>
+              <div className="nm-seal-desk__steps">
+                <span>
+                  <MessageSquareText aria-hidden="true" />
+                  <small>{t("recipientPreviewLabel")}</small>
+                  <strong>{deskRecipientPreview}</strong>
+                </span>
+                <span>
+                  {isTimed ? <CalendarClock aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />}
+                  <small>{t("deliveryPreviewLabel")}</small>
+                  <strong>{deskDeliveryPreview}</strong>
+                </span>
+                <span>
+                  <ShieldCheck aria-hidden="true" />
+                  <small>{t("readinessLabel")}</small>
+                  <strong>{deskReadinessLabel}</strong>
+                </span>
+              </div>
+            </section>
 
             <div className="nm-recipient-row">
               <NeoInput
