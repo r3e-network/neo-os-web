@@ -33,7 +33,7 @@
 
 .selfloan-hero {
   position: relative;
-  min-height: 300px;
+  min-height: 292px;
   overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
@@ -295,6 +295,12 @@
   gap: 12px;
 }
 
+.selfloan-borrow-desk {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+
 .selfloan-balance-strip {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -324,20 +330,27 @@
 
 .selfloan-collateral-entry {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.66fr);
-  gap: 12px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.62fr);
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .selfloan-borrow-output {
-  min-height: 98px;
+  min-height: 92px;
   display: grid;
   align-content: center;
   gap: 4px;
-  padding: 14px;
+  padding: 13px 14px;
   border: 1px solid rgba(200, 135, 34, 0.26);
   border-radius: 16px;
   background: linear-gradient(145deg, #fffaf0, var(--sl-gold-soft));
+}
+
+.selfloan-borrow-output span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .selfloan-borrow-output span,
@@ -345,6 +358,11 @@
   font-size: 12px;
   font-weight: 800;
   color: #76581c;
+}
+
+.selfloan-borrow-output svg {
+  flex: 0 0 auto;
+  color: var(--sl-gold);
 }
 
 .selfloan-borrow-output strong {
@@ -441,27 +459,48 @@
   font-weight: 850;
 }
 
+.selfloan-ltv-desk {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--sl-line);
+  border-radius: 17px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(247, 242, 232, 0.74));
+}
+
+.selfloan-ltv-desk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .selfloan-ltv-tiers {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgba(88, 66, 36, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
 }
 
 .selfloan-ltv-tier {
   display: grid;
-  gap: 4px;
-  min-height: 74px;
-  padding: 12px 10px;
-  border: 1px solid var(--sl-line);
-  border-radius: 16px;
-  background: #fff;
+  gap: 3px;
+  min-height: 62px;
+  padding: 9px 8px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: transparent;
   color: var(--sl-muted);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .selfloan-ltv-tier:hover:not(.is-active) {
-  border-color: rgba(21, 150, 111, 0.26);
+  border-color: rgba(21, 150, 111, 0.18);
   background: #fffdf8;
   transform: translateY(-1px);
 }
@@ -479,7 +518,7 @@
 }
 
 .selfloan-ltv-tier-percent {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 900;
   color: var(--sl-ink);
   font-variant-numeric: tabular-nums;
@@ -491,7 +530,7 @@
 
 .selfloan-market-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 9px;
 }
 
@@ -519,7 +558,6 @@
   line-height: 1.15;
 }
 
-.selfloan-ltv-indicator,
 .selfloan-health {
   display: flex;
   flex-wrap: wrap;
@@ -542,7 +580,6 @@
 
 .selfloan-ltv-value,
 .selfloan-health-value {
-  margin-left: auto;
   font-size: 18px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -827,8 +864,10 @@
 
   .selfloan-hero {
     grid-template-columns: 1fr;
-    min-height: 440px;
+    min-height: 366px;
+    gap: 14px;
     padding: 18px;
+    align-content: space-between;
   }
 
   .selfloan-hero-shade {
@@ -845,35 +884,105 @@
     align-items: flex-start;
   }
 
+  .selfloan-hero-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+  }
+
+  .selfloan-hero-content {
+    gap: 14px;
+  }
+
   .selfloan-hero-title {
-    font-size: 26px;
+    font-size: 25px;
   }
 
   .selfloan-hero-subtitle {
     font-size: 14px;
   }
 
-  .selfloan-hero-panel {
-    justify-self: stretch;
-    min-width: 0;
-  }
-
-  .selfloan-hero-stats,
-  .selfloan-balance-strip,
-  .selfloan-collateral-entry,
-  .selfloan-market-grid,
-  .selfloan-status-row {
-    grid-template-columns: 1fr;
-  }
-
-  .selfloan-ltv-tiers {
+  .selfloan-hero-flow {
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 7px;
   }
 
+  .selfloan-hero-flow span {
+    justify-content: center;
+    min-height: 32px;
+    padding: 7px 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .selfloan-hero-panel {
+    justify-self: stretch;
+    min-width: 0;
+    padding: 15px;
+  }
+
+  .selfloan-hero-panel strong {
+    font-size: 23px;
+  }
+
+  .selfloan-hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .selfloan-hero-stat {
+    padding: 11px 9px;
+    border-radius: 16px;
+  }
+
+  .selfloan-hero-stat-value {
+    font-size: 18px;
+  }
+
+  .selfloan-hero-stat-label {
+    margin-top: 5px;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+
+  .selfloan-collateral-entry,
+  .selfloan-balance-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .selfloan-vault-preview,
+  .selfloan-vault-preview img {
+    min-height: 220px;
+  }
+
+  .selfloan-vault-preview-card {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    padding: 13px;
+  }
+
+  .selfloan-vault-preview-card strong {
+    font-size: 24px;
+  }
+
+  .selfloan-borrow-output {
+    min-height: 84px;
+  }
+
+  .selfloan-status-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .selfloan-ltv-tiers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
   .selfloan-ltv-tier {
-    min-height: 68px;
-    padding: 10px 7px;
+    min-height: 58px;
+    padding: 8px 6px;
   }
 
   .selfloan-ltv-tier-percent {
@@ -883,15 +992,17 @@
 
 @media (max-width: 390px) {
   .selfloan-hero {
-    min-height: 470px;
+    min-height: 382px;
   }
 
   .selfloan-hero-flow span {
-    width: 100%;
+    width: auto;
     justify-content: center;
+    gap: 5px;
+    padding-inline: 4px;
   }
 
   .selfloan-ltv-tiers {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
