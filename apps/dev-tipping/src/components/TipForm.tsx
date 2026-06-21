@@ -1,12 +1,22 @@
+import { Coins, HeartHandshake, ShieldCheck } from "lucide-react";
 import { NeoInput, NeoButton } from "@shared/components-react";
 import type { Developer } from "../composables/useDevTippingStats";
 
 interface TipFormProps {
-  developers: Developer[]; selectedDevId: number | null; amount: string;
-  anonymous: boolean; isLoading: boolean;
-  onSelectDev: (id: number | null) => void; onAmountChange: (val: string) => void;
-  onAnonymousChange: (val: boolean) => void; onSubmit: () => void; t: (key: string) => string;
+  developers: Developer[];
+  selectedDevId: number | null;
+  amount: string;
+  anonymous: boolean;
+  isLoading: boolean;
+  onSelectDev: (id: number | null) => void;
+  onAmountChange: (val: string) => void;
+  onAnonymousChange: (val: boolean) => void;
+  onSubmit: () => void;
+  t: (key: string) => string;
 }
+
+const TIP_PRESETS = ["0.01", "0.05", "0.10", "1.00"] as const;
+const MIN_TIP = 0.001;
 
 /** First-letter monogram for a developer name; falls back to "#" for empty names. */
 function devInitial(name: string): string {
@@ -18,8 +28,28 @@ function devInitial(name: string): string {
 // there is no off-chain store for a message or tipper name, so those inputs are
 // intentionally omitted (they were silently discarded). The anonymous toggle is
 // the only identity control the contract actually honors.
-export default function TipForm({ developers, selectedDevId, amount, anonymous, isLoading, onSelectDev, onAmountChange, onAnonymousChange, onSubmit, t }: TipFormProps) {
-  const canSubmit = selectedDevId !== null && amount && !isLoading;
+export default function TipForm({
+  developers,
+  selectedDevId,
+  amount,
+  anonymous,
+  isLoading,
+  onSelectDev,
+  onAmountChange,
+  onAnonymousChange,
+  onSubmit,
+  t,
+}: TipFormProps) {
+  const parsedAmount = Number.parseFloat(amount);
+  const amountIsValid = Number.isFinite(parsedAmount) && parsedAmount >= MIN_TIP;
+  const selectedDeveloper = developers.find((dev) => dev.id === selectedDevId);
+  const recipientLabel = selectedDeveloper
+    ? selectedDeveloper.name
+    : selectedDevId
+      ? `#${selectedDevId}`
+      : t("tipRecipientPending");
+  const amountLabel = amountIsValid ? `${amount} ${t("tokenGas")}` : t("tipAmountPending");
+  const canSubmit = selectedDevId !== null && amountIsValid && !isLoading;
   const handleManualDeveloperId = (value: string) => {
     const devId = Number.parseInt(value, 10);
     onSelectDev(Number.isSafeInteger(devId) && devId > 0 ? devId : null);
@@ -27,10 +57,35 @@ export default function TipForm({ developers, selectedDevId, amount, anonymous, 
 
   return (
     <div className="form-group">
+      <div className="tip-preview-card" aria-label={t("tipPreviewTitle")}>
+        <span className="tip-preview-card__icon" aria-hidden="true">
+          <HeartHandshake size={20} />
+        </span>
+        <div className="tip-preview-card__main">
+          <span>{t("tipPreviewTitle")}</span>
+          <strong>{recipientLabel}</strong>
+        </div>
+        <div className="tip-preview-card__meta">
+          <span>
+            <small>{t("tipAmount")}</small>
+            <strong>{amountLabel}</strong>
+          </span>
+          <span>
+            <small>{t("tipVisibility")}</small>
+            <strong>{anonymous ? t("anonymousOn") : t("anonymousOff")}</strong>
+          </span>
+        </div>
+      </div>
+
       {developers.length > 0 ? (
         <div className="dev-selector">
           {developers.map((dev) => (
-            <button key={dev.id} type="button" className={`dev-select-item-glass${selectedDevId === dev.id ? " active" : ""}`} onClick={() => onSelectDev(dev.id)}>
+            <button
+              key={dev.id}
+              type="button"
+              className={`dev-select-item-glass${selectedDevId === dev.id ? " active" : ""}`}
+              onClick={() => onSelectDev(dev.id)}
+            >
               <span className="dev-select-avatar" aria-hidden="true">{devInitial(dev.name)}</span>
               <span className="dev-select-meta">
                 <span className="dev-select-name-glass">{dev.name}</span>
@@ -41,6 +96,12 @@ export default function TipForm({ developers, selectedDevId, amount, anonymous, 
         </div>
       ) : (
         <div className="dev-id-field">
+          <div className="dev-id-field__brief">
+            <span aria-hidden="true">
+              <ShieldCheck size={17} />
+            </span>
+            <strong>{t("directTipRoute")}</strong>
+          </div>
           <NeoInput
             value={selectedDevId ?? ""}
             type="number"
@@ -52,7 +113,40 @@ export default function TipForm({ developers, selectedDevId, amount, anonymous, 
           <p className="dev-id-help">{t("developerIdHelp")}</p>
         </div>
       )}
-      <NeoInput value={amount} type="number" label={t("tipAmount")} placeholder={t("customAmount")} onChange={onAmountChange} />
+      <div className="tip-amount-station">
+        <div className="tip-amount-station__head">
+          <span>
+            <Coins size={15} aria-hidden="true" />
+            {t("quickTipLabel")}
+          </span>
+          <strong>{t("minTip")}</strong>
+        </div>
+        <div className="tip-preset-row" aria-label={t("tipPresetLabel")}>
+          {TIP_PRESETS.map((preset) => {
+            const selected = amount === preset;
+            return (
+              <button
+                key={preset}
+                type="button"
+                className={`tip-preset-chip${selected ? " is-selected" : ""}`}
+                aria-pressed={selected}
+                onClick={() => onAmountChange(preset)}
+              >
+                <strong>{preset}</strong>
+                <span>{t("tokenGas")}</span>
+              </button>
+            );
+          })}
+        </div>
+        <NeoInput
+          value={amount}
+          type="number"
+          label={t("tipAmount")}
+          placeholder={t("customAmount")}
+          min={MIN_TIP}
+          onChange={onAmountChange}
+        />
+      </div>
       <div className="toggle-field">
         <span className="toggle-field__label">{t("tipVisibility")}</span>
         <div className="toggle-row" role="group" aria-label={t("tipVisibility")}>

@@ -27,8 +27,16 @@ function t(key: string) {
     sendTip: "Send Tip",
     developerId: "Developer ID",
     developerIdPlaceholder: "Registered developer ID",
+    directTipRoute: "Direct contract tip",
     tipAmount: "Tip Amount",
     customAmount: "Custom amount...",
+    quickTipLabel: "Quick tip",
+    tipPresetLabel: "Tip amount presets",
+    tipPreviewTitle: "Tip preview",
+    tipRecipientPending: "Choose a developer",
+    tipAmountPending: "Choose amount",
+    tokenGas: "GAS",
+    minTip: "Minimum tip is 0.001 GAS",
     optionalMessage: "Optional Message",
     messagePlaceholder: "Say thanks...",
     tipperName: "Your Name (optional)",
@@ -82,6 +90,29 @@ describe("Dev Tipping PlayArea", () => {
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("sendTip", 7, "0.05", false);
     });
+  });
+
+  it("offers quick tip presets that update the submitted amount", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.change(screen.getByLabelText("Developer ID"), {
+      target: { value: "7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /0\.05\s+GAS/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Send Tip" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("sendTip", 7, "0.05", false);
+    });
+  });
+
+  it("renders the tipping banner assets in the hero", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn().mockResolvedValue(undefined)} />);
+
+    expect(document.querySelector('.tipping-hero__media img[src="./banner.jpg"]')).toBeTruthy();
+    expect(document.querySelector('.tipping-hero__badge img[src="./logo.jpg"]')).toBeTruthy();
   });
 
   it("does not let a default zero display hide a loaded donation total", () => {
