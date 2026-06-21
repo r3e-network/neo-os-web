@@ -28,34 +28,96 @@
 }
 
 .wallet-health-hero {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 18px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 0.48fr);
+  gap: 22px;
+  align-items: stretch;
   min-width: 0;
-  padding: 22px 24px;
-  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  min-height: 248px;
+  padding: 26px;
+  border: 1px solid rgba(22, 199, 132, 0.14);
   border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(238, 250, 246, 0.96) 62%, rgba(226, 244, 255, 0.92) 100%),
+    var(--ns-surface, #ffffff);
+  box-shadow: 0 20px 48px rgba(17, 92, 78, 0.12);
   letter-spacing: 0;
 }
 
+.wallet-health-hero-art,
+.wallet-health-hero-shade {
+  position: absolute;
+  inset: 0;
+}
+
+.wallet-health-hero-art {
+  right: 0;
+  left: auto;
+  width: min(44%, 520px);
+  z-index: 0;
+}
+
+.wallet-health-hero-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 100% center;
+  opacity: 0.92;
+}
+
+.wallet-health-hero-shade {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 50%, rgba(255, 255, 255, 0.72) 72%, rgba(255, 255, 255, 0.18) 100%),
+    linear-gradient(180deg, rgba(228, 248, 240, 0.28), rgba(255, 255, 255, 0));
+}
+
 .wallet-health-hero-copy {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
+  gap: 12px;
   min-width: 0;
 
   h2 {
     margin: 0;
     color: var(--ns-ink, #1e1e2e);
-    font-size: 22px;
-    line-height: 1.12;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 40px;
+    line-height: 1.08;
+    font-weight: 900;
+    letter-spacing: 0;
   }
+}
+
+.wallet-health-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.wallet-health-logo {
+  display: block;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(20, 22, 38, 0.12);
+}
+
+.wallet-health-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .wallet-health-kicker {
@@ -67,16 +129,35 @@
   text-transform: uppercase;
 }
 
+.standalone-dapp-root .wallet-health-shell .wallet-health-kicker,
+.wallet-health-shell .wallet-health-kicker {
+  color: var(--ns-brand-deep, #0b5e3e);
+}
+
+.wallet-health-hero-subtitle {
+  max-width: 560px;
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.58;
+}
+
 .wallet-health-hero-facts {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--ns-text-2, #5b6478);
   font-size: 13px;
   line-height: 1.3;
   letter-spacing: 0;
+}
+
+.standalone-dapp-root .wallet-health-shell .wallet-health-hero-facts,
+.wallet-health-shell .wallet-health-hero-facts {
+  color: var(--ns-text-2, #5b6478);
 }
 
 .wallet-health-fact-sep {
@@ -96,6 +177,27 @@
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0;
+}
+
+.wallet-health-score-card {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  align-self: center;
+  min-width: 0;
+  min-height: 150px;
+  padding: 18px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 18px 34px rgba(20, 22, 38, 0.1);
+  backdrop-filter: blur(14px);
 }
 
 .wallet-health-score-ring {
@@ -124,7 +226,7 @@
     font-size: 23px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   // Disconnected, score-of-zero resting state: a flat muted track + muted dash
@@ -137,6 +239,65 @@
       color: var(--ns-text-muted, #8a92a6);
     }
   }
+}
+
+.wallet-health-score-card__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.wallet-health-score-card__copy span {
+  color: var(--ns-text-muted, #6b7180);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.standalone-dapp-root .wallet-health-shell .wallet-health-score-card__copy span,
+.wallet-health-shell .wallet-health-score-card__copy span {
+  color: var(--ns-text-muted, #6b7180);
+}
+
+.wallet-health-score-card__copy strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-health-score-card__copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.38;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.wallet-health-progress {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-success-soft, #e4f8f0);
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+}
+
+.wallet-health-progress span {
+  display: block;
+  width: var(--completion, 0%);
+  min-width: 8px;
+  max-width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
+  transition: width 0.24s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .wallet-health-score-caption {
@@ -221,7 +382,7 @@
     line-height: 1.18;
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 }
 
@@ -240,9 +401,10 @@
   }
 
   .neo-btn:disabled {
-    background: var(--ns-success-soft, #e4f8f0);
-    border-color: rgba(22, 199, 132, 0.28);
-    color: var(--ns-success-strong, #0fb174);
+    background: var(--ns-surface-subtle, #f7f8fa);
+    border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    color: var(--ns-text-faint, #aeb4c2);
+    box-shadow: none;
   }
 }
 
@@ -272,9 +434,10 @@
   }
 
   .neo-btn:disabled {
-    background: var(--ns-success-soft, #e4f8f0);
-    border-color: rgba(22, 199, 132, 0.28);
-    color: var(--ns-success-strong, #0fb174);
+    background: var(--ns-surface-subtle, #f7f8fa);
+    border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    color: var(--ns-text-faint, #aeb4c2);
+    box-shadow: none;
   }
 }
 
@@ -429,7 +592,20 @@
   }
 
   .wallet-health-hero {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wallet-health-hero-copy h2 {
+    font-size: 34px;
+  }
+
+  .wallet-health-hero-art {
+    width: min(62%, 420px);
+    opacity: 0.72;
+  }
+
+  .wallet-health-score-card {
+    width: min(100%, 520px);
   }
 }
 
@@ -439,14 +615,49 @@
   }
 
   .wallet-health-hero {
+    grid-template-columns: 1fr;
     padding: 18px;
     gap: 14px;
     border-radius: var(--ns-radius-md, 16px);
+    min-height: 0;
+  }
+
+  .wallet-health-hero-art {
+    width: 100%;
+    opacity: 0.18;
+  }
+
+  .wallet-health-hero-shade {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.86)),
+      linear-gradient(135deg, rgba(228, 248, 240, 0.42), rgba(226, 244, 255, 0.34));
+  }
+
+  .wallet-health-hero-title-row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .wallet-health-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
   }
 
   .wallet-health-hero-copy h2 {
-    font-size: 21px;
+    font-size: 26px;
     line-height: 1.1;
+  }
+
+  .wallet-health-hero-subtitle {
+    font-size: 13.5px;
+  }
+
+  .wallet-health-score-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 0;
+    padding: 14px;
+    border-radius: var(--ns-radius-md, 16px);
   }
 
   .wallet-health-score-ring {
