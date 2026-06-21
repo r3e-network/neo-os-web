@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import {
   NeoButton,
-  NeoInput,
   type ConsoleFieldOption,
   type ConsoleResult,
 } from "@shared/components-react";
@@ -105,13 +104,17 @@ export default function PlayArea({
     (field) => field.key === "method",
   );
   const methodOptions = methodField?.options ?? [];
+  const methodValue = values.method ?? "";
+  const urlValue = values.url ?? "";
+  const jsonPathValue = values.jsonPath ?? "";
+  const bodyValue = values.body ?? "";
   const selectedMethod =
-    methodOptions.find((option) => option.value === values.method) ??
+    methodOptions.find((option) => option.value === methodValue) ??
     methodOptions[0];
   const selectedMethodLabel = selectedMethod
     ? optionLabel(selectedMethod, t)
-    : values.method;
-  const bodyEnabled = values.method === "POST";
+    : methodValue;
+  const bodyEnabled = methodValue === "POST";
   const urlValid = draftResult.payload.urlValid === true;
   const pathValid = draftResult.payload.pathValid === true;
   const draftOk = draftResult.payload.status !== "input_required";
@@ -125,12 +128,12 @@ export default function PlayArea({
     {
       key: "source",
       label: t("httpSourceLabel"),
-      value: compactUrl(values.url),
+      value: compactUrl(urlValue),
     },
     {
       key: "path",
       label: t("httpExtractionLabel"),
-      value: values.jsonPath.trim() || t("notAvailable"),
+      value: jsonPathValue.trim() || t("notAvailable"),
     },
     {
       key: "body",
@@ -161,7 +164,9 @@ export default function PlayArea({
       const count = Number(state.requestCount?.get?.() ?? 0);
       setObservable(state, "requestCount", count + 1);
     }
-    setStatus(next.status, ok ? "success" : "warning");
+    if (!ok) {
+      setStatus(next.status, "warning");
+    }
   }
 
   function buildPreview() {
@@ -281,20 +286,35 @@ export default function PlayArea({
           </div>
 
           <section
-            className="http-method-panel"
-            aria-label={t("httpMethodTitle")}
+            className="http-pipeline-panel"
+            aria-label={t("httpPipelineTitle")}
           >
-            <div className="http-section-copy">
-              <small>{t("httpMethodTitle")}</small>
-              <strong>{t("httpMethodCopy")}</strong>
+            <div className="http-pipeline-panel__head">
+              <div className="http-section-copy">
+                <small>{t("httpPipelineTitle")}</small>
+                <strong>{t("httpPipelineCopy")}</strong>
+              </div>
+              <span
+                className={`http-valid-chip${
+                  draftOk ? " http-valid-chip--ok" : " http-valid-chip--warn"
+                }`}
+              >
+                {draftOk ? (
+                  <Check size={15} aria-hidden="true" />
+                ) : (
+                  <Link2 size={15} aria-hidden="true" />
+                )}
+                {draftOk ? t("httpValidationReady") : draftResult.status}
+              </span>
             </div>
+
             <div
-              className="http-method-grid"
+              className="http-method-rail"
               role="radiogroup"
               aria-label={t("method")}
             >
               {methodOptions.map((option) => {
-                const selected = values.method === option.value;
+                const selected = methodValue === option.value;
                 const label = optionLabel(option, t);
                 return (
                   <button
@@ -333,111 +353,110 @@ export default function PlayArea({
                 );
               })}
             </div>
-          </section>
 
-          <section
-            className="http-endpoint-panel"
-            aria-label={t("httpEndpointTitle")}
-          >
-            <div className="http-section-copy">
-              <small>{t("httpEndpointTitle")}</small>
-              <strong>{t("httpEndpointCopy")}</strong>
-            </div>
-            <div className="http-input-with-chip">
-              <NeoInput
-                label={t("url")}
-                value={values.url}
-                placeholder={t("urlPlaceholder")}
-                hint={urlValid ? t("httpUrlReadyHint") : ""}
-                error={urlValid ? "" : t("httpUrlInvalidHint")}
-                onChange={(value) => updateValue("url", value)}
-              />
-              <span
-                className={`http-valid-chip${
-                  urlValid ? " http-valid-chip--ok" : " http-valid-chip--warn"
+            <div className="http-pipeline-board">
+              <label
+                className={`http-pipeline-node${
+                  urlValid ? " http-pipeline-node--ok" : " http-pipeline-node--warn"
                 }`}
               >
-                {urlValid ? (
-                  <Check size={15} aria-hidden="true" />
-                ) : (
-                  <Link2 size={15} aria-hidden="true" />
-                )}
-                {t("urlValid")}: {boolLabel(urlValid, t)}
-              </span>
-            </div>
-          </section>
+                <span className="http-pipeline-node__icon" aria-hidden="true">
+                  <Globe2 size={18} />
+                </span>
+                <span className="http-pipeline-node__copy">
+                  <small>{t("httpEndpointTitle")}</small>
+                  <strong>{t("httpEndpointCopy")}</strong>
+                </span>
+                <span className="http-pipeline-node__status">
+                  {urlValid ? (
+                    <Check size={14} aria-hidden="true" />
+                  ) : (
+                    <Link2 size={14} aria-hidden="true" />
+                  )}
+                  {t("urlValid")}: {boolLabel(urlValid, t)}
+                </span>
+                <input
+                  value={urlValue}
+                  placeholder={t("urlPlaceholder")}
+                  aria-label={t("url")}
+                  onChange={(event) => updateValue("url", event.currentTarget.value)}
+                />
+              </label>
 
-          <section
-            className="http-extract-panel"
-            aria-label={t("httpExtractionTitle")}
-          >
-            <div className="http-section-copy">
-              <small>{t("httpExtractionTitle")}</small>
-              <strong>{t("httpExtractionCopy")}</strong>
-            </div>
-            <div className="http-input-with-chip">
-              <NeoInput
-                label={t("jsonPath")}
-                value={values.jsonPath}
-                placeholder={t("jsonPathPlaceholder")}
-                hint={pathValid ? t("httpPathReadyHint") : ""}
-                error={pathValid ? "" : t("httpPathInvalidHint")}
-                onChange={(value) => updateValue("jsonPath", value)}
-              />
-              <span
-                className={`http-valid-chip${
-                  pathValid ? " http-valid-chip--ok" : " http-valid-chip--warn"
+              <label
+                className={`http-pipeline-node${
+                  pathValid ? " http-pipeline-node--ok" : " http-pipeline-node--warn"
                 }`}
               >
-                {pathValid ? (
-                  <Check size={15} aria-hidden="true" />
-                ) : (
-                  <Braces size={15} aria-hidden="true" />
-                )}
-                {t("pathValid")}: {boolLabel(pathValid, t)}
-              </span>
+                <span className="http-pipeline-node__icon" aria-hidden="true">
+                  <Braces size={18} />
+                </span>
+                <span className="http-pipeline-node__copy">
+                  <small>{t("httpExtractionTitle")}</small>
+                  <strong>{t("httpExtractionCopy")}</strong>
+                </span>
+                <span className="http-pipeline-node__status">
+                  {pathValid ? (
+                    <Check size={14} aria-hidden="true" />
+                  ) : (
+                    <Braces size={14} aria-hidden="true" />
+                  )}
+                  {t("pathValid")}: {boolLabel(pathValid, t)}
+                </span>
+                <input
+                  value={jsonPathValue}
+                  placeholder={t("jsonPathPlaceholder")}
+                  aria-label={t("jsonPath")}
+                  onChange={(event) =>
+                    updateValue("jsonPath", event.currentTarget.value)
+                  }
+                />
+              </label>
+
+              <details
+                className={`http-body-panel${
+                  bodyEnabled ? "" : " http-body-panel--muted"
+                }`}
+                open={bodyEnabled}
+              >
+                <summary>
+                  <span>
+                    <SlidersHorizontal size={17} aria-hidden="true" />
+                    {t("httpBodyPanelTitle")}
+                  </span>
+                  <strong>
+                    {bodyEnabled ? t("httpBodyIncluded") : t("httpBodyIgnored")}
+                  </strong>
+                  <ChevronDown
+                    className="http-body-panel__icon"
+                    size={15}
+                    aria-hidden="true"
+                  />
+                </summary>
+                <div className="http-body-panel__content">
+                  <p>
+                    {bodyEnabled
+                      ? t("httpBodyPanelPostCopy")
+                      : t("httpBodyPanelGetCopy")}
+                  </p>
+                  <label className="http-body-editor">
+                    <span>{t("body")}</span>
+                    <textarea
+                      value={bodyValue}
+                      placeholder={t("bodyPlaceholder")}
+                      disabled={!bodyEnabled}
+                      onChange={(event) =>
+                        updateValue("body", event.currentTarget.value)
+                      }
+                    />
+                    <small>
+                      {bodyEnabled ? t("httpBodyPostHint") : t("httpBodyGetHint")}
+                    </small>
+                  </label>
+                </div>
+              </details>
             </div>
           </section>
-
-          <details
-            className={`http-body-panel${
-              bodyEnabled ? "" : " http-body-panel--muted"
-            }`}
-            open={bodyEnabled}
-          >
-            <summary>
-              <span>
-                <SlidersHorizontal size={17} aria-hidden="true" />
-                {t("httpBodyPanelTitle")}
-              </span>
-              <strong>
-                {bodyEnabled ? t("httpBodyIncluded") : t("httpBodyIgnored")}
-              </strong>
-              <ChevronDown
-                className="http-body-panel__icon"
-                size={15}
-                aria-hidden="true"
-              />
-            </summary>
-            <div className="http-body-panel__content">
-              <p>
-                {bodyEnabled
-                  ? t("httpBodyPanelPostCopy")
-                  : t("httpBodyPanelGetCopy")}
-              </p>
-              <NeoInput
-                type="textarea"
-                label={t("body")}
-                value={values.body}
-                placeholder={t("bodyPlaceholder")}
-                hint={
-                  bodyEnabled ? t("httpBodyPostHint") : t("httpBodyGetHint")
-                }
-                disabled={!bodyEnabled}
-                onChange={(value) => updateValue("body", value)}
-              />
-            </div>
-          </details>
 
           <div className="http-actions">
             <NeoButton variant="primary" size="lg" onClick={buildPreview}>
