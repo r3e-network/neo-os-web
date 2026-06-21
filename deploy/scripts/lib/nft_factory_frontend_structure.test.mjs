@@ -34,8 +34,8 @@ test("NFT Factory renders an NFT-native drop studio with real assets", () => {
   assert.match(playArea, /dispatch\("generatePlan"/);
   assert.match(playArea, /dispatch\("signCurrentPlan"\)/);
   assert.match(playArea, /dispatch\("executePlan"\)/);
-  assert.match(playArea, /<NeoInput label=\{t\("collectionName"\)\}/);
-  assert.match(playArea, /<ToggleField label=\{t\("transferable"\)\}/);
+  assert.match(playArea, /<NeoInput[\s\S]{0,120}label=\{t\("collectionName"\)\}/);
+  assert.match(playArea, /<ToggleField[\s\S]{0,160}label=\{t\("transferable"\)\}/);
 
   assert.match(styles, /\.domain-factory--nep11\s*\{/);
   assert.match(styles, /\.domain-factory--nep11 \.domain-factory-preview__nft\s*\{[^}]*grid-template-columns/s);
