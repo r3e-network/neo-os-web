@@ -45,36 +45,42 @@ const CATEGORY_OPTIONS = [
   {
     value: 1,
     labelKey: "categoryPersonal",
+    shortLabelKey: "categoryPersonalShort",
     hintKey: "categoryPersonalHint",
     icon: UserRound,
   },
   {
     value: 2,
     labelKey: "categoryGift",
+    shortLabelKey: "categoryGiftShort",
     hintKey: "categoryGiftHint",
     icon: Gift,
   },
   {
     value: 3,
     labelKey: "categoryMemorial",
+    shortLabelKey: "categoryMemorialShort",
     hintKey: "categoryMemorialHint",
     icon: Landmark,
   },
   {
     value: 4,
     labelKey: "categoryAnnouncement",
+    shortLabelKey: "categoryAnnouncementShort",
     hintKey: "categoryAnnouncementHint",
     icon: BellRing,
   },
   {
     value: 5,
     labelKey: "categorySecret",
+    shortLabelKey: "categorySecretShort",
     hintKey: "categorySecretHint",
     icon: LockKeyhole,
   },
 ] satisfies ReadonlyArray<{
   value: number;
   labelKey: string;
+  shortLabelKey: string;
   hintKey: string;
   icon: LucideIcon;
 }>;
@@ -115,7 +121,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedCategory =
     CATEGORY_OPTIONS.find(
       (option) => option.value === Number(newCapsule.category ?? 1),
-    ) ?? CATEGORY_OPTIONS[0];
+    ) ?? CATEGORY_OPTIONS[0]!;
   const SelectedCategoryIcon = selectedCategory.icon;
   const titlePreview = (newCapsule.title ?? "").trim() || t("untitledCapsule");
   const contentPreview = (newCapsule.content ?? "").trim();
@@ -292,6 +298,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                           : ""
                       }`}
                       role="radio"
+                      aria-label={t(option.labelKey)}
                       aria-checked={
                         Number(newCapsule.category ?? 1) === option.value
                       }
@@ -304,7 +311,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <Icon />
                       </span>
                       <span className="capsule-choice-card__copy">
-                        <strong>{t(option.labelKey)}</strong>
+                        <strong>
+                          <span className="capsule-choice-card__label-full">
+                            {t(option.labelKey)}
+                          </span>
+                          <span className="capsule-choice-card__label-short">
+                            {t(option.shortLabelKey)}
+                          </span>
+                        </strong>
                         <span>{t(option.hintKey)}</span>
                       </span>
                     </button>
@@ -388,10 +402,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <aside
-            className="capsule-preview-panel"
+            className={`capsule-preview-panel${isCreating ? " is-sealing" : ""}`}
             aria-label={t("sealPreview")}
           >
             <div className="capsule-preview-device">
+              <img
+                className="capsule-preview-device__stage"
+                src="./time-capsule-stage.jpg"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+              />
               <span className="capsule-preview-device__icon" aria-hidden="true">
                 <SelectedCategoryIcon size={23} />
               </span>
