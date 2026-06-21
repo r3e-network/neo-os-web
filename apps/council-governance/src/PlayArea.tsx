@@ -216,6 +216,19 @@ export default function PlayArea({
   );
   const draftTitle = newTitle.trim() || t("proposalDraftEmpty");
   const draftDescription = newDescription.trim() || t("descPlaceholder");
+  const hasBrief = Boolean(newTitle.trim() && newDescription.trim());
+  const hasPolicyDetails =
+    !showPolicyFields || Boolean(policyMethod && policyValue.trim());
+  const canSubmitProposal = canWrite && hasBrief && hasPolicyDetails;
+  const submitHint = !walletAddress
+    ? t("connectWalletCreate")
+    : candidateLoaded && !isCandidate
+      ? t("notCandidateCreate")
+      : !hasBrief
+        ? t("fillAllFields")
+        : !hasPolicyDetails
+          ? t("policyFieldsRequired")
+          : t("eligibleToVote");
 
   const statusLabel = (proposal: Proposal) => {
     const key = proposal.statusKey || "pending";
@@ -420,33 +433,6 @@ export default function PlayArea({
           </div>
 
           <div className="council-create-workbench">
-            <section
-              className="council-draft-preview"
-              aria-label={t("proposalDraft")}
-            >
-              <div className="council-draft-preview__rail" aria-hidden="true">
-                <span>{t("proposalDraft")}</span>
-              </div>
-              <div className="council-draft-preview__body">
-                <div className="council-draft-preview__meta">
-                  <span>
-                    {showPolicyFields ? t("policyType") : t("textType")}
-                  </span>
-                  <span>{selectedDurationLabel}</span>
-                </div>
-                <strong>{draftTitle}</strong>
-                <p>{draftDescription}</p>
-                {showPolicyFields && (
-                  <div className="council-draft-policy">
-                    <span>{selectedPolicyMethodLabel}</span>
-                    <strong>
-                      {policyValue || t("policyValuePlaceholder")}
-                    </strong>
-                  </div>
-                )}
-              </div>
-            </section>
-
             <div className="council-create-controls">
               <section
                 className="council-create-section"
@@ -481,8 +467,20 @@ export default function PlayArea({
                         className={`council-choice-button${active ? " is-selected" : ""}`}
                         onClick={() => setProposalType(option.value)}
                       >
-                        <strong>{option.label}</strong>
-                        <span>{option.description}</span>
+                        <span
+                          className="council-choice-button__icon"
+                          aria-hidden="true"
+                        >
+                          {option.value === "1" ? (
+                            <Landmark size={17} />
+                          ) : (
+                            <ScrollText size={17} />
+                          )}
+                        </span>
+                        <span className="council-choice-button__copy">
+                          <strong>{option.label}</strong>
+                          <span>{option.description}</span>
+                        </span>
                       </button>
                     );
                   })}
@@ -574,23 +572,54 @@ export default function PlayArea({
                 </section>
               )}
             </div>
+
+            <section
+              className="council-draft-preview"
+              aria-label={t("proposalDraft")}
+            >
+              <div className="council-draft-preview__rail" aria-hidden="true">
+                <span>{t("proposalDraft")}</span>
+              </div>
+              <div className="council-draft-preview__body">
+                <div className="council-draft-preview__meta">
+                  <span>
+                    {showPolicyFields ? t("policyType") : t("textType")}
+                  </span>
+                  <span>{selectedDurationLabel}</span>
+                </div>
+                <strong>{draftTitle}</strong>
+                <p>{draftDescription}</p>
+                {showPolicyFields && (
+                  <div className="council-draft-policy">
+                    <span>{selectedPolicyMethodLabel}</span>
+                    <strong>
+                      {policyValue || t("policyValuePlaceholder")}
+                    </strong>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
 
-          <NeoButton
-            variant="primary"
-            size="md"
-            block
-            loading={isCreating}
-            disabled={
-              isCreating ||
-              !canWrite ||
-              !newTitle.trim() ||
-              !newDescription.trim()
-            }
-            onClick={handleCreateProposal}
-          >
-            {t("submitProposal")}
-          </NeoButton>
+          <div className="council-create-submit">
+            <p
+              className={`council-submit-hint${
+                canSubmitProposal ? " is-ready" : ""
+              }`}
+            >
+              {submitHint}
+            </p>
+            <NeoButton
+              variant="primary"
+              size="md"
+              block
+              loading={isCreating}
+              disabled={isCreating || !canSubmitProposal}
+              onClick={handleCreateProposal}
+            >
+              {t("submitProposal")}
+            </NeoButton>
+          </div>
         </NeoCard>
       ) : (
         <section className="council-board">
