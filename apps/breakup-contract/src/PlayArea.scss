@@ -367,10 +367,16 @@ $pact-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   resize: vertical;
 }
 
-.breakup-create-cta.neo-btn--primary:disabled {
-  background: #9fd9c1;
-  border-color: transparent;
+.breakup-create-cta.neo-btn--primary.neo-btn--loading {
+  background: var(--ns-brand-deep, #0b5e3e);
   color: #ffffff;
+}
+
+.breakup-create-cta.neo-btn--primary:disabled:not(.neo-btn--loading) {
+  background: $pact-green-soft;
+  border-color: $pact-green;
+  color: var(--ns-brand-deep, #0b5e3e);
+  opacity: 1;
   box-shadow: none;
 }
 
