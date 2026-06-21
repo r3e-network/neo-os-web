@@ -208,6 +208,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <span className="checkin-best-text">{t("bestStreak")}: {highestStreakFormatted}</span>
       </div>
 
+      <figure className="checkin-streak-stage" aria-label={t("streakStageTitle")}>
+        <img src="./streak-plaza.jpg" alt="" loading="eager" decoding="async" />
+        <figcaption>
+          <span>{t("streakStageEyebrow")}</span>
+          <strong>{t("streakStageTitle")}</strong>
+          <small>{t("streakStageCopy")}</small>
+        </figcaption>
+        <div className="checkin-streak-stage__tokens" aria-hidden="true">
+          <span>
+            <small>{t("streakStageProgress")}</small>
+            <strong>{weekSlotFilled}/7 {t("days")}</strong>
+          </span>
+          <span>
+            <small>{t("streakStageReward")}</small>
+            <strong>+{nextMilestone.reward} {t("tokenGas")}</strong>
+          </span>
+        </div>
+      </figure>
+
       {/* Week progress + next check-in countdown together (one timing context) */}
       <div className="checkin-week-wrapper" aria-label={t("rewardProgress")}>
         <div className="checkin-week-progress-label">
