@@ -113,6 +113,7 @@ describe("Dev Tipping PlayArea", () => {
 
     expect(document.querySelector('.tipping-hero__media img[src="./banner.jpg"]')).toBeTruthy();
     expect(document.querySelector('.tipping-hero__badge img[src="./logo.jpg"]')).toBeTruthy();
+    expect(document.querySelector('.tipping-support-stage img[src="./support-board-stage.jpg"]')).toBeTruthy();
   });
 
   it("does not let a default zero display hide a loaded donation total", () => {
