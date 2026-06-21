@@ -39,6 +39,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     total: totalChecklistCount,
   });
   const scoreStyle = { "--score": safetyScore } as CSSProperties;
+  const completionPercent =
+    totalChecklistCount > 0
+      ? Math.round((completedChecklistCount / totalChecklistCount) * 100)
+      : 0;
+  const completionStyle = { "--completion": `${completionPercent}%` } as CSSProperties;
   // Disconnected with nothing checked off, the genuine score is 0 — but a stark
   // "0" in a near-empty ring next to a red "High risk" chip reads as a broken
   // meter rather than "connect to compute your score". Show a calm "—" and a
@@ -137,19 +142,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="wallet-health-shell">
       <section className="wallet-health-main" aria-label={t("walletHeroTitle")}>
         <NeoCard variant="erobo" className="wallet-health-hero">
-          <div
-            className={`wallet-health-score-ring${showScorePlaceholder ? " wallet-health-score-ring--empty" : ""}`}
-            style={scoreStyle}
-            aria-hidden="true"
-          >
-            <span>{showScorePlaceholder ? "—" : safetyScore}</span>
-          </div>
+          <picture className="wallet-health-hero-art" aria-hidden="true">
+            <source srcSet="./banner.avif" type="image/avif" />
+            <source srcSet="./banner.webp" type="image/webp" />
+            <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
+          </picture>
+          <div className="wallet-health-hero-shade" aria-hidden="true" />
           <div className="wallet-health-hero-copy">
-            <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
-            <h2>{t("walletHeroTitle")}</h2>
-            <span className="wallet-health-score-caption">
-              {showScorePlaceholder ? t("connectToScore") : t("scoreSelfAssessCaption")}
-            </span>
+            <div className="wallet-health-hero-title-row">
+              <picture className="wallet-health-logo" aria-hidden="true">
+                <source srcSet="./logo.avif" type="image/avif" />
+                <source srcSet="./logo.webp" type="image/webp" />
+                <img src="./logo.jpg" alt="" loading="eager" decoding="async" />
+              </picture>
+              <div>
+                <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
+                <h2>{t("walletHeroTitle")}</h2>
+              </div>
+            </div>
+            <p className="wallet-health-hero-subtitle">{t("walletHeroSubtitle")}</p>
             <p className="wallet-health-hero-facts">
               <strong className={`wallet-health-risk-chip ${riskClass}`}>
                 <span className="wallet-health-risk-dot" role="img" aria-label={riskIconLabel} />
@@ -158,6 +169,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="wallet-health-fact-sep" aria-hidden="true">·</span>
               <span>{completionText}</span>
             </p>
+          </div>
+          <div className="wallet-health-score-card">
+            <div
+              className={`wallet-health-score-ring${showScorePlaceholder ? " wallet-health-score-ring--empty" : ""}`}
+              style={scoreStyle}
+              aria-hidden="true"
+            >
+              <span>{showScorePlaceholder ? "—" : safetyScore}</span>
+            </div>
+            <div className="wallet-health-score-card__copy">
+              <span>{t("statScore")}</span>
+              <strong>{showScorePlaceholder ? t("connectToScore") : `${safetyScore}%`}</strong>
+              <small>{showScorePlaceholder ? t("connectHint") : t("scoreSelfAssessCaption")}</small>
+            </div>
+            <div className="wallet-health-progress" style={completionStyle}>
+              <span />
+            </div>
           </div>
         </NeoCard>
 

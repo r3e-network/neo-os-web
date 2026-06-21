@@ -110,6 +110,13 @@ function baseState(overrides: Partial<Record<string, unknown>> = {}): Observable
 }
 
 describe("Wallet Health PlayArea", () => {
+  it("renders the security dashboard visual assets", () => {
+    render(<PlayArea t={t} state={baseState()} dispatch={vi.fn().mockResolvedValue(undefined)} />);
+
+    expect(document.querySelector('.wallet-health-hero-art img[src="./banner.jpg"]')).toBeTruthy();
+    expect(document.querySelector('.wallet-health-logo img[src="./logo.jpg"]')).toBeTruthy();
+  });
+
   it("keeps wallet actions and manual checklist items interactive", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
