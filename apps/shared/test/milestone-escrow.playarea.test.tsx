@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,7 +24,9 @@ function t(key: string, params?: Record<string, string | number>) {
     approving: "Approving...",
     assetType: "Asset",
     assetGas: "GAS",
+    assetGasHint: "Precise GAS tranches",
     assetNeo: "NEO",
+    assetNeoHint: "Whole-token milestone releases",
     beneficiaryAddress: "Beneficiary",
     beneficiaryPlaceholder: "N-address...",
     cancel: "Cancel",
@@ -42,6 +45,7 @@ function t(key: string, params?: Record<string, string | number>) {
     milestones: "Milestones",
     milestoneLabel: "Milestone {index}",
     milestoneAmountPlaceholder: "1.5",
+    milestonePayout: "Payout tranche",
     milestoneProgress: "{done} / {count} milestones",
     noMilestoneToApprove: "All milestones approved",
     noMilestoneToClaim: "No approved milestone to claim",
@@ -132,8 +136,11 @@ describe("Milestone Escrow PlayArea", () => {
     expect(neoOption).toBeTruthy();
     expect(gasOption.getAttribute("aria-checked")).toBe("true");
     expect(neoOption.getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByText("Precise GAS tranches")).toBeTruthy();
+    expect(screen.getByText("Whole-token milestone releases")).toBeTruthy();
     // A single milestone row is present by default.
     expect(screen.getByLabelText("Milestone 1")).toBeTruthy();
+    expect(screen.getByText("Payout tranche")).toBeTruthy();
   });
 
   it("dispatches createEscrow with a single-milestone array and GAS by default", () => {
@@ -221,6 +228,18 @@ describe("Milestone Escrow PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
     fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1" } });
     expect((screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps milestone setup rows readable on narrow screens", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../milestone-escrow/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(/\.milestone-row\s*\{[\s\S]*grid-template-columns:\s*32px minmax\(0, 1fr\)/);
+    expect(styles).toMatch(/\.milestone-row__toolbar\s*\{[\s\S]*justify-content:\s*space-between/);
+    expect(styles).toMatch(/\.milestone-row__input \.neo-input__suffix\s*\{[\s\S]*font-weight:\s*800/);
+    expect(styles).toMatch(/@media \(max-width: 420px\)[\s\S]*\.milestone-row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
   });
 
   it("switches to NEO and dispatches createEscrow with the NEO asset", () => {
