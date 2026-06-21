@@ -14,10 +14,10 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 .gas-sponsor-play-area {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  width: min(100%, 1040px);
+  gap: 16px;
+  width: min(100%, 1180px);
   margin: 0 auto;
-  padding: 16px 14px 28px;
+  padding: 18px 14px 30px;
   box-sizing: border-box;
   color: $gas-text;
   font-family:
@@ -47,16 +47,17 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 .gas-refill-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(360px, 1.08fr);
-  min-height: 282px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  min-height: 324px;
   overflow: hidden;
   background:
     linear-gradient(
       90deg,
       #ffffff 0%,
       rgba(255, 255, 255, 0.98) 38%,
-      rgba(255, 255, 255, 0.72) 64%
+      rgba(255, 255, 255, 0.7) 64%
     ),
+    linear-gradient(135deg, rgba(228, 248, 240, 0.8), rgba(255, 248, 226, 0.58)),
     #f4fbf9;
 }
 
@@ -66,9 +67,9 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
-  padding: 30px 34px;
+  padding: 34px 36px;
 }
 
 .gas-eyebrow {
@@ -90,9 +91,9 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   margin: 0;
   max-width: 420px;
   color: $gas-ink;
-  font-size: 36px;
+  font-size: 40px;
   font-weight: 850;
-  line-height: 1.04;
+  line-height: 1.05;
   letter-spacing: 0;
 }
 
@@ -134,8 +135,9 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 }
 
 .gas-refill-hero__media {
+  position: relative;
   min-width: 0;
-  min-height: 282px;
+  min-height: 324px;
 }
 
 .gas-refill-hero__media img {
@@ -146,25 +148,62 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   object-position: center right;
 }
 
+.gas-refill-hero__station-card {
+  position: absolute;
+  right: 22px;
+  bottom: 20px;
+  display: grid;
+  gap: 4px;
+  width: min(260px, calc(100% - 44px));
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 36px rgba(20, 22, 38, 0.12);
+}
+
+.gas-refill-hero__station-card span {
+  color: $gas-accent-deep;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.gas-refill-hero__station-card strong {
+  color: $gas-ink;
+  font-size: 25px;
+  font-weight: 900;
+  line-height: 1.08;
+  font-variant-numeric: tabular-nums;
+}
+
+.gas-refill-hero__station-card small {
+  color: $gas-text;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
 .gas-command-deck {
   display: grid;
-  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.12fr);
   gap: 0;
   overflow: hidden;
 }
 
 .gas-tank-panel {
   display: grid;
-  grid-template-columns: minmax(128px, 0.7fr) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 0.7fr) minmax(0, 1fr);
   align-items: center;
-  gap: 18px;
+  gap: 20px;
   min-width: 0;
-  padding: 22px;
+  padding: 24px;
   background:
     linear-gradient(
-      180deg,
-      rgba(228, 248, 240, 0.68),
-      rgba(255, 255, 255, 0.92)
+      135deg,
+      rgba(228, 248, 240, 0.86),
+      rgba(255, 248, 226, 0.56)
     ),
     $gas-surface;
   border-right: 1px solid $gas-border;
@@ -183,12 +222,14 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(20, 22, 38, 0.08);
+  padding: 12px 13px;
+  border: 1px solid rgba(10, 128, 80, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .gas-meter-item:last-child {
-  border-bottom: 0;
+  border-bottom: 1px solid rgba(10, 128, 80, 0.1);
 }
 
 .gas-meter-item span,
@@ -208,7 +249,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 .gas-meter-item strong {
   min-width: 0;
   color: $gas-ink;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -219,7 +260,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   flex-direction: column;
   gap: 16px;
   min-width: 0;
-  padding: 22px;
+  padding: 24px;
 }
 
 .gas-request-panel__head {
@@ -264,18 +305,18 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
 }
 
 .gas-tank {
-  width: 118px;
+  width: 142px;
 }
 
 .tank-body {
   position: relative;
-  width: 118px;
-  height: 138px;
+  width: 142px;
+  height: 164px;
   overflow: hidden;
   border: 1px solid rgba(10, 128, 80, 0.25);
   border-radius: 8px;
@@ -325,7 +366,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 
 .gauge-value {
   color: $gas-ink;
-  font-size: 24px;
+  font-size: 27px;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
   line-height: 1.08;
@@ -377,13 +418,13 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 .request-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 13px;
 }
 
 .request-console {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.5fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(184px, 0.5fr);
+  gap: 12px;
 }
 
 .request-console__screen {
@@ -391,19 +432,22 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   flex-direction: column;
   justify-content: space-between;
   gap: 13px;
-  min-height: 138px;
-  padding: 16px;
+  min-height: 150px;
+  padding: 18px;
+  border: 1px solid rgba(10, 128, 80, 0.14);
   border-radius: 8px;
-  background: #0d5138;
-  color: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(135deg, rgba(244, 255, 249, 0.96), rgba(255, 249, 234, 0.8)),
+    $gas-surface;
+  color: $gas-ink;
+  box-shadow: 0 12px 26px rgba(10, 128, 80, 0.08);
 }
 
 .pump-label {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: rgba(255, 255, 255, 0.72);
+  color: $gas-accent-deep;
 }
 
 .pump-amount-row {
@@ -414,15 +458,15 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 }
 
 .pump-amount {
-  color: #ffffff;
-  font-size: 38px;
+  color: $gas-accent-deep;
+  font-size: 42px;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
   line-height: 0.95;
 }
 
 .pump-unit {
-  color: rgba(255, 255, 255, 0.76);
+  color: $gas-text;
   font-size: 14px;
   font-weight: 850;
 }
@@ -434,9 +478,9 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 }
 
 .limit-text {
-  color: rgba(255, 255, 255, 0.72);
+  color: $gas-muted;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
 
@@ -445,10 +489,10 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 8px;
   min-width: 0;
-  padding: 13px;
-  border: 1px solid $gas-border;
+  padding: 14px;
+  border: 1px solid rgba(10, 128, 80, 0.12);
   border-radius: 8px;
-  background: $gas-subtle;
+  background: rgba(246, 248, 251, 0.82);
 }
 
 .custom-amount-field input {
@@ -482,7 +526,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 .quick-amounts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 9px;
 }
 
 .quick-btn {
@@ -511,9 +555,11 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
 .quick-btn:hover,
 .quick-btn--active {
   border-color: rgba(10, 128, 80, 0.28);
-  background: $gas-accent-soft;
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.95), rgba(255, 248, 226, 0.78)),
+    $gas-accent-soft;
   color: $gas-accent-deep;
-  box-shadow: 0 5px 14px rgba(10, 128, 80, 0.08);
+  box-shadow: 0 8px 18px rgba(10, 128, 80, 0.1);
 }
 
 .quick-btn:active {
@@ -562,8 +608,10 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 14px;
-  border-top: 1px solid $gas-border;
+  padding: 14px;
+  border: 1px solid rgba(10, 128, 80, 0.1);
+  border-radius: 8px;
+  background: rgba(246, 248, 251, 0.72);
 }
 
 .quota-info__head,
@@ -635,7 +683,10 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   grid-template-columns: 1fr auto 1fr auto 1fr;
   align-items: center;
   gap: 10px;
-  padding: 12px;
+  padding: 13px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 255, 249, 0.92)),
+    $gas-surface;
 }
 
 .gas-route-step {
@@ -648,7 +699,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   padding: 0 12px;
   border: 1px solid rgba(10, 128, 80, 0.12);
   border-radius: 8px;
-  background: rgba(228, 248, 240, 0.58);
+  background: rgba(255, 255, 255, 0.82);
   color: $gas-accent-deep;
   font-size: 13px;
   font-weight: 850;
@@ -692,7 +743,7 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   border: 1px solid rgba(10, 128, 80, 0.14);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.86), #ffffff),
+    linear-gradient(135deg, rgba(228, 248, 240, 0.86), rgba(255, 248, 226, 0.52)),
     $gas-surface;
 }
 
@@ -837,7 +888,16 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
     position: absolute;
     inset: 0;
     min-height: 330px;
+  }
+
+  .gas-refill-hero__media img {
     opacity: 0.62;
+  }
+
+  .gas-refill-hero__station-card {
+    right: 18px;
+    bottom: 18px;
+    width: min(250px, calc(100% - 36px));
   }
 
   .gas-command-deck {
@@ -861,10 +921,25 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   }
 
   .gas-refill-hero {
-    min-height: 250px;
+    min-height: 420px;
+  }
+
+  .gas-refill-hero::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.82) 0%,
+      rgba(255, 255, 255, 0.62) 58%,
+      rgba(255, 255, 255, 0.18) 100%
+    );
+    content: "";
+    pointer-events: none;
   }
 
   .gas-refill-hero__copy {
+    z-index: 2;
     max-width: none;
     padding: 20px 18px;
   }
@@ -880,8 +955,25 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   }
 
   .gas-refill-hero__media {
-    min-height: 250px;
+    min-height: 420px;
+  }
+
+  .gas-refill-hero__media img {
     opacity: 0.48;
+  }
+
+  .gas-refill-hero__station-card {
+    top: 304px;
+    right: 18px;
+    bottom: auto;
+    left: 18px;
+    z-index: 2;
+    width: auto;
+    padding: 12px 14px;
+  }
+
+  .gas-refill-hero__station-card strong {
+    font-size: 21px;
   }
 
   .gas-command-deck {
@@ -889,7 +981,8 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   }
 
   .gas-tank-panel {
-    grid-template-columns: 118px minmax(0, 1fr);
+    grid-template-columns: 1fr;
+    justify-items: center;
     padding: 18px;
   }
 
@@ -902,7 +995,15 @@ $gas-subtle: var(--ns-surface-subtle, #f6f8fb);
   }
 
   .request-console {
-    grid-template-columns: minmax(0, 1fr) 118px;
+    grid-template-columns: 1fr;
+  }
+
+  .request-console__screen {
+    min-height: 132px;
+  }
+
+  .pump-amount {
+    font-size: 36px;
   }
 
   .quick-amounts {
