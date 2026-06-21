@@ -221,7 +221,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
 
-        <div className="ticket-studio__grid">
+        <div
+          className={`ticket-studio__grid${
+            events.length ? " ticket-studio__grid--has-events" : ""
+          }`}
+        >
           <form
             className="ticket-stage"
             aria-label={t("createEvent")}
