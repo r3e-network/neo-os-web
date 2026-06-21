@@ -13,6 +13,7 @@
 
   display: grid;
   gap: 20px;
+  box-sizing: border-box;
   min-height: 100%;
   padding: 20px;
   border-radius: 24px;
@@ -20,6 +21,12 @@
     linear-gradient(135deg, #f7fffb 0%, #eef9ff 46%, #fff8ec 100%),
     var(--ns-bg, #f5f7fb);
   color: var(--ns-text, #2a2d3d);
+}
+
+.vault-play-area *,
+.vault-play-area *::before,
+.vault-play-area *::after {
+  box-sizing: border-box;
 }
 
 .vault-hero {
@@ -96,7 +103,7 @@
 .vault-hero-title {
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: clamp(1.7rem, 2.4vw, 2.4rem);
+  font-size: 36px;
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1.08;
@@ -364,8 +371,37 @@
 }
 
 .vault-form .neo-input__textarea {
-  min-height: 78px;
+  min-height: 92px;
   resize: vertical;
+}
+
+.vault-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, 0.46fr);
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid rgba(22, 199, 132, 0.14);
+  border-radius: 19px;
+  background:
+    linear-gradient(145deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 62%),
+    rgba(255, 255, 255, 0.72);
+}
+
+.vault-description-input {
+  grid-column: 1 / -1;
+}
+
+.vault-description-input .neo-input__textarea {
+  border-color: rgba(22, 199, 132, 0.18);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96) 0,
+      rgba(255, 255, 255, 0.96) 31px,
+      rgba(20, 22, 38, 0.045) 32px
+    ),
+    #ffffff;
+  line-height: 1.6;
 }
 
 .vault-form .neo-btn--primary:disabled,
@@ -392,11 +428,35 @@
   color: #ffffff;
 }
 
-.vault-form-row {
+.vault-secret-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 19px;
+  background:
+    linear-gradient(145deg, rgba(37, 99, 235, 0.08), rgba(22, 199, 132, 0.08) 64%),
+    rgba(255, 255, 255, 0.72);
+}
+
+.vault-secret-panel__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  color: var(--vault-accent-strong);
+  background: var(--vault-accent-soft);
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.16);
+}
+
+.vault-secret-panel__fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  align-items: start;
+  min-width: 0;
 }
 
 .vault-difficulty-field {
@@ -890,14 +950,16 @@
 
   .vault-hero-identity,
   .vault-stats,
-  .vault-form-row,
+  .vault-setup-grid,
+  .vault-secret-panel,
+  .vault-secret-panel__fields,
   .vault-difficulty-grid,
   .vault-target-card__facts {
     grid-template-columns: 1fr;
   }
 
   .vault-hero-title {
-    font-size: 1.55rem;
+    font-size: 26px;
   }
 
   .vault-create-card,
