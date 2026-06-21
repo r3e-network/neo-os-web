@@ -307,6 +307,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </div>
                   </div>
 
+                  {!hasAddress && (
+                    <div className="certificate-wallet-gate" role="note">
+                      <div>
+                        <strong>{t("walletRequiredTitle")}</strong>
+                        <span>{t("walletRequiredIssueHint")}</span>
+                      </div>
+                      <NeoButton
+                        size="sm"
+                        variant="secondary"
+                        loading={isConnecting}
+                        disabled={isConnecting}
+                        onClick={() => dispatch("connectWallet")}
+                      >
+                        {t("connectWallet")}
+                      </NeoButton>
+                    </div>
+                  )}
+
                   <div
                     className={`selected-template${
                       selectedTemplate ? "" : " is-empty"
@@ -423,7 +441,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     variant="primary"
                     block
                     loading={isIssuing}
-                    disabled={!issueFormValid || isIssuing}
+                    disabled={!hasAddress || !issueFormValid || isIssuing}
                     onClick={submitIssueCertificate}
                   >
                     {isIssuing ? t("issuing") : t("issue")}
@@ -511,6 +529,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="drawer-copy-block">
               <p className="panel-copy">{t("createTemplateHelp")}</p>
             </div>
+            {!hasAddress && (
+              <div className="certificate-wallet-gate certificate-wallet-gate--drawer" role="note">
+                <div>
+                  <strong>{t("walletRequiredTitle")}</strong>
+                  <span>{t("walletRequiredTemplateHint")}</span>
+                </div>
+                <NeoButton
+                  size="sm"
+                  variant="secondary"
+                  loading={isConnecting}
+                  disabled={isConnecting}
+                  onClick={() => dispatch("connectWallet")}
+                >
+                  {t("connectWallet")}
+                </NeoButton>
+              </div>
+            )}
             <div className="template-lab">
               <div className="template-lab__preview">
                 <span className="template-lab__label">
@@ -601,7 +636,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="primary"
               block
               loading={isCreatingTemplate}
-              disabled={!createFormValid || isCreatingTemplate}
+              disabled={!hasAddress || !createFormValid || isCreatingTemplate}
               onClick={submitCreateTemplate}
             >
               {isCreatingTemplate ? t("creating") : t("createTemplate")}

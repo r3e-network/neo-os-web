@@ -97,6 +97,9 @@ function t(key: string) {
     refresh: "Refresh",
     walletNotConnected: "Wallet not connected",
     walletNotConnectedHint: "Connect a wallet to load templates.",
+    walletRequiredTitle: "Wallet required",
+    walletRequiredIssueHint: "Connect the issuer wallet before minting a soulbound certificate.",
+    walletRequiredTemplateHint: "Connect the issuer wallet before creating an on-chain template.",
     emptyTemplates: "No templates yet",
     emptyTemplatesHint: "Create a template to start issuing certificates.",
     statusActive: "Active",
@@ -275,6 +278,40 @@ describe("Soulbound Certificate PlayArea", () => {
     expect(container.textContent).not.toContain("openIssueModal");
     expect(container.textContent).not.toContain("soulbound:openIssueModal");
     expect(container.textContent).not.toContain("contractMissing");
+  });
+
+  it("keeps signing actions gated until an issuer wallet is connected", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ address: "", templates: [], certificates: [] })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(screen.getAllByText("Wallet required")).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "Connect the issuer wallet before minting a soulbound certificate.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Connect the issuer wallet before creating an on-chain template.",
+      ),
+    ).toBeTruthy();
+
+    const issueButton = screen.getByRole("button", { name: "Issue" });
+    const createButton = screen.getByRole("button", { name: "Create Template" });
+    expect((issueButton as HTMLButtonElement).disabled).toBe(true);
+    expect((createButton as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(createButton);
+    fireEvent.click(issueButton);
+
+    expect(dispatch).not.toHaveBeenCalledWith("createTemplate", expect.anything());
+    expect(dispatch).not.toHaveBeenCalledWith("issueCertificate", expect.anything());
   });
 
   it("hides Revoke for a non-issuer verifier and explains why", () => {
