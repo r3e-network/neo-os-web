@@ -5,12 +5,14 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(18, 33, 28, 0.08);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 8px 20px rgba(3, 11, 20, 0.16);
+  background: #ffffff;
+  box-shadow:
+    0 8px 18px rgba(3, 11, 20, 0.14),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.72);
   overflow: hidden;
 }
 
@@ -19,6 +21,12 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.neo-swap-token-icon.has-image img {
+  width: 112%;
+  height: 112%;
+  max-width: none;
 }
 
 .neo-swap-token-icon.is-fallback span {
