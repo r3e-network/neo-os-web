@@ -557,37 +557,9 @@ export default function PlayArea({
             </figure>
           </header>
 
-          <div className="gas-pool-reward-desk" aria-label={t("rewardPlanTitle")}>
-            <span className="gas-pool-reward-desk__title">
-              {t("rewardPlanTitle")}
-            </span>
-            <div className="gas-pool-reward-desk__grid">
-              <span>
-                <Coins size={15} aria-hidden="true" />
-                <small>{t("totalAmount")}</small>
-                <strong>{displayTotalAmount}</strong>
-              </span>
-              <span>
-                <Sparkles size={15} aria-hidden="true" />
-                <small>{t("rewardRange")}</small>
-                <strong>{displayRewardRange}</strong>
-              </span>
-              <span>
-                <Users size={15} aria-hidden="true" />
-                <small>{t("maxClaims")}</small>
-                <strong>{displayClaimSlots}</strong>
-              </span>
-              <span>
-                <Clock3 size={15} aria-hidden="true" />
-                <small>{t("expiryHours")}</small>
-                <strong>{displayExpiry}</strong>
-              </span>
-            </div>
-          </div>
-
           <div className="gas-pool-grid">
             <div className="gas-pool-form gas-pool-form--primary">
-              <div className="gas-pool-form__head">
+              <div className="gas-pool-form__head gas-pool-form__head--vault">
                 <div>
                   <span>{t("createPoolTitle")}</span>
                   <h2>{t("createPoolDeskTitle")}</h2>
@@ -596,106 +568,177 @@ export default function PlayArea({
                   {t("createPoolDescription")}
                 </p>
               </div>
-              <div className="gas-pool-form__group">
-                <label className="gas-pool-form__field">
-                  <span>{t("totalAmount")}</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="1"
-                    value={totalAmount}
-                    onChange={(event) => setTotalAmount(event.target.value)}
-                  />
-                </label>
-                <div
-                  className="gas-pool-quick-picks"
-                  aria-label={t("totalAmountHint")}
+              <div className="gas-pool-create-console">
+                <aside
+                  className="gas-pool-create-summary"
+                  aria-label={t("rewardPlanTitle")}
                 >
-                  {TOTAL_AMOUNT_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className={totalAmount === preset ? "is-active" : ""}
-                      onClick={() => setTotalAmount(preset)}
-                    >
-                      {preset} GAS
-                    </button>
-                  ))}
-                </div>
-                <small className="gas-pool-form__sublabel">
-                  {t("totalAmountHint")}
-                </small>
-              </div>
-              <div className="gas-pool-form__row">
-                <label className="gas-pool-form__field">
-                  <span>{t("minClaim")}</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="1"
-                    value={minClaim}
-                    onChange={(event) => setMinClaim(event.target.value)}
-                  />
-                </label>
-                <label className="gas-pool-form__field">
-                  <span>{t("maxClaim")}</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="1"
-                    value={maxClaim}
-                    onChange={(event) => setMaxClaim(event.target.value)}
-                  />
-                </label>
-              </div>
-              <small className="gas-pool-form__sublabel gas-pool-form__sublabel--row">
-                {t("claimRangeHint")}
-              </small>
-              <div className="gas-pool-form__row">
-                <div className="gas-pool-form__group">
-                  <label className="gas-pool-form__field">
-                    <span>{t("maxClaims")}</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      value={maxClaims}
-                      onChange={(event) => setMaxClaims(event.target.value)}
-                    />
-                  </label>
-                  <div
-                    className="gas-pool-quick-picks"
-                    aria-label={t("maxClaimsHint")}
-                  >
-                    {CLAIM_SLOT_PRESETS.map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        className={maxClaims === preset ? "is-active" : ""}
-                        onClick={() => setMaxClaims(preset)}
-                      >
-                        {preset}
-                      </button>
-                    ))}
+                  <span className="gas-pool-create-summary__eyebrow">
+                    {t("rewardPlanTitle")}
+                  </span>
+                  <strong className="gas-pool-create-summary__amount">
+                    {displayTotalAmount}
+                  </strong>
+                  <p>
+                    {displayRewardRange} · {displayClaimSlots} · {displayExpiry}
+                  </p>
+                  <div className="gas-pool-create-summary__tiles">
+                    <span>
+                      <Sparkles size={16} aria-hidden="true" />
+                      <small>{t("rewardRange")}</small>
+                      <strong>{displayRewardRange}</strong>
+                    </span>
+                    <span>
+                      <Users size={16} aria-hidden="true" />
+                      <small>{t("maxClaims")}</small>
+                      <strong>{displayClaimSlots}</strong>
+                    </span>
+                    <span>
+                      <Clock3 size={16} aria-hidden="true" />
+                      <small>{t("expiryHours")}</small>
+                      <strong>{displayExpiry}</strong>
+                    </span>
                   </div>
-                  <small className="gas-pool-form__sublabel">
-                    {t("maxClaimsHint")}
-                  </small>
-                </div>
-                <div className="gas-pool-form__group">
-                  <label className="gas-pool-form__field">
-                    <span>{t("expiryHours")}</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      value={expiryHours}
-                      onChange={(event) => setExpiryHours(event.target.value)}
-                    />
-                  </label>
-                  <small className="gas-pool-form__sublabel">
-                    {t("expiryHoursHint")}
-                  </small>
+                </aside>
+
+                <div className="gas-pool-create-controls">
+                  <div className="gas-pool-control-card gas-pool-control-card--amount">
+                    <div className="gas-pool-control-card__topline">
+                      <span>
+                        <Coins size={15} aria-hidden="true" />
+                        {t("totalAmount")}
+                      </span>
+                      <small>{t("totalAmountHint")}</small>
+                    </div>
+                    <label className="gas-pool-inline-input">
+                      <span className="gas-pool-sr-only">
+                        {t("totalAmount")}
+                      </span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        aria-label={t("totalAmount")}
+                        min="1"
+                        value={totalAmount}
+                        onChange={(event) => setTotalAmount(event.target.value)}
+                      />
+                      <em>GAS</em>
+                    </label>
+                    <div
+                      className="gas-pool-quick-picks"
+                      aria-label={t("totalAmountHint")}
+                    >
+                      {TOTAL_AMOUNT_PRESETS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          className={totalAmount === preset ? "is-active" : ""}
+                          onClick={() => setTotalAmount(preset)}
+                        >
+                          {preset} GAS
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="gas-pool-control-card gas-pool-control-card--range">
+                    <div className="gas-pool-control-card__topline">
+                      <span>
+                        <Sparkles size={15} aria-hidden="true" />
+                        {t("rewardRange")}
+                      </span>
+                      <small>{t("claimRangeHint")}</small>
+                    </div>
+                    <div className="gas-pool-range-editor">
+                      <label>
+                        <span>{t("minClaim")}</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          aria-label={t("minClaim")}
+                          min="1"
+                          value={minClaim}
+                          onChange={(event) => setMinClaim(event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        <span>{t("maxClaim")}</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          aria-label={t("maxClaim")}
+                          min="1"
+                          value={maxClaim}
+                          onChange={(event) => setMaxClaim(event.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="gas-pool-control-card">
+                    <div className="gas-pool-control-card__topline">
+                      <span>
+                        <Users size={15} aria-hidden="true" />
+                        {t("maxClaims")}
+                      </span>
+                      <small>{t("maxClaimsHint")}</small>
+                    </div>
+                    <label className="gas-pool-inline-input">
+                      <span className="gas-pool-sr-only">
+                        {t("maxClaims")}
+                      </span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        aria-label={t("maxClaims")}
+                        min="1"
+                        value={maxClaims}
+                        onChange={(event) => setMaxClaims(event.target.value)}
+                      />
+                      <em>
+                        {t("rewardSlotsCount", { count: "" }).trim()}
+                      </em>
+                    </label>
+                    <div
+                      className="gas-pool-quick-picks"
+                      aria-label={t("maxClaimsHint")}
+                    >
+                      {CLAIM_SLOT_PRESETS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          className={maxClaims === preset ? "is-active" : ""}
+                          onClick={() => setMaxClaims(preset)}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="gas-pool-control-card">
+                    <div className="gas-pool-control-card__topline">
+                      <span>
+                        <Clock3 size={15} aria-hidden="true" />
+                        {t("expiryHours")}
+                      </span>
+                      <small>{t("expiryHoursHint")}</small>
+                    </div>
+                    <label className="gas-pool-inline-input">
+                      <span className="gas-pool-sr-only">
+                        {t("expiryHours")}
+                      </span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        aria-label={t("expiryHours")}
+                        min="1"
+                        value={expiryHours}
+                        onChange={(event) => setExpiryHours(event.target.value)}
+                      />
+                      <em>h</em>
+                    </label>
+                  </div>
                 </div>
               </div>
               <button
