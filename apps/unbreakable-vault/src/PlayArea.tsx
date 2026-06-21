@@ -324,28 +324,33 @@ export default function PlayArea({
                   {t("mainnetVaultNote")}
                 </p>
               )}
-              <NeoInput
-                label={t("titleLabel")}
-                placeholder={t("titlePlaceholder")}
-                value={title}
-                onChange={setTitle}
-              />
-              <NeoInput
-                label={t("descriptionLabel")}
-                type="textarea"
-                placeholder={t("descriptionPlaceholder")}
-                value={description}
-                onChange={setDescription}
-              />
-              <NeoInput
-                label={t("bountyLabel")}
-                type="number"
-                placeholder={t("bountyPlaceholder")}
-                min={1}
-                hint={t("minBountyNote")}
-                value={bounty}
-                onChange={setBounty}
-              />
+              <div className="vault-setup-grid">
+                <NeoInput
+                  className="vault-title-input"
+                  label={t("titleLabel")}
+                  placeholder={t("titlePlaceholder")}
+                  value={title}
+                  onChange={setTitle}
+                />
+                <NeoInput
+                  className="vault-bounty-input"
+                  label={t("bountyLabel")}
+                  type="number"
+                  placeholder={t("bountyPlaceholder")}
+                  min={1}
+                  hint={t("minBountyNote")}
+                  value={bounty}
+                  onChange={setBounty}
+                />
+                <NeoInput
+                  className="vault-description-input"
+                  label={t("descriptionLabel")}
+                  type="textarea"
+                  placeholder={t("descriptionPlaceholder")}
+                  value={description}
+                  onChange={setDescription}
+                />
+              </div>
               <div className="vault-difficulty-field">
                 <span>{t("difficultyLabel")}</span>
                 <div
@@ -383,23 +388,26 @@ export default function PlayArea({
                   })}
                 </div>
               </div>
-              {/* Both secret entries sit side-by-side on desktop so confirm reads as
-              a check on the field beside it, not another stacked block. */}
-              <div className="vault-form-row">
-                <NeoInput
-                  label={t("secretLabel")}
-                  type="password"
-                  placeholder={t("secretPlaceholder")}
-                  value={secret}
-                  onChange={setSecret}
-                />
-                <NeoInput
-                  label={t("confirmSecretLabel")}
-                  type="password"
-                  placeholder={t("confirmSecretPlaceholder")}
-                  value={confirmSecret}
-                  onChange={setConfirmSecret}
-                />
+              <div className="vault-secret-panel">
+                <span className="vault-secret-panel__icon" aria-hidden="true">
+                  <KeyRound size={18} />
+                </span>
+                <div className="vault-secret-panel__fields">
+                  <NeoInput
+                    label={t("secretLabel")}
+                    type="password"
+                    placeholder={t("secretPlaceholder")}
+                    value={secret}
+                    onChange={setSecret}
+                  />
+                  <NeoInput
+                    label={t("confirmSecretLabel")}
+                    type="password"
+                    placeholder={t("confirmSecretPlaceholder")}
+                    value={confirmSecret}
+                    onChange={setConfirmSecret}
+                  />
+                </div>
               </div>
               {secretMismatch && (
                 <p className="vault-field-error" role="alert">
