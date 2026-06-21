@@ -21,15 +21,26 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 
 /* ── Hero ─────────────────────────────────────────────── */
 .grave-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px 24px;
-  padding: 24px;
-  background: var(--ns-surface, #ffffff);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.68fr);
+  align-items: stretch;
+  gap: 18px;
+  min-width: 0;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.14);
   border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.9), rgba(255, 255, 255, 0.98) 62%),
+    var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.grave-hero-content {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  min-width: 0;
 }
 
 .grave-hero-lead {
@@ -41,16 +52,21 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 
 .grave-hero-badge {
   flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  line-height: 1;
-  border-radius: var(--ns-radius-full, 9999px);
+  display: block;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 18px;
   background: $grave-accent-soft;
-  color: $grave-accent-deep;
+  box-shadow: 0 10px 24px rgba(12, 74, 110, 0.12);
+}
+
+.grave-hero-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .grave-hero-copy {
@@ -84,11 +100,36 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   color: var(--ns-text-2, #5b6478);
 }
 
+.grave-hero-art {
+  align-self: center;
+  display: block;
+  min-width: 0;
+  height: 164px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.14);
+  border-radius: var(--ns-radius-md, 16px);
+  background:
+    radial-gradient(circle at 68% 24%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(135deg, #effaf8, #eaf3ff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 18px 36px rgba(20, 22, 38, 0.1);
+}
+
+.grave-hero-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  object-fit: contain;
+  object-position: center;
+}
+
 /* ── Stat tiles ───────────────────────────────────────── */
 .hero-metrics {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(96px, max-content);
+  grid-auto-columns: minmax(88px, max-content);
   gap: 10px;
 }
 
@@ -97,10 +138,10 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  padding: 12px 16px;
+  padding: 11px 13px;
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(22, 199, 132, 0.12);
 
   strong {
     font-size: 20px;
@@ -121,11 +162,35 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 }
 
 @media (max-width: 560px) {
+  .grave-hero {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .grave-hero-lead {
+    gap: 12px;
+  }
+
+  .grave-hero-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 15px;
+  }
+
+  .grave-hero-art {
+    display: none;
+  }
+
   .hero-metrics {
     width: 100%;
     grid-auto-flow: row;
     grid-auto-columns: auto;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-metric {
+    padding: 10px;
   }
 }
 
@@ -499,7 +564,7 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 .destroy-form .neo-btn--primary:disabled {
   background: var(--ns-brand-soft, #e4f8f0);
   border-color: transparent;
-  color: var(--ns-brand-strong, #0fb174);
+  color: $grave-accent-deep;
   opacity: 0.85;
 }
 
