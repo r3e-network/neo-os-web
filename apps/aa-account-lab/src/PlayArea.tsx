@@ -287,128 +287,158 @@ export default function PlayArea({
           title={t("registerTitle")}
           className="account-register-card"
         >
-          <div className="account-form">
-            <p className="account-note">{t("registerPermanentNote")}</p>
-            {!canRegister && (
-              <p className="account-hint">{t("registerBlocked")}</p>
-            )}
-            <NeoInput
-              value={verifierHash}
-              label={t("verifier")}
-              hint={t("verifierHint")}
-              placeholder={t("verifierPlaceholder")}
-              onChange={(v) => setVerifierHash(v)}
-            />
-            <NeoInput
-              value={verifierParamsHex}
-              label={t("verifierParams")}
-              hint={t("verifierParamsHint")}
-              placeholder={t("verifierParamsPlaceholder")}
-              onChange={(v) => setVerifierParamsHex(v)}
-            />
-            <details className="account-optional" open>
-              <summary>
-                <span>{t("optionalFieldsSummary")}</span>
-                <ChevronDown
-                  className="account-optional__chevron"
-                  aria-hidden="true"
-                />
-              </summary>
-              <div className="account-optional__body">
-                <NeoInput
-                  value={hookHash}
-                  label={t("hook")}
-                  hint={t("hookHint")}
-                  placeholder={t("hookPlaceholder")}
-                  onChange={(v) => setHookHash(v)}
-                />
-                <NeoInput
-                  value={backupOwner}
-                  label={t("backupOwner")}
-                  hint={t("backupOwnerHint")}
-                  placeholder={t("backupOwnerPlaceholder")}
-                  onChange={(v) => {
-                    setBackupOwnerTouched(true);
-                    setBackupOwner(v);
-                  }}
-                />
-                {backupOwnerMismatch && (
+          <div className="account-form account-register-form">
+            <div className="account-register-intro">
+              <p className="account-note">{t("registerPermanentNote")}</p>
+            </div>
+
+            <div className="account-register-layout">
+              <div className="account-register-fields">
+                <section
+                  className="account-field-group"
+                  aria-label={t("accountFlowRegister")}
+                >
+                  <div className="account-field-group__head">
+                    <span>{t("accountFlowRegister")}</span>
+                    <p>{t("accountFlowRegisterDesc")}</p>
+                  </div>
+                  <NeoInput
+                    value={verifierHash}
+                    label={t("verifier")}
+                    hint={t("verifierHint")}
+                    placeholder={t("verifierPlaceholder")}
+                    onChange={(v) => setVerifierHash(v)}
+                  />
+                  <NeoInput
+                    value={backupOwner}
+                    label={t("backupOwner")}
+                    hint={t("backupOwnerHint")}
+                    placeholder={t("backupOwnerPlaceholder")}
+                    onChange={(v) => {
+                      setBackupOwnerTouched(true);
+                      setBackupOwner(v);
+                    }}
+                  />
+                  {backupOwnerMismatch && (
+                    <p
+                      className="account-caution account-caution--danger"
+                      role="alert"
+                    >
+                      {t("backupOwnerMustSign")}
+                    </p>
+                  )}
+                  <NeoInput
+                    value={escapeTimelock}
+                    label={t("timelock")}
+                    hint={t("timelockHint")}
+                    placeholder={t("timelockPlaceholder")}
+                    onChange={(v) => setEscapeTimelock(v)}
+                  />
+                  <p className="account-note account-note--muted account-note--compact">
+                    {t("timelockExplainer")}
+                  </p>
+                </section>
+
+                <details className="account-optional">
+                  <summary>
+                    <span>{t("optionalFieldsSummary")}</span>
+                    <ChevronDown
+                      className="account-optional__chevron"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <div className="account-optional__body">
+                    <NeoInput
+                      value={verifierParamsHex}
+                      label={t("verifierParams")}
+                      hint={t("verifierParamsHint")}
+                      placeholder={t("verifierParamsPlaceholder")}
+                      onChange={(v) => setVerifierParamsHex(v)}
+                    />
+                    <NeoInput
+                      value={hookHash}
+                      label={t("hook")}
+                      hint={t("hookHint")}
+                      placeholder={t("hookPlaceholder")}
+                      onChange={(v) => setHookHash(v)}
+                    />
+                  </div>
+                </details>
+              </div>
+
+              <aside
+                className="account-register-review"
+                aria-label={t("accountRiskTitle")}
+              >
+                <div className="account-register-review__head">
+                  <span>{t("accountRiskTitle")}</span>
+                  <p>{t("accountRiskCopy")}</p>
+                </div>
+                {/* Read-only preview of the deterministic accountId the contract
+                    computes from these parameters — the only id registerAccount
+                    accepts (a free seed would always revert). */}
+                <div
+                  className="account-derived"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="account-derived__label">
+                    {t("derivedAccountIdLabel")}
+                  </span>
+                  <code className="account-derived__value">
+                    {derivedRegistrationId || DASH}
+                  </code>
+                  <span className="account-derived__hint">
+                    {t("derivedAccountIdHint")}
+                  </span>
+                </div>
+                {!canRegister && (
+                  <p className="account-hint">{t("registerBlocked")}</p>
+                )}
+                {alreadyRegistered && (
+                  <p className="account-caution" role="status">
+                    {t("alreadyRegisteredCaution")}
+                  </p>
+                )}
+                {networkIsMainnet && (
                   <p
                     className="account-caution account-caution--danger"
                     role="alert"
                   >
-                    {t("backupOwnerMustSign")}
+                    <TriangleAlert
+                      className="account-caution__glyph"
+                      aria-hidden="true"
+                    />
+                    <span className="account-caution__text">
+                      {t("mainnetCautionLead")}
+                      <strong>{t("mainnetCautionEmphasis")}</strong>
+                      {t("mainnetCautionTail")}
+                    </span>
                   </p>
                 )}
-                <NeoInput
-                  value={escapeTimelock}
-                  label={t("timelock")}
-                  hint={t("timelockHint")}
-                  placeholder={t("timelockPlaceholder")}
-                  onChange={(v) => setEscapeTimelock(v)}
-                />
-                <p className="account-note account-note--muted">
-                  {t("timelockExplainer")}
-                </p>
-              </div>
-            </details>
-            {/* Read-only preview of the deterministic accountId the contract
-                computes from these parameters — the only id registerAccount
-                accepts (a free seed would always revert). */}
-            <div className="account-derived" role="status" aria-live="polite">
-              <span className="account-derived__label">
-                {t("derivedAccountIdLabel")}
-              </span>
-              <code className="account-derived__value">
-                {derivedRegistrationId || DASH}
-              </code>
-              <span className="account-derived__hint">
-                {t("derivedAccountIdHint")}
-              </span>
+                <NeoButton
+                  variant="primary"
+                  className="account-register-cta"
+                  loading={isSubmitting}
+                  disabled={!canRegister}
+                  aria-label={t("register")}
+                  onClick={() =>
+                    dispatch(
+                      "register",
+                      accountId,
+                      verifierHash,
+                      verifierParamsHex,
+                      hookHash,
+                      backupOwner,
+                      escapeTimelock,
+                    )
+                  }
+                >
+                  <ShieldCheck aria-hidden="true" />
+                  {t("register")}
+                </NeoButton>
+              </aside>
             </div>
-            <p className="account-hint">{t("accountRiskCopy")}</p>
-            {alreadyRegistered && (
-              <p className="account-caution" role="status">
-                {t("alreadyRegisteredCaution")}
-              </p>
-            )}
-            {networkIsMainnet && (
-              <p
-                className="account-caution account-caution--danger"
-                role="alert"
-              >
-                <TriangleAlert
-                  className="account-caution__glyph"
-                  aria-hidden="true"
-                />
-                <span className="account-caution__text">
-                  {t("mainnetCautionLead")}
-                  <strong>{t("mainnetCautionEmphasis")}</strong>
-                  {t("mainnetCautionTail")}
-                </span>
-              </p>
-            )}
-            <NeoButton
-              variant="primary"
-              className="account-register-cta"
-              loading={isSubmitting}
-              disabled={!canRegister}
-              aria-label={t("register")}
-              onClick={() =>
-                dispatch(
-                  "register",
-                  accountId,
-                  verifierHash,
-                  verifierParamsHex,
-                  hookHash,
-                  backupOwner,
-                  escapeTimelock,
-                )
-              }
-            >
-              <ShieldCheck aria-hidden="true" />
-              {t("register")}
-            </NeoButton>
           </div>
         </NeoCard>
       </section>
