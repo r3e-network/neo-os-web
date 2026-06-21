@@ -270,6 +270,16 @@ export default function PlayArea({
             ))}
           </div>
 
+          <div
+            className="http-quick-actions"
+            aria-label={t("httpResultPreview")}
+          >
+            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
+              <Play size={18} aria-hidden="true" />
+              <span>{t(consoleConfig.primaryActionKey)}</span>
+            </NeoButton>
+          </div>
+
           <section
             className="http-method-panel"
             aria-label={t("httpMethodTitle")}

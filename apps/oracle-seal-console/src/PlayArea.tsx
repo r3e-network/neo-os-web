@@ -284,6 +284,16 @@ export default function PlayArea({
             ))}
           </div>
 
+          <div
+            className="seal-quick-actions"
+            aria-label={t("sealReceipt")}
+          >
+            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
+              <Play size={18} aria-hidden="true" />
+              <span>{t(consoleConfig.primaryActionKey)}</span>
+            </NeoButton>
+          </div>
+
           <section
             className="seal-purpose-panel"
             aria-label={t("sealPurposeTitle")}
