@@ -134,8 +134,8 @@ const appMessages = {
     zh: "。",
   },
   optionalFieldsSummary: {
-    en: "Optional (hook, backup owner, timelock)",
-    zh: "可选项（hook、备份所有者、锁定期）",
+    en: "Advanced verifier data (params, hook)",
+    zh: "高级 verifier 数据（参数、hook）",
   },
   alreadyRegisteredCaution: {
     en: "This account already has a verifier registered. A re-register will revert on-chain.",

@@ -65,7 +65,7 @@
   color: var(--ns-violet-strong, #0fb174);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -111,7 +111,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -207,6 +207,67 @@
   gap: 14px;
 }
 
+.account-register-form {
+  gap: 16px;
+}
+
+.account-register-intro {
+  padding: 12px 14px;
+  border: 1px solid rgba(22, 199, 132, 0.14);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.78), rgba(255, 255, 255, 0)),
+    var(--ns-surface, #fff);
+}
+
+.account-register-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(240px, 0.78fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.account-register-fields,
+.account-field-group,
+.account-register-review {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-field-group__head,
+.account-register-review__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-field-group__head span,
+.account-register-review__head span {
+  color: var(--ns-violet-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.account-field-group__head p,
+.account-register-review__head p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.account-register-review {
+  position: sticky;
+  top: 16px;
+  padding-left: 16px;
+  border-left: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
 .account-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -248,6 +309,7 @@
    action has breathing room and reads as the decisive step. */
 .account-register-cta {
   margin-top: 6px;
+  width: 100%;
 }
 
 .account-hint {
@@ -278,10 +340,14 @@
   font-weight: 500;
 }
 
-/* Optional-fields disclosure. Groups hook / backup owner / timelock under a
-   single labelled toggle so the required verifier sits above an explicit
-   "advanced" section, mirroring the disclosure pattern used elsewhere. The
-   fields and their bindings are unchanged — only their wrapper. */
+.account-note--compact {
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* Advanced verifier disclosure. Keeps non-default verifier params and hook
+   configuration available without making the default registration path feel
+   like a long questionnaire. The fields and bindings are unchanged. */
 .account-optional {
   overflow: hidden;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -298,7 +364,7 @@
     color: var(--ns-text-2, #5b6478);
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
     cursor: pointer;
     user-select: none;
     transition: background 150ms ease;
@@ -353,7 +419,7 @@
 .account-derived__label {
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
 }
@@ -458,7 +524,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -475,6 +541,18 @@
   .account-hero,
   .account-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .account-register-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .account-register-review {
+    position: static;
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-left: 0;
   }
 }
 
