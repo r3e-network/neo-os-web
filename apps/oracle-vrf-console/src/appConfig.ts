@@ -281,6 +281,12 @@ const appMessages = {
     en: "Tune the seed, rounds, and proof mode before creating the digest.",
     zh: "生成摘要前，先调整种子、轮次和证明模式。",
   },
+  vrfTicketTitle: { en: "Randomness ticket", zh: "随机性票据" },
+  vrfTicketCopy: {
+    en: "Lock the seed, draw count, and proof style as one verifiable request.",
+    zh: "把种子、抽取轮次和证明方式锁定为一个可验证请求。",
+  },
+  vrfTicketReady: { en: "Ticket ready", zh: "票据已准备" },
   vrfSeedIdentity: { en: "Seed identity", zh: "种子身份" },
   vrfSeedIdentityCopy: {
     en: "Use stable values so proofs can be matched after callback.",
