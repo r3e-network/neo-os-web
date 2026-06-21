@@ -855,16 +855,51 @@
   }
 
   .tarot-hero {
-    gap: 18px;
-    padding: 16px;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .tarot-hero-copy {
+    gap: 10px;
+  }
+
+  .tarot-hero-intro {
+    gap: 10px;
+  }
+
+  .tarot-hero-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
   }
 
   .tarot-hero-copy h2 {
-    font-size: 24px;
+    font-size: 22px;
+  }
+
+  .tarot-hero-copy p {
+    font-size: 13px;
+    line-height: 1.48;
+  }
+
+  .tarot-hero-meta {
+    gap: 6px;
+  }
+
+  .tarot-hero-meta > span {
+    padding: 5px 9px;
+    font-size: 11px;
   }
 
   .tarot-hero-stage {
-    min-height: 228px;
+    min-height: 172px;
+  }
+
+  .tarot-hero-stage figcaption {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    padding: 9px 11px;
   }
 
   .tarot-reading-grid {
@@ -891,31 +926,34 @@
   }
 }
 
-// Stacked spread for narrow touch screens: Past spans the full width, then
-// Present + Future sit side by side, so every card is large and tappable and
-// the reveal cue stays legible exactly where taps matter most.
+// Compact spread for narrow touch screens: keep all three cards visible as one
+// reading table so the prompt and draw CTA arrive sooner in the scroll.
 @media (max-width: 520px) {
   .tarot-reading-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .tarot-card-slot:first-child {
-    grid-column: 1 / -1;
+    grid-column: auto;
 
     .tarot-card-frame {
-      width: min(62%, 240px);
-      margin: 0 auto;
+      width: 100%;
+      margin: 0;
     }
   }
 
-  // Keep the in-card "TAP TO REVEAL" cue visible on touch, just smaller.
+  .tarot-card-caption {
+    min-height: 40px;
+  }
+
+  // Keep the in-card reveal cue visible on touch, just smaller.
   .tarot-card-face > span {
     left: 6px;
     right: 6px;
     bottom: 6px;
-    min-height: 26px;
-    font-size: 10px;
+    min-height: 22px;
+    font-size: 9px;
     letter-spacing: 0;
   }
 }
