@@ -24,6 +24,12 @@ const appMessages = {
   certificateProofPermanent: { en: "Permanent record", zh: "永久记录" },
   certificateProofVerify: { en: "QR verification", zh: "二维码核验" },
   templatePreviewLabel: { en: "Template preview", zh: "模板预览" },
+  certificateAtelierLabel: { en: "Certificate atelier", zh: "证书工坊" },
+  certificateAtelierCaption: {
+    en: "Issue from a designed credential, not a blank form.",
+    zh: "从一张已设计的凭证开始签发，而不是空白表单。",
+  },
+  issueDossierLabel: { en: "Issuance dossier", zh: "签发档案" },
 
   // Live + verified credential artifact (the framed keepsake card)
   certificatePreviewLabel: { en: "Live preview", zh: "实时预览" },
