@@ -163,6 +163,8 @@ describe("Red Envelope PlayArea", () => {
     );
 
     expect((screen.getByLabelText("Envelope ID") as HTMLInputElement).value).toBe("qr-pool-42");
+    expect(screen.getByText("Claim request prepared")).toBeTruthy();
+    expect(screen.queryByText("Needs envelope ID")).toBeNull();
 
     fireEvent.click(screen.getByRole("tab", { name: "Create" }));
 
