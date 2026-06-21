@@ -4,8 +4,8 @@
  * Treasury dashboard and connected-wallet disbursement workspace.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
+import { useEffect, useState } from "react";
+import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { getLaunchParam } from "@shared/utils/launch-params";
@@ -131,25 +131,37 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
     setAsset(launchedAsset === "NEO" ? "NEO" : "GAS");
     setAmount(getLaunchParam(launchContext, ["amount", "value", "total"], ""));
     setRecipient(getLaunchParam(launchContext, ["recipient", "to", "address"], ""));
-    setMemo(getLaunchParam(launchContext, ["memo", "note", "purpose"], "treasury-disbursement"));
+    setMemo(getLaunchParam(launchContext, ["memo", "note", "purpose"], ""));
   }, [launchContext.signature]);
 
   const networkLabel = launchContext.network === "testnet"
     ? t("networkTestnet")
     : t("networkMainnet");
   const submitDisabled = disbursementSubmitting || !amount.trim() || !recipient.trim();
-  const assetOptions = useMemo(
-    () => [
-      { value: "GAS", label: "GAS" },
-      { value: "NEO", label: "NEO" },
-    ],
-    [],
-  );
+  const assetChoices: Array<{
+    value: TreasuryAsset;
+    label: string;
+    hint: string;
+    meta: string;
+  }> = [
+    {
+      value: "GAS",
+      label: "GAS",
+      hint: t("assetGasHint"),
+      meta: t("assetGasMeta"),
+    },
+    {
+      value: "NEO",
+      label: "NEO",
+      hint: t("assetNeoHint"),
+      meta: t("assetNeoMeta"),
+    },
+  ];
   const hasDraftFields = Boolean(amount.trim() && recipient.trim());
-  const draftReview = useMemo<{
+  const draftReview: {
     preview: TreasuryDisbursementPreview | null;
     error: string;
-  }>(() => {
+  } = (() => {
     if (!hasDraftFields) return { preview: null, error: "" };
     try {
       return {
@@ -162,7 +174,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
     } catch (error) {
       return { preview: null, error: formatInlineError(error) };
     }
-  }, [address, amount, asset, hasDraftFields, memo, recipient]);
+  })();
   const submitBlocked = submitDisabled || Boolean(draftReview.error);
   const submitLabel = address ? t("submitDisbursement") : t("connectAndSignDisbursement");
   // Disconnected with nothing drafted yet -> the only sensible next step is to
@@ -324,140 +336,156 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             <p>{t("disbursementBoundary")}</p>
           </div>
 
-          <div className="treasury-wallet-strip">
-            <div>
-              {/* Source clarity: payouts are funded by the connected wallet, not
-                  the watched foundation treasury. */}
-              <span>{t("fromYourWallet")}</span>
-              <strong title={address || t("walletRequired")}>
-                {address ? compactAddress(address) : t("walletRequired")}
-              </strong>
-            </div>
-            <div>
-              <span>{t("network")}</span>
-              <strong>{networkLabel}</strong>
-            </div>
-            <div>
-              <span>{t("status")}</span>
-              <strong>{disbursementStatus}</strong>
-            </div>
-          </div>
+          <div className="treasury-execution-grid">
+            <div className="treasury-composer" aria-label={t("disbursementTitle")}>
+              <fieldset className="treasury-asset-switch">
+                <legend>{t("asset")}</legend>
+                {assetChoices.map((choice) => (
+                  <button
+                    key={choice.value}
+                    type="button"
+                    className={[
+                      "treasury-asset-option",
+                      asset === choice.value ? "is-active" : "",
+                    ].filter(Boolean).join(" ")}
+                    aria-pressed={asset === choice.value}
+                    onClick={() => setAsset(choice.value)}
+                  >
+                    <span>
+                      <strong>{choice.label}</strong>
+                      <small>{choice.hint}</small>
+                    </span>
+                    <em>{choice.meta}</em>
+                  </button>
+                ))}
+              </fieldset>
 
-          <div className="treasury-form-grid">
-            <NeoSelect
-              label={t("asset")}
-              value={asset}
-              options={assetOptions}
-              onChange={(value) => setAsset(value === "NEO" ? "NEO" : "GAS")}
-              required
-            />
-            <NeoInput
-              label={t("amount")}
-              value={amount}
-              type="text"
-              suffix={asset}
-              placeholder="1"
-              required
-              onChange={setAmount}
-            />
-            <NeoInput
-              className="treasury-form-grid__wide"
-              label={t("recipient")}
-              value={recipient}
-              placeholder="N..."
-              required
-              onChange={setRecipient}
-            />
-            <p className="treasury-form-grid__wide treasury-recipient-caption">
-              {t("recipientCaption")}
-            </p>
-            <NeoInput
-              className="treasury-form-grid__wide"
-              label={t("memo")}
-              value={memo}
-              type="textarea"
-              placeholder="treasury-disbursement"
-              onChange={setMemo}
-            />
-          </div>
+              <div className="treasury-amount-stage">
+                <NeoInput
+                  className="treasury-amount-input"
+                  label={t("amount")}
+                  value={amount}
+                  type="text"
+                  suffix={asset}
+                  placeholder="1"
+                  required
+                  onChange={setAmount}
+                />
+                <div className="treasury-presets" aria-label={t("amountPresets")}>
+                  {AMOUNT_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={amount.trim() === preset ? "is-active" : ""}
+                      onClick={() => setAmount(preset)}
+                    >
+                      {preset} {asset}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <div className="treasury-presets" aria-label={t("amountPresets")}>
-            {AMOUNT_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setAmount(preset)}
+              <div className="treasury-route-fields">
+                <div>
+                  <NeoInput
+                    label={t("recipient")}
+                    value={recipient}
+                    placeholder="N..."
+                    required
+                    onChange={setRecipient}
+                  />
+                  <p className="treasury-recipient-caption">
+                    {t("recipientCaption")}
+                  </p>
+                </div>
+                <details className="treasury-memo-panel" open={Boolean(memo.trim())}>
+                  <summary>{t("memoDetails")}</summary>
+                  <NeoInput
+                    label={t("memo")}
+                    value={memo}
+                    type="textarea"
+                    placeholder="treasury-disbursement"
+                    onChange={setMemo}
+                  />
+                </details>
+              </div>
+            </div>
+
+            <aside className="treasury-signing-panel" aria-label={t("intentTitle")}>
+              <div className="treasury-wallet-strip">
+                <div>
+                  <span>{t("fromYourWallet")}</span>
+                  <strong title={address || t("walletRequired")}>
+                    {address ? compactAddress(address) : t("walletRequired")}
+                  </strong>
+                </div>
+                <div>
+                  <span>{t("network")}</span>
+                  <strong>{networkLabel}</strong>
+                </div>
+                <div>
+                  <span>{t("status")}</span>
+                  <strong>{disbursementStatus}</strong>
+                </div>
+              </div>
+
+              <div
+                className={[
+                  "treasury-intent-panel",
+                  draftReview.error ? "treasury-intent-panel--error" : "",
+                  draftReview.preview ? "treasury-intent-panel--ready" : "",
+                ].filter(Boolean).join(" ")}
+                aria-live="polite"
               >
-                {preset} {asset}
-              </button>
-            ))}
+                <div className="treasury-intent-panel__head">
+                  <span>{t("intentTitle")}</span>
+                  <strong>
+                    {draftReview.error
+                      ? t("intentIssue")
+                      : draftReview.preview
+                        ? t("intentReady")
+                        : t("intentWaiting")}
+                  </strong>
+                </div>
+                {draftReview.error && (
+                  <p className="treasury-error">{draftReview.error}</p>
+                )}
+                {!draftReview.error && !draftReview.preview && (
+                  <p>{t("intentWaitingCopy")}</p>
+                )}
+                {draftReview.preview && (
+                  <dl>
+                    <div>
+                      <dt>{t("intentContract")}</dt>
+                      <dd title={draftReview.preview.scriptHash}>
+                        {compactAddress(draftReview.preview.scriptHash)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t("intentFixed8")}</dt>
+                      <dd>{draftReview.preview.scaledAmount}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("intentRecipientHash")}</dt>
+                      <dd title={draftReview.preview.recipientHash}>
+                        {compactAddress(draftReview.preview.recipientHash)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t("intentSigner")}</dt>
+                      <dd title={draftReview.preview.senderHash || t("intentSignerConnect")}>
+                        {draftReview.preview.senderHash
+                          ? compactAddress(draftReview.preview.senderHash)
+                          : t("intentSignerConnect")}
+                      </dd>
+                    </div>
+                  </dl>
+                )}
+              </div>
+
+              {disbursementError && <p className="treasury-error">{disbursementError}</p>}
+            </aside>
           </div>
-
-          {/* The Asset/Amount/Recipient "Transfer review" strip was a verbatim
-              echo of the form fields directly above it. The derived signing
-              intent below (contract / fixed-8 amount / recipient hash) is the
-              non-redundant summary, so the duplicate review row is dropped to
-              shorten the console and give the editable form clear priority. */}
-
-          <details
-            className={[
-              "treasury-intent-panel",
-              draftReview.error ? "treasury-intent-panel--error" : "",
-            ].filter(Boolean).join(" ")}
-            open={Boolean(draftReview.error)}
-          >
-            <summary aria-label={t("intentTitle")}>
-              <span className="treasury-intent-panel__head">
-                <span>{t("intentTitle")}</span>
-                <strong>
-                  {draftReview.error
-                    ? t("intentIssue")
-                    : draftReview.preview
-                      ? t("intentReady")
-                      : t("intentWaiting")}
-                </strong>
-              </span>
-              <span className="treasury-intent-panel__chevron" aria-hidden="true" />
-            </summary>
-            <div className="treasury-intent-panel__body" aria-live="polite">
-              {draftReview.error && (
-                <p className="treasury-error">{draftReview.error}</p>
-              )}
-              {!draftReview.error && !draftReview.preview && (
-                <p>{t("intentWaitingCopy")}</p>
-              )}
-              {draftReview.preview && (
-                <dl>
-                  <div>
-                    <dt>{t("intentContract")}</dt>
-                    <dd title={draftReview.preview.scriptHash}>
-                      {compactAddress(draftReview.preview.scriptHash)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t("intentFixed8")}</dt>
-                    <dd>{draftReview.preview.scaledAmount}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("intentRecipientHash")}</dt>
-                    <dd title={draftReview.preview.recipientHash}>
-                      {compactAddress(draftReview.preview.recipientHash)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t("intentSigner")}</dt>
-                    <dd title={draftReview.preview.senderHash || t("intentSignerConnect")}>
-                      {draftReview.preview.senderHash
-                        ? compactAddress(draftReview.preview.senderHash)
-                        : t("intentSignerConnect")}
-                    </dd>
-                  </div>
-                </dl>
-              )}
-            </div>
-          </details>
-
-          {disbursementError && <p className="treasury-error">{disbursementError}</p>}
 
           {/* Single staged primary action. When disconnected with no draft yet,
               the only next step is to connect; once a payout is drafted (or the

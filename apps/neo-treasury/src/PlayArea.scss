@@ -75,7 +75,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -85,7 +85,7 @@
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -202,7 +202,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -223,12 +223,9 @@
   gap: 20px;
 }
 
-/* Cap the disbursement console width so its form fields don't stretch
-   full-bleed and visually merge with the reference cards below it — the
-   interactive write path reads as a distinct, contained console. */
 .treasury-operation-card {
   width: 100%;
-  max-width: 720px;
+  max-width: 1060px;
   min-width: 0;
 }
 
@@ -249,7 +246,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 750;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -258,7 +255,7 @@
   font-size: 1.125rem;
   font-weight: 800;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .treasury-section-heading p {
@@ -298,36 +295,240 @@
   font-variant-numeric: tabular-nums;
 }
 
-.treasury-intent-panel {
+.treasury-execution-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.72fr);
+  gap: 16px;
+  align-items: start;
   min-width: 0;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  transition: background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
-.treasury-intent-panel--error {
-  background: var(--ns-danger-soft, #fde7e9);
+.treasury-composer,
+.treasury-signing-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
 }
 
-.treasury-intent-panel > summary {
+.treasury-signing-panel {
+  padding: 14px;
+  border: 1px solid var(--ns-border, #e4e7ec);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #ffffff);
+}
+
+.treasury-signing-panel .treasury-wallet-strip {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.treasury-asset-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.treasury-asset-switch legend {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.treasury-asset-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  min-height: 62px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
   border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text-2, #5b6478);
   cursor: pointer;
-  list-style: none;
-  user-select: none;
+  text-align: left;
+  transition:
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
-.treasury-intent-panel > summary::-webkit-details-marker {
+.treasury-asset-option > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.treasury-asset-option strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.9375rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.treasury-asset-option small,
+.treasury-asset-option em {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.treasury-asset-option em {
+  flex: 0 0 auto;
+  max-width: 92px;
+  text-align: right;
+}
+
+.treasury-asset-option:hover,
+.treasury-asset-option:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: rgba(22, 199, 132, 0.35);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+}
+
+.treasury-asset-option.is-active {
+  border-color: rgba(22, 199, 132, 0.44);
+  background: var(--ns-brand-soft, #e4f8f0);
+}
+
+.treasury-asset-option.is-active strong,
+.treasury-asset-option.is-active small,
+.treasury-asset-option.is-active em {
+  color: #086a45;
+}
+
+.treasury-amount-stage {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--ns-border, #e4e7ec);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 58%),
+    var(--ns-surface-subtle, #f7f8fa);
+}
+
+.treasury-amount-input .neo-input__wrapper {
+  min-height: 66px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.treasury-amount-input .neo-input__field {
+  min-height: 66px;
+  padding: 0 0.2rem;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.treasury-amount-input .neo-input__suffix {
+  padding-right: 0.2rem;
+  color: #086a45;
+  font-size: 0.875rem;
+  font-weight: 900;
+}
+
+.treasury-route-fields {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.treasury-route-fields > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.treasury-memo-panel {
+  min-width: 0;
+  border: 1px solid var(--ns-border, #e4e7ec);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+}
+
+.treasury-memo-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 14px;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.treasury-memo-panel summary::-webkit-details-marker {
   display: none;
 }
 
-.treasury-intent-panel > summary:focus-visible {
+.treasury-memo-panel summary::after {
+  content: "+";
+  color: #086a45;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.treasury-memo-panel[open] {
+  padding-bottom: 12px;
+}
+
+.treasury-memo-panel[open] summary::after {
+  content: "-";
+}
+
+.treasury-memo-panel summary:focus-visible {
   outline: none;
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+}
+
+.treasury-memo-panel .neo-input {
+  padding: 0 14px;
+}
+
+.treasury-intent-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--ns-border, #e4e7ec);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  transition:
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.treasury-intent-panel--error {
+  border-color: rgba(200, 30, 42, 0.24);
+  background: var(--ns-danger-soft, #fde7e9);
+}
+
+.treasury-intent-panel--ready {
+  border-color: rgba(22, 199, 132, 0.24);
+  background:
+    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 52%),
+    var(--ns-surface, #ffffff);
 }
 
 .treasury-intent-panel__head {
@@ -337,10 +538,10 @@
 }
 
 .treasury-intent-panel__head > span {
-  color: var(--ns-text-muted, #8a92a6);
+  color: #086a45;
   font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 850;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -349,27 +550,6 @@
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.25;
-}
-
-.treasury-intent-panel__chevron {
-  display: inline-flex;
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid var(--ns-text-muted, #8a92a6);
-  border-bottom: 2px solid var(--ns-text-muted, #8a92a6);
-  transform: rotate(45deg);
-  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.treasury-intent-panel[open] .treasury-intent-panel__chevron {
-  transform: rotate(225deg);
-}
-
-.treasury-intent-panel__body {
-  display: grid;
-  gap: 12px;
-  padding: 0 16px 16px;
 }
 
 .treasury-intent-panel p {
@@ -381,8 +561,7 @@
 
 .treasury-intent-panel dl {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   margin: 0;
 }
 
@@ -390,16 +569,16 @@
   display: grid;
   gap: 5px;
   min-width: 0;
-  padding: 14px;
+  padding: 12px 14px;
   border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface, #ffffff);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .treasury-intent-panel dt {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -416,45 +595,35 @@
   font-variant-numeric: tabular-nums;
 }
 
-.treasury-form-grid {
-  display: grid;
-  grid-template-columns: minmax(150px, 0.48fr) minmax(180px, 0.52fr);
-  gap: 14px;
-  min-width: 0;
-}
-
-.treasury-form-grid__wide {
-  grid-column: 1 / -1;
-}
-
 .treasury-presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .treasury-presets button {
-  min-width: 82px;
-  min-height: 36px;
-  padding: 8px 14px;
-  border: 1px solid transparent;
+  min-width: 78px;
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  // Darker green text for AA: brand-strong #0fb174 is ~2.5:1 on brand-soft;
-  // #086a45 is ~4.8:1 on white and holds on the brand-soft resting background.
-  color: #086a45;
-  font-size: 0.8125rem;
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
   transition:
     background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
-.treasury-presets button:hover {
-  border-color: var(--ns-brand, #16c784);
-  background: var(--ns-surface, #ffffff);
+.treasury-presets button:hover,
+.treasury-presets button.is-active {
+  border-color: rgba(22, 199, 132, 0.32);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: #086a45;
 }
 
 .treasury-presets button:focus-visible {
@@ -467,6 +636,18 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+
+.treasury-actions .op-btn.neo-btn--primary:not(:disabled):not([aria-disabled="true"]) {
+  border: 1px solid #0a7a52;
+  background: #0a7a52;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(22, 199, 132, 0.2);
+}
+
+.treasury-actions .op-btn.neo-btn--primary:not(:disabled):not([aria-disabled="true"]):hover {
+  border-color: #086d49;
+  background: #086d49;
 }
 
 /* Subordinate "change wallet" affordance shown only once connected — a quiet
@@ -523,7 +704,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -532,7 +713,7 @@
   font-size: 1.0625rem;
   font-weight: 800;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .treasury-reference-card__head p {
@@ -589,7 +770,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -617,7 +798,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 0.9375rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   text-transform: none;
 }
 
@@ -660,7 +841,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -823,6 +1004,7 @@
   }
 
   .treasury-hero,
+  .treasury-execution-grid,
   .treasury-action-card .neo-card__body {
     grid-template-columns: 1fr;
   }
@@ -840,9 +1022,9 @@
     grid-template-columns: 1fr;
   }
 
+  .treasury-asset-switch,
   .treasury-wallet-strip,
-  .treasury-intent-panel dl,
-  .treasury-form-grid {
+  .treasury-intent-panel dl {
     grid-template-columns: 1fr;
   }
 
