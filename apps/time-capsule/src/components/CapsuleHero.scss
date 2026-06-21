@@ -171,8 +171,9 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 @media (max-width: 720px) {
   .hero-container {
-    min-height: 380px;
-    padding: 22px;
+    gap: 14px;
+    min-height: 300px;
+    padding: 18px;
   }
 
   .hero-stage-shade {
@@ -200,10 +201,35 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 
   .hero-title {
-    font-size: 34px;
+    font-size: 30px;
+  }
+
+  .hero-subtitle {
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .hero-stat {
     grid-template-columns: 1fr;
+    gap: 4px;
+    min-height: 62px;
+    padding: 9px;
+  }
+
+  .hero-stat svg {
+    grid-row: auto;
+  }
+
+  .hero-stat-value {
+    font-size: 20px;
+  }
+
+  .hero-stat-label {
+    font-size: 9px;
   }
 }
