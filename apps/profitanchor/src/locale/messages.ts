@@ -8,6 +8,13 @@ const appMessages = {
     en: "The yield-maximizing anchor: your staked NEO is voted by 21 anchor agents under a profit policy, and you claim the GAS those votes earn. ProfitAnchor is a distinct pool from TrustAnchor, and its selected route is readable by SelfLoan without ceding custody. Manual 21-agent routing is handled in ProfitAnchor Admin.",
     zh: "收益优先的锚点：你质押的 NEO 由 21 个锚点 agent 按收益策略投票，你领取这些投票产生的 GAS。ProfitAnchor 与 TrustAnchor 是独立资金池，其选定路由可被 SelfLoan 读取且无需转移托管权。21 个 AA agent 的手动调仓由 ProfitAnchor Admin 处理。",
   },
+  heroFactsLabel: { en: "ProfitAnchor route facts", zh: "ProfitAnchor 路由信息" },
+  heroFactVariable: { en: "Variable yield", zh: "浮动收益" },
+  stageAria: {
+    en: "ProfitAnchor yield engine preview",
+    zh: "ProfitAnchor 收益引擎预览",
+  },
+  stageCaption: { en: "Yield engine", zh: "收益引擎" },
   earnTitle: { en: "How yield works", zh: "收益如何产生" },
   earnLine1: {
     en: "Your staked NEO is voted by the anchor's 21 AA agents for Neo council candidates under ProfitAnchor's profit policy.",
@@ -184,6 +191,7 @@ const appMessages = {
     en: "Whole NEO only — NEO is indivisible, no decimals.",
     zh: "仅限整数 NEO——NEO 不可分割，无小数。",
   },
+  stakePresetLabel: { en: "Stake amount presets", zh: "质押数量快捷选择" },
   preflightBody: {
     en: "Confirm the amount, route, stake memo, and claim state before the wallet prompt opens.",
     zh: "在钱包弹窗打开前确认金额、路由、质押 memo 和领取状态。",
