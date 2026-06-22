@@ -147,6 +147,9 @@ export default function PlayArea({
   const [token, setToken] = useState(launchToken);
   const [notes, setNotes] = useState(launchNotes);
   const [detailsOpen, setDetailsOpen] = useState(Boolean(launchNotes));
+  const [localCreating, setLocalCreating] = useState(false);
+  const [localClaimingId, setLocalClaimingId] = useState("");
+  const [localCancellingId, setLocalCancellingId] = useState("");
 
   useEffect(() => {
     if (launchRecipient) setRecipient(launchRecipient);
@@ -160,27 +163,37 @@ export default function PlayArea({
   /* ---------- Handlers ---------- */
   const handleCreateStream = async () => {
     if (!canCreateStream) return;
-    await dispatch("createStream", {
-      recipient,
-      amount,
-      duration,
-      token,
-      notes,
-    });
-    setRecipient("");
-    setAmount("");
-    setDuration("");
-    setToken("GAS");
-    setNotes("");
-    setDetailsOpen(false);
+    setLocalCreating(true);
+    try {
+      await dispatch("createStream", {
+        recipient,
+        amount,
+        duration,
+        token,
+        notes,
+      });
+      clearDraft();
+    } finally {
+      setLocalCreating(false);
+    }
   };
 
   const handleCancel = async (id: string) => {
-    await dispatch("cancelStream", id);
+    setLocalCancellingId(id);
+    try {
+      await dispatch("cancelStream", id);
+    } finally {
+      setLocalCancellingId("");
+    }
   };
 
   const handleClaim = async (id: string) => {
-    await dispatch("claimStream", id);
+    setLocalClaimingId(id);
+    try {
+      await dispatch("claimStream", id);
+    } finally {
+      setLocalClaimingId("");
+    }
   };
 
   /* ---------- Helpers ---------- */
@@ -307,6 +320,9 @@ export default function PlayArea({
   // indivisible integer count) and streams them directly. GAS stays the
   // default; NEO is offered for indivisible whole-token streams.
   const tokenOptions = ["GAS", "NEO"] as const;
+  const creatingStream = isCreating || localCreating;
+  const activeClaimingId = claimingId || localClaimingId;
+  const activeCancellingId = cancellingId || localCancellingId;
   const amountInput = amount.trim();
   const durationInput = duration.trim();
   const amountValue = Number.parseFloat(amountInput);
@@ -321,7 +337,7 @@ export default function PlayArea({
   const durationReady =
     /^\d+$/u.test(durationInput) && durationValue >= 1 && durationValue <= 365;
   const canCreateStream =
-    recipient.trim().length > 0 && amountReady && durationReady && !isCreating;
+    recipient.trim().length > 0 && amountReady && durationReady && !creatingStream;
   const draftHasValue =
     recipient.trim().length > 0 ||
     amount.trim().length > 0 ||
@@ -343,7 +359,29 @@ export default function PlayArea({
     : t("durationPlaceholder");
   const networkLabel =
     launchContext.network === "mainnet" ? t("networkMainnet") : t("networkTestnet");
-  const submitLabel = canCreateStream ? t("createStream") : t("reviewStream");
+  const stageState = creatingStream
+    ? "creating"
+    : canCreateStream
+      ? "ready"
+      : draftHasValue
+        ? "draft"
+        : hasStreamActivity
+          ? "live"
+          : "idle";
+  const stageStatusLabel = creatingStream
+    ? t("stageSigning")
+    : canCreateStream
+      ? t("stageReady")
+      : draftHasValue
+        ? t("stageDraft")
+        : hasStreamActivity
+          ? t("stageLive")
+          : t("stageIdle");
+  const submitLabel = creatingStream
+    ? t("creatingStream")
+    : canCreateStream
+      ? t("createStream")
+      : t("reviewStream");
   const showStreamLists = hasStreamActivity || isListLoading;
   const streamPresets = [
     { id: "weekly-gas", amount: "12", duration: "7", token: "GAS" as const },
@@ -375,48 +413,77 @@ export default function PlayArea({
 
   return (
     <div className="neopay-play-area">
-      {/* ==================== Hero ==================== */}
-      <div className="neopay-hero">
-        <div className="neopay-hero-top">
-          <div className="neopay-hero-badge" aria-hidden="true">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 12h4l2 6 4-12 2 6h4" />
-            </svg>
-          </div>
-          <div className="neopay-hero-text">
-            <span className="neopay-hero-eyebrow">
-              {t("ariaStreams")}
-            </span>
-            <h2 className="neopay-hero-title">{t("title")}</h2>
-            <p className="neopay-hero-subtitle">
-              {t("docSubtitle")}
-            </p>
+      {/* ==================== Payment Stream Stage ==================== */}
+      <section
+        className={`neopay-stream-stage neopay-stream-stage--${stageState}`}
+        aria-label={t("paymentStageAria")}
+      >
+        <img
+          className="neopay-stream-stage__image"
+          src="./banner.jpg"
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="neopay-stream-stage__shade" aria-hidden="true" />
+
+        <div className="neopay-stream-stage__copy">
+          <span className="neopay-stream-stage__eyebrow">
+            {t("heroEyebrow")}
+          </span>
+          <h2 className="neopay-stream-stage__title">{t("heroTitle")}</h2>
+          <p className="neopay-stream-stage__subtitle">
+            {t("heroSubtitle")}
+          </p>
+          <div className="neopay-stream-stage__chips" aria-label={t("ariaStreams")}>
+            <span>{networkLabel}</span>
+            <span>{token}</span>
+            <span>{stageStatusLabel}</span>
           </div>
         </div>
 
-        {hasStreamActivity && (
-          <div className="neopay-hero-summary" role="group" aria-label={t("ariaStreams")}>
-            <div className="neopay-hero-stat">
-              <span className="neopay-hero-stat-value">{totalStreamCount}</span>
-              <span className="neopay-hero-stat-label">{t("totalStreams")}</span>
+        <div className="neopay-flow-board" aria-label={t("streamFlowPreview")}>
+          <div className="neopay-flow-board__top">
+            <span>{t("stagedFlow")}</span>
+            <strong>{totalLabel}</strong>
+          </div>
+          <div className="neopay-flow-path">
+            <div className="neopay-flow-node neopay-flow-node--source">
+              <span>{t("payerWallet")}</span>
+              <strong>{totalLabel}</strong>
             </div>
-            <span className="neopay-hero-stat-divider" aria-hidden="true" />
-            <div className="neopay-hero-stat">
-              <span className="neopay-hero-stat-value">{activeCount}</span>
-              <span className="neopay-hero-stat-label">{t("active")}</span>
+
+            <div className="neopay-flow-track" aria-hidden="true">
+              <span className="neopay-flow-track__line" />
+              <span className="neopay-flow-token neopay-flow-token--one" />
+              <span className="neopay-flow-token neopay-flow-token--two" />
+              <span className="neopay-flow-vault">
+                <span>{t("streamVault")}</span>
+                <strong>{releaseLabel}</strong>
+              </span>
+            </div>
+
+            <div className="neopay-flow-node neopay-flow-node--recipient">
+              <span>{t("recipient")}</span>
+              <strong>{recipientPreview}</strong>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="neopay-stage-metrics" role="group" aria-label={t("transactionPreview")}>
+            <div>
+              <span>{releaseRateLabel}</span>
+              <strong>{releaseLabel}</strong>
+            </div>
+            <div>
+              <span>{t("intervalLabel")}</span>
+              <strong>{durationLabel}</strong>
+            </div>
+            <div>
+              <span>{t("active")}</span>
+              <strong>{activeCount}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {serviceNotice && (
         <div className="neopay-service-notice" role="status">
@@ -430,7 +497,7 @@ export default function PlayArea({
       {/* ==================== Create Stream Form ==================== */}
       <NeoCard
         variant="erobo"
-        title={t("createStream")}
+        title={t("streamConsole")}
         className="neopay-card neopay-card--form"
       >
         <div className="neopay-composer-shell">
@@ -705,8 +772,11 @@ export default function PlayArea({
                     <NeoButton
                       variant="danger"
                       size="sm"
-                      loading={cancellingId === stream.id}
-                      disabled={isFinalizedStatus(stream.status) || cancellingId === stream.id}
+                      loading={activeCancellingId === stream.id}
+                      disabled={
+                        isFinalizedStatus(stream.status) ||
+                        activeCancellingId === stream.id
+                      }
                       onClick={() => handleCancel(stream.id)}
                     >
                       {t("cancel")}
@@ -828,10 +898,10 @@ export default function PlayArea({
                     <NeoButton
                       variant="success"
                       size="sm"
-                      loading={claimingId === stream.id}
+                      loading={activeClaimingId === stream.id}
                       disabled={
                         !canClaim(stream.status, claimable.positive) ||
-                        claimingId === stream.id
+                        activeClaimingId === stream.id
                       }
                       onClick={() => handleClaim(stream.id)}
                     >

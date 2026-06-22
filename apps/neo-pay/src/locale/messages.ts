@@ -12,6 +12,46 @@ const appMessages = {
     en: "Lock GAS or NEO and release it on a schedule — for payrolls, subscriptions, and allowances.",
     zh: "锁定 GAS 或 NEO 并按计划释放——适用于工资、订阅与津贴。",
   },
+  paymentStageAria: {
+    en: "Payment stream stage",
+    zh: "流式支付舞台",
+  },
+  streamFlowPreview: {
+    en: "Payment stream preview",
+    zh: "支付流预览",
+  },
+  stagedFlow: {
+    en: "Live stream route",
+    zh: "资金流路径",
+  },
+  payerWallet: {
+    en: "Your wallet",
+    zh: "你的钱包",
+  },
+  streamVault: {
+    en: "Stream vault",
+    zh: "资金流金库",
+  },
+  stageIdle: {
+    en: "Ready to plan",
+    zh: "准备配置",
+  },
+  stageDraft: {
+    en: "Drafting stream",
+    zh: "正在草拟",
+  },
+  stageReady: {
+    en: "Ready to sign",
+    zh: "准备签名",
+  },
+  stageSigning: {
+    en: "Signing stream",
+    zh: "正在签名",
+  },
+  stageLive: {
+    en: "Streams live",
+    zh: "资金流运行中",
+  },
   totalStreams: { en: "Total Streams", zh: "总流数量" },
   active: { en: "Active", zh: "活跃" },
   createdByYou: { en: "Created by You", zh: "你创建的" },
@@ -19,6 +59,8 @@ const appMessages = {
 
   // Create form
   createStream: { en: "Create Stream", zh: "创建资金流" },
+  creatingStream: { en: "Creating stream...", zh: "正在创建资金流……" },
+  streamConsole: { en: "Stream console", zh: "资金流控制台" },
   createStreamDescription: {
     en: "Create a funded GAS or NEO payment stream for a Neo N3 recipient.",
     zh: "为 Neo N3 收款地址创建已注资的 GAS 或 NEO 流式支付。",
