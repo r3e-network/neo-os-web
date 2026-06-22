@@ -4,7 +4,7 @@
  * Interactive market console for machines, on-chain prize escrow, and pulls.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Bot,
   Coins,
@@ -370,6 +370,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const studioPriceLabel = machinePrice.trim()
     ? `${machinePrice.trim()} GAS`
     : t("studioPreviewPriceUnset");
+  const studioPrizePreview = studioItems.map((item, index) => {
+    const itemWeight = Number(item.weight) || 0;
+    const share =
+      studioTotalWeight > 0 ? (itemWeight / studioTotalWeight) * 100 : 0;
+    const derivedRarity = rarityFromShare(share);
+    const rarityKey = `rarity${derivedRarity.charAt(0)}${derivedRarity
+      .slice(1)
+      .toLowerCase()}`;
+    return {
+      item,
+      index,
+      itemWeight,
+      share,
+      derivedRarity,
+      rarityKey,
+      label: item.name.trim() || t("studioCapsuleFallback"),
+      amountLabel: item.amount.trim()
+        ? `${item.amount.trim()} ${prizeAsset}`
+        : t("studioAmountUnset"),
+    };
+  });
+  const studioReadyToPublish =
+    machineName.trim().length > 0 &&
+    studioPrizePreview.some(
+      ({ item, itemWeight }) => item.name.trim().length > 0 && itemWeight > 0,
+    );
 
   const resetStudioForm = () => {
     setMachineName("");
@@ -595,7 +621,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </section>
 
       {studioOpen && (
-        <NeoCard variant="erobo" className="gasbox-studio-card">
+        <NeoCard
+          variant="erobo"
+          className={`gasbox-studio-card${studioReadyToPublish ? " gasbox-studio-card--ready" : ""}`}
+        >
           <div className="gasbox-studio-header">
             <div className="gasbox-studio-header__copy">
               <span>{t("studioTitle")}</span>
@@ -622,6 +651,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
+          <ol className="gasbox-studio-flow" aria-label={t("studioFlowLabel")}>
+            <li className={machineName.trim() ? "is-ready" : ""}>
+              <Bot aria-hidden="true" />
+              <span>
+                <strong>{t("studioFlowMachine")}</strong>
+                <small>{t("studioFlowMachineHint")}</small>
+              </span>
+            </li>
+            <li className={studioTotalWeight > 0 ? "is-ready" : ""}>
+              <Gem aria-hidden="true" />
+              <span>
+                <strong>{t("studioFlowPrizes")}</strong>
+                <small>{t("studioFlowPrizesHint")}</small>
+              </span>
+            </li>
+            <li className={studioReadyToPublish ? "is-ready" : ""}>
+              <ShieldCheck aria-hidden="true" />
+              <span>
+                <strong>{t("studioFlowPublish")}</strong>
+                <small>{t("studioFlowPublishHint")}</small>
+              </span>
+            </li>
+          </ol>
+
           <div className="gasbox-studio-blueprint" aria-label={t("studioBlueprintLabel")}>
             <figure className="gasbox-studio-machine-preview">
               <picture aria-hidden="true">
@@ -629,6 +682,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <source srcSet="logo.webp" type="image/webp" />
                 <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
               </picture>
+              <div className="gasbox-studio-machine-preview__lights" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
               <figcaption>
                 <span>{t("studioBlueprintLabel")}</span>
                 <strong>{studioMachineLabel}</strong>
@@ -654,6 +712,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <strong>{studioTotalWeight}</strong>
                 </span>
               </div>
+            </div>
+          </div>
+
+          <div className="gasbox-studio-odds-rail" aria-label={t("studioOddsRailTitle")}>
+            <div className="gasbox-studio-odds-rail__head">
+              <span>{t("studioOddsRailTitle")}</span>
+              <strong>{t("studioOddsRailHint")}</strong>
+            </div>
+            <div className="gasbox-studio-odds-track" role="list">
+              {studioPrizePreview.map((preview) => (
+                <article
+                  key={preview.index}
+                  className={`gasbox-studio-odds-token ${rarityClass(preview.derivedRarity)}`}
+                  role="listitem"
+                  style={{ "--gasbox-token-order": preview.index } as CSSProperties}
+                >
+                  <span className="gasbox-studio-odds-token__capsule" aria-hidden="true">
+                    <RarityMark rarity={preview.derivedRarity} />
+                  </span>
+                  <span className="gasbox-studio-odds-token__copy">
+                    <strong>{preview.label}</strong>
+                    <small>
+                      {formatPercent(preview.share, "—")} · {preview.amountLabel}
+                    </small>
+                  </span>
+                </article>
+              ))}
             </div>
           </div>
 
@@ -741,14 +826,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <p className="gasbox-studio-items__hint">{t("derivedTierExplain")}</p>
 
-            {studioItems.map((item, index) => {
-              const itemWeight = Number(item.weight) || 0;
-              const share =
-                studioTotalWeight > 0 ? (itemWeight / studioTotalWeight) * 100 : 0;
-              const derivedRarity = rarityFromShare(share);
-              const rarityKey = `rarity${derivedRarity.charAt(0)}${derivedRarity
-                .slice(1)
-                .toLowerCase()}`;
+            {studioPrizePreview.map((preview) => {
+              const { item, index, itemWeight, share, derivedRarity, rarityKey } = preview;
               return (
               <div key={index} className="gasbox-studio-item">
                 <div className="gasbox-studio-item__header">
