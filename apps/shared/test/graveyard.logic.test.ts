@@ -52,10 +52,18 @@ interface ChainMock {
 
 function chainMock(opts: {
   reads?: Record<string, unknown>;
+  readFailures?: Record<string, unknown>;
   events?: unknown[];
 } = {}): { chain: ChainService; mock: ChainMock } {
   const reads = opts.reads ?? {};
-  const read = vi.fn(async (op: string) => reads[op] ?? null);
+  const readFailures = opts.readFailures ?? {};
+  const read = vi.fn(async (op: string) => {
+    if (op in readFailures) {
+      const failure = readFailures[op];
+      throw failure instanceof Error ? failure : new Error(String(failure));
+    }
+    return reads[op] ?? null;
+  });
   const invoke = vi.fn(async () => ({ txid: "0xtx", event: undefined, success: true }));
   const invokeWithPayment = vi.fn(async () => ({
     txid: "0xtx",
@@ -200,5 +208,34 @@ describe("useGraveyard — history pagination", () => {
     await graveyard.setShowAllHistory(true);
     expect(graveyard.history.get().length).toBe(25);
     expect(graveyard.historyTruncated.get()).toBe(false);
+  });
+});
+
+describe("useGraveyard — local preview read failures", () => {
+  it("keeps expected missing-contract reads quiet but still warns on unexpected read failures", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const missingContract = app({
+        readFailures: {
+          getPlatformStats: new Error("Contract address not configured"),
+          getUserMemoryCount: new Error("MiniApp contract address unavailable"),
+        },
+      });
+      await missingContract.graveyard.loadAll();
+      expect(warn).not.toHaveBeenCalled();
+
+      const unexpected = app({
+        readFailures: {
+          getPlatformStats: new Error("RPC node unavailable"),
+        },
+      });
+      await unexpected.graveyard.loadStats();
+      expect(warn).toHaveBeenCalledWith(
+        "[useGraveyard] getPlatformStats failed:",
+        "RPC node unavailable",
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

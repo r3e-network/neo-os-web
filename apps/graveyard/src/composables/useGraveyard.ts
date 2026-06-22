@@ -96,6 +96,26 @@ const HISTORY_EVENT_LIMIT = 200;
 /** Max history rows surfaced to the UI (newest first). */
 const HISTORY_DISPLAY_LIMIT = 20;
 
+const EXPECTED_LOCAL_READ_FAILURES = [
+  "Contract address not configured",
+  "MiniApp contract address unavailable",
+] as const;
+
+function isExpectedLocalReadFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return EXPECTED_LOCAL_READ_FAILURES.some((expected) =>
+    message.includes(expected),
+  );
+}
+
+function warnIfUnexpectedReadFailure(context: string, error: unknown): void {
+  if (isExpectedLocalReadFailure(error)) return;
+  console.warn(
+    context,
+    error instanceof Error ? error.message : String(error),
+  );
+}
+
 /**
  * The burial target is an encrypted content hash or token identifier written
  * on-chain. We reject obviously-malformed input (whitespace / control chars)
@@ -378,10 +398,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
       if (bury > 0n) buryFee.set(bury);
       if (forget > 0n) forgetFee.set(forget);
     } catch (e) {
-      console.warn(
-        "[useGraveyard] getPlatformStats failed:",
-        e instanceof Error ? e.message : String(e),
-      );
+      warnIfUnexpectedReadFailure("[useGraveyard] getPlatformStats failed:", e);
     }
   };
 
@@ -415,10 +432,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
         Number(formatGasAmount(buryFee.get() * BigInt(Math.max(0, userCount)))),
       );
     } catch (e) {
-      console.warn(
-        "[useGraveyard] getUserMemoryCount failed:",
-        e instanceof Error ? e.message : String(e),
-      );
+      warnIfUnexpectedReadFailure("[useGraveyard] getUserMemoryCount failed:", e);
     }
 
     try {
@@ -475,11 +489,9 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
               if (ep && /^[\x20-\x7e -]*$/.test(ep)) epitaph = ep;
             }
           } catch (e) {
-            console.warn(
-              "[useGraveyard] getMemoryDetails failed for",
-              item.id,
-              ":",
-              e instanceof Error ? e.message : String(e),
+            warnIfUnexpectedReadFailure(
+              `[useGraveyard] getMemoryDetails failed for ${item.id}:`,
+              e,
             );
           }
           return {
@@ -495,9 +507,9 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
 
       history.set(entries);
     } catch (e) {
-      console.warn(
+      warnIfUnexpectedReadFailure(
         "[useGraveyard] MemoryBuried history fetch failed:",
-        e instanceof Error ? e.message : String(e),
+        e,
       );
     }
   };

@@ -22,6 +22,8 @@ function t(key: string, params?: Record<string, string | number>) {
     assetHash: "Content hash",
     composeModeWrite: "Write memory",
     composeModeHash: "I have a hash",
+    composeModeWriteHint: "Hash locally from a private note",
+    composeModeHashHint: "Use an existing encrypted target",
     memoryTextLabel: "Your memory",
     memoryTextPlaceholder: "Write the memory to bury.",
     memoryTextHint: "The text stays on this device.",
@@ -46,6 +48,10 @@ function t(key: string, params?: Record<string, string | number>) {
     burialChecklist: "Burial checklist",
     burialFee: "Burial fee",
     burialReview: "Burial review",
+    memoryVaultStage: "Memory vault",
+    memoryConsole: "Memory console",
+    sealReady: "Seal ready",
+    sealEmpty: "Awaiting memory",
     memoryTypeLocal: "Record tag",
     memoryTypeLocalHint:
       "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
@@ -181,7 +187,9 @@ describe("Graveyard PlayArea", () => {
       4,
     );
     expect(
-      document.querySelector('.grave-ritual-stage__banner img[src="logo.jpg"]'),
+      document.querySelector(
+        '.grave-ritual-stage__banner[src="memory-vault-stage.jpg"]',
+      ),
     ).toBeTruthy();
     // Blocked-state review tile renders the short-hash guidance copy.
     expect(
@@ -217,7 +225,9 @@ describe("Graveyard PlayArea", () => {
     expect(document.querySelector(".graveyard-play-area--ready")).toBeTruthy();
     expect(document.querySelector(".grave-ritual-stage--ready")).toBeTruthy();
     expect(
-      document.querySelector('.grave-ritual-stage__seal img[src="logo.jpg"]'),
+      document.querySelector(
+        '.grave-ritual-stage__seal img[src="memory-vault-stage.jpg"]',
+      ),
     ).toBeTruthy();
     // Memory type is presented as a record tag that is anchored on-chain
     // alongside the content hash (one label on the selector, one in the review
@@ -354,9 +364,34 @@ describe("Graveyard PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("startEpitaph", historyItem);
 
     // The compose-mode toggle exposes the local-hash "write memory" mode.
-    expect(screen.getByRole("tab", { name: "Write memory" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: "Write memory" }));
+    expect(screen.getByRole("tab", { name: /Write memory/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Write memory/ }));
     expect(dispatch).toHaveBeenCalledWith("setComposeMode", "write");
+  });
+
+  it("uses a generated memory-vault scene as the real burial stage asset", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(
+      fs.existsSync(`${process.cwd()}/../graveyard/public/memory-vault-stage.jpg`),
+    ).toBe(true);
+    expect(
+      document.querySelector('.grave-hero-art img[src="memory-vault-stage.jpg"]'),
+    ).toBeTruthy();
+    expect(
+      document.querySelector(
+        '.grave-ritual-stage__banner[src="memory-vault-stage.jpg"]',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Memory console")).toBeTruthy();
   });
 
   it("renders the write-memory textarea and routes typing through setMemoryText (local hashing)", () => {
@@ -385,11 +420,15 @@ describe("Graveyard PlayArea", () => {
     );
 
     expect(styles).toContain(".grave-ritual-stage");
+    expect(styles).toContain(".grave-memory-console");
     expect(styles).toContain(".grave-ritual-track");
     expect(styles).toContain("@keyframes grave-banner-drift");
     expect(styles).toContain("@keyframes grave-seal-ready");
     expect(styles).toContain("@keyframes grave-confirm-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.grave-ritual-stage__banner[\s\S]*animation:\s*none/,
+    );
     expect(styles).toMatch(
       /@media \(max-width: 720px\)[\s\S]*\.grave-ritual-track[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
     );
