@@ -95,13 +95,13 @@ describe("Neo NS PlayArea", () => {
       />,
     );
 
-    expect(document.querySelector(".result-status--available")).toBeTruthy();
-    expect(
-      document.querySelector(".register-row")?.textContent,
-    ).toContain("Cost: 5 GAS");
+    expect(document.querySelector(".nns-result-card--available")).toBeTruthy();
+    const resultAction = document.querySelector(".nns-result-action");
+    expect(resultAction?.textContent).toContain("Cost");
+    expect(resultAction?.textContent).toContain("5 GAS");
     expect(screen.getByRole("button", { name: "Register" })).toBeTruthy();
     // No owner row for an available name.
-    expect(document.querySelector(".result-owner")).toBeNull();
+    expect(document.querySelector(".nns-owner-line")).toBeNull();
   });
 
   it("shows the resolved owner (not just a Taken pill) for a taken name", () => {
@@ -115,14 +115,14 @@ describe("Neo NS PlayArea", () => {
       />,
     );
 
-    expect(document.querySelector(".result-status--taken")).toBeTruthy();
+    expect(document.querySelector(".nns-result-card--taken")).toBeTruthy();
     // The owner address is surfaced to the user.
-    const ownerRow = document.querySelector(".result-owner");
+    const ownerRow = document.querySelector(".nns-owner-line");
     expect(ownerRow).toBeTruthy();
     expect(ownerRow?.textContent).toContain("Owner");
     expect(ownerRow?.textContent).toContain(OWNER);
     // The available register row is not shown for a taken name.
-    expect(document.querySelector(".register-row")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Register" })).toBeNull();
   });
 
   it("dispatches searchDomain on Search click", async () => {
