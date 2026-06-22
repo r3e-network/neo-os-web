@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   Clock3,
@@ -256,13 +256,25 @@ export default function PlayArea({
     : "";
   const selectedDifficulty =
     DIFFICULTY_OPTIONS.find((option) => option.value === vaultDifficulty) ??
-    DIFFICULTY_OPTIONS[0];
+    DIFFICULTY_OPTIONS[0]!;
   const selectedDifficultyLabel = t(selectedDifficulty.labelKey);
   const blueprintTitle = title.trim() || t("blueprintUntitled");
   const blueprintBounty =
     Number.isFinite(bountyValue) && bountyValue > 0 ? bounty : "0";
   const secretReady =
     secret.trim() !== "" && confirmSecret.trim() !== "" && !secretMismatch;
+  const shouldOpenBreakDesk =
+    Boolean(vaultDetails) ||
+    vaultIdInput.trim() !== "" ||
+    canAttempt ||
+    canReclaim;
+  const [activeDesk, setActiveDesk] = useState<"create" | "break">(
+    shouldOpenBreakDesk ? "break" : "create",
+  );
+
+  useEffect(() => {
+    if (shouldOpenBreakDesk) setActiveDesk("break");
+  }, [shouldOpenBreakDesk]);
 
   return (
     <div className="vault-play-area">
@@ -279,10 +291,42 @@ export default function PlayArea({
         </div>
       </div>
 
-      <div className="vault-grid">
-        <NeoCard title={t("createVault")} className="vault-create-card">
+      <section className="vault-command-shell" aria-label={t("challengeConsole")}>
+        <div className="vault-command-shell__head">
+          <div>
+            <span>{t("challengeConsole")}</span>
+            <strong>{t("challengeConsoleTitle")}</strong>
+          </div>
+          <div className="vault-desk-tabs" role="tablist" aria-label={t("challengeConsole")}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeDesk === "create"}
+              className={activeDesk === "create" ? "is-active" : ""}
+              onClick={() => setActiveDesk("create")}
+            >
+              {t("createVault")}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeDesk === "break"}
+              className={activeDesk === "break" ? "is-active" : ""}
+              onClick={() => setActiveDesk("break")}
+            >
+              {t("breakVault")}
+            </button>
+          </div>
+        </div>
+
+        <div className={`vault-grid vault-grid--${activeDesk}`}>
+        {activeDesk === "create" && (
+          <NeoCard title={t("createVault")} className="vault-create-card">
           <div className="vault-builder">
             <aside className="vault-blueprint" aria-label={t("blueprintTitle")}>
+              <div className="vault-blueprint__scene" aria-hidden="true">
+                <img src="./vault-challenge.jpg" alt="" />
+              </div>
               <div className="vault-blueprint__lock" aria-hidden="true">
                 <LockKeyhole size={32} />
               </div>
@@ -453,9 +497,11 @@ export default function PlayArea({
               </NeoButton>
             </div>
           </div>
-        </NeoCard>
+          </NeoCard>
+        )}
 
-        <div className="vault-col">
+        {activeDesk === "break" && (
+          <div className="vault-col">
           <NeoCard title={t("breakVault")} className="vault-break-card">
             <div className="vault-form">
               <div
@@ -652,8 +698,10 @@ export default function PlayArea({
               )}
             </div>
           </NeoCard>
+          </div>
+        )}
         </div>
-      </div>
+      </section>
 
       {/* Recent Vaults span the full width below the two-column row so the right
           side of the create form is no longer a tall empty gutter. */}

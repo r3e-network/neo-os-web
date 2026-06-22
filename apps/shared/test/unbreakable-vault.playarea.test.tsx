@@ -15,6 +15,8 @@ function t(key: string) {
     docSubtitle: "Hacker bounty vaults secured by on-chain hashes",
     create: "Create",
     break: "Break",
+    challengeConsole: "Challenge console",
+    challengeConsoleTitle: "Build a bounty vault or inspect one to break",
     createVault: "Create Vault",
     createVaultButton: "Create Vault (bounty + hash)",
     titleLabel: "Vault Title",
@@ -38,6 +40,10 @@ function t(key: string) {
     bountyPlaceholder: "Minimum 1",
     secretNote: "Secret is hashed locally; only the hash is stored on-chain.",
     breakVault: "Break a Vault",
+    challengeDeskTitle: "Challenge target",
+    challengeDeskEmpty: "Load a vault to challenge",
+    challengeDeskHint: "Enter a vault ID to inspect the bounty, difficulty, attempt fee, and public hint before paying.",
+    challengeDeskLoaded: "Vault loaded and ready for inspection.",
     vaultIdLabel: "Vault ID",
     vaultIdPlaceholder: "Enter vault ID",
     loadVault: "Load Vault",
@@ -65,6 +71,7 @@ function t(key: string) {
     increaseBountyLabel: "Increase Bounty (GAS)",
     increaseBountyPlaceholder: "Amount of GAS to add",
     mainnetVaultNote: "On mainnet, the GAS deposit and contract call are batched by the host's operation panel.",
+    notAvailable: "Not available",
   };
   return messages[key] ?? key;
 }
@@ -167,6 +174,33 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(container.querySelector(".vault-select-chevron")).toBeNull();
     expect(screen.getAllByRole("radio")).toHaveLength(3);
     expect(screen.getByRole("radio", { name: "Easy 0.1 GAS" }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("uses a challenge console mode switch instead of stacking both workflows", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(screen.getByText("Build a bounty vault or inspect one to break")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Create Vault" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByText("Load a vault to challenge")).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Break a Vault" }));
+
+    expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Load a vault to challenge")).toBeTruthy();
+    expect(screen.queryByLabelText("Vault Title")).toBeNull();
+  });
+
+  it("opens the break desk automatically when a vault is loaded", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ vaultIdInput: "7", vaultDetails: activeVault })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Crack me if you can")).toBeTruthy();
   });
 
   it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
