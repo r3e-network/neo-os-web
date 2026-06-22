@@ -1,4 +1,6 @@
 import React from "react";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -115,6 +117,9 @@ function t(key: string, params?: Record<string, string | number>) {
     prizeAssetNeoHint: "Whole-token prizes for simple fixed rewards",
     prizePerWinLabel: "Prize per win",
     addItem: "Add Item",
+    congratulations: "Congratulations!",
+    gasboxOnChainPrizeNote:
+      "The prize was drawn from a later block's randomness and paid to your wallet in the reveal transaction.",
   };
   return messages[key] ?? key;
 }
@@ -421,5 +426,58 @@ describe("GasBox PlayArea", () => {
     expect(container.querySelector(".gasbox-pull-btn--active")).not.toBeNull();
     expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
     expect(container.querySelector(".gasbox-reel-strip")).not.toBeNull();
+    expect(container.querySelector(".gasbox-stage-art__slot.is-active")).not.toBeNull();
+  });
+
+  it("celebrates a revealed prize with a real cabinet theater and rarity capsule", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    const selectedMachine = machine();
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+          pullResult: {
+            item: "Legend Capsule",
+            name: "Legend Capsule",
+            rarity: "legendary",
+            amountDisplay: "1 GAS",
+          },
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Pull/ }));
+
+    await waitFor(() => {
+      expect(container.querySelector(".gasbox-result-theater")).not.toBeNull();
+    });
+
+    expect(container.querySelector('.gasbox-result-theater__machine source[srcset="logo.avif"]')).not.toBeNull();
+    expect(container.querySelector('.gasbox-result-theater__machine img[src="logo.jpg"]')).not.toBeNull();
+    expect(container.querySelector(".gasbox-result-theater__capsule.gasbox-rarity--legendary")).not.toBeNull();
+    expect(container.querySelector(".gasbox-result-theater__beam")).not.toBeNull();
+    expect(container.querySelectorAll(".gasbox-confetti__bit").length).toBe(14);
+    expect(screen.getByText("Congratulations!")).toBeTruthy();
+  });
+
+  it("keeps game motion explicit and disabled for reduced-motion users", () => {
+    const repoPath = resolve(process.cwd(), "apps/gasbox/src/PlayArea.scss");
+    const sharedPath = resolve(process.cwd(), "../gasbox/src/PlayArea.scss");
+    const css = readFileSync(
+      existsSync(repoPath) ? repoPath : sharedPath,
+      "utf8",
+    );
+
+    expect(css).toContain("@keyframes gasbox-machine-idle");
+    expect(css).toContain("@keyframes gasbox-capsule-ready");
+    expect(css).toContain("@keyframes gasbox-result-capsule-open");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain(".gasbox-result-theater__capsule");
+    expect(css).toContain("animation: none");
   });
 });
