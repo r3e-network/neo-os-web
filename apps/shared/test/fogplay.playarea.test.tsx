@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +13,8 @@ afterEach(() => cleanup());
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     betAmount: "Bet amount",
-    betLockedReassure: "Your bet is locked on-chain and can be revealed permissionlessly.",
+    betLockedReassure:
+      "Your bet is locked on-chain and can be revealed permissionlessly.",
     betPlacedRevealing: "Bet placed. Revealing on the next block.",
     choiceHeader: "Choice",
     committing: "Committing bet",
@@ -53,7 +55,9 @@ function t(key: string, params?: Record<string, string | number>) {
   return messages[key] ?? key;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values = {
     wins: 0,
     losses: 0,
@@ -81,20 +85,44 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
   };
 
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+    Object.entries(values).map(([key, value]) => [
+      key,
+      createObservable(value),
+    ]),
   );
 }
 
 describe("FogPlay PlayArea", () => {
   it("renders the real coin arena resources in the ready state", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
+    );
 
-    expect(container.querySelector('.premium-arena[data-state="ready"]')).toBeTruthy();
-    expect(container.querySelector(".arena-bg__vault")?.getAttribute("src")).toContain("bg_vault");
-    expect(container.querySelector(".arena-stage__pedestal")?.getAttribute("src")).toContain("holo_pedestal");
+    expect(container.querySelector(".coinflip-game-table")).toBeTruthy();
+    expect(container.querySelector(".coinflip-game-table__arena")).toBeTruthy();
+    expect(container.querySelector(".coinflip-game-table__wager")).toBeTruthy();
+    expect(container.querySelector(".coinflip-play-area--ready")).toBeTruthy();
+    expect(
+      container.querySelector(".coinflip-play-area--choice-heads"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.premium-arena[data-state="ready"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".arena-bg__vault")?.getAttribute("src"),
+    ).toContain("bg_vault");
+    expect(
+      container.querySelector(".arena-stage__pedestal")?.getAttribute("src"),
+    ).toContain("holo_pedestal");
     expect(container.querySelector(".coin-scene--settled-heads")).toBeTruthy();
-    expect(container.querySelector(".coin-face--heads .coin-face__image")?.getAttribute("src")).toContain("coin_heads");
-    expect(container.querySelector(".symbol-ring--heads img")?.getAttribute("src")).toContain("coin_heads");
+    expect(
+      container
+        .querySelector(".coin-face--heads .coin-face__image")
+        ?.getAttribute("src"),
+    ).toContain("coin_heads");
+    expect(
+      container.querySelector(".symbol-ring--heads img")?.getAttribute("src"),
+    ).toContain("coin_heads");
     expect(screen.getByText("Ready for your first flip")).toBeTruthy();
   });
 
@@ -103,9 +131,16 @@ describe("FogPlay PlayArea", () => {
       <PlayArea t={t} state={state({ isFlipping: true })} dispatch={vi.fn()} />,
     );
 
-    expect(container.querySelector('.premium-arena[data-state="flipping"]')).toBeTruthy();
+    expect(
+      container.querySelector('.premium-arena[data-state="flipping"]'),
+    ).toBeTruthy();
     expect(container.querySelector(".coin-scene--flipping")).toBeTruthy();
-    expect(container.querySelectorAll(".coin-flight-trail span").length).toBe(3);
+    expect(container.querySelectorAll(".coin-flight-trail span").length).toBe(
+      3,
+    );
+    expect(
+      container.querySelector(".coinflip-play-area--tossing"),
+    ).toBeTruthy();
     expect(screen.getByText("Committing bet")).toBeTruthy();
   });
 
@@ -118,10 +153,18 @@ describe("FogPlay PlayArea", () => {
       />,
     );
 
-    expect(container.querySelector('.premium-arena[data-state="revealing"]')).toBeTruthy();
+    expect(
+      container.querySelector('.premium-arena[data-state="revealing"]'),
+    ).toBeTruthy();
     expect(container.querySelector(".coin-scene--flipping")).toBeTruthy();
-    expect(screen.getByText("Bet placed. Revealing on the next block.")).toBeTruthy();
-    expect(screen.getByText("Your bet is locked on-chain and can be revealed permissionlessly.")).toBeTruthy();
+    expect(
+      screen.getByText("Bet placed. Revealing on the next block."),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Your bet is locked on-chain and can be revealed permissionlessly.",
+      ),
+    ).toBeTruthy();
   });
 
   it("plays a result state with winner art after a winning flip", () => {
@@ -138,9 +181,44 @@ describe("FogPlay PlayArea", () => {
       />,
     );
 
-    expect(container.querySelector('.premium-arena[data-state="won"]')).toBeTruthy();
-    expect(container.querySelector(".arena-stage__winner")?.getAttribute("src")).toContain("holo_winner");
+    expect(
+      container.querySelector('.premium-arena[data-state="won"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".arena-stage__winner")?.getAttribute("src"),
+    ).toContain("holo_winner");
     expect(container.querySelector(".result-banner.won")).toBeTruthy();
+    expect(container.querySelector(".coinflip-play-area--won")).toBeTruthy();
     expect(screen.getAllByText("You won").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the game-table layout and control motion accessible", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../fogplay/src/PlayArea.scss`,
+      "utf8",
+    );
+    const wagerStyles = fs.readFileSync(
+      `${process.cwd()}/../fogplay/src/components/WagerControls.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain(".coinflip-game-table");
+    expect(styles).toContain("grid-template-columns: minmax(0, 1.42fr)");
+    expect(styles).toContain("@keyframes fogplay-vault-drift");
+    expect(styles).toContain("@keyframes fogplay-table-glow");
+    expect(styles).toContain("@keyframes fogplay-wager-in");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.coinflip-play-area--tossing \.coinflip-game-table::before[\s\S]*animation:\s*fogplay-table-glow/,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width: 920px\)[\s\S]*\.coinflip-game-table[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    );
+
+    expect(wagerStyles).toContain("@keyframes fogplay-choice-lock");
+    expect(wagerStyles).toContain("@keyframes fogplay-flip-ready");
+    expect(wagerStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.flip-btn[\s\S]*animation:\s*none/,
+    );
   });
 });

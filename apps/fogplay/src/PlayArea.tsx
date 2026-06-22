@@ -54,6 +54,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Game history
   const gameHistory = val<GameHistoryItem[]>("gameHistory") ?? [];
   const recentHistory = useMemo(() => gameHistory.slice(0, 10), [gameHistory]);
+  const playAreaClassName = [
+    "coinflip-play-area",
+    isFlipping || revealing ? "coinflip-play-area--tossing" : "",
+    hasPendingBet ? "coinflip-play-area--pending" : "",
+    result ? `coinflip-play-area--${result.won ? "won" : "lost"}` : "",
+    canBet ? "coinflip-play-area--ready" : "",
+    `coinflip-play-area--choice-${choice}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const handleDismiss = async () => {
     await dispatch("dismissOverlay");
@@ -64,11 +74,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   return (
-    <div className="coinflip-play-area">
+    <div className={playAreaClassName}>
       <header className="play-hero">
         <div className="play-hero__head">
           <span className="play-hero__badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="9" />
               <path d="M12 3v18M8.5 7.5h5a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h5" />
             </svg>
@@ -104,45 +123,64 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         ) : (
           <div className="first-round-prompt">
             <span className="first-round-prompt__icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                viewBox="0 0 32 32"
+                width="22"
+                height="22"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <circle cx="16" cy="16" r="11" />
                 <path d="M16 8v16M9.5 12.5h7a2.6 2.6 0 0 1 0 5.2h-4.2a2.6 2.6 0 0 0 0 5.2h7" />
               </svg>
             </span>
             <div className="first-round-prompt__text">
-              <span className="first-round-prompt__title">{t("firstRoundPrompt")}</span>
-              <span className="first-round-prompt__hint">{t("firstRoundHint")}</span>
+              <span className="first-round-prompt__title">
+                {t("firstRoundPrompt")}
+              </span>
+              <span className="first-round-prompt__hint">
+                {t("firstRoundHint")}
+              </span>
             </div>
           </div>
         )}
       </header>
 
-      <ArenaHero
-        t={t}
-        isFlipping={isFlipping}
-        revealing={revealing}
-        hasPendingBet={hasPendingBet}
-        revealFailed={revealFailed}
-        displayOutcome={displayOutcome}
-        result={result}
-        choice={choice}
-        betAmount={betAmount}
-        onReveal={handleReveal}
-      />
+      <main className="coinflip-game-table" aria-label={t("title")}>
+        <div className="coinflip-game-table__arena">
+          <ArenaHero
+            t={t}
+            isFlipping={isFlipping}
+            revealing={revealing}
+            hasPendingBet={hasPendingBet}
+            revealFailed={revealFailed}
+            displayOutcome={displayOutcome}
+            result={result}
+            choice={choice}
+            betAmount={betAmount}
+            onReveal={handleReveal}
+          />
+        </div>
 
-      <WagerControls
-        t={t}
-        choice={choice}
-        betAmount={betAmount}
-        canBet={canBet}
-        isFlipping={isFlipping}
-        validationError={validationError ?? undefined}
-        maxPayable={formattedMaxPayable}
-        maxPayableBet={maxPayableBet}
-        credit={formattedCredit}
-        hasCredit={hasCredit}
-        dispatch={dispatch}
-      />
+        <div className="coinflip-game-table__wager">
+          <WagerControls
+            t={t}
+            choice={choice}
+            betAmount={betAmount}
+            canBet={canBet}
+            isFlipping={isFlipping}
+            validationError={validationError ?? undefined}
+            maxPayable={formattedMaxPayable}
+            maxPayableBet={maxPayableBet}
+            credit={formattedCredit}
+            hasCredit={hasCredit}
+            dispatch={dispatch}
+          />
+        </div>
+      </main>
 
       <div className="history-section">
         <div className="history-header">
@@ -152,7 +190,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo">
             <div className="history-empty">
               <span className="history-empty__icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="22"
+                  height="22"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 2" />
                 </svg>
@@ -174,17 +221,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </thead>
                 <tbody>
                   {recentHistory.map((game) => (
-                    <tr key={game.betId} className={game.won ? "row-win" : "row-loss"}>
+                    <tr
+                      key={game.betId}
+                      className={game.won ? "row-win" : "row-loss"}
+                    >
                       <td>
-                        <span className="choice-badge">{t(game.choice) || game.choice}</span>
+                        <span className="choice-badge">
+                          {t(game.choice) || game.choice}
+                        </span>
                       </td>
                       <td>
-                        <span className={`outcome-badge ${game.won ? "won" : "lost"}`}>
+                        <span
+                          className={`outcome-badge ${game.won ? "won" : "lost"}`}
+                        >
                           {t(game.outcome) || game.outcome}
                         </span>
                       </td>
                       <td className="amount-cell">{game.amount.toFixed(2)}</td>
-                      <td className={`amount-cell ${game.won ? "payout-win" : "payout-loss"}`}>
+                      <td
+                        className={`amount-cell ${game.won ? "payout-win" : "payout-loss"}`}
+                      >
                         {game.won ? `+${game.payout.toFixed(2)}` : "0.00"}
                       </td>
                     </tr>
