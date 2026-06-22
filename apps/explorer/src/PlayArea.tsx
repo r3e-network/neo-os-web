@@ -5,6 +5,7 @@
  * Uses all state keys and actions from main.tsx setup().
  */
 
+import { Blocks, RadioTower, Search, ShieldCheck } from "lucide-react";
 import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -106,7 +107,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* ── Hero: headline state + the few relevant facts folded inline ── */}
       <section className="explorer-hero" aria-label={t("title")}>
         <div className="explorer-hero__intro">
-          <div className="explorer-hero__badge" aria-hidden="true">N3</div>
+          <picture className="explorer-hero__badge" aria-hidden="true">
+            <source srcSet="./logo.avif" type="image/avif" />
+            <source srcSet="./logo.webp" type="image/webp" />
+            <img src="./logo.jpg" alt="" loading="eager" decoding="async" />
+          </picture>
           <div className="explorer-hero__copy">
             <span className="explorer-eyebrow">{t("docSubtitle")}</span>
             <h2>{t("title")}</h2>
@@ -119,6 +124,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
         </div>
+        <figure className="explorer-hero__visual">
+          <picture className="explorer-hero__media">
+            <source srcSet="./banner.avif" type="image/avif" />
+            <source srcSet="./banner.webp" type="image/webp" />
+            <img
+              src="./banner.jpg"
+              alt={t("explorerHeroAlt")}
+              loading="eager"
+              decoding="async"
+            />
+          </picture>
+          <div className="explorer-scan-console" aria-hidden="true">
+            <span className="explorer-scan-console__ring">
+              <Search size={21} />
+            </span>
+            <span className="explorer-scan-console__beam" />
+            <span className="explorer-scan-console__node explorer-scan-console__node--one" />
+            <span className="explorer-scan-console__node explorer-scan-console__node--two" />
+            <span className="explorer-scan-console__node explorer-scan-console__node--three" />
+          </div>
+          <figcaption>
+            <span>
+              <ShieldCheck size={14} aria-hidden="true" />
+              {t("explorerSignalReady")}
+            </span>
+            <strong>{activeNetworkLabel}</strong>
+          </figcaption>
+          <div className="explorer-hero__visual-stats" aria-hidden="true">
+            <span>
+              <Blocks size={14} />
+              {displayFigure(activeHeight)}
+            </span>
+            <span>
+              <RadioTower size={14} />
+              {displayFigure(activeTxCount)}
+            </span>
+          </div>
+        </figure>
       </section>
 
       {/* ── Primary action: search (surfaced immediately after the hero) ── */}

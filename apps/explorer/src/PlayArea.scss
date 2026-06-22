@@ -41,36 +41,66 @@
 .explorer-hero {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(340px, 0.72fr);
   gap: 20px;
-  padding: 28px 30px;
+  align-items: stretch;
+  min-height: 336px;
+  padding: 18px;
   overflow: hidden;
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    radial-gradient(120% 140% at 0% 0%, var(--xp-accent-soft) 0%, rgba(228, 248, 240, 0) 42%),
+    radial-gradient(120% 140% at 0% 0%, var(--xp-accent-soft) 0%, rgba(228, 248, 240, 0) 44%),
     var(--ns-surface, #ffffff);
+  border: 1px solid rgba(22, 199, 132, 0.14);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
+.explorer-hero::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    112deg,
+    transparent 0%,
+    transparent 42%,
+    rgba(255, 255, 255, 0.54) 52%,
+    transparent 64%
+  );
+  opacity: 0;
+  transform: translateX(-72%);
+  animation: explorer-hero-sweep 7.4s ease-in-out infinite;
+}
+
 .explorer-hero__intro {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 18px;
   min-width: 0;
+  padding: 16px 6px 16px 8px;
 }
 
 .explorer-hero__badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
-  border-radius: var(--ns-radius-full, 9999px);
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: var(--ns-radius-md, 18px);
   background: var(--xp-accent-soft);
-  color: var(--xp-accent-ink);
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0;
+  box-shadow: 0 14px 30px rgba(11, 94, 62, 0.14);
+}
+
+.explorer-hero__badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .explorer-hero__copy {
@@ -83,10 +113,10 @@
 .explorer-hero h2 {
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1.14;
-  letter-spacing: -0.02em;
+  font-size: clamp(2rem, 4vw, 3.15rem);
+  font-weight: 900;
+  line-height: 1.04;
+  letter-spacing: 0;
 }
 
 .explorer-hero p {
@@ -107,6 +137,239 @@
   padding-top: 16px;
   min-width: 0;
   border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.explorer-hero__visual {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 300px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: #f4fbf3;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 18px 42px rgba(20, 22, 38, 0.1);
+}
+
+.explorer-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.explorer-hero__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform-origin: 54% 50%;
+  animation: explorer-banner-drift 16s ease-in-out infinite alternate;
+}
+
+.explorer-hero__visual::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.64)
+    ),
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.42), transparent 34%);
+}
+
+.explorer-scan-console,
+.explorer-hero__visual figcaption,
+.explorer-hero__visual-stats {
+  position: relative;
+  z-index: 2;
+}
+
+.explorer-scan-console {
+  position: absolute;
+  inset: 24px 24px auto auto;
+  width: min(48%, 190px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+}
+
+.explorer-scan-console::before,
+.explorer-scan-console::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(11, 94, 62, 0.2);
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.28);
+  content: "";
+}
+
+.explorer-scan-console::after {
+  inset: 16%;
+  border-color: rgba(22, 199, 132, 0.2);
+  background: rgba(228, 248, 240, 0.22);
+}
+
+.explorer-scan-console__ring {
+  position: absolute;
+  inset: 33%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(22, 199, 132, 0.28);
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--xp-accent-ink);
+  box-shadow: 0 12px 26px rgba(11, 94, 62, 0.12);
+}
+
+.explorer-scan-console__beam {
+  position: absolute;
+  inset: 50% 50% auto auto;
+  z-index: 1;
+  width: 46%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(22, 199, 132, 0), rgba(22, 199, 132, 0.82));
+  transform-origin: 100% 50%;
+  animation: explorer-scanner-sweep 3.4s linear infinite;
+}
+
+.explorer-scan-console__node {
+  position: absolute;
+  z-index: 2;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 3px rgba(22, 199, 132, 0.14),
+    0 0 18px rgba(22, 199, 132, 0.44);
+  animation: explorer-scan-node 2.8s ease-in-out infinite;
+}
+
+.explorer-scan-console__node--one {
+  top: 18%;
+  left: 32%;
+}
+
+.explorer-scan-console__node--two {
+  right: 24%;
+  bottom: 28%;
+  animation-delay: 220ms;
+}
+
+.explorer-scan-console__node--three {
+  bottom: 18%;
+  left: 28%;
+  animation-delay: 440ms;
+}
+
+.explorer-hero__visual figcaption {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 28px rgba(20, 22, 38, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.explorer-hero__visual figcaption span,
+.explorer-hero__visual-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--xp-accent-ink);
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.explorer-hero__visual figcaption strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.96rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.explorer-hero__visual-stats {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.explorer-hero__visual-stats span {
+  max-width: 160px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--ns-radius-full, 999px);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ns-ink, #1e1e2e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes explorer-hero-sweep {
+  0%,
+  60% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  74% {
+    opacity: 0.78;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@keyframes explorer-banner-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.045) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes explorer-scanner-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes explorer-scan-node {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.24);
+  }
 }
 
 .explorer-hero__tag {
@@ -239,6 +502,10 @@
 
 /* ─────────────── Responsive ─────────────── */
 @media (max-width: 900px) {
+  .explorer-hero {
+    grid-template-columns: 1fr;
+  }
+
   .explorer-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -256,15 +523,48 @@
   .explorer-hero h2 {
     font-size: 1.375rem;
   }
+
+  .explorer-hero__intro {
+    padding: 0;
+  }
+
+  .explorer-hero__visual {
+    min-height: 260px;
+  }
 }
 
 @media (max-width: 480px) {
+  .explorer-hero {
+    padding: 16px;
+  }
+
+  .explorer-hero__intro {
+    display: grid;
+  }
+
+  .explorer-hero__facts {
+    align-items: stretch;
+  }
+
+  .explorer-hero__fact,
+  .explorer-hero__tag {
+    white-space: normal;
+  }
+
+  .explorer-scan-console {
+    width: 150px;
+  }
+
   .explorer-metrics {
     grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .explorer-hero::before,
+  .explorer-hero__media img,
+  .explorer-scan-console__beam,
+  .explorer-scan-console__node,
   .loading-spinner {
     animation: none;
   }
