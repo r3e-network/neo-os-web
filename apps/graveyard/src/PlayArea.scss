@@ -10,17 +10,52 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
 $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 
 .graveyard-play-area {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 20px;
   padding: 24px 16px;
-  max-width: 880px;
+  width: min(1180px, 100%);
+  max-width: 100%;
   margin: 0 auto;
+  overflow: hidden;
   color: var(--ns-text, #2a2d3d);
+  isolation: isolate;
+}
+
+.graveyard-play-area::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(
+      180deg,
+      rgba(247, 248, 250, 0.92),
+      rgba(247, 250, 248, 0.98)
+    ),
+    radial-gradient(
+      circle at 16% 14%,
+      rgba(22, 199, 132, 0.16),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 84% 10%,
+      rgba(33, 118, 255, 0.12),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 52% 88%,
+      rgba(246, 200, 106, 0.14),
+      transparent 36%
+    );
 }
 
 /* ── Hero ─────────────────────────────────────────────── */
 .grave-hero {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.68fr);
   align-items: stretch;
@@ -31,9 +66,30 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   border: 1px solid rgba(22, 199, 132, 0.14);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.9), rgba(255, 255, 255, 0.98) 62%),
+    linear-gradient(
+      135deg,
+      rgba(228, 248, 240, 0.9),
+      rgba(255, 255, 255, 0.98) 62%
+    ),
     var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.grave-hero::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.62) 42%,
+    transparent 58%
+  );
+  opacity: 0.62;
+  transform: translateX(-42%);
+  animation: grave-hero-sheen 7s ease-in-out infinite;
 }
 
 .grave-hero-content {
@@ -60,6 +116,7 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   border-radius: 18px;
   background: $grave-accent-soft;
   box-shadow: 0 10px 24px rgba(12, 74, 110, 0.12);
+  animation: grave-seal-breathe 4.8s ease-in-out infinite;
 }
 
 .grave-hero-badge img {
@@ -88,7 +145,7 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
   color: var(--ns-ink, #1e1e2e);
 }
@@ -109,7 +166,11 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   border: 1px solid rgba(22, 199, 132, 0.14);
   border-radius: var(--ns-radius-md, 16px);
   background:
-    radial-gradient(circle at 68% 24%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 34%),
+    radial-gradient(
+      circle at 68% 24%,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0) 34%
+    ),
     linear-gradient(135deg, #effaf8, #eaf3ff);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.68),
@@ -123,6 +184,7 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   padding: 16px;
   object-fit: contain;
   object-position: center;
+  animation: grave-hero-art-drift 13s ease-in-out infinite alternate;
 }
 
 /* ── Stat tiles ───────────────────────────────────────── */
@@ -197,7 +259,7 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 /* ── Main grid ────────────────────────────────────────── */
 .grave-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.72fr);
   gap: 20px;
   align-items: start;
 }
@@ -205,6 +267,10 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 @media (max-width: 720px) {
   .grave-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grave-ritual-track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -214,6 +280,291 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   // Cards size to their own content so an empty records list never
   // stretches into a tall blank void next to the taller chamber.
   align-self: start;
+}
+
+.grave-chamber.neo-card .neo-card__content {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.grave-ritual-stage {
+  position: relative;
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(228, 248, 240, 0.78)
+    ),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 18px 36px rgba(20, 22, 38, 0.08);
+  isolation: isolate;
+}
+
+.grave-ritual-stage::before,
+.grave-ritual-stage::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+}
+
+.grave-ritual-stage::before {
+  inset: 12px;
+  z-index: -1;
+  border: 1px solid rgba(22, 199, 132, 0.12);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(22, 199, 132, 0.14) 50%,
+      transparent 100%
+    ),
+    radial-gradient(
+      circle at 18% 42%,
+      rgba(246, 200, 106, 0.2),
+      transparent 30%
+    );
+  opacity: 0.64;
+  animation: grave-ritual-scan 4.8s ease-in-out infinite;
+}
+
+.grave-ritual-stage::after {
+  right: 16px;
+  bottom: 16px;
+  z-index: -1;
+  width: min(210px, 42%);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(22, 199, 132, 0.18),
+    transparent 68%
+  );
+  filter: blur(18px);
+  opacity: 0.86;
+  animation: grave-stage-glow 4.2s ease-in-out infinite;
+}
+
+.grave-ritual-stage--ready,
+.grave-ritual-stage--confirming,
+.grave-ritual-stage--sealing {
+  border-color: rgba(22, 199, 132, 0.3);
+}
+
+.grave-ritual-stage--confirming,
+.grave-ritual-stage--sealing {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+    0 18px 36px rgba(20, 22, 38, 0.08),
+    0 0 0 4px rgba(22, 199, 132, 0.08);
+}
+
+.grave-ritual-stage__banner {
+  position: absolute;
+  inset: 0 -16% 0 30%;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.grave-ritual-stage__banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 88% center;
+  opacity: 0.12;
+  filter: saturate(1.08);
+  transform: translateX(9%) scale(1.08);
+  animation: grave-banner-drift 17s ease-in-out infinite alternate;
+}
+
+.grave-ritual-stage__focus {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+}
+
+.grave-ritual-stage__seal {
+  position: relative;
+  display: block;
+  width: 82px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow:
+    0 18px 34px rgba(12, 74, 110, 0.16),
+    0 0 0 5px rgba(228, 248, 240, 0.62);
+  animation: grave-seal-breathe 4.8s ease-in-out infinite;
+}
+
+.grave-ritual-stage--ready .grave-ritual-stage__seal {
+  animation:
+    grave-seal-breathe 4.8s ease-in-out infinite,
+    grave-seal-ready 1.8s ease-in-out infinite;
+}
+
+.grave-ritual-stage--sealing .grave-ritual-stage__seal {
+  animation: grave-seal-sealing 860ms ease-in-out infinite;
+}
+
+.grave-ritual-stage__seal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grave-ritual-stage__copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.grave-ritual-stage__copy span,
+.grave-ritual-track__step small {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.grave-ritual-stage__copy strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 20px;
+  font-weight: 850;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.grave-ritual-stage__copy p {
+  max-width: 54ch;
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+.grave-ritual-track {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.grave-ritual-track__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 82px;
+  padding: 11px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ns-text-muted, #8a92a6);
+  box-shadow: 0 10px 22px rgba(20, 22, 38, 0.05);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.grave-ritual-track__step::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.78) 48%,
+    transparent 62%
+  );
+  opacity: 0;
+  transform: translateX(-70%);
+}
+
+.grave-ritual-track__step.is-active {
+  border-color: rgba(22, 199, 132, 0.28);
+  background: rgba(228, 248, 240, 0.86);
+  color: $grave-accent-deep;
+  transform: translateY(-1px);
+}
+
+.grave-ritual-track__step.is-active::after {
+  animation: grave-track-sheen 3.6s ease-in-out infinite;
+}
+
+.grave-ritual-track__step svg {
+  color: currentColor;
+}
+
+.grave-ritual-track__step small,
+.grave-ritual-track__step strong {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.grave-ritual-track__step strong {
+  grid-column: 1 / -1;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.grave-ritual-pulse {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(22, 199, 132, 0.24);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.84);
+  color: $grave-accent-deep;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  box-shadow: 0 10px 24px rgba(20, 22, 38, 0.06);
+  animation: grave-confirm-pulse 1.4s ease-in-out infinite;
+}
+
+.grave-ritual-pulse svg {
+  flex: 0 0 auto;
+}
+
+.grave-ritual-pulse span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ── Destruction form ─────────────────────────────────── */
@@ -244,8 +595,11 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   letter-spacing: 0.01em;
   background: transparent;
   color: var(--ns-text-muted, #8a92a6);
-  transition: background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  transition:
+    background var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 
   &:hover:not(:disabled) {
     color: var(--ns-text, #2a2d3d);
@@ -340,9 +694,13 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  transition:
+    border-color var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 
   &.active {
     border-color: $grave-accent;
@@ -569,7 +927,8 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 }
 
 .grave-cta-attention {
-  animation: grave-cta-pulse var(--ns-t-slow, 320ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  animation: grave-cta-pulse var(--ns-t-slow, 320ms)
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 @keyframes grave-cta-pulse {
@@ -584,9 +943,154 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
   }
 }
 
+@keyframes grave-hero-sheen {
+  0%,
+  54% {
+    opacity: 0;
+    transform: translateX(-46%);
+  }
+
+  68% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(46%);
+  }
+}
+
+@keyframes grave-hero-art-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.035) translate3d(1.5%, -2%, 0);
+  }
+}
+
+@keyframes grave-banner-drift {
+  from {
+    transform: translateX(9%) scale(1.08);
+  }
+
+  to {
+    transform: translateX(7%) scale(1.11) translate3d(0, -1%, 0);
+  }
+}
+
+@keyframes grave-seal-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow:
+      0 18px 34px rgba(12, 74, 110, 0.16),
+      0 0 0 5px rgba(228, 248, 240, 0.62);
+  }
+
+  50% {
+    transform: translateY(-3px);
+    box-shadow:
+      0 22px 40px rgba(12, 74, 110, 0.2),
+      0 0 0 7px rgba(228, 248, 240, 0.8);
+  }
+}
+
+@keyframes grave-seal-ready {
+  0%,
+  100% {
+    filter: saturate(1);
+  }
+
+  50% {
+    filter: saturate(1.16) drop-shadow(0 0 16px rgba(22, 199, 132, 0.22));
+  }
+}
+
+@keyframes grave-seal-sealing {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-4px) scale(1.025);
+  }
+}
+
+@keyframes grave-ritual-scan {
+  0%,
+  100% {
+    opacity: 0.44;
+    transform: translateX(-1.4%);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: translateX(1.4%);
+  }
+}
+
+@keyframes grave-stage-glow {
+  0%,
+  100% {
+    opacity: 0.54;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 0.92;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes grave-track-sheen {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateX(-70%);
+  }
+
+  62% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(70%);
+  }
+}
+
+@keyframes grave-confirm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 10px 24px rgba(20, 22, 38, 0.06);
+  }
+
+  50% {
+    box-shadow:
+      0 10px 24px rgba(20, 22, 38, 0.06),
+      0 0 0 4px rgba(22, 199, 132, 0.1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .grave-cta-attention {
+  .grave-cta-attention,
+  .grave-hero::after,
+  .grave-hero-badge,
+  .grave-hero-art img,
+  .grave-ritual-stage::before,
+  .grave-ritual-stage::after,
+  .grave-ritual-stage__banner img,
+  .grave-ritual-stage__seal,
+  .grave-ritual-track__step.is-active::after,
+  .grave-ritual-pulse {
     animation: none;
+  }
+
+  .grave-ritual-track__step.is-active {
+    transform: none;
   }
 }
 
@@ -867,8 +1371,21 @@ $grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
     padding: 18px;
   }
 
+  .grave-ritual-stage {
+    padding: 14px;
+  }
+
+  .grave-ritual-stage__focus {
+    grid-template-columns: 1fr;
+  }
+
+  .grave-ritual-stage__seal {
+    width: 72px;
+  }
+
   .grave-review-grid,
-  .grave-fee-row {
+  .grave-fee-row,
+  .grave-ritual-track {
     width: 100%;
     grid-template-columns: minmax(0, 1fr);
   }
