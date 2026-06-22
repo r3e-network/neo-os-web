@@ -393,6 +393,10 @@ describe("GasBox PlayArea", () => {
     expect(container.querySelector(".gasbox-studio-odds-rail")).not.toBeNull();
     expect(container.querySelectorAll(".gasbox-studio-odds-token").length).toBe(1);
     expect(container.querySelector(".gasbox-capsule-editor")).not.toBeNull();
+    expect(container.querySelector(".gasbox-studio-item__asset")).not.toBeNull();
+    expect(container.querySelector('.gasbox-studio-item__asset source[srcset="logo.avif"]')).not.toBeNull();
+    expect(container.querySelector(".gasbox-dial-control")).not.toBeNull();
+    expect(container.querySelectorAll(".gasbox-capsule-preset-row").length).toBe(2);
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
     expect(screen.getByText("Capsule odds rail")).toBeTruthy();
@@ -494,9 +498,13 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain("@keyframes gasbox-result-capsule-open");
     expect(css).toContain("@keyframes gasbox-studio-machine-breathe");
     expect(css).toContain("@keyframes gasbox-studio-token-glow");
+    expect(css).toContain("@keyframes gasbox-studio-capsule-roll");
+    expect(css).toContain("@keyframes gasbox-studio-item-scan");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".gasbox-result-theater__capsule");
     expect(css).toContain(".gasbox-studio-odds-token__capsule");
+    expect(css).toContain(".gasbox-studio-item__asset");
+    expect(css).toContain(".gasbox-dial-control");
     expect(css).toContain("animation: none");
   });
 });

@@ -11,11 +11,14 @@ import {
   Gem,
   Gift,
   LockKeyhole,
+  Minus,
+  Plus,
   RefreshCw,
   ShieldCheck,
   Sparkles,
   Star,
   Ticket,
+  Trash2,
   Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -63,6 +66,11 @@ const PRIZE_ASSET_META: Record<PrizeAsset, { icon: LucideIcon; hintKey: string }
   GAS: { icon: Coins, hintKey: "prizeAssetGasHint" },
   NEO: { icon: Gem, hintKey: "prizeAssetNeoHint" },
 };
+const WEIGHT_PRESETS = ["5", "10", "25", "50"] as const;
+const PRIZE_AMOUNT_PRESETS: Record<PrizeAsset, readonly string[]> = {
+  GAS: ["0.1", "0.5", "1", "5"],
+  NEO: ["1", "5", "10", "20"],
+};
 
 const emptyStudioItem = (): StudioItem => ({
   name: "",
@@ -90,6 +98,12 @@ const formatPercent = (value: number, pendingLabel: string) => {
   if (!Number.isFinite(value) || value <= 0) return pendingLabel;
   const rounded = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
   return `${rounded}%`;
+};
+
+const formatStudioAmount = (value: number, asset: PrizeAsset) => {
+  const normalized = Math.max(0, value);
+  if (asset === "NEO") return String(Math.round(normalized));
+  return String(Math.round(normalized * 10_000) / 10_000);
 };
 
 /**
@@ -360,6 +374,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     setStudioItems((items) =>
       items.length > 1 ? items.filter((_, i) => i !== index) : items,
     );
+  };
+
+  const adjustStudioWeight = (index: number, delta: number) => {
+    const current = Number(studioItems[index]?.weight);
+    const base = Number.isFinite(current) && current > 0 ? current : 10;
+    updateStudioItem(index, {
+      weight: String(Math.max(1, Math.round(base + delta))),
+    });
+  };
+
+  const adjustStudioAmount = (index: number, delta: number) => {
+    const current = Number(studioItems[index]?.amount);
+    const base = Number.isFinite(current) && current > 0 ? current : 0;
+    updateStudioItem(index, {
+      amount: formatStudioAmount(base + delta, prizeAsset),
+    });
   };
 
   const studioTotalWeight = studioItems.reduce(
@@ -828,81 +858,166 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             {studioPrizePreview.map((preview) => {
               const { item, index, itemWeight, share, derivedRarity, rarityKey } = preview;
+              const amountStep = prizeAsset === "NEO" ? 1 : 0.1;
               return (
-              <div key={index} className="gasbox-studio-item">
-                <div className="gasbox-studio-item__header">
-                  <span
-                    className={`gasbox-studio-item__capsule ${rarityClass(derivedRarity)}`}
-                    aria-hidden="true"
-                  >
-                    <RarityMark rarity={derivedRarity} />
-                  </span>
-                  <span className="gasbox-studio-item__title">
-                    <small>{t("studioCapsuleLabel", { index: index + 1 })}</small>
-                    <strong>
-                      {item.name.trim() || t("studioCapsuleFallback")}
-                    </strong>
-                  </span>
-                  <span className="gasbox-derived-tier gasbox-studio-item__tier">
-                    <small>{t("derivedTierLabel")}</small>
-                    <strong
-                      className={`gasbox-derived-tier__value ${rarityClass(derivedRarity)}`}
-                      aria-label={t("derivedTierHint")}
+                <div key={index} className="gasbox-studio-item">
+                  <div className="gasbox-studio-item__header">
+                    <span
+                      className={`gasbox-studio-item__asset ${rarityClass(derivedRarity)}`}
+                      aria-hidden="true"
                     >
-                      {t(rarityKey) || derivedRarity}
-                      {itemWeight > 0 && (
-                        <span className="gasbox-derived-tier__share">
-                          {" "}
-                          {formatPercent(share, "—")}
-                        </span>
-                      )}
-                    </strong>
-                  </span>
-                </div>
-                <div className="gasbox-capsule-editor">
-                  <label className="gasbox-field gasbox-capsule-name-field">
-                    <span>{t("itemNamePlaceholder")}</span>
-                    <input
-                      type="text"
-                      value={item.name}
-                      placeholder={t("itemNamePlaceholder")}
-                      onChange={(e) => updateStudioItem(index, { name: e.target.value })}
-                    />
-                  </label>
-                  <div className="gasbox-capsule-dials">
-                    <label className="gasbox-field gasbox-capsule-dial">
-                      <span>{t("weightLabel")}</span>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={item.weight}
-                        placeholder={t("weightPlaceholder")}
-                        onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
-                      />
-                    </label>
-                    <label className="gasbox-field gasbox-capsule-dial">
-                      <span>{t("prizePerWinLabel")} ({prizeAsset})</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step={prizeAsset === "NEO" ? "1" : "0.0001"}
-                        value={item.amount}
-                        placeholder={t("tokenAmountPlaceholder")}
-                        onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
-                      />
-                    </label>
+                      <picture className="gasbox-studio-item__machine">
+                        <source srcSet="logo.avif" type="image/avif" />
+                        <source srcSet="logo.webp" type="image/webp" />
+                        <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                      </picture>
+                      <span className="gasbox-studio-item__capsule">
+                        <RarityMark rarity={derivedRarity} />
+                      </span>
+                    </span>
+                    <span className="gasbox-studio-item__title">
+                      <small>{t("studioCapsuleLabel", { index: index + 1 })}</small>
+                      <strong>
+                        {item.name.trim() || t("studioCapsuleFallback")}
+                      </strong>
+                    </span>
+                    <span className="gasbox-derived-tier gasbox-studio-item__tier">
+                      <small>{t("derivedTierLabel")}</small>
+                      <strong
+                        className={`gasbox-derived-tier__value ${rarityClass(derivedRarity)}`}
+                        aria-label={t("derivedTierHint")}
+                      >
+                        {t(rarityKey) || derivedRarity}
+                        {itemWeight > 0 && (
+                          <span className="gasbox-derived-tier__share">
+                            {" "}
+                            {formatPercent(share, "—")}
+                          </span>
+                        )}
+                      </strong>
+                    </span>
                   </div>
-                  <NeoButton
-                    variant="ghost"
-                    size="sm"
-                    disabled={studioItems.length <= 1}
-                    onClick={() => removeStudioItem(index)}
-                  >
-                    {t("removeItem", { index: index + 1 })}
-                  </NeoButton>
+                  <div className="gasbox-capsule-editor">
+                    <label className="gasbox-field gasbox-capsule-name-field">
+                      <span>{t("itemNamePlaceholder")}</span>
+                      <input
+                        type="text"
+                        value={item.name}
+                        placeholder={t("itemNamePlaceholder")}
+                        onChange={(e) => updateStudioItem(index, { name: e.target.value })}
+                      />
+                    </label>
+                    <div className="gasbox-capsule-dials">
+                      <section className="gasbox-capsule-dial-panel" aria-label={t("weightLabel")}>
+                        <div className="gasbox-capsule-dial-head">
+                          <span>{t("weightLabel")}</span>
+                          <strong>{item.weight || t("weightPlaceholder")}</strong>
+                        </div>
+                        <div className="gasbox-dial-control">
+                          <button
+                            type="button"
+                            className="gasbox-dial-step"
+                            aria-label={`${t("weightLabel")} -`}
+                            onClick={() => adjustStudioWeight(index, -1)}
+                          >
+                            <Minus aria-hidden="true" />
+                          </button>
+                          <label className="gasbox-field gasbox-capsule-dial">
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={item.weight}
+                              placeholder={t("weightPlaceholder")}
+                              onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="gasbox-dial-step"
+                            aria-label={`${t("weightLabel")} +`}
+                            onClick={() => adjustStudioWeight(index, 1)}
+                          >
+                            <Plus aria-hidden="true" />
+                          </button>
+                        </div>
+                        <div className="gasbox-capsule-preset-row" aria-label={t("weightLabel")}>
+                          {WEIGHT_PRESETS.map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              className={item.weight === preset ? "is-selected" : ""}
+                              onClick={() => updateStudioItem(index, { weight: preset })}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                      <section
+                        className="gasbox-capsule-dial-panel gasbox-capsule-dial-panel--amount"
+                        aria-label={`${t("prizePerWinLabel")} (${prizeAsset})`}
+                      >
+                        <div className="gasbox-capsule-dial-head">
+                          <span>{t("prizePerWinLabel")} ({prizeAsset})</span>
+                          <strong>{item.amount || t("tokenAmountPlaceholder")}</strong>
+                        </div>
+                        <div className="gasbox-dial-control">
+                          <button
+                            type="button"
+                            className="gasbox-dial-step"
+                            aria-label={`${t("prizePerWinLabel")} -`}
+                            onClick={() => adjustStudioAmount(index, -amountStep)}
+                          >
+                            <Minus aria-hidden="true" />
+                          </button>
+                          <label className="gasbox-field gasbox-capsule-dial">
+                            <input
+                              type="number"
+                              min="0"
+                              step={prizeAsset === "NEO" ? "1" : "0.0001"}
+                              value={item.amount}
+                              placeholder={t("tokenAmountPlaceholder")}
+                              onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="gasbox-dial-step"
+                            aria-label={`${t("prizePerWinLabel")} +`}
+                            onClick={() => adjustStudioAmount(index, amountStep)}
+                          >
+                            <Plus aria-hidden="true" />
+                          </button>
+                        </div>
+                        <div className="gasbox-capsule-preset-row" aria-label={t("prizePerWinLabel")}>
+                          {PRIZE_AMOUNT_PRESETS[prizeAsset].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              className={item.amount === preset ? "is-selected" : ""}
+                              onClick={() => updateStudioItem(index, { amount: preset })}
+                            >
+                              {preset} {prizeAsset}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+                    <NeoButton
+                      variant="ghost"
+                      size="sm"
+                      disabled={studioItems.length <= 1}
+                      aria-label={t("removeItem", { index: index + 1 })}
+                      onClick={() => removeStudioItem(index)}
+                    >
+                      <Trash2 aria-hidden="true" />
+                      <span className="gasbox-remove-label">
+                        {t("removeItem", { index: index + 1 })}
+                      </span>
+                    </NeoButton>
+                  </div>
                 </div>
-              </div>
               );
             })}
 
