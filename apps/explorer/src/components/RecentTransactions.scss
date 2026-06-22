@@ -20,7 +20,7 @@
 
 .recent-empty-state .neo-card__content {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(240px, 1fr);
+  grid-template-columns: auto minmax(0, 0.9fr) minmax(240px, 1fr);
   gap: 16px;
   align-items: center;
 }
@@ -29,6 +29,41 @@
   display: grid;
   gap: 6px;
   min-width: 0;
+}
+
+.recent-empty-state__beacon {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-md, 18px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  box-shadow: 0 12px 26px rgba(11, 94, 62, 0.1);
+}
+
+.recent-empty-state__beacon::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    112deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.58) 48%,
+    transparent 66%
+  );
+  opacity: 0;
+  transform: translateX(-72%);
+  animation: recent-beacon-sweep 4.8s ease-in-out infinite;
+}
+
+.recent-empty-state__beacon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Caption the searchable-type pills so they read as guidance ("Search by:
@@ -88,12 +123,26 @@
 }
 
 .tx-content {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   width: 100%;
   min-width: 0;
+}
+
+.tx-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-deep, #0b5e3e);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .tx-info {
@@ -148,8 +197,40 @@
     grid-template-columns: 1fr;
   }
 
+  .recent-empty-state__beacon {
+    width: 64px;
+    height: 64px;
+  }
+
   .tx-content {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .tx-time {
+    grid-column: 2;
+  }
+}
+
+@keyframes recent-beacon-sweep {
+  0%,
+  60% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  74% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recent-empty-state__beacon::after {
+    animation: none;
   }
 }

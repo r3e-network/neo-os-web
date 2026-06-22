@@ -239,7 +239,12 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     try {
       const res = await fetchWithTimeout(`${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`);
       if (res.ok) {
-        searchResult.set(parseResponseData(await res.json()));
+        try {
+          searchResult.set(parseResponseData(await res.json()));
+        } catch (e) {
+          console.warn("[useExplorer] search response failed:", e instanceof Error ? e.message : String(e));
+          throw new Error(t("explorerServiceUnavailable"));
+        }
         return;
       }
       // A 404 is the API's "nothing matched this identifier" signal — surface a
@@ -251,6 +256,15 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
       // Any other non-2xx is a genuine failure: re-throw so the host's action
       // wrapper (registerActions errorKey: "searchFailed") shows the error.
       throw new Error(t("searchFailed"));
+    } catch (e) {
+      if (e instanceof Error && e.message === t("searchFailed")) {
+        throw e;
+      }
+      if (e instanceof Error && e.message === t("explorerServiceUnavailable")) {
+        throw e;
+      }
+      console.warn("[useExplorer] search failed:", e instanceof Error ? e.message : String(e));
+      throw new Error(t("explorerServiceUnavailable"));
     } finally {
       isSearching.set(false);
     }

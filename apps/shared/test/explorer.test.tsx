@@ -11,7 +11,9 @@
  */
 
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState, type Observable } from "../react/context";
@@ -36,14 +38,32 @@ function t(key: string) {
     notAvailable: "N/A",
     loading: "Loading...",
     explorerReadOnly: "Read-only chain lookup",
+    explorerHeroAlt: "Neo blockchain explorer scanner",
+    explorerSignalReady: "Signal ready",
     explorerMainnetHint: "Production network",
     explorerTestnetHint: "Testing network",
+    explorerSearchDeck: "Lookup scanner",
+    explorerSearchDeckCopy: "Paste an on-chain identifier, choose the network lane, then inspect the public record without signing.",
     sidebarNetwork: "Network",
     sidebarRecentTxs: "Recent TXs",
     searchResult: "Search Result",
     explorerResultReady: "Result ready",
     explorerSearchScope: "Search transactions",
+    explorerSearchHint: "Paste any Neo N3 identifier and inspect it without signing.",
+    searchPlaceholder: "Search tx hash, address, or contract...",
+    search: "Search",
     searching: "Searching...",
+    pleaseEnterQuery: "Please enter a search query",
+    recentTransactions: "Recent Transactions",
+    explorerRecentEmptyTitle: "No recent transactions loaded",
+    explorerRecentEmptyDesc: "Run a search or refresh chain data to populate this activity lane.",
+    explorerSearchableTypes: "Search by",
+    explorerTipTx: "Tx hash",
+    explorerTipAddress: "Address",
+    explorerTipContract: "Contract",
+    vmHalt: "HALT",
+    vmFault: "FAULT",
+    vmUnknown: "Unknown",
     contract: "Contract",
     contractName: "Name",
     contractMethods: "Methods",
@@ -56,6 +76,7 @@ function t(key: string) {
     transactionNotFound: "Transaction not found on this network",
     blockNotFound: "Block not found on this network",
     addressNoActivity: "No indexed activity for this address",
+    explorerServiceUnavailable: "Explorer service is temporarily unavailable.",
     hash: "Hash:",
     block: "Block:",
     time: "Time:",
@@ -101,8 +122,58 @@ describe("Explorer PlayArea — live figures (explorer-1)", () => {
     render(<PlayArea t={t} state={playState()} dispatch={vi.fn(async () => undefined)} />);
 
     // The active (mainnet) figures must appear verbatim from the formatted string.
-    expect(screen.getByText("5,123,456")).toBeTruthy();
-    expect(screen.getByText("98,765,432")).toBeTruthy();
+    expect(screen.getAllByText("5,123,456").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("98,765,432").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders the resource-led scanner surface and network cards", () => {
+    const state = playState();
+    const { container } = render(
+      <PlayArea t={t} state={state} dispatch={vi.fn(async () => undefined)} />,
+    );
+
+    expect(
+      container.querySelector('.explorer-hero__media img[src="./banner.jpg"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.explorer-hero__badge img[src="./logo.jpg"]'),
+    ).toBeTruthy();
+    expect(container.querySelector(".explorer-scan-console__beam")).toBeTruthy();
+    expect(
+      container.querySelector('.search-console__stage img[src="./logo.jpg"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.recent-empty-state__beacon img[src="./logo.jpg"]'),
+    ).toBeTruthy();
+
+    const mainnet = screen.getByRole("radio", { name: "Mainnet Production network" });
+    const testnet = screen.getByRole("radio", { name: "Testnet Testing network" });
+    expect(mainnet.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(testnet);
+    expect(state.selectedNetwork?.get?.()).toBe("testnet");
+  });
+
+  it("keeps the scanner motion reduced-motion safe", () => {
+    const playAreaStyles = readFileSync(
+      resolve(process.cwd(), "../explorer/src/PlayArea.scss"),
+      "utf8",
+    );
+    const searchStyles = readFileSync(
+      resolve(process.cwd(), "../explorer/src/components/SearchPanel.scss"),
+      "utf8",
+    );
+    const recentStyles = readFileSync(
+      resolve(process.cwd(), "../explorer/src/components/RecentTransactions.scss"),
+      "utf8",
+    );
+
+    expect(playAreaStyles).toContain("@keyframes explorer-scanner-sweep");
+    expect(playAreaStyles).toContain("@keyframes explorer-banner-drift");
+    expect(searchStyles).toContain("@keyframes search-console-pulse");
+    expect(recentStyles).toContain("@keyframes recent-beacon-sweep");
+    expect(`${playAreaStyles}\n${searchStyles}\n${recentStyles}`).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation: none/,
+    );
   });
 
   it("falls back to the '—' placeholder only when a figure is genuinely unavailable, and shows a loaded zero verbatim", () => {
@@ -124,7 +195,7 @@ describe("Explorer PlayArea — live figures (explorer-1)", () => {
     // The unavailable block height collapses to "—" (plus the search-result tile).
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
     // The loaded zero tx-count renders as a real "0".
-    expect(screen.getByText("0")).toBeTruthy();
+    expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
   });
 
   it("switches the inline figures to the testnet values when that network is active", () => {
@@ -136,8 +207,8 @@ describe("Explorer PlayArea — live figures (explorer-1)", () => {
       />,
     );
 
-    expect(screen.getByText("2,222,333")).toBeTruthy();
-    expect(screen.getByText("4,444,555")).toBeTruthy();
+    expect(screen.getAllByText("2,222,333").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("4,444,555").length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -218,6 +289,28 @@ describe("Explorer composable — network toggle refetches recent txs (explorer-
 
     explorer.selectedNetwork.set("testnet");
     expect(explorer.searchResult.get()).toBeNull();
+
+    explorer.stopPolling();
+  });
+
+  it("throws a friendly service error instead of leaking raw JSON parser details", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => {
+          throw new SyntaxError("Unexpected token '<', \"<!doctype \"... is not valid JSON");
+        },
+      })) as never,
+    );
+
+    const explorer = useExplorer(deps());
+    explorer.stopPolling();
+    explorer.searchQuery.set("0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+
+    await expect(explorer.search()).rejects.toThrow("explorerServiceUnavailable");
+    expect(explorer.searchResult.get()).toBeNull();
+    expect(explorer.isSearching.get()).toBe(false);
 
     explorer.stopPolling();
   });

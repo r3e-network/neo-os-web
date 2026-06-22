@@ -15,6 +15,11 @@ export default function RecentTransactions({ t, transactions, formatTime, trunca
       <span className="section-title">{t("recentTransactions")}</span>
       {transactions.length === 0 ? (
         <NeoCard variant="erobo" className="recent-empty-state">
+          <picture className="recent-empty-state__beacon" aria-hidden="true">
+            <source srcSet="./logo.avif" type="image/avif" />
+            <source srcSet="./logo.webp" type="image/webp" />
+            <img src="./logo.jpg" alt="" loading="lazy" decoding="async" />
+          </picture>
           <div>
             <span>{t("explorerRecentEmptyTitle")}</span>
             <strong>{t("explorerRecentEmptyDesc")}</strong>
@@ -33,13 +38,14 @@ export default function RecentTransactions({ t, transactions, formatTime, trunca
           <NeoCard
             key={tx.hash}
             variant="erobo"
-            className="tx-card"
-            hoverable
-            onClick={() => onViewTx(tx.hash)}
-          >
-            <div className="tx-content">
-              <div className="tx-info">
-                <span className="tx-hash mono">{truncateHash(tx.hash)}</span>
+          className="tx-card"
+          hoverable
+          onClick={() => onViewTx(tx.hash)}
+        >
+          <div className="tx-content">
+              <span className="tx-node" aria-hidden="true">TX</span>
+            <div className="tx-info">
+              <span className="tx-hash mono">{truncateHash(tx.hash)}</span>
                 {(() => {
                   // Only HALT/FAULT carry the green/red styling + label; an
                   // unknown state (e.g. the RPC-only fallback's "state
