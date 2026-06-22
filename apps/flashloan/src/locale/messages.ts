@@ -103,6 +103,10 @@ const appMessages = {
   loanAmount: { en: "Loan Amount", zh: "贷款金额" },
   amountPlaceholder: { en: "Enter amount in GAS", zh: "输入 GAS 金额" },
   amountPresets: { en: "Amount presets", zh: "金额预设" },
+  loanPackageDeck: { en: "Loan package deck", zh: "贷款包牌组" },
+  loanPackageProbe: { en: "Callback probe", zh: "回调探针" },
+  loanPackageRoute: { en: "Route rehearsal", zh: "路径排练" },
+  loanPackageScale: { en: "Scale execution", zh: "规模执行" },
   callbackContractPlaceholder: {
     en: "Enter callback contract address",
     zh: "输入回调合约地址",
