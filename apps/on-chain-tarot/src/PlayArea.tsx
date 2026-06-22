@@ -150,32 +150,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <p className="tarot-intent-copy">{t("readingIntentCopy")}</p>
               <div
-                className={`tarot-intention-board${questionText ? " is-ready" : ""}`}
-                aria-label={t("questionPreviewLabel")}
-              >
-                <div
-                  className="tarot-intention-deck"
-                  aria-label={t("intentionDeckLabel")}
-                >
-                  {[0, 1, 2].map((item) => (
-                    <span
-                      key={item}
-                      className={`tarot-intention-deck__card tarot-intention-deck__card--${item + 1}`}
-                      aria-hidden="true"
-                    >
-                      <img src={TAROT_CARD_BACK} alt="" />
-                    </span>
-                  ))}
-                </div>
-                <div className="tarot-intention-slip">
-                  <span>{t("questionPreviewLabel")}</span>
-                  <strong>
-                    {questionText || t("questionPreviewFallback")}
-                  </strong>
-                  <small>{questionMeter}</small>
-                </div>
-              </div>
-              <div
                 className="tarot-question-presets"
                 aria-label={t("quickIntentLabel")}
               >
@@ -193,18 +167,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </button>
                 ))}
               </div>
-              <label className="tarot-question-field">
-                <span>{t("oraclePromptLabel")}</span>
-                <textarea
-                  value={question}
-                  placeholder={t("questionPlaceholder")}
-                  maxLength={200}
-                  rows={2}
-                  onChange={(event) => {
-                    void dispatch("setQuestion", event.currentTarget.value);
-                  }}
-                />
-              </label>
+              <div
+                className={`tarot-intention-board${questionText ? " is-ready" : ""}`}
+                aria-label={t("questionPreviewLabel")}
+              >
+                <div
+                  className="tarot-intention-deck"
+                  aria-label={t("intentionDeckLabel")}
+                >
+                  {[0, 1, 2].map((item) => (
+                    <span
+                      key={item}
+                      className={`tarot-intention-deck__card tarot-intention-deck__card--${item + 1}`}
+                      aria-hidden="true"
+                    >
+                      <img src={TAROT_CARD_BACK} alt="" />
+                    </span>
+                  ))}
+                </div>
+                <label className="tarot-intention-slip tarot-question-field">
+                  <span>{t("questionPreviewLabel")}</span>
+                  <textarea
+                    value={question}
+                    placeholder={t("questionPreviewFallback")}
+                    maxLength={200}
+                    rows={2}
+                    aria-label={t("oraclePromptLabel")}
+                    onChange={(event) => {
+                      void dispatch("setQuestion", event.currentTarget.value);
+                    }}
+                  />
+                  <small>{questionMeter}</small>
+                </label>
+              </div>
               <div className="tarot-action-row">
                 {!hasDrawn ? (
                   <>
@@ -358,7 +353,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
                 {!hasDrawn && (
                   <p className="tarot-spread-empty-hint">
-                    {isDealing ? t("dealingCards") : t("submitQuestionFirst")}
+                    {isDealing
+                      ? t("dealingCards")
+                      : questionText
+                        ? t("awaitingDraw")
+                        : t("submitQuestionFirst")}
                   </p>
                 )}
               </div>
