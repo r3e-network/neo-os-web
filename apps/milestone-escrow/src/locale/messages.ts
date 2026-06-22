@@ -41,6 +41,20 @@ const appMessages = {
   notesPlaceholder: { en: "Describe delivery criteria", zh: "说明交付标准" },
 
   createEscrow: { en: "Create Escrow", zh: "创建托管" },
+  releaseDesk: { en: "Release desk", zh: "释放工作台" },
+  releaseDeskTitle: { en: "Build a staged payout plan", zh: "配置分期释放计划" },
+  releaseDeskCopy: {
+    en: "Turn a deal into funded gates: pick the asset, define each tranche, then sign the deposit and setup.",
+    zh: "把项目款项拆成可验收的资金闸门：选择资产、配置每个批次，然后签名存入并创建托管。",
+  },
+  releaseWorkbench: { en: "Escrow workbench", zh: "托管工作台" },
+  releaseWorkbenchTitle: { en: "Preview the release route while you configure it", zh: "边配置边预览资金释放路径" },
+  twoStepSignBadge: { en: "2 wallet signatures", zh: "2 次钱包签名" },
+  dealControls: { en: "Deal controls", zh: "交易配置" },
+  dealControlsHint: {
+    en: "Keep the beneficiary and every release gate visible before funds move.",
+    zh: "资金转入前，清楚核对受益人和每个释放节点。",
+  },
   // Action success toasts (notify.guard keys).
   escrowCreated: { en: "Escrow created", zh: "托管已创建" },
   approveSuccess: { en: "Milestone approved", zh: "里程碑已批准" },

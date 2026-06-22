@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import MilestoneHero from "./components/MilestoneHero";
@@ -175,14 +175,69 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Primary action — surfaced immediately after the hero. */}
       {hasAddress && contractReady && (
         <>
-          <NeoButton variant="secondary" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createEscrow")}>
-            {showCreateForm ? (t("cancel")) : (t("createEscrow"))}
-          </NeoButton>
+          <section className={`escrow-command-dock${showCreateForm ? " is-open" : ""}`} aria-label={t("releaseDesk")}>
+            <div className="escrow-command-dock__copy">
+              <span className="escrow-command-dock__label">{t("releaseDesk")}</span>
+              <strong>{t("releaseDeskTitle")}</strong>
+              <span>{t("releaseDeskCopy")}</span>
+            </div>
+            <NeoButton variant={showCreateForm ? "secondary" : "primary"} onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createEscrow")}>
+              {showCreateForm ? (t("cancel")) : (t("createEscrow"))}
+            </NeoButton>
+          </section>
 
           {showCreateForm && (
-            <NeoCard variant="erobo" className="create-form-card">
+            <section className="create-form-card" aria-label={t("releaseWorkbench")}>
+              <div className="create-form-card__head">
+                <div>
+                  <span className="create-form-card__label">{t("releaseWorkbench")}</span>
+                  <h3>{t("releaseWorkbenchTitle")}</h3>
+                </div>
+                <span className="create-form-card__status">{t("twoStepSignBadge")}</span>
+              </div>
               <div className="create-contract-studio">
-                <div className="create-form">
+                <aside className="create-plan-preview" aria-label={t("planPreview")}>
+                  <div className="create-plan-preview__card">
+                    <span className="create-plan-preview__eyebrow">{t("planPreview")}</span>
+                    <strong>{escrowName.trim() || t("escrowNamePlaceholder")}</strong>
+                    <span className="create-plan-preview__beneficiary">{previewBeneficiary}</span>
+                    <div className="create-plan-preview__vault" aria-hidden="true">
+                      <span className="create-plan-preview__token">{asset}</span>
+                      <div className="create-plan-preview__route">
+                        {previewMilestones.slice(0, 5).map((milestone, index) => (
+                          <span
+                            key={`${milestone.label}-${index}`}
+                            className={`create-plan-preview__gate${parseAmount(milestoneAmounts[index] ?? "") > 0 ? " is-funded" : ""}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="create-plan-preview__total" aria-live="polite">
+                      <small>{t("totalAmount")}</small>
+                      <span>
+                        <b>{totalDisplay}</b>
+                        <em>{asset}</em>
+                      </span>
+                    </div>
+                    <ol className="create-plan-preview__steps">
+                      {previewMilestones.map((milestone) => (
+                        <li key={milestone.label}>
+                          <span>{milestone.label}</span>
+                          <strong>{milestone.amount}</strong>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                  <p className="create-plan-preview__note">{t("twoStepSignNotice", { asset })}</p>
+                </aside>
+                <div className="create-form" aria-label={t("dealControls")}>
+                  <div className="create-form__head">
+                    <span className="create-form__step">01</span>
+                    <div>
+                      <strong>{t("dealControls")}</strong>
+                      <span>{t("dealControlsHint")}</span>
+                    </div>
+                  </div>
                   <NeoInput value={escrowName} label={t("escrowName")} placeholder={t("escrowNamePlaceholder")} onChange={setEscrowName} />
                   <NeoInput value={beneficiary} label={t("beneficiaryAddress")} placeholder={t("beneficiaryPlaceholder")} onChange={setBeneficiary} />
                   <div className="asset-select" role="radiogroup" aria-label={t("assetType")}>
@@ -268,31 +323,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {t("submit")}
                   </NeoButton>
                 </div>
-                <aside className="create-plan-preview" aria-label={t("planPreview")}>
-                  <div className="create-plan-preview__card">
-                    <span className="create-plan-preview__eyebrow">{t("planPreview")}</span>
-                    <strong>{escrowName.trim() || t("escrowNamePlaceholder")}</strong>
-                    <span className="create-plan-preview__beneficiary">{previewBeneficiary}</span>
-                    <div className="create-plan-preview__total">
-                      <small>{t("totalAmount")}</small>
-                      <span>
-                        <b>{totalDisplay}</b>
-                        <em>{asset}</em>
-                      </span>
-                    </div>
-                    <ol className="create-plan-preview__steps">
-                      {previewMilestones.map((milestone) => (
-                        <li key={milestone.label}>
-                          <span>{milestone.label}</span>
-                          <strong>{milestone.amount}</strong>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                  <p className="create-plan-preview__note">{t("twoStepSignNotice", { asset })}</p>
-                </aside>
               </div>
-            </NeoCard>
+            </section>
           )}
         </>
       )}
