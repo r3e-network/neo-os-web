@@ -1637,6 +1637,11 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.76);
 }
 
+.gas-pool-create-summary--launching {
+  border-color: rgba(22, 199, 132, 0.42);
+  animation: gas-pool-machine-launch-card 760ms ease-in-out both;
+}
+
 .gas-pool-create-summary__eyebrow {
   color: var(--ns-brand-strong, #0fb174);
   font-size: 0.68rem;
@@ -2298,6 +2303,14 @@ body {
   filter: saturate(1.05) brightness(1.02);
 }
 
+.gas-pool-claim-only--claiming .gas-pool-claim-stage {
+  animation: gas-pool-claim-stage-awake 1.16s ease-in-out infinite;
+}
+
+.gas-pool-claim-only--claiming .gas-pool-claim-stage > img {
+  animation: gas-pool-stage-drift 1.16s ease-in-out infinite alternate;
+}
+
 .gas-pool-claim-stage__wash {
   position: absolute;
   inset: 0;
@@ -2564,6 +2577,14 @@ body {
   filter: saturate(1.08) brightness(1.04);
 }
 
+.gas-pool-create-summary--launching .gas-pool-create-summary__stage {
+  animation: gas-pool-machine-launch 760ms ease-in-out both;
+}
+
+.gas-pool-create-summary--launching .gas-pool-create-summary__stage img {
+  animation: gas-pool-stage-drift 760ms ease-in-out both;
+}
+
 .gas-pool-create-summary__wash {
   position: absolute;
   inset: 0;
@@ -2604,12 +2625,25 @@ body {
   animation: gas-pool-reel-ready 2.4s ease-in-out infinite;
 }
 
+.gas-pool-create-summary--launching .gas-pool-create-summary__reels span {
+  animation: gas-pool-reel-launch 560ms cubic-bezier(0.2, 0.78, 0.22, 1.06)
+    both;
+}
+
 .gas-pool-create-summary--ready .gas-pool-create-summary__reels span:nth-child(2) {
   animation-delay: 110ms;
 }
 
 .gas-pool-create-summary--ready .gas-pool-create-summary__reels span:nth-child(3) {
   animation-delay: 220ms;
+}
+
+.gas-pool-create-summary--launching .gas-pool-create-summary__reels span:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.gas-pool-create-summary--launching .gas-pool-create-summary__reels span:nth-child(3) {
+  animation-delay: 160ms;
 }
 
 .gas-pool-create-summary__fill {
@@ -2636,6 +2670,10 @@ body {
   animation: gas-pool-fill-charge 1.7s ease-in-out infinite;
 }
 
+.gas-pool-create-summary--launching .gas-pool-create-summary__fill span {
+  animation: gas-pool-fill-launch 720ms ease-in-out both;
+}
+
 .gas-pool-create-summary__tickets {
   position: absolute;
   left: 0.92rem;
@@ -2660,6 +2698,10 @@ body {
 
 .gas-pool-create-summary--draft .gas-pool-create-summary__tickets span {
   animation-duration: 4.4s;
+}
+
+.gas-pool-create-summary--launching .gas-pool-create-summary__tickets span {
+  animation: gas-pool-ticket-launch 720ms ease-out both;
 }
 
 .gas-pool-create-summary__tickets span:nth-child(2n) {
@@ -2698,6 +2740,10 @@ body {
   animation: gas-pool-prize-ready 2.25s ease-in-out infinite;
 }
 
+.gas-pool-create-summary--launching .gas-pool-create-summary__prize {
+  animation: gas-pool-prize-launch 760ms ease-out both;
+}
+
 .gas-pool-create-summary__scan {
   position: absolute;
   inset: 0;
@@ -2715,6 +2761,39 @@ body {
 
 .gas-pool-create-summary--ready .gas-pool-create-summary__scan {
   animation: gas-pool-machine-scan 2.8s ease-in-out infinite;
+}
+
+.gas-pool-create-summary--launching .gas-pool-create-summary__scan {
+  animation: gas-pool-machine-scan 900ms ease-in-out infinite;
+}
+
+@keyframes gas-pool-claim-stage-awake {
+  0%,
+  100% {
+    box-shadow:
+      0 22px 44px rgba(20, 32, 21, 0.12),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+    transform: translateY(0);
+  }
+
+  48% {
+    box-shadow:
+      0 28px 56px rgba(22, 199, 132, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+    transform: translateY(-0.08rem);
+  }
+}
+
+@keyframes gas-pool-stage-drift {
+  from {
+    filter: saturate(1.05) brightness(1.02);
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+
+  to {
+    filter: saturate(1.14) brightness(1.08);
+    transform: scale(1.055) translate3d(-1.2%, -0.8%, 0);
+  }
 }
 
 @keyframes gas-pool-ticket-ready {
@@ -2758,6 +2837,93 @@ body {
 
   50% {
     filter: brightness(1.12);
+  }
+}
+
+@keyframes gas-pool-machine-launch-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  44% {
+    transform: translateY(-0.12rem);
+  }
+}
+
+@keyframes gas-pool-machine-launch {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+    transform: scale(1);
+  }
+
+  44% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+      0 16px 30px rgba(22, 199, 132, 0.18);
+    transform: scale(1.012);
+  }
+}
+
+@keyframes gas-pool-reel-launch {
+  0% {
+    opacity: 0.72;
+    transform: translateY(0.42rem) scale(0.96);
+  }
+
+  64% {
+    opacity: 1;
+    transform: translateY(-0.18rem) scale(1.03);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gas-pool-fill-launch {
+  0% {
+    filter: brightness(0.96);
+    transform: scaleX(0.98);
+    transform-origin: left center;
+  }
+
+  54% {
+    filter: brightness(1.2);
+    transform: scaleX(1.018);
+  }
+
+  100% {
+    filter: brightness(1);
+    transform: scaleX(1);
+  }
+}
+
+@keyframes gas-pool-ticket-launch {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  34% {
+    filter: brightness(1.08);
+    transform: translateY(-0.22rem) rotate(-3deg);
+  }
+}
+
+@keyframes gas-pool-prize-launch {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  48% {
+    transform: translateY(-0.58rem) rotate(10deg) scale(1.08);
+  }
+
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
   }
 }
 
@@ -2896,6 +3062,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .gas-pool-claim-stage,
+  .gas-pool-claim-stage > img,
+  .gas-pool-create-summary--launching,
+  .gas-pool-create-summary__stage,
+  .gas-pool-create-summary__stage img,
   .gas-pool-claim-stage__ticket,
   .gas-pool-claim-stage__coin,
   .gas-pool-claim-stage__beam,
