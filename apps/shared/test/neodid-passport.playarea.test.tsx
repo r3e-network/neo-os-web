@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -57,6 +58,8 @@ function t(key: string) {
     credentialFlowCopy: "Resolve, review, then attach a proof.",
     githubProviderTile: "Prepare a package for a GitHub verifier.",
     heroVisualAlt: "Identity passport desk",
+    passportSealHint: "Resolve DID to build the passport",
+    passportSealTrack: "Passport issuance track",
     passportPreview: "Passport preview",
     passportWorkspaceTitle: "Credential studio",
     previewAudienceLabel: "Audience",
@@ -64,6 +67,11 @@ function t(key: string) {
     previewSubjectFallback: "Subject DID pending",
     proofLaneHint: "No chain transaction",
     proofLaneTitle: "Choose proof lane",
+    preparedStatus: "Prepared",
+    sealPayload: "Payload",
+    sealProof: "Proof",
+    sealSubject: "Subject",
+    signedStatus: "Signed",
     walletProviderTile: "Sign in-app with the connected wallet.",
     emailProviderTile: "Prepare a package for an email verifier.",
   };
@@ -144,6 +152,21 @@ function props(overrides: Partial<React.ComponentProps<typeof PlayArea>> = {}) {
 }
 
 describe("NeoDID Passport PlayArea", () => {
+  it("renders the passport preview with real logo assets and an issuance track", () => {
+    const { container } = render(<PlayArea {...props()} />);
+
+    expect(
+      container.querySelector('.neodid-passport__credential-logo source[srcset="./logo.avif"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.neodid-passport__credential-logo img[src="./logo.jpg"]'),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Passport issuance track")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__seal-token--subject")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__seal-token--payload.is-ready")).toBeNull();
+    expect(container.querySelector(".neodid-passport__seal-token--proof.is-ready")).toBeNull();
+  });
+
   it("dispatches a real passport build request from the visible form", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea {...props({ dispatch })} />);
@@ -183,6 +206,9 @@ describe("NeoDID Passport PlayArea", () => {
     expect(screen.getAllByText("did:morpheus:neo_n3:service:neodid").length).toBeGreaterThan(0);
     expect(screen.getByText("compose-testnet-123")).toBeTruthy();
     expect(screen.getByText("1234567890...90abcdef")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__credential-preview--built")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__seal-token--payload.is-ready")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__seal-token--proof.is-ready")).toBeNull();
     expect(container.textContent).not.toContain("[object Object]");
 
     fireEvent.click(screen.getByRole("button", { name: /Copy Payload/i }));
@@ -203,6 +229,30 @@ describe("NeoDID Passport PlayArea", () => {
     );
 
     expect(screen.getByRole("button", { name: /Sign Passport/i }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("marks the proof step ready once a wallet signature is attached", () => {
+    const { container } = render(
+      <PlayArea
+        {...props({
+          state: state({
+            passportPayload: payload({
+              proof: {
+                address: "NbeG6moXrsUtJCBuLrJbCWs8RZ8xutYx64",
+                provider: "wallet",
+                signature: "0x1234",
+                status: "signed",
+                type: "NeoWalletSignature2026",
+              },
+            }),
+            proofStatus: "Signed",
+          }),
+        })}
+      />,
+    );
+
+    expect(container.querySelector(".neodid-passport__credential-preview--signed")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__seal-token--proof.is-ready")).toBeTruthy();
   });
 
   it("warns when the built passport carries an unversioned (degraded-runtime) document", () => {
@@ -241,5 +291,19 @@ describe("NeoDID Passport PlayArea", () => {
     expect(
       screen.getByRole("button", { name: /Open attestation docs/i }),
     ).toBeTruthy();
+  });
+
+  it("keeps passport issuance motion reduced-motion safe", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../neodid-passport/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes neodid-passport-card-scan");
+    expect(styles).toContain("@keyframes neodid-passport-seal-breathe");
+    expect(styles).toContain("@keyframes neodid-passport-route-flow");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neodid-passport__seal-token\.is-ready[\s\S]*animation:\s*none/,
+    );
   });
 });

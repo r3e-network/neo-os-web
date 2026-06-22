@@ -215,9 +215,27 @@ export default function PlayArea({
             </em>
           </div>
 
-          <div className="neodid-passport__credential-preview" aria-label={t("passportPreview")}>
+          <div
+            className={[
+              "neodid-passport__credential-preview",
+              payload ? "neodid-passport__credential-preview--built" : "",
+              isSigned ? "neodid-passport__credential-preview--signed" : "",
+              isResolving || isSigning ? "neodid-passport__credential-preview--active" : "",
+            ].filter(Boolean).join(" ")}
+            aria-label={t("passportPreview")}
+          >
             <div className="neodid-passport__credential-mark" aria-hidden="true">
-              <Fingerprint size={30} />
+              <picture className="neodid-passport__credential-logo">
+                <source srcSet="./logo.avif" type="image/avif" />
+                <source srcSet="./logo.webp" type="image/webp" />
+                <img
+                  src="./logo.jpg"
+                  alt=""
+                  decoding="async"
+                  loading="lazy"
+                />
+              </picture>
+              <Fingerprint size={22} />
             </div>
             <div className="neodid-passport__credential-copy">
               <span>{t("credentialCardTitle")}</span>
@@ -238,6 +256,40 @@ export default function PlayArea({
                 <dd>{form.audience || t("notAvailable")}</dd>
               </div>
             </dl>
+            <div className="neodid-passport__seal-track" aria-label={t("passportSealTrack")}>
+              <div className="neodid-passport__seal-track-head">
+                <span>{t("passportSealTrack")}</span>
+                <strong>
+                  {isSigned
+                    ? t("signedStatus")
+                    : payload
+                      ? t("preparedStatus")
+                      : t("passportSealHint")}
+                </strong>
+              </div>
+              <div className="neodid-passport__seal-rail" aria-hidden="true">
+                <span className="neodid-passport__seal-line" />
+                <span className="neodid-passport__seal-line-progress" />
+                <span className="neodid-passport__seal-token neodid-passport__seal-token--subject">
+                  <ShieldCheck size={15} />
+                </span>
+                <span
+                  className={`neodid-passport__seal-token neodid-passport__seal-token--payload${payload ? " is-ready" : ""}`}
+                >
+                  <FileCheck2 size={15} />
+                </span>
+                <span
+                  className={`neodid-passport__seal-token neodid-passport__seal-token--proof${isSigned ? " is-ready" : ""}`}
+                >
+                  <Signature size={15} />
+                </span>
+              </div>
+              <div className="neodid-passport__seal-labels">
+                <span>{t("sealSubject")}</span>
+                <span>{t("sealPayload")}</span>
+                <span>{t("sealProof")}</span>
+              </div>
+            </div>
           </div>
 
           <section className="neodid-passport__provider-lanes" aria-labelledby="neodid-provider-title">
