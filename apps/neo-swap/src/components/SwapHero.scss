@@ -14,6 +14,25 @@
   box-shadow: 0 14px 34px rgba(31, 48, 42, 0.08);
 }
 
+.swap-hero-content::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    112deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.46) 50%,
+    transparent 64%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateX(-68%);
+  animation: swap-hero-sheen 7.4s ease-in-out infinite;
+}
+
 .swap-hero-stage-image,
 .swap-hero-shade {
   position: absolute;
@@ -26,13 +45,24 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform-origin: 58% 54%;
+  animation: swap-hero-drift 18s ease-in-out infinite alternate;
 }
 
 .swap-hero-shade {
   z-index: -1;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.68) 36%, rgba(255, 255, 255, 0.1) 74%),
-    linear-gradient(0deg, rgba(248, 251, 248, 0.88) 0%, rgba(248, 251, 248, 0.12) 52%);
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.68) 36%,
+      rgba(255, 255, 255, 0.1) 74%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(248, 251, 248, 0.88) 0%,
+      rgba(248, 251, 248, 0.12) 52%
+    );
 }
 
 .swap-hero-copy {
@@ -60,6 +90,7 @@
   background: #ffffff;
   color: #0a8050;
   box-shadow: 0 9px 22px rgba(18, 33, 28, 0.1);
+  animation: swap-hero-badge-breathe 4.8s ease-in-out infinite;
 }
 
 .swap-hero-intro {
@@ -136,6 +167,11 @@
   border-radius: 999px;
   background: #ffffff;
   box-shadow: 0 6px 16px rgba(18, 33, 28, 0.07);
+  animation: swap-token-float 5.6s ease-in-out infinite;
+}
+
+.swap-hero-token:nth-child(3) {
+  animation-delay: 620ms;
 }
 
 .swap-hero-token strong {
@@ -191,6 +227,57 @@
   color: #a86407;
 }
 
+@keyframes swap-hero-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.04) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes swap-hero-sheen {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateX(-68%);
+  }
+
+  70% {
+    opacity: 0.48;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(68%);
+  }
+}
+
+@keyframes swap-hero-badge-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 9px 22px rgba(18, 33, 28, 0.1);
+  }
+
+  50% {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px rgba(18, 33, 28, 0.13);
+  }
+}
+
+@keyframes swap-token-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
 @media (max-width: 760px) {
   .swap-hero-content {
     min-height: 470px;
@@ -227,5 +314,14 @@
 
   .swap-hero-token {
     justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swap-hero-content::after,
+  .swap-hero-stage-image,
+  .swap-hero-badge,
+  .swap-hero-token {
+    animation: none;
   }
 }

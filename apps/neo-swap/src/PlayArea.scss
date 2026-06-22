@@ -26,7 +26,12 @@
   min-height: 300px;
   padding: 18px 12px 24px;
   background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.7) 0%, rgba(255, 244, 207, 0.48) 42%, rgba(234, 242, 255, 0.42) 100%),
+    linear-gradient(
+      135deg,
+      rgba(228, 248, 240, 0.7) 0%,
+      rgba(255, 244, 207, 0.48) 42%,
+      rgba(234, 242, 255, 0.42) 100%
+    ),
     linear-gradient(180deg, #f6fbf8 0%, #fbfcfa 42%, #f3f7f5 100%);
   color: var(--ns-ink);
   font-family: $font-family;
@@ -70,9 +75,245 @@
   padding: 18px;
   border: 1px solid var(--ns-line);
   border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(249, 253, 250, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(249, 253, 250, 0.96) 100%
+  );
   box-shadow: var(--ns-shadow);
+}
+
+.neo-swap-liquidity-stage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(130px, 0.3fr) minmax(170px, 0.4fr) minmax(
+      130px,
+      0.3fr
+    );
+  gap: 14px;
+  align-items: center;
+  min-height: 262px;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 16px;
+  background: #f8fff9;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58),
+    0 18px 42px rgba(31, 48, 42, 0.1);
+}
+
+.neo-swap-liquidity-stage::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(
+    112deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.48) 50%,
+    transparent 64%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateX(-70%);
+  animation: neo-swap-stage-sheen 7s ease-in-out infinite;
+}
+
+.neo-swap-liquidity-stage__image,
+.neo-swap-liquidity-stage__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.neo-swap-liquidity-stage__image {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 58% center;
+  transform-origin: 58% 52%;
+  animation: neo-swap-stage-drift 18s ease-in-out infinite alternate;
+}
+
+.neo-swap-liquidity-stage__shade {
+  z-index: -1;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.64) 45%,
+      rgba(255, 255, 255, 0.9)
+    ),
+    linear-gradient(180deg, rgba(246, 251, 248, 0.18), rgba(246, 251, 248, 0.7));
+}
+
+.neo-swap-token-orb,
+.neo-swap-liquidity-lane,
+.neo-swap-liquidity-stage__status {
+  position: relative;
+  z-index: 2;
+}
+
+.neo-swap-token-orb {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 16px 12px;
+  border: 1px solid rgba(18, 33, 28, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 16px 34px rgba(31, 48, 42, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(14px);
+}
+
+.neo-swap-token-orb--from {
+  animation: neo-swap-orb-from 5.6s ease-in-out infinite;
+}
+
+.neo-swap-token-orb--to {
+  animation: neo-swap-orb-to 5.6s ease-in-out infinite;
+}
+
+.neo-swap-token-orb .neo-swap-token-icon {
+  width: 58px;
+  height: 58px;
+}
+
+.neo-swap-token-orb span {
+  color: var(--ns-muted);
+  font-size: 10.5px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.neo-swap-token-orb strong {
+  color: var(--ns-ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.neo-swap-token-orb small {
+  max-width: 100%;
+  color: var(--ns-text-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.neo-swap-liquidity-lane {
+  display: grid;
+  place-items: center;
+  min-height: 116px;
+}
+
+.neo-swap-liquidity-lane__rail {
+  position: absolute;
+  inset: auto 0;
+  height: 12px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(22, 199, 132, 0.16),
+      rgba(33, 118, 255, 0.22),
+      rgba(217, 165, 47, 0.2)
+    ),
+    rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 10px 22px rgba(31, 48, 42, 0.08);
+}
+
+.neo-swap-liquidity-lane__pulse {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #16c784;
+  box-shadow:
+    0 0 0 5px rgba(22, 199, 132, 0.14),
+    0 8px 18px rgba(31, 48, 42, 0.12);
+  animation: neo-swap-liquidity-pulse 2.8s ease-in-out infinite;
+}
+
+.neo-swap-liquidity-lane__pulse--one {
+  animation-delay: 0ms;
+}
+
+.neo-swap-liquidity-lane__pulse--two {
+  animation-delay: 420ms;
+}
+
+.neo-swap-liquidity-lane__pulse--three {
+  animation-delay: 840ms;
+}
+
+.neo-swap-liquidity-lane__rate {
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
+  padding: 10px 13px;
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ns-brand-deep);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(31, 48, 42, 0.11);
+}
+
+.neo-swap-liquidity-stage__status {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  display: inline-grid;
+  gap: 3px;
+  max-width: min(300px, calc(100% - 36px));
+  padding: 10px 13px;
+  border: 1px solid rgba(18, 33, 28, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 26px rgba(31, 48, 42, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.neo-swap-liquidity-stage__status span {
+  color: var(--ns-muted);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.neo-swap-liquidity-stage__status strong {
+  color: var(--ns-ink);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.neo-swap-play-area--live .neo-swap-liquidity-stage,
+.neo-swap-play-area--quoted .neo-swap-liquidity-stage {
+  border-color: rgba(22, 199, 132, 0.28);
+}
+
+.neo-swap-play-area--loading .neo-swap-liquidity-lane__rate {
+  animation: neo-swap-rate-loading 1.8s ease-in-out infinite;
 }
 
 .neo-swap-section-header {
@@ -134,8 +375,7 @@
   padding: 15px;
   border: 1px solid rgba(22, 199, 132, 0.2);
   border-radius: 12px;
-  background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.9) 0%, #ffffff 72%);
+  background: linear-gradient(135deg, rgba(228, 248, 240, 0.9) 0%, #ffffff 72%);
 }
 
 .neo-swap-intro__lead {
@@ -217,8 +457,12 @@
   padding: 16px;
   border: 1px solid rgba(33, 118, 255, 0.16);
   border-radius: 12px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, rgba(234, 242, 255, 0.8) 48%, rgba(255, 244, 207, 0.72) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(234, 242, 255, 0.8) 48%,
+    rgba(255, 244, 207, 0.72) 100%
+  );
 }
 
 .neo-swap-preview__head {
@@ -382,13 +626,19 @@
   gap: 12px;
   min-width: 0;
   padding: 15px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, rgba(228, 248, 240, 0.42) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(228, 248, 240, 0.42) 100%
+  );
 }
 
 .neo-swap-asset-card--receive {
-  background:
-    linear-gradient(135deg, #ffffff 0%, rgba(255, 244, 207, 0.54) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(255, 244, 207, 0.54) 100%
+  );
 }
 
 .neo-swap-asset-card__top,
@@ -654,7 +904,9 @@
   border: 1px solid var(--ns-line);
   border-radius: 999px;
   background: var(--ns-surface-soft);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .neo-swap-chip-custom.is-active,
@@ -696,8 +948,12 @@
   padding: 14px;
   border: 1px solid rgba(22, 199, 132, 0.2);
   border-radius: 12px;
-  background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.74) 0%, #ffffff 62%, rgba(255, 244, 207, 0.42) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(228, 248, 240, 0.74) 0%,
+    #ffffff 62%,
+    rgba(255, 244, 207, 0.42) 100%
+  );
 }
 
 .neo-swap-route-review__head {
@@ -943,6 +1199,88 @@
   font-variant-numeric: tabular-nums;
 }
 
+@keyframes neo-swap-stage-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.045) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes neo-swap-stage-sheen {
+  0%,
+  54% {
+    opacity: 0;
+    transform: translateX(-70%);
+  }
+
+  68% {
+    opacity: 0.52;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(70%);
+  }
+}
+
+@keyframes neo-swap-orb-from {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes neo-swap-orb-to {
+  0%,
+  100% {
+    transform: translateY(-2px);
+  }
+
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes neo-swap-liquidity-pulse {
+  0% {
+    opacity: 0;
+    transform: translateX(-110px) scale(0.82);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(110px) scale(1.08);
+  }
+}
+
+@keyframes neo-swap-rate-loading {
+  0%,
+  100% {
+    box-shadow: 0 12px 28px rgba(31, 48, 42, 0.11);
+  }
+
+  50% {
+    box-shadow:
+      0 12px 28px rgba(31, 48, 42, 0.11),
+      0 0 0 4px rgba(22, 199, 132, 0.1);
+  }
+}
+
 @media (max-width: 980px) {
   .neo-swap-main-grid {
     grid-template-columns: 1fr;
@@ -957,6 +1295,34 @@
 
   .neo-swap-swap-card {
     padding: 14px;
+  }
+
+  .neo-swap-liquidity-stage {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .neo-swap-liquidity-lane {
+    min-height: 94px;
+  }
+
+  .neo-swap-liquidity-lane__rail {
+    inset: 0 auto;
+    width: 12px;
+    height: 100%;
+  }
+
+  .neo-swap-liquidity-lane__pulse {
+    animation-name: neo-swap-liquidity-pulse-vertical;
+  }
+
+  .neo-swap-liquidity-stage__status {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    justify-self: stretch;
+    max-width: none;
   }
 
   .neo-swap-quote-metrics,
@@ -1007,10 +1373,37 @@
   }
 }
 
+@keyframes neo-swap-liquidity-pulse-vertical {
+  0% {
+    opacity: 0;
+    transform: translateY(-42px) scale(0.82);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(42px) scale(1.08);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .neo-swap-liquidity-stage::after,
+  .neo-swap-liquidity-stage__image,
+  .neo-swap-token-orb--from,
+  .neo-swap-token-orb--to,
+  .neo-swap-liquidity-lane__pulse,
+  .neo-swap-play-area--loading .neo-swap-liquidity-lane__rate,
   .neo-swap-token-button,
   .neo-swap-token-option,
   .neo-swap-chip {
+    animation: none;
     transition: none;
   }
 
