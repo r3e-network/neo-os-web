@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cleanup,
   fireEvent,
@@ -31,6 +33,10 @@ function t(key: string, params?: Record<string, string | number>) {
     loanAmount: "Loan Amount",
     amountPlaceholder: "Enter amount in GAS",
     amountPresets: "Amount presets",
+    loanPackageDeck: "Loan package deck",
+    loanPackageProbe: "Callback probe",
+    loanPackageRoute: "Route rehearsal",
+    loanPackageScale: "Scale execution",
     callbackContract: "Callback Contract",
     callbackContractPlaceholder: "0x...",
     callbackMethod: "Callback Method",
@@ -197,6 +203,26 @@ describe("Flashloan PlayArea", () => {
     });
   });
 
+  it("uses visual loan packages to set the request amount", () => {
+    const { container } = render(<PlayArea {...props()} />);
+
+    expect(container.querySelector(".flashloan-loan-package-deck")).toBeTruthy();
+    expect(container.querySelectorAll(".flashloan-loan-package img")).toHaveLength(3);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Scale execution\s+100 GAS/i,
+      }),
+    );
+
+    expect(
+      (screen.getByLabelText("Loan Amount") as HTMLInputElement).value,
+    ).toBe("100");
+    expect(
+      container.querySelector(".flashloan-loan-package--active")?.textContent,
+    ).toContain("100 GAS");
+  });
+
   it("keeps wallet connection as a visible frontend action", async () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea {...props({ dispatch })} />);
@@ -269,5 +295,18 @@ describe("Flashloan PlayArea", () => {
         amount: "2",
       });
     });
+  });
+
+  it("keeps flash-loan package and route motion reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../flashloan/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".flashloan-loan-package-deck");
+    expect(styles).toContain("@keyframes flashloan-route-current");
+    expect(styles).toContain("@keyframes flashloan-route-node-scan");
+    expect(styles).toContain("@keyframes flashloan-package-lock");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
