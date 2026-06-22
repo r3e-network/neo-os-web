@@ -420,6 +420,125 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   border-top: 1px solid $shrine-line;
 }
 
+.tribute-altar {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 20px;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(228, 248, 240, 0.78)),
+    #ffffff;
+}
+
+.tribute-altar::before,
+.tribute-altar::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+}
+
+.tribute-altar::before {
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.48)),
+    radial-gradient(circle at 18% 34%, rgba(217, 119, 87, 0.16), transparent 32%);
+}
+
+.tribute-altar::after {
+  inset: auto 12% 14px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, rgba(10, 128, 80, 0.54), transparent);
+  box-shadow: 0 0 22px rgba(22, 199, 132, 0.24);
+  animation: shrine-offering-light 3s ease-in-out infinite;
+}
+
+.tribute-altar__garden {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: 0.2;
+}
+
+.tribute-altar__garden img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.03);
+  animation: shrine-garden-drift 18s ease-in-out infinite alternate;
+}
+
+.tribute-altar__flame {
+  position: relative;
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(217, 119, 87, 0.24);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  color: $shrine-green-deep;
+  box-shadow: 0 12px 26px rgba(10, 128, 80, 0.12);
+  animation: shrine-offering-breathe 3.4s ease-in-out infinite;
+}
+
+.tribute-altar__flame::after {
+  position: absolute;
+  inset: -6px;
+  border: 1px solid rgba(10, 128, 80, 0.2);
+  border-radius: 22px;
+  content: "";
+  opacity: 0;
+  transform: scale(0.88);
+  animation: shrine-offering-ring 2.4s ease-in-out infinite;
+}
+
+.tribute-altar.is-paying .tribute-altar__flame {
+  animation: shrine-offering-pay 860ms ease-in-out infinite;
+}
+
+.tribute-altar__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tribute-altar__copy small {
+  color: $shrine-green-deep;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.tribute-altar__copy strong {
+  overflow: hidden;
+  color: $shrine-ink;
+  font-size: 19px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tribute-altar__copy span {
+  overflow: hidden;
+  color: $shrine-muted;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tribute-station__head {
   display: flex;
   gap: 14px;
@@ -479,6 +598,10 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   border-color: rgba(10, 128, 80, 0.34);
   background: #f6fffb;
   box-shadow: 0 8px 18px rgba(10, 128, 80, 0.1);
+}
+
+.offering-option.is-selected .offering-option__icon {
+  animation: shrine-offering-select 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .offering-option__icon {
@@ -568,10 +691,62 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   color: $shrine-ink;
 }
 
+.studio-preview__scene {
+  position: relative;
+  isolation: isolate;
+  min-height: 180px;
+  overflow: hidden;
+  border: 1px solid rgba(10, 128, 80, 0.2);
+  border-radius: 22px;
+  background: $shrine-green-soft;
+}
+
+.studio-preview__garden {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.04) brightness(1.05);
+  transform: scale(1.02);
+  animation: shrine-garden-drift 20s ease-in-out infinite alternate;
+}
+
+.studio-preview__scene::before,
+.studio-preview__scene::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+}
+
+.studio-preview__scene::before {
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.88) 72%),
+    radial-gradient(circle at 74% 20%, rgba(255, 240, 234, 0.72), transparent 34%);
+}
+
+.studio-preview__scene::after {
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, rgba(10, 128, 80, 0.58), transparent);
+  box-shadow: 0 0 22px rgba(22, 199, 132, 0.24);
+  animation: shrine-offering-light 3.8s ease-in-out infinite;
+}
+
 .studio-preview__media {
+  position: absolute;
+  left: 18px;
+  bottom: 22px;
   display: inline-flex;
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -579,12 +754,31 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.82);
   color: $shrine-green-deep;
+  box-shadow: 0 16px 28px rgba(10, 128, 80, 0.14);
+  animation: shrine-memorial-card-breathe 4.2s ease-in-out infinite;
 }
 
 .studio-preview__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.studio-preview__light {
+  position: absolute;
+  right: 18px;
+  bottom: 24px;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(217, 119, 87, 0.22);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.82);
+  color: $shrine-coral;
+  box-shadow: 0 12px 22px rgba(217, 119, 87, 0.14);
+  animation: shrine-candle-flicker 2.6s ease-in-out infinite;
 }
 
 .studio-preview__label {
@@ -619,6 +813,73 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   border-left: 3px solid $shrine-coral;
   border-radius: 0 14px 14px 0;
   background: rgba(255, 240, 234, 0.76);
+}
+
+.studio-ritual-track {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(22, 199, 132, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.studio-ritual-track__step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ns-text-muted, #8a92a6);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.studio-ritual-track__step svg {
+  grid-row: 1 / span 2;
+  color: currentColor;
+}
+
+.studio-ritual-track__step strong,
+.studio-ritual-track__step small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-ritual-track__step strong {
+  color: $shrine-ink;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.studio-ritual-track__step small {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.studio-ritual-track__step.is-active {
+  border-color: rgba(10, 128, 80, 0.24);
+  background: rgba(228, 248, 240, 0.86);
+  color: $shrine-green-deep;
+  transform: translateY(-1px);
+}
+
+.memorial-studio--ready .studio-ritual-track__step.is-active,
+.memorial-studio--publishing .studio-ritual-track__step.is-active {
+  animation: shrine-track-ready 2.6s ease-in-out infinite;
+}
+
+.studio-ritual-track__step.is-complete svg {
+  animation: shrine-complete-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .create-form-panel {
@@ -879,6 +1140,126 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   line-height: 1.5;
 }
 
+@keyframes shrine-garden-drift {
+  from {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.07) translate3d(1.2%, -1.2%, 0);
+  }
+}
+
+@keyframes shrine-offering-light {
+  0%,
+  100% {
+    opacity: 0.38;
+    transform: scaleX(0.5);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes shrine-offering-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes shrine-offering-ring {
+  0% {
+    opacity: 0.46;
+    transform: scale(0.88);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes shrine-offering-pay {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.05);
+  }
+}
+
+@keyframes shrine-offering-select {
+  0% {
+    transform: scale(0.86) rotate(-8deg);
+  }
+
+  70% {
+    transform: scale(1.1) rotate(4deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes shrine-memorial-card-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes shrine-candle-flicker {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+    box-shadow: 0 12px 22px rgba(217, 119, 87, 0.14);
+  }
+
+  50% {
+    transform: translateY(-2px) rotate(-2deg);
+    box-shadow: 0 16px 26px rgba(217, 119, 87, 0.2);
+  }
+}
+
+@keyframes shrine-track-ready {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgba(10, 128, 80, 0.08);
+  }
+}
+
+@keyframes shrine-complete-pop {
+  0% {
+    transform: scale(0.7) rotate(-10deg);
+  }
+
+  72% {
+    transform: scale(1.12) rotate(4deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 @media (max-width: 780px) {
   .detail-header {
     grid-template-columns: 1fr;
@@ -1023,6 +1404,10 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     padding: 14px;
   }
 
+  .studio-preview__scene {
+    min-height: 164px;
+  }
+
   .studio-preview__media {
     width: 56px;
     height: 56px;
@@ -1087,14 +1472,32 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 @media (prefers-reduced-motion: reduce) {
   .obituary-item,
   .offering-option,
-  .tombstone-card {
+  .tombstone-card,
+  .studio-ritual-track__step {
     transition: none;
   }
 
   .obituary-item:hover,
   .offering-option:hover,
   .offering-option.is-selected,
+  .studio-ritual-track__step.is-active,
   .tombstone-card:hover {
     transform: none;
+  }
+
+  .tribute-altar::after,
+  .tribute-altar__garden img,
+  .tribute-altar__flame,
+  .tribute-altar__flame::after,
+  .tribute-altar.is-paying .tribute-altar__flame,
+  .offering-option.is-selected .offering-option__icon,
+  .studio-preview__garden,
+  .studio-preview__scene::after,
+  .studio-preview__media,
+  .studio-preview__light,
+  .memorial-studio--ready .studio-ritual-track__step.is-active,
+  .memorial-studio--publishing .studio-ritual-track__step.is-active,
+  .studio-ritual-track__step.is-complete svg {
+    animation: none;
   }
 }

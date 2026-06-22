@@ -100,6 +100,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     "6": Utensils,
   };
   const currentYear = new Date().getFullYear();
+  const SelectedOfferingIcon = offeringVisuals[tributeOfferingType] ?? Sprout;
   const birthYearRaw = formBirthYear.trim();
   const deathYearRaw = formDeathYear.trim();
   const parsedDeathYear = parseInt(formDeathYear, 10);
@@ -151,6 +152,15 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       : t("previewDatesEmpty");
   const previewBio = formBiography.trim() || t("previewBioEmpty");
   const previewObituary = formObituary.trim() || t("previewObituaryEmpty");
+  const hasIdentityDraft = Boolean(formName.trim() || formRelationship.trim() || formPhotoHash.trim());
+  const hasStoryDraft = Boolean(formBiography.trim() || formObituary.trim());
+  const studioState = isSubmitting
+    ? "publishing"
+    : canCreateMemorial
+      ? "ready"
+      : hasIdentityDraft || hasStoryDraft || birthYearRaw || deathYearRaw
+        ? "draft"
+        : "idle";
   const canPayTribute = !isMainnet || tributeReceiptId.trim().length > 0;
 
   const handleCreate = async () => {
@@ -299,6 +309,19 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             </div>
           )}
           <div className="tribute-station">
+            <div className={`tribute-altar tribute-altar--${tributeOfferingType}${isPaying ? " is-paying" : ""}`}>
+              <div className="tribute-altar__garden" aria-hidden="true">
+                <img src="./memorial-garden.jpg" alt="" loading="lazy" decoding="async" />
+              </div>
+              <span className="tribute-altar__flame" aria-hidden="true">
+                <SelectedOfferingIcon size={24} strokeWidth={1.9} />
+              </span>
+              <div className="tribute-altar__copy">
+                <small>{t("payTribute")}</small>
+                <strong>{selectedOffering.label}</strong>
+                <span>{selectedMemorialName} · {selectedOffering.costGas}</span>
+              </div>
+            </div>
             <div className="tribute-station__head">
               <div>
                 <span className="tribute-title">{t("payTribute")}</span>
@@ -366,7 +389,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       )}
 
       {showCreateForm && (
-        <section className="memorial-studio" aria-label={t("memoryStudio")}>
+        <section className={`memorial-studio memorial-studio--${studioState}`} aria-label={t("memoryStudio")}>
           <div className="create-form-panel">
             <div className="create-form__head">
               <span>{t("memoryStudio")}</span>
@@ -418,23 +441,46 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           </div>
 
           <div className="studio-preview">
-            <div className="studio-preview__media">
-              {previewPhotoSrc ? (
-                <img
-                  src={previewPhotoSrc}
-                  alt=""
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-              ) : (
-                <ImageIcon size={24} strokeWidth={1.9} aria-hidden="true" />
-              )}
+            <div className="studio-preview__scene">
+              <img className="studio-preview__garden" src="./memorial-garden.jpg" alt="" loading="lazy" decoding="async" />
+              <div className="studio-preview__media">
+                {previewPhotoSrc ? (
+                  <img
+                    src={previewPhotoSrc}
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <ImageIcon size={24} strokeWidth={1.9} aria-hidden="true" />
+                )}
+              </div>
+              <span className="studio-preview__light" aria-hidden="true">
+                <Flame size={18} strokeWidth={1.9} />
+              </span>
             </div>
             <span className="studio-preview__label">{t("previewLabel")}</span>
             <strong>{previewName}</strong>
             <span className="studio-preview__years">{previewYears}</span>
             <span className="studio-preview__relation">{previewRelation}</span>
+            <div className="studio-ritual-track" aria-label={t("memoryStudio")}>
+              <span className={`studio-ritual-track__step${hasIdentityDraft ? " is-active" : ""}`}>
+                <Heart size={15} strokeWidth={2} aria-hidden="true" />
+                <strong>{t("studioStepIdentity")}</strong>
+                <small>{previewName}</small>
+              </span>
+              <span className={`studio-ritual-track__step${hasStoryDraft ? " is-active" : ""}`}>
+                <ScrollText size={15} strokeWidth={2} aria-hidden="true" />
+                <strong>{t("studioStepStory")}</strong>
+                <small>{previewBio}</small>
+              </span>
+              <span className={`studio-ritual-track__step${canCreateMemorial ? " is-active is-complete" : ""}`}>
+                <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
+                <strong>{t("studioStepPublish")}</strong>
+                <small>{previewYears}</small>
+              </span>
+            </div>
             <p>{previewBio}</p>
             <blockquote>{previewObituary}</blockquote>
           </div>

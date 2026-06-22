@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -113,12 +114,16 @@ describe("Memorial Shrine PlayArea", () => {
   it("dispatches a real tribute payload with fixed offering tiers", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} launchContext={{ network: "testnet" }} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} launchContext={{ network: "testnet" }} />);
+
+    expect(container.querySelector(".tribute-altar")).toBeTruthy();
+    expect(container.querySelector('.tribute-altar__garden img[src="./memorial-garden.jpg"]')).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Message"), {
       target: { value: "Always remembered" },
     });
     fireEvent.click(screen.getByRole("radio", { name: /Flowers/ }));
+    expect(container.querySelector(".tribute-altar--3")).toBeTruthy();
     expect(screen.getByLabelText("Offering cost").textContent).toContain("0.03 GAS");
     fireEvent.click(screen.getByRole("button", { name: "Offer Tribute" }));
 
@@ -136,9 +141,12 @@ describe("Memorial Shrine PlayArea", () => {
   it("keeps create disabled until the required memorial fields are ready", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(<PlayArea t={t} state={state({ selectedMemorial: null })} dispatch={dispatch} />);
+    const { container } = render(<PlayArea t={t} state={state({ selectedMemorial: null })} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Create Memorial" }));
+    expect(container.querySelector(".memorial-studio--idle")).toBeTruthy();
+    expect(container.querySelector(".studio-ritual-track")).toBeTruthy();
+    expect(container.querySelector('.studio-preview__garden[src="./memorial-garden.jpg"]')).toBeTruthy();
     const submitButton = screen
       .getAllByRole("button", { name: "Create Memorial" })
       .find((button) => button.textContent === "Create Memorial");
@@ -150,6 +158,9 @@ describe("Memorial Shrine PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Death Year"), {
       target: { value: "2024" },
     });
+    expect(container.querySelector(".memorial-studio--ready")).toBeTruthy();
+    expect(container.querySelector(".studio-ritual-track__step.is-complete")).toBeTruthy();
+    expect(container.querySelectorAll(".studio-ritual-track__step.is-active").length).toBe(2);
     fireEvent.click(submitButton as HTMLElement);
 
     await waitFor(() => {
@@ -161,5 +172,21 @@ describe("Memorial Shrine PlayArea", () => {
         }),
       );
     });
+  });
+
+  it("keeps shrine motion resource-led and reduced-motion safe", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../memorial-shrine/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes shrine-garden-drift");
+    expect(styles).toContain("@keyframes shrine-offering-breathe");
+    expect(styles).toContain("@keyframes shrine-track-ready");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toContain(".tribute-altar__garden img");
+    expect(styles).toContain(".studio-preview__garden");
+    expect(styles).toContain(".studio-ritual-track__step.is-complete svg");
+    expect(styles).toContain("animation: none");
   });
 });
