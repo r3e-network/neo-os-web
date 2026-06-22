@@ -70,6 +70,8 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     lastTxid: "",
     lastStatus: "Ready",
     isSubmitting: false,
+    lastRoll: "",
+    lastOutcome: "",
     rollHistory: [],
     ...overrides,
   };
@@ -149,9 +151,26 @@ describe("Dice Game PlayArea", () => {
     );
 
     expect(container.querySelector(".dice-stage")?.getAttribute("data-state")).toBe("rolling");
+    expect(container.querySelector(".dice-stage__visual--rolling")).toBeTruthy();
+    expect(container.querySelector(".dice-stage__landing-zone--rolling")).toBeTruthy();
     expect(container.querySelectorAll(".dice-stage__trail-die").length).toBe(3);
     expect(container.querySelector(".dice-roll-button--rolling")).toBeTruthy();
     expect(screen.getAllByText("Rolling...").length).toBeGreaterThan(0);
+  });
+
+  it("shows a landed dice state after a resolved winning roll", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ lastOutcome: "won", lastRoll: "4" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".dice-stage")?.getAttribute("data-state")).toBe("won");
+    expect(container.querySelector(".dice-stage__visual--won")).toBeTruthy();
+    expect(container.querySelector(".dice-stage__landing-zone--settled")).toBeTruthy();
+    expect(container.querySelector(".dice-stage__die--won")).toBeTruthy();
   });
 
   it("renders real local roll history instead of placeholder rows", () => {

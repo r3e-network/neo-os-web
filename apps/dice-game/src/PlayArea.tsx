@@ -251,7 +251,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="dice-shell">
         <form className="dice-game-form" onSubmit={handleSubmit}>
           <div className="dice-stage" aria-live="polite" data-state={stageState}>
-            <div className="dice-stage__visual">
+            <div className={`dice-stage__visual dice-stage__visual--${stageState}`}>
               <picture className="dice-stage__table" aria-hidden="true">
                 <source srcSet="./dice-stage.avif" type="image/avif" />
                 <source srcSet="./dice-stage.webp" type="image/webp" />
@@ -262,6 +262,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   loading="eager"
                 />
               </picture>
+              {(isRolling || showResult) && (
+                <div
+                  className={`dice-stage__landing-zone${isRolling ? " dice-stage__landing-zone--rolling" : " dice-stage__landing-zone--settled"}`}
+                  aria-hidden="true"
+                />
+              )}
               {isRolling && (
                 <div
                   className="dice-stage__throw-trail"
@@ -281,7 +287,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <DiceFaceImage
                 face={displayFace}
                 className={`dice-stage__die dice-stage__die--${stageState}${dieIsPreview ? " dice-stage__die--preview" : ""}${dieIsPreview && selectionPulse > 0 ? " dice-stage__die--selected" : ""}`}
-                key={`${displayFace}-${selectionPulse}`}
+                key={`${displayFace}-${selectionPulse}-${throwPulse}-${stageState}`}
                 alt={stageDieLabel}
               />
               <p className="dice-stage__caption" aria-live="polite">
