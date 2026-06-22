@@ -32,7 +32,11 @@ import "./PlayArea.scss";
 
 const CALLBACK_METHOD = "onFlashLoan";
 const FEE_BPS = 9;
-const AMOUNT_PRESETS = ["1", "10", "100"];
+const AMOUNT_PRESETS = [
+  { amount: "1", labelKey: "loanPackageProbe", tone: "probe" },
+  { amount: "10", labelKey: "loanPackageRoute", tone: "route" },
+  { amount: "100", labelKey: "loanPackageScale", tone: "scale" },
+] as const;
 
 interface LoanDetails {
   id: string;
@@ -445,6 +449,58 @@ export default function PlayArea({
           </div>
 
           <div className="flashloan-loan-form">
+            <div
+              className="flashloan-loan-package-deck"
+              aria-label={t("loanPackageDeck")}
+            >
+              {AMOUNT_PRESETS.map((preset) => {
+                const selected = loanAmount === preset.amount;
+                return (
+                  <button
+                    key={preset.amount}
+                    type="button"
+                    aria-pressed={selected}
+                    className={[
+                      "flashloan-loan-package",
+                      `flashloan-loan-package--${preset.tone}`,
+                      selected ? "flashloan-loan-package--active" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onClick={() => setLoanAmount(preset.amount)}
+                  >
+                    <span
+                      className="flashloan-loan-package__media"
+                      aria-hidden="true"
+                    >
+                      <img
+                        src="./flashloan-desk.jpg"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </span>
+                    <span className="flashloan-loan-package__copy">
+                      <small>{t(preset.labelKey)}</small>
+                      <strong>{preset.amount} GAS</strong>
+                    </span>
+                    <span className="flashloan-loan-package__facts">
+                      <span>
+                        <small>{t("estimatedFee")}</small>
+                        <strong>{estimateFee(preset.amount, feeBps)} GAS</strong>
+                      </span>
+                      <span>
+                        <small>{t("repay")}</small>
+                        <strong>
+                          {estimateRepayment(preset.amount, feeBps)} GAS
+                        </strong>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="flashloan-control-panel">
               <NeoInput
                 type="number"
@@ -454,21 +510,6 @@ export default function PlayArea({
                 min={0}
                 onChange={setLoanAmount}
               />
-              <div
-                className="flashloan-presets"
-                aria-label={t("amountPresets")}
-              >
-                {AMOUNT_PRESETS.map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    className={`flashloan-preset ${loanAmount === amount ? "flashloan-preset--active" : ""}`}
-                    onClick={() => setLoanAmount(amount)}
-                  >
-                    {amount} GAS
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div className="flashloan-control-panel">
