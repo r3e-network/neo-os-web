@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -119,9 +120,12 @@ describe("Anchor user PlayAreas", () => {
   it("lets ProfitAnchor users stake, redeem, claim, and refresh from the play area", async () => {
     const dispatch = vi.fn(async () => undefined);
 
-    render(<ProfitAnchorPlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container } = render(<ProfitAnchorPlayArea t={t} state={state()} dispatch={dispatch} />);
 
     expect(screen.getByRole("region", { name: "Review the wallet effect" })).toBeTruthy();
+    expect(container.querySelector(".anchor-capital-flow.is-ready.has-claim")).toBeTruthy();
+    expect(container.querySelector('.anchor-capital-flow__token img[src="./logo.jpg"]')).toBeTruthy();
+    expect(container.querySelectorAll(".anchor-capital-flow__node").length).toBe(3);
     expect(screen.getByText("NEO transfer to PlatformAnchor")).toBeTruthy();
     expect(screen.getByText("stake:miniapp-profitanchor")).toBeTruthy();
     expect(screen.getByText("GAS ready to claim")).toBeTruthy();
@@ -223,5 +227,19 @@ describe("Anchor user PlayAreas", () => {
     expect(screen.getAllByText("Stake NEO").length).toBeGreaterThan(0);
     expect(screen.getByText("3 NEO")).toBeTruthy();
     expect(screen.getAllByText(/0xabcdef00/).length).toBeGreaterThan(0);
+  });
+
+  it("keeps ProfitAnchor capital-flow motion accessible", () => {
+    const css = fs.readFileSync(
+      `${process.cwd()}/../profitanchor/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(css).toContain("@keyframes anchor-capital-rail-flow");
+    expect(css).toContain("@keyframes anchor-capital-token-route");
+    expect(css).toContain("@keyframes anchor-capital-token-route-mobile");
+    expect(css).toContain("@keyframes anchor-stage-drift");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain(".anchor-capital-flow__token");
   });
 });
