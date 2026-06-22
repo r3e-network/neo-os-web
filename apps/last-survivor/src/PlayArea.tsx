@@ -139,117 +139,140 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="survivor-play-area">
-      {serviceNotice && (
-        <div className="survivor-service-notice" role="status">
-          <div className="survivor-service-notice__copy">
-            <span className="survivor-service-notice__title">
-              {t("roundStateUnavailableTitle")}
-            </span>
-            <span>{serviceNotice}</span>
-          </div>
-          <NeoButton
-            size="sm"
-            variant="secondary"
-            loading={isLoading}
-            onClick={handleRefreshRound}
-            aria-label={t("refreshRound")}
-          >
-            {t("refreshRound")}
-          </NeoButton>
-        </div>
-      )}
-
-      {/* Hero: round headline + countdown ring + pot + danger meter.
-          Round # and live Status fold into the heading as inline facts. */}
-      <div className="hero-container">
-        <div className="hero-heading">
-          <span className="hero-badge" aria-hidden="true">&#9201;</span>
-          <div className="hero-heading-copy">
-            <span className="hero-eyebrow">{t("roundStatus")}</span>
-            <span className="hero-facts">
-              <span className="hero-fact-round">{formattedRound}</span>
-              <span className="hero-fact-sep" aria-hidden="true">&middot;</span>
-              <span className={`hero-fact-status status-${isRoundActive ? "active" : "ended"}`}>
-                <span className="status-dot" aria-hidden="true" />
-                {roundStatusDisplay}
-              </span>
-            </span>
-          </div>
-        </div>
-        <DangerRingHero
-          t={t}
-          countdown={countdown}
-          dangerLevel={dangerLevel}
-          shouldPulse={shouldPulse}
-          formattedPot={formatNum(totalPot)}
-          active={liveDanger}
-          awaitingFirstKey={awaitingFirstKey}
+      {/* Game stage: the countdown arena, prize pressure, and key purchase live
+          together so the player acts on the scene instead of filling a form. */}
+      <section className="survivor-stage" aria-label={t("survivalArena")}>
+        <img
+          className="survivor-stage__image"
+          src="./last-survivor-arena.jpg"
+          alt={t("survivalArenaAlt")}
+          loading="eager"
+          decoding="async"
         />
-        <DangerMeter
-          t={t}
-          level={dangerLevel}
-          levelText={dangerLevelText}
-          progress={dangerProgress}
-          active={liveDanger}
-        />
-      </div>
-
-      {/* Last buyer / current leader badge */}
-      {lastBuyer && isRoundActive && (
-        <div className="last-buyer-badge">
-          <span className="last-buyer-icon" aria-hidden="true">★</span>
-          <div className="last-buyer-info">
-            <span className="last-buyer-label">{t("currentLeader")}</span>
-            <span className="last-buyer-address">{formatBuyerAddress(lastBuyer)}</span>
-          </div>
-          <span className="last-buyer-hint">{t("winsIfZero")}</span>
-        </div>
-      )}
-
-      {/* Primary action — Buy Keys, surfaced right after the hero */}
-      {showBuyKeysPanel && (
-        <NeoCard variant="erobo" className="buy-keys-card">
-          <BuyKeysCard
-            keyCount={localKeyCount}
-            estimatedCost={estimatedCost}
-            isPaying={isBuyingKeys}
-            disabled={!canBuyKeys}
-            validationError={keyValidationError}
-            helperText={buyKeysHelper}
-            submitLabel={buyKeysLabel}
-            t={t}
-            onKeyCountChange={handleKeyCountChange}
-            onBuy={handleBuyKeys}
-          />
-        </NeoCard>
-      )}
-
-      {/* Round-control prompt — suppressed when the service notice is already
-          showing its own "Refresh Round" entry point, so the first paint
-          surfaces a single refresh affordance instead of two duplicate ones. */}
-      {!isRoundActive && !needsLifecycleSync && !serviceNotice && (
-        <NeoCard variant="erobo" className="round-control-card">
-          <div className="round-control-card__body">
-            <div className="round-control-card__copy">
-              <span className="round-control-card__title">
-                {t("inactiveRound")}
-              </span>
-              <span className="round-control-card__text">
-                {t("refreshRoundHint")}
-              </span>
+        <div className="survivor-stage__shade" aria-hidden="true" />
+        <div className="survivor-stage__content">
+          <div className="survivor-stage__left">
+            {serviceNotice && (
+              <div className="survivor-service-notice" role="status">
+                <div className="survivor-service-notice__copy">
+                  <span className="survivor-service-notice__title">
+                    {t("roundStateUnavailableTitle")}
+                  </span>
+                  <span>{serviceNotice}</span>
+                </div>
+                <NeoButton
+                  size="sm"
+                  variant="secondary"
+                  loading={isLoading}
+                  onClick={handleRefreshRound}
+                  aria-label={t("refreshRound")}
+                >
+                  {t("refreshRound")}
+                </NeoButton>
+              </div>
+            )}
+            <div className="hero-heading">
+              <span className="hero-badge" aria-hidden="true">&#9201;</span>
+              <div className="hero-heading-copy">
+                <span className="hero-eyebrow">{t("survivorStageEyebrow")}</span>
+                <h2 className="hero-title">{t("title")}</h2>
+                <span className="hero-facts">
+                  <span className="hero-fact-round">{formattedRound}</span>
+                  <span className="hero-fact-sep" aria-hidden="true">&middot;</span>
+                  <span className={`hero-fact-status status-${isRoundActive ? "active" : "ended"}`}>
+                    <span className="status-dot" aria-hidden="true" />
+                    {roundStatusDisplay}
+                  </span>
+                </span>
+              </div>
             </div>
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              loading={isLoading}
-              onClick={handleRefreshRound}
-              aria-label={t("refreshRound")}
-            >
-              {t("refreshRound")}
-            </NeoButton>
+            <DangerRingHero
+              t={t}
+              countdown={countdown}
+              dangerLevel={dangerLevel}
+              shouldPulse={shouldPulse}
+              formattedPot={formatNum(totalPot)}
+              active={liveDanger}
+              awaitingFirstKey={awaitingFirstKey}
+            />
+            <DangerMeter
+              t={t}
+              level={dangerLevel}
+              levelText={dangerLevelText}
+              progress={dangerProgress}
+              active={liveDanger}
+            />
           </div>
-        </NeoCard>
-      )}
+
+          <div className="survivor-stage__right">
+            <div className="survivor-action-console">
+              <div className="survivor-action-console__head">
+                <span className="survivor-action-console__eyebrow">
+                  {t("pressConsole")}
+                </span>
+                <strong>{t("pressConsoleTitle")}</strong>
+                <span>{t("pressConsoleHint")}</span>
+              </div>
+
+              {/* Last buyer / current leader badge */}
+              {lastBuyer && isRoundActive && (
+                <div className="last-buyer-badge">
+                  <span className="last-buyer-icon" aria-hidden="true">★</span>
+                  <div className="last-buyer-info">
+                    <span className="last-buyer-label">{t("currentLeader")}</span>
+                    <span className="last-buyer-address">{formatBuyerAddress(lastBuyer)}</span>
+                  </div>
+                  <span className="last-buyer-hint">{t("winsIfZero")}</span>
+                </div>
+              )}
+
+              {/* Primary action — Buy Keys, inside the stage console. */}
+              {showBuyKeysPanel && (
+                <div className="buy-keys-card">
+                  <BuyKeysCard
+                    keyCount={localKeyCount}
+                    estimatedCost={estimatedCost}
+                    isPaying={isBuyingKeys}
+                    disabled={!canBuyKeys}
+                    validationError={keyValidationError}
+                    helperText={buyKeysHelper}
+                    submitLabel={buyKeysLabel}
+                    t={t}
+                    onKeyCountChange={handleKeyCountChange}
+                    onBuy={handleBuyKeys}
+                  />
+                </div>
+              )}
+
+              {/* Round-control prompt — suppressed when the service notice is already
+                  showing its own "Refresh Round" entry point. */}
+              {!isRoundActive && !needsLifecycleSync && !serviceNotice && (
+                <NeoCard variant="erobo" className="round-control-card">
+                  <div className="round-control-card__body">
+                    <div className="round-control-card__copy">
+                      <span className="round-control-card__title">
+                        {t("inactiveRound")}
+                      </span>
+                      <span className="round-control-card__text">
+                        {t("refreshRoundHint")}
+                      </span>
+                    </div>
+                    <NeoButton
+                      size="sm"
+                      variant="secondary"
+                      loading={isLoading}
+                      onClick={handleRefreshRound}
+                      aria-label={t("refreshRound")}
+                    >
+                      {t("refreshRound")}
+                    </NeoButton>
+                  </div>
+                </NeoCard>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Round ended on-chain — the payout reveal is the hero moment. Show the
           winner + the exact GAS prize prominently, then anyone can settle() to
