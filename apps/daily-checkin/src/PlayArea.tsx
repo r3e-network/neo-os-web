@@ -170,6 +170,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // The hero pill reads as an invite to connect in the resting state rather
   // than a perpetual "Loading…": "Loading…" is reserved for an in-flight read.
   const ringReady = hasLoadedStatus && canCheckIn;
+  const routeProgressPercent = Math.max(0, Math.min(100, (weekSlotFilled / 7) * 100));
+  const routeMarkerDay = canCheckIn ? weekSlotToday : Math.max(weekSlotFilled, 1);
+  const routeMarkerPercent = Math.max(
+    7,
+    Math.min(93, ((routeMarkerDay - 0.5) / 7) * 100),
+  );
+  const routeRunnerClassName = [
+    "checkin-route-runner",
+    canCheckIn ? "checkin-route-runner--ready" : "",
+    showConfetti || reachedMilestone ? "checkin-route-runner--celebrating" : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <div
@@ -265,7 +276,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           })}
         </div>
         <div className="checkin-week-connector">
-          <div className="checkin-connector-fill" style={{ width: `${(weekSlotFilled / 7) * 100}%` }} />
+          <div className="checkin-connector-fill" style={{ width: `${routeProgressPercent}%` }} />
+          <span
+            className={routeRunnerClassName}
+            style={{ left: `${routeMarkerPercent}%` }}
+            aria-hidden="true"
+          >
+            {canCheckIn ? (
+              <Gift size={14} />
+            ) : weekSlotFilled > 0 ? (
+              <Check size={14} />
+            ) : (
+              <Circle size={14} />
+            )}
+          </span>
+          <span className="checkin-route-spark checkin-route-spark--one" aria-hidden="true" />
+          <span className="checkin-route-spark checkin-route-spark--two" aria-hidden="true" />
+          <span className="checkin-route-spark checkin-route-spark--three" aria-hidden="true" />
         </div>
         <div className="checkin-week-timing">
           <span className="checkin-week-utc">{utcTimeDisplay} {t("utcLabel")}</span>
