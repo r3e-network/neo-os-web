@@ -1,4 +1,5 @@
 import { NeoButton } from "@shared/components-react";
+import { Fuel, Minus, Plus } from "lucide-react";
 import "./BuyKeysCard.scss";
 
 interface BuyKeysCardProps {
@@ -36,14 +37,14 @@ export default function BuyKeysCard({
       <span className="card-title-glass">{t("buyKeys")}</span>
       <div className="key-selector">
         <button className="key-adjust-btn minus" type="button" onClick={() => adjustKeys(-1)} disabled={Number(keyCount) <= 1} aria-label="Decrease">
-          <span className="adjust-icon">{"−"}</span>
+          <Minus className="adjust-icon" size={18} aria-hidden="true" />
         </button>
         <div className="key-display">
           <span className="key-count-value">{keyCount}</span>
           <span className="key-count-unit">{t("keysSuffix")}</span>
         </div>
         <button className="key-adjust-btn plus" type="button" onClick={() => adjustKeys(1)} aria-label="Increase">
-          <span className="adjust-icon">{"+"}</span>
+          <Plus className="adjust-icon" size={18} aria-hidden="true" />
         </button>
       </div>
       <div className="key-presets">
@@ -56,7 +57,7 @@ export default function BuyKeysCard({
       <div className="cost-row-glass">
         <span className="cost-label-glass">{t("estimatedCost")}</span>
         <span className="cost-value-glass">
-          <span className="cost-gas-icon" aria-hidden="true">&#x26FD;</span>
+          <Fuel className="cost-gas-icon" size={17} aria-hidden="true" />
           {estimatedCost} {t("tokenGas")}
         </span>
       </div>

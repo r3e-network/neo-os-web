@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -151,9 +152,14 @@ describe("LastSurvivor PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Increase" }));
     expect(container.querySelector(".key-count-value")?.textContent).toBe("2");
+    expect(container.querySelector(".survivor-play-area--live")).toBeTruthy();
+    expect(container.querySelector(".survivor-stage.survivor-play-area--live")).toBeTruthy();
+    expect(container.querySelector(".key-adjust-btn.plus svg")).toBeTruthy();
+    expect(container.querySelector(".key-adjust-btn.minus svg")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "5" }));
     expect(container.querySelector(".key-count-value")?.textContent).toBe("5");
+    expect(container.querySelector(".preset-chip.active")).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "Buy Keys" }) as HTMLButtonElement)
         .disabled,
@@ -189,6 +195,28 @@ describe("LastSurvivor PlayArea", () => {
     // Buying is blocked while the round needs settlement.
     const buy = screen.getByRole("button", { name: "Buy Keys" });
     expect((buy as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("uses app icons and motion states instead of text-symbol chrome", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          isRoundActive: true,
+          lastBuyer: "NMockLastBuyer111111111111111111111111111",
+          roundDataAvailable: true,
+          roundStatusDisplay: "Active",
+          totalKeysDisplay: 4,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".hero-badge svg")).toBeTruthy();
+    expect(container.querySelector(".last-buyer-icon svg")).toBeTruthy();
+    expect(container.querySelectorAll(".participation-icon svg").length).toBe(3);
+    expect(container.querySelector(".history-section-icon svg")).toBeTruthy();
+    expect(container.querySelector(".cost-gas-icon")).toBeTruthy();
   });
 
   it("binds TOTAL KEYS and YOUR SHARE to the round total, not the buy-selector", () => {
@@ -238,5 +266,22 @@ describe("LastSurvivor PlayArea", () => {
     ).map((el) => el.textContent);
 
     expect(values).toEqual(["0", "0", "—"]);
+  });
+
+  it("keeps survivor stage motion backed by reduced-motion fallbacks", () => {
+    const playAreaStyles = fs.readFileSync(
+      `${process.cwd()}/../last-survivor/src/PlayArea.scss`,
+      "utf8",
+    );
+    const buyKeysStyles = fs.readFileSync(
+      `${process.cwd()}/../last-survivor/src/pages/index/components/BuyKeysCard.scss`,
+      "utf8",
+    );
+
+    expect(playAreaStyles).toContain("@keyframes survivor-arena-drift");
+    expect(playAreaStyles).toContain("@keyframes survivor-stage-sweep");
+    expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
+    expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
