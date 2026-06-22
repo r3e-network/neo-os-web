@@ -123,6 +123,21 @@ describe("FogPlay PlayArea", () => {
     expect(
       container.querySelector(".symbol-ring--heads img")?.getAttribute("src"),
     ).toContain("coin_heads");
+    expect(container.querySelector(".bet-section--choice-heads")).toBeTruthy();
+    expect(container.querySelector(".wager-table-rail")).toBeTruthy();
+    expect(
+      container
+        .querySelector(".wager-table-rail__coin img")
+        ?.getAttribute("src"),
+    ).toContain("coin_heads");
+    expect(
+      container.querySelectorAll(".wager-chip-stack__coins img").length,
+    ).toBe(3);
+    expect(
+      container
+        .querySelector(".wager-option.selected .wager-option__chip img")
+        ?.getAttribute("src"),
+    ).toContain("coin_heads");
     expect(screen.getByText("Ready for your first flip")).toBeTruthy();
   });
 
@@ -192,6 +207,52 @@ describe("FogPlay PlayArea", () => {
     expect(screen.getAllByText("You won").length).toBeGreaterThan(0);
   });
 
+  it("renders recent games as animated table tokens instead of a report table", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          totalGames: 2,
+          wins: 1,
+          losses: 1,
+          gameHistory: [
+            {
+              betId: "102",
+              amount: 2,
+              choice: "tails",
+              outcome: "tails",
+              won: true,
+              payout: 4,
+              time: "2026-06-22T00:00:00Z",
+            },
+            {
+              betId: "101",
+              amount: 1,
+              choice: "heads",
+              outcome: "tails",
+              won: false,
+              payout: 0,
+              time: "2026-06-22T00:00:00Z",
+            },
+          ],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector(".history-token-board")).toBeTruthy();
+    expect(container.querySelectorAll(".history-token").length).toBe(2);
+    expect(container.querySelector(".history-token--win")).toBeTruthy();
+    expect(container.querySelector(".history-token--loss")).toBeTruthy();
+    expect(
+      container
+        .querySelector(".history-token--tails .history-token__coin img")
+        ?.getAttribute("src"),
+    ).toContain("coin_tails");
+    expect(screen.getByText("Payout +4.00")).toBeTruthy();
+  });
+
   it("keeps the game-table layout and control motion accessible", () => {
     const styles = fs.readFileSync(
       `${process.cwd()}/../fogplay/src/PlayArea.scss`,
@@ -207,6 +268,8 @@ describe("FogPlay PlayArea", () => {
     expect(styles).toContain("@keyframes fogplay-vault-drift");
     expect(styles).toContain("@keyframes fogplay-table-glow");
     expect(styles).toContain("@keyframes fogplay-wager-in");
+    expect(styles).toContain(".history-token-board");
+    expect(styles).toContain("@keyframes fogplay-history-token-in");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /\.coinflip-play-area--tossing \.coinflip-game-table::before[\s\S]*animation:\s*fogplay-table-glow/,
@@ -216,7 +279,12 @@ describe("FogPlay PlayArea", () => {
     );
 
     expect(wagerStyles).toContain("@keyframes fogplay-choice-lock");
+    expect(wagerStyles).toContain("@keyframes fogplay-table-side-lock");
+    expect(wagerStyles).toContain("@keyframes fogplay-chip-stack-ready");
+    expect(wagerStyles).toContain("@keyframes fogplay-chip-token-selected");
     expect(wagerStyles).toContain("@keyframes fogplay-flip-ready");
+    expect(wagerStyles).toContain(".wager-table-rail");
+    expect(wagerStyles).toContain(".wager-chip-stack__coins");
     expect(wagerStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.flip-btn[\s\S]*animation:\s*none/,
     );

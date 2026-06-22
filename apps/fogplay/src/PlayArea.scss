@@ -410,85 +410,116 @@
   }
 }
 
-.history-table-wrap {
-  overflow-x: auto;
+.history-token-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.history-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-
-  th {
-    @include pm.section-eyebrow;
-    text-align: left;
-    padding: 9px 12px;
-    border-bottom: 1px solid pm.$border;
-    background: pm.$surface;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-  }
-
-  td {
-    padding: 10px 12px;
-    border-bottom: 1px solid pm.$border;
-    color: pm.$text;
-  }
-
-  tr:last-child td {
-    border-bottom: 0;
-  }
-
-  .amount-cell {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-  }
-
-  .payout-win {
-    color: pm.$green-text;
-  }
-  .payout-loss {
-    color: pm.$text-faint;
-  }
-
-  .row-win {
-    background: pm.$green-soft;
-  }
-  .row-loss {
-    background: transparent;
-  }
-}
-
-.choice-badge {
-  display: inline-flex;
+.history-token {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  padding: 3px 10px;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid pm.$border;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 248, 250, 0.9)),
+    pm.$surface;
+  animation: fogplay-history-token-in 320ms ease-out both;
+}
+
+.history-token--win {
+  border-color: rgba(22, 199, 132, 0.2);
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(255, 255, 255, 0.9)),
+    pm.$green-soft;
+}
+
+.history-token--loss {
+  border-color: rgba(234, 57, 67, 0.14);
+}
+
+.history-token__coin {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
-  background: pm.$surface-2;
+  overflow: hidden;
+  background: rgba(22, 199, 132, 0.08);
+  box-shadow:
+    0 8px 16px rgba(20, 22, 38, 0.08),
+    inset 0 0 0 1px rgba(22, 199, 132, 0.14);
+
+  img {
+    width: 132%;
+    height: 132%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+}
+
+.history-token--tails .history-token__coin img {
+  width: 164%;
+  height: 164%;
+  object-position: center 43%;
+}
+
+.history-token__main,
+.history-token__amounts {
+  min-width: 0;
+  display: grid;
+}
+
+.history-token__main {
+  gap: 2px;
+}
+
+.history-token__id {
+  max-width: 100%;
+  overflow: hidden;
+  color: pm.$text-faint;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-token__choice {
+  color: pm.$text;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.history-token__outcome {
   color: pm.$text-2;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.outcome-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   text-transform: capitalize;
+}
 
-  &.won {
-    background: pm.$green-soft;
-    color: pm.$green-text;
-  }
-  &.lost {
-    background: pm.$red-soft;
-    color: pm.$red-text;
-  }
+.history-token__amounts {
+  justify-items: end;
+  gap: 3px;
+  color: pm.$text-2;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.payout-win {
+  color: pm.$green-text;
+}
+
+.payout-loss {
+  color: pm.$text-faint;
 }
 
 @keyframes fogplay-vault-drift {
@@ -566,14 +597,33 @@
   }
 }
 
+@keyframes fogplay-history-token-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .coinflip-play-area::after,
   .play-hero::after,
   .play-hero__badge,
   .coinflip-game-table::before,
   .coinflip-game-table__wager .wager-panel,
-  .history-section {
+  .history-section,
+  .history-token {
     animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .history-token-board {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -6,6 +6,8 @@ import ArenaHero from "./components/ArenaHero";
 import WagerControls from "./components/WagerControls";
 import ResultOverlay from "./pages/index/components/ResultOverlay";
 import type { GameResult, GameHistoryItem } from "./composables/useCoinFlip";
+import coinHeadsUrl from "./static/coin_heads.png";
+import coinTailsUrl from "./static/coin_tails.png";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -54,6 +56,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Game history
   const gameHistory = val<GameHistoryItem[]>("gameHistory") ?? [];
   const recentHistory = useMemo(() => gameHistory.slice(0, 10), [gameHistory]);
+  const historyCoinArt: Record<"heads" | "tails", string> = {
+    heads: coinHeadsUrl,
+    tails: coinTailsUrl,
+  };
   const playAreaClassName = [
     "coinflip-play-area",
     isFlipping || revealing ? "coinflip-play-area--tossing" : "",
@@ -209,44 +215,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoCard>
         ) : (
           <NeoCard variant="erobo">
-            <div className="history-table-wrap">
-              <table className="history-table" aria-label={t("gameHistory")}>
-                <thead>
-                  <tr>
-                    <th>{t("choiceHeader")}</th>
-                    <th>{t("outcomeHeader")}</th>
-                    <th>{t("betHeader")}</th>
-                    <th>{t("payoutHeader")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentHistory.map((game) => (
-                    <tr
-                      key={game.betId}
-                      className={game.won ? "row-win" : "row-loss"}
-                    >
-                      <td>
-                        <span className="choice-badge">
-                          {t(game.choice) || game.choice}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`outcome-badge ${game.won ? "won" : "lost"}`}
-                        >
-                          {t(game.outcome) || game.outcome}
-                        </span>
-                      </td>
-                      <td className="amount-cell">{game.amount.toFixed(2)}</td>
-                      <td
-                        className={`amount-cell ${game.won ? "payout-win" : "payout-loss"}`}
-                      >
-                        {game.won ? `+${game.payout.toFixed(2)}` : "0.00"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div
+              className="history-token-board"
+              role="list"
+              aria-label={t("gameHistory")}
+            >
+              {recentHistory.map((game) => (
+                <article
+                  key={game.betId}
+                  className={[
+                    "history-token",
+                    `history-token--${game.won ? "win" : "loss"}`,
+                    `history-token--${game.choice}`,
+                  ].join(" ")}
+                  role="listitem"
+                >
+                  <span className="history-token__coin" aria-hidden="true">
+                    <img
+                      src={historyCoinArt[game.choice]}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </span>
+                  <span className="history-token__main">
+                    <span className="history-token__id">#{game.betId}</span>
+                    <strong className="history-token__choice">
+                      {t(game.choice) || game.choice}
+                    </strong>
+                    <span className="history-token__outcome">
+                      {t("outcomeHeader")}: {t(game.outcome) || game.outcome}
+                    </span>
+                  </span>
+                  <span className="history-token__amounts">
+                    <span>
+                      {t("betHeader")} {game.amount.toFixed(2)}
+                    </span>
+                    <strong className={game.won ? "payout-win" : "payout-loss"}>
+                      {t("payoutHeader")}{" "}
+                      {game.won ? `+${game.payout.toFixed(2)}` : "0.00"}
+                    </strong>
+                  </span>
+                </article>
+              ))}
             </div>
           </NeoCard>
         )}
