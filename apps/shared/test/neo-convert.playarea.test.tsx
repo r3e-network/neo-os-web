@@ -1,5 +1,7 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -43,14 +45,27 @@ function t(key: string) {
     formatAutodetectPill: "Format auto-detect",
     formatPrivateKeyDesc: "64-character hex private key.",
     formatPrivateKeyLabel: "Private key",
+    formatPrivateKeyPlaceholder: "Paste 64-character private key hex...",
+    formatPrivateKeyWorkbenchHint:
+      "Private key hex is raw secret material. The workbench keeps derived WIF and address values masked until you reveal them.",
     formatPublicKeyDesc: "Compressed public key.",
     formatPublicKeyLabel: "Public key",
+    formatPublicKeyPlaceholder:
+      "Paste compressed public key starting with 02 or 03...",
+    formatPublicKeyWorkbenchHint:
+      "Public keys are not secret. Use this lane to derive addresses and script hashes before sharing or wiring contracts.",
     formatRailTitle: "Supported formats",
     formatScriptDesc: "Verification script hex.",
     formatScriptLabel: "NeoVM script",
+    formatScriptPlaceholder: "Paste NeoVM verification script hex...",
+    formatScriptWorkbenchHint:
+      "Script mode turns verification hex into script hash and opcode output so you can inspect the contract-facing shape.",
     formatsTitle: "What you can paste",
     formatWifDesc: "Wallet Import Format private key.",
     formatWifLabel: "WIF",
+    formatWifPlaceholder: "Paste WIF starting with K or L...",
+    formatWifWorkbenchHint:
+      "WIF is the safest import/export lane. Paste it here to derive the address, public key, and private hex locally.",
     gasBalance: "GAS Balance",
     generatePanelCopy: "Generate a Neo N3 account locally.",
     generatePanelTitle: "Create an offline-ready wallet",
@@ -127,7 +142,32 @@ describe("Neo Convert PlayArea", () => {
     expect(screen.getByText("Local pipeline")).toBeTruthy();
     expect(screen.getByText("Waiting for key material")).toBeTruthy();
     expect(document.querySelector(".convert-pipeline--idle")).toBeTruthy();
+    expect(document.querySelector(".convert-format-rail")).toBeTruthy();
+    expect(document.querySelectorAll(".convert-format-card img")).toHaveLength(4);
     expect(screen.getByText("Output appears after a valid paste")).toBeTruthy();
+  });
+
+  it("uses format resource cards to tune the input lane", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(
+      screen.getByPlaceholderText("Paste WIF starting with K or L..."),
+    ).toBeTruthy();
+
+    const publicKeyCard = screen.getByRole("radio", { name: /Public key/ });
+    fireEvent.click(publicKeyCard);
+
+    expect(publicKeyCard.getAttribute("aria-checked")).toBe("true");
+    expect(
+      screen.getByText(
+        "Public keys are not secret. Use this lane to derive addresses and script hashes before sharing or wiring contracts.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByPlaceholderText(
+        "Paste compressed public key starting with 02 or 03...",
+      ),
+    ).toBeTruthy();
   });
 
   it("turns the converter panel into an active local pipeline while processing", () => {
@@ -268,5 +308,17 @@ describe("Neo Convert PlayArea", () => {
       .getByText("Download Paper Wallet (PDF)")
       .closest("button");
     expect(revealedDownloadButton?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("keeps format card visuals and motion reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../neo-convert/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".convert-format-card");
+    expect(styles).toContain(".convert-format-card__media img");
+    expect(styles).toContain("@keyframes convert-format-card-lock");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });

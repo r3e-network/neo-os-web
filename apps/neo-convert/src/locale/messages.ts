@@ -379,20 +379,52 @@ const appMessages = {
         en: "Wallet Import Format private key (starts with K/L).",
         zh: "钱包导入格式私钥（以 K/L 开头）。"
     },
+    formatWifPlaceholder: {
+        en: "Paste WIF starting with K or L...",
+        zh: "粘贴以 K 或 L 开头的 WIF……"
+    },
+    formatWifWorkbenchHint: {
+        en: "WIF is the safest import/export lane. Paste it here to derive the address, public key, and private hex locally.",
+        zh: "WIF 是最常用的导入/导出通道。粘贴后会在本地推导地址、公钥和私钥 Hex。"
+    },
     formatPrivateKeyLabel: { en: "Private key", zh: "私钥" },
     formatPrivateKeyDesc: {
         en: "64-character hex private key.",
         zh: "64 位十六进制私钥。"
+    },
+    formatPrivateKeyPlaceholder: {
+        en: "Paste 64-character private key hex...",
+        zh: "粘贴 64 位私钥 Hex……"
+    },
+    formatPrivateKeyWorkbenchHint: {
+        en: "Private key hex is raw secret material. The workbench keeps derived WIF and address values masked until you reveal them.",
+        zh: "私钥 Hex 是原始密钥材料。工作台会保持 WIF 和地址推导结果受控显示。"
     },
     formatPublicKeyLabel: { en: "Public key", zh: "公钥" },
     formatPublicKeyDesc: {
         en: "Compressed public key — derives address and script hash.",
         zh: "压缩公钥——可推导地址与脚本哈希。"
     },
+    formatPublicKeyPlaceholder: {
+        en: "Paste compressed public key starting with 02 or 03...",
+        zh: "粘贴以 02 或 03 开头的压缩公钥……"
+    },
+    formatPublicKeyWorkbenchHint: {
+        en: "Public keys are not secret. Use this lane to derive addresses and script hashes before sharing or wiring contracts.",
+        zh: "公钥不是私密值。用这条通道在分享或接入合约前推导地址与脚本哈希。"
+    },
     formatScriptLabel: { en: "NeoVM script", zh: "NeoVM 脚本" },
     formatScriptDesc: {
         en: "Verification script hex — disassembled into opcodes.",
         zh: "验证脚本十六进制——反汇编为操作码。"
+    },
+    formatScriptPlaceholder: {
+        en: "Paste NeoVM verification script hex...",
+        zh: "粘贴 NeoVM 验证脚本 Hex……"
+    },
+    formatScriptWorkbenchHint: {
+        en: "Script mode turns verification hex into script hash and opcode output so you can inspect the contract-facing shape.",
+        zh: "脚本模式会把验证脚本 Hex 转为脚本哈希和操作码，便于检查合约侧形态。"
     },
     onDeviceNote: {
         en: "Key generation and conversion run entirely on your device — keys are never transmitted. The optional balance view makes read-only RPC calls when a wallet is connected.",
