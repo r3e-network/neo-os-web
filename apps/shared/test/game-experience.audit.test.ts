@@ -15,9 +15,16 @@ interface GameApp {
   srcDir: string;
 }
 
+const GAME_LIKE_SOCIAL_APPS = new Set([
+  "gas-lucky-pool",
+  "red-envelope",
+]);
+
 const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".scss"]);
 const ASSET_PATTERN =
   /(<picture\b|<img\b|from\s+["'][^"']+\.(?:png|jpe?g|webp|avif|svg)["']|url\(["']?[^)]+\.(?:png|jpe?g|webp|avif|svg))/i;
+const PLAY_SURFACE_PATTERN =
+  /(arena|stage|machine|table|plaza|workbench|lane|route|deck)/i;
 
 function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
@@ -43,7 +50,9 @@ function discoverGameApps(): GameApp[] {
     if (!existsSync(manifestPath)) continue;
 
     const manifest = readFileSync(manifestPath, "utf8");
-    if (!/category:\s*"game"|shell:\s*"game"/.test(manifest)) continue;
+    const isDeclaredGame = /category:\s*"game"|shell:\s*"game"/.test(manifest);
+    const isGameLikeSocialApp = GAME_LIKE_SOCIAL_APPS.has(entry.name);
+    if (!isDeclaredGame && !isGameLikeSocialApp) continue;
 
     apps.push({
       name: entry.name,
@@ -68,16 +77,18 @@ describe("game miniapp experience audit", () => {
       "daily-checkin",
       "dice-game",
       "fogplay",
+      "gas-lucky-pool",
       "gasbox",
       "last-survivor",
       "on-chain-tarot",
+      "red-envelope",
       "time-capsule",
       "unbreakable-vault",
     ]);
   });
 
   for (const app of gameApps) {
-    it(`${app.name} keeps a game-like surface with real assets, motion, and reduced-motion fallback`, () => {
+    it(`${app.name} keeps a game-like surface with real assets, motion, staging, and reduced-motion fallback`, () => {
       const source = readAppSources(app);
       const animationCount = (source.match(/animation\s*:/g) ?? []).length;
       const keyframeCount = (source.match(/@keyframes\s+/g) ?? []).length;
@@ -86,6 +97,10 @@ describe("game miniapp experience audit", () => {
         source,
         `${app.name}: game surfaces need a visible scene/asset, not just form controls`,
       ).toMatch(ASSET_PATTERN);
+      expect(
+        source,
+        `${app.name}: the core flow needs a staged play surface instead of raw form controls`,
+      ).toMatch(PLAY_SURFACE_PATTERN);
       expect(
         keyframeCount,
         `${app.name}: games need explicit keyframe motion for the core interaction`,
