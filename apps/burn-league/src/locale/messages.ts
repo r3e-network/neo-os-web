@@ -36,10 +36,15 @@ const appMessages = {
   fuelConsole: { en: "Fuel console", zh: "燃料控制台" },
   fuelDialLabel: { en: "Burn fuel", zh: "燃烧燃料" },
   fuelMeter: { en: "Burn fuel meter", zh: "燃烧燃料仪表" },
-  burnRouteLabel: {
-    en: "Burn flow from entry amount to prize pool and projected rank",
-    zh: "燃烧从参赛数量流向奖池与预计排名的路径",
+  arenaConsoleLabel: {
+    en: "Arena burn console",
+    zh: "竞技场燃烧控制台",
   },
+  decreaseBurn: { en: "Decrease burn amount", zh: "减少燃烧数量" },
+  increaseBurn: { en: "Increase burn amount", zh: "增加燃烧数量" },
+  scoreboardEyebrow: { en: "Next burn", zh: "下一次燃烧" },
+  readyToBurn: { en: "Fuel loaded", zh: "燃料已装载" },
+  chooseFuel: { en: "Choose fuel", zh: "选择燃料" },
   seasonStatus: { en: "Season status", zh: "赛季状态" },
   liveLeague: { en: "Live league", zh: "实时联赛" },
   heroFirstBurnPrompt: {

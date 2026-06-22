@@ -624,25 +624,48 @@ $burn-amber: var(--ns-warning, #f5a623);
   gap: 16px;
 }
 
-.burn-league-fuel-console {
+.burn-league-arena-console {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(220px, 0.92fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(260px, 0.88fr);
   gap: 16px;
   align-items: stretch;
 }
 
-.burn-league-fuel-control,
-.burn-league-route {
+.burn-league-stake-stage {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
   border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid rgba(22, 199, 132, 0.16);
+  border: 1px solid rgba(22, 199, 132, 0.2);
   background: #fbf8ef;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 16px 42px rgba(20, 83, 61, 0.12);
 }
 
-.burn-league-fuel-control {
+.burn-league-stake-stage__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.55;
+  transform: scale(1.04);
+}
+
+.burn-league-stake-stage__glass {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 16px;
+  height: 100%;
+  min-height: 360px;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 243, 0.96) 0%, rgba(255, 252, 243, 0.8) 45%, rgba(255, 252, 243, 0.94) 100%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.64), rgba(22, 199, 132, 0.12));
 }
 
 .burn-league-fuel-head {
@@ -736,15 +759,21 @@ $burn-amber: var(--ns-warning, #f5a623);
 }
 
 .burn-league-amount-input {
+  min-width: 0;
+
   .neo-input__label {
     color: $burn-accent-deep;
     font-weight: 800;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   .neo-input__wrapper {
-    min-height: 58px;
+    min-height: 62px;
     border-color: rgba(22, 199, 132, 0.24);
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 12px 30px rgba(20, 83, 61, 0.1);
   }
 
   .neo-input__field {
@@ -762,6 +791,49 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
+.burn-league-stage-dial {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 10px;
+  align-items: end;
+  align-self: end;
+}
+
+.burn-league-stepper {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid rgba(22, 199, 132, 0.24);
+  background: rgba(255, 255, 255, 0.86);
+  color: $burn-accent-deep;
+  cursor: pointer;
+  transition:
+    transform var(--ns-t-fast, 150ms) ease,
+    background var(--ns-t-fast, 150ms) ease,
+    border-color var(--ns-t-fast, 150ms) ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(22, 199, 132, 0.42);
+    background: #ffffff;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    color: var(--ns-text-faint, #aeb4c2);
+    background: rgba(255, 255, 255, 0.52);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
+  }
+}
+
 .burn-league-presets {
   display: flex;
   flex-wrap: wrap;
@@ -769,11 +841,12 @@ $burn-amber: var(--ns-warning, #f5a623);
 }
 
 .burn-league-preset {
-  min-height: 38px;
-  padding: 8px 15px;
+  flex: 1 1 76px;
+  min-height: 42px;
+  padding: 9px 14px;
   border-radius: var(--ns-radius-full, 9999px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--ns-text-2, #5b6478);
   font-size: 12px;
   font-weight: 800;
@@ -789,6 +862,7 @@ $burn-amber: var(--ns-warning, #f5a623);
     border-color: rgba(22, 199, 132, 0.34);
     background: #ffffff;
     color: $burn-accent-deep;
+    box-shadow: 0 8px 20px rgba(22, 109, 76, 0.1);
   }
 
   &:focus-visible {
@@ -797,106 +871,61 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
-.burn-league-route {
+.burn-league-scoreboard {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbf8ef 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-.burn-league-route-node {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  background: rgba(255, 255, 255, 0.82);
+.burn-league-scoreboard-head {
+  display: grid;
+  gap: 4px;
 }
 
-.burn-league-route-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--ns-radius-sm, 12px);
+.burn-league-scoreboard-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.burn-league-scoreboard-title {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.1;
   color: $burn-accent-deep;
-  background: $burn-accent-soft;
 }
 
-.burn-league-route-node.is-pool .burn-league-route-icon {
-  color: #8a5a05;
-  background: #fff1c9;
-}
-
-.burn-league-route-node.is-rank .burn-league-route-icon {
-  color: #0b5d95;
-  background: #e4f2ff;
-}
-
-.burn-league-route-copy {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-
-  span {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ns-text-muted, #8a92a6);
-  }
-
-  strong {
-    font-size: 14px;
-    font-weight: 900;
-    letter-spacing: 0;
-    color: var(--ns-ink, #1e1e2e);
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-  }
-}
-
-.burn-league-route-rail {
-  position: relative;
-  display: block;
-  width: 2px;
-  height: 18px;
-  margin-left: 28px;
-  overflow: hidden;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(22, 199, 132, 0.16);
-
-  span {
-    display: block;
-    width: 100%;
-    height: 65%;
-    border-radius: inherit;
-    background: $burn-accent;
-    animation: burn-league-route-flow 1.45s ease-in-out infinite;
-  }
-}
-
-/* Compact metrics strip — replaces the 4-tile projection grid.
-   Shows only the two live facts not already in the hero. */
+/* Scoreboard strip: the one place where burn impact is summarized. */
 .burn-league-impact-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0;
-  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0;
   border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 0;
+  background: transparent;
 }
 
 .burn-league-impact-item {
-  flex: 1 1 80px;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 88px;
+  padding: 14px;
+  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  background: rgba(255, 255, 255, 0.82);
+  text-align: left;
 }
 
 .burn-league-impact-label {
@@ -909,23 +938,16 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 .burn-league-impact-value {
   color: var(--ns-ink, #1e1e2e);
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 19px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
-}
-
-.burn-league-impact-divider {
-  flex: 0 0 auto;
-  width: 1px;
-  margin: 2px 16px;
-  background: var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 /* Muted helper line shown under the strip while there's no live pool — keeps
    the "start the season" sentence out of the metric value slots. */
 .burn-league-impact-hint {
-  margin: -6px 2px 0;
+  margin: 0;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.45;
@@ -1196,12 +1218,13 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 /* ── Mobile ── */
 @media (max-width: 720px) {
-  .burn-league-fuel-console {
+  .burn-league-arena-console {
     grid-template-columns: 1fr;
   }
 
-  .burn-league-route {
-    grid-template-columns: 1fr;
+  .burn-league-stake-stage,
+  .burn-league-stake-stage__glass {
+    min-height: 330px;
   }
 
   .burn-league-action-buttons {
@@ -1209,26 +1232,16 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
-/* Below 560px the 4-up flex strip wraps into a divider-littered 2x2 where
-   two-line labels collide with neighbouring values. Switch to a clean grid. */
+/* Below 560px the scoreboard stays compact: two columns, no duplicate route. */
 @media (max-width: 560px) {
   .burn-league-impact-strip {
-    display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    align-items: stretch;
   }
 
   .burn-league-impact-item {
-    min-height: 56px;
+    min-height: 68px;
     justify-content: center;
     padding: 10px 8px;
-    border-radius: var(--ns-radius-sm, 12px);
-    background: var(--ns-surface, #ffffff);
-  }
-
-  .burn-league-impact-divider {
-    display: none;
   }
 }
 
@@ -1405,12 +1418,6 @@ $burn-amber: var(--ns-warning, #f5a623);
   100% { opacity: 0; transform: translateY(-50%) scale(0.7); }
 }
 
-@keyframes burn-league-route-flow {
-  0% { transform: translateY(-110%); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translateY(165%); opacity: 0; }
-}
-
 @keyframes burn-league-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1432,8 +1439,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   .burn-league-celebrate-icon.is-win svg {
     animation: none;
   }
-  .burn-league-fuel-meter__spark,
-  .burn-league-route-rail span {
+  .burn-league-fuel-meter__spark {
     animation: none;
   }
 }

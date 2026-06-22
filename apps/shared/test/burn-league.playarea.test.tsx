@@ -12,6 +12,7 @@ afterEach(() => cleanup());
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     amount: "Amount",
+    arenaConsoleLabel: "Arena burn console",
     burn: "Burn Now",
     burnActionHint:
       "Burning deposits GAS to the on-chain pool, then records your season total.",
@@ -22,9 +23,14 @@ function t(key: string, params?: Record<string, string | number>) {
     burnReview: "Burn review checklist",
     burnServiceUnavailableTitle: "Burn league data unavailable",
     burnTokens: "Burn Tokens",
+    chooseFuel: "Choose fuel",
     currentLeader: "Current leader",
+    decreaseBurn: "Decrease burn amount",
     enterAmount: "Amount to burn",
     entryAmount: "Entry amount",
+    fuelConsole: "Fuel console",
+    fuelMeter: "Burn fuel meter",
+    increaseBurn: "Increase burn amount",
     leaderboard: "Leaderboard",
     liveLeague: "Live league",
     localPreview: "Data pending",
@@ -36,6 +42,7 @@ function t(key: string, params?: Record<string, string | number>) {
     prizePool: "Prize pool",
     projectedTotal: "Projected total",
     projectedRank: "Projected rank",
+    readyToBurn: "Fuel loaded",
     resetBurn: "Reset",
     rewardPool: "Reward Pool",
     reviewAmount: "Confirm amount",
@@ -49,6 +56,7 @@ function t(key: string, params?: Record<string, string | number>) {
     seasonEndsIn: "Ends in",
     seasonLabel: "Season",
     seasonStatus: "Season status",
+    scoreboardEyebrow: "Next burn",
     settleSeason: "Settle season",
     subtitle: "Burn tokens, earn rewards",
     title: "Burn League",
@@ -211,6 +219,21 @@ describe("Burn League PlayArea", () => {
     expect(screen.getByRole("button", { name: "5 GAS" }).className).toContain(
       "is-active",
     );
+  });
+
+  it("keeps the arena amount controls wired to the burn amount", () => {
+    const dispatch = vi.fn();
+    render(<PlayArea t={t} state={state({ burnAmount: "5" })} dispatch={dispatch} />);
+
+    expect(screen.getByLabelText("Arena burn console")).toBeTruthy();
+    expect(screen.getByText("Next burn")).toBeTruthy();
+    expect(screen.getByText("Fuel loaded")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Increase burn amount" }));
+    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "6");
+
+    fireEvent.click(screen.getByRole("button", { name: "Decrease burn amount" }));
+    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "5");
   });
 
   it("resets the burn amount to the minimum safe entry", () => {
