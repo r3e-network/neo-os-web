@@ -59,6 +59,9 @@ function t(key: string) {
     pressConsoleTitle: "Buy a key. Reset the clock.",
     playerMarker: "You",
     potMarker: "Pot",
+    survivorSeats: "Survivor seats",
+    survivorSeatsHint: "The final live seat wins when the clock stops.",
+    survivorSeatEmpty: "Open seat",
     survivalArena: "Last Survivor arena",
     survivalArenaAlt:
       "Bright futuristic arena with a glowing button console and GAS prize pool",
@@ -172,6 +175,11 @@ describe("LastSurvivor PlayArea", () => {
     expect(container.querySelector(".survivor-arena-lane__marker--leader.is-live")).toBeTruthy();
     expect(container.querySelector(".survivor-arena-lane__marker--player.is-live")).toBeTruthy();
     expect(container.querySelector(".survivor-arena-lane__marker--pot.is-live")).toBeTruthy();
+    expect(container.querySelector(".survivor-seat-strip")).toBeTruthy();
+    expect(container.querySelector(".survivor-seat--leader.is-live")).toBeTruthy();
+    expect(container.querySelector(".survivor-seat--player.is-live")).toBeTruthy();
+    expect(container.querySelector(".survivor-seat--pot.is-live")).toBeTruthy();
+    expect(container.querySelectorAll(".survivor-seat__icon svg").length).toBe(3);
     expect(container.querySelector(".key-adjust-btn.plus svg")).toBeTruthy();
     expect(container.querySelector(".key-adjust-btn.minus svg")).toBeTruthy();
 
@@ -301,7 +309,13 @@ describe("LastSurvivor PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes survivor-lane-progress");
     expect(playAreaStyles).toContain("@keyframes survivor-lane-scan");
     expect(playAreaStyles).toContain("@keyframes survivor-lane-marker-ready");
+    expect(playAreaStyles).toContain("@keyframes survivor-seat-enter");
+    expect(playAreaStyles).toContain("@keyframes survivor-seat-breathe");
+    expect(playAreaStyles).toContain("@keyframes survivor-seat-scan");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-seat\.is-live::after[\s\S]*animation:\s*none/,
+    );
     expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
     expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
   });
