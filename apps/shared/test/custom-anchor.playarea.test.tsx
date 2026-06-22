@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -28,6 +30,26 @@ function t(key: string) {
     anchorFlowOpen: "Open anchor",
     anchorFlowSign: "Sign wallet tx",
     anchorFlowTitle: "Anchor transaction flow",
+    anchorLaneAmount: "Amount",
+    anchorLaneAmountPending: "Set amount",
+    anchorLaneAnchor: "Anchor",
+    anchorLaneAnchorPending: "Choose anchor",
+    anchorLaneAgents: "Agents online",
+    anchorLaneAgentsPending: "Not linked",
+    anchorLaneAria: "Live anchor operation lane",
+    anchorLaneBody: "The stage reacts to the selected anchor and wallet submission.",
+    anchorLaneLabel: "Live route",
+    anchorLaneStateBlocked: "Agent warning",
+    anchorLaneStateBusy: "Submitting",
+    anchorLaneStateDraft: "Drafting",
+    anchorLaneStateEmpty: "Waiting",
+    anchorLaneStateError: "Needs attention",
+    anchorLaneStateReady: "Ready to sign",
+    anchorLaneStatus: "Status",
+    anchorLaneStepAgents: "21-agent route",
+    anchorLaneStepRewards: "GAS yield",
+    anchorLaneStepStake: "NEO stake",
+    anchorLaneTitle: "NEO moves through the anchor, agents, and GAS reward loop",
     anchorLinked: "Anchor linked",
     anchorMissing: "Waiting for anchor",
     anchorStatus: "Anchor status",
@@ -102,12 +124,33 @@ describe("Custom Anchor PlayArea", () => {
     render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
 
     expect(screen.getByRole("region", { name: "Stake, redeem, or claim" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Live anchor operation lane" })).toBeTruthy();
     expect(screen.getByLabelText("Anchor appId")).toBeTruthy();
     expect(screen.getByLabelText("NEO amount")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Stake NEO" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Redeem NEO" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Claim GAS" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Refresh status" })).toBeTruthy();
+  });
+
+  it("renders the operation lane from the real stage asset and live chain state", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    const lane = screen.getByRole("group", { name: "Live anchor operation lane" });
+    expect(lane.className).toContain("custom-anchor-operation-lane--ready");
+    expect(lane.querySelector('img[src="./custom-anchor-stage.jpg"]')).toBeTruthy();
+    expect(screen.getAllByText("21/21").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0.1 GAS").length).toBeGreaterThan(0);
+  });
+
+  it("keeps the operation lane animated with a reduced-motion fallback", () => {
+    const scss = readFileSync(
+      join(process.cwd(), "../custom-anchor/src/PlayArea.scss"),
+      "utf8",
+    );
+    expect(scss).toContain("@keyframes custom-anchor-stage-drift");
+    expect(scss).toContain("@keyframes custom-anchor-agent-pulse");
+    expect(scss).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
   it("dispatches stake, redeem, claim, and refresh with the selected anchor", async () => {
@@ -152,15 +195,16 @@ describe("Custom Anchor PlayArea", () => {
     });
   });
 
-  it("seeds the anchor input EMPTY (example shown as placeholder only), so the money buttons stay disabled", () => {
+  it("seeds the anchor input EMPTY and withholds money actions until a usable anchor exists", () => {
     render(<PlayArea t={t} state={state({ anchorAppId: "" })} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
 
     const input = screen.getByLabelText("Anchor appId") as HTMLInputElement;
     // No pre-filled fake id — the example is only a placeholder.
     expect(input.value).toBe("");
     expect(input.placeholder).toBe("custom-anchor:team:nonce");
-    // With an empty (invalid) id the stake button is disabled.
-    expect((screen.getByRole("button", { name: "Stake NEO" }) as HTMLButtonElement).disabled).toBe(true);
+    // With an empty id, value-moving actions stay hidden behind onboarding.
+    expect(screen.queryByRole("button", { name: "Stake NEO" })).toBeNull();
+    expect(screen.getByRole("button", { name: "onboardBrowse" })).toBeTruthy();
   });
 
   it("surfaces a 'not registered' notice when getAppMode resolved to 0", () => {
