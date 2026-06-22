@@ -168,6 +168,15 @@ export default function PlayArea({
       value: t("perAddressOnce"),
     },
   ];
+  const claimVisualState = claimSucceeded
+    ? "success"
+    : lastError
+      ? "error"
+      : showClaimProgress || isClaiming
+        ? "claiming"
+        : claimKey
+          ? "ready"
+          : "empty";
 
   // ── Creator workspace form state ──
   const [totalAmount, setTotalAmount] = useState("");
@@ -185,6 +194,24 @@ export default function PlayArea({
     ? t("rewardSlotsCount", { count: maxClaims.trim() })
     : t("rewardSlotsUnset");
   const displayExpiry = t("rewardExpiryHours", { hours: expiryHours || "24" });
+  const totalAmountNumber = Number.parseFloat(totalAmount);
+  const maxClaimNumber = Number.parseFloat(maxClaim || "5");
+  const slotCountNumber = Number.parseInt(maxClaims, 10);
+  const previewTicketCount = Number.isFinite(slotCountNumber)
+    ? Math.min(Math.max(slotCountNumber, 3), 7)
+    : 4;
+  const poolFillPercent =
+    Number.isFinite(totalAmountNumber) &&
+    Number.isFinite(maxClaimNumber) &&
+    Number.isFinite(slotCountNumber) &&
+    totalAmountNumber > 0 &&
+    maxClaimNumber > 0 &&
+    slotCountNumber > 0
+      ? Math.min(
+          Math.max((totalAmountNumber / (maxClaimNumber * slotCountNumber)) * 100, 10),
+          100,
+        )
+      : 18;
 
   useEffect(() => {
     const nextKey = currentClaimKey || launchClaimKey;
@@ -268,7 +295,7 @@ export default function PlayArea({
     >
       {isOneGateClaimLaunch ? (
         <section
-          className="gas-pool-claim-only"
+          className={`gas-pool-claim-only gas-pool-claim-only--${claimVisualState}`}
           aria-label={t("claimPoolTitle")}
         >
           {claimSucceeded ? (
@@ -277,7 +304,23 @@ export default function PlayArea({
               role="status"
               aria-live="polite"
             >
-              <div className="gas-pool-congrats__badge">GAS</div>
+              <div className="gas-pool-prize-burst" aria-hidden="true">
+                <img src="./gas-vault-stage.jpg" alt="" />
+                <div className="gas-pool-prize-burst__amount">
+                  <span>{t("claimAmountLabel")}</span>
+                  <strong>
+                    {lastClaimAmount > 0n
+                      ? `${formatGas(lastClaimAmount, 4)} GAS`
+                      : vaultName}
+                  </strong>
+                </div>
+                <div className="gas-pool-prize-burst__coin gas-pool-prize-burst__coin--one">
+                  <Coins size={18} />
+                </div>
+                <div className="gas-pool-prize-burst__coin gas-pool-prize-burst__coin--two">
+                  <Sparkles size={18} />
+                </div>
+              </div>
               <div>
                 <h2>{t("claimCongratsTitle")}</h2>
                 <p>
@@ -357,6 +400,28 @@ export default function PlayArea({
                   </span>
                   <h2>{claimKey ? t("claimReward") : vaultName}</h2>
                 </div>
+              </div>
+              <div
+                className={`gas-pool-claim-stage gas-pool-claim-stage--${claimVisualState}`}
+                aria-hidden="true"
+              >
+                <img src="./gas-vault-stage.jpg" alt="" />
+                <div className="gas-pool-claim-stage__wash" />
+                <div className="gas-pool-claim-stage__ticket">
+                  <span>
+                    <img src="./onegate-logo.png" alt="" />
+                    {vaultName}
+                  </span>
+                  <strong>{currentRange}</strong>
+                  <small>{displayClaimKey || t("claimKeyPending")}</small>
+                </div>
+                <div className="gas-pool-claim-stage__coin gas-pool-claim-stage__coin--one">
+                  <Coins size={17} />
+                </div>
+                <div className="gas-pool-claim-stage__coin gas-pool-claim-stage__coin--two">
+                  <Gift size={17} />
+                </div>
+                <div className="gas-pool-claim-stage__beam" />
               </div>
               <p className="gas-pool-claim-only__copy">
                 {claimKey ? t("scanClaimReview") : t("docOneGateFlow")}
@@ -582,6 +647,17 @@ export default function PlayArea({
                   <p>
                     {displayRewardRange} · {displayClaimSlots} · {displayExpiry}
                   </p>
+                  <div className="gas-pool-create-summary__stage" aria-hidden="true">
+                    <img src="./gas-vault-stage.jpg" alt="" />
+                    <div className="gas-pool-create-summary__fill">
+                      <span style={{ width: `${poolFillPercent}%` }} />
+                    </div>
+                    <div className="gas-pool-create-summary__tickets">
+                      {Array.from({ length: previewTicketCount }).map((_, index) => (
+                        <span key={index} />
+                      ))}
+                    </div>
+                  </div>
                   <div className="gas-pool-create-summary__tiles">
                     <span>
                       <Sparkles size={16} aria-hidden="true" />

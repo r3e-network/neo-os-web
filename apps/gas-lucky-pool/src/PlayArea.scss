@@ -2237,3 +2237,484 @@ body {
     min-height: 3.35rem;
   }
 }
+
+.gas-pool-claim-stage {
+  position: relative;
+  min-height: 15.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 24px;
+  background: #eefaf0;
+  box-shadow:
+    0 22px 44px rgba(20, 32, 21, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+}
+
+.gas-pool-claim-stage > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 56% center;
+  transform: scale(1.02);
+  filter: saturate(1.05) brightness(1.02);
+}
+
+.gas-pool-claim-stage__wash {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.38) 54%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(180deg, rgba(236, 253, 245, 0.28), rgba(255, 255, 255, 0.72));
+}
+
+.gas-pool-claim-stage__ticket {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.34rem;
+  width: min(18rem, calc(100% - 2rem));
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(236, 253, 245, 0.92)),
+    #ffffff;
+  box-shadow:
+    0 18px 34px rgba(20, 32, 21, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  transform-origin: 20% 100%;
+}
+
+.gas-pool-claim-stage__ticket::before,
+.gas-pool-claim-stage__ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: rgba(240, 250, 241, 0.95);
+  transform: translateY(-50%);
+}
+
+.gas-pool-claim-stage__ticket::before {
+  left: -0.52rem;
+}
+
+.gas-pool-claim-stage__ticket::after {
+  right: -0.52rem;
+}
+
+.gas-pool-claim-stage__ticket span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  color: #0a7a52;
+  font-size: 0.68rem;
+  font-weight: 950;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gas-pool-claim-stage__ticket img {
+  width: 1.28rem;
+  height: 1.28rem;
+  border-radius: 999px;
+}
+
+.gas-pool-claim-stage__ticket strong {
+  color: #06251b;
+  font-size: clamp(1.54rem, 5.4vw, 2.3rem);
+  font-weight: 950;
+  line-height: 0.98;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.gas-pool-claim-stage__ticket small {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.32rem 0.56rem;
+  border-radius: 999px;
+  background: rgba(22, 199, 132, 0.12);
+  color: #0b5e3e;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.gas-pool-claim-stage__coin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, #ffffff 0 16%, rgba(255, 255, 255, 0) 17%),
+    linear-gradient(135deg, #f9c64f, #18c684);
+  color: #064d36;
+  box-shadow: 0 14px 24px rgba(20, 32, 21, 0.14);
+}
+
+.gas-pool-claim-stage__coin--one {
+  top: 1.1rem;
+  right: 1.3rem;
+}
+
+.gas-pool-claim-stage__coin--two {
+  right: 5.2rem;
+  bottom: 2.3rem;
+}
+
+.gas-pool-claim-stage__beam {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, 0.38) 48%, transparent 62% 100%);
+  opacity: 0;
+  transform: translateX(-46%);
+}
+
+.gas-pool-claim-only--ready .gas-pool-claim-stage__ticket {
+  animation: gas-pool-ticket-ready 2.9s ease-in-out infinite;
+}
+
+.gas-pool-claim-only--claiming .gas-pool-claim-stage__ticket {
+  animation: gas-pool-ticket-claiming 720ms ease-in-out infinite;
+}
+
+.gas-pool-claim-only--ready .gas-pool-claim-stage__coin,
+.gas-pool-claim-only--claiming .gas-pool-claim-stage__coin {
+  animation: gas-pool-coin-float 3.1s ease-in-out infinite;
+}
+
+.gas-pool-claim-only--claiming .gas-pool-claim-stage__coin--two {
+  animation-delay: 180ms;
+}
+
+.gas-pool-claim-only--claiming .gas-pool-claim-stage__beam {
+  animation: gas-pool-claim-beam 1.18s ease-in-out infinite;
+}
+
+.gas-pool-claim-only--error .gas-pool-claim-stage {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: #fff7f4;
+}
+
+.gas-pool-claim-only--error .gas-pool-claim-stage__ticket {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 241, 242, 0.94)),
+    #ffffff;
+}
+
+.gas-pool-prize-burst {
+  position: relative;
+  min-height: 13.4rem;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 24px;
+  background: #ecfdf5;
+  box-shadow:
+    0 22px 48px rgba(20, 32, 21, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.gas-pool-prize-burst img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 58% center;
+  filter: saturate(1.1) brightness(1.06);
+}
+
+.gas-pool-prize-burst::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 74% 28%, rgba(255, 255, 255, 0.86), transparent 32%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.24));
+}
+
+.gas-pool-prize-burst__amount {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.96rem;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 34px rgba(20, 32, 21, 0.14);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  animation: gas-pool-prize-pop 520ms cubic-bezier(0.22, 1.1, 0.2, 1) both;
+}
+
+.gas-pool-prize-burst__amount span {
+  color: #0a7a52;
+  font-size: 0.7rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gas-pool-prize-burst__amount strong {
+  color: #06251b;
+  font-size: clamp(1.72rem, 6vw, 2.45rem);
+  font-weight: 950;
+  line-height: 0.98;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.gas-pool-prize-burst__coin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffe7a3, #16c784);
+  color: #064d36;
+  box-shadow: 0 15px 24px rgba(20, 32, 21, 0.16);
+  animation: gas-pool-prize-coin 1.8s ease-in-out infinite;
+}
+
+.gas-pool-prize-burst__coin--one {
+  top: 1rem;
+  right: 1.2rem;
+}
+
+.gas-pool-prize-burst__coin--two {
+  top: 3.8rem;
+  right: 4.6rem;
+  animation-delay: 240ms;
+}
+
+.gas-pool-claim-only__success {
+  grid-template-columns: minmax(13rem, 0.78fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.gas-pool-create-summary__stage {
+  position: relative;
+  min-height: 10.6rem;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 18px;
+  background: #effaf0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.gas-pool-create-summary__stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 58% center;
+  filter: saturate(1.08) brightness(1.04);
+}
+
+.gas-pool-create-summary__stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.72)),
+    radial-gradient(circle at 26% 28%, rgba(255, 255, 255, 0.82), transparent 32%);
+}
+
+.gas-pool-create-summary__fill {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.86rem;
+  left: 0.9rem;
+  height: 0.62rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(6, 37, 27, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+}
+
+.gas-pool-create-summary__fill span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #16c784, #f4c84a);
+  transition: width 260ms ease;
+}
+
+.gas-pool-create-summary__tickets {
+  position: absolute;
+  left: 0.92rem;
+  bottom: 1.86rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.28rem;
+}
+
+.gas-pool-create-summary__tickets span {
+  width: 1.22rem;
+  height: 1.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 0.36rem;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(236, 253, 245, 0.88)),
+    #ffffff;
+  box-shadow: 0 9px 16px rgba(20, 32, 21, 0.12);
+  transform: translateY(0.04rem) rotate(-5deg);
+  animation: gas-pool-ticket-stack 2.8s ease-in-out infinite;
+}
+
+.gas-pool-create-summary__tickets span:nth-child(2n) {
+  transform: translateY(-0.08rem) rotate(4deg);
+  animation-delay: 130ms;
+}
+
+.gas-pool-create-summary__tickets span:nth-child(3n) {
+  transform: translateY(0) rotate(-1deg);
+  animation-delay: 260ms;
+}
+
+@keyframes gas-pool-ticket-ready {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+
+  50% {
+    transform: translateY(-0.32rem) rotate(1deg);
+  }
+}
+
+@keyframes gas-pool-ticket-claiming {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-0.18rem) rotate(1deg) scale(1.018);
+  }
+}
+
+@keyframes gas-pool-coin-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-0.5rem) rotate(8deg);
+  }
+}
+
+@keyframes gas-pool-claim-beam {
+  0% {
+    opacity: 0;
+    transform: translateX(-58%);
+  }
+
+  35%,
+  58% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(58%);
+  }
+}
+
+@keyframes gas-pool-prize-pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.68rem) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gas-pool-prize-coin {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-0.48rem) rotate(12deg);
+  }
+}
+
+@keyframes gas-pool-ticket-stack {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.06);
+  }
+}
+
+@media (max-width: 720px) {
+  .gas-pool-claim-stage {
+    min-height: 13.2rem;
+    border-radius: 20px;
+  }
+
+  .gas-pool-claim-stage__ticket {
+    left: 0.72rem;
+    right: 0.72rem;
+    bottom: 0.72rem;
+    width: auto;
+    padding: 0.86rem;
+    border-radius: 16px;
+  }
+
+  .gas-pool-claim-stage__coin--two {
+    right: 4.4rem;
+    bottom: 2rem;
+  }
+
+  .gas-pool-claim-only__success {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gas-pool-prize-burst {
+    min-height: 12rem;
+  }
+
+  .gas-pool-create-summary__stage {
+    min-height: 8.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gas-pool-claim-stage__ticket,
+  .gas-pool-claim-stage__coin,
+  .gas-pool-claim-stage__beam,
+  .gas-pool-prize-burst__amount,
+  .gas-pool-prize-burst__coin,
+  .gas-pool-create-summary__tickets span,
+  .gas-pool-create-summary__fill span,
+  .gas-pool-claim-progress__step--active .gas-pool-claim-progress__dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}
