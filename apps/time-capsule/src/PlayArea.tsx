@@ -147,8 +147,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
+  const readyStateClass = canCreate ? " is-ready" : "";
+  const sealingStateClass = isCreating ? " is-sealing" : "";
+
   return (
-    <div className="capsule-play-area">
+    <div
+      className={`capsule-play-area${readyStateClass}${sealingStateClass}`}
+    >
       <CapsuleHero
         t={t}
         totalCapsules={totalCapsules}
@@ -182,7 +187,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       <section
-        className="capsule-seal-workbench"
+        className={`capsule-seal-workbench${readyStateClass}${sealingStateClass}`}
         aria-label={t("createCapsule")}
       >
         <header className="capsule-section-head">
@@ -298,7 +303,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                           : ""
                       }`}
                       role="radio"
-                      aria-label={t(option.labelKey)}
+                      aria-label={`${t(option.labelKey)} ${t(option.hintKey)}`}
                       aria-checked={
                         Number(newCapsule.category ?? 1) === option.value
                       }
@@ -402,7 +407,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <aside
-            className={`capsule-preview-panel${isCreating ? " is-sealing" : ""}`}
+            className={`capsule-preview-panel${readyStateClass}${sealingStateClass}`}
             aria-label={t("sealPreview")}
           >
             <div className="capsule-preview-device">
@@ -518,7 +523,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </span>
               <button
                 type="button"
-                className="capsule-fish-candidates__refresh"
+                className={`capsule-fish-candidates__refresh${isLoadingCandidates ? " is-loading" : ""}`}
                 disabled={isLoadingCandidates || isBusy}
                 onClick={() => dispatch("loadFishCandidates")}
               >

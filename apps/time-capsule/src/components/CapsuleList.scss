@@ -24,9 +24,29 @@
     border-radius: var(--ns-radius-md, 16px);
     background: var(--ns-brand-soft, #e4f8f0);
     color: var(--ns-brand-strong, #0fb174);
+    animation: capsule-empty-badge 3.2s ease-in-out infinite;
   }
 
   span:not(.empty-state__badge) {
     max-width: 30ch;
+  }
+}
+
+@keyframes capsule-empty-badge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(22, 199, 132, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-state__badge {
+    animation: none;
   }
 }
