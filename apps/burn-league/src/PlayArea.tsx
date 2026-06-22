@@ -14,7 +14,8 @@ import {
   Flame,
   Gauge,
   Info,
-  Trophy,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -152,6 +153,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBurnAmountChange = (value: string) => {
     setLocalBurnAmount(value);
     dispatch("setBurnAmount", value);
+  };
+
+  const nudgeBurnAmount = (delta: number) => {
+    const baseAmount = amountIsValid ? currentBurnAmountNumber : minBurn;
+    const nextAmount = Math.max(minBurn, Math.min(maxBurn, baseAmount + delta));
+    handleBurnAmountChange(Number(nextAmount.toFixed(8)).toString());
   };
 
   const handleBurn = async () => {
@@ -414,134 +421,187 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </ol>
         )}
         <div className="burn-league-burn-form">
-          <div className="burn-league-fuel-console">
-            <div className="burn-league-fuel-control">
-              <div className="burn-league-fuel-head">
-                <span className="burn-league-fuel-icon" aria-hidden="true">
-                  <Gauge size={18} strokeWidth={2.2} />
-                </span>
-                <span className="burn-league-fuel-copy">
-                  <span className="burn-league-fuel-label">{t("fuelConsole")}</span>
-                  <strong className="burn-league-fuel-value">
-                    {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
-                  </strong>
-                </span>
-              </div>
-              <div className="burn-league-fuel-meter" aria-label={t("fuelMeter")}>
-                <span
-                  className="burn-league-fuel-meter__fill"
-                  style={{ width: `${burnMeterPercent}%` }}
-                />
-                <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--one" />
-                <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--two" />
-                <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--three" />
-              </div>
-              <NeoInput
-                className="burn-league-amount-input"
-                type="number"
-                value={currentBurnAmount}
-                placeholder={t("enterAmount")}
-                label={t("fuelDialLabel")}
-                suffix="GAS"
-                min={minBurn}
-                max={maxBurn}
-                hint={rangeCopy}
-                error={
-                  currentBurnAmount && !amountIsValid
-                    ? t("burnRangeError", { min: minBurn, max: maxBurn })
-                    : ""
-                }
-                onChange={handleBurnAmountChange}
+          <div className="burn-league-arena-console">
+            <div className="burn-league-stake-stage" aria-label={t("arenaConsoleLabel")}>
+              <img
+                className="burn-league-stake-stage__image"
+                src="./burn-league-arena.jpg"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
               />
-              <div className="burn-league-presets" aria-label={t("burnPresets")}>
-                {presets.map((preset) => (
+              <div className="burn-league-stake-stage__glass">
+                <div className="burn-league-fuel-head">
+                  <span className="burn-league-fuel-icon" aria-hidden="true">
+                    <Gauge size={18} strokeWidth={2.2} />
+                  </span>
+                  <span className="burn-league-fuel-copy">
+                    <span className="burn-league-fuel-label">{t("fuelConsole")}</span>
+                    <strong className="burn-league-fuel-value">
+                      {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
+                    </strong>
+                  </span>
+                </div>
+                <div className="burn-league-fuel-meter" aria-label={t("fuelMeter")}>
+                  <span
+                    className="burn-league-fuel-meter__fill"
+                    style={{ width: `${burnMeterPercent}%` }}
+                  />
+                  <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--one" />
+                  <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--two" />
+                  <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--three" />
+                </div>
+                <div className="burn-league-stage-dial">
                   <button
-                    key={preset}
-                    className={`burn-league-preset${currentBurnAmount === preset ? " is-active" : ""}`}
                     type="button"
-                    onClick={() => handleBurnAmountChange(preset)}
+                    className="burn-league-stepper"
+                    aria-label={t("decreaseBurn")}
+                    disabled={isBurning || (amountIsValid && currentBurnAmountNumber <= minBurn)}
+                    onClick={() => nudgeBurnAmount(-1)}
                   >
-                    {preset} GAS
+                    <Minus size={16} strokeWidth={2.4} aria-hidden="true" />
                   </button>
-                ))}
+                  <NeoInput
+                    className="burn-league-amount-input"
+                    type="number"
+                    value={currentBurnAmount}
+                    placeholder={t("enterAmount")}
+                    label={t("amount")}
+                    suffix="GAS"
+                    min={minBurn}
+                    max={maxBurn}
+                    hint={rangeCopy}
+                    error={
+                      currentBurnAmount && !amountIsValid
+                        ? t("burnRangeError", { min: minBurn, max: maxBurn })
+                        : ""
+                    }
+                    onChange={handleBurnAmountChange}
+                  />
+                  <button
+                    type="button"
+                    className="burn-league-stepper"
+                    aria-label={t("increaseBurn")}
+                    disabled={isBurning || (amountIsValid && currentBurnAmountNumber >= maxBurn)}
+                    onClick={() => nudgeBurnAmount(1)}
+                  >
+                    <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="burn-league-presets" aria-label={t("burnPresets")}>
+                  {presets.map((preset) => (
+                    <button
+                      key={preset}
+                      className={`burn-league-preset${currentBurnAmount === preset ? " is-active" : ""}`}
+                      type="button"
+                      onClick={() => handleBurnAmountChange(preset)}
+                    >
+                      {preset} GAS
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="burn-league-route" aria-label={t("burnRouteLabel")}>
-              <div className="burn-league-route-node is-entry">
-                <span className="burn-league-route-icon" aria-hidden="true">
-                  <Flame size={17} strokeWidth={2.2} />
+            <div className="burn-league-scoreboard">
+              <div className="burn-league-scoreboard-head">
+                <span className="burn-league-scoreboard-eyebrow">
+                  {t("scoreboardEyebrow")}
                 </span>
-                <span className="burn-league-route-copy">
-                  <span>{t("entryAmount")}</span>
-                  <strong>
+                <strong className="burn-league-scoreboard-title">
+                  {amountIsValid ? t("readyToBurn") : t("chooseFuel")}
+                </strong>
+              </div>
+              <div
+                className="burn-league-impact-strip"
+                role="group"
+                aria-label={t("burnReview")}
+              >
+                <div className="burn-league-impact-item">
+                  <span className="burn-league-impact-label">{t("entryAmount")}</span>
+                  <strong className="burn-league-impact-value">
                     {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
                   </strong>
-                </span>
-              </div>
-              <span className="burn-league-route-rail">
-                <span />
-              </span>
-              <div className="burn-league-route-node is-pool">
-                <span className="burn-league-route-icon" aria-hidden="true">
-                  <Trophy size={17} strokeWidth={2.2} />
-                </span>
-                <span className="burn-league-route-copy">
-                  <span>{t("prizePool")}</span>
-                  <strong>{hasLivePool ? prizePoolDisplay : t("dashPlaceholder")}</strong>
-                </span>
-              </div>
-              <span className="burn-league-route-rail">
-                <span />
-              </span>
-              <div className="burn-league-route-node is-rank">
-                <span className="burn-league-route-icon" aria-hidden="true">
-                  <CheckCircle2 size={17} strokeWidth={2.2} />
-                </span>
-                <span className="burn-league-route-copy">
-                  <span>{t("projectedRank")}</span>
-                  <strong>
+                </div>
+                <div className="burn-league-impact-item">
+                  <span className="burn-league-impact-label">{t("projectedTotal")}</span>
+                  <strong className="burn-league-impact-value">
+                    {amountIsValid ? projectedTotalDisplay : t("dashPlaceholder")}
+                  </strong>
+                </div>
+                <div className="burn-league-impact-item">
+                  <span className="burn-league-impact-label">{t("projectedRank")}</span>
+                  <strong className="burn-league-impact-value">
                     {amountIsValid && hasLivePool ? projectedPosition : t("dashPlaceholder")}
                   </strong>
-                </span>
+                </div>
+                <div className="burn-league-impact-item">
+                  <span className="burn-league-impact-label">{t("prizePool")}</span>
+                  <strong className="burn-league-impact-value">
+                    {hasLivePool ? prizePoolDisplay : t("dashPlaceholder")}
+                  </strong>
+                </div>
               </div>
+              {!hasLivePool && (
+                <p className="burn-league-impact-hint">{t("impactPoolEmptyHint")}</p>
+              )}
+              <div className="burn-league-action-buttons">
+                <div className="burn-league-burn-cta">
+                  <NeoButton
+                    variant="primary"
+                    size="lg"
+                    block
+                    loading={isBurning}
+                    disabled={burnDisabled}
+                    aria-label={isBurning ? t("burning") : t("burn")}
+                    onClick={handleBurn}
+                  >
+                    {t("burn")}
+                  </NeoButton>
+                  <span
+                    className="burn-league-review-tip"
+                    tabIndex={0}
+                    role="note"
+                    aria-label={t("burnReview")}
+                  >
+                    <span className="burn-league-review-tip__icon" aria-hidden="true">
+                      <Info size={16} strokeWidth={2.2} />
+                    </span>
+                    <span className="burn-league-review-tip__popover" role="tooltip">
+                      <span className="burn-league-review-tip__heading">
+                        {t("burnReview")}
+                      </span>
+                      <span className="burn-league-review-tip__item">
+                        <CheckCircle2 size={13} aria-hidden="true" />
+                        {t("reviewAmount")}
+                      </span>
+                      <span className="burn-league-review-tip__item">
+                        <CheckCircle2 size={13} aria-hidden="true" />
+                        {t("reviewLeaderboard")}
+                      </span>
+                      <span className="burn-league-review-tip__item">
+                        <CheckCircle2 size={13} aria-hidden="true" />
+                        {t("reviewWallet")}
+                      </span>
+                    </span>
+                  </span>
+                </div>
+                <NeoButton
+                  variant="secondary"
+                  size="lg"
+                  disabled={isBurning}
+                  onClick={handleReset}
+                >
+                  {t("resetBurn")}
+                </NeoButton>
+              </div>
+              {needsSettle && (
+                <div className="burn-league-action-notice" role="status">
+                  {t("burnBlockedSettle")}
+                </div>
+              )}
             </div>
           </div>
-          <div
-            className="burn-league-impact-strip"
-            role="group"
-            aria-label={t("burnReview")}
-          >
-            <div className="burn-league-impact-item">
-              <span className="burn-league-impact-label">{t("entryAmount")}</span>
-              <strong className="burn-league-impact-value">
-                {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
-              </strong>
-            </div>
-            <div className="burn-league-impact-divider" aria-hidden="true" />
-            <div className="burn-league-impact-item">
-              <span className="burn-league-impact-label">{t("projectedTotal")}</span>
-              <strong className="burn-league-impact-value">
-                {amountIsValid ? projectedTotalDisplay : t("dashPlaceholder")}
-              </strong>
-            </div>
-            <div className="burn-league-impact-divider" aria-hidden="true" />
-            <div className="burn-league-impact-item">
-              <span className="burn-league-impact-label">{t("projectedRank")}</span>
-              <strong className="burn-league-impact-value">
-                {amountIsValid && hasLivePool ? projectedPosition : t("dashPlaceholder")}
-              </strong>
-            </div>
-            <div className="burn-league-impact-divider" aria-hidden="true" />
-            <div className="burn-league-impact-item">
-              <span className="burn-league-impact-label">{t("prizePool")}</span>
-              <strong className="burn-league-impact-value">
-                {hasLivePool ? prizePoolDisplay : t("dashPlaceholder")}
-              </strong>
-            </div>
-          </div>
-          {!hasLivePool && (
-            <p className="burn-league-impact-hint">{t("impactPoolEmptyHint")}</p>
-          )}
           {burnValidationError && (
             <div className="burn-league-action-error" role="alert">
               {burnValidationError}
@@ -555,61 +615,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {lastSubmittedAmount && (
             <div className="burn-league-last-submit">
               {t("lastSubmitted", { amount: lastSubmittedAmount })}
-            </div>
-          )}
-          <div className="burn-league-action-buttons">
-            <div className="burn-league-burn-cta">
-              <NeoButton
-                variant="primary"
-                size="lg"
-                block
-                loading={isBurning}
-                disabled={burnDisabled}
-                aria-label={isBurning ? t("burning") : t("burn")}
-                onClick={handleBurn}
-              >
-                {t("burn")}
-              </NeoButton>
-              <span
-                className="burn-league-review-tip"
-                tabIndex={0}
-                role="note"
-                aria-label={t("burnReview")}
-              >
-                <span className="burn-league-review-tip__icon" aria-hidden="true">
-                  <Info size={16} strokeWidth={2.2} />
-                </span>
-                <span className="burn-league-review-tip__popover" role="tooltip">
-                  <span className="burn-league-review-tip__heading">
-                    {t("burnReview")}
-                  </span>
-                  <span className="burn-league-review-tip__item">
-                    <CheckCircle2 size={13} aria-hidden="true" />
-                    {t("reviewAmount")}
-                  </span>
-                  <span className="burn-league-review-tip__item">
-                    <CheckCircle2 size={13} aria-hidden="true" />
-                    {t("reviewLeaderboard")}
-                  </span>
-                  <span className="burn-league-review-tip__item">
-                    <CheckCircle2 size={13} aria-hidden="true" />
-                    {t("reviewWallet")}
-                  </span>
-                </span>
-              </span>
-            </div>
-            <NeoButton
-              variant="secondary"
-              size="lg"
-              disabled={isBurning}
-              onClick={handleReset}
-            >
-              {t("resetBurn")}
-            </NeoButton>
-          </div>
-          {needsSettle && (
-            <div className="burn-league-action-notice" role="status">
-              {t("burnBlockedSettle")}
             </div>
           )}
         </div>
