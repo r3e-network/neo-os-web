@@ -1226,6 +1226,200 @@
   overflow-wrap: anywhere;
 }
 
+.domain-factory-drop-composer {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(32, 217, 155, 0.2);
+  border-radius: var(--ns-radius-md, 14px);
+  background:
+    linear-gradient(135deg, rgba(32, 217, 155, 0.09), rgba(255, 255, 255, 0)),
+    var(--ns-surface-subtle, #f7f8fa);
+}
+
+.domain-factory-drop-composer__head {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.domain-factory-drop-composer__head span {
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.domain-factory-drop-composer__head strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.95rem;
+  font-weight: 850;
+  line-height: 1.28;
+}
+
+.domain-factory-drop-composer__presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.domain-factory-drop-preset,
+.domain-factory-drop-policy {
+  position: relative;
+  min-width: 0;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ns-ink, #1e1e2e);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+}
+
+.domain-factory-drop-preset:hover,
+.domain-factory-drop-policy:hover {
+  border-color: rgba(32, 217, 155, 0.38);
+  transform: translateY(-1px);
+}
+
+.domain-factory-drop-preset:focus-visible,
+.domain-factory-drop-policy:focus-visible {
+  outline: none;
+  border-color: var(--ns-brand, #16c784);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+}
+
+.domain-factory-drop-preset {
+  display: grid;
+  gap: 7px;
+  min-height: 112px;
+  overflow: hidden;
+  padding: 8px;
+  border-radius: var(--ns-radius-md, 14px);
+}
+
+.domain-factory-drop-preset__art {
+  position: relative;
+  display: block;
+  min-height: 50px;
+  overflow: hidden;
+  border-radius: 11px;
+  background: rgba(7, 19, 28, 0.08);
+}
+
+.domain-factory-drop-preset__art img {
+  width: 100%;
+  height: 100%;
+  min-height: 50px;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.08);
+  transform: scale(1.03);
+}
+
+.domain-factory-drop-preset__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.domain-factory-drop-preset__copy small,
+.domain-factory-drop-policy__copy small {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.domain-factory-drop-preset__copy strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.98rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.domain-factory-drop-preset__check,
+.domain-factory-drop-policy__check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ns-radius-full, 999px);
+  background: var(--ns-brand, #16c784);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(22, 199, 132, 0.22);
+}
+
+.domain-factory-drop-preset.is-active,
+.domain-factory-drop-policy.is-active {
+  border-color: rgba(32, 217, 155, 0.46);
+  background:
+    linear-gradient(135deg, rgba(32, 217, 155, 0.15), rgba(255, 255, 255, 0.88)),
+    #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(32, 217, 155, 0.16);
+  animation: domain-factory-drop-control-lock 300ms ease-out both;
+}
+
+.domain-factory-drop-composer__policy {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.domain-factory-drop-policy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-height: 76px;
+  padding: 11px 36px 11px 11px;
+  border-radius: var(--ns-radius-md, 14px);
+}
+
+.domain-factory-drop-policy__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #e8fff7;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.domain-factory-drop-policy__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.domain-factory-drop-policy__copy strong {
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.9rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.domain-factory-drop-policy__copy small {
+  text-transform: none;
+}
+
 .domain-factory-affix:hover {
   background: var(--ns-success-soft, #d2f3e5);
 }
@@ -2596,6 +2790,11 @@
     min-height: 104px;
   }
 
+  .domain-factory-drop-composer__presets,
+  .domain-factory-drop-composer__policy {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .domain-factory-secondary-grid {
     grid-template-columns: 1fr;
   }
@@ -2869,6 +3068,11 @@
     width: 48px;
   }
 
+  .domain-factory-drop-composer__presets,
+  .domain-factory-drop-composer__policy {
+    grid-template-columns: 1fr;
+  }
+
   .domain-factory-token-rail__stats div,
   .domain-factory-app-rail__stats div,
   .domain-factory-drop-rail__stats div {
@@ -3026,11 +3230,27 @@
   }
 }
 
+@keyframes domain-factory-drop-control-lock {
+  0% {
+    transform: translateY(0) scale(0.98);
+  }
+
+  62% {
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .domain-factory-studio-flow__image,
   .domain-factory-studio-flow__drop-deck img,
   .domain-factory-studio-flow__mint-scan,
   .domain-factory-drop-rail__stack img,
+  .domain-factory-drop-preset.is-active,
+  .domain-factory-drop-policy.is-active,
   .domain-factory-preview__edition-stack img,
   .domain-factory-preview__mint-beam,
   .domain-factory-studio-flow__step--active
@@ -3040,5 +3260,10 @@
 
   .domain-factory-studio-flow__step--active {
     transform: none;
+  }
+
+  .domain-factory-drop-preset,
+  .domain-factory-drop-policy {
+    transition: none;
   }
 }

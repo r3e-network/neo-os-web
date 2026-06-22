@@ -422,6 +422,21 @@ export const factoryMessages = {
     en: "{symbol} collection parameters update the preview live.",
     zh: "{symbol} 集合参数会实时更新预览。",
   },
+  dropComposer: { en: "Drop composer", zh: "发行编排器" },
+  dropComposerHint: {
+    en: "Shape supply and transfer behavior from the drop deck before editing raw fields.",
+    zh: "先在发行牌组里设定供应量和转让行为，再编辑原始字段。",
+  },
+  dropSupplyPresets: { en: "Supply presets", zh: "供应量预设" },
+  dropSupplyPreset: { en: "Edition run", zh: "发行批次" },
+  dropPolicyTransferableDetail: {
+    en: "Collectors can move tokens after mint.",
+    zh: "铸造后持有人可以转移。",
+  },
+  dropPolicySoulboundDetail: {
+    en: "Tokens stay bound to the first owner.",
+    zh: "通证永久绑定首个持有人。",
+  },
   previewUntitledCollection: { en: "Untitled collection", zh: "未命名集合" },
   previewUntitledToken: { en: "Untitled token", zh: "未命名代币" },
   previewUntitledApp: { en: "Untitled miniapp", zh: "未命名小程序" },
