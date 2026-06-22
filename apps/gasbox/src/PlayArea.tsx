@@ -921,50 +921,68 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
 
                 <div className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}>
-                  <NeoButton
-                    variant="primary"
-                    size="lg"
-                    block
-                    loading={isPulling}
-                    disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
-                    className={`gasbox-pull-btn${pullAnimating ? " gasbox-pull-btn--active" : ""}`}
-                    onClick={handlePull}
+                  <div
+                    className={`gasbox-control-deck${pullAnimating ? " gasbox-control-deck--active" : ""}${selectedMachineReady ? " gasbox-control-deck--ready" : " gasbox-control-deck--locked"}`}
                   >
-                    <div className="gasbox-pull-btn-content">
-                      <Ticket aria-hidden="true" />
-                      <span className="gasbox-pull-btn-text">
-                        {betPhase === "committing"
-                          ? t("gasboxCommitting")
-                          : betPhase === "settling"
-                            ? t("gasboxRevealing")
-                            : isPulling
-                              ? t("pulling")
-                              : t("pull")}
+                    <div
+                      className={`gasbox-cabinet-lever${pullAnimating ? " is-active" : ""}${selectedMachineReady ? " is-ready" : " is-locked"}`}
+                      aria-hidden="true"
+                    >
+                      <span className="gasbox-cabinet-lever__lights">
+                        <span />
+                        <span />
+                        <span />
                       </span>
-                      <span className="gasbox-pull-btn-cost">
-                        {selectedMachine.price} GAS
-                      </span>
+                      <span className="gasbox-cabinet-lever__slot" />
+                      <span className="gasbox-cabinet-lever__handle" />
                     </div>
-                  </NeoButton>
-                  <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
-                    <NeoButton
-                      variant="secondary"
-                      size="sm"
-                      disabled={isPulling}
-                      onClick={() => dispatch("refreshMachines")}
-                    >
-                      <RefreshCw aria-hidden="true" />
-                      {t("refreshMachines")}
-                    </NeoButton>
-                    <NeoButton
-                      variant="ghost"
-                      size="sm"
-                      disabled={isPulling}
-                      onClick={() => dispatch("openStudio")}
-                    >
-                      <Sparkles aria-hidden="true" />
-                      {t("openStudio")}
-                    </NeoButton>
+                    <div className="gasbox-pull-command">
+                      <NeoButton
+                        variant="primary"
+                        size="lg"
+                        block
+                        loading={isPulling}
+                        disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
+                        className={`gasbox-pull-btn${pullAnimating ? " gasbox-pull-btn--active" : ""}`}
+                        onClick={handlePull}
+                      >
+                        <div className="gasbox-pull-btn-content">
+                          <Ticket aria-hidden="true" />
+                          <span className="gasbox-pull-btn-text">
+                            {betPhase === "committing"
+                              ? t("gasboxCommitting")
+                              : betPhase === "settling"
+                                ? t("gasboxRevealing")
+                                : isPulling
+                                  ? t("pulling")
+                                  : t("pull")}
+                          </span>
+                          <span className="gasbox-pull-btn-cost">
+                            {selectedMachine.price} GAS
+                          </span>
+                        </div>
+                      </NeoButton>
+                      <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
+                        <NeoButton
+                          variant="secondary"
+                          size="sm"
+                          disabled={isPulling}
+                          onClick={() => dispatch("refreshMachines")}
+                        >
+                          <RefreshCw aria-hidden="true" />
+                          {t("refreshMachines")}
+                        </NeoButton>
+                        <NeoButton
+                          variant="ghost"
+                          size="sm"
+                          disabled={isPulling}
+                          onClick={() => dispatch("openStudio")}
+                        >
+                          <Sparkles aria-hidden="true" />
+                          {t("openStudio")}
+                        </NeoButton>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

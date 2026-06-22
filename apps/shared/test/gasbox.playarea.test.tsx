@@ -217,7 +217,7 @@ describe("GasBox PlayArea", () => {
     const dispatch = vi.fn(async () => undefined);
     const selectedMachine = machine();
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={state({
@@ -230,6 +230,8 @@ describe("GasBox PlayArea", () => {
     );
 
     expect(screen.getByText("Pull decision")).toBeTruthy();
+    expect(container.querySelector(".gasbox-control-deck")).not.toBeNull();
+    expect(container.querySelector(".gasbox-cabinet-lever.is-ready")).not.toBeNull();
     expect(screen.getByText("Pick a capsule machine, pull on-chain, reveal the prize.")).toBeTruthy();
     expect(screen.getByText("Escrow checked")).toBeTruthy();
     expect(screen.getByText("Next-block reveal")).toBeTruthy();
@@ -256,7 +258,7 @@ describe("GasBox PlayArea", () => {
       items: [item({ available: false, displayProbability: 0 })],
     });
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={state({
@@ -270,6 +272,7 @@ describe("GasBox PlayArea", () => {
     );
 
     expect(screen.getByText("Pull unavailable")).toBeTruthy();
+    expect(container.querySelector(".gasbox-cabinet-lever.is-locked")).not.toBeNull();
     expect(screen.getByText("This machine is inactive. Choose an active machine or open Studio to update it.")).toBeTruthy();
     expect(screen.getAllByText("Needs action").length).toBeGreaterThanOrEqual(2);
     expect(
@@ -390,5 +393,25 @@ describe("GasBox PlayArea", () => {
     expect(gas.getAttribute("aria-checked")).toBe("false");
     expect(neo.getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText("Prize per win (NEO)")).toBeTruthy();
+  });
+
+  it("shows active machine-control motion affordances while a pull is in flight", () => {
+    const selectedMachine = machine();
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          isPulling: true,
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
+    expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
+    expect(container.querySelector(".gasbox-pull-btn--active")).not.toBeNull();
   });
 });
