@@ -332,6 +332,18 @@ function FactoryPreviewCard({
             loading="lazy"
             decoding="async"
           />
+          <div className="domain-factory-preview__edition-stack">
+            {[0, 1, 2].map((edition) => (
+              <img
+                key={edition}
+                src="./nft-drop-preview.jpg"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+            ))}
+          </div>
+          <span className="domain-factory-preview__mint-beam" />
           <div className="domain-factory-preview__art-overlay">
             <span>NEP-11</span>
             <strong>{initial}</strong>
@@ -509,6 +521,23 @@ function FactoryStudioFlow({
           loading="eager"
           decoding="async"
         />
+        {kind === "nep11" ? (
+          <div
+            className="domain-factory-studio-flow__drop-deck"
+            aria-hidden="true"
+          >
+            {[0, 1, 2].map((edition) => (
+              <img
+                key={edition}
+                src="./nft-drop-preview.jpg"
+                alt=""
+                loading="eager"
+                decoding="async"
+              />
+            ))}
+            <span className="domain-factory-studio-flow__mint-scan" />
+          </div>
+        ) : null}
         <div className="domain-factory-studio-flow__scrim" />
         <div className="domain-factory-studio-flow__copy">
           <span>{eyebrow}</span>
@@ -1257,6 +1286,21 @@ export function FactoryPlayArea({
                     loading="eager"
                     decoding="async"
                   />
+                  <div
+                    className="domain-factory-drop-rail__stack"
+                    aria-hidden="true"
+                  >
+                    {[0, 1, 2].map((edition) => (
+                      <img
+                        key={edition}
+                        src="./nft-drop-preview.jpg"
+                        alt=""
+                        loading="eager"
+                        decoding="async"
+                      />
+                    ))}
+                    <span className="domain-factory-drop-rail__glow" />
+                  </div>
                   <span
                     className="domain-factory-drop-rail__icon"
                     aria-hidden="true"
