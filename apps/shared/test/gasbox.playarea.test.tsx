@@ -102,8 +102,18 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxStudioPrizeCount: `${params?.count ?? 0} prize rows`,
     gasboxStudioSafety: "Funds largest prize",
     gasboxStudioSummary: "Studio setup summary",
+    studioAmountUnset: "Set prize",
     derivedTierLabel: "Tier",
     derivedTierExplain: "Rarity tiers are derived from each item's weight share.",
+    studioFlowLabel: "Studio build route",
+    studioFlowMachine: "Shape cabinet",
+    studioFlowMachineHint: "Name and price",
+    studioFlowPrizes: "Load capsules",
+    studioFlowPrizesHint: "Weights become odds",
+    studioFlowPublish: "Publish on-chain",
+    studioFlowPublishHint: "Fund and activate",
+    studioOddsRailTitle: "Capsule odds rail",
+    studioOddsRailHint: "Preview what players will see before the wallet confirmation.",
     rarityCommon: "COMMON",
     rarityRare: "RARE",
     rarityEpic: "EPIC",
@@ -378,9 +388,15 @@ describe("GasBox PlayArea", () => {
     // Machine setup is presented as a cabinet blueprint instead of a flat form.
     expect(container.querySelector(".gasbox-studio-cabinet")).not.toBeNull();
     expect(container.querySelectorAll(".gasbox-cabinet-card").length).toBe(2);
+    expect(container.querySelector(".gasbox-studio-flow")).not.toBeNull();
+    expect(container.querySelector(".gasbox-studio-machine-preview__lights")).not.toBeNull();
+    expect(container.querySelector(".gasbox-studio-odds-rail")).not.toBeNull();
+    expect(container.querySelectorAll(".gasbox-studio-odds-token").length).toBe(1);
     expect(container.querySelector(".gasbox-capsule-editor")).not.toBeNull();
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
+    expect(screen.getByText("Capsule odds rail")).toBeTruthy();
+    expect(screen.getByText("Shape cabinet")).toBeTruthy();
     expect(screen.getByText("Tier")).toBeTruthy();
   });
 
@@ -476,8 +492,11 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain("@keyframes gasbox-machine-idle");
     expect(css).toContain("@keyframes gasbox-capsule-ready");
     expect(css).toContain("@keyframes gasbox-result-capsule-open");
+    expect(css).toContain("@keyframes gasbox-studio-machine-breathe");
+    expect(css).toContain("@keyframes gasbox-studio-token-glow");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".gasbox-result-theater__capsule");
+    expect(css).toContain(".gasbox-studio-odds-token__capsule");
     expect(css).toContain("animation: none");
   });
 });
