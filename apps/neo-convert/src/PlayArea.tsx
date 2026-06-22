@@ -6,6 +6,8 @@
 
 import { useState, type KeyboardEvent } from "react";
 import {
+  ArrowRight,
+  CheckCircle2,
   Copy,
   Download,
   Eye,
@@ -187,6 +189,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { key: "reveal", icon: EyeOff, label: t("safetyReveal") },
     { key: "rpc", icon: RefreshCw, label: t("safetyRpc") },
   ];
+  const keyInputReady = keyInput.trim().length > 0;
+  const pipelineState = isLoading
+    ? "processing"
+    : conversionStatusType === "error"
+      ? "error"
+      : hasConversionResult
+        ? "complete"
+        : keyInputReady
+          ? "armed"
+          : "idle";
+  const pipelineSteps = [
+    {
+      key: "input",
+      icon: KeyRound,
+      label: t("flowInputLabel"),
+      detail: keyInputReady ? t("flowInputReady") : t("flowInputIdle"),
+      state: keyInputReady || hasConversionResult ? "complete" : "idle",
+    },
+    {
+      key: "derive",
+      icon: RefreshCw,
+      label: t("flowDeriveLabel"),
+      detail: isLoading
+        ? t("flowDeriveActive")
+        : hasConversionResult
+          ? t("flowDeriveComplete")
+          : keyInputReady
+            ? t("flowDeriveReady")
+            : t("flowDeriveIdle"),
+      state: isLoading ? "active" : hasConversionResult ? "complete" : keyInputReady ? "ready" : "idle",
+    },
+    {
+      key: "output",
+      icon: FileCode2,
+      label: t("flowOutputLabel"),
+      detail:
+        conversionStatusType === "error"
+          ? t("flowOutputError")
+          : hasConversionResult
+            ? t("flowOutputReady")
+            : t("flowOutputIdle"),
+      state: conversionStatusType === "error" ? "error" : hasConversionResult ? "complete" : "idle",
+    },
+  ];
 
   // Enter-to-submit for the converter input. The shared NeoInput renders a real
   // <input> whose keydown bubbles to this wrapper, so catch it here rather than
@@ -326,6 +372,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
               );
             })}
+          </div>
+          <div
+            className={`convert-pipeline convert-pipeline--${pipelineState}`}
+            aria-label={t("flowStageTitle")}
+          >
+            <figure className="convert-pipeline__media">
+              <img
+                src="./key-workbench-stage.jpg"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+              <figcaption>
+                <span>{t("flowStageEyebrow")}</span>
+                <strong>{statusLabel || t("flowStageResting")}</strong>
+              </figcaption>
+            </figure>
+            <div className="convert-pipeline__steps">
+              {pipelineSteps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <div
+                    key={step.key}
+                    className={`convert-pipeline-step convert-pipeline-step--${step.state}`}
+                  >
+                    <span className="convert-pipeline-step__icon" aria-hidden="true">
+                      {step.state === "complete" ? <CheckCircle2 /> : <Icon />}
+                    </span>
+                    <span className="convert-pipeline-step__copy">
+                      <strong>{step.label}</strong>
+                      <small>{step.detail}</small>
+                    </span>
+                    {index < pipelineSteps.length - 1 && (
+                      <ArrowRight className="convert-pipeline-step__arrow" aria-hidden="true" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div className="convert-section convert-input-desk">
             <p className="convert-hint">{t("convertHint")}</p>

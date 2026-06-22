@@ -77,6 +77,66 @@ const appMessages = {
         en: "Paste a WIF, private key, public key, or NeoVM script — everything is processed on your device.",
         zh: "粘贴 WIF、私钥、公钥或 NeoVM 脚本——所有处理均在您的设备本地完成。"
     },
+    flowStageTitle: {
+        en: "Local conversion flow",
+        zh: "本地转换流程"
+    },
+    flowStageEyebrow: {
+        en: "Local pipeline",
+        zh: "本地流水线"
+    },
+    flowStageResting: {
+        en: "Waiting for key material",
+        zh: "等待密钥材料"
+    },
+    flowInputLabel: {
+        en: "Input",
+        zh: "输入"
+    },
+    flowInputIdle: {
+        en: "Paste key material to arm the workbench.",
+        zh: "粘贴密钥材料以启动工作台。"
+    },
+    flowInputReady: {
+        en: "Key material is staged locally.",
+        zh: "密钥材料已在本地就绪。"
+    },
+    flowDeriveLabel: {
+        en: "Derive",
+        zh: "派生"
+    },
+    flowDeriveIdle: {
+        en: "No derivation runs until you convert.",
+        zh: "点击转换前不会执行派生。"
+    },
+    flowDeriveReady: {
+        en: "Ready to derive address and script data.",
+        zh: "已准备派生地址和脚本数据。"
+    },
+    flowDeriveActive: {
+        en: "Deriving formats on this device.",
+        zh: "正在本设备派生格式。"
+    },
+    flowDeriveComplete: {
+        en: "Derived values are ready to inspect.",
+        zh: "派生值已可检查。"
+    },
+    flowOutputLabel: {
+        en: "Inspect",
+        zh: "检查"
+    },
+    flowOutputIdle: {
+        en: "Results stay masked until output is available.",
+        zh: "结果生成前保持空白与遮罩。"
+    },
+    flowOutputReady: {
+        en: "Copy only the value you verified.",
+        zh: "只复制你已核对的值。"
+    },
+    flowOutputError: {
+        en: "Format was not recognized.",
+        zh: "未识别该格式。"
+    },
     enterKeyPlaceholder: {
         en: "Enter WIF, hex, or address...",
         zh: "输入 WIF、Hex 或地址……"

@@ -25,6 +25,21 @@ function t(key: string) {
     emptyOutputCopy: "Unknown or malformed input shows a clear status.",
     emptyOutputTitle: "Output appears after a valid paste",
     enterKeyPlaceholder: "Enter WIF, hex, or address...",
+    flowDeriveActive: "Deriving formats on this device.",
+    flowDeriveComplete: "Derived values are ready to inspect.",
+    flowDeriveIdle: "No derivation runs until you convert.",
+    flowDeriveLabel: "Derive",
+    flowDeriveReady: "Ready to derive address and script data.",
+    flowInputIdle: "Paste key material to arm the workbench.",
+    flowInputLabel: "Input",
+    flowInputReady: "Key material is staged locally.",
+    flowOutputError: "Format was not recognized.",
+    flowOutputIdle: "Results stay masked until output is available.",
+    flowOutputLabel: "Inspect",
+    flowOutputReady: "Copy only the value you verified.",
+    flowStageEyebrow: "Local pipeline",
+    flowStageResting: "Waiting for key material",
+    flowStageTitle: "Local conversion flow",
     formatAutodetectPill: "Format auto-detect",
     formatPrivateKeyDesc: "64-character hex private key.",
     formatPrivateKeyLabel: "Private key",
@@ -109,7 +124,26 @@ describe("Neo Convert PlayArea", () => {
     expect(
       document.querySelector('.convert-hero__image[src="./key-workbench-stage.jpg"]'),
     ).toBeTruthy();
+    expect(screen.getByText("Local pipeline")).toBeTruthy();
+    expect(screen.getByText("Waiting for key material")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline--idle")).toBeTruthy();
     expect(screen.getByText("Output appears after a valid paste")).toBeTruthy();
+  });
+
+  it("turns the converter panel into an active local pipeline while processing", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          isLoading: true,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Deriving formats on this device.")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline--processing")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline-step--active")).toBeTruthy();
   });
 
   it("keeps generated private material hidden until the user reveals it", () => {
@@ -177,7 +211,10 @@ describe("Neo Convert PlayArea", () => {
       />,
     );
 
-    expect(screen.getByText("Detected: Private Key")).toBeTruthy();
+    expect(screen.getAllByText("Detected: Private Key").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Derived values are ready to inspect.")).toBeTruthy();
+    expect(screen.getByText("Copy only the value you verified.")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline--complete")).toBeTruthy();
     expect(screen.getByText("NconvertedAddress")).toBeTruthy();
     expect(screen.queryByText("[object Object]")).toBeNull();
   });
