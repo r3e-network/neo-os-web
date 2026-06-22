@@ -136,6 +136,15 @@
   color: pm.$neo-strong;
   box-shadow: 0 10px 24px rgba(22, 199, 132, 0.12);
   animation: fogplay-token-idle 3.8s ease-in-out infinite;
+
+  img {
+    display: block;
+    width: 136%;
+    height: 136%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
 }
 
 .play-hero__text {
@@ -247,6 +256,17 @@
   background: pm.$surface;
   border: 1px solid pm.$border;
   color: pm.$neo-strong;
+  overflow: hidden;
+
+  img {
+    display: block;
+    width: 154%;
+    height: 154%;
+    object-fit: cover;
+    object-position: center 43%;
+    pointer-events: none;
+    user-select: none;
+  }
 }
 
 .first-round-prompt__text {
@@ -387,9 +407,19 @@
   justify-content: center;
   width: 40px;
   height: 40px;
+  overflow: hidden;
   border-radius: 999px;
   background: pm.$surface;
   color: pm.$text-faint;
+
+  img {
+    display: block;
+    width: 136%;
+    height: 136%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
 }
 
 .history-empty__text {

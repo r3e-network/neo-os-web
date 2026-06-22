@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
 import { BET_PRESETS } from "../composables/useCoinFlip";
 import coinHeadsUrl from "../static/coin_heads.png";
@@ -111,6 +112,35 @@ export default function WagerControls({
           </div>
         </div>
 
+        <div
+          className="wager-runway"
+          aria-label={`${t("youPicked")} ${t(choice)}. ${t("wager")} ${formattedStake} ${t("tokenGas")}.`}
+        >
+          <span className="wager-runway__line" aria-hidden="true" />
+          <span className="wager-runway__coin wager-runway__coin--one" aria-hidden="true">
+            <img
+              src={selectedCoinArt}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          </span>
+          <span className="wager-runway__coin wager-runway__coin--two" aria-hidden="true">
+            <img
+              src={selectedCoinArt}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          </span>
+          <span className="wager-runway__label">
+            <span>{t(choice)}</span>
+            <strong>{formattedStake} {t("tokenGas")}</strong>
+          </span>
+        </div>
+
         <div className="panel-step panel-step--choice">
           <span className="step-label">{`${t("heads")} / ${t("tails")}`}</span>
           <div className="choice-grid">
@@ -142,18 +172,7 @@ export default function WagerControls({
                   <span className="choice-name">{t(side)}</span>
                 </div>
                 <span className="choice-check" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="13"
-                    height="13"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M5 12.5 10 17l9-10" />
-                  </svg>
+                  <Check size={13} strokeWidth={3} />
                 </span>
               </button>
             ))}
@@ -186,6 +205,7 @@ export default function WagerControls({
                     .join(" ")}
                   onClick={() => updateBetAmount(amount)}
                   aria-pressed={betAmount === amount}
+                  aria-label={`${amount} ${t("tokenGas")}`}
                   disabled={unpayable}
                   title={
                     unpayable
@@ -210,7 +230,16 @@ export default function WagerControls({
               );
             })}
           </div>
-          <div className="custom-bet-inline">
+          <div className="custom-bet-inline custom-bet-inline--table">
+            <span className="custom-bet-inline__coin" aria-hidden="true">
+              <img
+                src={selectedCoinArt}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+              />
+            </span>
             <NeoInput
               type="number"
               label={t("customBet")}
