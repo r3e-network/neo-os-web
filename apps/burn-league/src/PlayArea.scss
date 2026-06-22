@@ -40,6 +40,28 @@ $burn-amber: var(--ns-warning, #f5a623);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
+.burn-league-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 72% 24%,
+      rgba(245, 166, 35, 0.18),
+      transparent 30%
+    ),
+    linear-gradient(
+      112deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 46%,
+      transparent 62%
+    );
+  opacity: 0.72;
+  animation: burn-league-arena-warmth 7.6s ease-in-out infinite;
+}
+
 .burn-league-hero-media {
   position: absolute;
   inset: 0;
@@ -52,6 +74,8 @@ $burn-amber: var(--ns-warning, #f5a623);
   display: block;
   object-fit: cover;
   object-position: center;
+  transform: scale(1.02);
+  animation: burn-league-arena-drift 14s ease-in-out infinite;
 }
 
 .burn-league-hero-panel {
@@ -64,7 +88,12 @@ $burn-amber: var(--ns-warning, #f5a623);
   min-height: 280px;
   padding: 28px;
   background:
-    linear-gradient(90deg, rgba(255, 250, 238, 0.96) 0%, rgba(255, 250, 238, 0.78) 42%, rgba(255, 250, 238, 0.1) 100%),
+    linear-gradient(
+      90deg,
+      rgba(255, 250, 238, 0.96) 0%,
+      rgba(255, 250, 238, 0.78) 42%,
+      rgba(255, 250, 238, 0.1) 100%
+    ),
     linear-gradient(0deg, rgba(15, 72, 54, 0.2), rgba(15, 72, 54, 0));
 }
 
@@ -220,8 +249,13 @@ $burn-amber: var(--ns-warning, #f5a623);
   box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
 }
 
+.burn-league-play-area--leader .burn-league-hero-leadbadge-dot {
+  animation: burn-league-leader-dot 1.5s ease-in-out infinite;
+}
+
 /* ── Focal prize pool (right side of hero) ─────────────── */
 .burn-league-hero-pool {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -237,6 +271,10 @@ $burn-amber: var(--ns-warning, #f5a623);
   background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 18px 46px rgba(18, 80, 55, 0.14);
   backdrop-filter: blur(10px);
+}
+
+.burn-league-play-area--live .burn-league-hero-pool {
+  animation: burn-league-pool-ready 3.8s ease-in-out infinite;
 }
 
 .burn-league-hero-pool-label {
@@ -272,6 +310,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   border-radius: var(--ns-radius-md, 16px);
   background: $burn-accent-soft;
   color: $burn-accent-deep;
+  animation: burn-league-flame 2.4s ease-in-out infinite;
 }
 
 .burn-league-hero-pool.is-empty {
@@ -643,15 +682,44 @@ $burn-amber: var(--ns-warning, #f5a623);
     0 16px 42px rgba(20, 83, 61, 0.12);
 }
 
+.burn-league-stake-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.28) 44%,
+      transparent 58%
+    ),
+    radial-gradient(
+      circle at 50% 78%,
+      rgba(245, 166, 35, 0.18),
+      transparent 36%
+    );
+  opacity: 0.58;
+  transform: translateX(-18%);
+  animation: burn-league-stage-heat 5.4s ease-in-out infinite;
+}
+
+.burn-league-play-area--burning .burn-league-stake-stage {
+  animation: burn-league-stage-burn 620ms ease-in-out both;
+}
+
 .burn-league-stake-stage__image {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   opacity: 0.55;
   transform: scale(1.04);
+  animation: burn-league-arena-drift 16s ease-in-out infinite reverse;
 }
 
 .burn-league-stake-stage__glass {
@@ -664,7 +732,12 @@ $burn-amber: var(--ns-warning, #f5a623);
   min-height: 360px;
   padding: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 252, 243, 0.96) 0%, rgba(255, 252, 243, 0.8) 45%, rgba(255, 252, 243, 0.94) 100%),
+    linear-gradient(
+      180deg,
+      rgba(255, 252, 243, 0.96) 0%,
+      rgba(255, 252, 243, 0.8) 45%,
+      rgba(255, 252, 243, 0.94) 100%
+    ),
     linear-gradient(125deg, rgba(255, 255, 255, 0.64), rgba(22, 199, 132, 0.12));
 }
 
@@ -729,7 +802,16 @@ $burn-amber: var(--ns-warning, #f5a623);
   min-width: 0;
   border-radius: inherit;
   background: linear-gradient(90deg, #0a8050, #18c88a, #f5a623);
+  background-size: 180% 100%;
   transition: width 260ms var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.burn-league-play-area--armed .burn-league-fuel-meter__fill {
+  animation: burn-league-fuel-flow 2.4s linear infinite;
+}
+
+.burn-league-play-area--burning .burn-league-fuel-meter__fill {
+  animation-duration: 760ms;
 }
 
 .burn-league-fuel-meter__spark {
@@ -878,9 +960,16 @@ $burn-amber: var(--ns-warning, #f5a623);
   padding: 18px;
   border-radius: var(--ns-radius-md, 16px);
   border: 1px solid rgba(22, 199, 132, 0.16);
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fbf8ef 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fbf8ef 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.burn-league-play-area--armed .burn-league-scoreboard {
+  animation: burn-league-scoreboard-ready 3.4s ease-in-out infinite;
+}
+
+.burn-league-play-area--burning .burn-league-scoreboard {
+  animation: burn-league-scoreboard-burn 620ms ease-in-out both;
 }
 
 .burn-league-scoreboard-head {
@@ -944,6 +1033,10 @@ $burn-amber: var(--ns-warning, #f5a623);
   overflow-wrap: anywhere;
 }
 
+.burn-league-play-area--armed .burn-league-impact-value {
+  animation: burn-league-value-ready 2.8s ease-in-out infinite;
+}
+
 /* Muted helper line shown under the strip while there's no live pool — keeps
    the "start the season" sentence out of the metric value slots. */
 .burn-league-impact-hint {
@@ -996,6 +1089,16 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
+.burn-league-play-area--armed
+  .burn-league-burn-cta
+  .neo-btn--primary:not(:disabled) {
+  animation: burn-league-cta-ready 2.2s ease-in-out infinite;
+}
+
+.burn-league-play-area--burning .burn-league-burn-cta .neo-btn--primary {
+  animation: burn-league-cta-burn 640ms ease-in-out both;
+}
+
 .burn-league-review-tip {
   position: relative;
   flex: 0 0 auto;
@@ -1043,8 +1146,10 @@ $burn-amber: var(--ns-warning, #f5a623);
   visibility: hidden;
   transform: translateY(4px);
   transition:
-    opacity var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    opacity var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    transform var(--ns-t-fast, 150ms)
+      var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
     visibility var(--ns-t-fast, 150ms);
 }
 
@@ -1133,6 +1238,8 @@ $burn-amber: var(--ns-warning, #f5a623);
   margin-bottom: 6px;
   border-radius: var(--ns-radius-md, 16px);
   background: $burn-accent-soft;
+  color: $burn-accent-deep;
+  animation: burn-league-flame 2.8s ease-in-out infinite;
 }
 
 .burn-league-empty-title {
@@ -1169,11 +1276,29 @@ $burn-amber: var(--ns-warning, #f5a623);
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  transition: background var(--ns-t-fast, 150ms) ease;
+  animation: burn-league-row-in 360ms ease both;
+  transition:
+    background var(--ns-t-fast, 150ms) ease,
+    transform var(--ns-t-fast, 150ms) ease,
+    box-shadow var(--ns-t-fast, 150ms) ease;
 
   &:hover {
     background: var(--ns-bg-2, #eceef2);
+    box-shadow: 0 10px 24px rgba(20, 83, 61, 0.08);
+    transform: translateY(-1px);
   }
+}
+
+.burn-league-leaderboard-row:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.burn-league-leaderboard-row:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.burn-league-leaderboard-row:nth-child(4) {
+  animation-delay: 150ms;
 }
 
 .burn-league-lb-rank {
@@ -1313,7 +1438,8 @@ $burn-amber: var(--ns-warning, #f5a623);
   width: 100%;
   max-width: 360px;
   text-align: center;
-  animation: burn-league-pop 320ms var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
+  animation: burn-league-pop 320ms
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
 }
 
 .burn-league-celebrate-icon {
@@ -1366,10 +1492,15 @@ $burn-amber: var(--ns-warning, #f5a623);
   height: 12px;
   border-radius: 2px;
   opacity: 0;
-  animation: burn-league-confetti-fall 2.2s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+  animation: burn-league-confetti-fall 2.2s cubic-bezier(0.45, 0, 0.55, 1)
+    forwards;
 }
 
-.burn-league-confetti-piece-1 { left: 12%; background: $burn-accent; animation-delay: 0ms; }
+.burn-league-confetti-piece-1 {
+  left: 12%;
+  background: $burn-accent;
+  animation-delay: 0ms;
+}
 .burn-league-confetti-piece-2 {
   left: 26%;
   background: $burn-amber;
@@ -1378,8 +1509,16 @@ $burn-amber: var(--ns-warning, #f5a623);
   height: 7px;
   border-radius: 50%;
 }
-.burn-league-confetti-piece-3 { left: 40%; background: $burn-accent-strong; animation-delay: 60ms; }
-.burn-league-confetti-piece-4 { left: 54%; background: $burn-amber; animation-delay: 200ms; }
+.burn-league-confetti-piece-3 {
+  left: 40%;
+  background: $burn-accent-strong;
+  animation-delay: 60ms;
+}
+.burn-league-confetti-piece-4 {
+  left: 54%;
+  background: $burn-amber;
+  animation-delay: 200ms;
+}
 .burn-league-confetti-piece-5 {
   left: 68%;
   background: $burn-accent;
@@ -1388,49 +1527,266 @@ $burn-amber: var(--ns-warning, #f5a623);
   height: 7px;
   border-radius: 50%;
 }
-.burn-league-confetti-piece-6 { left: 84%; background: $burn-accent-strong; animation-delay: 160ms; }
+.burn-league-confetti-piece-6 {
+  left: 84%;
+  background: $burn-accent-strong;
+  animation-delay: 160ms;
+}
 
-.burn-league-confetti-piece:nth-child(n + 7) { animation-duration: 1.9s; }
-.burn-league-confetti-piece:nth-child(7) { left: 19%; }
-.burn-league-confetti-piece:nth-child(8) { left: 33%; }
-.burn-league-confetti-piece:nth-child(9) { left: 47%; }
-.burn-league-confetti-piece:nth-child(10) { left: 61%; }
-.burn-league-confetti-piece:nth-child(11) { left: 75%; }
-.burn-league-confetti-piece:nth-child(12) { left: 90%; }
-.burn-league-confetti-piece:nth-child(n + 13) { animation-duration: 2.4s; }
-.burn-league-confetti-piece:nth-child(13) { left: 8%; }
-.burn-league-confetti-piece:nth-child(14) { left: 30%; }
-.burn-league-confetti-piece:nth-child(15) { left: 50%; }
-.burn-league-confetti-piece:nth-child(16) { left: 64%; }
-.burn-league-confetti-piece:nth-child(17) { left: 78%; }
-.burn-league-confetti-piece:nth-child(18) { left: 95%; }
+.burn-league-confetti-piece:nth-child(n + 7) {
+  animation-duration: 1.9s;
+}
+.burn-league-confetti-piece:nth-child(7) {
+  left: 19%;
+}
+.burn-league-confetti-piece:nth-child(8) {
+  left: 33%;
+}
+.burn-league-confetti-piece:nth-child(9) {
+  left: 47%;
+}
+.burn-league-confetti-piece:nth-child(10) {
+  left: 61%;
+}
+.burn-league-confetti-piece:nth-child(11) {
+  left: 75%;
+}
+.burn-league-confetti-piece:nth-child(12) {
+  left: 90%;
+}
+.burn-league-confetti-piece:nth-child(n + 13) {
+  animation-duration: 2.4s;
+}
+.burn-league-confetti-piece:nth-child(13) {
+  left: 8%;
+}
+.burn-league-confetti-piece:nth-child(14) {
+  left: 30%;
+}
+.burn-league-confetti-piece:nth-child(15) {
+  left: 50%;
+}
+.burn-league-confetti-piece:nth-child(16) {
+  left: 64%;
+}
+.burn-league-confetti-piece:nth-child(17) {
+  left: 78%;
+}
+.burn-league-confetti-piece:nth-child(18) {
+  left: 95%;
+}
 
 @keyframes burn-league-confetti-fall {
-  0% { opacity: 0; transform: translateY(0) rotate(0deg); }
-  10% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(105vh) rotate(540deg); }
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(105vh) rotate(540deg);
+  }
 }
 
 @keyframes burn-league-meter-spark {
-  0% { opacity: 0; transform: translateY(-50%) scale(0.7); }
-  25% { opacity: 0.9; }
-  70% { opacity: 0.2; transform: translateY(-50%) scale(1.15); }
-  100% { opacity: 0; transform: translateY(-50%) scale(0.7); }
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.7);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  70% {
+    opacity: 0.2;
+    transform: translateY(-50%) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.7);
+  }
 }
 
 @keyframes burn-league-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes burn-league-pop {
-  0% { opacity: 0; transform: translateY(8px) scale(0.96); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes burn-league-arena-drift {
+  0%,
+  100% {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.06) translate3d(-1.2%, -0.8%, 0);
+  }
+}
+
+@keyframes burn-league-arena-warmth {
+  0%,
+  100% {
+    opacity: 0.54;
+    transform: translateX(-2%);
+  }
+  48% {
+    opacity: 0.82;
+    transform: translateX(3%);
+  }
+}
+
+@keyframes burn-league-pool-ready {
+  0%,
+  100% {
+    box-shadow: 0 18px 46px rgba(18, 80, 55, 0.14);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 24px 56px rgba(18, 80, 55, 0.2);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes burn-league-leader-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(22, 199, 132, 0.08);
+  }
+}
+
+@keyframes burn-league-stage-heat {
+  0%,
+  100% {
+    opacity: 0.38;
+    transform: translateX(-18%);
+  }
+  48% {
+    opacity: 0.64;
+    transform: translateX(18%);
+  }
+}
+
+@keyframes burn-league-stage-burn {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 16px 42px rgba(20, 83, 61, 0.12);
+  }
+  34% {
+    transform: translate3d(0, -2px, 0) scale(1.006);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 22px 54px rgba(245, 166, 35, 0.18);
+  }
+}
+
+@keyframes burn-league-fuel-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 180% 50%;
+  }
+}
+
+@keyframes burn-league-scoreboard-ready {
+  0%,
+  100% {
+    border-color: rgba(22, 199, 132, 0.16);
+  }
+  50% {
+    border-color: rgba(22, 199, 132, 0.34);
+  }
+}
+
+@keyframes burn-league-scoreboard-burn {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes burn-league-value-ready {
+  0%,
+  100% {
+    color: var(--ns-ink, #1e1e2e);
+  }
+  50% {
+    color: $burn-accent-deep;
+  }
+}
+
+@keyframes burn-league-cta-ready {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(10, 128, 80, 0.26);
+  }
+  50% {
+    box-shadow: 0 6px 18px rgba(10, 128, 80, 0.34);
+  }
+}
+
+@keyframes burn-league-cta-burn {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-1px) scale(1.01);
+  }
+}
+
+@keyframes burn-league-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .burn-league-celebrate,
-  .burn-league-celebrate-card {
+  .burn-league-celebrate-card,
+  .burn-league-hero::after,
+  .burn-league-hero-media img,
+  .burn-league-hero-pool,
+  .burn-league-hero-pool-flame,
+  .burn-league-hero-leadbadge-dot,
+  .burn-league-stake-stage,
+  .burn-league-stake-stage::after,
+  .burn-league-stake-stage__image,
+  .burn-league-fuel-meter__fill,
+  .burn-league-scoreboard,
+  .burn-league-impact-value,
+  .burn-league-burn-cta .neo-btn--primary,
+  .burn-league-empty-icon,
+  .burn-league-leaderboard-row {
     animation: none;
   }
   .burn-league-confetti-piece {
@@ -1441,5 +1797,8 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
   .burn-league-fuel-meter__spark {
     animation: none;
+  }
+  .burn-league-leaderboard-row {
+    transition: none;
   }
 }
