@@ -291,7 +291,10 @@ export default function PlayArea({
         </div>
       </div>
 
-      <section className="vault-command-shell" aria-label={t("challengeConsole")}>
+      <section
+        className={`vault-command-shell vault-command-shell--${activeDesk}`}
+        aria-label={t("challengeConsole")}
+      >
         <div className="vault-command-shell__head">
           <div>
             <span>{t("challengeConsole")}</span>
@@ -327,7 +330,10 @@ export default function PlayArea({
               <div className="vault-blueprint__scene" aria-hidden="true">
                 <img src="./vault-challenge.jpg" alt="" />
               </div>
-              <div className="vault-blueprint__lock" aria-hidden="true">
+              <div
+                className={`vault-blueprint__lock${secretReady ? " is-ready" : ""}${isCreating ? " is-creating" : ""}`}
+                aria-hidden="true"
+              >
                 <LockKeyhole size={32} />
               </div>
               <div className="vault-blueprint__copy">
@@ -505,7 +511,7 @@ export default function PlayArea({
           <NeoCard title={t("breakVault")} className="vault-break-card">
             <div className="vault-form">
               <div
-                className={`vault-target-card${vaultDetails ? " vault-target-card--loaded" : ""}`}
+                className={`vault-target-card${vaultDetails ? " vault-target-card--loaded" : ""}${canAttempt ? " vault-target-card--attempt-ready" : ""}${canReclaim ? " vault-target-card--claimable" : ""}`}
               >
                 <span className="vault-target-card__icon" aria-hidden="true">
                   {vaultDetails ? (
