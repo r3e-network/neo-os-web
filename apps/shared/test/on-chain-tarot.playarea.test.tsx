@@ -105,6 +105,7 @@ describe("On-Chain Tarot PlayArea", () => {
     expect(document.querySelector('.tarot-hero-stage img[src="./tarot-reading-table.jpg"]')).toBeTruthy();
     expect(document.querySelector('.tarot-spread-table__mat[src="./tarot-reading-table.jpg"]')).toBeTruthy();
     expect(document.querySelectorAll(".tarot-intention-deck__card").length).toBe(3);
+    expect(document.querySelectorAll(".tarot-intent-card__mini img").length).toBe(3);
 
     fireEvent.click(screen.getByRole("button", { name: "Which path should I choose?" }));
 
@@ -112,6 +113,7 @@ describe("On-Chain Tarot PlayArea", () => {
       expect((screen.getByLabelText("Question prompt") as HTMLTextAreaElement).value)
         .toBe("Which path should I choose?"),
     );
+    expect(document.querySelector(".tarot-play-area--intent-pulse")).toBeTruthy();
     expect(document.querySelector(".tarot-play-area--question-ready")).toBeTruthy();
     expect(document.querySelector(".tarot-spread-table--ready")).toBeTruthy();
 
@@ -199,9 +201,15 @@ describe("On-Chain Tarot PlayArea", () => {
 
     expect(styles).toContain("@keyframes tarot-table-drift");
     expect(styles).toContain("@keyframes tarot-spread-ready");
+    expect(styles).toContain("@keyframes tarot-intention-board-picked");
+    expect(styles).toContain("@keyframes tarot-intention-card-shuffle");
+    expect(styles).toContain("@keyframes tarot-intent-choice-picked");
     expect(styles).toContain("@keyframes tarot-awaiting-card-breathe");
     expect(styles).toContain("@keyframes tarot-card-back-glint");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-play-area--intent-pulse \.tarot-intention-board/,
+    );
     expect(styles).toMatch(
       /@media \(max-width: 1080px\)[\s\S]*\.tarot-spread-panel[\s\S]*order:\s*1/,
     );

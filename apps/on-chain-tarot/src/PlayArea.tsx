@@ -52,13 +52,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const drawn = val<Card[]>("drawn") ?? [];
   const prepaidCredit = num("prepaidCredit");
   const [dealPreview, setDealPreview] = useState(false);
+  const [intentPulse, setIntentPulse] = useState(false);
   const dealPreviewTimeout = useRef<number | null>(null);
+  const intentPulseTimeout = useRef<number | null>(null);
   const revealCount = drawn.filter((card) => card.flipped).length;
   const oracleReady = readingMode === "oracle";
   const isDealing = isLoading || dealPreview;
   const questionText = question.trim();
   const playStateClass = [
     questionText ? "tarot-play-area--question-ready" : "",
+    intentPulse ? "tarot-play-area--intent-pulse" : "",
     isDealing ? "tarot-play-area--dealing" : "",
     hasDrawn ? "tarot-play-area--drawn" : "",
     allFlipped ? "tarot-play-area--complete" : "",
@@ -77,9 +80,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       if (dealPreviewTimeout.current !== null) {
         window.clearTimeout(dealPreviewTimeout.current);
       }
+      if (intentPulseTimeout.current !== null) {
+        window.clearTimeout(intentPulseTimeout.current);
+      }
     },
     [],
   );
+
+  const triggerIntentPulse = () => {
+    if (intentPulseTimeout.current !== null) {
+      window.clearTimeout(intentPulseTimeout.current);
+    }
+    setIntentPulse(true);
+    intentPulseTimeout.current = window.setTimeout(() => {
+      setIntentPulse(false);
+      intentPulseTimeout.current = null;
+    }, 780);
+  };
+
+  const selectIntent = (valueKey: string) => {
+    triggerIntentPulse();
+    void dispatch("setQuestion", t(valueKey));
+  };
 
   const startDealPreview = () => {
     if (dealPreviewTimeout.current !== null) {
@@ -168,10 +190,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={question === t(valueKey) ? "is-active" : ""}
                     aria-label={t(valueKey)}
                     title={t(valueKey)}
-                    onClick={() => dispatch("setQuestion", t(valueKey))}
+                    onClick={() => selectIntent(valueKey)}
                   >
-                    <Sparkles size={14} aria-hidden="true" />
-                    <span>{t(labelKey)}</span>
+                    <span className="tarot-intent-card__mini" aria-hidden="true">
+                      <img src={TAROT_CARD_BACK} alt="" />
+                    </span>
+                    <span className="tarot-intent-card__copy">
+                      <strong>{t(labelKey)}</strong>
+                      <small>{t(valueKey)}</small>
+                    </span>
                   </button>
                 ))}
               </div>
