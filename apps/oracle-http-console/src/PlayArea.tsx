@@ -119,6 +119,17 @@ export default function PlayArea({
   const pathValid = draftResult.payload.pathValid === true;
   const draftOk = draftResult.payload.status !== "input_required";
   const resultOk = result?.payload.status !== "input_required";
+  const routeStageClassName = [
+    "http-route-stage",
+    draftOk ? "http-route-stage--ready" : "http-route-stage--warn",
+  ].join(" ");
+  const routeStatusClassName = [
+    "http-route-status",
+    draftOk ? "http-route-status--ready" : "http-route-status--warn",
+  ].join(" ");
+  const draftDigest = String(
+    draftResult.payload.digest ?? t("digestPlaceholder"),
+  );
   const requestSummary = [
     {
       key: "method",
@@ -137,6 +148,26 @@ export default function PlayArea({
     },
     {
       key: "body",
+      label: t("httpBodyState"),
+      value: bodyEnabled ? t("httpBodyIncluded") : t("httpBodyIgnored"),
+    },
+  ];
+  const routeSignals = [
+    {
+      key: "url",
+      ok: urlValid,
+      label: t("urlValid"),
+      value: urlValid ? t("httpUrlReadyHint") : t("httpUrlInvalidHint"),
+    },
+    {
+      key: "path",
+      ok: pathValid,
+      label: t("pathValid"),
+      value: pathValid ? t("httpPathReadyHint") : t("httpPathInvalidHint"),
+    },
+    {
+      key: "body",
+      ok: true,
       label: t("httpBodyState"),
       value: bodyEnabled ? t("httpBodyIncluded") : t("httpBodyIgnored"),
     },
@@ -274,6 +305,78 @@ export default function PlayArea({
               </span>
             ))}
           </div>
+
+          <section
+            className={routeStageClassName}
+            aria-label={t("httpRouteWorkbench")}
+          >
+            <div className="http-route-stage__head">
+              <div className="http-section-copy">
+                <small>{t("httpRouteWorkbench")}</small>
+                <strong>{t("httpRouteWorkbenchCopy")}</strong>
+              </div>
+              <span className={routeStatusClassName}>
+                {draftOk ? (
+                  <Check size={15} aria-hidden="true" />
+                ) : (
+                  <Link2 size={15} aria-hidden="true" />
+                )}
+                {draftOk ? t("httpValidationReady") : draftResult.status}
+              </span>
+            </div>
+
+            <div className="http-route-lane" aria-label={t("httpFlowTitle")}>
+              <div className="http-route-node http-route-node--source">
+                <span className="http-route-node__orb" aria-hidden="true">
+                  <Globe2 size={18} />
+                </span>
+                <small>{t("httpRouteSourceNode")}</small>
+                <strong>{compactUrl(urlValue)}</strong>
+              </div>
+              <span className="http-route-connector" aria-hidden="true">
+                <span className="http-route-connector__packet" />
+              </span>
+              <div className="http-route-node http-route-node--extract">
+                <span className="http-route-node__orb" aria-hidden="true">
+                  <Braces size={18} />
+                </span>
+                <small>{t("httpRouteExtractNode")}</small>
+                <strong>{jsonPathValue.trim() || t("notAvailable")}</strong>
+              </div>
+              <span className="http-route-connector" aria-hidden="true">
+                <span className="http-route-connector__packet" />
+              </span>
+              <div className="http-route-node http-route-node--digest">
+                <span className="http-route-node__orb" aria-hidden="true">
+                  <Fingerprint size={18} />
+                </span>
+                <small>{t("httpRouteDigestNode")}</small>
+                <strong>{draftDigest}</strong>
+              </div>
+            </div>
+
+            <div className="http-signal-row" aria-label={t("httpSignalsLabel")}>
+              {routeSignals.map((signal) => (
+                <span
+                  key={signal.key}
+                  className={[
+                    "http-signal-chip",
+                    signal.ok
+                      ? "http-signal-chip--ok"
+                      : "http-signal-chip--warn",
+                  ].join(" ")}
+                >
+                  {signal.ok ? (
+                    <Check size={14} aria-hidden="true" />
+                  ) : (
+                    <Link2 size={14} aria-hidden="true" />
+                  )}
+                  <small>{signal.label}</small>
+                  <strong>{signal.value}</strong>
+                </span>
+              ))}
+            </div>
+          </section>
 
           <div
             className="http-quick-actions"
