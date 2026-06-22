@@ -15,6 +15,11 @@ const appMessages = {
   vaultHeroVisualValue: { en: "Bounty live", zh: "悬赏进行中" },
   create: { en: "Create", zh: "创建" },
   break: { en: "Break", zh: "破解" },
+  challengeConsole: { en: "Challenge console", zh: "挑战控制台" },
+  challengeConsoleTitle: {
+    en: "Build a bounty vault or inspect one to break",
+    zh: "创建悬赏保险库，或加载目标发起破解",
+  },
   myVaultsStat: { en: "My Vaults", zh: "我的保险库" },
   openVaultsStat: { en: "Open Vaults", zh: "开放保险库" },
   bountyLabel: { en: "Bounty", zh: "悬赏金" },
