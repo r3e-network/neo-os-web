@@ -361,6 +361,83 @@
     transform 0.22s ease;
 }
 
+.redenv-envelope-preview__packets {
+  position: absolute;
+  inset: 20px 18px 58px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.redenv-envelope-preview__packet {
+  position: absolute;
+  display: block;
+  width: 56px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 228, 147, 0.66);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow:
+    0 12px 28px rgba(88, 46, 36, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  opacity: 0.82;
+  transform-origin: 50% 55%;
+  animation: redenv-packet-float 5.8s ease-in-out infinite;
+}
+
+.redenv-envelope-preview__packet img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.redenv-envelope-preview__packet--one {
+  left: 10%;
+  top: 12%;
+  transform: rotate(-10deg);
+}
+
+.redenv-envelope-preview__packet--two {
+  right: 16%;
+  top: 16%;
+  width: 48px;
+  animation-delay: 0.64s;
+  transform: rotate(8deg);
+}
+
+.redenv-envelope-preview__packet--three {
+  left: 20%;
+  bottom: 18%;
+  width: 46px;
+  animation-delay: 1.18s;
+  transform: rotate(12deg);
+}
+
+.redenv-envelope-preview__packet--four {
+  right: 10%;
+  bottom: 24%;
+  width: 52px;
+  animation-delay: 1.76s;
+  transform: rotate(-8deg);
+}
+
+.redenv-envelope-preview__packet--five {
+  left: 48%;
+  top: 36%;
+  width: 44px;
+  animation-delay: 2.24s;
+  transform: rotate(5deg);
+}
+
+.redenv-envelope-preview--create .redenv-envelope-preview__packet {
+  animation-name: redenv-packet-deal;
+}
+
+.redenv-envelope-preview--opening .redenv-envelope-preview__packet,
+.redenv-envelope-preview--lucky .redenv-envelope-preview__packet {
+  animation-duration: 1.2s;
+}
+
 .redenv-envelope-preview__seal {
   position: absolute;
   top: 16px;
@@ -1209,6 +1286,32 @@
   }
 }
 
+@keyframes redenv-packet-float {
+  0%,
+  100% {
+    opacity: 0.58;
+    translate: 0 0;
+  }
+
+  46% {
+    opacity: 0.9;
+    translate: 0 -8px;
+  }
+}
+
+@keyframes redenv-packet-deal {
+  0%,
+  100% {
+    opacity: 0.62;
+    translate: -4px 0;
+  }
+
+  46% {
+    opacity: 0.94;
+    translate: 7px -6px;
+  }
+}
+
 @keyframes redenv-button-sheen {
   0%,
   42% {
@@ -1368,6 +1471,17 @@
     font-size: 10px;
   }
 
+  .redenv-envelope-preview__packet {
+    width: 46px;
+  }
+
+  .redenv-envelope-preview__packet--two,
+  .redenv-envelope-preview__packet--three,
+  .redenv-envelope-preview__packet--four,
+  .redenv-envelope-preview__packet--five {
+    width: 40px;
+  }
+
   .redenv-tabs {
     width: 100%;
   }
@@ -1386,6 +1500,7 @@
   .redenv-envelope-preview::before,
   .redenv-envelope-preview::after,
   .redenv-envelope-preview__art img,
+  .redenv-envelope-preview__packet,
   .redenv-envelope-preview__seal,
   .redenv-envelope-preview__seal::after,
   .redenv-open-button,

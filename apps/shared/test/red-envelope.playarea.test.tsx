@@ -138,6 +138,7 @@ describe("Red Envelope PlayArea", () => {
 
     expect(container.querySelector(".redenv-envelope-preview--claim")).toBeTruthy();
     expect(container.querySelector(".redenv-envelope-preview__seal")).toBeTruthy();
+    expect(container.querySelectorAll(".redenv-envelope-preview__packet img").length).toBe(5);
     expect(container.querySelector(".redenv-open-button")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /#pool-alpha\s+3\/8/ }));
@@ -173,6 +174,7 @@ describe("Red Envelope PlayArea", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Create" }));
 
     expect(container.querySelector(".redenv-envelope-preview--create")).toBeTruthy();
+    expect(container.querySelectorAll(".redenv-envelope-preview__packet img").length).toBe(5);
     expect(container.querySelector(".redenv-send-button")).toBeTruthy();
     expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
     expect(document.querySelectorAll(".redenv-preset-group").length).toBe(3);
