@@ -1,4 +1,6 @@
 import React from "react";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -25,6 +27,7 @@ function t(key: string) {
     descriptionPlaceholder: "Optional hints or lore",
     bountyLabel: "Bounty",
     difficultyLabel: "Difficulty",
+    netPayoutLabel: "Net Payout",
     difficultyEasy: "Easy",
     difficultyMedium: "Medium",
     difficultyHard: "Hard",
@@ -63,6 +66,7 @@ function t(key: string) {
     attempts: "Attempts",
     winner: "Winner",
     remainingDaysLabel: "Days Left",
+    daysUnit: "days",
     tokenGas: "GAS",
     secretAttemptLabel: "Break Secret",
     attemptCostNote: "The attempt fee is charged on every try.",
@@ -152,6 +156,9 @@ describe("Unbreakable Vault PlayArea", () => {
       target: { value: "open sesame" },
     });
     expect(container.querySelector(".vault-blueprint__lock.is-ready")).toBeTruthy();
+    expect(container.querySelector(".vault-system-stage--ready")).toBeTruthy();
+    expect(container.querySelector(".vault-system-stage__core")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-system-stage__node").length).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "Create Vault (bounty + hash)" }));
 
     await waitFor(() => {
@@ -206,6 +213,9 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(screen.getByText("Crack me if you can")).toBeTruthy();
     expect(container.querySelector(".vault-target-card--loaded")).toBeTruthy();
     expect(container.querySelector(".vault-target-card--attempt-ready")).toBeTruthy();
+    expect(container.querySelector(".vault-break-stage--attempt")).toBeTruthy();
+    expect(container.querySelector(".vault-break-stage__reticle")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-break-stage__route .is-active").length).toBe(3);
   });
 
   it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
@@ -386,5 +396,19 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(
       screen.getByText(/the GAS deposit and contract call are batched/),
     ).toBeTruthy();
+  });
+
+  it("keeps vault challenge motion explicit and reduced-motion safe", () => {
+    const repoPath = resolve(process.cwd(), "apps/unbreakable-vault/src/PlayArea.scss");
+    const sharedPath = resolve(process.cwd(), "../unbreakable-vault/src/PlayArea.scss");
+    const css = readFileSync(existsSync(repoPath) ? repoPath : sharedPath, "utf8");
+
+    expect(css).toContain("@keyframes vault-system-ready-ring");
+    expect(css).toContain("@keyframes vault-system-seal");
+    expect(css).toContain("@keyframes vault-break-scan");
+    expect(css).toContain("@keyframes vault-break-reticle");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain(".vault-break-stage__scan");
+    expect(css).toContain("animation: none");
   });
 });
