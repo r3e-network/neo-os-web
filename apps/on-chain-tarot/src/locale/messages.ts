@@ -115,6 +115,10 @@ const appMessages = {
     en: "Choose an intent to place your question on the reading slip.",
     zh: "选择一个意图，把问题放到读牌签上。",
   },
+  oracleLaneLabel: { en: "Oracle draw lane", zh: "预言抽牌轨道" },
+  oracleLaneIntent: { en: "Intent", zh: "意图" },
+  oracleLaneDraw: { en: "Draw", zh: "抽牌" },
+  oracleLaneReveal: { en: "Reveal", zh: "揭示" },
   questionCharacterCount: {
     en: "{count}/{max} characters",
     zh: "{count}/{max} 字",
