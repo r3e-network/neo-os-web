@@ -165,13 +165,15 @@ describe("Event Ticket Pass PlayArea", () => {
       notes: "",
       active: true,
     };
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={state({
           events: [event],
           selectedEventId: "evt-1",
           selectedEvent: event,
+          issueRecipient: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+          canIssueTicket: true,
         })}
         dispatch={vi.fn(async () => undefined)}
       />,
@@ -179,6 +181,9 @@ describe("Event Ticket Pass PlayArea", () => {
 
     expect(screen.getAllByText("Create Event").length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("Event name").length).toBeGreaterThan(0);
+    expect(container.querySelector(".ticket-issue-runway.is-ready")).toBeTruthy();
+    expect(container.querySelector(".ticket-issue-runway__ticket")).toBeTruthy();
+    expect(container.querySelectorAll(".ticket-issue-runway__node")).toHaveLength(3);
 
     // The organizer desk defaults to the "Issue Ticket" tab.
     expect(screen.getByLabelText("Recipient address")).toBeTruthy();
@@ -323,8 +328,13 @@ describe("Event Ticket Pass PlayArea", () => {
 
     expect(styles).toContain("@keyframes ticket-hero-drift");
     expect(styles).toContain("@keyframes ticket-stage-sheen");
+    expect(styles).toContain("@keyframes ticket-issue-stage-sweep");
+    expect(styles).toContain("@keyframes ticket-issue-rail-flow");
+    expect(styles).toContain("@keyframes ticket-issue-pass-route");
+    expect(styles).toContain("@keyframes ticket-issue-pass-route-mobile");
     expect(styles).toContain("@keyframes ticket-scan-grid");
     expect(styles).toContain("@keyframes ticket-pass-art-drift");
+    expect(styles).toContain(".ticket-issue-runway__ticket");
     expect(styles).toContain(".ticket-create-preview--stage::after");
     expect(styles).toContain(".ticket-scan-frame::after");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");

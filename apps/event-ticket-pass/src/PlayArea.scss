@@ -253,7 +253,7 @@
   width: 58px;
   height: 58px;
   border-radius: 10px;
-  background-image: url("../pass-artwork.jpg");
+  background-image: url("/pass-artwork.jpg");
   background-size: cover;
   background-position: center;
   animation: ticket-pass-float 4.8s ease-in-out infinite;
@@ -688,7 +688,7 @@
 .ticket-create-preview__art {
   position: absolute;
   inset: 0;
-  background-image: url("../pass-artwork.jpg");
+  background-image: url("/pass-artwork.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -1127,6 +1127,190 @@
   );
 }
 
+.ticket-issue-runway {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  min-height: 202px;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(244, 127, 97, 0.2);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 240, 232, 0.92), transparent 38%),
+    radial-gradient(circle at 88% 12%, rgba(228, 248, 240, 0.82), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 236, 0.78));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.66),
+    0 14px 30px rgba(31, 48, 42, 0.09);
+}
+
+.ticket-issue-runway::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.46) 42%, transparent 64%);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-64%);
+}
+
+.ticket-issue-runway.is-ready::before,
+.ticket-issue-runway.is-issuing::before {
+  animation: ticket-issue-stage-sweep 5.4s ease-in-out infinite;
+}
+
+.ticket-issue-runway__rail {
+  position: absolute;
+  right: 13%;
+  left: 13%;
+  top: 45%;
+  z-index: 1;
+  height: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(244, 127, 97, 0.18), rgba(22, 199, 132, 0.74), rgba(217, 165, 47, 0.72), rgba(244, 127, 97, 0.18));
+  background-size: 220px 100%;
+  box-shadow: 0 0 18px rgba(22, 199, 132, 0.18);
+}
+
+.ticket-issue-runway.is-ready .ticket-issue-runway__rail,
+.ticket-issue-runway.is-issuing .ticket-issue-runway__rail {
+  animation: ticket-issue-rail-flow 2.1s linear infinite;
+}
+
+.ticket-issue-runway__ticket {
+  position: absolute;
+  top: calc(45% - 24px);
+  left: 13%;
+  z-index: 4;
+  width: 44px;
+  aspect-ratio: 1 / 1.26;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 12px;
+  background: url("/pass-artwork.jpg") center / cover;
+  box-shadow:
+    0 14px 22px rgba(31, 48, 42, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+  opacity: 0.84;
+  transform: rotate(-7deg) scale(0.94);
+  pointer-events: none;
+}
+
+.ticket-issue-runway__ticket::after {
+  position: absolute;
+  inset: 7px;
+  border: 1px dashed rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  content: "";
+}
+
+.ticket-issue-runway.is-ready .ticket-issue-runway__ticket {
+  opacity: 1;
+  animation: ticket-issue-pass-route 3s ease-in-out infinite;
+}
+
+.ticket-issue-runway.is-issuing .ticket-issue-runway__ticket {
+  opacity: 1;
+  animation: ticket-issue-pass-print 820ms ease-in-out infinite;
+}
+
+.ticket-issue-runway__node {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  min-height: 114px;
+  align-content: center;
+  padding: 12px;
+  border: 1px solid rgba(22, 33, 29, 0.08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 9px 20px rgba(31, 48, 42, 0.06);
+}
+
+.ticket-issue-runway__node svg {
+  color: var(--tk-brand-strong);
+}
+
+.ticket-issue-runway__art {
+  display: block;
+  width: 42px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: url("/pass-artwork.jpg") center / cover;
+  box-shadow: var(--tk-shadow-soft);
+}
+
+.ticket-issue-runway__node small,
+.ticket-issue-runway__caption span {
+  color: var(--tk-muted);
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.ticket-issue-runway__node strong,
+.ticket-issue-runway__caption strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tk-ink);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.24;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-issue-runway__node--mint {
+  border-color: rgba(22, 199, 132, 0.18);
+}
+
+.ticket-issue-runway__node--holder {
+  border-color: rgba(217, 165, 47, 0.22);
+}
+
+.ticket-issue-runway__caption {
+  position: relative;
+  z-index: 3;
+  grid-column: 1 / -1;
+  display: inline-grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: -2px;
+  padding: 9px 11px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--tk-brand-deep);
+  box-shadow: var(--tk-shadow-soft);
+}
+
+.ticket-issue-runway__caption > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ticket-issue-runway__caption svg {
+  color: var(--tk-gold);
+}
+
 .ticket-issue-preview__copy {
   display: grid;
   gap: 5px;
@@ -1231,7 +1415,7 @@
 
 .ticket-pass__art {
   min-height: 142px;
-  background-image: url("../pass-artwork.jpg");
+  background-image: url("/pass-artwork.jpg");
   background-size: cover;
   background-position: center;
   transform: scale(1.02);
@@ -1680,6 +1864,46 @@
     height: 110px;
   }
 
+  .ticket-issue-runway {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .ticket-issue-runway__rail {
+    top: 18px;
+    bottom: 58px;
+    left: 30px;
+    right: auto;
+    width: 3px;
+    height: auto;
+    background:
+      linear-gradient(180deg, rgba(244, 127, 97, 0.18), rgba(22, 199, 132, 0.74), rgba(217, 165, 47, 0.72), rgba(244, 127, 97, 0.18));
+    background-size: 100% 220px;
+  }
+
+  .ticket-issue-runway__ticket {
+    top: 18px;
+    left: 12px;
+    width: 34px;
+  }
+
+  .ticket-issue-runway.is-ready .ticket-issue-runway__ticket {
+    animation-name: ticket-issue-pass-route-mobile;
+  }
+
+  .ticket-issue-runway.is-issuing .ticket-issue-runway__ticket {
+    animation-name: ticket-issue-pass-print-mobile;
+  }
+
+  .ticket-issue-runway__node {
+    min-height: 84px;
+    padding-left: 52px;
+  }
+
+  .ticket-issue-runway__caption {
+    border-radius: 14px;
+  }
+
   .ticket-create-preview--stage {
     min-height: 300px;
   }
@@ -1697,6 +1921,9 @@
 @media (prefers-reduced-motion: reduce) {
   .ticket-hero__image,
   .ticket-hero__mini-art,
+  .ticket-issue-runway::before,
+  .ticket-issue-runway__rail,
+  .ticket-issue-runway__ticket,
   .ticket-issue-preview__art,
   .ticket-create-preview--stage::after,
   .ticket-create-preview--stage .ticket-create-preview__body,
@@ -1755,6 +1982,91 @@
   78%,
   100% {
     transform: translateX(120%);
+  }
+}
+
+@keyframes ticket-issue-stage-sweep {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateX(-64%);
+  }
+  70% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(64%);
+  }
+}
+
+@keyframes ticket-issue-rail-flow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 220px 0;
+  }
+}
+
+@keyframes ticket-issue-pass-route {
+  0%,
+  100% {
+    left: 13%;
+    transform: rotate(-7deg) scale(0.94);
+  }
+  44% {
+    left: calc(50% - 22px);
+    transform: translateY(-5px) rotate(4deg) scale(1.05);
+  }
+  78% {
+    left: calc(87% - 44px);
+    transform: rotate(8deg) scale(1);
+  }
+}
+
+@keyframes ticket-issue-pass-print {
+  0%,
+  100% {
+    left: calc(50% - 22px);
+    transform: rotate(-6deg) scale(1);
+  }
+  50% {
+    left: calc(56% - 22px);
+    transform: translateY(-4px) rotate(8deg) scale(1.08);
+  }
+}
+
+@keyframes ticket-issue-pass-route-mobile {
+  0%,
+  100% {
+    top: 18px;
+    left: 12px;
+    transform: rotate(-7deg) scale(0.94);
+  }
+  44% {
+    top: calc(50% - 28px);
+    left: 12px;
+    transform: translateX(2px) rotate(4deg) scale(1.05);
+  }
+  78% {
+    top: calc(100% - 92px);
+    left: 12px;
+    transform: rotate(8deg) scale(1);
+  }
+}
+
+@keyframes ticket-issue-pass-print-mobile {
+  0%,
+  100% {
+    top: calc(50% - 28px);
+    left: 12px;
+    transform: rotate(-6deg) scale(1);
+  }
+  50% {
+    top: calc(58% - 28px);
+    left: 12px;
+    transform: translateX(2px) rotate(8deg) scale(1.08);
   }
 }
 
