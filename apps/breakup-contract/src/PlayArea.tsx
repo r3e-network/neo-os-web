@@ -20,7 +20,8 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
+const isValidNeoAddress = (value: string) =>
+  /^N[0-9a-zA-Z]{33}$/.test(value.trim());
 
 const truncate = (value: string) =>
   value.length > 24 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
@@ -51,9 +52,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const TERMS_MAX = 2000;
   const stakeNumber = Number(stake);
   const daysNumber = Number(days);
-  const partnerLooksInvalid = partner.trim().length > 0 && !isValidNeoAddress(partner);
+  const partnerLooksInvalid =
+    partner.trim().length > 0 && !isValidNeoAddress(partner);
   const stakeLooksInvalid =
-    stake.trim().length > 0 && (!Number.isFinite(stakeNumber) || stakeNumber < 1);
+    stake.trim().length > 0 &&
+    (!Number.isFinite(stakeNumber) || stakeNumber < 1);
   const daysLooksInvalid =
     days.trim().length > 0 && (!Number.isFinite(daysNumber) || daysNumber < 30);
   // Length limits mirror the composable's createContract guards (title > 100,
@@ -88,10 +91,59 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const hasContracts = contractCount > 0;
   const previewTitle = title.trim() || t("pactPreviewUntitled");
-  const previewPartner = partner.trim() ? truncate(partner.trim()) : t("pactPreviewPartner");
+  const previewPartner = partner.trim()
+    ? truncate(partner.trim())
+    : t("pactPreviewPartner");
   const previewStake = stake.trim() || "0";
   const previewDays = days.trim() || "90";
   const previewTerms = terms.trim() || t("pactPreviewTerms");
+  const hasDraftInput = Boolean(
+    partner.trim() || stake.trim() || title.trim() || terms.trim(),
+  );
+  const pactState = isLoading
+    ? "submitting"
+    : canSubmit
+      ? "ready"
+      : hasDraftInput
+        ? "drafting"
+        : "empty";
+  const lifecycleSteps = [
+    {
+      key: "partner",
+      label: t("builderStepPartner"),
+      value: previewPartner,
+      icon: UserRound,
+      active: isValidNeoAddress(partner),
+    },
+    {
+      key: "stake",
+      label: t("builderStepStake"),
+      value: `${previewStake} GAS`,
+      icon: Coins,
+      active: Number.isFinite(stakeNumber) && stakeNumber >= 1,
+    },
+    {
+      key: "terms",
+      label: t("builderStepTerms"),
+      value: previewTitle,
+      icon: FileText,
+      active: title.trim().length > 0 && !titleTooLong && !termsTooLong,
+    },
+    {
+      key: "wallet",
+      label: t("createContract"),
+      value: isLoading
+        ? t("contractPreparing", {
+            title: title || "contract",
+            amount: `${stake || "0"} GAS`,
+          })
+        : canSubmit
+          ? t("createHintReady")
+          : t(createHintKey),
+      icon: ShieldCheck,
+      active: canSubmit || isLoading,
+    },
+  ];
 
   const handleCreate = async () => {
     if (!canSubmit) return;
@@ -115,9 +167,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   return (
-    <div className="breakup-play-area">
+    <div className={`breakup-play-area breakup-play-area--${pactState}`}>
       <div className="breakup-hero">
-        <img className="breakup-hero-image" src="./pact-table.jpg" alt={t("heroImageAlt")} />
+        <img
+          className="breakup-hero-image"
+          src="./pact-table.jpg"
+          alt={t("heroImageAlt")}
+        />
         <div className="breakup-hero-shade" aria-hidden="true" />
         <div className="breakup-hero-content">
           <span className="breakup-hero-badge" aria-hidden="true">
@@ -125,9 +181,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </span>
           <span className="breakup-hero-eyebrow">{t("contractTitle")}</span>
           <h1 className="breakup-hero-title">{t("title")}</h1>
-          <p className="breakup-hero-subtitle">
-            {t("subtitle")}
-          </p>
+          <p className="breakup-hero-subtitle">{t("subtitle")}</p>
           <ul className="breakup-hero-tags" aria-label={t("howItWorksTitle")}>
             <li className="breakup-hero-tag">
               <Coins size={14} strokeWidth={2} aria-hidden="true" />
@@ -164,9 +218,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <section className="breakup-builder" aria-label={t("newContract")}>
         <div className="breakup-pact-preview">
-          <span className="breakup-preview-label">{t("pactPreview")}</span>
-          <strong>{previewTitle}</strong>
-          <p>{previewTerms}</p>
+          <div className="breakup-pact-tabletop" aria-hidden="true">
+            <img
+              src="./pact-table.jpg"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+            <span className="breakup-pact-seal">
+              <HeartHandshake size={22} strokeWidth={2.1} />
+            </span>
+            <span className="breakup-pact-stake">{previewStake} GAS</span>
+          </div>
+          <div className="breakup-pact-document">
+            <span className="breakup-preview-label">{t("pactPreview")}</span>
+            <strong>{previewTitle}</strong>
+            <p>{previewTerms}</p>
+            <div className="breakup-pact-signature" aria-hidden="true">
+              <span />
+              <span />
+            </div>
+          </div>
           <div className="breakup-preview-meta">
             <span>
               <UserRound size={15} strokeWidth={2} aria-hidden="true" />
@@ -185,9 +257,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
             <span>{t("pactPreviewRule")}</span>
           </div>
+          <div className="breakup-pact-lifecycle" role="list">
+            {lifecycleSteps.map(({ key, label, value, icon: Icon, active }) => (
+              <span
+                key={key}
+                className={`breakup-pact-lifecycle__step${active ? " is-active" : ""}`}
+                role="listitem"
+              >
+                <Icon size={16} strokeWidth={2} aria-hidden="true" />
+                <small>{label}</small>
+                <strong>{value}</strong>
+              </span>
+            ))}
+          </div>
         </div>
 
-        <div className="breakup-builder-panel">
+        <div
+          className={`breakup-builder-panel breakup-builder-panel--${pactState}`}
+        >
           <div className="breakup-builder-head">
             <span className="breakup-builder-eyebrow">{t("newContract")}</span>
             <h2>{t("builderTitle")}</h2>
@@ -215,7 +302,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               value={title}
               required
               error={titleTooLong ? t("titleTooLong") : ""}
-              hint={titleTooLong ? "" : t("titleCounter", { count: title.trim().length, max: TITLE_MAX })}
+              hint={
+                titleTooLong
+                  ? ""
+                  : t("titleCounter", {
+                      count: title.trim().length,
+                      max: TITLE_MAX,
+                    })
+              }
               onChange={setTitle}
             />
           </div>
@@ -284,7 +378,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             className="breakup-terms-input"
             value={terms}
             error={termsTooLong ? t("termsTooLong") : ""}
-            hint={termsTooLong ? "" : t("termsCounter", { count: terms.trim().length, max: TERMS_MAX })}
+            hint={
+              termsTooLong
+                ? ""
+                : t("termsCounter", {
+                    count: terms.trim().length,
+                    max: TERMS_MAX,
+                  })
+            }
             onChange={setTerms}
           />
           {actionNotice && (
@@ -297,10 +398,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="primary"
               size="lg"
               block
-              className="breakup-create-cta"
+              className={`breakup-create-cta${canSubmit ? " is-ready" : ""}`}
               loading={isLoading}
               disabled={!canSubmit}
-              aria-label={isLoading ? t("contractPreparing", { title: title || "contract", amount: `${stake || "0"} GAS` }) : t("createContract")}
+              aria-label={
+                isLoading
+                  ? t("contractPreparing", {
+                      title: title || "contract",
+                      amount: `${stake || "0"} GAS`,
+                    })
+                  : t("createContract")
+              }
               onClick={handleCreate}
             >
               {t("createContract")}
@@ -321,24 +429,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           pact lifecycle so the lower page is not a void. Hidden once there are
           real contracts (or a result/notice) to show in the list below. */}
       {!hasContracts && !lastSubmittedTitle && !serviceNotice && (
-        <NeoCard title={t("howItWorksTitle")} className="breakup-howitworks-card">
+        <NeoCard
+          title={t("howItWorksTitle")}
+          className="breakup-howitworks-card"
+        >
           <ol className="breakup-howitworks">
             <li className="breakup-howitworks-step">
-              <span className="breakup-howitworks-num" aria-hidden="true">1</span>
+              <span className="breakup-howitworks-num" aria-hidden="true">
+                1
+              </span>
               <div className="breakup-howitworks-text">
                 <strong>{t("howItWorksStakeTitle")}</strong>
                 <span>{t("howItWorksStakeCopy")}</span>
               </div>
             </li>
             <li className="breakup-howitworks-step">
-              <span className="breakup-howitworks-num" aria-hidden="true">2</span>
+              <span className="breakup-howitworks-num" aria-hidden="true">
+                2
+              </span>
               <div className="breakup-howitworks-text">
                 <strong>{t("howItWorksBreakTitle")}</strong>
                 <span>{t("howItWorksBreakCopy")}</span>
               </div>
             </li>
             <li className="breakup-howitworks-step">
-              <span className="breakup-howitworks-num" aria-hidden="true">3</span>
+              <span className="breakup-howitworks-num" aria-hidden="true">
+                3
+              </span>
               <div className="breakup-howitworks-text">
                 <strong>{t("howItWorksSettleTitle")}</strong>
                 <span>{t("howItWorksSettleCopy")}</span>
@@ -353,7 +470,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           reusable prepaid credit; withdraw returns it to the wallet. Shown only
           when there is recoverable credit. */}
       {hasCredit && (
-        <NeoCard title={t("creditRecoveryTitle")} className="breakup-credit-card">
+        <NeoCard
+          title={t("creditRecoveryTitle")}
+          className="breakup-credit-card"
+        >
           <p className="breakup-credit-copy">{t("creditRecoveryCopy")}</p>
           <div className="breakup-credit-row">
             <span className="breakup-credit-amount">
@@ -397,9 +517,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             t={t}
           />
           {contracts.length === 0 && !isLoading && !serviceNotice && (
-            <p className="breakup-list-empty">
-              {t("noContractsHint")}
-            </p>
+            <p className="breakup-list-empty">{t("noContractsHint")}</p>
           )}
         </NeoCard>
       )}
