@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cleanup,
   fireEvent,
@@ -31,6 +33,11 @@ function t(key: string) {
     sessionKeyMissing: "missing",
     sessionHeroTitle: "Scoped session keys for safer AA actions",
     sessionHeroCopy: "Generate and bind scoped session keys.",
+    sessionPassAria: "Session pass authorization preview",
+    sessionPassKicker: "Live session pass",
+    sessionPassTitle: "Scope before you sign",
+    sessionPassReady: "Ready to configure",
+    sessionPassDraft: "Draft needs fields",
     sessionMetricsLabel: "Session key readiness",
     sessionMetricStatus: "Session",
     sessionMetricSponsor: "Sponsor",
@@ -119,7 +126,7 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
   it("prefills session key forms from host launch params and dispatches real fields", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState()}
@@ -129,6 +136,18 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
         )}
       />,
     );
+
+    const passStage = container.querySelector(".session-pass-stage");
+    expect(passStage).toBeTruthy();
+    expect(passStage?.classList.contains("session-pass-stage--ready")).toBe(
+      true,
+    );
+    expect(
+      passStage?.querySelector('.session-pass-stage__image[src="./session-key-control.jpg"]'),
+    ).toBeTruthy();
+    expect(passStage?.querySelectorAll(".session-pass-stage__facts div").length).toBe(6);
+    expect(screen.getByText("Scope before you sign")).toBeTruthy();
+    expect(screen.getByText("Ready to configure")).toBeTruthy();
 
     expect(
       (screen.getByLabelText("Account ID / Hash") as HTMLInputElement).value,
@@ -257,6 +276,20 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show" }));
     expect(screen.getByLabelText("Session Private Key").textContent).toBe(
       privateKey,
+    );
+  });
+
+  it("keeps the session pass stage animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../aa-session-key-lab/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes session-pass-image-drift");
+    expect(styles).toContain("@keyframes session-pass-route");
+    expect(styles).toContain("@keyframes session-pass-dot");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.session-pass-stage__route i[\s\S]*animation:\s*none/,
     );
   });
 

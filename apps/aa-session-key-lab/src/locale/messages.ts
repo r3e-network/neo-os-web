@@ -215,6 +215,17 @@ const appMessages = {
     en: "Scoped until expiry",
     zh: "到期前受限授权",
   },
+  sessionPassAria: {
+    en: "Session pass authorization preview",
+    zh: "Session Pass 授权预览",
+  },
+  sessionPassKicker: { en: "Live session pass", zh: "实时 Session Pass" },
+  sessionPassTitle: {
+    en: "Scope before you sign",
+    zh: "签名前确认作用域",
+  },
+  sessionPassReady: { en: "Ready to configure", zh: "可以配置" },
+  sessionPassDraft: { en: "Draft needs fields", zh: "草稿待补全" },
   sessionMetricsLabel: {
     en: "Session key readiness",
     zh: "Session key 就绪状态",

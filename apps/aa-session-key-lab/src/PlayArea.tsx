@@ -193,6 +193,16 @@ export default function PlayArea({
       : "pending";
   const scopeTone =
     allowedMethod.trim() && methodDisplay !== t("anyMethod") ? "ok" : "pending";
+  const sessionPassReady =
+    Boolean(accountSeed.trim()) &&
+    Boolean(sessionPublicKey.trim()) &&
+    Boolean(targetContract.trim()) &&
+    Boolean(expiresAt.trim());
+  const sessionPassExpiry = expiryPreview || expiresAt.trim() || DASH;
+  const sessionPassTarget = normalizedTargetContract || targetContract.trim() || DASH;
+  const sessionPassKey = sessionPublicKey.trim()
+    ? `${sessionPublicKey.trim().slice(0, 10)}…${sessionPublicKey.trim().slice(-6)}`
+    : t("sessionKeyMissing");
 
   const environmentItems = [
     {
@@ -316,6 +326,17 @@ export default function PlayArea({
           </span>
         </div>
       </section>
+
+      <SessionPassStage
+        t={t}
+        ready={sessionPassReady}
+        account={derivedAccountIdHash || accountSeed.trim() || DASH}
+        sessionKey={sessionPassKey}
+        target={sessionPassTarget}
+        method={methodDisplay}
+        expiry={sessionPassExpiry}
+        sponsor={sponsorStatusDisplay || DASH}
+      />
 
       {/* Linear flow: first generate key and sponsorship, then configure scope. */}
       <section className="session-flow-stack">
@@ -791,5 +812,94 @@ export default function PlayArea({
         </details>
       </section>
     </div>
+  );
+}
+
+function SessionPassStage({
+  t,
+  ready,
+  account,
+  sessionKey,
+  target,
+  method,
+  expiry,
+  sponsor,
+}: {
+  t: PlayAreaProps["t"];
+  ready: boolean;
+  account: string;
+  sessionKey: string;
+  target: string;
+  method: string;
+  expiry: string;
+  sponsor: string;
+}) {
+  return (
+    <section
+      className={`session-pass-stage${ready ? " session-pass-stage--ready" : ""}`}
+      aria-label={t("sessionPassAria")}
+    >
+      <img
+        className="session-pass-stage__image"
+        src="./session-key-control.jpg"
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+        decoding="async"
+      />
+      <div className="session-pass-stage__shade" aria-hidden="true" />
+      <div className="session-pass-stage__card">
+        <span className="session-pass-stage__kicker">
+          {t("sessionPassKicker")}
+        </span>
+        <strong>{t("sessionPassTitle")}</strong>
+        <span className="session-pass-stage__status">
+          <i aria-hidden="true" />
+          {ready ? t("sessionPassReady") : t("sessionPassDraft")}
+        </span>
+      </div>
+      <div className="session-pass-stage__route" aria-hidden="true">
+        <span>
+          <KeyRound />
+          {t("sessionFlowKey")}
+        </span>
+        <i />
+        <span>
+          <HandCoins />
+          {t("sessionFlowSponsor")}
+        </span>
+        <i />
+        <span>
+          <ShieldCheck />
+          {t("sessionFlowConfigure")}
+        </span>
+      </div>
+      <dl className="session-pass-stage__facts">
+        <div>
+          <dt>{t("derivedAccountId")}</dt>
+          <dd>{account}</dd>
+        </div>
+        <div>
+          <dt>{t("sessionPublicKey")}</dt>
+          <dd>{sessionKey}</dd>
+        </div>
+        <div>
+          <dt>{t("targetContract")}</dt>
+          <dd>{target}</dd>
+        </div>
+        <div>
+          <dt>{t("allowedMethod")}</dt>
+          <dd>{method}</dd>
+        </div>
+        <div>
+          <dt>{t("expiresAt")}</dt>
+          <dd>{expiry}</dd>
+        </div>
+        <div>
+          <dt>{t("sessionMetricSponsor")}</dt>
+          <dd>{sponsor}</dd>
+        </div>
+      </dl>
+    </section>
   );
 }

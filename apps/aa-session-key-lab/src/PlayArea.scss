@@ -236,6 +236,208 @@
   }
 }
 
+.session-pass-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  min-height: 298px;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 22px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-xl, 24px);
+  background: #f1fbf6;
+  box-shadow:
+    var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06)),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.session-pass-stage__image,
+.session-pass-stage__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.session-pass-stage__image {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 54% center;
+  transform-origin: 56% 50%;
+  animation: session-pass-image-drift 16s ease-in-out infinite alternate;
+}
+
+.session-pass-stage__shade {
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.68) 46%, rgba(255, 255, 255, 0.2)),
+    linear-gradient(180deg, rgba(242, 253, 247, 0.78), rgba(255, 255, 255, 0.42));
+}
+
+.session-pass-stage::after {
+  content: "";
+  position: absolute;
+  inset: -30% -18%;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    112deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.42) 46%,
+    rgba(22, 199, 132, 0.12) 54%,
+    transparent 68%
+  );
+  opacity: 0;
+  transform: translateX(-42%) rotate(2deg);
+  animation: session-pass-sweep 7.8s ease-in-out infinite;
+}
+
+.session-pass-stage__card,
+.session-pass-stage__route,
+.session-pass-stage__facts {
+  position: relative;
+  z-index: 1;
+}
+
+.session-pass-stage__card {
+  align-self: stretch;
+  display: grid;
+  align-content: end;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 18px 44px rgba(17, 78, 56, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.session-pass-stage__kicker,
+.session-pass-stage__facts dt {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10.5px;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.session-pass-stage__card strong {
+  max-width: 260px;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 30px;
+  font-weight: 880;
+  letter-spacing: 0;
+  line-height: 1.08;
+}
+
+.session-pass-stage__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.session-pass-stage__status i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 999px;
+  background: #f0a23a;
+}
+
+.session-pass-stage--ready .session-pass-stage__status {
+  background: var(--ns-accent-soft, #e4f8f0);
+  color: var(--ns-accent-strong, #0fb174);
+}
+
+.session-pass-stage--ready .session-pass-stage__status i {
+  background: var(--ns-brand-strong, #0fb174);
+  animation: session-pass-dot 1.6s ease-in-out infinite;
+}
+
+.session-pass-stage__route {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.24fr) minmax(34px, 0.12fr) minmax(92px, 0.24fr) minmax(34px, 0.12fr) minmax(92px, 0.24fr);
+  gap: 8px;
+  align-self: start;
+  align-items: center;
+  min-width: 0;
+}
+
+.session-pass-stage__route span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(17, 78, 56, 0.08);
+}
+
+.session-pass-stage__route svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  color: var(--ns-accent-strong, #0fb174);
+}
+
+.session-pass-stage__route i {
+  display: block;
+  min-width: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(22, 199, 132, 0.18), rgba(22, 199, 132, 0.82), rgba(255, 255, 255, 0.64), rgba(22, 199, 132, 0.28));
+  background-size: 220% 100%;
+  animation: session-pass-route 2.8s linear infinite;
+}
+
+.session-pass-stage__facts {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-self: end;
+}
+
+.session-pass-stage__facts div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 24px rgba(17, 78, 56, 0.08);
+}
+
+.session-pass-stage__facts dd {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-family: var(--ns-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .session-play-area .neo-btn svg {
   width: 16px;
   height: 16px;
@@ -854,11 +1056,69 @@
   opacity: 1;
 }
 
+@keyframes session-pass-image-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.035) translate3d(1.4%, -1%, 0);
+  }
+}
+
+@keyframes session-pass-sweep {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateX(-42%) rotate(2deg);
+  }
+
+  64% {
+    opacity: 0.92;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(42%) rotate(2deg);
+  }
+}
+
+@keyframes session-pass-route {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 220% 50%;
+  }
+}
+
+@keyframes session-pass-dot {
+  0%,
+  100% {
+    opacity: 0.58;
+    transform: scale(0.88);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
 @media (max-width: 1080px) {
   // Action-first single column: step 1 (buttons) then step 2 (configure form)
   .session-hero,
   .session-flow-stack {
     grid-template-columns: 1fr;
+  }
+
+  .session-pass-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .session-pass-stage__facts {
+    grid-column: 1;
   }
 }
 
@@ -874,6 +1134,40 @@
 
   .session-hero__visual {
     min-height: 220px;
+  }
+
+  .session-pass-stage {
+    gap: 14px;
+    min-height: 0;
+    padding: 16px;
+    border-radius: var(--ns-radius-lg, 20px);
+  }
+
+  .session-pass-stage__card {
+    align-content: start;
+    min-height: 0;
+  }
+
+  .session-pass-stage__card strong {
+    font-size: 24px;
+  }
+
+  .session-pass-stage__route {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .session-pass-stage__route i {
+    width: 4px;
+    height: 28px;
+    justify-self: center;
+    background:
+      linear-gradient(180deg, rgba(22, 199, 132, 0.18), rgba(22, 199, 132, 0.82), rgba(255, 255, 255, 0.64), rgba(22, 199, 132, 0.28));
+    background-size: 100% 220%;
+  }
+
+  .session-pass-stage__facts {
+    grid-template-columns: 1fr;
   }
 
   .session-hero__head {
@@ -975,5 +1269,17 @@
   .session-detail-row {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-pass-stage__image,
+  .session-pass-stage::after,
+  .session-pass-stage__route i,
+  .session-pass-stage--ready .session-pass-stage__status i,
+  .session-disclosure__chevron,
+  .session-expiry-quick__chip {
+    animation: none;
+    transition: none;
   }
 }
