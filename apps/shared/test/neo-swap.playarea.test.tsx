@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -41,6 +42,7 @@ function t(key: string, params?: Record<string, string | number>) {
     introStepSettleBody: "Review before signing.",
     introStepSlippage: "Adjustable slippage",
     introStepSlippageBody: "Minimum received updates instantly.",
+    liquidityPool: "Route liquidity",
     loadingRate: "Loading rate...",
     marketPairs: "Market",
     max: "MAX",
@@ -53,7 +55,8 @@ function t(key: string, params?: Record<string, string | number>) {
     popularPairs: "Popular pairs",
     pricePreviewAwaiting: "Refresh to load the live rate",
     pricePreviewBody: "This is a planning quote until a router is deployed.",
-    pricePreviewOnly: "Preview only — review every figure in your wallet before you sign.",
+    pricePreviewOnly:
+      "Preview only — review every figure in your wallet before you sign.",
     pricePreviewRate: "1 {from} buys",
     pricePreviewTitle: "Live price preview",
     quoteHealth: "Quote health",
@@ -61,7 +64,8 @@ function t(key: string, params?: Record<string, string | number>) {
     rateAsOf: "Rate as of {time}",
     rateStale: "Rate may be stale",
     rateSourceAsOf: "Rate via Morpheus data feed, as of {time}",
-    rateSourceStaleAsOf: "Rate via Morpheus data feed, as of {time} — may be out of date",
+    rateSourceStaleAsOf:
+      "Rate via Morpheus data feed, as of {time} — may be out of date",
     rateUnavailable: "Rate unavailable",
     receiveEstimated: "You receive (estimated)",
     refreshRate: "Refresh rate",
@@ -84,7 +88,8 @@ function t(key: string, params?: Record<string, string | number>) {
     slippageCustom: "Custom",
     slippageCustomLabel: "Custom slippage in percent",
     slippageHigh: "High slippage — you may receive notably less than quoted.",
-    slippageHint: "Your trade reverts if you receive less than the minimum below.",
+    slippageHint:
+      "Your trade reverts if you receive less than the minimum below.",
     slippagePreset: "Set slippage to {pct}",
     swapArrow: "to",
     subtitle: "Plan a NEO/GAS trade with live quotes.",
@@ -108,7 +113,9 @@ function t(key: string, params?: Record<string, string | number>) {
   return value;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     availableTokens: [neoToken, gasToken],
     canSwap: false,
@@ -143,9 +150,27 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("Neo Swap PlayArea", () => {
   it("renders a DeFi trade desk while keeping no-router settlement unavailable", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
+    );
 
     expect(screen.getByRole("region", { name: "Swap ticket" })).toBeTruthy();
+    expect(container.querySelector(".neo-swap-play-area--quoted")).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: "Route liquidity" }),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(
+        '.neo-swap-liquidity-stage__image[src="./swap-liquidity-stage.jpg"]',
+      ),
+    ).toBeTruthy();
+    expect(container.querySelectorAll(".neo-swap-token-orb").length).toBe(2);
+    expect(
+      container.querySelectorAll(".neo-swap-liquidity-lane__pulse").length,
+    ).toBe(3);
+    expect(
+      container.querySelector(".neo-swap-liquidity-stage__status"),
+    ).toBeTruthy();
     expect(screen.getByText("Live price preview")).toBeTruthy();
     expect(screen.getAllByText("Planning mode only").length).toBeGreaterThan(0);
     expect(screen.getByText("Morpheus quote loaded")).toBeTruthy();
@@ -156,8 +181,11 @@ describe("Neo Swap PlayArea", () => {
     );
 
     expect(
-      (screen.getByRole("button", { name: "Settlement unavailable" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: "Settlement unavailable",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     expect(screen.queryByText("routeModePreview")).toBeNull();
   });
@@ -169,5 +197,28 @@ describe("Neo Swap PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: /GAS\/NEO/ }));
 
     expect(dispatch).toHaveBeenCalledWith("selectPair", "gas-neo");
+  });
+
+  it("keeps the DeFi desk motion backed by reduced-motion fallbacks", () => {
+    const playAreaStyles = fs.readFileSync(
+      `${process.cwd()}/../neo-swap/src/PlayArea.scss`,
+      "utf8",
+    );
+    const heroStyles = fs.readFileSync(
+      `${process.cwd()}/../neo-swap/src/components/SwapHero.scss`,
+      "utf8",
+    );
+
+    expect(playAreaStyles).toContain("@keyframes neo-swap-stage-drift");
+    expect(playAreaStyles).toContain("@keyframes neo-swap-liquidity-pulse");
+    expect(playAreaStyles).toContain("@keyframes neo-swap-orb-from");
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neo-swap-liquidity-lane__pulse/,
+    );
+    expect(heroStyles).toContain("@keyframes swap-hero-drift");
+    expect(heroStyles).toContain("@keyframes swap-token-float");
+    expect(heroStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.swap-hero-token/,
+    );
   });
 });
