@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -111,6 +112,8 @@ describe("On-Chain Tarot PlayArea", () => {
       expect((screen.getByLabelText("Question prompt") as HTMLTextAreaElement).value)
         .toBe("Which path should I choose?"),
     );
+    expect(document.querySelector(".tarot-play-area--question-ready")).toBeTruthy();
+    expect(document.querySelector(".tarot-spread-table--ready")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Question prompt"), {
       target: { value: "How should this launch unfold?" },
@@ -127,5 +130,76 @@ describe("On-Chain Tarot PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: "Draw 3 Cards" }));
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("draw"));
+  });
+
+  it("marks dealing, sealed, revealed, and complete card-table states", () => {
+    const sampleCards = [
+      {
+        id: 0,
+        name: "The Fool",
+        image: "./cards/00-the-fool.svg",
+        backImage: "./cards/back.svg",
+        flipped: true,
+        keywords: ["Oracle", "Major Arcana"],
+      },
+      {
+        id: 1,
+        name: "The Magician",
+        image: "./cards/01-the-magician.svg",
+        backImage: "./cards/back.svg",
+        flipped: true,
+        keywords: ["Oracle", "Major Arcana"],
+      },
+      {
+        id: 2,
+        name: "The High Priestess",
+        image: "./cards/02-the-high-priestess.svg",
+        backImage: "./cards/back.svg",
+        flipped: true,
+        keywords: ["Oracle", "Major Arcana"],
+      },
+    ];
+
+    const dealingView = render(
+      <PlayArea
+        t={t}
+        state={state({ isLoading: true, question: "What is next?" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(dealingView.container.querySelector(".tarot-play-area--dealing")).toBeTruthy();
+    expect(dealingView.container.querySelector(".tarot-spread-table--dealing")).toBeTruthy();
+    dealingView.unmount();
+
+    const completeView = render(
+      <PlayArea
+        t={t}
+        state={state({
+          allFlipped: true,
+          drawn: sampleCards,
+          hasDrawn: true,
+          question: "What is next?",
+          readingMode: "oracle",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(completeView.container.querySelector(".tarot-play-area--complete")).toBeTruthy();
+    expect(completeView.container.querySelector(".tarot-spread-table--complete")).toBeTruthy();
+    expect(completeView.container.querySelectorAll(".tarot-card-slot--revealed").length).toBe(3);
+  });
+
+  it("keeps tarot card motion backed by reduced-motion fallbacks", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../on-chain-tarot/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes tarot-table-drift");
+    expect(styles).toContain("@keyframes tarot-spread-ready");
+    expect(styles).toContain("@keyframes tarot-card-back-glint");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
