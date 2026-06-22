@@ -157,6 +157,9 @@ describe("Unbreakable Vault PlayArea", () => {
     });
     expect(container.querySelector(".vault-blueprint__lock.is-ready")).toBeTruthy();
     expect(container.querySelector(".vault-system-stage--ready")).toBeTruthy();
+    expect(container.querySelector('.vault-system-stage__token img[src="./logo.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".vault-system-stage__difficulty")?.textContent).toContain("Medium");
+    expect(container.querySelector(".vault-system-stage__difficulty")?.textContent).toContain("0.5 GAS");
     expect(container.querySelector(".vault-system-stage__core")).toBeTruthy();
     expect(container.querySelectorAll(".vault-system-stage__node").length).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "Create Vault (bounty + hash)" }));
@@ -404,10 +407,16 @@ describe("Unbreakable Vault PlayArea", () => {
     const css = readFileSync(existsSync(repoPath) ? repoPath : sharedPath, "utf8");
 
     expect(css).toContain("@keyframes vault-system-ready-ring");
+    expect(css).toContain("@keyframes vault-system-token-idle");
+    expect(css).toContain("@keyframes vault-system-token-route");
+    expect(css).toContain("@keyframes vault-system-token-seal");
+    expect(css).toContain("@keyframes vault-system-difficulty-ready");
     expect(css).toContain("@keyframes vault-system-seal");
     expect(css).toContain("@keyframes vault-break-scan");
     expect(css).toContain("@keyframes vault-break-reticle");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain(".vault-system-stage__token");
+    expect(css).toContain(".vault-system-stage__difficulty");
     expect(css).toContain(".vault-break-stage__scan");
     expect(css).toContain("animation: none");
   });
