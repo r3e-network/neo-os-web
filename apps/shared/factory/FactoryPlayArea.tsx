@@ -872,6 +872,21 @@ export function FactoryPlayArea({
   const nep11PolicyLabel = t(
     nep11.transferable ? "previewTransferable" : "previewSoulbound",
   );
+  const nep11SupplyPresets = ["100", "500", "1000", "5000"];
+  const nep11PolicyOptions = [
+    {
+      value: true,
+      label: t("previewTransferable"),
+      detail: t("dropPolicyTransferableDetail"),
+      icon: Ticket,
+    },
+    {
+      value: false,
+      label: t("previewSoulbound"),
+      detail: t("dropPolicySoulboundDetail"),
+      icon: BadgeCheck,
+    },
+  ];
   const nep17NameLabel = nep17.name.trim() || t("previewUntitledToken");
   const nep17SymbolLabel = nep17.symbol.trim() || t("previewSymbolPlaceholder");
   const nep17SupplyNum = Number(nep17.initialSupply);
@@ -1328,6 +1343,112 @@ export function FactoryPlayArea({
                       <dd>{nep11PolicyLabel}</dd>
                     </div>
                   </dl>
+                </section>
+                <section
+                  className="domain-factory-drop-composer"
+                  aria-label={t("dropComposer")}
+                >
+                  <div className="domain-factory-drop-composer__head">
+                    <span>{t("dropComposer")}</span>
+                    <strong>{t("dropComposerHint")}</strong>
+                  </div>
+                  <div
+                    className="domain-factory-drop-composer__presets"
+                    aria-label={t("dropSupplyPresets")}
+                  >
+                    {nep11SupplyPresets.map((preset) => {
+                      const selected = nep11.maxSupply === preset;
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          className={[
+                            "domain-factory-drop-preset",
+                            selected ? "is-active" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          onClick={() =>
+                            setNep11((draft) => ({
+                              ...draft,
+                              maxSupply: preset,
+                            }))
+                          }
+                        >
+                          <span
+                            className="domain-factory-drop-preset__art"
+                            aria-hidden="true"
+                          >
+                            <img
+                              src="./nft-drop-preview.jpg"
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </span>
+                          <span className="domain-factory-drop-preset__copy">
+                            <small>{t("dropSupplyPreset")}</small>
+                            <strong>{Number(preset).toLocaleString()}</strong>
+                          </span>
+                          {selected && (
+                            <Check
+                              className="domain-factory-drop-preset__check"
+                              size={15}
+                              aria-hidden="true"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div
+                    className="domain-factory-drop-composer__policy"
+                    role="radiogroup"
+                    aria-label={t("previewTransferPolicy")}
+                  >
+                    {nep11PolicyOptions.map((option) => {
+                      const selected = nep11.transferable === option.value;
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={String(option.value)}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          className={[
+                            "domain-factory-drop-policy",
+                            selected ? "is-active" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          onClick={() =>
+                            setNep11((draft) => ({
+                              ...draft,
+                              transferable: option.value,
+                            }))
+                          }
+                        >
+                          <span
+                            className="domain-factory-drop-policy__icon"
+                            aria-hidden="true"
+                          >
+                            <Icon size={17} />
+                          </span>
+                          <span className="domain-factory-drop-policy__copy">
+                            <strong>{option.label}</strong>
+                            <small>{option.detail}</small>
+                          </span>
+                          {selected && (
+                            <Check
+                              className="domain-factory-drop-policy__check"
+                              size={15}
+                              aria-hidden="true"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </section>
                 <NeoInput
                   label={t("collectionName")}
