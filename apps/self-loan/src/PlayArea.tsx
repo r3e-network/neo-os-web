@@ -251,6 +251,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : "0 NEO";
   const expectedBorrowLabel =
     expectedBorrow > 0 ? `${expectedBorrow.toFixed(2)} GAS` : "0.00 GAS";
+  const activeAction = isBorrowing
+    ? "borrowing"
+    : isRepaying
+      ? "repaying"
+      : isAddingCollateral
+        ? "collateral"
+        : hasLoan
+          ? "active"
+          : "setup";
+  const rootClassName = [
+    "selfloan-play-area",
+    `selfloan-play-area--${riskTone}`,
+    `selfloan-play-area--${activeAction}`,
+    hasLoan ? "selfloan-play-area--has-loan" : "selfloan-play-area--no-loan",
+  ].join(" ");
 
   /* Outstanding GAS debt (whole GAS) drives the repay "Max" chip. The repay
      validation accepts up to 8 decimals, so trim the fill value to 8 dp and
@@ -262,7 +277,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : "";
 
   return (
-    <div className="selfloan-play-area">
+    <div className={rootClassName}>
       {/* ==================== Hero ==================== */}
       <div className="selfloan-hero">
         <img className="selfloan-hero-image" src="./self-loan-vault-stage.jpg" alt="" aria-hidden="true" />
@@ -340,6 +355,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <small>{t("borrowed")}</small>
               </div>
 
+              <div className="selfloan-position-vault" aria-hidden="true">
+                <img src="./self-loan-vault-stage.jpg" alt="" />
+                <div className="selfloan-position-vault__wash" />
+                <div className="selfloan-position-vault__chip selfloan-position-vault__chip--collateral">
+                  <span>{t("collateral")}</span>
+                  <strong>{displayCollateral} NEO</strong>
+                </div>
+                <div className="selfloan-position-vault__chip selfloan-position-vault__chip--debt">
+                  <span>{t("borrowed")}</span>
+                  <strong>{displayBorrowed} GAS</strong>
+                </div>
+                <div className="selfloan-position-vault__beam" />
+              </div>
+
               <div className="selfloan-status-row">
                 <div className="selfloan-status-item">
                   <span className="selfloan-status-label">
@@ -405,6 +434,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="selfloan-vault-console">
             <div className="selfloan-vault-preview" aria-label={t("estimatedBorrow")}>
               <img src="./self-loan-vault-stage.jpg" alt="" aria-hidden="true" />
+              <div className="selfloan-vault-preview-flow" aria-hidden="true">
+                <span>{t("amountToLock")}</span>
+                <span>{selectedLtvOption?.label ?? t("ltvTier")}</span>
+                <span>{expectedBorrowLabel}</span>
+              </div>
               <div className="selfloan-vault-preview-card">
                 <span>{t("takeSelfLoan")}</span>
                 <strong>{expectedBorrowLabel}</strong>
@@ -569,11 +603,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {/* ==================== Repay Section ==================== */}
       {hasLoan && (
+        <div className="selfloan-active-actions">
         <NeoCard
           variant="erobo"
           title={t("repay")}
+          className="selfloan-action-card selfloan-action-card--repay"
         >
           <div className="selfloan-form">
+            <div className="selfloan-action-orbit" aria-hidden="true">
+              <RefreshCw size={18} />
+              <span>{displayBorrowed} GAS</span>
+            </div>
             <div className="selfloan-repay-field">
               <NeoInput
                 label={t("repayAmount")}
@@ -607,15 +647,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </NeoButton>
           </div>
         </NeoCard>
-      )}
 
       {/* ==================== Add Collateral Section ==================== */}
-      {hasLoan && (
         <NeoCard
           variant="erobo"
           title={t("addCollateral")}
+          className="selfloan-action-card selfloan-action-card--collateral"
         >
           <div className="selfloan-form">
+            <div className="selfloan-action-orbit" aria-hidden="true">
+              <PlusCircle size={18} />
+              <span>{displayNeoBalance} NEO</span>
+            </div>
             <div className="selfloan-balance-hint">
               {t("availableBalance")}:{" "}
               <strong>{displayNeoBalance} NEO</strong>
@@ -640,6 +683,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </NeoButton>
           </div>
         </NeoCard>
+        </div>
       )}
 
       {/* ==================== Pending confirmation ==================== */}

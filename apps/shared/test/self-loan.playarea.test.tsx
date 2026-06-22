@@ -143,4 +143,38 @@ describe("Self Loan PlayArea", () => {
       }),
     );
   });
+
+  it("renders an active position workspace with repay and collateral controls", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          borrowedDisplay: "12.5",
+          collateralDisplay: "40",
+          currentLTV: 31.25,
+          currentLTVDisplay: "31.25%",
+          hasActiveLoan: true,
+          hasLoanDisplay: "Yes",
+          healthFactor: 2.4,
+          healthFactorDisplay: "2.40",
+          isRepaying: true,
+          loan: {
+            active: true,
+            borrowed: 12.5,
+            collateral: 40,
+          },
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".selfloan-play-area--safe")).toBeTruthy();
+    expect(container.querySelector(".selfloan-play-area--repaying")).toBeTruthy();
+    expect(container.querySelector(".selfloan-position-vault")).toBeTruthy();
+    expect(container.querySelector(".selfloan-active-actions")).toBeTruthy();
+    expect(container.querySelector(".selfloan-action-card--repay")).toBeTruthy();
+    expect(
+      container.querySelector(".selfloan-action-card--collateral"),
+    ).toBeTruthy();
+  });
 });

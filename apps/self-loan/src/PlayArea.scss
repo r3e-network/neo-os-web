@@ -289,6 +289,51 @@
   line-height: 1.08;
 }
 
+.selfloan-vault-preview-flow {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.selfloan-vault-preview-flow span {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--sl-green-strong);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 10px 18px rgba(79, 56, 28, 0.08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.selfloan-play-area--setup .selfloan-vault-preview-flow span,
+.selfloan-play-area--borrowing .selfloan-vault-preview-flow span {
+  animation: selfloan-flow-step 2.6s ease-in-out infinite;
+}
+
+.selfloan-play-area--setup .selfloan-vault-preview-flow span:nth-child(2),
+.selfloan-play-area--borrowing .selfloan-vault-preview-flow span:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.selfloan-play-area--setup .selfloan-vault-preview-flow span:nth-child(3),
+.selfloan-play-area--borrowing .selfloan-vault-preview-flow span:nth-child(3) {
+  animation-delay: 320ms;
+}
+
 .selfloan-form {
   display: flex;
   flex-direction: column;
@@ -643,6 +688,94 @@
   font-weight: 800;
 }
 
+.selfloan-position-vault {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid rgba(21, 150, 111, 0.18);
+  border-radius: 18px;
+  background: var(--sl-cream);
+  box-shadow: var(--sl-shadow-soft);
+}
+
+.selfloan-position-vault img,
+.selfloan-position-vault__wash,
+.selfloan-position-vault__beam {
+  position: absolute;
+  inset: 0;
+}
+
+.selfloan-position-vault img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 58% center;
+  transform: scale(1.03);
+}
+
+.selfloan-position-vault__wash {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 239, 0.14), rgba(255, 250, 239, 0.86)),
+    linear-gradient(90deg, rgba(255, 250, 239, 0.9), rgba(255, 250, 239, 0.12));
+}
+
+.selfloan-position-vault__chip {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  min-width: 136px;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 28px rgba(79, 56, 28, 0.13);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.selfloan-position-vault__chip span {
+  color: var(--sl-muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.selfloan-position-vault__chip strong {
+  color: var(--sl-ink);
+  font-size: 17px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.selfloan-position-vault__chip--collateral {
+  left: 13px;
+  bottom: 13px;
+}
+
+.selfloan-position-vault__chip--debt {
+  top: 13px;
+  right: 13px;
+}
+
+.selfloan-position-vault__beam {
+  background: linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, 0.46) 48%, transparent 62% 100%);
+  opacity: 0;
+  transform: translateX(-48%);
+}
+
+.selfloan-play-area--active .selfloan-position-vault__chip,
+.selfloan-play-area--repaying .selfloan-position-vault__chip,
+.selfloan-play-area--collateral .selfloan-position-vault__chip {
+  animation: selfloan-position-chip 3s ease-in-out infinite;
+}
+
+.selfloan-play-area--repaying .selfloan-position-vault__beam,
+.selfloan-play-area--collateral .selfloan-position-vault__beam {
+  animation: selfloan-position-beam 1.25s ease-in-out infinite;
+}
+
 .selfloan-risk-pill {
   width: fit-content;
   display: inline-flex;
@@ -713,6 +846,83 @@
 
 .selfloan-health-status-label {
   font-weight: 900;
+}
+
+.selfloan-active-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.selfloan-action-card {
+  overflow: hidden;
+}
+
+.selfloan-action-orbit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 68px;
+  padding: 13px;
+  overflow: hidden;
+  border: 1px solid var(--sl-line);
+  border-radius: 17px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(247, 242, 232, 0.72)),
+    var(--sl-soft);
+}
+
+.selfloan-action-orbit::before {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(88, 66, 36, 0.1);
+}
+
+.selfloan-action-orbit::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: 42%;
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sl-green), var(--sl-gold));
+}
+
+.selfloan-action-orbit svg {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--sl-green-strong);
+  box-shadow: 0 12px 24px rgba(21, 150, 111, 0.12);
+}
+
+.selfloan-action-orbit span {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  color: var(--sl-ink);
+  font-size: 18px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.selfloan-play-area--repaying .selfloan-action-card--repay .selfloan-action-orbit::after,
+.selfloan-play-area--collateral .selfloan-action-card--collateral .selfloan-action-orbit::after {
+  animation: selfloan-action-flow 1s ease-in-out infinite;
 }
 
 .selfloan-cta {
@@ -842,9 +1052,67 @@
   }
 }
 
+@keyframes selfloan-flow-step {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 10px 18px rgba(79, 56, 28, 0.08);
+  }
+
+  50% {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 24px rgba(21, 150, 111, 0.15);
+  }
+}
+
+@keyframes selfloan-position-chip {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes selfloan-position-beam {
+  0% {
+    opacity: 0;
+    transform: translateX(-52%);
+  }
+
+  36%,
+  62% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(52%);
+  }
+}
+
+@keyframes selfloan-action-flow {
+  0%,
+  100% {
+    width: 34%;
+    opacity: 0.75;
+  }
+
+  50% {
+    width: calc(100% - 24px);
+    opacity: 1;
+  }
+}
+
 @media (max-width: 980px) {
   .selfloan-command-grid--with-loan,
   .selfloan-vault-console {
+    grid-template-columns: 1fr;
+  }
+
+  .selfloan-active-actions {
     grid-template-columns: 1fr;
   }
 
@@ -967,6 +1235,18 @@
     font-size: 24px;
   }
 
+  .selfloan-vault-preview-flow {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    gap: 5px;
+  }
+
+  .selfloan-vault-preview-flow span {
+    padding: 7px 6px;
+    font-size: 10px;
+  }
+
   .selfloan-borrow-output {
     min-height: 84px;
   }
@@ -1004,5 +1284,16 @@
 
   .selfloan-ltv-tiers {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selfloan-vault-preview-flow span,
+  .selfloan-position-vault__chip,
+  .selfloan-position-vault__beam,
+  .selfloan-action-orbit::after,
+  .selfloan-loading-spinner {
+    animation: none !important;
+    transition: none !important;
   }
 }
