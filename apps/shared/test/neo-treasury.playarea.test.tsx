@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import {
   cleanup,
   fireEvent,
@@ -78,6 +79,18 @@ function t(key: string) {
     connectAndSignDisbursement: "Connect & Sign Disbursement",
     disbursementDraftReady: "Draft ready",
     disbursementSubmitted: "Transfer submitted",
+    treasuryFlowAsset: "Asset ready",
+    treasuryFlowChecks: "Payout readiness checks",
+    treasuryFlowDraft: "Draft in progress",
+    treasuryFlowError: "Fix payout details",
+    treasuryFlowIdle: "Connect or draft a payout",
+    treasuryFlowReady: "Ready for wallet review",
+    treasuryFlowRecipient: "Recipient",
+    treasuryFlowSignature: "Wallet signature",
+    treasuryFlowSigning: "Awaiting wallet signature",
+    treasuryFlowSource: "Source wallet",
+    treasuryFlowSubtitle: "Review the source wallet, asset, recipient, and signing state before the wallet opens.",
+    treasuryFlowTitle: "Treasury payout route",
     lastTx: "Last tx",
     treasuryWatchlist: "Watched treasury groups",
     treasuryGroup: "Treasury group",
@@ -161,7 +174,7 @@ afterEach(() => cleanup());
 describe("Neo Treasury PlayArea", () => {
   it("prefills disbursement fields from launch params and dispatches submit", async () => {
     const dispatch = vi.fn(async () => undefined);
-    render(
+    const { container } = render(
       <PlayArea
         {...props({
           dispatch,
@@ -179,6 +192,11 @@ describe("Neo Treasury PlayArea", () => {
     expect(screen.getByText("10000000")).toBeTruthy();
     expect(screen.getByTitle(BLOCKCHAIN_CONSTANTS.GAS_HASH)).toBeTruthy();
     expect(screen.getByText("Connect on submit")).toBeTruthy();
+    expect(container.querySelector(".treasury-flow-stage--ready")).toBeTruthy();
+    expect(container.querySelector('.treasury-flow-stage__media source[srcset="./banner.avif"]')).toBeTruthy();
+    expect(container.querySelector('.treasury-flow-transfer img[src="./logo.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".treasury-flow-transfer.is-ready")).toBeTruthy();
+    expect(container.querySelectorAll(".treasury-flow-checks .is-ready").length).toBe(3);
 
     fireEvent.click(screen.getByRole("button", { name: /Sign Disbursement/ }));
 
@@ -208,7 +226,7 @@ describe("Neo Treasury PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: /Governance token/ }));
 
     expect(screen.getByText("Whole units")).toBeTruthy();
-    expect(screen.getByText("1 NEO")).toBeTruthy();
+    expect(screen.getAllByText("1 NEO").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: /Sign Disbursement/ }));
 
     await waitFor(() => {
@@ -243,7 +261,7 @@ describe("Neo Treasury PlayArea", () => {
       />,
     );
 
-    expect(screen.getByText("Fix payout details")).toBeTruthy();
+    expect(screen.getAllByText("Fix payout details").length).toBeGreaterThan(0);
     expect(screen.getByText(/Recipient must be a valid Neo N3 address or Hash160/)).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: /Sign Disbursement/ }) as HTMLButtonElement).disabled,
@@ -352,5 +370,19 @@ describe("Neo Treasury PlayArea", () => {
       <PlayArea {...props({ t: ti, state: baseState({ data: liveData() }) })} />,
     );
     expect(screen.getByText("Watchlist data: Mainnet")).toBeTruthy();
+  });
+
+  it("keeps treasury payout motion explicit and reduced-motion safe", () => {
+    const css = readFileSync(
+      `${process.cwd()}/../neo-treasury/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(css).toContain("@keyframes treasury-flow-sweep");
+    expect(css).toContain("@keyframes treasury-flow-line");
+    expect(css).toContain("@keyframes treasury-flow-transfer-ready");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain(".treasury-flow-stage--ready");
+    expect(css).toContain("animation: none");
   });
 });
