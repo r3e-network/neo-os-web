@@ -1,4 +1,13 @@
 import { useState } from "react";
+import {
+  Clock3,
+  Crown,
+  Hash,
+  KeyRound,
+  Percent,
+  RotateCcw,
+  Trophy,
+} from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { formatNumber } from "@shared/utils/format";
@@ -136,12 +145,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleSettleRound = async () => {
     await dispatch("settleRound");
   };
+  const playStateClass = [
+    liveDanger ? "survivor-play-area--live" : "",
+    awaitingFirstKey ? "survivor-play-area--awaiting-first-key" : "",
+    needsLifecycleSync ? "survivor-play-area--settlement" : "",
+    viewerIsWinner ? "survivor-play-area--winner" : "",
+    serviceNotice ? "survivor-play-area--service-notice" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="survivor-play-area">
+    <div className={`survivor-play-area ${playStateClass}`.trim()}>
       {/* Game stage: the countdown arena, prize pressure, and key purchase live
           together so the player acts on the scene instead of filling a form. */}
-      <section className="survivor-stage" aria-label={t("survivalArena")}>
+      <section
+        className={`survivor-stage ${playStateClass}`.trim()}
+        aria-label={t("survivalArena")}
+      >
         <img
           className="survivor-stage__image"
           src="./last-survivor-arena.jpg"
@@ -172,7 +193,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             )}
             <div className="hero-heading">
-              <span className="hero-badge" aria-hidden="true">&#9201;</span>
+              <span className="hero-badge" aria-hidden="true">
+                <Clock3 size={22} />
+              </span>
               <div className="hero-heading-copy">
                 <span className="hero-eyebrow">{t("survivorStageEyebrow")}</span>
                 <h2 className="hero-title">{t("title")}</h2>
@@ -217,7 +240,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {/* Last buyer / current leader badge */}
               {lastBuyer && isRoundActive && (
                 <div className="last-buyer-badge">
-                  <span className="last-buyer-icon" aria-hidden="true">★</span>
+                  <span className="last-buyer-icon" aria-hidden="true">
+                    <Crown size={18} />
+                  </span>
                   <div className="last-buyer-info">
                     <span className="last-buyer-label">{t("currentLeader")}</span>
                     <span className="last-buyer-address">{formatBuyerAddress(lastBuyer)}</span>
@@ -282,25 +307,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard variant="erobo" className="claim-card">
           <div className={`claim-card-inner${viewerIsWinner ? " is-winner" : ""}`}>
             <span className="claim-card-trophy" aria-hidden="true">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M6 4h12v3a6 6 0 0 1-12 0V4Z"
-                  fill="currentColor"
-                />
-                <path
-                  d="M6 5H3.5v1.5A3.5 3.5 0 0 0 7 10M18 5h2.5v1.5A3.5 3.5 0 0 1 17 10"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M12 13v3m-3 4h6m-5 0a3 3 0 0 1 4 0"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Trophy size={26} />
             </span>
             <span className="claim-card-eyebrow">
               {viewerIsWinner ? t("youWon") : t("winnerDeclared")}
@@ -361,7 +368,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Your participation — single compact metrics strip */}
       <div className="participation-bar">
         <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">⚷</span>
+          <span className="participation-icon" aria-hidden="true">
+            <KeyRound size={17} />
+          </span>
           <div className="participation-detail">
             <span className="participation-label">{t("yourKeys")}</span>
             <span className="participation-value">{userKeys}</span>
@@ -369,7 +378,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="participation-divider" />
         <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">∑</span>
+          <span className="participation-icon" aria-hidden="true">
+            <Hash size={17} />
+          </span>
           <div className="participation-detail">
             <span className="participation-label">{t("totalKeys")}</span>
             <span className="participation-value">{totalKeys}</span>
@@ -377,7 +388,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="participation-divider" />
         <div className="participation-item" title={t("shareHint")}>
-          <span className="participation-icon" aria-hidden="true">%</span>
+          <span className="participation-icon" aria-hidden="true">
+            <Percent size={17} />
+          </span>
           <div className="participation-detail">
             <span className="participation-label">{t("share")}</span>
             <span className="participation-value">
@@ -422,7 +435,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Recent winners / history section */}
       <div className="history-section">
         <div className="history-section-header">
-          <span className="history-section-icon" aria-hidden="true">↺</span>
+          <span className="history-section-icon" aria-hidden="true">
+            <RotateCcw size={15} />
+          </span>
           <span className="history-section-title">{t("recentHistory")}</span>
         </div>
         <HistoryList history={history} t={t} />

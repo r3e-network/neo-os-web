@@ -20,6 +20,7 @@
 
 .survivor-stage {
   position: relative;
+  isolation: isolate;
   min-height: 620px;
   overflow: hidden;
   border-radius: 28px;
@@ -27,6 +28,45 @@
   background: #f8f3df;
   box-shadow:
     0 24px 70px rgba(20, 64, 50, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.survivor-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    112deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 64%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-70%);
+  animation: survivor-stage-sweep 7.2s ease-in-out infinite;
+}
+
+.survivor-stage.survivor-play-area--live {
+  border-color: rgba(22, 199, 132, 0.22);
+  box-shadow:
+    0 26px 74px rgba(20, 64, 50, 0.16),
+    0 0 0 4px rgba(22, 199, 132, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+.survivor-stage.survivor-play-area--settlement {
+  border-color: rgba(245, 166, 35, 0.34);
+  box-shadow:
+    0 26px 74px rgba(20, 64, 50, 0.15),
+    0 0 0 4px rgba(245, 166, 35, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
@@ -37,11 +77,14 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform-origin: 54% 50%;
+  animation: survivor-arena-drift 18s ease-in-out infinite alternate;
 }
 
 .survivor-stage__shade {
   position: absolute;
   inset: 0;
+  z-index: 0;
   background:
     linear-gradient(90deg, rgba(255, 252, 242, 0.94) 0%, rgba(255, 252, 242, 0.72) 34%, rgba(255, 252, 242, 0.18) 58%, rgba(255, 252, 242, 0.78) 100%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(16, 82, 61, 0.12));
@@ -49,7 +92,7 @@
 
 .survivor-stage__content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(330px, 0.95fr);
   gap: 24px;
@@ -142,6 +185,7 @@
   font-size: 22px;
   line-height: 1;
   flex-shrink: 0;
+  animation: survivor-badge-breathe 4s ease-in-out infinite;
 }
 
 .hero-heading-copy {
@@ -207,6 +251,7 @@
 .status-active .status-dot {
   background: pm.$green;
   box-shadow: 0 0 0 3px pm.$green-soft;
+  animation: survivor-status-pulse 1.8s ease-in-out infinite;
 }
 
 .status-ended .status-dot {
@@ -281,6 +326,7 @@
   gap: 14px;
   padding: 16px 20px;
   @include pm.card;
+  animation: survivor-leader-in 360ms ease-out both;
 }
 
 .last-buyer-icon {
@@ -295,6 +341,7 @@
   font-weight: 700;
   line-height: 1;
   flex-shrink: 0;
+  animation: survivor-leader-crown 2.4s ease-in-out infinite;
 }
 
 .last-buyer-info {
@@ -366,6 +413,103 @@
   font-weight: 700;
   line-height: 1;
   flex-shrink: 0;
+}
+
+.survivor-play-area--live .participation-icon {
+  animation: survivor-token-pop 2.8s ease-in-out infinite;
+}
+
+.participation-item:nth-child(3) .participation-icon {
+  animation-delay: 120ms;
+}
+
+.participation-item:nth-child(5) .participation-icon {
+  animation-delay: 240ms;
+}
+
+@keyframes survivor-stage-sweep {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-70%);
+  }
+
+  72% {
+    opacity: 0.42;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(70%);
+  }
+}
+
+@keyframes survivor-arena-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.035) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes survivor-badge-breathe {
+  0%,
+  100% {
+    box-shadow: none;
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(22, 199, 132, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes survivor-status-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px pm.$green-soft;
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(22, 199, 132, 0.12);
+  }
+}
+
+@keyframes survivor-leader-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes survivor-leader-crown {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-2px) rotate(-4deg);
+  }
+}
+
+@keyframes survivor-token-pop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .participation-detail {
@@ -561,9 +705,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .survivor-stage::before,
+  .survivor-stage__image,
+  .hero-badge,
+  .status-active .status-dot,
+  .last-buyer-badge,
+  .last-buyer-icon,
+  .survivor-play-area--live .participation-icon,
   .claim-card-trophy,
   .claim-card-inner.is-winner {
     animation: none;
+  }
+
+  .survivor-stage {
+    transition: none;
   }
 }
 
