@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +36,8 @@ function t(key: string, params?: Record<string, string | number>) {
     liveLeague: "Live league",
     localPreview: "Data pending",
     lastSubmitted: `Last submitted burn: ${params?.amount ?? ""}`,
-    noEntries: "Burns appear here with rank and burned GAS as soon as they confirm on chain.",
+    noEntries:
+      "Burns appear here with rank and burned GAS as soon as they confirm on chain.",
     noEntriesTitle: "No leaderboard entries yet",
     noLeaderYet: "No burns yet",
     outOf: `of ${params?.total ?? 0} players`,
@@ -50,7 +52,8 @@ function t(key: string, params?: Record<string, string | number>) {
     reviewWallet: "Sign wallet intent",
     seasonActive: "Live now",
     seasonDormant: "Not started",
-    seasonDormantHint: "No active season yet — the first burn starts a fresh season.",
+    seasonDormantHint:
+      "No active season yet — the first burn starts a fresh season.",
     seasonEnded: "Ended — awaiting settle",
     seasonEndedHint: `The season has ended. Settle to award the ${params?.amount ?? ""} pool to the top burner.`,
     seasonEndsIn: "Ends in",
@@ -67,7 +70,9 @@ function t(key: string, params?: Record<string, string | number>) {
   return messages[key] ?? key;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   return {
     actionNotice: createObservable(""),
     burnAmount: createObservable("1"),
@@ -125,10 +130,10 @@ describe("Burn League PlayArea", () => {
     expect(screen.getAllByRole("status")[0]).toBeTruthy();
     // The service notice was slimmed to a one-line title (the long body
     // sentence was dropped in the polish pass); assert the retained title.
+    expect(screen.getByText(/Burn league data unavailable/)).toBeTruthy();
     expect(
-      screen.getByText(/Burn league data unavailable/),
-    ).toBeTruthy();
-    expect(screen.queryByText(/OS service error|os-game-status|Not Found/i)).toBeNull();
+      screen.queryByText(/OS service error|os-game-status|Not Found/i),
+    ).toBeNull();
     expect(screen.getByText("Entry amount")).toBeTruthy();
     expect(screen.getByText("Projected total")).toBeTruthy();
     expect(screen.getAllByText("Projected rank").length).toBeGreaterThan(0);
@@ -194,15 +199,17 @@ describe("Burn League PlayArea", () => {
     render(
       <PlayArea
         t={t}
-        state={state({ seasonPhase: "dormant", seasonStatusLabel: "Not started", formattedSeason: "--" })}
+        state={state({
+          seasonPhase: "dormant",
+          seasonStatusLabel: "Not started",
+          formattedSeason: "--",
+        })}
         dispatch={vi.fn()}
       />,
     );
 
-    expect(screen.getByText("Not started")).toBeTruthy();
-    expect(
-      screen.getByText(/No active season yet/),
-    ).toBeTruthy();
+    expect(screen.getAllByText("Not started").length).toBeGreaterThan(1);
+    expect(screen.getByText(/No active season yet/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Settle season" })).toBeNull();
   });
 
@@ -213,9 +220,9 @@ describe("Burn League PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: "5 GAS" }));
 
     expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "5");
-    expect(
-      (screen.getByLabelText("Amount") as HTMLInputElement).value,
-    ).toBe("5");
+    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe(
+      "5",
+    );
     expect(screen.getByRole("button", { name: "5 GAS" }).className).toContain(
       "is-active",
     );
@@ -223,22 +230,34 @@ describe("Burn League PlayArea", () => {
 
   it("keeps the arena amount controls wired to the burn amount", () => {
     const dispatch = vi.fn();
-    render(<PlayArea t={t} state={state({ burnAmount: "5" })} dispatch={dispatch} />);
+    render(
+      <PlayArea t={t} state={state({ burnAmount: "5" })} dispatch={dispatch} />,
+    );
 
     expect(screen.getByLabelText("Arena burn console")).toBeTruthy();
     expect(screen.getByText("Next burn")).toBeTruthy();
     expect(screen.getByText("Fuel loaded")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Increase burn amount" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Increase burn amount" }),
+    );
     expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "6");
 
-    fireEvent.click(screen.getByRole("button", { name: "Decrease burn amount" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Decrease burn amount" }),
+    );
     expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "5");
   });
 
   it("resets the burn amount to the minimum safe entry", () => {
     const dispatch = vi.fn();
-    render(<PlayArea t={t} state={state({ burnAmount: "25" })} dispatch={dispatch} />);
+    render(
+      <PlayArea
+        t={t}
+        state={state({ burnAmount: "25" })}
+        dispatch={dispatch}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Reset" }));
 
@@ -256,7 +275,9 @@ describe("Burn League PlayArea", () => {
       target: { value: "1001" },
     });
 
-    expect(screen.getByText("Enter a burn amount from 1 to 1000 GAS.")).toBeTruthy();
+    expect(
+      screen.getByText("Enter a burn amount from 1 to 1000 GAS."),
+    ).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "Burn Now" }) as HTMLButtonElement)
         .disabled,
@@ -269,7 +290,11 @@ describe("Burn League PlayArea", () => {
         t={t}
         state={state({
           leaderboardPreview: [
-            { rank: 1, address: "NMockBurner111111111111111111111111", burned: 12 },
+            {
+              rank: 1,
+              address: "NMockBurner111111111111111111111111",
+              burned: 12,
+            },
           ],
           leaderboardSize: 1,
         })}
@@ -289,5 +314,49 @@ describe("Burn League PlayArea", () => {
       }),
     ).toBeTruthy();
     expect(screen.queryByText("No leaderboard entries yet")).toBeNull();
+  });
+
+  it("exposes live arena motion states with reduced-motion fallbacks", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          isBurning: true,
+          userIsLeader: true,
+          burnAmount: "10",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const rootClass = container.querySelector(
+      ".burn-league-play-area",
+    )?.className;
+    expect(rootClass).toContain("burn-league-play-area--live");
+    expect(rootClass).toContain("burn-league-play-area--armed");
+    expect(rootClass).toContain("burn-league-play-area--burning");
+    expect(rootClass).toContain("burn-league-play-area--leader");
+
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../burn-league/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes burn-league-arena-drift");
+    expect(styles).toContain("@keyframes burn-league-stage-heat");
+    expect(styles).toContain("@keyframes burn-league-fuel-flow");
+    expect(styles).toContain("@keyframes burn-league-scoreboard-ready");
+    expect(styles).toContain("@keyframes burn-league-cta-ready");
+    expect(styles).toContain("@keyframes burn-league-row-in");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.burn-league-play-area--burning \.burn-league-stake-stage[\s\S]*animation:\s*burn-league-stage-burn/,
+    );
+    expect(styles).toMatch(
+      /\.burn-league-play-area--armed \.burn-league-fuel-meter__fill[\s\S]*animation:\s*burn-league-fuel-flow/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-cta \.neo-btn--primary[\s\S]*animation:\s*none/,
+    );
   });
 });
