@@ -46,7 +46,11 @@
   cursor: pointer;
   font: inherit;
   overflow: hidden;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
 
   .card-inner {
     position: relative;
@@ -70,9 +74,17 @@
     overflow: hidden;
     color: var(--coin-text-secondary);
     background:
-      radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.88), transparent 48%),
+      radial-gradient(
+        circle at 50% 42%,
+        rgba(255, 255, 255, 0.88),
+        transparent 48%
+      ),
       #eef5f2;
-    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease;
 
     img {
       width: 132%;
@@ -105,13 +117,16 @@
     color: #ffffff;
     opacity: 0;
     transform: scale(0.6);
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
   }
 
   &.selected {
     border-color: var(--coin-success);
     background: var(--coin-green-active-bg-light);
     box-shadow: 0 10px 22px rgba(22, 199, 132, 0.16);
+    animation: fogplay-choice-lock 320ms ease-out both;
 
     .symbol-ring {
       border-color: var(--coin-success);
@@ -210,7 +225,10 @@
   cursor: pointer;
   font: inherit;
   text-align: center;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 
   .amount-val {
     display: block;
@@ -240,6 +258,7 @@
     border-color: var(--coin-success);
     background: var(--coin-success);
     box-shadow: 0 8px 18px rgba(22, 199, 132, 0.16);
+    animation: fogplay-wager-chip-lock 260ms ease-out both;
 
     .amount-val,
     .amount-unit {
@@ -303,6 +322,7 @@
   border-radius: 999px;
   font-size: 15px;
   font-weight: 800;
+  animation: fogplay-flip-ready 2.4s ease-in-out infinite;
 }
 
 .btn-content {
@@ -315,5 +335,55 @@
 @media (max-width: 420px) {
   .wager-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@keyframes fogplay-choice-lock {
+  0% {
+    transform: translateY(0) scale(0.98);
+  }
+
+  62% {
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fogplay-wager-chip-lock {
+  0% {
+    transform: scale(0.96);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fogplay-flip-ready {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(10, 128, 80, 0.24);
+  }
+
+  50% {
+    box-shadow: 0 8px 22px rgba(10, 128, 80, 0.34);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-card.selected,
+  .wager-option.selected,
+  .flip-btn {
+    animation: none;
+  }
+
+  .choice-card,
+  .choice-card .symbol-ring,
+  .choice-card .choice-check,
+  .wager-option {
+    transition: none;
   }
 }
