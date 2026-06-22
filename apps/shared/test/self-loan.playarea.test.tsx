@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +17,11 @@ function t(key: string, params?: Record<string, string | number>) {
     aggressive: "Aggressive",
     amountToLock: "Lock NEO",
     borrow: "Borrow",
+    borrowFlowBoard: "Borrow flow board",
+    borrowFlowBorrowing: "Wallet is routing the borrow request",
+    borrowFlowDraft: "Load NEO to preview the draw",
+    borrowFlowKicker: "Collateral route",
+    borrowFlowReady: "Ready to route collateral into GAS",
     borrowedLabel: "Borrowed",
     collateralAmount: "Collateral Amount",
     conservative: "Conservative",
@@ -31,6 +38,9 @@ function t(key: string, params?: Record<string, string | number>) {
     loanTerms: "Loan terms",
     ltvLabel: "LTV",
     ltvTier: "LTV tier",
+    flowNodeBorrow: "Draw",
+    flowNodeCollateral: "Lock",
+    flowNodeLtv: "Risk gate",
     originationFee: "Origination fee ({percent}%)",
     poolAvailable: "Pool available",
     rateFeeNote: "Rate is operator set; the fee stays with the pool.",
@@ -126,6 +136,8 @@ describe("Self Loan PlayArea", () => {
 
     expect(document.querySelector(".selfloan-borrow-desk")).toBeTruthy();
     expect(document.querySelector(".selfloan-ltv-desk")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Borrow flow board" })).toBeTruthy();
+    expect(document.querySelector(".selfloan-flow-board--draft")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Aggressive\s*40%/ }));
     expect(dispatch).toHaveBeenCalledWith("setLtvTier", 3);
@@ -134,6 +146,10 @@ describe("Self Loan PlayArea", () => {
       target: { value: "12" },
     });
     expect(dispatch).toHaveBeenCalledWith("setCollateralAmount", "12");
+    expect(document.querySelector(".selfloan-flow-board--ready")).toBeTruthy();
+    expect(document.querySelectorAll(".selfloan-flow-node.is-ready")).toHaveLength(3);
+    expect(screen.getAllByText("12 NEO").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("3.58 GAS").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Borrow" }));
 
@@ -176,5 +192,22 @@ describe("Self Loan PlayArea", () => {
     expect(
       container.querySelector(".selfloan-action-card--collateral"),
     ).toBeTruthy();
+  });
+
+  it("keeps the DeFi flow board animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../self-loan/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".selfloan-flow-board");
+    expect(styles).toContain(".selfloan-flow-board__packet");
+    expect(styles).toContain("@keyframes selfloan-flow-board-sheen");
+    expect(styles).toContain("@keyframes selfloan-flow-rail");
+    expect(styles).toContain("@keyframes selfloan-flow-packet-neo");
+    expect(styles).toContain("@keyframes selfloan-flow-node-ready");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.selfloan-flow-board__packet/,
+    );
   });
 });
