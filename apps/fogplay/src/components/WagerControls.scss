@@ -63,12 +63,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 58px;
+    height: 58px;
     border: 2px solid var(--coin-choice-ring);
     border-radius: 50%;
+    overflow: hidden;
     color: var(--coin-text-secondary);
-    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.88), transparent 48%),
+      #eef5f2;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+
+    img {
+      width: 132%;
+      height: 132%;
+      object-fit: cover;
+      object-position: center;
+      pointer-events: none;
+      user-select: none;
+    }
+  }
+
+  .symbol-ring--tails img {
+    width: 164%;
+    height: 164%;
+    object-position: center 43%;
   }
 
   /* Selected affordance: filled brand fill + checkmark, not just a border, so
@@ -96,8 +115,9 @@
 
     .symbol-ring {
       border-color: var(--coin-success);
-      background: var(--coin-success);
+      background: rgba(22, 199, 132, 0.1);
       color: #ffffff;
+      transform: translateY(-2px) scale(1.04);
     }
 
     .choice-name {
