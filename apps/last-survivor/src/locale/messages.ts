@@ -5,6 +5,18 @@ const appMessages = {
   title: { en: "LastSurvivor", zh: "最后生还者" },
   connectWalletToPlay: { en: "Connect wallet to play", zh: "连接钱包开始游戏" },
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
+  survivalArena: { en: "Last Survivor arena", zh: "最后生还者竞技场" },
+  survivalArenaAlt: {
+    en: "Bright futuristic arena with a glowing button console and GAS prize pool",
+    zh: "明亮未来竞技场，带发光按钮控制台和 GAS 奖池",
+  },
+  survivorStageEyebrow: { en: "Pressure game", zh: "压力游戏" },
+  pressConsole: { en: "Press console", zh: "按键控制台" },
+  pressConsoleTitle: { en: "Buy a key. Reset the clock.", zh: "买钥匙，重置倒计时。" },
+  pressConsoleHint: {
+    en: "Every key feeds the pot. The final buyer survives when the clock runs out.",
+    zh: "每把钥匙都会注入奖池。倒计时结束时，最后购买者生还并赢得全部。",
+  },
   history: { en: "History", zh: "历史" },
   subtitle: { en: "Last buyer wins the entire prize pool", zh: "最后一个按按钮的人赢得全部奖池" },
   timeUntilEvent: { en: "Time Until Event", zh: "距离事件" },

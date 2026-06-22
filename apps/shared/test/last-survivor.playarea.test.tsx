@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -47,7 +47,16 @@ function t(key: string) {
     settlingRound: "Settling...",
     share: "Share",
     status: "Status",
+    pressConsole: "Press console",
+    pressConsoleHint:
+      "Every key feeds the pot. The final buyer survives when the clock runs out.",
+    pressConsoleTitle: "Buy a key. Reset the clock.",
+    survivalArena: "Last Survivor arena",
+    survivalArenaAlt:
+      "Bright futuristic arena with a glowing button console and GAS prize pool",
+    survivorStageEyebrow: "Pressure game",
     timeUntilEvent: "Time Until Event",
+    title: "LastSurvivor",
     tokenGas: "GAS",
     totalKeys: "Total Keys",
     totalPot: "Total Pot",
@@ -114,11 +123,41 @@ describe("LastSurvivor PlayArea", () => {
         .some((el) => el.textContent?.includes("The countdown service is not available")),
     ).toBe(true);
     expect(screen.queryByText(/OS service error|os-game-status|Not Found/i)).toBeNull();
+    expect(screen.getByLabelText("Last Survivor arena")).toBeTruthy();
+    expect(
+      screen.getByAltText("Bright futuristic arena with a glowing button console and GAS prize pool"),
+    ).toBeTruthy();
+    expect(screen.getByText("Buy a key. Reset the clock.")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Refresh Round" }).length).toBeGreaterThan(0);
     expect(
       (screen.getByRole("button", { name: "Buy Keys" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("keeps the stage key controls wired to the local key count", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          isRoundActive: true,
+          roundDataAvailable: true,
+          roundStatusDisplay: "Active",
+          totalKeysDisplay: 2,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Increase" }));
+    expect(container.querySelector(".key-count-value")?.textContent).toBe("2");
+
+    fireEvent.click(screen.getByRole("button", { name: "5" }));
+    expect(container.querySelector(".key-count-value")?.textContent).toBe("5");
+    expect(
+      (screen.getByRole("button", { name: "Buy Keys" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
   });
 
   it("surfaces a permissionless Settle affordance for an ended round and blocks buying", async () => {
