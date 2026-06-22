@@ -7,6 +7,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .hero-container {
   position: relative;
+  isolation: isolate;
   display: grid;
   gap: 22px;
   min-height: 340px;
@@ -17,6 +18,26 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   border-radius: var(--ns-radius-xl, 24px);
   background: #f8fffb;
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.hero-container::before {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.46) 48%,
+    transparent 60%,
+    transparent 100%
+  );
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-70%);
+  animation: capsule-hero-sweep 8s ease-in-out infinite;
 }
 
 .hero-stage-media,
@@ -30,6 +51,8 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform-origin: 70% 50%;
+  animation: capsule-hero-drift 18s ease-in-out infinite alternate;
 }
 
 .hero-stage-shade {
@@ -45,6 +68,16 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
       rgba(255, 255, 255, 0.5) 0%,
       rgba(255, 255, 255, 0.08) 78%
     );
+}
+
+.hero-stage-shade::after {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: calc(var(--ns-radius-xl, 24px) - 8px);
+  content: "";
+  opacity: 0.56;
+  pointer-events: none;
 }
 
 .hero-head,
@@ -80,6 +113,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   background: rgba(255, 255, 255, 0.88);
   color: $accent-strong;
   box-shadow: 0 14px 34px rgba(22, 199, 132, 0.13);
+  animation: capsule-hero-badge 4.8s ease-in-out infinite;
 }
 
 .hero-copy {
@@ -139,6 +173,15 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   background: rgba(255, 255, 255, 0.86);
   box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
   backdrop-filter: blur(14px);
+  animation: capsule-stat-arrive 520ms ease-out both;
+}
+
+.hero-stat:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.hero-stat:nth-child(3) {
+  animation-delay: 160ms;
 }
 
 .hero-stat svg {
@@ -167,6 +210,60 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+@keyframes capsule-hero-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.045) translate3d(1.4%, -1%, 0);
+  }
+}
+
+@keyframes capsule-hero-sweep {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-70%);
+  }
+
+  72% {
+    opacity: 0.48;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(70%);
+  }
+}
+
+@keyframes capsule-hero-badge {
+  0%,
+  100% {
+    box-shadow: 0 14px 34px rgba(22, 199, 132, 0.13);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow:
+      0 18px 40px rgba(22, 199, 132, 0.2),
+      0 0 0 6px rgba(22, 199, 132, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes capsule-stat-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 720px) {
@@ -231,5 +328,14 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   .hero-stat-label {
     font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container::before,
+  .hero-stage-media,
+  .hero-badge,
+  .hero-stat {
+    animation: none;
   }
 }

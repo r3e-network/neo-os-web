@@ -61,7 +61,10 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function state(capsules: Array<Record<string, unknown>>): ObservableState {
+function state(
+  capsules: Array<Record<string, unknown>>,
+  overrides: Record<string, unknown> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     totalCapsules: capsules.length,
     lockedCount: capsules.filter((capsule) => capsule.locked).length,
@@ -78,6 +81,7 @@ function state(capsules: Array<Record<string, unknown>>): ObservableState {
       isPublic: false,
       category: 1,
     },
+    ...overrides,
   };
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => [
@@ -156,6 +160,62 @@ describe("Time Capsule PlayArea", () => {
     expect((screen.getByRole("spinbutton", { name: "Lock Duration" }) as HTMLInputElement).value).toBe("365");
   });
 
+  it("surfaces ready and sealing motion states on the capsule workbench", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state([], {
+          isCreating: true,
+          isBusy: true,
+          canCreate: true,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".capsule-play-area.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-seal-workbench.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-preview-panel.is-ready.is-sealing")).toBeTruthy();
+  });
+
+  it("labels local capsules with visual state classes for locked, ready, and revealed states", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state([
+          {
+            id: "1",
+            title: "Future note",
+            unlockTime: now + 86_400,
+            locked: true,
+            revealed: false,
+          },
+          {
+            id: "2",
+            title: "Open note",
+            unlockTime: now - 60,
+            locked: true,
+            revealed: false,
+          },
+          {
+            id: "3",
+            title: "Revealed note",
+            content: "Visible",
+            unlockTime: now - 120,
+            locked: false,
+            revealed: true,
+          },
+        ])}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".capsule-item.locked")).toBeTruthy();
+    expect(container.querySelector(".capsule-item.ready")).toBeTruthy();
+    expect(container.querySelector(".capsule-item.revealed")).toBeTruthy();
+  });
+
   it("keeps the create CTA active/loading colors separate from disabled styling", () => {
     const styles = fs.readFileSync(
       `${process.cwd()}/../time-capsule/src/PlayArea.scss`,
@@ -168,5 +228,27 @@ describe("Time Capsule PlayArea", () => {
     expect(styles).toMatch(
       /\.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/,
     );
+  });
+
+  it("keeps motion states accessible with reduced-motion fallbacks", () => {
+    const playAreaStyles = fs.readFileSync(
+      `${process.cwd()}/../time-capsule/src/PlayArea.scss`,
+      "utf8",
+    );
+    const heroStyles = fs.readFileSync(
+      `${process.cwd()}/../time-capsule/src/components/CapsuleHero.scss`,
+      "utf8",
+    );
+    const listStyles = fs.readFileSync(
+      `${process.cwd()}/../time-capsule/src/components/CapsuleList.scss`,
+      "utf8",
+    );
+
+    expect(playAreaStyles).toContain("@keyframes capsule-preview-sweep");
+    expect(playAreaStyles).toContain("@keyframes capsule-ready-card");
+    expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(heroStyles).toContain("@keyframes capsule-hero-drift");
+    expect(heroStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(listStyles).toContain("@keyframes capsule-empty-badge");
   });
 });
