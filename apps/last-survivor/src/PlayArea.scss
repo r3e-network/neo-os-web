@@ -320,6 +320,138 @@
   }
 }
 
+.survivor-seat-strip {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(245, 166, 35, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(242, 255, 249, 0.82));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 14px 30px rgba(20, 64, 50, 0.08);
+}
+
+.survivor-seat-strip__head {
+  display: grid;
+  gap: 4px;
+
+  span {
+    @include pm.section-eyebrow;
+    color: #0b6b49;
+  }
+
+  strong {
+    color: pm.$text-2;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+}
+
+.survivor-seat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.survivor-seat {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  color: pm.$text-muted;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  animation: survivor-seat-enter 360ms ease-out both;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+      115deg,
+      transparent 26%,
+      rgba(255, 255, 255, 0.58) 48%,
+      transparent 68%
+    );
+    opacity: 0;
+    transform: translateX(-88%);
+    pointer-events: none;
+  }
+
+  &.is-live {
+    border-color: rgba(22, 199, 132, 0.22);
+    background: rgba(255, 255, 255, 0.9);
+    color: #0b6b49;
+    animation:
+      survivor-seat-enter 360ms ease-out both,
+      survivor-seat-breathe 2.8s ease-in-out 360ms infinite;
+
+    &::after {
+      animation: survivor-seat-scan 3.6s ease-in-out infinite;
+    }
+  }
+}
+
+.survivor-seat > * {
+  position: relative;
+  z-index: 1;
+}
+
+.survivor-seat__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: pm.$surface;
+  color: currentColor;
+  box-shadow:
+    0 10px 20px rgba(20, 64, 50, 0.08),
+    inset 0 0 0 1px rgba(20, 22, 38, 0.06);
+}
+
+.survivor-seat--leader.is-live .survivor-seat__icon {
+  color: #a96700;
+  background: pm.$amber-soft;
+}
+
+.survivor-seat--pot.is-live .survivor-seat__icon {
+  color: #0b6b49;
+  background: pm.$neo-soft;
+}
+
+.survivor-seat small {
+  @include pm.section-eyebrow;
+  min-width: 0;
+  font-size: 9px;
+}
+
+.survivor-seat strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: pm.$ink;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .hero-container {
   display: grid;
   gap: 16px;
@@ -709,6 +841,50 @@
   }
 }
 
+@keyframes survivor-seat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes survivor-seat-breathe {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 0 0 0 rgba(22, 199, 132, 0);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 0 0 5px rgba(22, 199, 132, 0.08);
+  }
+}
+
+@keyframes survivor-seat-scan {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateX(-88%);
+  }
+
+  62% {
+    opacity: 0.82;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(88%);
+  }
+}
+
 .participation-detail {
   display: grid;
   gap: 2px;
@@ -911,6 +1087,9 @@
   .survivor-arena-lane__track::after,
   .survivor-arena-lane__pulse,
   .survivor-arena-lane__marker.is-live,
+  .survivor-seat,
+  .survivor-seat.is-live,
+  .survivor-seat.is-live::after,
   .survivor-play-area--live .participation-icon,
   .claim-card-trophy,
   .claim-card-inner.is-winner {
@@ -1170,6 +1349,29 @@
   .survivor-arena-lane__marker {
     width: 31px;
     height: 31px;
+  }
+
+  .survivor-seat-strip {
+    padding: 12px;
+  }
+
+  .survivor-seat-grid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .survivor-seat {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-items: start;
+    align-items: center;
+    min-height: 58px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .survivor-seat strong {
+    justify-self: end;
+    text-align: right;
   }
 
   .participation-bar {

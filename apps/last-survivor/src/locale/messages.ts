@@ -25,6 +25,12 @@ const appMessages = {
   leaderMarker: { en: "Leader", zh: "领先者" },
   playerMarker: { en: "You", zh: "你" },
   potMarker: { en: "Pot", zh: "奖池" },
+  survivorSeats: { en: "Survivor seats", zh: "生还席位" },
+  survivorSeatsHint: {
+    en: "The final live seat wins when the clock stops.",
+    zh: "倒计时停止时，最后仍占位的人获胜。",
+  },
+  survivorSeatEmpty: { en: "Open seat", zh: "空席" },
   history: { en: "History", zh: "历史" },
   subtitle: { en: "Last buyer wins the entire prize pool", zh: "最后一个按按钮的人赢得全部奖池" },
   timeUntilEvent: { en: "Time Until Event", zh: "距离事件" },
