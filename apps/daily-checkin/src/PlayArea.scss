@@ -234,12 +234,34 @@ $amber: #f59e0b;
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform-origin: 58% 50%;
+  animation: checkin-plaza-drift 14s ease-in-out infinite alternate;
+}
+
+.checkin-streak-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    112deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.46) 50%,
+    transparent 62%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-74%);
+  animation: checkin-plaza-sweep 7.2s ease-in-out infinite;
 }
 
 .checkin-streak-stage::after {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.42) 58%, rgba(255, 255, 255, 0.08)),
     linear-gradient(0deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
@@ -248,7 +270,34 @@ $amber: #f59e0b;
 .checkin-streak-stage figcaption,
 .checkin-streak-stage__tokens {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+@keyframes checkin-plaza-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.045) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes checkin-plaza-sweep {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-74%);
+  }
+
+  72% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(74%);
+  }
 }
 
 .checkin-streak-stage figcaption {
@@ -600,10 +649,15 @@ $amber: #f59e0b;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .checkin-streak-stage img,
+  .checkin-streak-stage::before,
   .streak-milestone-ready .checkin-streak-stage__tokens span:last-child,
   .streak-celebrating .checkin-fire-ring,
   .streak-can-checkin .checkin-fire-ring,
-  .streak-can-checkin .checkin-streak-section::after {
+  .streak-can-checkin .checkin-streak-section::after,
+  .checkin-week-day-slot.today-ready .checkin-day-icon,
+  .checkin-route-runner,
+  .streak-can-checkin .checkin-route-spark {
     animation: none;
   }
 }
@@ -726,6 +780,10 @@ $amber: #f59e0b;
   line-height: 1;
 }
 
+.checkin-week-day-slot.today-ready .checkin-day-icon {
+  animation: checkin-today-token-hop 1.8s ease-in-out infinite;
+}
+
 .checkin-day-label {
   font-size: 10px;
   /* Inherit the slot's muted ink at full opacity — dimming it dropped the
@@ -743,17 +801,34 @@ $amber: #f59e0b;
 }
 
 .checkin-week-connector {
+  position: relative;
   margin-top: 14px;
-  height: 4px;
+  height: 22px;
+  border-radius: 999px;
+  background: transparent;
+  overflow: visible;
+}
+
+.checkin-week-connector::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  height: 6px;
+  border: 1px solid $ns-border;
   border-radius: 999px;
   background: $ns-subtle;
-  overflow: hidden;
+  transform: translateY(-50%);
 }
 
 .checkin-connector-fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
   height: 100%;
+  max-height: 6px;
   border-radius: 999px;
   background: $ac;
+  transform: translateY(-50%);
   transition: width 320ms ease;
 }
 
@@ -761,6 +836,69 @@ $amber: #f59e0b;
   background: linear-gradient(90deg, $ac 0%, #26d99a 50%, $ac 100%);
   background-size: 180% 100%;
   animation: checkin-progress-flow 1.8s linear infinite;
+}
+
+.checkin-route-runner {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid $ac-border;
+  border-radius: 999px;
+  background: $ns-bg;
+  color: $ac-ink;
+  box-shadow:
+    0 10px 22px rgba(20, 22, 38, 0.12),
+    0 0 0 4px rgba(22, 199, 132, 0.08);
+  transform: translate(-50%, -50%);
+  transition:
+    left 320ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.checkin-route-runner--ready {
+  border-color: rgba(22, 199, 132, 0.42);
+  color: #ffffff;
+  background: $ac-fill;
+  animation: checkin-route-runner-ready 1.65s ease-in-out infinite;
+}
+
+.checkin-route-runner--celebrating {
+  animation: checkin-route-runner-claim 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.checkin-route-spark {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 2px rgba(22, 199, 132, 0.16),
+    0 0 14px rgba(22, 199, 132, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.streak-can-checkin .checkin-route-spark {
+  animation: checkin-route-spark 2.7s linear infinite;
+}
+
+.checkin-route-spark--two {
+  animation-delay: 420ms;
+}
+
+.checkin-route-spark--three {
+  animation-delay: 840ms;
 }
 
 @keyframes checkin-today-ready-ring {
@@ -775,12 +913,71 @@ $amber: #f59e0b;
   }
 }
 
+@keyframes checkin-today-token-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  48% {
+    transform: translateY(-3px) scale(1.06);
+  }
+}
+
 @keyframes checkin-progress-flow {
   from {
     background-position: 0% 50%;
   }
   to {
     background-position: 180% 50%;
+  }
+}
+
+@keyframes checkin-route-runner-ready {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 22px rgba(20, 22, 38, 0.12),
+      0 0 0 4px rgba(22, 199, 132, 0.1);
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    box-shadow:
+      0 14px 28px rgba(10, 122, 82, 0.18),
+      0 0 0 8px rgba(22, 199, 132, 0.1);
+    transform: translate(-50%, -54%) scale(1.06);
+  }
+}
+
+@keyframes checkin-route-runner-claim {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+
+  58% {
+    transform: translate(-50%, -56%) scale(1.16);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes checkin-route-spark {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+
+  16%,
+  76% {
+    opacity: 0.9;
+  }
+
+  100% {
+    left: 100%;
+    opacity: 0;
   }
 }
 
@@ -1784,6 +1981,9 @@ $amber: #f59e0b;
   .checkin-reward-reveal__icon,
   .checkin-week-day-slot.today-ready::after,
   .streak-can-checkin .checkin-connector-fill,
+  .checkin-week-day-slot.today-ready .checkin-day-icon,
+  .checkin-route-runner,
+  .streak-can-checkin .checkin-route-spark,
   .checkin-actions-grid .checkin-btn--ready:not(:disabled) {
     animation: none;
   }

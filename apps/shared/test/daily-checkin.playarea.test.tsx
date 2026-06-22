@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -146,6 +148,8 @@ describe("Daily Check-in PlayArea", () => {
     expect(container.querySelector(".checkin-play-area.streak-milestone-ready")).toBeTruthy();
     expect(container.querySelector(".checkin-week-day-slot.today-ready")).toBeTruthy();
     expect(container.querySelector(".checkin-connector-fill")).toBeTruthy();
+    expect(container.querySelector(".checkin-route-runner--ready")).toBeTruthy();
+    expect(container.querySelectorAll(".checkin-route-spark").length).toBe(3);
     expect(container.querySelector(".checkin-btn--ready")).toBeTruthy();
     expect(document.querySelector('.checkin-streak-stage img[src="./streak-plaza.jpg"]')).toBeTruthy();
     expect(screen.getAllByText("6 Day Streak").length).toBeGreaterThan(0);
@@ -162,6 +166,20 @@ describe("Daily Check-in PlayArea", () => {
     expect(screen.getByText("Your Rewards")).toBeTruthy();
     expect(screen.getByText("Recent Check-ins")).toBeTruthy();
     expect(screen.getByRole("region", { name: "Request and result evidence" })).toBeTruthy();
+  });
+
+  it("keeps the weekly route animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../daily-checkin/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".checkin-route-runner--ready");
+    expect(styles).toContain("@keyframes checkin-route-spark");
+    expect(styles).toContain("@keyframes checkin-today-token-hop");
+    expect(styles).toContain("@keyframes checkin-plaza-drift");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toContain(".streak-can-checkin .checkin-route-spark");
   });
 
   it("dispatches all visible business actions", () => {
