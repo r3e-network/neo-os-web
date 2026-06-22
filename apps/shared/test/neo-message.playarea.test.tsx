@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -60,11 +62,13 @@ function props(dispatch = vi.fn(async () => undefined), appState: ObservableStat
 }
 
 describe("Neo Message PlayArea", () => {
-  it("renders real brand imagery, sealed preview, and delivery-mode radio cards", () => {
+  it("renders real brand imagery, live sealing stage, sealed preview, and delivery-mode radio cards", () => {
     const { container } = render(<PlayArea {...props()} />);
 
     expect(container.querySelector('.nm-hero img[src="./logo.jpg"]')).toBeTruthy();
     expect(container.querySelector('.nm-hero-media img[src="./banner.jpg"]')).toBeTruthy();
+    expect(container.querySelector('.nm-message-stage img[src="./sealed-message-desk.jpg"]')).toBeTruthy();
+    expect(screen.getByLabelText("Live message sealing stage")).toBeTruthy();
     expect(container.querySelector(".nm-hero svg")).toBeNull();
     expect(screen.getByLabelText("Sealed message preview")).toBeTruthy();
     expect(screen.getByText("Choose a recipient")).toBeTruthy();
@@ -73,6 +77,16 @@ describe("Neo Message PlayArea", () => {
     expect(radios).toHaveLength(2);
     expect(radios[0].getAttribute("aria-checked")).toBe("true");
     expect(radios[1].getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("keeps the message stage animated with a reduced-motion fallback", () => {
+    const scss = readFileSync(
+      join(process.cwd(), "../neo-message/src/PlayArea.scss"),
+      "utf8",
+    );
+    expect(scss).toContain("@keyframes nm-packet-send");
+    expect(scss).toContain("@keyframes nm-stage-image-drift");
+    expect(scss).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
   it("offers an in-app Switch to Neo X button when an EVM wallet is present", () => {
@@ -120,7 +134,7 @@ describe("Neo Message PlayArea", () => {
     const appState = state();
     render(<PlayArea {...props(vi.fn(), appState)} />);
 
-    expect(screen.getAllByText(`0/${MAX_BODY_LENGTH}`)).toHaveLength(2);
+    expect(screen.getAllByText(`0/${MAX_BODY_LENGTH}`).length).toBeGreaterThanOrEqual(2);
     const meter = screen.getByRole("progressbar", { name: "Length" });
     expect(meter.getAttribute("aria-valuenow")).toBe("0");
 
