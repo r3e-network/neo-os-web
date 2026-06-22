@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -23,6 +24,7 @@ function t(key: string) {
     diceHistoryTitle: "Recent rolls",
     diceOracleStep: "Morpheus VRF",
     dicePayoutLabel: "Payout",
+    dicePlayLoop: "Chip to payout play loop",
     diceBetSummary: "Bet summary",
     diceRoundSummary: "Round summary",
     diceRiskCopy: "A matching face pays 5.70x after the platform fee.",
@@ -37,6 +39,8 @@ function t(key: string) {
     diceWalletLabel: "Current stake",
     feeLabel: "Platform fee",
     howItWorks: "How it works",
+    customStakeHint: "Open for exact GAS",
+    customStakeTitle: "Fine tune stake",
     invalidStake: "Enter a GAS stake from 0.05 to 20.",
     lastTx: "Transaction",
     netWinLabel: "Net win",
@@ -134,11 +138,15 @@ describe("Dice Game PlayArea", () => {
     expect(container.querySelector('.dice-stage__table source[srcset="./dice-stage.avif"]')).toBeTruthy();
     expect(container.querySelector('.dice-chip-rack__visual img[src="./dice-chip-rack.jpg"]')).toBeTruthy();
     expect(container.querySelector(".dice-table-console")).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop.is-ready")).toBeTruthy();
+    expect(container.querySelector('.dice-play-loop__die img[src="./dice-face-6.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".dice-stake-drawer")).toBeTruthy();
     expect(container.querySelectorAll(".dice-face-grid__item").length).toBe(6);
     expect(screen.getByText("Ready on the table")).toBeTruthy();
     expect(screen.getAllByText("Current round").length).toBeGreaterThan(0);
     expect(screen.getByText("Pick your lucky face")).toBeTruthy();
     expect(screen.getAllByText("Chip rack").length).toBeGreaterThan(0);
+    expect(screen.getByText("Fine tune stake")).toBeTruthy();
   });
 
   it("shows real dice motion elements while a roll is submitting", () => {
@@ -155,6 +163,7 @@ describe("Dice Game PlayArea", () => {
     expect(container.querySelector(".dice-stage__landing-zone--rolling")).toBeTruthy();
     expect(container.querySelectorAll(".dice-stage__trail-die").length).toBe(3);
     expect(container.querySelector(".dice-roll-button--rolling")).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop.is-ready.is-rolling")).toBeTruthy();
     expect(screen.getAllByText("Rolling...").length).toBeGreaterThan(0);
   });
 
@@ -196,5 +205,21 @@ describe("Dice Game PlayArea", () => {
     expect(screen.getByText("Roll submitted")).toBeTruthy();
     expect(screen.getByText("2.85 GAS")).toBeTruthy();
     expect(screen.queryByText("Refunded")).toBeNull();
+  });
+
+  it("keeps the game board motion and reduced-motion fallback covered", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../dice-game/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes dice-play-loop-sweep");
+    expect(styles).toContain("@keyframes dice-play-loop-flow");
+    expect(styles).toContain("@keyframes dice-play-loop-roll");
+    expect(styles).toContain("@keyframes dice-play-loop-prize");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.dice-play-loop__route::after[\s\S]*animation:\s*none/,
+    );
   });
 });
