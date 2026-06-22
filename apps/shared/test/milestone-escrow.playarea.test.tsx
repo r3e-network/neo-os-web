@@ -49,7 +49,13 @@ function t(key: string, params?: Record<string, string | number>) {
     milestoneProgress: "{done} / {count} milestones",
     noMilestoneToApprove: "All milestones approved",
     noMilestoneToClaim: "No approved milestone to claim",
+    planPreview: "Release plan",
     refresh: "Refresh",
+    releaseDesk: "Release desk",
+    releaseDeskTitle: "Build a staged payout plan",
+    releaseDeskCopy: "Turn a deal into funded gates.",
+    releaseWorkbench: "Escrow workbench",
+    releaseWorkbenchTitle: "Preview the release route while you configure it",
     released: "Released",
     releasedOfTotal: "{released} / {total} released",
     remove: "Remove",
@@ -59,7 +65,11 @@ function t(key: string, params?: Record<string, string | number>) {
     statusCompleted: "Completed",
     submit: "Submit",
     title: "Milestone Escrow",
+    twoStepSignNotice: "Creating an escrow needs two wallet signatures: first the {asset} deposit, then the escrow setup.",
+    twoStepSignBadge: "2 wallet signatures",
     totalAmount: "Total amount",
+    dealControls: "Deal controls",
+    dealControlsHint: "Keep every release gate visible.",
   };
   const template = messages[key] ?? key;
   if (!params) return template;
@@ -117,8 +127,10 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("Milestone Escrow PlayArea", () => {
   it("renders the create toggle and escrow ledger", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
 
+    expect(container.querySelector(".hero-media img")?.getAttribute("src")).toBe("./milestone-escrow-stage.jpg");
+    expect(screen.getByText("Build a staged payout plan")).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Create Escrow$/i })).toBeTruthy();
     expect(screen.getAllByText("Website delivery").length).toBeGreaterThan(0);
   });
@@ -128,6 +140,9 @@ describe("Milestone Escrow PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
 
+    expect(screen.getByLabelText("Escrow workbench")).toBeTruthy();
+    expect(screen.getByLabelText("Release plan")).toBeTruthy();
+    expect(screen.getByText("Deal controls")).toBeTruthy();
     expect(screen.getByLabelText("Beneficiary")).toBeTruthy();
     // The NEO asset option is back: both radios are present, GAS selected.
     const gasOption = screen.getByRole("radio", { name: "GAS" });
@@ -166,7 +181,7 @@ describe("Milestone Escrow PlayArea", () => {
 
   it("adds milestones and dispatches the full per-milestone amount array", () => {
     const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
     fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
@@ -180,6 +195,7 @@ describe("Milestone Escrow PlayArea", () => {
 
     // Live total reflects the sum of all milestone amounts.
     expect(screen.getByText("4 GAS")).toBeTruthy();
+    expect(container.querySelectorAll(".create-plan-preview__gate.is-funded")).toHaveLength(3);
 
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 

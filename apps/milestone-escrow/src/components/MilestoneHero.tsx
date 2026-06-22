@@ -16,9 +16,7 @@ export default function MilestoneHero({ t, progressPercent, checkpoints, hasEscr
   return (
     <div className="hero-container">
       <picture className="hero-media" aria-hidden="true">
-        <source srcSet="./banner.avif" type="image/avif" />
-        <source srcSet="./banner.webp" type="image/webp" />
-        <img src="./banner.jpg" alt="" decoding="async" loading="eager" />
+        <img src="./milestone-escrow-stage.jpg" alt="" decoding="async" loading="eager" />
       </picture>
       <div className="hero-media-shade" aria-hidden="true" />
       <div className="hero-head">
