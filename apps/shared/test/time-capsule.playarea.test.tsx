@@ -176,6 +176,9 @@ describe("Time Capsule PlayArea", () => {
     expect(container.querySelector(".capsule-play-area.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-seal-workbench.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-preview-panel.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-seal-track")).toBeTruthy();
+    expect(container.querySelectorAll(".capsule-seal-track__step.is-active")).toHaveLength(2);
+    expect(container.querySelector(".capsule-seal-track__step.is-complete")).toBeTruthy();
   });
 
   it("labels local capsules with visual state classes for locked, ready, and revealed states", () => {
@@ -246,7 +249,11 @@ describe("Time Capsule PlayArea", () => {
 
     expect(playAreaStyles).toContain("@keyframes capsule-preview-sweep");
     expect(playAreaStyles).toContain("@keyframes capsule-ready-card");
+    expect(playAreaStyles).toContain("@keyframes capsule-seal-track-flow");
+    expect(playAreaStyles).toContain("@keyframes capsule-seal-node-pulse");
+    expect(playAreaStyles).toContain("@keyframes capsule-seal-complete-pop");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(playAreaStyles).toContain(".capsule-seal-track__step.is-complete svg");
     expect(heroStyles).toContain("@keyframes capsule-hero-drift");
     expect(heroStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(listStyles).toContain("@keyframes capsule-empty-badge");

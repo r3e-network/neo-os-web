@@ -140,6 +140,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         ? `${contentPreview.slice(0, 120)}...`
         : contentPreview
       : t("secretMessagePlaceholder");
+  const hasMessageDraft = Boolean((newCapsule.title ?? "").trim() || contentPreview);
+  const hasValidLockDuration =
+    Number.isFinite(dayCount) && dayCount >= 1 && dayCount <= 3650;
 
   const updateForm = (patch: Partial<CapsuleFormState>) => {
     if (state.newCapsule) {
@@ -425,6 +428,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <small>{t("sealPreview")}</small>
               <strong>{titlePreview}</strong>
               <p>{messagePreview}</p>
+            </div>
+            <div className="capsule-seal-track" aria-label={t("sealPreview")}>
+              <span className={`capsule-seal-track__step${hasMessageDraft ? " is-active" : ""}`}>
+                <FileText size={16} aria-hidden="true" />
+                <strong>{t("messageStage")}</strong>
+                <small>{titlePreview}</small>
+              </span>
+              <span className={`capsule-seal-track__step${hasValidLockDuration ? " is-active" : ""}`}>
+                <CalendarClock size={16} aria-hidden="true" />
+                <strong>{t("timeLockStage")}</strong>
+                <small>{unlockPreview}</small>
+              </span>
+              <span className={`capsule-seal-track__step${canCreate ? " is-active is-complete" : ""}`}>
+                <LockKeyhole size={16} aria-hidden="true" />
+                <strong>{t("storageLabel")}</strong>
+                <small>{t("hashStored")}</small>
+              </span>
             </div>
             <div className="capsule-preview-grid">
               <span>
