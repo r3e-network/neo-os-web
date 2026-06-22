@@ -133,7 +133,7 @@ describe("Unbreakable Vault PlayArea", () => {
   it("dispatches a complete create-vault payload with readable difficulty tiers", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.change(screen.getByLabelText("Vault Title"), {
       target: { value: "Crack me" },
@@ -151,6 +151,7 @@ describe("Unbreakable Vault PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Confirm Secret"), {
       target: { value: "open sesame" },
     });
+    expect(container.querySelector(".vault-blueprint__lock.is-ready")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Create Vault (bounty + hash)" }));
 
     await waitFor(() => {
@@ -177,30 +178,34 @@ describe("Unbreakable Vault PlayArea", () => {
   });
 
   it("uses a challenge console mode switch instead of stacking both workflows", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
     expect(screen.getByText("Build a bounty vault or inspect one to break")).toBeTruthy();
+    expect(container.querySelector(".vault-command-shell--create")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Create Vault" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.queryByText("Load a vault to challenge")).toBeNull();
 
     fireEvent.click(screen.getByRole("tab", { name: "Break a Vault" }));
 
+    expect(container.querySelector(".vault-command-shell--break")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText("Load a vault to challenge")).toBeTruthy();
     expect(screen.queryByLabelText("Vault Title")).toBeNull();
   });
 
   it("opens the break desk automatically when a vault is loaded", () => {
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
-        state={state({ vaultIdInput: "7", vaultDetails: activeVault })}
+        state={state({ vaultIdInput: "7", vaultDetails: activeVault, canAttempt: true })}
         dispatch={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText("Crack me if you can")).toBeTruthy();
+    expect(container.querySelector(".vault-target-card--loaded")).toBeTruthy();
+    expect(container.querySelector(".vault-target-card--attempt-ready")).toBeTruthy();
   });
 
   it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
@@ -273,7 +278,7 @@ describe("Unbreakable Vault PlayArea", () => {
   it("offers Reclaim Vault to the creator of a claimable (expired) vault and dispatches settleVault", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={state({
@@ -288,6 +293,7 @@ describe("Unbreakable Vault PlayArea", () => {
     const reclaimButton = screen.getByRole("button", { name: "Reclaim Vault" });
     // The break-secret input is hidden once a vault is no longer active.
     expect(screen.queryByLabelText("Break Secret")).toBeNull();
+    expect(container.querySelector(".vault-target-card--claimable")).toBeTruthy();
 
     fireEvent.click(reclaimButton);
     await waitFor(() => {
