@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const appsRoot = resolve(process.cwd(), "..");
+const gamifiedAppOverrides = new Set(["gas-lucky-pool", "red-envelope"]);
 
 function readIfExists(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -13,6 +14,7 @@ function isGameApp(app: string): boolean {
   const neoManifest = readIfExists(resolve(appsRoot, app, "neo-manifest.json"));
   const combined = `${manifest}\n${neoManifest}`;
   return (
+    gamifiedAppOverrides.has(app) ||
     /category:\s*["']game["']/.test(combined) ||
     /"category"\s*:\s*"games"/.test(combined)
   );
@@ -29,7 +31,7 @@ describe("Game miniapp motion baseline", () => {
   it("keeps every game surface animated, asset-led, and reduced-motion safe", () => {
     const games = gameApps();
 
-    expect(games.length).toBeGreaterThanOrEqual(8);
+    expect(games.length).toBeGreaterThanOrEqual(11);
 
     const failures = games.flatMap((app) => {
       const appRoot = resolve(appsRoot, app);
