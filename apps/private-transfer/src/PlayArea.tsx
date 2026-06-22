@@ -39,6 +39,7 @@ type SubmitState =
   | { status: "error"; message: string; detail?: string };
 
 type NetworkHealth = "checking" | "live" | "degraded";
+type RouteVisualState = "draft" | "ready" | "sealing" | "stored" | "error";
 
 const AMOUNT_PRESETS = ["0.1", "1", "5"];
 const NEO_AMOUNT_PRESETS = ["1", "5", "10"];
@@ -468,6 +469,65 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
       icon: ShieldCheck,
     },
   ];
+  const routeVisualState: RouteVisualState =
+    submitState.status === "stored"
+      ? "stored"
+      : submitState.status === "error"
+        ? "error"
+        : submitState.status === "sealing"
+          ? "sealing"
+          : canSeal
+            ? "ready"
+            : "draft";
+  const routeProgressPercent =
+    routeVisualState === "stored"
+      ? 100
+      : routeVisualState === "sealing"
+        ? 72
+        : routeVisualState === "ready"
+          ? 44
+          : routeVisualState === "error"
+            ? 58
+            : 18;
+  const routeRecipientLabel = recipient.trim()
+    ? isValidNeoAddress(recipient)
+      ? shortAddress(recipient)
+      : t("routeRecipientInvalid")
+    : t("routeRecipientPending");
+  const routeAmountLabel = isPositiveAmount(amount, asset)
+    ? t("summaryAmountValue", {
+        amount: normalizeAmount(amount, asset),
+        asset,
+      })
+    : t("routeAmountPending");
+  const routeSteps: Array<{
+    key: string;
+    label: string;
+    icon: LucideIcon;
+    ready: boolean;
+  }> = [
+    {
+      key: "compose",
+      label: t("routeStepCompose"),
+      icon: Gem,
+      ready: canSeal || routeVisualState === "stored",
+    },
+    {
+      key: "encrypt",
+      label: t("routeStepEncrypt"),
+      icon: LockKeyhole,
+      ready:
+        routeVisualState === "sealing" ||
+        routeVisualState === "stored" ||
+        routeVisualState === "error",
+    },
+    {
+      key: "morpheus",
+      label: t("routeStepMorpheus"),
+      icon: ShieldCheck,
+      ready: routeVisualState === "stored",
+    },
+  ];
 
   return (
     <div className="private-transfer">
@@ -518,7 +578,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                 aria-label={t("formNetworkLabel")}
               >
                 {NETWORKS.map((net) => {
-                  const health = networkHealth[net];
+                  const health = networkHealth[net] ?? "checking";
                   const StatusIcon = networkHealthIcon(health);
                   const selected = net === network;
                   const label = networkLabelFor(net);
@@ -751,34 +811,73 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
         </div>
 
         {!sealed && (
-        <aside className="private-transfer__intro">
-          <div className="private-transfer__intro-icon" aria-hidden="true">
-            <LockKeyhole size={20} />
-          </div>
-          <strong className="private-transfer__intro-title">
-            {t("introTitle")}
-          </strong>
-          <p className="private-transfer__intro-body">{t("introBody")}</p>
-          <ul className="private-transfer__intro-points">
-            {(
-              [
-                [t("introPointLocal"), t("introPointLocalDesc")],
-                [t("introPointTee"), t("introPointTeeDesc")],
-                [t("introPointNoFunds"), t("introPointNoFundsDesc")],
-              ] as const
-            ).map(([title, desc]) => (
-              <li key={title}>
-                <span aria-hidden="true" className="private-transfer__intro-tick">
-                  <Check size={13} />
-                </span>
-                <div>
-                  <strong>{title}</strong>
-                  <span>{desc}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </aside>
+          <aside
+            className={`private-transfer__route private-transfer__route--${routeVisualState}`}
+            aria-label={t("routeAria")}
+          >
+            <div className="private-transfer__route-head">
+              <span className="private-transfer__route-icon" aria-hidden="true">
+                <LockKeyhole size={20} />
+              </span>
+              <div>
+                <strong>{t("routeTitle")}</strong>
+                <p>{t("routeBody")}</p>
+              </div>
+            </div>
+
+            <div
+              className="private-transfer__route-stage"
+              data-state={routeVisualState}
+            >
+              <img src="./private-transfer-stage.jpg" alt="" aria-hidden="true" />
+              <div className="private-transfer__route-wash" aria-hidden="true" />
+              <div className="private-transfer__route-rail" aria-hidden="true">
+                <span style={{ width: `${routeProgressPercent}%` }} />
+              </div>
+              <div className="private-transfer__route-packet">
+                <span>{networkLabelFor(network)}</span>
+                <strong>{routeAmountLabel}</strong>
+                <small>{routeRecipientLabel}</small>
+              </div>
+            </div>
+
+            <ol className="private-transfer__route-steps">
+              {routeSteps.map((step) => {
+                const Icon = step.icon;
+                return (
+                  <li
+                    key={step.key}
+                    className={step.ready ? "is-ready" : undefined}
+                  >
+                    <span aria-hidden="true">
+                      <Icon size={15} />
+                    </span>
+                    <strong>{step.label}</strong>
+                  </li>
+                );
+              })}
+            </ol>
+
+            <ul className="private-transfer__intro-points">
+              {(
+                [
+                  [t("introPointLocal"), t("introPointLocalDesc")],
+                  [t("introPointTee"), t("introPointTeeDesc")],
+                  [t("introPointNoFunds"), t("introPointNoFundsDesc")],
+                ] as const
+              ).map(([title, desc]) => (
+                <li key={title}>
+                  <span aria-hidden="true" className="private-transfer__intro-tick">
+                    <Check size={13} />
+                  </span>
+                  <div>
+                    <strong>{title}</strong>
+                    <span>{desc}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </aside>
         )}
 
         {sealed && (
