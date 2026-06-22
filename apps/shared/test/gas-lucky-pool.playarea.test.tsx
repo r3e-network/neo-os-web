@@ -185,7 +185,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
   it("prefills the claim key from OneGate scan params and submits the backend claim", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState()}
@@ -196,6 +196,8 @@ describe("OneGate Vault PlayArea launch flow", () => {
 
     expect(screen.getByText("OneGate scan detected")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Claim Reward" })).toBeTruthy();
+    expect(container.querySelector(".gas-pool-claim-only--ready")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-claim-stage__ticket")).toBeTruthy();
     expect(screen.queryByLabelText("Claim key")).toBeNull();
     expect(screen.queryByText("Create reward pool")).toBeNull();
     expect(screen.queryByText("OneGate QR claim")).toBeNull();
@@ -224,7 +226,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
   });
 
   it("shows an explicit waiting state while the backend payout is pending", () => {
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState({
@@ -238,6 +240,8 @@ describe("OneGate Vault PlayArea launch flow", () => {
     );
 
     expect(screen.getByText("Claim progress")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-claim-only--claiming")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-claim-stage__beam")).toBeTruthy();
     expect(
       screen.getAllByText("Waiting for GAS transfer").length,
     ).toBeGreaterThan(0);
@@ -269,7 +273,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
   });
 
   it("shows a clear congratulations state after a successful claim", () => {
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState({
@@ -287,6 +291,8 @@ describe("OneGate Vault PlayArea launch flow", () => {
     );
 
     expect(screen.getByText("Congratulations, your claim is in")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-claim-only--success")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-prize-burst")).toBeTruthy();
     expect(
       screen.getByText(
         /Reward key ogv_tes\.\.\.7890 awarded 3\.5[0-9]* GAS/,
@@ -342,6 +348,10 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(
       screen.getByRole("region", { name: "Reward pool workspace" }),
     ).toBeTruthy();
+    expect(container.querySelector(".gas-pool-create-summary__stage")).toBeTruthy();
+    expect(
+      container.querySelectorAll(".gas-pool-create-summary__tickets span"),
+    ).toHaveLength(4);
     expect(screen.getByText("Create reward pool")).toBeTruthy();
     expect(screen.getByText("Pool controls")).toBeTruthy();
     expect(container.textContent).not.toContain("inspectPool");

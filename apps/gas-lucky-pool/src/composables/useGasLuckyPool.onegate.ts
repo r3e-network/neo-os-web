@@ -122,7 +122,7 @@ function oneGateAuthChallenge(
         ? window.location.hostname
         : "neomini.app",
     Networks: [oneGateNetworkMagic(network)],
-    Nonce: nonceBytes[0],
+    Nonce: nonceBytes[0] ?? 0,
     Timestamp: Math.floor(Date.now() / 1000),
   };
 }
@@ -310,7 +310,8 @@ function isOneGateDapiProviderLike(
 function normalizeNeoScriptHash(value: unknown): string {
   const raw = String(value ?? "").trim();
   const match = raw.match(/^(?:0x)?([0-9a-fA-F]{40})$/);
-  return match ? match[1].toLowerCase() : "";
+  const scriptHash = match?.[1];
+  return scriptHash ? scriptHash.toLowerCase() : "";
 }
 
 function oneGateCallTimeout<T>(
@@ -352,15 +353,15 @@ function base58Encode(bytes: Uint8Array): string {
   while (value > 0n) {
     const index = Number(value % 58n);
     value /= 58n;
-    output = BASE58_ALPHABET[index] + output;
+    output = (BASE58_ALPHABET[index] ?? "") + output;
   }
 
   for (const byte of bytes) {
     if (byte !== 0) break;
-    output = BASE58_ALPHABET[0] + output;
+    output = (BASE58_ALPHABET[0] ?? "") + output;
   }
 
-  return output || BASE58_ALPHABET[0];
+  return output || (BASE58_ALPHABET[0] ?? "");
 }
 
 function rotr(value: number, bits: number): number {
@@ -393,9 +394,11 @@ function sha256Sync(bytes: Uint8Array): Uint8Array {
       w[i] = view.getUint32(offset + i * 4);
     }
     for (let i = 16; i < 64; i += 1) {
-      const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
-      const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
-      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+      const w15 = w[i - 15] ?? 0;
+      const w2 = w[i - 2] ?? 0;
+      const s0 = rotr(w15, 7) ^ rotr(w15, 18) ^ (w15 >>> 3);
+      const s1 = rotr(w2, 17) ^ rotr(w2, 19) ^ (w2 >>> 10);
+      w[i] = ((w[i - 16] ?? 0) + s0 + (w[i - 7] ?? 0) + s1) >>> 0;
     }
 
     let a = h0;
@@ -410,7 +413,7 @@ function sha256Sync(bytes: Uint8Array): Uint8Array {
     for (let i = 0; i < 64; i += 1) {
       const s1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
       const ch = (e & f) ^ (~e & g);
-      const temp1 = (h + s1 + ch + SHA256_K[i] + w[i]) >>> 0;
+      const temp1 = (h + s1 + ch + (SHA256_K[i] ?? 0) + (w[i] ?? 0)) >>> 0;
       const s0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
       const maj = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (s0 + maj) >>> 0;
@@ -446,7 +449,9 @@ async function sha256Bytes(bytes: Uint8Array): Promise<Uint8Array> {
   const subtle = globalThis.crypto?.subtle;
   if (subtle) {
     try {
-      const digest = await subtle.digest("SHA-256", bytes);
+      const input = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(input).set(bytes);
+      const digest = await subtle.digest("SHA-256", input);
       return new Uint8Array(digest);
     } catch {
       /* Some embedded WebViews expose crypto without a working subtle API. */
@@ -622,10 +627,14 @@ function rememberOneGateDapiProvider(
   resetOneGateDapiDiscoveryForWindow(oneGateWindow);
 
   const name = String(provider.name ?? "").trim();
+  const providerRegistry = oneGateWindow as unknown as {
+    NEP21Provider?: unknown;
+    NEP21Providers?: Record<string, unknown>;
+  };
   oneGateDapiDiscovery.provider = provider;
-  if (oneGateWindow.NEP21Provider !== provider) {
+  if (providerRegistry.NEP21Provider !== provider) {
     try {
-      oneGateWindow.NEP21Provider = provider;
+      providerRegistry.NEP21Provider = provider;
     } catch {
       // Some mobile WebViews expose provider globals as read-only host objects.
       // The original provider remains usable; caching must not break the claim.
@@ -634,12 +643,12 @@ function rememberOneGateDapiProvider(
   if (name) {
     try {
       if (
-        oneGateWindow.NEP21Providers &&
-        typeof oneGateWindow.NEP21Providers === "object"
+        providerRegistry.NEP21Providers &&
+        typeof providerRegistry.NEP21Providers === "object"
       ) {
-        oneGateWindow.NEP21Providers[name] = provider;
+        providerRegistry.NEP21Providers[name] = provider;
       } else {
-        oneGateWindow.NEP21Providers = {
+        providerRegistry.NEP21Providers = {
           [name]: provider,
         };
       }

@@ -378,6 +378,16 @@ const jaMessages = {
   workspaceHeroTitle: "幸運のGAS報酬を贈る",
   workspaceHeroSubtitle:
     "サプライズのGASプールを用意して、OneGateのスキャンリンクを共有しましょう。友だちは一度タップするだけでランダムな報酬を開けます。",
+  heroProofGift: "ギフトフロー",
+  heroProofOneGate: "OneGate受取",
+  heroProofRandom: "ランダムGAS",
+  vaultStageAria: "幸運GAS報酬金庫のプレビュー",
+  rewardPlanTitle: "報酬プラン",
+  rewardPoolUnset: "金額を設定",
+  rewardSlotsUnset: "枠数を設定",
+  rewardSlotsCount: "{count} 件の受取枠",
+  rewardExpiryHours: "{hours}時間",
+  createPoolDeskTitle: "金庫に詰める",
   pathChooserTitle: "何をしますか？",
   pathGiveTitle: "幸運の報酬を贈る",
   pathGiveBody:
