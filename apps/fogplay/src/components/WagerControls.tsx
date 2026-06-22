@@ -1,5 +1,7 @@
 import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
 import { BET_PRESETS } from "../composables/useCoinFlip";
+import coinHeadsUrl from "../static/coin_heads.png";
+import coinTailsUrl from "../static/coin_tails.png";
 import "./WagerControls.scss";
 
 interface WagerControlsProps {
@@ -25,6 +27,10 @@ export default function WagerControls({ t, choice, betAmount, canBet, isFlipping
   const handleWithdraw = async () => { await dispatch("withdrawCredit"); };
   const updateChoice = (side: "heads" | "tails") => { dispatch("setChoice", side); };
   const updateBetAmount = (amount: string) => { dispatch("setBetAmount", amount); };
+  const sideArt: Record<"heads" | "tails", string> = {
+    heads: coinHeadsUrl,
+    tails: coinTailsUrl,
+  };
 
   return (
     <div className="bet-section">
@@ -41,18 +47,8 @@ export default function WagerControls({ t, choice, betAmount, canBet, isFlipping
                 aria-pressed={choice === side}
               >
                 <div className="card-inner">
-                  <span className="symbol-ring" aria-hidden="true">
-                    {side === "heads" ? (
-                      <svg viewBox="0 0 32 32" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="16 4 27 10 27 22 16 28 5 22 5 10" />
-                        <path d="M12 22V11l8 10V11" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 32 32" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="16" cy="16" r="11" />
-                        <path d="M16 8v16M9.5 12.5h7a2.6 2.6 0 0 1 0 5.2h-4.2a2.6 2.6 0 0 0 0 5.2h7" />
-                      </svg>
-                    )}
+                  <span className={`symbol-ring symbol-ring--${side}`} aria-hidden="true">
+                    <img src={sideArt[side]} alt="" loading="lazy" decoding="async" draggable={false} />
                   </span>
                   <span className="choice-name">{t(side)}</span>
                 </div>
