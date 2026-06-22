@@ -168,6 +168,12 @@ const appMessages = {
     },
     gasboxPrizeFocus: { en: "Prize focus", zh: "重点奖品" },
     gasboxPrizeFocusOdds: { en: "Drop chance", zh: "掉落概率" },
+    gasboxReelTitle: { en: "Prize reel", zh: "开奖轨道" },
+    gasboxReelHint: { en: "Ready to spin", zh: "准备抽取" },
+    gasboxReelEmpty: {
+        en: "No escrow-ready prizes are available for this machine.",
+        zh: "这台机器暂无已托管且可抽取的奖品。",
+    },
     gasboxOddsCoverage: { en: "Readable odds", zh: "可读概率" },
     gasboxNoAvailablePrize: { en: "No available prize", zh: "暂无可用奖品" },
     gasboxPullChecklist: { en: "Pull checklist", zh: "抽取检查表" },
