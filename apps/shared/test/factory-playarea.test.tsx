@@ -22,11 +22,15 @@ afterEach(() => {
  * key missing from factoryMessages fails the test instead of rendering "".
  */
 function t(key: string, params?: Record<string, string | number>): string {
-  const entry = (factoryMessages as Record<string, { en: string } | string>)[key];
+  const entry = (factoryMessages as Record<string, { en: string } | string>)[
+    key
+  ];
   if (!entry) throw new Error(`missing factoryMessages key: ${key}`);
   let text = typeof entry === "string" ? entry : entry.en;
   if (params) {
-    text = text.replace(/\{(\w+)\}/g, (_match, name: string) => String(params[name] ?? ""));
+    text = text.replace(/\{(\w+)\}/g, (_match, name: string) =>
+      String(params[name] ?? ""),
+    );
   }
   return text;
 }
@@ -35,7 +39,9 @@ interface HarnessState {
   [key: string]: Observable;
 }
 
-function buildState(overrides: Partial<Record<string, unknown>> = {}): HarnessState {
+function buildState(
+  overrides: Partial<Record<string, unknown>> = {},
+): HarnessState {
   const defaults: Record<string, unknown> = {
     currentPlan: null,
     walletAddress: null,
@@ -116,10 +122,28 @@ describe("FactoryPlayArea", () => {
     expect(pill?.textContent).toBe("Draft");
     expect(pill?.className).toContain("is-draft");
     expect(pill?.className).not.toContain("is-blocked");
+    expect(document.querySelector(".domain-factory")?.className).toContain(
+      "domain-factory--stage-draft-needs-work",
+    );
+    const studioFlow = document.querySelector(".domain-factory-studio-flow");
+    expect(studioFlow).toBeTruthy();
+    expect(
+      studioFlow
+        ?.querySelector(".domain-factory-studio-flow__stage--nep17 img")
+        ?.getAttribute("src"),
+    ).toBe("./token-mint-studio.jpg");
+    expect(
+      document.querySelector(".domain-factory-studio-flow__step--active")
+        ?.textContent,
+    ).toContain("Draft");
     expect(document.querySelectorAll("select")).toHaveLength(0);
     expect(document.querySelectorAll("input[type='checkbox']")).toHaveLength(0);
     expect(screen.getByRole("radiogroup", { name: "Network" })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Network: Neo N3 Testnet" }).getAttribute("aria-checked")).toBe("true");
+    expect(
+      screen
+        .getByRole("radio", { name: "Network: Neo N3 Testnet" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
     // The template artifact row is honest about not having a live read yet.
     expect(screen.getAllByText("Unverified").length).toBeGreaterThan(0);
   });
@@ -160,7 +184,9 @@ describe("FactoryPlayArea", () => {
     });
     const ownerInput = screen.getByLabelText("Owner") as HTMLInputElement;
     expect(ownerInput.value).toBe(OWNER);
-    expect(screen.queryByText("Owner must be a Neo N3 address or Hash160.")).toBeNull();
+    expect(
+      screen.queryByText("Owner must be a Neo N3 address or Hash160."),
+    ).toBeNull();
   });
 
   it("blocks the execute button with the honest artifact reason for metadata-only templates", async () => {
@@ -173,9 +199,13 @@ describe("FactoryPlayArea", () => {
     const state = buildState({ currentPlan: plan });
     renderPlayArea(FactoryPlayArea as never, "nep17", state);
 
-    const execute = screen.getByRole("button", { name: "Deploy via factory" }) as HTMLButtonElement;
+    const execute = screen.getByRole("button", {
+      name: "Deploy via factory",
+    }) as HTMLButtonElement;
     expect(execute.disabled).toBe(true);
-    expect(screen.getByText(/Template artifact not registered on-chain yet/)).toBeTruthy();
+    expect(
+      screen.getByText(/Template artifact not registered on-chain yet/),
+    ).toBeTruthy();
     expect(screen.getAllByText("Metadata only").length).toBeGreaterThan(0);
   });
 
@@ -188,9 +218,22 @@ describe("FactoryPlayArea", () => {
     const state = buildState({ currentPlan: plan, feeEstimateGas: "10.1235" });
     const dispatch = renderPlayArea(FactoryPlayArea as never, "nep17", state);
 
-    const execute = screen.getByRole("button", { name: "Deploy via factory" }) as HTMLButtonElement;
+    const execute = screen.getByRole("button", {
+      name: "Deploy via factory",
+    }) as HTMLButtonElement;
     expect(execute.disabled).toBe(false);
-    expect(screen.getAllByText("Estimated network fee").length).toBeGreaterThan(0);
+    expect(document.querySelector(".domain-factory")?.className).toContain(
+      "domain-factory--stage-ready",
+    );
+    const activeStudioSteps = Array.from(
+      document.querySelectorAll(".domain-factory-studio-flow__step--active"),
+    ).map((step) => step.textContent ?? "");
+    expect(
+      activeStudioSteps.some((text) => text.includes("Deploy via factory")),
+    ).toBe(true);
+    expect(screen.getAllByText("Estimated network fee").length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getAllByText("≈ 10.1235 GAS").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Preloaded on-chain").length).toBeGreaterThan(0);
 
@@ -260,8 +303,11 @@ describe("FactoryPlayArea", () => {
     });
     renderPlayArea(FactoryPlayArea as never, "nep17", state);
 
-    const json = document.querySelector(".domain-factory-json")?.textContent ?? "";
-    const parsed = JSON.parse(json) as { walletSignature?: typeof signatureInfo };
+    const json =
+      document.querySelector(".domain-factory-json")?.textContent ?? "";
+    const parsed = JSON.parse(json) as {
+      walletSignature?: typeof signatureInfo;
+    };
     expect(parsed.walletSignature).toEqual(signatureInfo);
     expect(screen.getByRole("button", { name: "Copy signature" })).toBeTruthy();
   });
