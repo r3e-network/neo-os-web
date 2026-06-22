@@ -297,6 +297,21 @@ describe("FactoryPlayArea", () => {
       document.querySelectorAll(".domain-factory-drop-rail__stack img"),
     ).toHaveLength(3);
     expect(
+      document.querySelector(".domain-factory-drop-composer"),
+    ).toBeTruthy();
+    expect(
+      document.querySelectorAll(".domain-factory-drop-preset img"),
+    ).toHaveLength(4);
+    act(() => {
+      screen.getByRole("button", { name: /5,000/ }).click();
+    });
+    expect(screen.getByDisplayValue("5000")).toBeTruthy();
+    const soulboundPolicy = screen.getByRole("radio", { name: /Soulbound/ });
+    act(() => {
+      soulboundPolicy.click();
+    });
+    expect(soulboundPolicy.getAttribute("aria-checked")).toBe("true");
+    expect(
       document.querySelector(".domain-factory-preview__edition-stack"),
     ).toBeTruthy();
     expect(
@@ -312,10 +327,14 @@ describe("FactoryPlayArea", () => {
 
     expect(styles).toContain(".domain-factory-studio-flow__drop-deck");
     expect(styles).toContain(".domain-factory-drop-rail__stack");
+    expect(styles).toContain(".domain-factory-drop-composer");
+    expect(styles).toContain(".domain-factory-drop-preset");
+    expect(styles).toContain(".domain-factory-drop-policy");
     expect(styles).toContain(".domain-factory-preview__edition-stack");
     expect(styles).toContain("@keyframes domain-factory-nft-card-float");
     expect(styles).toContain("@keyframes domain-factory-nft-drop-cycle");
     expect(styles).toContain("@keyframes domain-factory-nft-mint-scan");
+    expect(styles).toContain("@keyframes domain-factory-drop-control-lock");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
