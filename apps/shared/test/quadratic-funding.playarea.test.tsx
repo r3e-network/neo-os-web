@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -127,10 +128,26 @@ describe("Quadratic Funding PlayArea", () => {
     const dispatch = vi.fn(async () => true as unknown as void);
     render(<PlayArea t={t} state={baseState({ activeTab: "contribute" })} dispatch={dispatch} />);
 
+    expect(document.querySelector(".qf-flow-stage")).toBeTruthy();
+    expect(
+      document.querySelector('.qf-flow-stage__image[src="./funding-desk.jpg"]'),
+    ).toBeTruthy();
+    expect(document.querySelectorAll(".qf-flow-node")).toHaveLength(3);
+
     const idInput = screen.getByLabelText("Project ID") as HTMLInputElement;
     const amountInput = screen.getByLabelText("Amount") as HTMLInputElement;
     fireEvent.change(idInput, { target: { value: "7" } });
     fireEvent.change(amountInput, { target: { value: "2" } });
+
+    await waitFor(() => {
+      expect(document.querySelector(".qf-flow-stage")?.className).toContain(
+        "is-project-selected",
+      );
+      expect(document.querySelector(".qf-flow-stage")?.className).toContain(
+        "is-funded",
+      );
+      expect(screen.getAllByText("2 GAS").length).toBeGreaterThanOrEqual(1);
+    });
 
     // "Contribute" also names the tab button; the submit CTA is the last match.
     const contributeButtons = screen.getAllByRole("button", { name: "Contribute" });
@@ -156,6 +173,21 @@ describe("Quadratic Funding PlayArea", () => {
     });
     render(<PlayArea t={t} state={state} dispatch={vi.fn(async () => undefined)} />);
     expect(screen.getByText("Round created")).toBeTruthy();
+  });
+
+  it("keeps the funding-flow stage animated with reduced-motion support", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../quadratic-funding/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain(".qf-flow-stage");
+    expect(styles).toContain("@keyframes qf-flow-river");
+    expect(styles).toContain("@keyframes qf-flow-node-ready");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(max-width: 980px\)[\s\S]*\.qf-flow-stage__nodes[\s\S]*grid-template-columns:\s*1fr/,
+    );
   });
 
   it("shows the round's known project IDs and prefills them into the advanced finalize inputs", () => {
