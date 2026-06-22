@@ -103,6 +103,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       ? `${eventStart} - ${eventEnd}`
       : eventStart || eventEnd || t("eventStartPlaceholder");
   const ticketSupplyPreview = maxSupply || t("maxSupplyPlaceholder");
+  const issuePassTitle = selectedEvent?.name || eventName || t("eventNamePlaceholder");
+  const issuePassSeat = issueSeat || t("seatFallback");
+  const issuePassHolder = issueRecipient ? short(issueRecipient) : t("issueRecipientPlaceholder");
 
   const hasMetrics =
     eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
@@ -470,25 +473,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {events.length ? (
                   <>
                     <section
-                      className="ticket-issue-preview"
+                      className={`ticket-issue-runway${canIssueTicket ? " is-ready" : ""}${isIssuing ? " is-issuing" : ""}`}
                       aria-label={t("issuePreview")}
                     >
-                      <div
-                        className="ticket-issue-preview__art"
-                        aria-hidden="true"
-                      />
-                      <div className="ticket-issue-preview__copy">
-                        <span>{t("issuePreview")}</span>
-                        <strong>
-                          {selectedEvent?.name || t("eventNamePlaceholder")}
-                        </strong>
+                      <span className="ticket-issue-runway__rail" aria-hidden="true" />
+                      <span className="ticket-issue-runway__ticket" aria-hidden="true" />
+                      <div className="ticket-issue-runway__node ticket-issue-runway__node--event">
+                        <span className="ticket-issue-runway__art" aria-hidden="true" />
+                        <small>{t("eventPass")}</small>
+                        <strong>{issuePassTitle}</strong>
+                      </div>
+                      <div className="ticket-issue-runway__node ticket-issue-runway__node--mint">
+                        <Ticket size={18} aria-hidden="true" />
+                        <small>{t("issuePreview")}</small>
+                        <strong>{issuePassSeat}</strong>
+                      </div>
+                      <div className="ticket-issue-runway__node ticket-issue-runway__node--holder">
+                        <Users size={18} aria-hidden="true" />
+                        <small>{t("ticketOwner")}</small>
+                        <strong>{issuePassHolder}</strong>
+                      </div>
+                      <div className="ticket-issue-runway__caption">
+                        <Sparkles size={14} aria-hidden="true" />
                         <div>
-                          <small>{issueSeat || t("seatFallback")}</small>
-                          <small>
-                            {issueRecipient
-                              ? short(issueRecipient)
-                              : t("issueRecipientPlaceholder")}
-                          </small>
+                          <span>{canIssueTicket ? t("issueTicketTitle") : t("selectEventFirst")}</span>
+                          <strong>{issuePassSeat} · {issuePassHolder}</strong>
                         </div>
                       </div>
                     </section>
