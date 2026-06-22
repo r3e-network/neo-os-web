@@ -202,6 +202,26 @@ const appMessages = {
     en: "Create a funded payment stream through the shared vault and vesting modules.",
     zh: "通过共享金库与释放模块创建已注资的流式支付。",
   },
+  sharedPaymentStage: {
+    en: "Shared payment stream stage",
+    zh: "共享流式支付舞台",
+  },
+  sharedRuntimeProofs: {
+    en: "Shared runtime proofs",
+    zh: "共享运行时状态",
+  },
+  sharedStreamRoute: {
+    en: "Shared stream route",
+    zh: "共享资金流路径",
+  },
+  sharedRouteLabel: {
+    en: "Shared module route",
+    zh: "共享模块路径",
+  },
+  sharedVault: {
+    en: "Shared vault",
+    zh: "共享金库",
+  },
   reviewStream: { en: "Complete stream details", zh: "请完善资金流信息" },
   enterDetails: { en: "Enter details", zh: "填写详情" },
   transactionPreview: { en: "Transaction preview", zh: "交易预览" },

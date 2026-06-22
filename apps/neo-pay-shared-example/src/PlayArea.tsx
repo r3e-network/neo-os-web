@@ -304,8 +304,6 @@ export default function PlayArea({
   const cancellingId = str("cancellingId");
   const serviceNotice = str("serviceNotice");
   const activeCount = num("activeCount");
-  const createdStreamCount = num("createdStreamCount");
-  const beneficiaryStreamCount = num("beneficiaryStreamCount");
   const totalStreamCount = num("totalStreamCount");
   const createdStreams = (val("createdStreams") ?? []) as SharedStream[];
   const beneficiaryStreams = (val("beneficiaryStreams") ?? []) as SharedStream[];
@@ -442,10 +440,7 @@ export default function PlayArea({
     beneficiaryStreams.length > 0 ||
     totalStreamCount > 0 ||
     activeCount > 0;
-  const totalStreamsLabel = String(totalStreamCount);
   const activeStreamsLabel = String(activeCount);
-  const createdStreamsLabel = String(createdStreamCount);
-  const beneficiaryLabel = String(beneficiaryStreamCount);
   const activePresetId =
     STREAM_PRESETS.find(
       (preset) =>
@@ -453,6 +448,24 @@ export default function PlayArea({
         preset.values.duration === duration.trim() &&
         preset.values.token === token,
     )?.id ?? "";
+  const stageState = isCreating
+    ? "creating"
+    : canSubmit
+      ? "ready"
+      : isDirty
+        ? "draft"
+        : hasStreams
+          ? "live"
+          : "idle";
+  const stageStatusLabel = isCreating
+    ? copy("stageSigning", "Signing stream")
+    : canSubmit
+      ? copy("stageReady", "Ready to sign")
+      : isDirty
+        ? copy("stageDraft", "Drafting stream")
+        : hasStreams
+          ? copy("stageLive", "Streams live")
+          : copy("stageIdle", "Ready to plan");
 
   async function createStream() {
     if (!canSubmit) return;
@@ -640,57 +653,97 @@ export default function PlayArea({
 
   return (
     <div className="shared-pay-play-area">
-      <section className="shared-pay-hero" aria-labelledby="shared-pay-title">
-        <div className="shared-pay-hero__top">
-          <span className="shared-pay-hero__badge" aria-hidden="true">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 12h6l1.5-4 3 8 1.5-4H21" />
-            </svg>
+      <section
+        className={`shared-pay-stage shared-pay-stage--${stageState}`}
+        aria-labelledby="shared-pay-title"
+        aria-label={copy("sharedPaymentStage", "Shared payment stream stage")}
+      >
+        <picture className="shared-pay-stage__media" aria-hidden="true">
+          <source srcSet="banner.avif" type="image/avif" />
+          <source srcSet="banner.webp" type="image/webp" />
+          <img src="banner.jpg" alt="" loading="eager" decoding="async" />
+        </picture>
+        <div className="shared-pay-stage__shade" aria-hidden="true" />
+
+        <div className="shared-pay-stage__copy">
+          <span className="shared-pay-eyebrow">
+            {copy("sharedRuntime", "Shared runtime")}
           </span>
-          <div className="shared-pay-hero__heading">
-            <span className="shared-pay-eyebrow">
-              {copy("sharedRuntime", "Shared runtime")}
-            </span>
-            <h2 id="shared-pay-title">
-              {copy("sharedRuntimeTitle", "NeoPay shared streams")}
-            </h2>
+          <h2 id="shared-pay-title">
+            {copy("sharedRuntimeTitle", "NeoPay shared streams")}
+          </h2>
+          <p>
+            {copy(
+              "sharedRuntimeSubtitle",
+              "Create a funded payment stream through the shared vault and vesting modules.",
+            )}
+          </p>
+          <div
+            className="shared-pay-stage__chips"
+            aria-label={copy("sharedRuntimeProofs", "Shared runtime proofs")}
+          >
+            <span>{networkLabel}</span>
+            <span>{token}</span>
+            <span>{stageStatusLabel}</span>
           </div>
         </div>
-        <p>
-          {copy(
-            "sharedRuntimeSubtitle",
-            "Create a funded payment stream through the shared vault and vesting modules.",
-          )}
-        </p>
-        {hasStreams && (
-          <div className="shared-pay-hero__stats" aria-label="Stream totals">
-            <span>
-              <strong>{totalStreamsLabel}</strong>
-              {copy("totalStreams", "Total Streams")}
-            </span>
-            <span>
-              <strong>{activeStreamsLabel}</strong>
-              {copy("active", "Active")}
-            </span>
-            <span>
-              <strong>{createdStreamsLabel}</strong>
-              {copy("createdByYou", "Created by You")}
-            </span>
-            <span>
-              <strong>{beneficiaryLabel}</strong>
-              {copy("youAreBeneficiary", "You're Beneficiary")}
-            </span>
+
+        <div className="shared-pay-route-board" aria-label={copy("sharedStreamRoute", "Shared stream route")}>
+          <div className="shared-pay-route-board__top">
+            <span>{copy("sharedRouteLabel", "Shared module route")}</span>
+            <strong>{canSubmit ? totalLabel : summaryLabel}</strong>
           </div>
-        )}
+
+          <div className="shared-pay-route">
+            <div className="shared-pay-route-node shared-pay-route-node--wallet">
+              <span>{copy("payerWallet", "Your wallet")}</span>
+              <strong>{totalLabel}</strong>
+            </div>
+
+            <div className="shared-pay-route-track" aria-hidden="true">
+              <span className="shared-pay-route-track__line" />
+              <picture className="shared-pay-route-token shared-pay-route-token--one">
+                <source srcSet="logo.avif" type="image/avif" />
+                <source srcSet="logo.webp" type="image/webp" />
+                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+              </picture>
+              <picture className="shared-pay-route-token shared-pay-route-token--two">
+                <source srcSet="logo.avif" type="image/avif" />
+                <source srcSet="logo.webp" type="image/webp" />
+                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+              </picture>
+              <span className="shared-pay-route-vault">
+                <picture className="shared-pay-route-vault__logo">
+                  <source srcSet="logo.avif" type="image/avif" />
+                  <source srcSet="logo.webp" type="image/webp" />
+                  <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                </picture>
+                <span>{copy("sharedVault", "Shared vault")}</span>
+                <strong>{releaseLabel}</strong>
+              </span>
+            </div>
+
+            <div className="shared-pay-route-node shared-pay-route-node--recipient">
+              <span>{copy("recipient", "Recipient Address")}</span>
+              <strong>{recipientLabel}</strong>
+            </div>
+          </div>
+
+          <div className="shared-pay-stage__stats" aria-label={copy("transactionPreview", "Transaction preview")}>
+            <div>
+              <span>{releaseRateLabel}</span>
+              <strong>{releaseLabel}</strong>
+            </div>
+            <div>
+              <span>{copy("intervalLabel", "Interval")}</span>
+              <strong>{scheduleLabel}</strong>
+            </div>
+            <div>
+              <span>{copy("active", "Active")}</span>
+              <strong>{activeStreamsLabel}</strong>
+            </div>
+          </div>
+        </div>
       </section>
 
       {serviceNotice && (

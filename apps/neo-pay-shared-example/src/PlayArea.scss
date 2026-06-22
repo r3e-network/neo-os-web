@@ -9,90 +9,341 @@
   color: var(--ns-ink, #1e1e2e);
 }
 
-.shared-pay-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 1.1rem 1.4rem;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+.shared-pay-stage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 0.86fr) minmax(320px, 1.14fr);
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 356px;
+  overflow: hidden;
+  padding: 1.15rem;
+  border: 1px solid rgba(23, 92, 70, 0.14);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(22, 199, 132, 0.04)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(245, 252, 248, 0.72)),
     var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  box-shadow: 0 18px 42px rgba(18, 37, 58, 0.11);
+}
+
+.shared-pay-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(115deg, transparent 0 36%, rgba(255, 255, 255, 0.36) 46%, transparent 58%),
+    linear-gradient(145deg, rgba(255, 184, 77, 0.14), transparent 44%);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: shared-pay-stage-sheen 8s ease-in-out infinite;
+}
+
+.shared-pay-stage__media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 50%;
+    opacity: 0.42;
+    filter: saturate(1.08) contrast(1.02);
+    transform: scale(1.04);
+    animation: shared-pay-stage-drift 18s ease-in-out infinite alternate;
+  }
+}
+
+.shared-pay-stage__shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 42%, rgba(255, 255, 255, 0.58) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(22, 199, 132, 0.08));
+}
+
+.shared-pay-stage__copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.82rem;
+  min-width: 0;
+  padding: 0.25rem 0.15rem;
 
   h2 {
-    margin: 0.2rem 0 0;
-    font-size: 1.75rem;
-    line-height: 1.16;
+    max-width: 11ch;
+    margin: 0;
+    color: #13291f;
+    font-size: 3.35rem;
+    line-height: 0.94;
+    font-weight: 900;
     letter-spacing: 0;
-    font-weight: 800;
-    color: var(--ns-ink, #1e1e2e);
   }
 
   p {
-    max-width: 60ch;
-    margin: 0.55rem 0 0;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 0.9rem;
-    line-height: 1.55;
+    max-width: 49ch;
+    margin: 0;
+    color: #3d5160;
+    font-size: 0.96rem;
+    line-height: 1.58;
+    font-weight: 650;
   }
 }
 
-.shared-pay-hero__top {
+.shared-pay-stage__chips {
   display: flex;
-  align-items: center;
-  gap: 0.875rem;
-}
-
-.shared-pay-hero__badge {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: var(--ns-violet-soft, #e4f8f0);
-  color: var(--ns-violet, #16c784);
-  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.08);
-}
-
-.shared-pay-hero__heading {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 0;
-}
-
-.shared-pay-hero__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
-  gap: 0.6rem;
-  margin-top: 0.9rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  flex-wrap: wrap;
+  gap: 0.5rem;
 
   span {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 0.66rem;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 0.74rem;
+    border: 1px solid rgba(19, 41, 31, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.74);
+    color: #244337;
+    box-shadow: 0 6px 18px rgba(18, 37, 58, 0.08);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+}
+
+.shared-pay-route-board {
+  display: grid;
+  align-self: stretch;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(16, 91, 67, 0.16);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 40px rgba(18, 37, 58, 0.12);
+  backdrop-filter: blur(14px);
+}
+
+.shared-pay-route-board__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  span {
+    color: #576b78;
+    font-size: 0.7rem;
+    font-weight: 900;
     letter-spacing: 0;
     text-transform: uppercase;
   }
 
   strong {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 1.35rem;
-    font-weight: 800;
+    min-width: 0;
+    color: #10261d;
+    font-size: 1.5rem;
+    line-height: 1.05;
+    font-weight: 900;
+    text-align: right;
+    overflow-wrap: anywhere;
     font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+  }
+}
+
+.shared-pay-route {
+  display: grid;
+  grid-template-columns: minmax(118px, 0.8fr) minmax(180px, 1.25fr) minmax(118px, 0.8fr);
+  gap: 0.7rem;
+  align-items: center;
+  min-height: 190px;
+}
+
+.shared-pay-route-node {
+  display: grid;
+  gap: 0.36rem;
+  min-width: 0;
+  padding: 0.78rem;
+  border: 1px solid rgba(32, 86, 69, 0.12);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(247, 251, 249, 0.88);
+  box-shadow: 0 10px 24px rgba(18, 37, 58, 0.07);
+  animation: shared-pay-node-float 5.5s ease-in-out infinite;
+
+  span {
+    color: #5f7280;
+    font-size: 0.68rem;
+    font-weight: 900;
     letter-spacing: 0;
+    text-transform: uppercase;
   }
 
+  strong {
+    min-width: 0;
+    color: #14291f;
+    font-size: 0.9rem;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.shared-pay-route-node--recipient {
+  animation-delay: -2.2s;
+}
+
+.shared-pay-route-track {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 168px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 177, 116, 0.16);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(229, 248, 239, 0.68)),
+    linear-gradient(90deg, rgba(22, 199, 132, 0.12), rgba(65, 124, 245, 0.08));
+}
+
+.shared-pay-route-track__line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(22, 199, 132, 0.24), rgba(42, 115, 240, 0.22), rgba(245, 166, 35, 0.24)),
+    rgba(255, 255, 255, 0.68);
+  box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.16);
+  transform: translateY(-50%);
+}
+
+.shared-pay-route-token {
+  position: absolute;
+  left: 9%;
+  top: calc(50% - 22px);
+  display: block;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(16, 44, 78, 0.22);
+  animation: shared-pay-route-token-run 5.6s cubic-bezier(0.45, 0, 0.22, 1) infinite;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.shared-pay-route-token--two {
+  width: 34px;
+  height: 34px;
+  top: calc(50% + 16px);
+  animation-delay: -2.35s;
+  opacity: 0.88;
+}
+
+.shared-pay-route-vault {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 0.28rem;
+  width: min(156px, 72%);
+  min-height: 118px;
+  padding: 0.76rem;
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(237, 252, 245, 0.9)),
+    #ffffff;
+  box-shadow: 0 16px 30px rgba(18, 37, 58, 0.13);
+  text-align: center;
+  animation: shared-pay-vault-pulse 4.4s ease-in-out infinite;
+
+  span {
+    color: #294737;
+    font-size: 0.76rem;
+    font-weight: 900;
+  }
+
+  strong {
+    color: #0b7650;
+    font-size: 1rem;
+    line-height: 1.1;
+    font-weight: 950;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.shared-pay-route-vault__logo {
+  display: block;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(15, 177, 116, 0.22);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.shared-pay-stage__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+
+  div {
+    display: grid;
+    gap: 0.26rem;
+    min-width: 0;
+    padding: 0.72rem;
+    border: 1px solid rgba(20, 54, 42, 0.08);
+    border-radius: var(--ns-radius-md, 16px);
+    background: rgba(247, 251, 249, 0.82);
+  }
+
+  span {
+    color: #677b87;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  strong {
+    min-width: 0;
+    color: #12291f;
+    font-size: 0.96rem;
+    line-height: 1.12;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.shared-pay-stage--ready .shared-pay-route-board {
+  border-color: rgba(15, 177, 116, 0.34);
+  box-shadow:
+    0 18px 42px rgba(18, 37, 58, 0.12),
+    0 0 0 4px rgba(22, 199, 132, 0.08);
+}
+
+.shared-pay-stage--creating .shared-pay-route-token {
+  animation-duration: 2.4s;
 }
 
 .shared-pay-eyebrow {
@@ -728,7 +979,83 @@
   max-width: 32ch;
 }
 
+@keyframes shared-pay-stage-drift {
+  0% {
+    transform: scale(1.04) translate3d(-1.4%, -0.8%, 0);
+  }
+
+  100% {
+    transform: scale(1.08) translate3d(1.4%, 0.8%, 0);
+  }
+}
+
+@keyframes shared-pay-stage-sheen {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: translateX(-3%);
+  }
+
+  50% {
+    opacity: 0.78;
+    transform: translateX(3%);
+  }
+}
+
+@keyframes shared-pay-node-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes shared-pay-route-token-run {
+  0% {
+    transform: translate3d(-12%, 0, 0) scale(0.82);
+    opacity: 0;
+  }
+
+  16% {
+    opacity: 1;
+  }
+
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate3d(242%, 0, 0) scale(1.02);
+    opacity: 0;
+  }
+}
+
+@keyframes shared-pay-vault-pulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 16px 30px rgba(18, 37, 58, 0.13);
+  }
+
+  50% {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 36px rgba(15, 177, 116, 0.18);
+  }
+}
+
 @media (max-width: 920px) {
+  .shared-pay-stage {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .shared-pay-stage__copy h2 {
+    max-width: 14ch;
+  }
+
   .shared-pay-composer-shell,
   .shared-pay-stream-grid {
     grid-template-columns: 1fr;
@@ -740,8 +1067,60 @@
     padding: 0.75rem;
   }
 
-  .shared-pay-hero {
-    padding: 0.85rem;
+  .shared-pay-stage {
+    gap: 0.75rem;
+    padding: 0.78rem;
+    border-radius: 18px;
+  }
+
+  .shared-pay-stage__copy {
+    gap: 0.66rem;
+    padding: 0;
+  }
+
+  .shared-pay-stage__copy h2 {
+    max-width: 11ch;
+    font-size: 2.18rem;
+  }
+
+  .shared-pay-stage__copy p {
+    font-size: 0.86rem;
+  }
+
+  .shared-pay-route-board {
+    gap: 0.72rem;
+    padding: 0.72rem;
+    border-radius: 18px;
+  }
+
+  .shared-pay-route-board__top {
+    flex-direction: column;
+    gap: 0.34rem;
+  }
+
+  .shared-pay-route-board__top strong {
+    text-align: left;
+  }
+
+  .shared-pay-route {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .shared-pay-route-track {
+    min-height: 126px;
+  }
+
+  .shared-pay-route-token {
+    animation-name: shared-pay-route-token-run-mobile;
+  }
+
+  .shared-pay-route-vault {
+    min-height: 106px;
+  }
+
+  .shared-pay-stage__stats {
+    grid-template-columns: 1fr;
   }
 
   .shared-pay-composer__amount {
@@ -792,5 +1171,41 @@
 
   .shared-pay-stream__actions > * {
     width: 100%;
+  }
+}
+
+@keyframes shared-pay-route-token-run-mobile {
+  0% {
+    transform: translate3d(-28%, 0, 0) scale(0.84);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  78% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate3d(232%, 0, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shared-pay-stage::after,
+  .shared-pay-stage__media img,
+  .shared-pay-route-token,
+  .shared-pay-route-node,
+  .shared-pay-route-vault,
+  .shared-pay-progress span {
+    animation: none;
+    transition: none;
+  }
+
+  .shared-pay-stage__media img {
+    transform: scale(1.04);
   }
 }
