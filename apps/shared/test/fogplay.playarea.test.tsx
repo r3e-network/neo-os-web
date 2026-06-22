@@ -106,6 +106,12 @@ describe("FogPlay PlayArea", () => {
       container.querySelector(".coinflip-play-area--choice-heads"),
     ).toBeTruthy();
     expect(
+      container.querySelector(".play-hero__badge img")?.getAttribute("src"),
+    ).toContain("coin_heads");
+    expect(
+      container.querySelector(".first-round-prompt__icon img")?.getAttribute("src"),
+    ).toContain("coin_tails");
+    expect(
       container.querySelector('.premium-arena[data-state="ready"]'),
     ).toBeTruthy();
     expect(
@@ -125,6 +131,8 @@ describe("FogPlay PlayArea", () => {
     ).toContain("coin_heads");
     expect(container.querySelector(".bet-section--choice-heads")).toBeTruthy();
     expect(container.querySelector(".wager-table-rail")).toBeTruthy();
+    expect(container.querySelector(".wager-runway")).toBeTruthy();
+    expect(container.querySelectorAll(".wager-runway__coin img").length).toBe(2);
     expect(
       container
         .querySelector(".wager-table-rail__coin img")
@@ -137,6 +145,9 @@ describe("FogPlay PlayArea", () => {
       container
         .querySelector(".wager-option.selected .wager-option__chip img")
         ?.getAttribute("src"),
+    ).toContain("coin_heads");
+    expect(
+      container.querySelector(".custom-bet-inline__coin img")?.getAttribute("src"),
     ).toContain("coin_heads");
     expect(screen.getByText("Ready for your first flip")).toBeTruthy();
   });
@@ -282,11 +293,16 @@ describe("FogPlay PlayArea", () => {
     expect(wagerStyles).toContain("@keyframes fogplay-table-side-lock");
     expect(wagerStyles).toContain("@keyframes fogplay-chip-stack-ready");
     expect(wagerStyles).toContain("@keyframes fogplay-chip-token-selected");
+    expect(wagerStyles).toContain("@keyframes fogplay-runway-coin");
     expect(wagerStyles).toContain("@keyframes fogplay-flip-ready");
     expect(wagerStyles).toContain(".wager-table-rail");
+    expect(wagerStyles).toContain(".wager-runway");
     expect(wagerStyles).toContain(".wager-chip-stack__coins");
     expect(wagerStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.flip-btn[\s\S]*animation:\s*none/,
+    );
+    expect(wagerStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.wager-runway__coin[\s\S]*animation:\s*none/,
     );
   });
 });
