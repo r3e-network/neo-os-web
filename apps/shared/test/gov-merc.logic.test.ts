@@ -84,6 +84,8 @@ interface ChainOpts {
   bidEvents?: unknown[];
   /** Force the bid() invoke to throw. */
   bidThrows?: Error;
+  /** Force specific read operations to throw. */
+  readThrows?: Record<string, Error>;
   /** epochDeadline(currentEpoch) read — ms timestamp (0 = window unopened). */
   epochDeadline?: string;
   /** epochDuration() read — bidding-window length in ms. */
@@ -119,6 +121,7 @@ function makeChain(opts: ChainOpts = {}) {
   );
 
   const read = vi.fn(async (op: string, args?: ContractArg[]): Promise<unknown> => {
+    if (opts.readThrows?.[op]) throw opts.readThrows[op];
     const epochArg = args && args[0] ? Number(args[0].value) : undefined;
     switch (op) {
       case "totalStaked": return opts.totalStaked ?? "0";
@@ -168,6 +171,32 @@ function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
 }
 
 describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => {
+  it("keeps expected local missing-contract reads quiet but still warns on unexpected read failures", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const missing = setup({
+        readThrows: {
+          totalStaked: new Error("Contract address not configured"),
+        },
+      });
+      await missing.app.loadData();
+      expect(warn).not.toHaveBeenCalled();
+
+      const unexpected = setup({
+        readThrows: {
+          totalStaked: new Error("RPC node unavailable"),
+        },
+      });
+      await unexpected.app.loadData();
+      expect(warn).toHaveBeenCalledWith(
+        "[useGovMerc] loadData failed:",
+        "RPC node unavailable",
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("reads totalStaked / stakeOf as WHOLE NEO (never ÷1e8) and rewards/credit as GAS (÷1e8)", async () => {
     const { app, read } = setup({
       totalStaked: "100", // 100 NEO — integer, not base units
