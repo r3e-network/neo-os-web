@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +37,8 @@ function t(key: string, params?: Record<string, string | number>) {
     enterPoolId: "Enter pool ID",
     envelopeId: "Envelope ID",
     expiryHours: "Expiry hours",
+    giftMachineTitle: "Lucky packet machine",
+    giftMachineCopy: "Tune the pool, packet count, and expiry before sending.",
     hoursSuffix: "h",
     invalidAmount: "Enter at least 0.1 GAS",
     invalidExpiry: "Enter a valid expiry in hours",
@@ -175,6 +178,13 @@ describe("Red Envelope PlayArea", () => {
 
     expect(container.querySelector(".redenv-envelope-preview--create")).toBeTruthy();
     expect(container.querySelectorAll(".redenv-envelope-preview__packet img").length).toBe(5);
+    const giftMachine = container.querySelector(".redenv-gift-machine");
+    expect(giftMachine).toBeTruthy();
+    expect(giftMachine?.getAttribute("aria-label")).toBe("Lucky packet machine");
+    expect(container.querySelector(".redenv-gift-machine__window img")?.getAttribute("src")).toBe("./red-envelope-claim-card.jpg");
+    expect(container.querySelectorAll(".redenv-gift-machine__chute span").length).toBe(12);
+    expect(container.querySelectorAll(".redenv-gift-machine__reel").length).toBe(3);
+    expect(container.querySelector(".redenv-gift-machine--ready")).toBeNull();
     expect(container.querySelector(".redenv-send-button")).toBeTruthy();
     expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
     expect(document.querySelectorAll(".redenv-preset-group").length).toBe(3);
@@ -191,6 +201,7 @@ describe("Red Envelope PlayArea", () => {
     // Once the form is valid the error clears and the send button enables.
     expect(screen.queryByRole("alert")).toBeNull();
     expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(container.querySelector(".redenv-gift-machine--ready")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Send Red Envelope" }));
 
@@ -222,5 +233,18 @@ describe("Red Envelope PlayArea", () => {
     expect(container.querySelector(".redenv-envelope-preview--opening")).toBeTruthy();
     expect(openButton).toBeTruthy();
     expect(openButton?.getAttribute("aria-busy")).toBe("true");
+  });
+
+  it("keeps the lucky packet machine animated and reduced-motion safe", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../red-envelope/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(/@keyframes redenv-machine-sweep/);
+    expect(styles).toMatch(/@keyframes redenv-machine-seal-send/);
+    expect(styles).toMatch(/@keyframes redenv-machine-packet-ready/);
+    expect(styles).toMatch(/\.redenv-gift-machine--sending \.redenv-gift-machine__chute span\s*\{[\s\S]*animation-name:\s*redenv-machine-packet-send/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-gift-machine__chute span/);
   });
 });

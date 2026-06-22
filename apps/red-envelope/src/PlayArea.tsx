@@ -5,7 +5,7 @@
  * who arrives from OneGate QR sees the one job they came to do.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -162,6 +162,23 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     createCount <= 100 &&
     perPacketGas >= 0.01 &&
     createExpiryHours > 0;
+  const createAmountProgress = Number.isFinite(createAmount)
+    ? Math.max(6, Math.min(100, (createAmount / 3) * 100))
+    : 6;
+  const createCountProgress = Number.isFinite(createCount)
+    ? Math.max(6, Math.min(100, (createCount / 16) * 100))
+    : 6;
+  const createExpiryProgress = Number.isFinite(createExpiryHours)
+    ? Math.max(6, Math.min(100, (createExpiryHours / 72) * 100))
+    : 6;
+  const visualPacketCount = Number.isFinite(createCount)
+    ? Math.max(1, Math.min(12, Math.ceil(createCount / (createCount > 16 ? 8 : 2))))
+    : 1;
+  const createMachineStyle = {
+    "--redenv-amount-progress": `${createAmountProgress}%`,
+    "--redenv-count-progress": `${createCountProgress}%`,
+    "--redenv-expiry-progress": `${createExpiryProgress}%`,
+  } as CSSProperties;
 
   // Inline validation feedback: surface WHY the send button is disabled so a
   // user is never stuck staring at a greyed-out control with no guidance.
@@ -440,6 +457,57 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   <div className="redenv-gift-builder__head">
                     <span>{t("giftBuilderTitle")}</span>
                     <strong>{createStatusTitle}</strong>
+                  </div>
+                  <div
+                    className={[
+                      "redenv-gift-machine",
+                      canCreateEnvelope ? "redenv-gift-machine--ready" : "",
+                      isLoading ? "redenv-gift-machine--sending" : "",
+                    ].filter(Boolean).join(" ")}
+                    style={createMachineStyle}
+                    aria-label={t("giftMachineTitle")}
+                  >
+                    <div className="redenv-gift-machine__window" aria-hidden="true">
+                      <img
+                        src="./red-envelope-claim-card.jpg"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <span className="redenv-gift-machine__seal">
+                        <Gift size={18} />
+                      </span>
+                      <div className="redenv-gift-machine__chute">
+                        {Array.from({ length: visualPacketCount }, (_, index) => (
+                          <span
+                            key={index}
+                            style={{ "--packet-index": index } as CSSProperties}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="redenv-gift-machine__console">
+                      <span>{t("giftMachineTitle")}</span>
+                      <strong>{t("giftMachineCopy")}</strong>
+                      <div className="redenv-gift-machine__reels" aria-hidden="true">
+                        <div className="redenv-gift-machine__reel redenv-gift-machine__reel--amount">
+                          <small>{t("totalGas")}</small>
+                          <b>{Number.isFinite(createAmount) ? formatGas(createAmount) : "--"}</b>
+                        </div>
+                        <div className="redenv-gift-machine__reel redenv-gift-machine__reel--count">
+                          <small>{t("packetCount")}</small>
+                          <b>{Number.isFinite(createCount) ? createCount : "--"}</b>
+                        </div>
+                        <div className="redenv-gift-machine__reel redenv-gift-machine__reel--expiry">
+                          <small>{t("expiryHours")}</small>
+                          <b>
+                            {Number.isFinite(createExpiryHours)
+                              ? `${createExpiryHours}${t("hoursSuffix")}`
+                              : "--"}
+                          </b>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="redenv-preset-board">
                     <div className="redenv-preset-group">

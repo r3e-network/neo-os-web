@@ -95,6 +95,11 @@ const appMessages = {
     zh: "可以发送。每位领取者将随机抽取奖池的一份。",
   },
   giftBuilderTitle: { en: "Gift builder", zh: "红包配置台" },
+  giftMachineTitle: { en: "Lucky packet machine", zh: "拼手气红包机" },
+  giftMachineCopy: {
+    en: "Tune the pool, packet count, and expiry before sending.",
+    zh: "发送前调好奖池、红包数量和有效期。",
+  },
   readyToSendEnvelope: { en: "Ready to send", zh: "可以发送" },
   adjustEnvelopeSetup: { en: "Adjust setup", zh: "调整配置" },
   packetPreset: { en: "{count} packets", zh: "{count} 个红包" },
