@@ -78,10 +78,14 @@
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
+.bridge-hero-visual picture,
 .bridge-hero-visual img {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.bridge-hero-visual img {
   object-fit: cover;
 }
 
@@ -284,6 +288,255 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   align-items: end;
+}
+
+.bridge-route-stage {
+  position: relative;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.44fr);
+  min-height: 248px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 177, 116, 0.16);
+  border-radius: 22px;
+  background: #f6fbf6;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.74),
+    0 18px 38px rgba(20, 22, 38, 0.08);
+}
+
+.bridge-route-stage__media,
+.bridge-route-stage__media img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.bridge-route-stage__media img {
+  object-fit: cover;
+  object-position: 57% center;
+  transform: scale(1.015);
+  filter: saturate(1.04) contrast(0.96);
+}
+
+.bridge-route-stage::before,
+.bridge-route-stage::after,
+.bridge-route-stage__scrim {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bridge-route-stage::before {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.42) 48%, rgba(255, 255, 255, 0.84) 100%),
+    radial-gradient(circle at 22% 46%, rgba(15, 177, 116, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 42%, rgba(62, 140, 255, 0.12), transparent 30%);
+}
+
+.bridge-route-stage::after {
+  z-index: 2;
+  background: linear-gradient(
+    108deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.36) 43%,
+    rgba(15, 177, 116, 0.12) 49%,
+    transparent 62%
+  );
+  transform: translateX(-72%);
+  animation: bridge-route-stage-sheen 7s ease-in-out infinite;
+}
+
+.bridge-route-stage__scrim {
+  z-index: 2;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.28) 100%);
+}
+
+.bridge-route-stage__map {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(110px, 0.26fr) minmax(180px, 1fr) minmax(110px, 0.26fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 26px 22px 86px;
+}
+
+.bridge-route-stage__node {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 58px;
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 12px 26px rgba(20, 22, 38, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.bridge-route-stage__node span {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 15px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bridge-route-stage__lane {
+  position: relative;
+  display: block;
+  height: 64px;
+  min-width: 0;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(15, 177, 116, 0.1), rgba(15, 177, 116, 0.22), rgba(62, 140, 255, 0.12)),
+    rgba(255, 255, 255, 0.66);
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 177, 116, 0.16),
+    inset 0 -10px 18px rgba(255, 255, 255, 0.34);
+  overflow: hidden;
+}
+
+.bridge-route-stage__flow {
+  position: absolute;
+  inset: 50% 18px auto;
+  height: 4px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(15, 177, 116, 0.3), rgba(15, 177, 116, 0.86), rgba(62, 140, 255, 0.48), transparent);
+  transform: translateY(-50%);
+}
+
+.bridge-route-stage__packet {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 4px rgba(15, 177, 116, 0.18),
+    0 0 22px rgba(15, 177, 116, 0.48);
+  transform: translate3d(0, -50%, 0);
+  opacity: 0;
+}
+
+.bridge-route-stage--active .bridge-route-stage__packet {
+  animation: bridge-route-packet 2.7s ease-in-out infinite;
+}
+
+.bridge-route-stage--active .bridge-route-stage__packet--two {
+  animation-delay: 0.72s;
+}
+
+.bridge-route-stage--active .bridge-route-stage__packet--three {
+  animation-delay: 1.44s;
+}
+
+.bridge-route-stage--pending .bridge-route-stage__lane {
+  animation: bridge-route-lane-pulse 0.88s ease-in-out infinite;
+}
+
+.bridge-route-stage__caption,
+.bridge-route-stage__facts {
+  position: relative;
+  z-index: 4;
+}
+
+.bridge-route-stage__caption {
+  align-self: end;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 22px 18px;
+  border-left: 1px solid rgba(15, 177, 116, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.bridge-route-stage__kicker,
+.bridge-route-stage__facts dt {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.bridge-route-stage__caption strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.bridge-route-stage__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: #0b6f69;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.bridge-route-stage__status span {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 999px;
+  background: var(--ns-brand, #16c784);
+}
+
+.bridge-route-stage--active .bridge-route-stage__status span {
+  animation: bridge-route-status-dot 1.5s ease-in-out infinite;
+}
+
+.bridge-route-stage__facts {
+  position: absolute;
+  left: 18px;
+  right: calc(44% + 18px);
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.bridge-route-stage__facts div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(15, 177, 116, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 18px rgba(20, 22, 38, 0.06);
+}
+
+.bridge-route-stage__facts dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bridge-composer-label {
@@ -928,6 +1181,95 @@
   overflow-wrap: anywhere;
 }
 
+@keyframes bridge-route-stage-sheen {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
+@keyframes bridge-route-packet {
+  0% {
+    left: 18px;
+    opacity: 0;
+    transform: translate3d(0, -50%, 0) scale(0.72);
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  62% {
+    opacity: 1;
+  }
+
+  100% {
+    left: calc(100% - 31px);
+    opacity: 0;
+    transform: translate3d(0, -50%, 0) scale(1);
+  }
+}
+
+@keyframes bridge-route-packet-mobile {
+  0% {
+    top: 14px;
+    opacity: 0;
+    transform: translate3d(-50%, 0, 0) scale(0.72);
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  62% {
+    opacity: 1;
+  }
+
+  100% {
+    top: calc(100% - 27px);
+    opacity: 0;
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+}
+
+@keyframes bridge-route-lane-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 177, 116, 0.16),
+      0 0 0 rgba(15, 177, 116, 0);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 177, 116, 0.28),
+      0 0 22px rgba(15, 177, 116, 0.18);
+  }
+}
+
+@keyframes bridge-route-status-dot {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
 @media (max-width: 1180px) {
   .bridge-console-hero,
   .bridge-output-grid,
@@ -946,6 +1288,21 @@
 
   .strip-metric:nth-child(odd) {
     border-left: 0;
+  }
+
+  .bridge-route-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .bridge-route-stage__caption {
+    align-self: end;
+    border-top: 1px solid rgba(15, 177, 116, 0.12);
+    border-left: 0;
+  }
+
+  .bridge-route-stage__facts {
+    right: 18px;
+    bottom: 106px;
   }
 }
 
@@ -971,6 +1328,8 @@
   }
 
   .bridge-route-card__flow,
+  .bridge-route-stage__map,
+  .bridge-route-stage__facts,
   .bridge-form-grid,
   .bridge-route-options,
   .bridge-kind-options,
@@ -983,6 +1342,57 @@
   .bridge-route-card__flow > svg {
     transform: rotate(90deg);
     justify-self: center;
+  }
+
+  .bridge-route-stage {
+    min-height: 520px;
+  }
+
+  .bridge-route-stage__map {
+    grid-template-rows: auto 96px auto;
+    align-content: start;
+    gap: 14px;
+    padding: 20px 16px 184px;
+  }
+
+  .bridge-route-stage__node {
+    width: 100%;
+    min-height: 62px;
+    justify-self: center;
+  }
+
+  .bridge-route-stage__lane {
+    width: 64px;
+    height: 96px;
+    justify-self: center;
+    background:
+      linear-gradient(180deg, rgba(15, 177, 116, 0.1), rgba(15, 177, 116, 0.24), rgba(62, 140, 255, 0.14)),
+      rgba(255, 255, 255, 0.66);
+  }
+
+  .bridge-route-stage__flow {
+    inset: 14px auto 14px 50%;
+    width: 4px;
+    height: auto;
+    background:
+      linear-gradient(180deg, transparent, rgba(15, 177, 116, 0.3), rgba(15, 177, 116, 0.86), rgba(62, 140, 255, 0.48), transparent);
+    transform: translateX(-50%);
+  }
+
+  .bridge-route-stage__packet {
+    top: 14px;
+    left: 50%;
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  .bridge-route-stage--active .bridge-route-stage__packet {
+    animation-name: bridge-route-packet-mobile;
+  }
+
+  .bridge-route-stage__facts {
+    left: 14px;
+    right: 14px;
+    bottom: 112px;
   }
 
   .bridge-handoff-rail__step-wrap {
@@ -1013,6 +1423,15 @@
 
   .recent-operation code {
     text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-route-stage::after,
+  .bridge-route-stage__packet,
+  .bridge-route-stage--pending .bridge-route-stage__lane,
+  .bridge-route-stage--active .bridge-route-stage__status span {
+    animation: none;
   }
 }
 
