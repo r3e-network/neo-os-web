@@ -267,6 +267,272 @@
   line-height: 1.45;
 }
 
+.treasury-flow-stage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(228, 248, 240, 0.88)),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64),
+    0 16px 34px rgba(20, 22, 38, 0.08);
+}
+
+.treasury-flow-stage__media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: block;
+}
+
+.treasury-flow-stage__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% center;
+  opacity: 0.18;
+  filter: saturate(1.05) brightness(1.08);
+}
+
+.treasury-flow-stage::before,
+.treasury-flow-stage::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.treasury-flow-stage::before {
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.64)),
+    radial-gradient(circle at 18% 20%, rgba(22, 199, 132, 0.18), transparent 34%),
+    radial-gradient(circle at 88% 82%, rgba(245, 166, 35, 0.16), transparent 32%);
+}
+
+.treasury-flow-stage::after {
+  inset: -45% -34%;
+  z-index: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.24) 46%,
+    rgba(22, 199, 132, 0.14) 52%,
+    transparent 66%
+  );
+  opacity: 0;
+  transform: translateX(-42%);
+}
+
+.treasury-flow-stage--ready::after,
+.treasury-flow-stage--signing::after {
+  animation: treasury-flow-sweep 4.4s ease-in-out infinite;
+}
+
+.treasury-flow-stage__head,
+.treasury-flow-rail,
+.treasury-flow-checks {
+  position: relative;
+  z-index: 1;
+}
+
+.treasury-flow-stage__head {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.treasury-flow-stage__head span {
+  color: #086a45;
+  font-size: 0.6875rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.treasury-flow-stage__head strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.treasury-flow-stage__head small {
+  max-width: 52rem;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.treasury-flow-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(128px, 0.9fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+}
+
+.treasury-flow-rail__line {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  z-index: 0;
+  height: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.7), rgba(245, 166, 35, 0.64), transparent);
+  background-size: 180px 100%;
+  opacity: 0.54;
+  transform: translateY(-50%);
+}
+
+.treasury-flow-stage--ready .treasury-flow-rail__line,
+.treasury-flow-stage--signing .treasury-flow-rail__line {
+  animation: treasury-flow-line 1.9s linear infinite;
+}
+
+.treasury-flow-node,
+.treasury-flow-transfer,
+.treasury-flow-arrow {
+  position: relative;
+  z-index: 1;
+}
+
+.treasury-flow-node,
+.treasury-flow-transfer {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 12px 26px rgba(20, 22, 38, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+.treasury-flow-node svg {
+  color: #086a45;
+}
+
+.treasury-flow-node span,
+.treasury-flow-transfer span,
+.treasury-flow-checks span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.treasury-flow-node strong,
+.treasury-flow-transfer strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treasury-flow-node.is-ready {
+  border-color: rgba(22, 199, 132, 0.26);
+  background: rgba(244, 255, 250, 0.92);
+}
+
+.treasury-flow-transfer {
+  justify-items: center;
+  text-align: center;
+  border-color: rgba(245, 166, 35, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(255, 255, 255, 0.88)),
+    #ffffff;
+}
+
+.treasury-flow-transfer.is-ready {
+  animation: treasury-flow-transfer-ready 2.8s ease-in-out infinite;
+}
+
+.treasury-flow-transfer img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow:
+    0 10px 20px rgba(20, 22, 38, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.treasury-flow-transfer small {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.treasury-flow-arrow {
+  color: #086a45;
+  filter: drop-shadow(0 3px 8px rgba(22, 199, 132, 0.18));
+}
+
+.treasury-flow-checks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.treasury-flow-checks span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--ns-text-2, #5b6478);
+}
+
+.treasury-flow-checks span.is-ready {
+  border-color: rgba(22, 199, 132, 0.22);
+  background: rgba(228, 248, 240, 0.86);
+  color: #086a45;
+}
+
+.treasury-flow-checks svg {
+  flex: 0 0 auto;
+}
+
+.treasury-flow-stage--error {
+  border-color: rgba(200, 30, 42, 0.2);
+}
+
+.treasury-flow-stage--error .treasury-flow-stage__head strong {
+  color: #b42318;
+}
+
+.treasury-flow-stage--signing .treasury-flow-transfer img {
+  animation: treasury-flow-signing 1s ease-in-out infinite;
+}
+
 .treasury-wallet-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -998,6 +1264,61 @@
   min-width: 170px;
 }
 
+@keyframes treasury-flow-sweep {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translateX(-42%);
+  }
+
+  64% {
+    opacity: 0.86;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(42%);
+  }
+}
+
+@keyframes treasury-flow-line {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 180px 0;
+  }
+}
+
+@keyframes treasury-flow-transfer-ready {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow:
+      0 12px 26px rgba(20, 22, 38, 0.08),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+  }
+
+  50% {
+    transform: translateY(-3px);
+    box-shadow:
+      0 18px 34px rgba(22, 199, 132, 0.13),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  }
+}
+
+@keyframes treasury-flow-signing {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(-3deg) scale(1.04);
+  }
+}
+
 @media (max-width: 760px) {
   .treasury-play-area {
     padding: 16px 12px 22px;
@@ -1024,8 +1345,42 @@
 
   .treasury-asset-switch,
   .treasury-wallet-strip,
-  .treasury-intent-panel dl {
+  .treasury-intent-panel dl,
+  .treasury-flow-checks {
     grid-template-columns: 1fr;
+  }
+
+  .treasury-flow-stage {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .treasury-flow-rail {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 0;
+  }
+
+  .treasury-flow-rail__line,
+  .treasury-flow-arrow {
+    display: none;
+  }
+
+  .treasury-flow-node,
+  .treasury-flow-transfer {
+    padding: 12px;
+  }
+
+  .treasury-flow-transfer {
+    justify-items: start;
+    grid-template-columns: auto minmax(0, 1fr);
+    text-align: left;
+  }
+
+  .treasury-flow-transfer img {
+    grid-row: span 3;
+    width: 44px;
+    height: 44px;
   }
 
   .treasury-hero__refresh {
@@ -1058,5 +1413,15 @@
   .op-btn {
     width: 100%;
     min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .treasury-flow-stage::after,
+  .treasury-flow-stage--ready .treasury-flow-rail__line,
+  .treasury-flow-stage--signing .treasury-flow-rail__line,
+  .treasury-flow-transfer.is-ready,
+  .treasury-flow-stage--signing .treasury-flow-transfer img {
+    animation: none;
   }
 }

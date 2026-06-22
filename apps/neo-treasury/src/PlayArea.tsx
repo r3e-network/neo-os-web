@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { ArrowRight, Landmark, Send, ShieldCheck, WalletCards } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -180,6 +181,31 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   // Disconnected with nothing drafted yet -> the only sensible next step is to
   // connect a wallet, so the action slot shows a single "Connect Wallet" CTA.
   const showConnectOnly = !address && !hasDraftFields;
+  const flowStageState = disbursementSubmitting
+    ? "signing"
+    : draftReview.error
+      ? "error"
+      : draftReview.preview
+        ? "ready"
+        : hasDraftFields
+          ? "draft"
+          : "idle";
+  const flowStatusLabel = disbursementSubmitting
+    ? t("treasuryFlowSigning")
+    : draftReview.error
+      ? t("treasuryFlowError")
+      : draftReview.preview
+        ? t("treasuryFlowReady")
+        : hasDraftFields
+          ? t("treasuryFlowDraft")
+          : t("treasuryFlowIdle");
+  const flowSourceLabel = address ? compactAddress(address) : t("walletRequired");
+  const flowAmountLabel = amount.trim() ? `${amount.trim()} ${asset}` : `0 ${asset}`;
+  const flowRecipientLabel = draftReview.preview
+    ? compactAddress(draftReview.preview.recipientHash)
+    : recipient.trim()
+      ? compactAddress(recipient.trim())
+      : t("recipient");
 
   // Use the same currency prefix as the hero metric (t('currencySymbol')) and
   // render the em-dash when USD is unavailable (price feed down).
@@ -335,6 +361,57 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             <strong>{t("disbursementTitle")}</strong>
             <p>{t("disbursementBoundary")}</p>
           </div>
+
+          <section
+            className={`treasury-flow-stage treasury-flow-stage--${flowStageState}`}
+            aria-label={t("treasuryFlowTitle")}
+          >
+            <picture className="treasury-flow-stage__media" aria-hidden="true">
+              <source srcSet="./banner.avif" type="image/avif" />
+              <source srcSet="./banner.webp" type="image/webp" />
+              <img src="./banner.jpg" alt="" decoding="async" loading="lazy" />
+            </picture>
+            <div className="treasury-flow-stage__head">
+              <span>{t("treasuryFlowTitle")}</span>
+              <strong>{flowStatusLabel}</strong>
+              <small>{t("treasuryFlowSubtitle")}</small>
+            </div>
+            <div className="treasury-flow-rail" aria-hidden="true">
+              <span className="treasury-flow-rail__line" />
+              <div className={`treasury-flow-node treasury-flow-node--source${address ? " is-ready" : ""}`}>
+                <WalletCards size={18} />
+                <span>{t("treasuryFlowSource")}</span>
+                <strong>{flowSourceLabel}</strong>
+              </div>
+              <ArrowRight className="treasury-flow-arrow" size={18} />
+              <div className={`treasury-flow-transfer${amount.trim() ? " is-ready" : ""}`}>
+                <img src="./logo.jpg" alt="" />
+                <span>{t("amount")}</span>
+                <strong>{flowAmountLabel}</strong>
+                <small>{networkLabel}</small>
+              </div>
+              <ArrowRight className="treasury-flow-arrow" size={18} />
+              <div className={`treasury-flow-node treasury-flow-node--recipient${recipient.trim() ? " is-ready" : ""}`}>
+                <Landmark size={18} />
+                <span>{t("treasuryFlowRecipient")}</span>
+                <strong>{flowRecipientLabel}</strong>
+              </div>
+            </div>
+            <div className="treasury-flow-checks" aria-label={t("treasuryFlowChecks")}>
+              <span className={amount.trim() ? "is-ready" : ""}>
+                <ShieldCheck size={15} aria-hidden="true" />
+                {t("treasuryFlowAsset")}
+              </span>
+              <span className={recipient.trim() && !draftReview.error ? "is-ready" : ""}>
+                <Landmark size={15} aria-hidden="true" />
+                {t("treasuryFlowRecipient")}
+              </span>
+              <span className={draftReview.preview ? "is-ready" : ""}>
+                <Send size={15} aria-hidden="true" />
+                {t("treasuryFlowSignature")}
+              </span>
+            </div>
+          </section>
 
           <div className="treasury-execution-grid">
             <div className="treasury-composer" aria-label={t("disbursementTitle")}>
