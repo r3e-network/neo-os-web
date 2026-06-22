@@ -57,6 +57,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const oracleReady = readingMode === "oracle";
   const isDealing = isLoading || dealPreview;
   const questionText = question.trim();
+  const playStateClass = [
+    questionText ? "tarot-play-area--question-ready" : "",
+    isDealing ? "tarot-play-area--dealing" : "",
+    hasDrawn ? "tarot-play-area--drawn" : "",
+    allFlipped ? "tarot-play-area--complete" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const questionMeter = t("questionCharacterCount", {
     count: question.length,
     max: 200,
@@ -90,7 +98,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   return (
-    <div className="tarot-play-area">
+    <div className={`tarot-play-area ${playStateClass}`.trim()}>
       <div className="tarot-shell">
         <section className="tarot-main" aria-label={t("tarotHeroTitle")}>
           <div className="tarot-hero">
@@ -255,7 +263,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </strong>
               </div>
               <div
-                className={`tarot-spread-table${isDealing && !hasDrawn ? " tarot-spread-table--dealing" : ""}${hasDrawn ? " tarot-spread-table--drawn" : ""}`}
+                className={`tarot-spread-table${questionText ? " tarot-spread-table--ready" : ""}${isDealing && !hasDrawn ? " tarot-spread-table--dealing" : ""}${hasDrawn ? " tarot-spread-table--drawn" : ""}${allFlipped ? " tarot-spread-table--complete" : ""}`}
               >
                 <img
                   className="tarot-spread-table__mat"
@@ -293,7 +301,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     return card ? (
                       <button
                         key={`${card.id}-${index}`}
-                        className={`tarot-card-slot${card.flipped ? " tarot-card-slot--flipped" : ""}`}
+                        className={`tarot-card-slot${card.flipped ? " tarot-card-slot--flipped tarot-card-slot--revealed" : " tarot-card-slot--sealed"}`}
                         onClick={() => dispatch("flipCard", index)}
                         type="button"
                         aria-label={
