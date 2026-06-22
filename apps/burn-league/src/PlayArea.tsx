@@ -70,7 +70,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const actionNotice = str("actionNotice");
   const burnValidationError = val<string>("burnValidationError");
   const lastSubmittedAmount = str("lastSubmittedAmount");
-  const leaderboardPreview = val<LeaderboardEntry[]>("leaderboardPreview") ?? EMPTY_LEADERBOARD;
+  const leaderboardPreview =
+    val<LeaderboardEntry[]>("leaderboardPreview") ?? EMPTY_LEADERBOARD;
   const userIsLeader = bool("userIsLeader");
   const settleResult = val<SettleResult | null>("lastSettleResult");
   const prepaidCredit = num("prepaidCredit");
@@ -85,17 +86,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // A pool of exactly zero with no entries means there is nothing to win yet —
   // surfacing "Projected Rank #1" / "Prize Pool 0.00 GAS" here would imply you
   // were winning a pool worth nothing. Treat that combination as "no live pool".
-  const prizePoolIsEmpty = /^0(\.0+)?\s/.test(prizePoolDisplay) || prizePoolDisplay === "0";
+  const prizePoolIsEmpty =
+    /^0(\.0+)?\s/.test(prizePoolDisplay) || prizePoolDisplay === "0";
   const hasLivePool = !(prizePoolIsEmpty && !hasLeaderboard);
 
   // ── Season lifecycle ──────────────────────────────────────────────────
-  const seasonPhase = (str("seasonPhase", "dormant") || "dormant") as SeasonPhase;
+  const seasonPhase = (str("seasonPhase", "dormant") ||
+    "dormant") as SeasonPhase;
   const needsSettle = bool("needsSettle");
   const countdown = str("countdown", "00:00:00");
   const seasonStatusLabel = str("seasonStatusLabel");
   const formattedSeason = str("formattedSeason", "--");
   const leaderLabel = str("leaderLabel", "--");
   const hasLeader = leaderLabel !== "--" && leaderLabel !== "";
+  const heroEyebrow =
+    seasonPhase === "active"
+      ? t("liveLeague")
+      : seasonStatusLabel || t("seasonStatus");
 
   const [localBurnAmount, setLocalBurnAmount] = useState("");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -149,6 +156,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // Burns are blocked while a season has ended and is awaiting settle.
   const burnDisabled = isBurning || !amountIsValid || needsSettle;
+  const playAreaClassName = [
+    "burn-league-play-area",
+    seasonPhase === "active" ? "burn-league-play-area--live" : "",
+    amountIsValid ? "burn-league-play-area--armed" : "",
+    isBurning ? "burn-league-play-area--burning" : "",
+    isSettling ? "burn-league-play-area--settling" : "",
+    userIsLeader ? "burn-league-play-area--leader" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const handleBurnAmountChange = (value: string) => {
     setLocalBurnAmount(value);
@@ -196,7 +213,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }
 
   return (
-    <div className="burn-league-play-area">
+    <div className={playAreaClassName}>
       {/* Win/payout celebration — fires once per settle on the real event edge. */}
       {celebration && (
         <div className="burn-league-celebrate" role="dialog" aria-modal="false">
@@ -255,24 +272,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <Flame size={34} strokeWidth={2.2} aria-label={t("title")} />
             </span>
             <div className="burn-league-hero-copy">
-              <span className="burn-league-hero-eyebrow">{t("liveLeague")}</span>
+              <span className="burn-league-hero-eyebrow">{heroEyebrow}</span>
               <h2 className="burn-league-hero-title">{t("title")}</h2>
               <p className="burn-league-hero-subtitle">{t("subtitle")}</p>
               {userIsLeader && seasonPhase === "active" ? (
                 <p className="burn-league-hero-leadbadge">
-                  <span className="burn-league-hero-leadbadge-dot" aria-hidden="true" />
+                  <span
+                    className="burn-league-hero-leadbadge-dot"
+                    aria-hidden="true"
+                  />
                   {t("youLeadBadge")}
                 </p>
               ) : hasRank ? (
                 <p className="burn-league-hero-rank">
-                  <span className="burn-league-hero-rank-label">{t("yourRank")}</span>
-                  <strong className="burn-league-hero-rank-value">{formattedRank}</strong>
+                  <span className="burn-league-hero-rank-label">
+                    {t("yourRank")}
+                  </span>
+                  <strong className="burn-league-hero-rank-value">
+                    {formattedRank}
+                  </strong>
                   <span className="burn-league-hero-rank-of">
                     {t("outOf", { total: leaderboardSize })}
                   </span>
                 </p>
               ) : hasLivePool ? (
-                <p className="burn-league-hero-prompt">{t("heroFirstBurnPrompt")}</p>
+                <p className="burn-league-hero-prompt">
+                  {t("heroFirstBurnPrompt")}
+                </p>
               ) : null}
             </div>
           </div>
@@ -280,12 +306,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {/* Focal prize pool — the whole point of the league, given the spotlight.
               Falls back to an inviting "start the season" call when no pool exists.
               Total/your burns are demoted to a compact muted sub-row below. */}
-          <div className={`burn-league-hero-pool${hasLivePool ? "" : " is-empty"}`}>
+          <div
+            className={`burn-league-hero-pool${hasLivePool ? "" : " is-empty"}`}
+          >
             <span className="burn-league-hero-pool-label">
               {hasLivePool ? t("heroPoolLabel") : t("startTheSeason")}
             </span>
             {hasLivePool ? (
-              <strong className="burn-league-hero-pool-value">{prizePoolDisplay}</strong>
+              <strong className="burn-league-hero-pool-value">
+                {prizePoolDisplay}
+              </strong>
             ) : (
               <span className="burn-league-hero-pool-flame" aria-hidden="true">
                 <Flame size={32} strokeWidth={2.2} />
@@ -324,23 +354,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {seasonPhase === "active" && (
           <div className="burn-league-season-body">
             <div className="burn-league-season-fact">
-              <span className="burn-league-season-fact-label">{t("seasonEndsIn")}</span>
-              <strong className="burn-league-season-countdown">{countdown}</strong>
+              <span className="burn-league-season-fact-label">
+                {t("seasonEndsIn")}
+              </span>
+              <strong className="burn-league-season-countdown">
+                {countdown}
+              </strong>
             </div>
             <div className="burn-league-season-fact">
-              <span className="burn-league-season-fact-label">{t("prizePool")}</span>
-              <strong className="burn-league-season-fact-value">{prizePoolDisplay}</strong>
+              <span className="burn-league-season-fact-label">
+                {t("prizePool")}
+              </span>
+              <strong className="burn-league-season-fact-value">
+                {prizePoolDisplay}
+              </strong>
             </div>
             <div className="burn-league-season-fact">
-              <span className="burn-league-season-fact-label">{t("currentLeader")}</span>
+              <span className="burn-league-season-fact-label">
+                {t("currentLeader")}
+              </span>
               <strong className="burn-league-season-fact-value">
                 {hasLeader ? leaderLabel : t("noLeaderYet")}
               </strong>
             </div>
             {seasonDurationLabel !== "--" && (
               <div className="burn-league-season-fact">
-                <span className="burn-league-season-fact-label">{t("seasonLengthLabel")}</span>
-                <strong className="burn-league-season-fact-value">{seasonDurationLabel}</strong>
+                <span className="burn-league-season-fact-label">
+                  {t("seasonLengthLabel")}
+                </span>
+                <strong className="burn-league-season-fact-value">
+                  {seasonDurationLabel}
+                </strong>
               </div>
             )}
           </div>
@@ -349,7 +393,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {seasonPhase === "dormant" && (
           <p className="burn-league-season-note">
             {seasonDurationLabel !== "--"
-              ? t("seasonDormantHintWithLength", { length: seasonDurationLabel })
+              ? t("seasonDormantHintWithLength", {
+                  length: seasonDurationLabel,
+                })
               : t("seasonDormantHint")}
           </p>
         )}
@@ -384,19 +430,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onClick={() => setShowHowItWorks((open) => !open)}
           >
             {t("howItWorks")}
-            <ChevronDown className="burn-league-howto-caret" size={14} aria-hidden="true" />
+            <ChevronDown
+              className="burn-league-howto-caret"
+              size={14}
+              aria-hidden="true"
+            />
           </button>
         </div>
         {serviceNotice && (
           <div className="burn-league-service-notice" role="status">
-            <span className="burn-league-service-notice__icon" aria-hidden="true">
+            <span
+              className="burn-league-service-notice__icon"
+              aria-hidden="true"
+            >
               <AlertTriangle size={15} strokeWidth={2.2} />
             </span>
             <span className="burn-league-service-notice__copy">
               <span className="burn-league-service-notice__title">
                 {t("burnServiceUnavailableTitle")}
               </span>
-              <span className="burn-league-service-notice__status">{t("localPreview")}</span>
+              <span className="burn-league-service-notice__status">
+                {t("localPreview")}
+              </span>
             </span>
           </div>
         )}
@@ -422,7 +477,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         )}
         <div className="burn-league-burn-form">
           <div className="burn-league-arena-console">
-            <div className="burn-league-stake-stage" aria-label={t("arenaConsoleLabel")}>
+            <div
+              className="burn-league-stake-stage"
+              aria-label={t("arenaConsoleLabel")}
+            >
               <img
                 className="burn-league-stake-stage__image"
                 src="./burn-league-arena.jpg"
@@ -437,13 +495,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <Gauge size={18} strokeWidth={2.2} />
                   </span>
                   <span className="burn-league-fuel-copy">
-                    <span className="burn-league-fuel-label">{t("fuelConsole")}</span>
+                    <span className="burn-league-fuel-label">
+                      {t("fuelConsole")}
+                    </span>
                     <strong className="burn-league-fuel-value">
-                      {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
+                      {amountIsValid
+                        ? `${currentBurnAmount} GAS`
+                        : t("dashPlaceholder")}
                     </strong>
                   </span>
                 </div>
-                <div className="burn-league-fuel-meter" aria-label={t("fuelMeter")}>
+                <div
+                  className="burn-league-fuel-meter"
+                  aria-label={t("fuelMeter")}
+                >
                   <span
                     className="burn-league-fuel-meter__fill"
                     style={{ width: `${burnMeterPercent}%` }}
@@ -457,7 +522,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className="burn-league-stepper"
                     aria-label={t("decreaseBurn")}
-                    disabled={isBurning || (amountIsValid && currentBurnAmountNumber <= minBurn)}
+                    disabled={
+                      isBurning ||
+                      (amountIsValid && currentBurnAmountNumber <= minBurn)
+                    }
                     onClick={() => nudgeBurnAmount(-1)}
                   >
                     <Minus size={16} strokeWidth={2.4} aria-hidden="true" />
@@ -483,13 +551,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className="burn-league-stepper"
                     aria-label={t("increaseBurn")}
-                    disabled={isBurning || (amountIsValid && currentBurnAmountNumber >= maxBurn)}
+                    disabled={
+                      isBurning ||
+                      (amountIsValid && currentBurnAmountNumber >= maxBurn)
+                    }
                     onClick={() => nudgeBurnAmount(1)}
                   >
                     <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
                   </button>
                 </div>
-                <div className="burn-league-presets" aria-label={t("burnPresets")}>
+                <div
+                  className="burn-league-presets"
+                  aria-label={t("burnPresets")}
+                >
                   {presets.map((preset) => (
                     <button
                       key={preset}
@@ -518,32 +592,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 aria-label={t("burnReview")}
               >
                 <div className="burn-league-impact-item">
-                  <span className="burn-league-impact-label">{t("entryAmount")}</span>
+                  <span className="burn-league-impact-label">
+                    {t("entryAmount")}
+                  </span>
                   <strong className="burn-league-impact-value">
-                    {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
+                    {amountIsValid
+                      ? `${currentBurnAmount} GAS`
+                      : t("dashPlaceholder")}
                   </strong>
                 </div>
                 <div className="burn-league-impact-item">
-                  <span className="burn-league-impact-label">{t("projectedTotal")}</span>
+                  <span className="burn-league-impact-label">
+                    {t("projectedTotal")}
+                  </span>
                   <strong className="burn-league-impact-value">
-                    {amountIsValid ? projectedTotalDisplay : t("dashPlaceholder")}
+                    {amountIsValid
+                      ? projectedTotalDisplay
+                      : t("dashPlaceholder")}
                   </strong>
                 </div>
                 <div className="burn-league-impact-item">
-                  <span className="burn-league-impact-label">{t("projectedRank")}</span>
+                  <span className="burn-league-impact-label">
+                    {t("projectedRank")}
+                  </span>
                   <strong className="burn-league-impact-value">
-                    {amountIsValid && hasLivePool ? projectedPosition : t("dashPlaceholder")}
+                    {amountIsValid && hasLivePool
+                      ? projectedPosition
+                      : t("dashPlaceholder")}
                   </strong>
                 </div>
                 <div className="burn-league-impact-item">
-                  <span className="burn-league-impact-label">{t("prizePool")}</span>
+                  <span className="burn-league-impact-label">
+                    {t("prizePool")}
+                  </span>
                   <strong className="burn-league-impact-value">
                     {hasLivePool ? prizePoolDisplay : t("dashPlaceholder")}
                   </strong>
                 </div>
               </div>
               {!hasLivePool && (
-                <p className="burn-league-impact-hint">{t("impactPoolEmptyHint")}</p>
+                <p className="burn-league-impact-hint">
+                  {t("impactPoolEmptyHint")}
+                </p>
               )}
               <div className="burn-league-action-buttons">
                 <div className="burn-league-burn-cta">
@@ -564,10 +654,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     role="note"
                     aria-label={t("burnReview")}
                   >
-                    <span className="burn-league-review-tip__icon" aria-hidden="true">
+                    <span
+                      className="burn-league-review-tip__icon"
+                      aria-hidden="true"
+                    >
                       <Info size={16} strokeWidth={2.2} />
                     </span>
-                    <span className="burn-league-review-tip__popover" role="tooltip">
+                    <span
+                      className="burn-league-review-tip__popover"
+                      role="tooltip"
+                    >
                       <span className="burn-league-review-tip__heading">
                         {t("burnReview")}
                       </span>
@@ -627,9 +723,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <h3 className="burn-league-section-title">{t("leaderboard")}</h3>
           <div className="burn-league-leaderboard-list">
             {leaderboardPreview.map((entry, i) => (
-              <div key={entry.address || i} className="burn-league-leaderboard-row">
+              <div
+                key={entry.address || i}
+                className="burn-league-leaderboard-row"
+              >
                 <span className="burn-league-lb-rank">#{entry.rank}</span>
-                <span className="burn-league-lb-address">{truncateAddress(entry.address)}</span>
+                <span className="burn-league-lb-address">
+                  {truncateAddress(entry.address)}
+                </span>
                 <span className="burn-league-lb-amount">
                   <strong>{formatNumber(entry.burned, 2)} GAS</strong>
                   <small>{t("burned")}</small>
@@ -661,7 +762,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="burn-league-recovery-card__title">
                 {t("prepaidCreditLabel")} · {prepaidCreditDisplay}
               </span>
-              <span className="burn-league-recovery-card__text">{t("prepaidCreditHint")}</span>
+              <span className="burn-league-recovery-card__text">
+                {t("prepaidCreditHint")}
+              </span>
             </div>
             <NeoButton
               size="md"
