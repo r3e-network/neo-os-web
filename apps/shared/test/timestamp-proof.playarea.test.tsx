@@ -53,6 +53,21 @@ function t(key: string) {
     documentPreviewEmptyTitle: "Ready for content",
     documentPreviewEmpty:
       "Your proof preview will appear here as soon as you add content.",
+    proofPressLabel: "Animated proof press",
+    proofPressKicker: "Document fingerprint",
+    proofPressEmptyTitle: "Drop in a document, note, or digest to wake the press.",
+    proofPressEmptyBody:
+      "The workbench stays idle until there is source content to hash locally.",
+    proofPressReadyTitle: "Fingerprint queued. Review the sheet, then seal the proof.",
+    proofPressReadyBody:
+      "One tap hashes the content on this device and saves a timestamp certificate.",
+    proofPressStampingTitle: "Stamping the local certificate.",
+    proofPressStampingBody:
+      "The source stays private while the digest is sealed into your local journal.",
+    proofPressRailLabel: "Proof press status",
+    proofPressAnchorLocal: "Local rail",
+    proofPressAnchorAnchoring: "Anchoring",
+    proofPressAnchorAnchored: "On-chain",
     documentTypeHash: "SHA-256 digest",
     documentTypeText: "Source content",
     contentChars: "Characters",
@@ -141,6 +156,12 @@ describe("Timestamp Proof PlayArea", () => {
     expect(
       document.querySelector('.proof-hero__stage img[src="./proof-desk.jpg"]'),
     ).toBeTruthy();
+    expect(screen.getByLabelText("Animated proof press")).toBeTruthy();
+    expect(
+      document.querySelector(
+        '.proof-press-stage__media img[src="./proof-desk.jpg"]',
+      ),
+    ).toBeTruthy();
     expect(screen.getByText("Recent Proofs")).toBeTruthy();
     expect(screen.getByText("Proof Found")).toBeTruthy();
 
@@ -181,6 +202,47 @@ describe("Timestamp Proof PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
     expect(dispatch).toHaveBeenCalledWith("clearProofs");
+  });
+
+  it("turns the proof press from idle to animated-ready instead of a static form", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ proofs: [], verifiedProof: null, totalProofs: 0 })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const stage = screen.getByLabelText("Animated proof press");
+    expect(stage.className).toContain("proof-press-stage--empty");
+    expect(
+      screen.getByText("Drop in a document, note, or digest to wake the press."),
+    ).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Enter content to timestamp"), {
+      target: { value: "signed release artifact" },
+    });
+
+    expect(stage.className).toContain("proof-press-stage--ready");
+    expect(
+      screen.getByText(
+        "Fingerprint queued. Review the sheet, then seal the proof.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("shows a stamping state while the certificate is being created", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ isCreating: true })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const stage = screen.getByLabelText("Animated proof press");
+    expect(stage.className).toContain("proof-press-stage--stamping");
+    expect(screen.getByText("Stamping the local certificate.")).toBeTruthy();
   });
 
   it("offers an on-chain anchor for an unanchored proof and marks it local", () => {
@@ -250,5 +312,8 @@ describe("Timestamp Proof PlayArea", () => {
       /\.proof-cta\.neo-btn--primary:disabled:not\(\.neo-btn--loading\),\s*\.verify-result \.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/,
     );
     expect(styles).toMatch(/background:\s*var\(--ns-surface-subtle/);
+    expect(styles).toMatch(/@keyframes proof-scan-sweep/);
+    expect(styles).toMatch(/@keyframes proof-seal-stamp/);
+    expect(styles).toMatch(/prefers-reduced-motion:\s*reduce/);
   });
 });
