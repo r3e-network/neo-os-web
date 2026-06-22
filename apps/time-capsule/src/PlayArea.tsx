@@ -429,21 +429,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{titlePreview}</strong>
               <p>{messagePreview}</p>
             </div>
-            <div className="capsule-seal-track" aria-label={t("sealPreview")}>
-              <span className={`capsule-seal-track__step${hasMessageDraft ? " is-active" : ""}`}>
+            <div
+              className={[
+                "capsule-game-board",
+                hasMessageDraft ? "is-draft" : "",
+                canCreate ? "is-ready" : "",
+                isCreating ? "is-sealing" : "",
+              ].filter(Boolean).join(" ")}
+              aria-label={t("capsuleBoardTitle")}
+            >
+              <span className={`capsule-game-slot capsule-game-slot--draft${hasMessageDraft ? " is-active" : ""}`}>
                 <FileText size={16} aria-hidden="true" />
-                <strong>{t("messageStage")}</strong>
-                <small>{titlePreview}</small>
+                <small>{t("capsuleBoardDraft")}</small>
+                <strong>{titlePreview}</strong>
               </span>
-              <span className={`capsule-seal-track__step${hasValidLockDuration ? " is-active" : ""}`}>
-                <CalendarClock size={16} aria-hidden="true" />
-                <strong>{t("timeLockStage")}</strong>
-                <small>{unlockPreview}</small>
-              </span>
-              <span className={`capsule-seal-track__step${canCreate ? " is-active is-complete" : ""}`}>
+              <span className={`capsule-game-slot capsule-game-slot--seal${canCreate ? " is-active" : ""}${isCreating ? " is-sealing" : ""}`}>
                 <LockKeyhole size={16} aria-hidden="true" />
-                <strong>{t("storageLabel")}</strong>
-                <small>{t("hashStored")}</small>
+                <small>{isCreating ? t("creatingCapsule") : t("capsuleBoardReadySeal")}</small>
+                <strong>{hasValidLockDuration ? unlockPreview : t("unlockDateHelper")}</strong>
+              </span>
+              <span className={`capsule-game-slot capsule-game-slot--unlock${hasValidLockDuration ? " is-active" : ""}`}>
+                <Hourglass size={16} aria-hidden="true" />
+                <small>{t("capsuleBoardLocked")}</small>
+                <strong>{visibilityLabel}</strong>
               </span>
             </div>
             <div className="capsule-preview-grid">
@@ -572,7 +580,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       ? new Date(unlockTimeMs).toLocaleDateString()
                       : null;
                   return (
-                    <li key={id} className="capsule-fish-candidates__item">
+                    <li
+                      key={id}
+                      className={`capsule-fish-candidates__item${isProcessing ? " is-fishing" : ""}`}
+                    >
                       <div className="capsule-fish-candidates__meta">
                         <span className="capsule-id">#{id}</span>
                         {categoryKey ? (
@@ -632,9 +643,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 return (
                   <div
                     key={String(cap.id)}
-                    className={`capsule-item ${itemState}`}
+                    className={`capsule-item capsule-board-card capsule-board-card--${itemState} ${itemState}`}
                   >
                     <div className="capsule-item-header">
+                      <span className={`capsule-item-state-icon capsule-item-state-icon--${itemState}`} aria-hidden="true">
+                        {isRevealed ? (
+                          <Eye size={16} />
+                        ) : isLocked ? (
+                          <LockKeyhole size={16} />
+                        ) : (
+                          <CheckCircle2 size={16} />
+                        )}
+                      </span>
                       <span className="capsule-id">#{String(cap.id)}</span>
                       <span className={`capsule-badge badge-${itemState}`}>
                         {isRevealed

@@ -43,6 +43,10 @@ function t(key: string) {
     durationPresets: "Duration presets",
     daysShort: "D",
     contentStorageNote: "Your full message is stored locally on this device.",
+    capsuleBoardTitle: "Capsule seal board",
+    capsuleBoardDraft: "Draft slot",
+    capsuleBoardReadySeal: "Ready to seal",
+    capsuleBoardLocked: "Unlock slot",
     createCapsuleButton: "Create Capsule (0.2 GAS)",
     creatingCapsule: "Sealing capsule...",
     fishButton: "Fish (0.05 GAS)",
@@ -176,9 +180,9 @@ describe("Time Capsule PlayArea", () => {
     expect(container.querySelector(".capsule-play-area.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-seal-workbench.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-preview-panel.is-ready.is-sealing")).toBeTruthy();
-    expect(container.querySelector(".capsule-seal-track")).toBeTruthy();
-    expect(container.querySelectorAll(".capsule-seal-track__step.is-active")).toHaveLength(2);
-    expect(container.querySelector(".capsule-seal-track__step.is-complete")).toBeTruthy();
+    expect(container.querySelector(".capsule-game-board.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-game-slot--seal.is-active.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-game-slot--unlock.is-active")).toBeTruthy();
   });
 
   it("labels local capsules with visual state classes for locked, ready, and revealed states", () => {
@@ -217,6 +221,9 @@ describe("Time Capsule PlayArea", () => {
     expect(container.querySelector(".capsule-item.locked")).toBeTruthy();
     expect(container.querySelector(".capsule-item.ready")).toBeTruthy();
     expect(container.querySelector(".capsule-item.revealed")).toBeTruthy();
+    expect(container.querySelector(".capsule-board-card--locked .capsule-item-state-icon--locked")).toBeTruthy();
+    expect(container.querySelector(".capsule-board-card--ready .capsule-item-state-icon--ready")).toBeTruthy();
+    expect(container.querySelector(".capsule-board-card--revealed .capsule-item-state-icon--revealed")).toBeTruthy();
   });
 
   it("keeps the create CTA active/loading colors separate from disabled styling", () => {
@@ -249,11 +256,13 @@ describe("Time Capsule PlayArea", () => {
 
     expect(playAreaStyles).toContain("@keyframes capsule-preview-sweep");
     expect(playAreaStyles).toContain("@keyframes capsule-ready-card");
-    expect(playAreaStyles).toContain("@keyframes capsule-seal-track-flow");
-    expect(playAreaStyles).toContain("@keyframes capsule-seal-node-pulse");
-    expect(playAreaStyles).toContain("@keyframes capsule-seal-complete-pop");
+    expect(playAreaStyles).toContain("@keyframes capsule-game-route-flow");
+    expect(playAreaStyles).toContain("@keyframes capsule-game-slot-scan");
+    expect(playAreaStyles).toContain("@keyframes capsule-game-seal-pulse");
+    expect(playAreaStyles).toContain("@keyframes capsule-game-icon-ready");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(playAreaStyles).toContain(".capsule-seal-track__step.is-complete svg");
+    expect(playAreaStyles).toContain(".capsule-game-slot--seal.is-sealing");
+    expect(playAreaStyles).toContain(".capsule-game-slot");
     expect(heroStyles).toContain("@keyframes capsule-hero-drift");
     expect(heroStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(listStyles).toContain("@keyframes capsule-empty-badge");
