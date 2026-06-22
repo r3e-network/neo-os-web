@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -21,6 +23,8 @@ function t(key: string, params?: Record<string, string | number>) {
     createPoolTitle: "Create reward pool",
     createPoolDescription:
       "Campaign owners configure 1-50 GAS rewards and single-use claim keys in the backend, then distribute OneGate QR codes.",
+    rewardMachineDraft: "Set amount and slots to charge the vault",
+    rewardMachineReady: "Vault charged and ready to launch",
     claimPoolTitle: "Claim with OneGate",
     claimKey: "Claim key",
     poolId: "Pool ID",
@@ -349,6 +353,13 @@ describe("OneGate Vault PlayArea launch flow", () => {
       screen.getByRole("region", { name: "Reward pool workspace" }),
     ).toBeTruthy();
     expect(container.querySelector(".gas-pool-create-summary__stage")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-create-summary--draft")).toBeTruthy();
+    expect(
+      screen.getByText("Set amount and slots to charge the vault"),
+    ).toBeTruthy();
+    expect(container.querySelector(".gas-pool-create-summary__reels")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-create-summary__prize")).toBeTruthy();
+    expect(container.querySelector(".gas-pool-create-summary__scan")).toBeTruthy();
     expect(
       container.querySelectorAll(".gas-pool-create-summary__tickets span"),
     ).toHaveLength(4);
@@ -363,6 +374,8 @@ describe("OneGate Vault PlayArea launch flow", () => {
     fireEvent.change(screen.getByLabelText("Claim slots"), {
       target: { value: "4" },
     });
+    expect(container.querySelector(".gas-pool-create-summary--ready")).toBeTruthy();
+    expect(screen.getByText("Vault charged and ready to launch")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Create pool" }));
     expect(dispatch).toHaveBeenCalledWith("createPool", {
       totalAmount: "12",
@@ -536,5 +549,19 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(
       screen.queryByText("Congratulations, your claim is in"),
     ).toBeNull();
+  });
+
+  it("keeps the creator reward machine animated and reduced-motion safe", () => {
+    const scss = readFileSync(
+      resolve(process.cwd(), "../gas-lucky-pool/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(scss).toContain("@keyframes gas-pool-reel-ready");
+    expect(scss).toContain("@keyframes gas-pool-prize-ready");
+    expect(scss).toContain("@keyframes gas-pool-machine-scan");
+    expect(scss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(scss).toContain(".gas-pool-create-summary__reels span");
+    expect(scss).toContain(".gas-pool-create-summary__scan");
   });
 });
