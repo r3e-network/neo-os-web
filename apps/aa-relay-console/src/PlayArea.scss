@@ -153,6 +153,8 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform-origin: 58% 48%;
+  animation: relay-stage-drift 16s ease-in-out infinite alternate;
 }
 
 .relay-hero__stage figcaption {
@@ -358,6 +360,208 @@
   white-space: nowrap;
 }
 
+/* ── Relay control deck: main operational stage ───────── */
+.relay-control-deck {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 18px;
+  min-height: 330px;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: #f7fff9;
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  isolation: isolate;
+}
+
+.relay-control-deck__media,
+.relay-control-deck__media img,
+.relay-control-deck__wash {
+  position: absolute;
+  inset: 0;
+}
+
+.relay-control-deck__media {
+  z-index: -2;
+  display: block;
+}
+
+.relay-control-deck__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform-origin: 52% 48%;
+  animation: relay-deck-camera 18s ease-in-out infinite alternate;
+}
+
+.relay-control-deck__wash {
+  z-index: -1;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.94) 0%,
+      rgba(255, 255, 255, 0.78) 47%,
+      rgba(255, 255, 255, 0.45) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(247, 255, 249, 0.18),
+      rgba(247, 255, 249, 0.74)
+    );
+}
+
+.relay-control-deck__header {
+  display: inline-grid;
+  gap: 4px;
+  width: fit-content;
+  max-width: min(100%, 520px);
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 30px rgba(20, 22, 38, 0.1);
+  backdrop-filter: blur(12px);
+}
+
+.relay-control-deck__header span,
+.relay-control-node small {
+  overflow: hidden;
+  color: var(--ns-violet-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.relay-control-deck__header strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: clamp(20px, 4vw, 34px);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.relay-control-deck__nodes {
+  align-self: end;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.relay-control-node {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 28px rgba(20, 22, 38, 0.1);
+  backdrop-filter: blur(12px);
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.relay-control-node--ready {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow:
+    0 12px 28px rgba(20, 22, 38, 0.1),
+    0 0 0 1px rgba(22, 199, 132, 0.08);
+  animation: relay-node-ready 2.8s ease-in-out infinite;
+}
+
+.relay-control-node__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-violet-soft, #e4f8f0);
+  color: var(--ns-violet-strong, #0fb174);
+}
+
+.relay-control-node strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relay-control-deck__track {
+  position: relative;
+  z-index: 1;
+  height: 16px;
+  margin: 0 8px 6px;
+  overflow: hidden;
+}
+
+.relay-control-deck__track-line {
+  position: absolute;
+  inset: 6px 0 auto;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(22, 199, 132, 0.18);
+}
+
+.relay-control-deck__track-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(22, 199, 132, 0.72),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: relay-track-scan 2.8s ease-in-out infinite;
+}
+
+.relay-control-deck__packet {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.82);
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-violet-strong, #0fb174);
+  box-shadow: 0 8px 18px rgba(10, 177, 116, 0.24);
+  opacity: 0;
+  animation: relay-packet-run 3.4s ease-in-out infinite;
+}
+
+.relay-control-deck__packet--two {
+  animation-delay: 1.05s;
+}
+
+.relay-control-deck--draft .relay-control-deck__packet,
+.relay-control-deck--sponsor .relay-control-deck__packet {
+  animation-play-state: paused;
+}
+
+.relay-control-deck--checking .relay-control-deck__track-line::after,
+.relay-control-deck--relaying .relay-control-deck__track-line::after,
+.relay-control-deck--submitted .relay-control-deck__track-line::after {
+  animation-duration: 1.35s;
+}
+
 /* Collapsed "How relaying works" disclosure — keeps the two longer paragraphs
    out of the default view so the resting surface reads as fields + concise copy. */
 .relay-howto {
@@ -436,6 +640,10 @@
   border-radius: var(--ns-radius-lg, 20px);
   background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .relay-route__step > span {
@@ -447,6 +655,19 @@
   border-radius: var(--ns-radius-md, 16px);
   color: var(--ns-violet-strong, #0fb174);
   background: var(--ns-violet-soft, #e4f8f0);
+}
+
+.relay-route__step--ready {
+  border-color: rgba(22, 199, 132, 0.22);
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.72), rgba(255, 255, 255, 0.88)),
+    rgba(255, 255, 255, 0.88);
+}
+
+.relay-route__step--active {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(20, 22, 38, 0.09);
+  animation: relay-route-active 1.4s ease-in-out infinite;
 }
 
 .relay-route__step strong {
@@ -610,6 +831,12 @@
   background: var(--ns-badge-sky-fg, #3e8cff);
 }
 
+.relay-result--ok .relay-result__dot,
+.relay-result--warn .relay-result__dot,
+.relay-result--info .relay-result__dot {
+  animation: relay-result-pulse 1.6s ease-in-out infinite;
+}
+
 .relay-result__text {
   flex: 1 1 auto;
   min-width: 0;
@@ -745,6 +972,10 @@
   .relay-route {
     grid-template-columns: 1fr;
   }
+
+  .relay-control-deck__nodes {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -792,5 +1023,108 @@
 
   .relay-result__line {
     flex-wrap: wrap;
+  }
+}
+
+@keyframes relay-stage-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.045) translate3d(1.2%, -1%, 0);
+  }
+}
+
+@keyframes relay-deck-camera {
+  from {
+    transform: scale(1.01);
+  }
+
+  to {
+    transform: scale(1.06) translate3d(1.4%, -1.2%, 0);
+  }
+}
+
+@keyframes relay-node-ready {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes relay-track-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  58%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes relay-packet-run {
+  0% {
+    left: 0;
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    left: calc(100% - 12px);
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes relay-route-active {
+  0%,
+  100% {
+    border-color: rgba(22, 199, 132, 0.24);
+  }
+
+  50% {
+    border-color: rgba(22, 199, 132, 0.52);
+  }
+}
+
+@keyframes relay-result-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relay-hero__stage img,
+  .relay-control-deck__media img,
+  .relay-control-node--ready,
+  .relay-control-deck__track-line::after,
+  .relay-control-deck__packet,
+  .relay-route__step--active,
+  .relay-result__dot {
+    animation: none;
+  }
+
+  .relay-route__step--active,
+  .relay-control-node--ready {
+    transform: none;
   }
 }
