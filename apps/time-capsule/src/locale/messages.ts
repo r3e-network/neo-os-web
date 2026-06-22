@@ -39,6 +39,16 @@ const appMessages = {
     en: "The full message stays on this device; the chain stores its hash.",
     zh: "完整消息保存在本设备，链上只保存哈希。",
   },
+  letterDockLabel: { en: "Message sealing dock", zh: "消息封存坞" },
+  letterDockKicker: { en: "Letter loading", zh: "信件装填" },
+  letterDockEmpty: {
+    en: "Write a title or message to load the capsule.",
+    zh: "写入标题或消息后，胶囊会开始装填。",
+  },
+  letterDockCount: {
+    en: "{count} characters ready to seal",
+    zh: "{count} 个字符准备封存",
+  },
   timeLockStage: { en: "Time lock", zh: "时间锁" },
   timeLockStageCopy: {
     en: "Choose when the capsule becomes revealable.",
