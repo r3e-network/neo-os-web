@@ -84,19 +84,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <header className="play-hero">
         <div className="play-hero__head">
           <span className="play-hero__badge" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 3v18M8.5 7.5h5a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h5" />
-            </svg>
+            <img src={coinHeadsUrl} alt="" loading="eager" decoding="async" />
           </span>
           <div className="play-hero__text">
             <span className="play-hero__eyebrow">{t("eyebrow")}</span>
@@ -129,19 +117,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         ) : (
           <div className="first-round-prompt">
             <span className="first-round-prompt__icon" aria-hidden="true">
-              <svg
-                viewBox="0 0 32 32"
-                width="22"
-                height="22"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="16" cy="16" r="11" />
-                <path d="M16 8v16M9.5 12.5h7a2.6 2.6 0 0 1 0 5.2h-4.2a2.6 2.6 0 0 0 0 5.2h7" />
-              </svg>
+              <img src={coinTailsUrl} alt="" loading="lazy" decoding="async" />
             </span>
             <div className="first-round-prompt__text">
               <span className="first-round-prompt__title">
@@ -196,19 +172,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo">
             <div className="history-empty">
               <span className="history-empty__icon" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="22"
-                  height="22"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
+                <img src={coinHeadsUrl} alt="" loading="lazy" decoding="async" />
               </span>
               <span className="history-empty__text">{t("noHistory")}</span>
             </div>
