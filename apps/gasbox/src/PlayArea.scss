@@ -2329,6 +2329,93 @@
   flex: 0 0 auto;
 }
 
+.gasbox-studio-flow {
+  counter-reset: gasbox-studio-flow;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border-radius: var(--ns-radius-lg, 20px);
+  border: 1px solid rgba(18, 114, 75, 0.1);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(244, 251, 245, 0.92)),
+    var(--ns-surface, #ffffff);
+  list-style: none;
+}
+
+.gasbox-studio-flow li {
+  counter-increment: gasbox-studio-flow;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid rgba(18, 114, 75, 0.09);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.gasbox-studio-flow li::after {
+  content: counter(gasbox-studio-flow);
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  color: rgba(11, 94, 62, 0.16);
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.gasbox-studio-flow li.is-ready {
+  border-color: rgba(22, 199, 132, 0.24);
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.88), rgba(255, 255, 255, 0.76)),
+    var(--ns-brand-soft, #e4f8f0);
+}
+
+.gasbox-studio-flow li.is-ready svg {
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.gasbox-studio-flow svg {
+  width: 22px;
+  height: 22px;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.gasbox-studio-flow span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gasbox-studio-flow strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.82rem;
+  font-weight: 850;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasbox-studio-flow small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gasbox-studio-blueprint {
   display: grid;
   grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1fr);
@@ -2368,10 +2455,60 @@
 .gasbox-studio-machine-preview img {
   object-fit: cover;
   object-position: 58% center;
+  animation: gasbox-studio-machine-breathe 6.6s ease-in-out infinite;
+}
+
+.gasbox-studio-machine-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.44) 42%, transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 250, 232, 0.42));
+  opacity: 0.72;
+  pointer-events: none;
+  transform: translateX(-48%);
+  animation: gasbox-studio-preview-scan 5.8s ease-in-out infinite;
+}
+
+.gasbox-studio-machine-preview__lights {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10px 22px rgba(35, 96, 55, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.gasbox-studio-machine-preview__lights span {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand, #16c784);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.12);
+  animation: gasbox-studio-light-chase 1.8s ease-in-out infinite;
+}
+
+.gasbox-studio-machine-preview__lights span:nth-child(2) {
+  background: var(--ns-warning, #f5a623);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.14);
+  animation-delay: 160ms;
+}
+
+.gasbox-studio-machine-preview__lights span:nth-child(3) {
+  background: var(--ns-info, #3e8cff);
+  box-shadow: 0 0 0 3px rgba(62, 140, 255, 0.12);
+  animation-delay: 320ms;
 }
 
 .gasbox-studio-machine-preview figcaption {
   position: absolute;
+  z-index: 2;
   inset: auto 12px 12px;
   display: grid;
   gap: 4px;
@@ -2454,6 +2591,157 @@
   font-weight: 850;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+
+.gasbox-studio-odds-rail {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-lg, 20px);
+  border: 1px solid rgba(18, 114, 75, 0.12);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 223, 0.7), rgba(244, 251, 245, 0.88)),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 12px 26px rgba(32, 78, 52, 0.07);
+}
+
+.gasbox-studio-odds-rail__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gasbox-studio-odds-rail__head span {
+  color: var(--ns-brand-deep, #0b5e3e);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.gasbox-studio-odds-rail__head strong {
+  min-width: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.gasbox-studio-odds-track {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x proximity;
+}
+
+.gasbox-studio-odds-track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.gasbox-studio-odds-track::-webkit-scrollbar-thumb {
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(18, 114, 75, 0.18);
+}
+
+.gasbox-studio-odds-token {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: min(230px, 72vw);
+  min-width: min(230px, 72vw);
+  padding: 11px 12px;
+  overflow: hidden;
+  scroll-snap-align: start;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid color-mix(in srgb, currentColor 24%, rgba(255, 255, 255, 0.68));
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.74)),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    0 10px 20px color-mix(in srgb, currentColor 12%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+  animation: gasbox-studio-token-in 380ms ease-out both;
+  animation-delay: calc(var(--gasbox-token-order, 0) * 70ms);
+}
+
+.gasbox-studio-odds-token::after {
+  content: "";
+  position: absolute;
+  inset: auto 14px 0;
+  height: 3px;
+  border-radius: var(--ns-radius-full, 9999px) var(--ns-radius-full, 9999px) 0 0;
+  background: currentColor;
+  opacity: 0.7;
+}
+
+.gasbox-studio-card--ready .gasbox-studio-odds-token:first-child {
+  animation:
+    gasbox-studio-token-in 380ms ease-out both,
+    gasbox-studio-token-glow 2.8s ease-in-out 520ms infinite;
+}
+
+.gasbox-studio-odds-token__capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background:
+    linear-gradient(145deg, #fff8e7 0 46%, currentColor 47% 100%),
+    #ffffff;
+  color: currentColor;
+  box-shadow:
+    0 10px 18px color-mix(in srgb, currentColor 20%, transparent),
+    inset 0 2px 0 rgba(255, 255, 255, 0.76);
+  animation: gasbox-studio-capsule-float 3.2s ease-in-out infinite;
+}
+
+.gasbox-studio-odds-token__capsule svg {
+  width: 19px;
+  height: 19px;
+  color: #ffffff;
+}
+
+.gasbox-studio-odds-token__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gasbox-studio-odds-token__copy strong,
+.gasbox-studio-odds-token__copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasbox-studio-odds-token__copy strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.gasbox-studio-odds-token__copy small {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .gasbox-studio-grid,
@@ -2674,6 +2962,7 @@
 
 .gasbox-asset-choice.is-selected .gasbox-asset-choice__icon {
   background: var(--ns-surface, #ffffff);
+  animation: gasbox-studio-asset-pulse 2.6s ease-in-out infinite;
 }
 
 .gasbox-asset-choice__icon svg {
@@ -2760,6 +3049,7 @@
   box-shadow:
     0 12px 20px rgba(20, 22, 38, 0.1),
     inset 0 0 0 2px rgba(255, 255, 255, 0.64);
+  animation: gasbox-studio-capsule-float 3.4s ease-in-out infinite;
 }
 
 .gasbox-studio-item__capsule svg {
@@ -2850,6 +3140,86 @@
 .gasbox-capsule-editor .neo-btn {
   min-height: 48px;
   white-space: nowrap;
+}
+
+@keyframes gasbox-studio-machine-breathe {
+  0%, 100% {
+    transform: scale(1.02) translateY(0);
+    filter: saturate(1);
+  }
+  50% {
+    transform: scale(1.045) translateY(-3px);
+    filter: saturate(1.06) brightness(1.02);
+  }
+}
+
+@keyframes gasbox-studio-preview-scan {
+  0%, 54% {
+    opacity: 0;
+    transform: translateX(-48%);
+  }
+  68% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(48%);
+  }
+}
+
+@keyframes gasbox-studio-light-chase {
+  0%, 100% {
+    opacity: 0.42;
+    transform: scale(0.9);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes gasbox-studio-token-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gasbox-studio-token-glow {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow:
+      0 10px 20px color-mix(in srgb, currentColor 12%, transparent),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+  }
+  50% {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 30px color-mix(in srgb, currentColor 22%, transparent),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.78);
+  }
+}
+
+@keyframes gasbox-studio-capsule-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(5deg);
+  }
+}
+
+@keyframes gasbox-studio-asset-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.12);
+  }
 }
 
 // Creator earnings panel (Withdraw Revenue) — visible only to the creator.
@@ -3069,6 +3439,10 @@
 }
 
 @media (max-width: 640px) {
+  .gasbox-studio-flow {
+    grid-template-columns: 1fr;
+  }
+
   .gasbox-studio-blueprint {
     grid-template-columns: 1fr;
   }
@@ -3138,6 +3512,15 @@
     grid-template-columns: 1fr;
   }
 
+  .gasbox-studio-odds-rail__head {
+    display: grid;
+    gap: 4px;
+  }
+
+  .gasbox-studio-odds-rail__head strong {
+    text-align: left;
+  }
+
   .gasbox-studio-machine-preview figcaption {
     inset: auto 10px 10px;
   }
@@ -3172,5 +3555,18 @@
   .gasbox-field--price input,
   .gasbox-capsule-dial input {
     min-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gasbox-studio-machine-preview img,
+  .gasbox-studio-machine-preview::after,
+  .gasbox-studio-machine-preview__lights span,
+  .gasbox-studio-odds-token,
+  .gasbox-studio-card--ready .gasbox-studio-odds-token:first-child,
+  .gasbox-studio-odds-token__capsule,
+  .gasbox-asset-choice.is-selected .gasbox-asset-choice__icon,
+  .gasbox-studio-item__capsule {
+    animation: none;
   }
 }
