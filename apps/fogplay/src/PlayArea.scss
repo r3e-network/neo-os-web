@@ -7,6 +7,13 @@
 
 .coinflip-play-area {
   @include pm.pm-canvas;
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  overflow: hidden;
+  isolation: isolate;
 
   /* ----------------------------------------------------------------
    *  Coin token bridge — the arena/wager/overlay components are styled
@@ -35,21 +42,82 @@
   --coin-green-active-bg-light: rgba(22, 199, 132, 0.08);
 }
 
+.coinflip-play-area::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(244, 245, 247, 0.9),
+      rgba(244, 245, 247, 0.98)
+    ),
+    radial-gradient(
+      circle at 22% 16%,
+      rgba(22, 199, 132, 0.16),
+      transparent 32%
+    ),
+    radial-gradient(circle at 82% 8%, rgba(245, 166, 35, 0.12), transparent 28%);
+}
+
+.coinflip-play-area::after {
+  content: "";
+  position: absolute;
+  top: 116px;
+  left: 50%;
+  z-index: -1;
+  width: min(860px, 92vw);
+  height: 500px;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(244, 245, 247, 0.1), rgba(244, 245, 247, 0.9)),
+    url("./static/bg_vault.png") center 48% / cover no-repeat;
+  border-radius: 38px;
+  opacity: 0.28;
+  filter: saturate(1.08);
+  transform: translateX(-50%);
+  animation: fogplay-vault-drift 18s ease-in-out infinite alternate;
+}
+
 /* ============================================================
  *  1. Hero — identity + top stats (Wins · Losses · Games · Won)
  * ============================================================ */
 
 .play-hero {
+  position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 16px;
   width: 100%;
-  max-width: 520px;
+  max-width: 1100px;
   margin-inline: auto;
   padding: 20px 20px 18px;
   @include pm.card;
+  overflow: hidden;
+}
+
+.play-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    108deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.48) 48%,
+    transparent 62%
+  );
+  opacity: 0.5;
+  transform: translateX(-38%);
+  animation: fogplay-hero-sheen 6.4s ease-in-out infinite;
 }
 
 .play-hero__head {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -66,6 +134,8 @@
   border-radius: 999px;
   background: pm.$neo-soft;
   color: pm.$neo-strong;
+  box-shadow: 0 10px 24px rgba(22, 199, 132, 0.12);
+  animation: fogplay-token-idle 3.8s ease-in-out infinite;
 }
 
 .play-hero__text {
@@ -98,6 +168,8 @@
 }
 
 .stats-row {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 10px;
@@ -153,6 +225,8 @@
 /* First-round invitation — replaces the flat 4x "0" stat strip until there's
  * play history, giving the empty hero an inviting call to action. */
 .first-round-prompt {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -199,20 +273,79 @@
  * ============================================================ */
 
 .coinflip-play-area .arena-hero {
+  position: relative;
   width: 100%;
-  max-width: 520px;
   margin-inline: auto;
-  padding: 24px 20px;
-  @include pm.card;
+  padding: 0;
 }
 
 .coinflip-play-area .coin-stage {
   width: 100%;
 }
 
-/* Center the constrained bet column so it reads balanced, not left-stranded */
+.coinflip-game-table__arena .premium-arena {
+  min-height: clamp(430px, 56vw, 570px);
+}
+
+.coinflip-game-table__arena .arena-content {
+  min-height: clamp(390px, 51vw, 526px);
+}
+
+.coinflip-game-table__wager .wager-panel {
+  position: sticky;
+  top: 18px;
+  animation: fogplay-wager-in 360ms ease-out both;
+}
+
+.coinflip-play-area--tossing .coinflip-game-table__wager .wager-panel {
+  border-color: rgba(22, 199, 132, 0.24);
+  box-shadow: 0 16px 40px rgba(22, 199, 132, 0.1);
+}
+
+.coinflip-game-table {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.82fr);
+  gap: 18px;
+  width: 100%;
+  max-width: 1100px;
+  margin-inline: auto;
+  align-items: stretch;
+}
+
+.coinflip-game-table::before {
+  content: "";
+  position: absolute;
+  inset: 18px 8% auto;
+  z-index: -1;
+  height: 280px;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(22, 199, 132, 0.15),
+    transparent 68%
+  );
+  filter: blur(18px);
+  opacity: 0.78;
+}
+
+.coinflip-play-area--tossing .coinflip-game-table::before {
+  animation: fogplay-table-glow 1.2s ease-in-out infinite;
+}
+
+.coinflip-game-table__arena,
+.coinflip-game-table__wager {
+  min-width: 0;
+}
+
+.coinflip-game-table__wager {
+  display: grid;
+  align-content: start;
+}
+
+/* The wager column is a control deck beside the game table on desktop. */
 .coinflip-play-area .bet-section {
-  max-width: 520px;
+  max-width: none;
   margin-inline: auto;
 }
 
@@ -224,8 +357,9 @@
   display: grid;
   gap: 10px;
   width: 100%;
-  max-width: 520px;
+  max-width: 1100px;
   margin-inline: auto;
+  animation: fogplay-history-in 380ms ease-out both;
 }
 
 .history-header {
@@ -357,9 +491,115 @@
   }
 }
 
+@keyframes fogplay-vault-drift {
+  0% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  100% {
+    transform: translateX(-50%) translateY(-10px) scale(1.025);
+  }
+}
+
+@keyframes fogplay-hero-sheen {
+  0%,
+  62% {
+    opacity: 0;
+    transform: translateX(-42%);
+  }
+
+  74% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(42%);
+  }
+}
+
+@keyframes fogplay-token-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-2px) rotate(-2deg);
+  }
+}
+
+@keyframes fogplay-table-glow {
+  0%,
+  100% {
+    opacity: 0.58;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes fogplay-wager-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fogplay-history-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coinflip-play-area::after,
+  .play-hero::after,
+  .play-hero__badge,
+  .coinflip-game-table::before,
+  .coinflip-game-table__wager .wager-panel,
+  .history-section {
+    animation: none;
+  }
+}
+
+@media (max-width: 920px) {
+  .coinflip-game-table {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .coinflip-game-table__wager .wager-panel {
+    position: relative;
+    top: auto;
+  }
+
+  .coinflip-play-area .bet-section {
+    max-width: 620px;
+  }
+}
+
 @media (max-width: 520px) {
+  .coinflip-play-area {
+    padding: 14px 14px 24px;
+  }
+
   .play-hero {
     padding: 18px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .play-hero__head {
@@ -369,6 +609,18 @@
 
   .coinflip-play-area .arena-hero {
     padding: 16px;
+  }
+
+  .coinflip-game-table {
+    gap: 14px;
+  }
+
+  .coinflip-game-table__arena .premium-arena {
+    min-height: 348px;
+  }
+
+  .coinflip-game-table__arena .arena-content {
+    min-height: 316px;
   }
 }
 
