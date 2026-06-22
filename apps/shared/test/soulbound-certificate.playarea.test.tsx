@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -52,7 +53,8 @@ function t(key: string) {
     connectWallet: "Connect Wallet",
     walletConnected: "Wallet connected",
     issuerWorkspaceTitle: "Issuer workspace",
-    certificateHeroTitle: "Design a credential, issue it on-chain, verify it anywhere.",
+    certificateHeroTitle:
+      "Design a credential, issue it on-chain, verify it anywhere.",
     certificateTrustSignals: "Credential trust signals",
     certificateProofPermanent: "Permanent record",
     certificateProofVerify: "QR verification",
@@ -98,8 +100,10 @@ function t(key: string) {
     walletNotConnected: "Wallet not connected",
     walletNotConnectedHint: "Connect a wallet to load templates.",
     walletRequiredTitle: "Wallet required",
-    walletRequiredIssueHint: "Connect the issuer wallet before minting a soulbound certificate.",
-    walletRequiredTemplateHint: "Connect the issuer wallet before creating an on-chain template.",
+    walletRequiredIssueHint:
+      "Connect the issuer wallet before minting a soulbound certificate.",
+    walletRequiredTemplateHint:
+      "Connect the issuer wallet before creating an on-chain template.",
     emptyTemplates: "No templates yet",
     emptyTemplatesHint: "Create a template to start issuing certificates.",
     statusActive: "Active",
@@ -128,7 +132,8 @@ function t(key: string) {
     certificateRevoked: "Revoked",
     certificateNotFoundHint: "Enter a token ID to verify.",
     emptyCertificates: "No certificates yet",
-    emptyCertificatesHint: "Certificates issued to this wallet will appear here.",
+    emptyCertificatesHint:
+      "Certificates issued to this wallet will appear here.",
   };
   return messages[key] ?? key;
 }
@@ -174,7 +179,9 @@ describe("Soulbound Certificate PlayArea", () => {
 
     render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
 
-    expect(screen.getByRole("button", { name: "Create Template" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Create Template" }),
+    ).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Issue Certificate" }),
     ).toBeTruthy();
@@ -190,9 +197,7 @@ describe("Soulbound Certificate PlayArea", () => {
       description: "Issued to graduates who completed the Neo builder track.",
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Issue Certificate" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Issue Certificate" }));
     expect(screen.getByDisplayValue("7")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Recipient address"), {
@@ -304,14 +309,22 @@ describe("Soulbound Certificate PlayArea", () => {
     ).toBeTruthy();
 
     const issueButton = screen.getByRole("button", { name: "Issue" });
-    const createButton = screen.getByRole("button", { name: "Create Template" });
+    const createButton = screen.getByRole("button", {
+      name: "Create Template",
+    });
     expect((issueButton as HTMLButtonElement).disabled).toBe(true);
     expect((createButton as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(createButton);
     fireEvent.click(issueButton);
 
-    expect(dispatch).not.toHaveBeenCalledWith("createTemplate", expect.anything());
-    expect(dispatch).not.toHaveBeenCalledWith("issueCertificate", expect.anything());
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "createTemplate",
+      expect.anything(),
+    );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "issueCertificate",
+      expect.anything(),
+    );
   });
 
   it("hides Revoke for a non-issuer verifier and explains why", () => {
@@ -366,5 +379,30 @@ describe("Soulbound Certificate PlayArea", () => {
       tokenId: "0x0700000000000001",
     });
     expect(dispatch).toHaveBeenCalledWith("consumeVerifyDeepLink");
+  });
+
+  it("keeps certificate studio motion backed by reduced-motion fallbacks", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../soulbound-certificate/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes certificate-hero-drift");
+    expect(styles).toContain("@keyframes certificate-atelier-drift");
+    expect(styles).toContain("@keyframes certificate-atelier-sheen");
+    expect(styles).toContain("@keyframes certificate-frame-sheen");
+    expect(styles).toContain("@keyframes certificate-draft-float");
+    expect(styles).toContain("@keyframes certificate-seal-breathe");
+    expect(styles).toContain("@keyframes certificate-qr-ready");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.certificate-atelier::after[\s\S]*animation:\s*certificate-atelier-sheen/,
+    );
+    expect(styles).toMatch(
+      /\.certificate-artifact__frame[\s\S]*animation:\s*certificate-frame-sheen/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.certificate-artifact__seal[\s\S]*animation:\s*none/,
+    );
   });
 });

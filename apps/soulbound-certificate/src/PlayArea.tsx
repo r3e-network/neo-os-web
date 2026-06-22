@@ -31,7 +31,9 @@ const EMPTY_CERTIFICATES: CertificateItem[] = [];
 
 function tokenLabel(tokenId: string) {
   if (!tokenId) return "";
-  return tokenId.length > 18 ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}` : tokenId;
+  return tokenId.length > 18
+    ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}`
+    : tokenId;
 }
 
 /**
@@ -51,9 +53,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const templatesCount = num("templatesCount");
   const certificatesCount = num("certificatesCount");
   const activeTemplatesCount = num("activeTemplatesCount");
-  const templates = val<TemplateItem[]>("templates", EMPTY_TEMPLATES) ?? EMPTY_TEMPLATES;
+  const templates =
+    val<TemplateItem[]>("templates", EMPTY_TEMPLATES) ?? EMPTY_TEMPLATES;
   const certificates =
-    val<CertificateItem[]>("certificates", EMPTY_CERTIFICATES) ?? EMPTY_CERTIFICATES;
+    val<CertificateItem[]>("certificates", EMPTY_CERTIFICATES) ??
+    EMPTY_CERTIFICATES;
   const verifiedCertificate = val<CertificateItem | null>(
     "verifiedCertificate",
     null,
@@ -167,10 +171,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : t("noTemplateSelected");
   const issueRecipientLabel =
     issueForm.recipientName.trim() || t("awardedToPlaceholder");
-  const issueWalletLabel =
-    issueForm.recipient.trim()
-      ? formatHash(issueForm.recipient.trim(), 8, 6)
-      : t("issueRecipientPlaceholder");
+  const issueWalletLabel = issueForm.recipient.trim()
+    ? formatHash(issueForm.recipient.trim(), 8, 6)
+    : t("issueRecipientPlaceholder");
   const issueAchievementLabel =
     issueForm.achievement.trim() || t("achievementPreviewPlaceholder");
 
@@ -205,13 +208,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   return (
-    <div className="certificate-play-area">
+    <div
+      className={`certificate-play-area${
+        isIssuing ? " certificate-play-area--issuing" : ""
+      }${isCreatingTemplate ? " certificate-play-area--creating" : ""}${
+        isVerifying ? " certificate-play-area--verifying" : ""
+      }`}
+    >
       <section className="certificate-hero" aria-label={t("title")}>
         <div className="hero-copy">
           <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
           <h2 className="hero-title">{t("certificateHeroTitle")}</h2>
           <p className="hero-subtitle">{t("docSubtitle")}</p>
-          <div className="hero-proof-row" aria-label={t("certificateTrustSignals")}>
+          <div
+            className="hero-proof-row"
+            aria-label={t("certificateTrustSignals")}
+          >
             <span>
               <BadgeCheck aria-hidden="true" />
               {t("soulboundBadge")}
@@ -279,7 +291,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="certificate-workspace">
         <div className="certificate-column">
           <div className="issue-panel-anchor" ref={issuePanelRef}>
-            <NeoCard title={t("issueCertificate")} className="certificate-panel">
+            <NeoCard
+              title={t("issueCertificate")}
+              className="certificate-panel"
+            >
               <div className="issue-studio">
                 <div className="issue-artboard">
                   <figure className="certificate-atelier">
@@ -300,7 +315,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       {t("certificatePreviewLabel")}
                     </span>
                     <strong>
-                      {selectedTemplate?.name || t("certificateTitlePlaceholder")}
+                      {selectedTemplate?.name ||
+                        t("certificateTitlePlaceholder")}
                     </strong>
                   </div>
                   <CertificatePreview
@@ -373,7 +389,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         value={issueForm.recipient}
                         placeholder={t("issueRecipientPlaceholder")}
                         onChange={(event) =>
-                          updateIssueForm("recipient", event.currentTarget.value)
+                          updateIssueForm(
+                            "recipient",
+                            event.currentTarget.value,
+                          )
                         }
                       />
                     </label>
@@ -407,6 +426,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </label>
                   </div>
 
+                  {!hasAddress && (
+                    <div className="certificate-wallet-gate">
+                      <div>
+                        <strong>{t("walletRequiredTitle")}</strong>
+                        <span>{t("walletRequiredIssueHint")}</span>
+                      </div>
+                      <NeoButton
+                        variant="secondary"
+                        size="sm"
+                        loading={isConnecting}
+                        disabled={isConnecting}
+                        onClick={() => dispatch("connectWallet")}
+                      >
+                        {t("connectWallet")}
+                      </NeoButton>
+                    </div>
+                  )}
+
                   <NeoButton
                     variant="primary"
                     block
@@ -417,7 +454,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {isIssuing ? t("issuing") : t("issue")}
                   </NeoButton>
 
-                  <div className="issue-dossier" aria-label={t("issueDossierLabel")}>
+                  <div
+                    className="issue-dossier"
+                    aria-label={t("issueDossierLabel")}
+                  >
                     <div className="issue-dossier__head">
                       <span>{t("issueDossierLabel")}</span>
                       <strong>
@@ -653,6 +693,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </label>
               </div>
             </div>
+            {!hasAddress && (
+              <div className="certificate-wallet-gate certificate-wallet-gate--drawer">
+                <div>
+                  <strong>{t("walletRequiredTitle")}</strong>
+                  <span>{t("walletRequiredTemplateHint")}</span>
+                </div>
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  loading={isConnecting}
+                  disabled={isConnecting}
+                  onClick={() => dispatch("connectWallet")}
+                >
+                  {t("connectWallet")}
+                </NeoButton>
+              </div>
+            )}
             <NeoButton
               variant="primary"
               block
@@ -685,7 +742,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <input
                   value={verifyTokenId}
                   placeholder={t("verifyTokenIdPlaceholder")}
-                  onChange={(event) => setVerifyTokenId(event.currentTarget.value)}
+                  onChange={(event) =>
+                    setVerifyTokenId(event.currentTarget.value)
+                  }
                 />
               </label>
               <NeoButton
@@ -763,7 +822,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </dl>
                   }
                 />
-                <p className="certificate-detail__soulbound-note">{t("soulboundNote")}</p>
+                <p className="certificate-detail__soulbound-note">
+                  {t("soulboundNote")}
+                </p>
 
                 <div className="certificate-detail__qr">
                   <TokenQr
