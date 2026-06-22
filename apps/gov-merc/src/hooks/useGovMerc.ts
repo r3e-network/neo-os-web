@@ -112,6 +112,25 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error ?? "");
 }
 
+const EXPECTED_LOCAL_READ_FAILURES = [
+  "Contract address not configured",
+  "MiniApp contract address unavailable",
+  "Contract not configured",
+  "合约未配置",
+] as const;
+
+function isExpectedLocalReadFailure(error: unknown): boolean {
+  const message = errorMessage(error);
+  return EXPECTED_LOCAL_READ_FAILURES.some((expected) =>
+    message.includes(expected),
+  );
+}
+
+function warnIfUnexpectedReadFailure(context: string, error: unknown): void {
+  if (isExpectedLocalReadFailure(error)) return;
+  console.warn(context, errorMessage(error));
+}
+
 // ============================================================================
 // Bidding-window helpers (v2 contract: fixed window per epoch)
 // ============================================================================
@@ -288,7 +307,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       const duration = Number(parseBigInt(durationRaw));
       epochDurationMs.set(duration > 0 ? duration : EPOCH_DURATION_FALLBACK_MS);
     } catch (e) {
-      console.warn("[useGovMerc] bidding-window read failed:", errorMessage(e));
+      warnIfUnexpectedReadFailure("[useGovMerc] bidding-window read failed:", e);
       epochDeadline.set(0);
     }
 
@@ -306,7 +325,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       // stakers see the incoming yield without scanning the leaderboard.
       highestBid.set(gasFromBaseUnits(highestBase));
     } catch (e) {
-      console.warn("[useGovMerc] highestBid read failed:", errorMessage(e));
+      warnIfUnexpectedReadFailure("[useGovMerc] highestBid read failed:", e);
       hasLiveBid.set(false);
       highestBid.set(0);
     }
@@ -357,7 +376,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
           .sort((a, b) => b.amount - a.amount),
       );
     } catch (e) {
-      console.warn("[useGovMerc] loadBids failed:", errorMessage(e));
+      warnIfUnexpectedReadFailure("[useGovMerc] loadBids failed:", e);
       bids.set([]);
     }
   };
@@ -390,7 +409,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
         amount: gasFromBaseUnits(parseBigInt(amountRaw)),
       });
     } catch (e) {
-      console.warn("[useGovMerc] loadSettlement failed:", errorMessage(e));
+      warnIfUnexpectedReadFailure("[useGovMerc] loadSettlement failed:", e);
       lastSettlement.set(null);
     }
   };
@@ -443,7 +462,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
           .sort((a, b) => b.epoch - a.epoch),
       );
     } catch (e) {
-      console.warn("[useGovMerc] loadReclaimable failed:", errorMessage(e));
+      warnIfUnexpectedReadFailure("[useGovMerc] loadReclaimable failed:", e);
       reclaimableBids.set([]);
     }
   };
@@ -458,7 +477,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       // loadStats, so they run after it.
       await Promise.all([loadBids(), loadSettlement(), loadReclaimable()]);
     } catch (e) {
-      console.warn("[useGovMerc] loadData failed:", errorMessage(e));
+      warnIfUnexpectedReadFailure("[useGovMerc] loadData failed:", e);
     } finally {
       dataLoading.set(false);
     }

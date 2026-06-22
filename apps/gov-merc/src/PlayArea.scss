@@ -26,6 +26,8 @@ body {
 }
 
 .gov-merc-hero {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.48fr);
   gap: 22px;
@@ -39,7 +41,22 @@ body {
   letter-spacing: 0;
 }
 
+.gov-merc-hero::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.52) 42%, transparent 58%),
+    radial-gradient(circle at 84% 16%, rgba(245, 177, 66, 0.14), transparent 24%);
+  opacity: 0.66;
+  transform: translateX(-42%);
+  animation: gov-merc-hero-sheen 7.6s ease-in-out infinite;
+}
+
 .gov-merc-hero-copy {
+  position: relative;
+  z-index: 1;
   display: grid;
   align-content: center;
   gap: 10px;
@@ -158,6 +175,8 @@ body {
 }
 
 .gov-merc-scoreboard {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -169,37 +188,76 @@ body {
   background: transparent;
 }
 
-.gov-merc-market-plate {
+.gov-merc-market-stage {
+  position: relative;
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
+  display: block;
   min-width: 0;
-  padding: 14px;
+  min-height: 214px;
+  margin: 0;
+  overflow: hidden;
   border: 1px solid rgba(15, 177, 116, 0.22);
   border-radius: var(--ns-radius-lg, 20px);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(228, 248, 240, 0.86)),
-    var(--ns-surface, #ffffff);
+  background: #f8fff8;
   box-shadow:
-    var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05)),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+    0 18px 38px rgba(30, 84, 56, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  isolation: isolate;
 
   img {
-    width: 70px;
-    height: 70px;
     display: block;
-    object-fit: contain;
-    border-radius: 18px;
-    background: #ffffff;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    width: 100%;
+    height: 100%;
+    min-height: 214px;
+    object-fit: cover;
+    object-position: 50% 56%;
+    filter: saturate(1.04) contrast(1.01);
+    transform: scale(1.04);
+    animation: gov-merc-stage-drift 18s ease-in-out infinite alternate;
   }
 
-  div {
-    min-width: 0;
+  &::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    content: "";
+    background:
+      linear-gradient(180deg, rgba(7, 41, 30, 0.02) 28%, rgba(7, 41, 30, 0.58) 100%),
+      radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.32), transparent 30%);
+  }
+
+  &::before {
+    position: absolute;
+    left: -20%;
+    right: -20%;
+    bottom: 18%;
+    z-index: 2;
+    height: 3px;
+    pointer-events: none;
+    content: "";
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.9), rgba(245, 177, 66, 0.9), transparent);
+    opacity: 0.72;
+    filter: blur(0.2px);
+    animation: gov-merc-stage-signal 4.6s ease-in-out infinite;
+  }
+
+  figcaption {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 3;
     display: grid;
     gap: 5px;
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow: 0 14px 28px rgba(9, 45, 32, 0.16);
+    backdrop-filter: blur(14px);
   }
 
   span {
@@ -228,6 +286,40 @@ body {
     line-height: 1.25;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
+  }
+}
+
+.gov-merc-market-stage__lanes {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  left: 14px;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.46);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--ns-brand-deep, #0b5e3e);
+    box-shadow: 0 10px 22px rgba(9, 45, 32, 0.12);
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    backdrop-filter: blur(12px);
+  }
+
+  span:last-child {
+    color: #76520f;
   }
 }
 
@@ -696,20 +788,37 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .gov-merc-market-plate {
-    grid-template-columns: 54px minmax(0, 1fr);
-    gap: 10px;
-    padding: 10px;
+  .gov-merc-market-stage {
+    min-height: 184px;
     border-radius: 16px;
 
     img {
-      width: 54px;
-      height: 54px;
+      min-height: 184px;
+      object-position: 50% 58%;
+    }
+
+    figcaption {
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      padding: 10px;
       border-radius: 14px;
     }
 
     strong {
       font-size: 16px;
+    }
+  }
+
+  .gov-merc-market-stage__lanes {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+
+    span {
+      min-height: 24px;
+      padding: 5px 8px;
+      font-size: 10px;
     }
   }
 
@@ -748,5 +857,48 @@ body {
       max-width: 60%;
       text-align: right;
     }
+  }
+}
+
+@keyframes gov-merc-hero-sheen {
+  0%,
+  34% {
+    transform: translateX(-48%);
+  }
+
+  72%,
+  100% {
+    transform: translateX(34%);
+  }
+}
+
+@keyframes gov-merc-stage-drift {
+  from {
+    transform: scale(1.04) translate3d(-1.2%, 0, 0);
+  }
+
+  to {
+    transform: scale(1.08) translate3d(1.4%, -0.8%, 0);
+  }
+}
+
+@keyframes gov-merc-stage-signal {
+  0%,
+  100% {
+    transform: translateX(-10%) scaleX(0.68);
+    opacity: 0.42;
+  }
+
+  50% {
+    transform: translateX(10%) scaleX(1);
+    opacity: 0.86;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gov-merc-hero::after,
+  .gov-merc-market-stage img,
+  .gov-merc-market-stage::before {
+    animation: none;
   }
 }
