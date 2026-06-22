@@ -199,7 +199,14 @@ describe("On-Chain Tarot PlayArea", () => {
 
     expect(styles).toContain("@keyframes tarot-table-drift");
     expect(styles).toContain("@keyframes tarot-spread-ready");
+    expect(styles).toContain("@keyframes tarot-awaiting-card-breathe");
     expect(styles).toContain("@keyframes tarot-card-back-glint");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(max-width: 1080px\)[\s\S]*\.tarot-spread-panel[\s\S]*order:\s*1/,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width: 1080px\)[\s\S]*\.tarot-question-panel[\s\S]*order:\s*2/,
+    );
   });
 });

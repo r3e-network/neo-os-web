@@ -982,6 +982,18 @@
   }
 }
 
+@keyframes tarot-awaiting-card-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.015);
+    filter: saturate(1.08);
+  }
+}
+
 .tarot-card-slot--empty {
   cursor: default;
 
@@ -993,6 +1005,24 @@
     color: var(--tarot-muted);
     background: var(--ns-surface-subtle, #f7f8fa);
   }
+}
+
+.tarot-spread-table:not(.tarot-spread-table--drawn)
+  .tarot-card-slot--empty
+  .tarot-card-frame {
+  animation: tarot-awaiting-card-breathe 3.4s ease-in-out infinite;
+}
+
+.tarot-spread-table:not(.tarot-spread-table--drawn)
+  .tarot-card-slot--empty:nth-child(2)
+  .tarot-card-frame {
+  animation-delay: 180ms;
+}
+
+.tarot-spread-table:not(.tarot-spread-table--drawn)
+  .tarot-card-slot--empty:nth-child(3)
+  .tarot-card-frame {
+  animation-delay: 360ms;
 }
 
 .tarot-card-caption--empty {
@@ -1321,6 +1351,9 @@
   .tarot-dealing-card,
   .tarot-card-slot,
   .tarot-card-slot--sealed:not(.tarot-card-slot--empty),
+  .tarot-spread-table:not(.tarot-spread-table--drawn)
+    .tarot-card-slot--empty
+    .tarot-card-frame,
   .tarot-card-slot--revealed .tarot-card-frame,
   .tarot-card-back::after {
     animation: none;
@@ -1394,6 +1427,14 @@
 @media (max-width: 1080px) {
   .tarot-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .tarot-spread-panel {
+    order: 1;
+  }
+
+  .tarot-question-panel {
+    order: 2;
   }
 }
 
