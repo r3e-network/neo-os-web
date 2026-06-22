@@ -308,6 +308,239 @@
   white-space: nowrap;
 }
 
+.http-route-stage {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, rgba(232, 255, 248, 0.95), rgba(255, 255, 255, 0.72)),
+    url("/oracle-workspace-stage.jpg") center / cover no-repeat;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 14px 36px rgba(20, 184, 166, 0.08);
+}
+
+.http-route-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.72)),
+    radial-gradient(circle at 18% 16%, rgba(20, 184, 166, 0.22), transparent 34%);
+}
+
+.http-route-stage--ready {
+  animation: http-route-stage-ready 4.8s ease-in-out infinite;
+}
+
+.http-route-stage--warn {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.http-route-stage__head,
+.http-route-lane,
+.http-signal-row {
+  position: relative;
+  z-index: 1;
+}
+
+.http-route-stage__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.http-route-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: var(--ns-radius-full, 999px);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.http-route-status--ready {
+  border: 1px solid rgba(20, 184, 166, 0.24);
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.http-route-status--warn {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.http-route-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.http-route-node {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "orb label"
+    "orb value";
+  align-items: center;
+  column-gap: 10px;
+  min-width: 0;
+  min-height: 86px;
+  padding: 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 18px rgba(20, 22, 38, 0.06);
+}
+
+.http-route-node__orb {
+  grid-area: orb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  border-radius: var(--ns-radius-md, 16px);
+  background: #e7fff5;
+  color: #047857;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, 0.12);
+}
+
+.http-route-node small {
+  grid-area: label;
+  overflow: hidden;
+  color: #087a76;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.http-route-node strong {
+  grid-area: value;
+  min-width: 0;
+  overflow: hidden;
+  color: #10231f;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.http-route-node--digest strong {
+  color: #047857;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+}
+
+.http-route-connector {
+  position: relative;
+  display: block;
+  height: 3px;
+  border-radius: var(--ns-radius-full, 999px);
+  background: rgba(20, 184, 166, 0.2);
+  overflow: hidden;
+}
+
+.http-route-connector::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.62), transparent);
+  opacity: 0.72;
+}
+
+.http-route-connector__packet {
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ns-radius-full, 999px);
+  background: #0f766e;
+  box-shadow: 0 0 0 5px rgba(20, 184, 166, 0.18);
+  transform: translateY(-50%);
+  animation: http-route-packet 2.4s ease-in-out infinite;
+}
+
+.http-route-connector:nth-of-type(4) .http-route-connector__packet {
+  animation-delay: 0.36s;
+}
+
+.http-signal-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.http-signal-chip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+  padding: 10px 11px;
+  border-radius: var(--ns-radius-md, 16px);
+}
+
+.http-signal-chip svg {
+  grid-area: icon;
+}
+
+.http-signal-chip small {
+  grid-area: label;
+  color: currentColor;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+  opacity: 0.74;
+  text-transform: uppercase;
+}
+
+.http-signal-chip strong {
+  grid-area: value;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.http-signal-chip--ok {
+  border: 1px solid rgba(20, 184, 166, 0.22);
+  background: rgba(236, 253, 245, 0.9);
+  color: #047857;
+}
+
+.http-signal-chip--warn {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(255, 247, 237, 0.92);
+  color: #9a3412;
+}
+
 .http-pipeline-panel {
   display: grid;
   gap: 14px;
@@ -866,6 +1099,51 @@
   overflow-wrap: anywhere;
 }
 
+@keyframes http-route-stage-ready {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.88),
+      0 14px 36px rgba(20, 184, 166, 0.08);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.94),
+      0 18px 44px rgba(20, 184, 166, 0.14);
+  }
+}
+
+@keyframes http-route-packet {
+  0% {
+    opacity: 0;
+    transform: translate(-8px, -50%) scale(0.8);
+  }
+
+  18%,
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(54px, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .http-route-stage--ready,
+  .http-route-connector__packet {
+    animation: none;
+  }
+
+  .http-body-panel__icon,
+  .http-payload-card__icon,
+  .http-method-card {
+    transition: none;
+  }
+}
+
 @media (max-width: 980px) {
   .http-hero,
   .http-workspace {
@@ -953,6 +1231,45 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .http-route-stage {
+    padding: 14px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 255, 251, 0.82)),
+      url("/oracle-workspace-stage.jpg") center / cover no-repeat;
+  }
+
+  .http-route-stage__head,
+  .http-route-lane,
+  .http-signal-row {
+    grid-template-columns: 1fr;
+  }
+
+  .http-route-status {
+    justify-self: start;
+    min-height: 34px;
+  }
+
+  .http-route-lane {
+    gap: 8px;
+  }
+
+  .http-route-connector {
+    justify-self: center;
+    width: 3px;
+    height: 28px;
+  }
+
+  .http-route-connector::before {
+    background: linear-gradient(180deg, transparent, rgba(20, 184, 166, 0.62), transparent);
+  }
+
+  .http-route-connector__packet {
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation-name: http-route-packet-mobile;
+  }
+
   .http-method-grid,
   .http-method-rail,
   .http-result-rows,
@@ -1009,5 +1326,22 @@
   .http-body-panel summary strong {
     grid-column: 1 / -1;
     max-width: none;
+  }
+}
+
+@keyframes http-route-packet-mobile {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.8);
+  }
+
+  18%,
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 36px) scale(1);
   }
 }
