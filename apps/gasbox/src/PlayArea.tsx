@@ -862,6 +862,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <source srcSet="logo.webp" type="image/webp" />
                   <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
                 </picture>
+                <div
+                  className={`gasbox-stage-art__slot${pullAnimating ? " is-active" : ""}${selectedMachineReady ? " is-ready" : " is-locked"}`}
+                  aria-hidden="true"
+                >
+                  <span className="gasbox-stage-art__slot-light" />
+                  <span className="gasbox-stage-art__slot-capsule">
+                    <Ticket />
+                  </span>
+                </div>
                 {pullAnimating && (
                   <div className="gasbox-stage-art__capsules" aria-hidden="true">
                     {Array.from({ length: 3 }).map((_, index) => (
@@ -1255,6 +1264,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </div>
           <div className={`gasbox-result-content ${rarityClass(pullResult.rarity)}`} onClick={(e) => e.stopPropagation()}>
+            <div className="gasbox-result-theater" aria-hidden="true">
+              <picture className="gasbox-result-theater__machine">
+                <source srcSet="logo.avif" type="image/avif" />
+                <source srcSet="logo.webp" type="image/webp" />
+                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+              </picture>
+              <span className="gasbox-result-theater__beam" />
+              <span className={`gasbox-result-theater__capsule ${rarityClass(pullResult.rarity)}`}>
+                <RarityMark rarity={pullResult.rarity} className="gasbox-result-theater__gem" />
+              </span>
+            </div>
             <span className="gasbox-result-burst" aria-hidden="true">
               <RarityMark rarity={pullResult.rarity} className="gasbox-result-gem" />
             </span>
