@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -66,10 +68,16 @@ describe("Oracle Compute Lab PlayArea", () => {
     );
 
     expect(container.querySelector(".compute-capsule-panel")).toBeTruthy();
+    expect(container.querySelector(".compute-pipeline-panel--ready")).toBeTruthy();
+    expect(container.querySelector(".compute-pipeline-panel__packet")).toBeTruthy();
+    expect(container.querySelectorAll(".compute-pipeline-node")).toHaveLength(4);
     fireEvent.change(screen.getByLabelText("Input Payload"), {
       target: { value: "{\"secret\":\"do-not-leak\",\"asset\":\"GAS\"}" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Build Preview" }));
+
+    expect(container.querySelector(".compute-pipeline-panel--built")).toBeTruthy();
+    expect(container.querySelectorAll(".compute-pipeline-node--ready")).toHaveLength(4);
 
     const payload = container.querySelector(".console-tool__payload-card pre");
     expect(payload?.textContent).toContain("oracle.compute.request");
@@ -106,12 +114,31 @@ describe("Oracle Compute Lab PlayArea", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Build Preview" }));
 
+    expect(document.querySelector(".compute-pipeline-panel--warn")).toBeTruthy();
+    expect(document.querySelector(".compute-pipeline-node--warn")).toBeTruthy();
     expect(
       screen.getAllByText("Enter a valid JSON input payload").length,
     ).toBeGreaterThan(0);
     expect(setStatus).toHaveBeenCalledWith(
       "Enter a valid JSON input payload",
       "warning",
+    );
+  });
+
+  it("keeps the compute pipeline animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../oracle-compute-lab/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".compute-pipeline-panel");
+    expect(styles).toContain(".compute-pipeline-panel__packet");
+    expect(styles).toContain("@keyframes compute-pipeline-sheen");
+    expect(styles).toContain("@keyframes compute-pipeline-rail");
+    expect(styles).toContain("@keyframes compute-pipeline-packet");
+    expect(styles).toContain("@keyframes compute-pipeline-node-ready");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.compute-pipeline-panel__packet/,
     );
   });
 });

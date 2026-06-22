@@ -130,6 +130,21 @@ export default function PlayArea({
   const inputValid = draftResult.payload.inputValid === true;
   const draftOk = draftResult.payload.status !== "input_required";
   const resultOk = result?.payload.status !== "input_required";
+  const pipelineState = result
+    ? resultOk
+      ? "built"
+      : "warn"
+    : draftOk
+      ? "ready"
+      : "draft";
+  const pipelineStatus =
+    pipelineState === "built"
+      ? t("computePipelineBuilt")
+      : pipelineState === "warn"
+        ? t("computePipelineWarn")
+        : pipelineState === "ready"
+          ? t("computePipelineReady")
+          : t("computePipelineDraft");
   const inputDigest = String(draftResult.payload.inputDigest ?? "");
   const summaryItems = [
     {
@@ -289,6 +304,58 @@ export default function PlayArea({
               </span>
             ))}
           </div>
+
+          <section
+            className={`compute-pipeline-panel compute-pipeline-panel--${pipelineState}`}
+            aria-label={t("computePipelineLabel")}
+          >
+            <div className="compute-pipeline-panel__head">
+              <span>{t("computePipelineKicker")}</span>
+              <strong>{pipelineStatus}</strong>
+            </div>
+            <div className="compute-pipeline-panel__route" aria-hidden="true">
+              <span className="compute-pipeline-panel__rail" />
+              <span className="compute-pipeline-panel__packet">
+                {privacySealed ? t("inputRedacted") : t("inputPublic")}
+              </span>
+            </div>
+            <div className="compute-pipeline-panel__nodes">
+              <span className="compute-pipeline-node compute-pipeline-node--ready">
+                <BrainCircuit size={15} aria-hidden="true" />
+                <small>{t("computePipelineWorkflow")}</small>
+                <strong>{selectedWorkflowLabel}</strong>
+              </span>
+              <span className="compute-pipeline-node compute-pipeline-node--ready">
+                {privacySealed ? (
+                  <LockKeyhole size={15} aria-hidden="true" />
+                ) : (
+                  <UnlockKeyhole size={15} aria-hidden="true" />
+                )}
+                <small>{t("computePipelinePrivacy")}</small>
+                <strong>{selectedPrivacyLabel}</strong>
+              </span>
+              <span
+                className={`compute-pipeline-node${
+                  inputValid
+                    ? " compute-pipeline-node--ready"
+                    : " compute-pipeline-node--warn"
+                }`}
+              >
+                <FileJson2 size={15} aria-hidden="true" />
+                <small>{t("computePipelineInput")}</small>
+                <strong>{boolLabel(inputValid, t)}</strong>
+              </span>
+              <span
+                className={`compute-pipeline-node${
+                  draftOk ? " compute-pipeline-node--ready" : ""
+                }`}
+              >
+                <Fingerprint size={15} aria-hidden="true" />
+                <small>{t("computePipelineDigest")}</small>
+                <strong>{inputDigest}</strong>
+              </span>
+            </div>
+          </section>
 
           <section
             className="compute-capsule-panel"
