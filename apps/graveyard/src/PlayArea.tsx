@@ -1,3 +1,10 @@
+import {
+  Archive,
+  FileText,
+  Hash,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -61,8 +68,62 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : hashReady
       ? t("hashReadyCopy")
       : t("hashTooShortCopy");
+  const ritualState = isDestroying
+    ? "sealing"
+    : showConfirm
+      ? "confirming"
+      : hashReady
+        ? "ready"
+        : trimmedAssetHash
+          ? "draft"
+          : "idle";
+  const hasMaterial = Boolean(memoryText.trim() || trimmedAssetHash);
+  const ritualTrack = [
+    {
+      key: "material",
+      label: isWriteMode ? t("composeModeWrite") : t("composeModeHash"),
+      value: hasMaterial ? hashPreview : t("hashPending"),
+      icon: FileText,
+      active: hasMaterial,
+    },
+    {
+      key: "hash",
+      label: t("hashQuality"),
+      value: readinessTitle,
+      icon: Hash,
+      active: hashReady,
+    },
+    {
+      key: "wallet",
+      label: t("walletAction"),
+      value: isDestroying
+        ? t("destroying")
+        : showConfirm
+          ? t("confirmTitle")
+          : hashReady
+            ? t("destroyForever")
+            : t("checkNeedsAction"),
+      icon: WalletCards,
+      active: hashReady || showConfirm || isDestroying,
+    },
+    {
+      key: "archive",
+      label: t("recentDestructions"),
+      value:
+        historyCount > 0
+          ? `${historyCount} ${t("records")}`
+          : t("noDestructions"),
+      icon: Archive,
+      active: historyCount > 0,
+    },
+  ];
+  const ritualClassName = [
+    "grave-ritual-stage",
+    `grave-ritual-stage--${ritualState}`,
+  ].join(" ");
+
   return (
-    <div className="graveyard-play-area">
+    <div className={`graveyard-play-area graveyard-play-area--${ritualState}`}>
       {/* Hero — purposeful head with icon badge, title, subtitle, stat tiles */}
       <div className="grave-hero">
         <div className="grave-hero-content">
@@ -104,9 +165,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="grave-grid">
         {/* Destruction Chamber */}
         <NeoCard className="grave-chamber" title={t("destroyAsset")}>
-          <div className="destroy-form">
+          <section className={ritualClassName} aria-label={t("burialReview")}>
+            <picture className="grave-ritual-stage__banner" aria-hidden="true">
+              <source srcSet="logo.avif" type="image/avif" />
+              <source srcSet="logo.webp" type="image/webp" />
+              <img src="logo.jpg" alt="" loading="eager" decoding="async" />
+            </picture>
+            <div className="grave-ritual-stage__focus">
+              <picture className="grave-ritual-stage__seal" aria-hidden="true">
+                <source srcSet="logo.avif" type="image/avif" />
+                <source srcSet="logo.webp" type="image/webp" />
+                <img src="logo.jpg" alt="" loading="eager" decoding="async" />
+              </picture>
+              <div className="grave-ritual-stage__copy">
+                <span>{t("transactionPath")}</span>
+                <strong>{readinessTitle}</strong>
+                <p>{readinessCopy}</p>
+              </div>
+            </div>
+            <div className="grave-ritual-track" role="list">
+              {ritualTrack.map(({ key, label, value, icon: Icon, active }) => (
+                <span
+                  key={key}
+                  className={`grave-ritual-track__step${active ? " is-active" : ""}`}
+                  role="listitem"
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <small>{label}</small>
+                  <strong>{value}</strong>
+                </span>
+              ))}
+            </div>
+            {(showConfirm || isDestroying) && (
+              <div className="grave-ritual-pulse" role="status">
+                <ShieldCheck size={16} aria-hidden="true" />
+                <span>{isDestroying ? t("destroying") : t("confirmText")}</span>
+              </div>
+            )}
+          </section>
+
+          <div className={`destroy-form destroy-form--${ritualState}`}>
             {/* Compose mode: write the memory (hashed locally) or paste a hash. */}
-            <div className="grave-compose-toggle" role="tablist" aria-label={t("destroyAsset")}>
+            <div
+              className="grave-compose-toggle"
+              role="tablist"
+              aria-label={t("destroyAsset")}
+            >
               <button
                 type="button"
                 role="tab"
@@ -139,9 +243,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   onChange={(val) => dispatch("setMemoryText", val)}
                 />
                 {trimmedAssetHash && (
-                  <p className="grave-local-hash" aria-label={t("hashFromMemory")}>
-                    <span className="grave-local-hash-label">{t("hashFromMemory")}</span>
-                    <code className="grave-local-hash-value">{hashPreview}</code>
+                  <p
+                    className="grave-local-hash"
+                    aria-label={t("hashFromMemory")}
+                  >
+                    <span className="grave-local-hash-label">
+                      {t("hashFromMemory")}
+                    </span>
+                    <code className="grave-local-hash-value">
+                      {hashPreview}
+                    </code>
                   </p>
                 )}
               </>
@@ -186,18 +297,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </button>
                 ))}
               </div>
-              <span className="memory-type-hint">{t("memoryTypeLocalHint")}</span>
+              <span className="memory-type-hint">
+                {t("memoryTypeLocalHint")}
+              </span>
             </div>
             {trimmedAssetHash.length > 0 && (
-              <section className="grave-review-panel" aria-label={t("burialReview")}>
+              <section
+                className="grave-review-panel"
+                aria-label={t("burialReview")}
+              >
                 <div className="grave-review-header">
                   <span>{t("burialReview")}</span>
                   <strong>{t("burialReviewSubtitle")}</strong>
                 </div>
                 <div className="grave-review-grid">
-                  <div className={`grave-review-tile${hashReady ? " is-ready" : " is-blocked"}`}>
+                  <div
+                    className={`grave-review-tile${hashReady ? " is-ready" : " is-blocked"}`}
+                  >
                     <span className="grave-review-tile-head">
-                      <i className="grave-review-mark" aria-hidden="true">{hashReady ? "✓" : "⚠"}</i>
+                      <i className="grave-review-mark" aria-hidden="true">
+                        {hashReady ? "✓" : "⚠"}
+                      </i>
                       {t("hashQuality")}
                     </span>
                     <strong>{readinessTitle}</strong>
@@ -234,7 +354,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {showConfirm && (
               <div className="grave-confirm-note" role="status">
                 <div>
-                  <span className="grave-confirm-title">{t("confirmTitle")}</span>
+                  <span className="grave-confirm-title">
+                    {t("confirmTitle")}
+                  </span>
                   <span className="grave-confirm-text">{t("confirmText")}</span>
                 </div>
                 <NeoButton
@@ -254,10 +376,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               loading={isDestroying}
               disabled={!hashReady || isLoading}
               className={showWarningShake ? "grave-cta-attention" : ""}
-              aria-label={showConfirm ? t("confirmDestroy") : t("destroyForever")}
-              onClick={() => dispatch(showConfirm ? "executeDestroy" : "initiateDestroy")}
+              aria-label={
+                showConfirm ? t("confirmDestroy") : t("destroyForever")
+              }
+              onClick={() =>
+                dispatch(showConfirm ? "executeDestroy" : "initiateDestroy")
+              }
             >
-              {isDestroying ? t("destroying") : showConfirm ? t("confirmDestroy") : t("destroyForever")}
+              {isDestroying
+                ? t("destroying")
+                : showConfirm
+                  ? t("confirmDestroy")
+                  : t("destroyForever")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -277,14 +407,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             totalBuried={totalBuried}
             isLoading={isLoading}
             onRefresh={() => dispatch("refreshRecords")}
-            onRequestForget={(item: HistoryItem) => dispatch("requestForget", item)}
+            onRequestForget={(item: HistoryItem) =>
+              dispatch("requestForget", item)
+            }
             onCancelForget={() => dispatch("cancelForget")}
             onForget={(item: HistoryItem) => dispatch("forgetMemory", item)}
-            onStartEpitaph={(item: HistoryItem) => dispatch("startEpitaph", item)}
+            onStartEpitaph={(item: HistoryItem) =>
+              dispatch("startEpitaph", item)
+            }
             onCancelEpitaph={() => dispatch("cancelEpitaph")}
-            onEpitaphTextChange={(value: string) => dispatch("setEpitaphText", value)}
+            onEpitaphTextChange={(value: string) =>
+              dispatch("setEpitaphText", value)
+            }
             onSaveEpitaph={(item: HistoryItem) => dispatch("saveEpitaph", item)}
-            onToggleShowAll={(value: boolean) => dispatch("setShowAllHistory", value)}
+            onToggleShowAll={(value: boolean) =>
+              dispatch("setShowAllHistory", value)
+            }
             t={t}
           />
         </NeoCard>

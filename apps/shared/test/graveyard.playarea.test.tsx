@@ -1,5 +1,12 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import fs from "node:fs";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -31,9 +38,11 @@ function t(key: string, params?: Record<string, string | number>) {
     showAllRecords: "Show all records",
     showFewerRecords: "Show fewer",
     historyTruncatedNote: `Showing the most recent ${params?.shown ?? ""} of ${params?.total ?? ""} burials.`,
-    assetHashHint: "Use the encrypted content hash or token identifier you intend to bury.",
+    assetHashHint:
+      "Use the encrypted content hash or token identifier you intend to bury.",
     assetHashPlaceholder: "Enter encrypted content hash...",
-    assetHashTooShort: "Enter at least 12 characters so the burial target is identifiable.",
+    assetHashTooShort:
+      "Enter at least 12 characters so the burial target is identifiable.",
     burialChecklist: "Burial checklist",
     burialFee: "Burial fee",
     burialReview: "Burial review",
@@ -41,7 +50,8 @@ function t(key: string, params?: Record<string, string | number>) {
     memoryTypeLocalHint:
       "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
     selectedTypeLocal: "Record tag",
-    burialReviewSubtitle: "Confirm target, wallet action, and fee model before signing.",
+    burialReviewSubtitle:
+      "Confirm target, wallet action, and fee model before signing.",
     buryWalletIntent: "Bury memory",
     cancel: "Cancel",
     checkFees: "Fees visible",
@@ -62,15 +72,18 @@ function t(key: string, params?: Record<string, string | number>) {
     forgotten: "Forgotten",
     gasReclaimed: "Burial Fees",
     hashMissing: "Hash required",
-    hashMissingCopy: "Enter the encrypted content hash before preparing the burial.",
+    hashMissingCopy:
+      "Enter the encrypted content hash before preparing the burial.",
     hashPending: "Waiting for hash",
     hashPreview: "Target",
-    hashPreviewCopy: "Only the hash is written; original encrypted content stays outside the app.",
+    hashPreviewCopy:
+      "Only the hash is written; original encrypted content stays outside the app.",
     hashQuality: "Hash quality",
     hashReady: "Ready for review",
     hashReadyCopy: "The target is long enough for the wallet action review.",
     hashTooShort: "Hash too short",
-    hashTooShortCopy: "Short values are blocked so users do not bury an accidental fragment.",
+    hashTooShortCopy:
+      "Short values are blocked so users do not bury an accidental fragment.",
     historyGuidance:
       "Buried records remain inspectable here. Forgetting marks a paid follow-up state instead of deleting the audit trail.",
     itemsDestroyed: "Buried",
@@ -90,7 +103,8 @@ function t(key: string, params?: Record<string, string | number>) {
     tokenGas: "GAS",
     transactionPath: "Transaction path",
     walletAction: "Wallet action",
-    walletActionCopy: "The wallet submits the paid burial intent through the NFT service boundary.",
+    walletActionCopy:
+      "The wallet submits the paid burial intent through the NFT service boundary.",
     warning: "Permanent record",
     warningText:
       "This writes the content hash on-chain permanently. Forgetting records an additional paid state change and cannot be reversed.",
@@ -106,7 +120,9 @@ const historyItem: HistoryItem = {
   memoryType: 1,
 };
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values = {
     assetHash: "",
     burialFeeDisplay: "0.10 GAS",
@@ -139,7 +155,10 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     ...overrides,
   };
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+    Object.entries(values).map(([key, value]) => [
+      key,
+      createObservable(value),
+    ]),
   );
 }
 
@@ -156,16 +175,26 @@ describe("Graveyard PlayArea", () => {
     );
 
     expect(screen.getByText("Burial review")).toBeTruthy();
-    expect(screen.getByText("Hash too short")).toBeTruthy();
+    expect(screen.getAllByText("Hash too short").length).toBeGreaterThan(0);
+    expect(document.querySelector(".grave-ritual-stage--draft")).toBeTruthy();
+    expect(document.querySelectorAll(".grave-ritual-track__step").length).toBe(
+      4,
+    );
+    expect(
+      document.querySelector('.grave-ritual-stage__banner img[src="logo.jpg"]'),
+    ).toBeTruthy();
     // Blocked-state review tile renders the short-hash guidance copy.
     expect(
-      screen.getByText(
+      screen.getAllByText(
         "Short values are blocked so users do not bury an accidental fragment.",
-      ),
-    ).toBeTruthy();
+      ).length,
+    ).toBeGreaterThan(0);
     expect(
-      (screen.getByRole("button", { name: "Review burial" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: "Review burial",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 
@@ -185,6 +214,11 @@ describe("Graveyard PlayArea", () => {
 
     // Fee is derived from the source-of-truth constant (state), not hardcoded.
     expect(screen.getByText("0.10 GAS")).toBeTruthy();
+    expect(document.querySelector(".graveyard-play-area--ready")).toBeTruthy();
+    expect(document.querySelector(".grave-ritual-stage--ready")).toBeTruthy();
+    expect(
+      document.querySelector('.grave-ritual-stage__seal img[src="logo.jpg"]'),
+    ).toBeTruthy();
     // Memory type is presented as a record tag that is anchored on-chain
     // alongside the content hash (one label on the selector, one in the review
     // panel).
@@ -202,7 +236,9 @@ describe("Graveyard PlayArea", () => {
     render(
       <PlayArea
         t={t}
-        state={state({ assetHash: "0x1234567890abcdef1234567890abcdef12345678" })}
+        state={state({
+          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
+        })}
         dispatch={dispatch}
       />,
     );
@@ -228,10 +264,16 @@ describe("Graveyard PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Clear Hash" }));
 
+    expect(
+      document.querySelector(".grave-ritual-stage--confirming"),
+    ).toBeTruthy();
+    expect(document.querySelector(".grave-ritual-pulse")).toBeTruthy();
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("cancelDestroy");
     });
-    expect((screen.getByLabelText("Content hash") as HTMLInputElement).value).toBe("");
+    expect(
+      (screen.getByLabelText("Content hash") as HTMLInputElement).value,
+    ).toBe("");
   });
 
   it("dispatches burial and record refresh, and ARMS a forget confirmation (does not pay on first tap)", async () => {
@@ -334,5 +376,22 @@ describe("Graveyard PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("setMemoryText", "a secret memory");
     // No raw content-hash field in write mode — only the locally derived hash.
     expect(screen.queryByLabelText("Content hash")).toBeNull();
+  });
+
+  it("keeps the burial ritual motion accessible with reduced-motion fallbacks", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../graveyard/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain(".grave-ritual-stage");
+    expect(styles).toContain(".grave-ritual-track");
+    expect(styles).toContain("@keyframes grave-banner-drift");
+    expect(styles).toContain("@keyframes grave-seal-ready");
+    expect(styles).toContain("@keyframes grave-confirm-pulse");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(max-width: 720px\)[\s\S]*\.grave-ritual-track[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    );
   });
 });
