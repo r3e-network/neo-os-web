@@ -127,7 +127,7 @@ describe("Red Envelope PlayArea", () => {
   it("lets a recipient select an active envelope and dispatch a claim", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState()}
@@ -135,6 +135,10 @@ describe("Red Envelope PlayArea", () => {
         launchContext={launch()}
       />,
     );
+
+    expect(container.querySelector(".redenv-envelope-preview--claim")).toBeTruthy();
+    expect(container.querySelector(".redenv-envelope-preview__seal")).toBeTruthy();
+    expect(container.querySelector(".redenv-open-button")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /#pool-alpha\s+3\/8/ }));
     expect((screen.getByLabelText("Envelope ID") as HTMLInputElement).value).toBe("pool-alpha");
@@ -151,7 +155,7 @@ describe("Red Envelope PlayArea", () => {
   it("prefills launch params and keeps creator validation tied to contract limits", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState({ envelopes: [], claims: [], claimCount: 0, poolCount: 0 })}
@@ -168,6 +172,8 @@ describe("Red Envelope PlayArea", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Create" }));
 
+    expect(container.querySelector(".redenv-envelope-preview--create")).toBeTruthy();
+    expect(container.querySelector(".redenv-send-button")).toBeTruthy();
     expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
     expect(document.querySelectorAll(".redenv-preset-group").length).toBe(3);
     expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.1");
@@ -193,5 +199,26 @@ describe("Red Envelope PlayArea", () => {
         expiryHours: "12",
       }),
     );
+  });
+
+  it("marks the envelope preview as animated while an envelope is opening", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ openingId: "pool-alpha" })}
+        dispatch={dispatch}
+        launchContext={launch(
+          "https://neomini.app/miniapps/red-envelope/index.html?network=testnet&envelopeId=pool-alpha",
+        )}
+      />,
+    );
+
+    const openButton = container.querySelector(".redenv-open-button");
+
+    expect(container.querySelector(".redenv-envelope-preview--opening")).toBeTruthy();
+    expect(openButton).toBeTruthy();
+    expect(openButton?.getAttribute("aria-busy")).toBe("true");
   });
 });
