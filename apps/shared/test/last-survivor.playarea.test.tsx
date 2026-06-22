@@ -13,6 +13,10 @@ afterEach(() => cleanup());
 function t(key: string) {
   const messages: Record<string, string> = {
     activeRound: "Active",
+    arenaMomentum: "Arena momentum",
+    arenaMomentumHint:
+      "Leader, your stake, and the pot move as the round heats up.",
+    awaitingFirstKey: "Be the first to buy a key",
     buyKeys: "Buy Keys",
     buyKeysAndRollover: "Buy Keys and Roll Forward",
     buyKeysRolloverHint:
@@ -24,6 +28,7 @@ function t(key: string) {
     keyPrice: "Base price: 0.1 GAS per key",
     keysSuffix: "Keys",
     lastBuyer: "Current leader",
+    leaderMarker: "Leader",
     noHistory: "No events yet",
     recentHistory: "Recent Rounds",
     refreshRound: "Refresh Round",
@@ -52,6 +57,8 @@ function t(key: string) {
     pressConsoleHint:
       "Every key feeds the pot. The final buyer survives when the clock runs out.",
     pressConsoleTitle: "Buy a key. Reset the clock.",
+    playerMarker: "You",
+    potMarker: "Pot",
     survivalArena: "Last Survivor arena",
     survivalArenaAlt:
       "Bright futuristic arena with a glowing button console and GAS prize pool",
@@ -142,9 +149,13 @@ describe("LastSurvivor PlayArea", () => {
         t={t}
         state={state({
           isRoundActive: true,
+          lastBuyer: "NMockLastBuyer111111111111111111111111111",
           roundDataAvailable: true,
           roundStatusDisplay: "Active",
+          totalPot: 4.2,
           totalKeysDisplay: 2,
+          userKeys: 1,
+          userSharePercent: 50,
         })}
         dispatch={vi.fn()}
       />,
@@ -154,6 +165,13 @@ describe("LastSurvivor PlayArea", () => {
     expect(container.querySelector(".key-count-value")?.textContent).toBe("2");
     expect(container.querySelector(".survivor-play-area--live")).toBeTruthy();
     expect(container.querySelector(".survivor-stage.survivor-play-area--live")).toBeTruthy();
+    const lane = container.querySelector(".survivor-arena-lane") as HTMLElement;
+    expect(lane).toBeTruthy();
+    expect(lane.style.getPropertyValue("--survivor-player-progress")).toBe("50%");
+    expect(container.querySelectorAll(".survivor-arena-lane__marker").length).toBe(3);
+    expect(container.querySelector(".survivor-arena-lane__marker--leader.is-live")).toBeTruthy();
+    expect(container.querySelector(".survivor-arena-lane__marker--player.is-live")).toBeTruthy();
+    expect(container.querySelector(".survivor-arena-lane__marker--pot.is-live")).toBeTruthy();
     expect(container.querySelector(".key-adjust-btn.plus svg")).toBeTruthy();
     expect(container.querySelector(".key-adjust-btn.minus svg")).toBeTruthy();
 
@@ -280,6 +298,9 @@ describe("LastSurvivor PlayArea", () => {
 
     expect(playAreaStyles).toContain("@keyframes survivor-arena-drift");
     expect(playAreaStyles).toContain("@keyframes survivor-stage-sweep");
+    expect(playAreaStyles).toContain("@keyframes survivor-lane-progress");
+    expect(playAreaStyles).toContain("@keyframes survivor-lane-scan");
+    expect(playAreaStyles).toContain("@keyframes survivor-lane-marker-ready");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
     expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
