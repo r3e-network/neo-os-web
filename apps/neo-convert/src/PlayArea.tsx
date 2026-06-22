@@ -66,6 +66,7 @@ function maskSecret(value: string) {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const [keyInput, setKeyInput] = useState("");
+  const [selectedFormat, setSelectedFormat] = useState("wif");
 
   const isLoading = bool("isLoading");
   const balancesLoading = bool("balancesLoading");
@@ -164,26 +165,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // the only error feedback as a 3s toast and the panel looking untouched.
   const showConversionStatus = hasConversionResult || conversionStatusType === "error";
   const formatSpecs = [
-    { key: "wif", icon: KeyRound, label: t("formatWifLabel"), desc: t("formatWifDesc") },
+    {
+      key: "wif",
+      icon: KeyRound,
+      label: t("formatWifLabel"),
+      desc: t("formatWifDesc"),
+      placeholder: t("formatWifPlaceholder"),
+      hint: t("formatWifWorkbenchHint"),
+    },
     {
       key: "private",
       icon: LockKeyhole,
       label: t("formatPrivateKeyLabel"),
       desc: t("formatPrivateKeyDesc"),
+      placeholder: t("formatPrivateKeyPlaceholder"),
+      hint: t("formatPrivateKeyWorkbenchHint"),
     },
     {
       key: "public",
       icon: WalletCards,
       label: t("formatPublicKeyLabel"),
       desc: t("formatPublicKeyDesc"),
+      placeholder: t("formatPublicKeyPlaceholder"),
+      hint: t("formatPublicKeyWorkbenchHint"),
     },
     {
       key: "script",
       icon: FileCode2,
       label: t("formatScriptLabel"),
       desc: t("formatScriptDesc"),
+      placeholder: t("formatScriptPlaceholder"),
+      hint: t("formatScriptWorkbenchHint"),
     },
   ];
+  const selectedFormatSpec =
+    formatSpecs.find((format) => format.key === selectedFormat) ??
+    formatSpecs[0]!;
   const safetyNotes = [
     { key: "local", icon: ShieldCheck, label: t("safetyLocal") },
     { key: "reveal", icon: EyeOff, label: t("safetyReveal") },
@@ -362,14 +379,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <p>{t("convertPanelCopy")}</p>
             </div>
           </div>
-          <div className="convert-format-rail" aria-label={t("formatRailTitle")}>
+          <div
+            className="convert-format-rail"
+            role="radiogroup"
+            aria-label={t("formatRailTitle")}
+          >
             {formatSpecs.map((format) => {
               const Icon = format.icon;
+              const active = selectedFormat === format.key;
               return (
-                <span key={format.key}>
-                  <Icon size={14} aria-hidden="true" />
-                  {format.label}
-                </span>
+                <button
+                  key={format.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={`convert-format-card${active ? " convert-format-card--active" : ""}`}
+                  onClick={() => setSelectedFormat(format.key)}
+                >
+                  <span className="convert-format-card__media" aria-hidden="true">
+                    <img
+                      src="./key-workbench-stage.jpg"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span className="convert-format-card__icon">
+                      <Icon size={16} />
+                    </span>
+                  </span>
+                  <span className="convert-format-card__copy">
+                    <strong>{format.label}</strong>
+                    <small>{format.desc}</small>
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -413,13 +455,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
           <div className="convert-section convert-input-desk">
-            <p className="convert-hint">{t("convertHint")}</p>
+            <p className="convert-hint">{selectedFormatSpec.hint}</p>
             <div onKeyDown={handleConvertKeyDown}>
               <NeoInput
                 className="convert-key-input"
                 value={keyInput}
                 onChange={(v) => setKeyInput(v)}
-                placeholder={t("enterKeyPlaceholder")}
+                placeholder={selectedFormatSpec.placeholder}
               />
             </div>
             <NeoButton
