@@ -92,6 +92,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? contentKind
     : t("documentPreviewEmptyTitle");
   const previewStatus = canCreate ? t("proofRouteReady") : t("proofRouteWaiting");
+  const proofPressState = isCreating
+    ? "stamping"
+    : canCreate
+      ? "ready"
+      : "empty";
+  const proofAnchorState = isAnchoring
+    ? "anchoring"
+    : verifiedProof?.anchored
+      ? "anchored"
+      : "local";
+  const proofPressTitleKey =
+    proofPressState === "stamping"
+      ? "proofPressStampingTitle"
+      : proofPressState === "ready"
+        ? "proofPressReadyTitle"
+        : "proofPressEmptyTitle";
+  const proofPressBodyKey =
+    proofPressState === "stamping"
+      ? "proofPressStampingBody"
+      : proofPressState === "ready"
+        ? "proofPressReadyBody"
+        : "proofPressEmptyBody";
+  const proofAnchorLabel =
+    proofAnchorState === "anchoring"
+      ? t("proofPressAnchorAnchoring")
+      : proofAnchorState === "anchored"
+        ? t("proofPressAnchorAnchored")
+        : t("proofPressAnchorLocal");
 
   return (
     <div className="proof-play-area">
@@ -162,6 +190,56 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             className="proof-document-preview"
             aria-label={t("documentPreviewLabel")}
           >
+            <div
+              className={`proof-press-stage proof-press-stage--${proofPressState} proof-press-stage--anchor-${proofAnchorState}`}
+              aria-label={t("proofPressLabel")}
+            >
+              <picture className="proof-press-stage__media" aria-hidden="true">
+                <img src="./proof-desk.jpg" alt="" loading="lazy" />
+              </picture>
+              <div className="proof-press-stage__wash" aria-hidden="true" />
+              <div className="proof-press-stage__sheet" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <span
+                className="proof-press-stage__scanner"
+                aria-hidden="true"
+              />
+              <span className="proof-press-stage__seal" aria-hidden="true">
+                <Fingerprint size={28} />
+              </span>
+              <div className="proof-press-stage__copy">
+                <span>{t("proofPressKicker")}</span>
+                <strong>{t(proofPressTitleKey)}</strong>
+                <p>{t(proofPressBodyKey)}</p>
+              </div>
+              <div
+                className="proof-press-stage__rail"
+                aria-label={t("proofPressRailLabel")}
+              >
+                <span className={canCreate || isCreating ? "is-active" : ""}>
+                  <Fingerprint size={14} aria-hidden="true" />
+                  {t("proofRouteHash")}
+                </span>
+                <span className={isCreating ? "is-active" : ""}>
+                  <FileCheck2 size={14} aria-hidden="true" />
+                  {t("proofRouteSave")}
+                </span>
+                <span
+                  className={
+                    proofAnchorState === "anchoring" ||
+                    proofAnchorState === "anchored"
+                      ? "is-active"
+                      : ""
+                  }
+                >
+                  <Anchor size={14} aria-hidden="true" />
+                  {proofAnchorLabel}
+                </span>
+              </div>
+            </div>
             <div className="proof-document-preview__paper">
               <div className="proof-document-preview__toolbar">
                 <span className="proof-document-preview__type">

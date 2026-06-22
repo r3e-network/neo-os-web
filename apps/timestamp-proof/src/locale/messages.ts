@@ -41,6 +41,36 @@ const appMessages = {
     en: "Your proof preview will appear here as soon as you add content.",
     zh: "输入内容后，这里会实时显示证明预览。",
   },
+  proofPressLabel: { en: "Animated proof press", zh: "动态证明压印台" },
+  proofPressKicker: { en: "Document fingerprint", zh: "文档指纹" },
+  proofPressEmptyTitle: {
+    en: "Drop in a document, note, or digest to wake the press.",
+    zh: "放入文档、备注或摘要后，证明台会立即进入工作状态。",
+  },
+  proofPressEmptyBody: {
+    en: "The workbench stays idle until there is source content to hash locally.",
+    zh: "没有原文时工作台保持待机；输入内容后才会在本地计算哈希。",
+  },
+  proofPressReadyTitle: {
+    en: "Fingerprint queued. Review the sheet, then seal the proof.",
+    zh: "指纹已排队。核对文档卡片后即可封存证明。",
+  },
+  proofPressReadyBody: {
+    en: "One tap hashes the content on this device and saves a timestamp certificate.",
+    zh: "点击后将在本设备计算哈希，并保存一张时间戳证书。",
+  },
+  proofPressStampingTitle: {
+    en: "Stamping the local certificate.",
+    zh: "正在压印本地证书。",
+  },
+  proofPressStampingBody: {
+    en: "The source stays private while the digest is sealed into your local journal.",
+    zh: "原文保持私密，仅将摘要封存进本地证明记录。",
+  },
+  proofPressRailLabel: { en: "Proof press status", zh: "证明压印状态" },
+  proofPressAnchorLocal: { en: "Local rail", zh: "本地轨道" },
+  proofPressAnchorAnchoring: { en: "Anchoring", zh: "锚定中" },
+  proofPressAnchorAnchored: { en: "On-chain", zh: "已上链" },
   documentTypeHash: { en: "SHA-256 digest", zh: "SHA-256 摘要" },
   documentTypeText: { en: "Source content", zh: "原始内容" },
   contentChars: { en: "Characters", zh: "字符数" },
