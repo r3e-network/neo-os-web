@@ -257,6 +257,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       // else just sees that the machine isn't currently playable.
       t(isSelectedMachineCreator ? `${blockedKeyBase}Creator` : blockedKeyBase);
   const oddsReadable = oddsCoverage > 0;
+  const reelItems =
+    (availableItems.length > 0 ? availableItems : selectedItems).slice(0, 6);
+  const reelTrackItems =
+    reelItems.length > 0 ? [...reelItems, ...reelItems, ...reelItems] : [];
   const pullChecklist = [
     { label: t("gasboxChecklistActive"), passed: Boolean(selectedMachine?.active) },
     { label: t("gasboxChecklistInventory"), passed: Boolean(selectedMachine?.inventoryReady) },
@@ -918,6 +922,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <Sparkles aria-hidden="true" />
                     {t("gasboxIntentReveal")}
                   </span>
+                </div>
+
+                <div
+                  className={`gasbox-prize-reel${pullAnimating ? " gasbox-prize-reel--active" : ""}${selectedMachineReady ? " gasbox-prize-reel--ready" : " gasbox-prize-reel--locked"}`}
+                  aria-label={t("gasboxReelTitle")}
+                  aria-live={pullAnimating ? "polite" : "off"}
+                >
+                  <div className="gasbox-reel-head">
+                    <span>
+                      <Sparkles aria-hidden="true" />
+                      {t("gasboxReelTitle")}
+                    </span>
+                    <strong>{pullAnimating ? pendingPhaseLabel : t("gasboxReelHint")}</strong>
+                  </div>
+                  <div className="gasbox-reel-window">
+                    <div className="gasbox-reel-marker" aria-hidden="true">
+                      <Ticket />
+                    </div>
+                    {reelTrackItems.length > 0 ? (
+                      <div className="gasbox-reel-strip">
+                        {reelTrackItems.map((item, index) => (
+                          <span
+                            key={`${item.name || item.rarity}-${index}`}
+                            className={`gasbox-reel-card ${rarityClass(item.rarity)}${item.name === prizeFocusLabel ? " is-focus" : ""}`}
+                          >
+                            <RarityMark rarity={item.rarity} className="gasbox-reel-card__gem" />
+                            <span className="gasbox-reel-card__copy">
+                              <strong>{item.name || item.rarity}</strong>
+                              <small>
+                                {formatPercent(item.displayProbability, t("gasboxPending"))}
+                              </small>
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="gasbox-reel-empty">
+                        {t("gasboxReelEmpty")}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}>
