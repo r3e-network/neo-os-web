@@ -45,7 +45,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // Leader
   const lastBuyer = str("lastBuyer");
-  const lastBuyerLabel = str("lastBuyerLabel", "---");
 
   // Connected wallet (when present) — used to celebrate the viewer's own win in
   // the settle/payout card. Absent in the standalone (no-wallet) capture.
@@ -299,6 +298,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span>
                     <small>{t("potMarker")}</small>
                     <strong>{formatNum(totalPot)} {t("tokenGas")}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="survivor-seat-strip" aria-label={t("survivorSeats")}>
+                <div className="survivor-seat-strip__head">
+                  <span>{t("survivorSeats")}</span>
+                  <strong>{t("survivorSeatsHint")}</strong>
+                </div>
+                <div className="survivor-seat-grid">
+                  <span
+                    className={`survivor-seat survivor-seat--leader${
+                      lastBuyer ? " is-live" : ""
+                    }`}
+                  >
+                    <span className="survivor-seat__icon" aria-hidden="true">
+                      <Crown size={17} />
+                    </span>
+                    <small>{t("leaderMarker")}</small>
+                    <strong>
+                      {lastBuyer ? formatBuyerAddress(lastBuyer) : t("survivorSeatEmpty")}
+                    </strong>
+                  </span>
+                  <span
+                    className={`survivor-seat survivor-seat--player${
+                      userKeys > 0 ? " is-live" : ""
+                    }`}
+                  >
+                    <span className="survivor-seat__icon" aria-hidden="true">
+                      <KeyRound size={17} />
+                    </span>
+                    <small>{t("playerMarker")}</small>
+                    <strong>{userKeys}</strong>
+                  </span>
+                  <span
+                    className={`survivor-seat survivor-seat--pot${
+                      totalPot > 0 ? " is-live" : ""
+                    }`}
+                  >
+                    <span className="survivor-seat__icon" aria-hidden="true">
+                      <Trophy size={17} />
+                    </span>
+                    <small>{t("potMarker")}</small>
+                    <strong>
+                      {formatNum(totalPot)} {t("tokenGas")}
+                    </strong>
                   </span>
                 </div>
               </div>
