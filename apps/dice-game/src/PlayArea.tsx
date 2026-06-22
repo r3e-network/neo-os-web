@@ -490,6 +490,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </div>
 
+            <div
+              className={`dice-play-loop${stakeIsValid ? " is-ready" : ""}${isRolling ? " is-rolling" : ""}`}
+              aria-label={t("dicePlayLoop")}
+            >
+              <span className="dice-play-loop__node dice-play-loop__node--stake">
+                <Coins size={17} aria-hidden="true" />
+                <small>{t("stakeAmount")}</small>
+                <strong>{displayStake}</strong>
+              </span>
+              <span className="dice-play-loop__route" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="dice-play-loop__node dice-play-loop__node--face">
+                <DiceFaceImage
+                  face={faceInput}
+                  className="dice-play-loop__die"
+                  alt=""
+                />
+                <small>{t("selectedFace")}</small>
+                <strong>{faceInput}</strong>
+              </span>
+              <span className="dice-play-loop__route" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="dice-play-loop__node dice-play-loop__node--payout">
+                <Trophy size={17} aria-hidden="true" />
+                <small>{t("dicePayoutLabel")}</small>
+                <strong>{activePayout}</strong>
+              </span>
+            </div>
+
             <div className="dice-chip-rack">
               <div className="dice-chip-rack__head">
                 <Coins size={17} aria-hidden="true" />
@@ -542,33 +577,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   );
                 })}
               </div>
-              <label className="dice-stake-field">
-                <span>{t("stakeAmount")}</span>
-                <span
-                  className={`dice-stake-field__control${stakeIsValid ? "" : " dice-stake-field__control--invalid"}`}
-                >
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={MIN_STAKE}
-                    max={effectiveMaxStake}
-                    step="0.01"
-                    value={amountInput}
-                    aria-label={t("stakeAmount")}
-                    aria-invalid={!stakeIsValid}
-                    disabled={controlsLocked}
-                    onChange={(event) =>
-                      setAmountInput(event.currentTarget.value)
-                    }
+              <details className="dice-stake-drawer">
+                <summary>
+                  <span>{t("customStakeTitle")}</span>
+                  <strong>{t("customStakeHint")}</strong>
+                  <ChevronDown
+                    className="dice-stake-drawer__toggle"
+                    size={16}
+                    aria-hidden="true"
                   />
-                  <b>GAS</b>
-                </span>
-                <em>
-                  {stakeIsValid
-                    ? `${t("stakeHelp")} ${activePayout}`
-                    : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
-                </em>
-              </label>
+                </summary>
+                <label className="dice-stake-field">
+                  <span>{t("stakeAmount")}</span>
+                  <span
+                    className={`dice-stake-field__control${stakeIsValid ? "" : " dice-stake-field__control--invalid"}`}
+                  >
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={MIN_STAKE}
+                      max={effectiveMaxStake}
+                      step="0.01"
+                      value={amountInput}
+                      aria-label={t("stakeAmount")}
+                      aria-invalid={!stakeIsValid}
+                      disabled={controlsLocked}
+                      onChange={(event) =>
+                        setAmountInput(event.currentTarget.value)
+                      }
+                    />
+                    <b>GAS</b>
+                  </span>
+                  <em>
+                    {stakeIsValid
+                      ? `${t("stakeHelp")} ${activePayout}`
+                      : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
+                  </em>
+                </label>
+              </details>
             </div>
 
             {!isEvmChain && (
