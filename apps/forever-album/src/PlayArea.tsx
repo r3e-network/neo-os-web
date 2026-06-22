@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { ImagePlus, LockKeyhole, Sparkles, UploadCloud } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -42,7 +43,7 @@ export default function PlayArea({
   const { num, bool, str, val } = useStateBindings(state);
   const launchDefaults = useMemo(
     () => getForeverAlbumLaunchDefaults(launchContext),
-    [launchContext.signature],
+    [launchContext],
   );
 
   const photosCount = num("photosCount");
@@ -93,6 +94,39 @@ export default function PlayArea({
           : isEncrypted
             ? t("encryptionNote")
             : t("vaultPublicNote");
+  const stagePhase = uploading
+    ? "sealing"
+    : hasSelection
+      ? "ready"
+      : photos.length > 0
+        ? "archive"
+        : "empty";
+  const stageFrames = selectedImages.length > 0
+    ? selectedImages
+        .slice(0, 4)
+        .map((image) => ({
+          id: image.id,
+          src: image.dataUrl,
+          label: image.size ? formatBytes(image.size, t) : t("albumPhoto"),
+          encrypted: isEncrypted,
+        }))
+    : photos
+        .slice(0, 4)
+        .map((photo) => ({
+          id: photo.id,
+          src: photo.encrypted ? undefined : photo.data,
+          label: photo.encrypted ? t("encrypted") : t("albumPhoto"),
+          encrypted: photo.encrypted,
+        }));
+  const hasStageFrames = stageFrames.length > 0;
+  const stageCountLabel = hasSelection
+    ? t("stageDraftCount", { count: selectedImages.length })
+    : photos.length > 0
+      ? t("stageSavedCount", { count: photos.length })
+      : t("stageEmptyCount");
+  const stagePrivacyLabel = isEncrypted
+    ? t("stagePrivateMode")
+    : t("stagePublicMode");
 
   useEffect(() => {
     state.isEncrypted?.set(launchDefaults.isEncrypted);
@@ -233,6 +267,90 @@ export default function PlayArea({
           />
 
           <div className="forever-album-uploader">
+            <figure
+              className={`forever-album-seal-stage forever-album-seal-stage--${stagePhase}${
+                isEncrypted ? " forever-album-seal-stage--private" : ""
+              }`}
+              aria-label={t("galleryStageTitle")}
+            >
+              <picture className="forever-album-seal-stage__backdrop" aria-hidden="true">
+                <source srcSet="./banner.avif" type="image/avif" />
+                <source srcSet="./banner.webp" type="image/webp" />
+                <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
+              </picture>
+              <div className="forever-album-seal-stage__wash" aria-hidden="true" />
+              <div className="forever-album-seal-stage__content">
+                <div className="forever-album-seal-stage__header">
+                  <span>
+                    <Sparkles size={13} aria-hidden="true" />
+                    {stagePrivacyLabel}
+                  </span>
+                  <strong>{stageCountLabel}</strong>
+                </div>
+                <div className="forever-album-seal-stage__gallery" aria-hidden="true">
+                  {hasStageFrames ? (
+                    stageFrames.map((frame, index) => (
+                      <div
+                        key={frame.id}
+                        className={`forever-album-seal-stage__frame forever-album-seal-stage__frame--${index + 1}${
+                          frame.encrypted ? " is-encrypted" : ""
+                        }`}
+                      >
+                        {frame.src ? (
+                          <img src={frame.src} alt="" />
+                        ) : (
+                          <span>
+                            <LockKeyhole size={18} aria-hidden="true" />
+                          </span>
+                        )}
+                        <small>{frame.label}</small>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="forever-album-seal-stage__frame forever-album-seal-stage__frame--1 is-placeholder">
+                        <ImagePlus size={22} aria-hidden="true" />
+                        <small>{t("stageEmptyFrameOne")}</small>
+                      </div>
+                      <div className="forever-album-seal-stage__frame forever-album-seal-stage__frame--2 is-placeholder">
+                        <LockKeyhole size={20} aria-hidden="true" />
+                        <small>{t("stageEmptyFrameTwo")}</small>
+                      </div>
+                      <div className="forever-album-seal-stage__frame forever-album-seal-stage__frame--3 is-placeholder">
+                        <UploadCloud size={21} aria-hidden="true" />
+                        <small>{t("stageEmptyFrameThree")}</small>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="forever-album-seal-stage__rail" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <figcaption className="forever-album-seal-stage__caption">
+                  <strong>
+                    {stagePhase === "sealing"
+                      ? t("stageSealingTitle")
+                      : stagePhase === "ready"
+                        ? t("stageReadyTitle")
+                        : stagePhase === "archive"
+                          ? t("stageArchiveTitle")
+                          : t("stageEmptyTitle")}
+                  </strong>
+                  <span>
+                    {stagePhase === "sealing"
+                      ? t("stageSealingCopy")
+                      : stagePhase === "ready"
+                        ? t("stageReadyCopy")
+                        : stagePhase === "archive"
+                          ? t("stageArchiveCopy")
+                          : t("stageEmptyCopy")}
+                  </span>
+                </figcaption>
+              </div>
+            </figure>
+
             <label className="forever-album-file-picker">
               <span>{t("chooseFiles")}</span>
               <small>{t("tapToSelect")}</small>
