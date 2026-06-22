@@ -5,7 +5,7 @@
  * counts, hero progress bar, create escrow form, and escrow list with actions.
  */
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -113,6 +113,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       amount: parseAmount(trimmed) > 0 ? `${trimmed} ${asset}` : `-- ${asset}`,
     };
   });
+  const visiblePreviewMilestones = previewMilestones.slice(0, 5);
+  const fundedGateCount = visiblePreviewMilestones.filter((_, index) =>
+    parseAmount(milestoneAmounts[index] ?? "") > 0,
+  ).length;
+  const routeProgressPercent = visiblePreviewMilestones.length === 0
+    ? 0
+    : Math.round((fundedGateCount / visiblePreviewMilestones.length) * 100);
+  const createPreviewStyle = {
+    "--escrow-route-progress": `${Math.max(8, routeProgressPercent)}%`,
+  } as CSSProperties;
 
   // Lightweight client-side gating: require a beneficiary and at least one
   // positive milestone amount before the (async, on-chain) submit is enabled.
@@ -197,19 +207,51 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <div className="create-contract-studio">
                 <aside className="create-plan-preview" aria-label={t("planPreview")}>
-                  <div className="create-plan-preview__card">
+                  <div
+                    className={[
+                      "create-plan-preview__card",
+                      canSubmit ? "is-ready" : "",
+                      isCreating ? "is-creating" : "",
+                    ].filter(Boolean).join(" ")}
+                    style={createPreviewStyle}
+                  >
                     <span className="create-plan-preview__eyebrow">{t("planPreview")}</span>
                     <strong>{escrowName.trim() || t("escrowNamePlaceholder")}</strong>
                     <span className="create-plan-preview__beneficiary">{previewBeneficiary}</span>
-                    <div className="create-plan-preview__vault" aria-hidden="true">
-                      <span className="create-plan-preview__token">{asset}</span>
-                      <div className="create-plan-preview__route">
-                        {previewMilestones.slice(0, 5).map((milestone, index) => (
-                          <span
-                            key={`${milestone.label}-${index}`}
-                            className={`create-plan-preview__gate${parseAmount(milestoneAmounts[index] ?? "") > 0 ? " is-funded" : ""}`}
-                          />
-                        ))}
+                    <div className="create-plan-preview__stage" aria-hidden="true">
+                      <img
+                        className="create-plan-preview__stage-img"
+                        src="./milestone-escrow-stage.jpg"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="create-plan-preview__stage-shade" />
+                      <div className="create-plan-preview__network">
+                        <picture className="create-plan-preview__logo">
+                          <source srcSet="./logo.avif" type="image/avif" />
+                          <source srcSet="./logo.webp" type="image/webp" />
+                          <img src="./logo.jpg" alt="" loading="lazy" decoding="async" />
+                        </picture>
+                        <span>{t("previewNetwork")}</span>
+                      </div>
+                      <div className="create-plan-preview__vault">
+                        <div className="create-plan-preview__token">
+                          <picture className="create-plan-preview__token-logo">
+                            <source srcSet="./logo.avif" type="image/avif" />
+                            <source srcSet="./logo.webp" type="image/webp" />
+                            <img src="./logo.jpg" alt="" loading="lazy" decoding="async" />
+                          </picture>
+                          <span>{asset}</span>
+                        </div>
+                        <div className="create-plan-preview__route">
+                          {visiblePreviewMilestones.map((milestone, index) => (
+                            <span
+                              key={`${milestone.label}-${index}`}
+                              className={`create-plan-preview__gate${parseAmount(milestoneAmounts[index] ?? "") > 0 ? " is-funded" : ""}`}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                     <div className="create-plan-preview__total" aria-live="polite">
