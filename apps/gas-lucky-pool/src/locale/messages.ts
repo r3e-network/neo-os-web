@@ -79,6 +79,14 @@ const appMessagesBase = {
     zh: "幸运 GAS 奖励金库预览",
   },
   rewardPlanTitle: { en: "Reward plan", zh: "奖励计划" },
+  rewardMachineDraft: {
+    en: "Set amount and slots to charge the vault",
+    zh: "设置金额和名额后装填金库",
+  },
+  rewardMachineReady: {
+    en: "Vault charged and ready to launch",
+    zh: "金库已装填，可以发起",
+  },
   rewardPoolUnset: { en: "Set amount", zh: "设置金额" },
   rewardSlotsUnset: { en: "Set slots", zh: "设置名额" },
   rewardSlotsCount: { en: "{count} claims", zh: "{count} 个名额" },
@@ -383,6 +391,8 @@ const jaMessages = {
   heroProofRandom: "ランダムGAS",
   vaultStageAria: "幸運GAS報酬金庫のプレビュー",
   rewardPlanTitle: "報酬プラン",
+  rewardMachineDraft: "金額と枠数を設定して金庫にチャージ",
+  rewardMachineReady: "金庫の準備ができ、開始できます",
   rewardPoolUnset: "金額を設定",
   rewardSlotsUnset: "枠数を設定",
   rewardSlotsCount: "{count} 件の受取枠",

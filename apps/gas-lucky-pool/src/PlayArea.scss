@@ -1623,6 +1623,20 @@ body {
     #f8fffb;
 }
 
+.gas-pool-create-summary--ready {
+  border-color: rgba(22, 199, 132, 0.32);
+  background:
+    linear-gradient(
+      160deg,
+      rgba(22, 199, 132, 0.18),
+      rgba(255, 255, 255, 0.9) 54%
+    ),
+    #f8fffb;
+  box-shadow:
+    0 18px 34px rgba(20, 32, 21, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.76);
+}
+
 .gas-pool-create-summary__eyebrow {
   color: var(--ns-brand-strong, #0fb174);
   font-size: 0.68rem;
@@ -1630,6 +1644,29 @@ body {
   line-height: 1.2;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.gas-pool-create-summary__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.42rem 0.58rem;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #0b5e3e;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__state {
+  background: #0a7a52;
+  color: #ffffff;
+  animation: gas-pool-ready-chip 2.6s ease-in-out infinite;
 }
 
 .gas-pool-create-summary__amount {
@@ -2527,13 +2564,52 @@ body {
   filter: saturate(1.08) brightness(1.04);
 }
 
-.gas-pool-create-summary__stage::before {
-  content: "";
+.gas-pool-create-summary__wash {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.72)),
-    radial-gradient(circle at 26% 28%, rgba(255, 255, 255, 0.82), transparent 32%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.72)),
+    radial-gradient(circle at 26% 28%, rgba(255, 255, 255, 0.84), transparent 32%);
+}
+
+.gas-pool-create-summary__reels {
+  position: absolute;
+  top: 0.84rem;
+  right: 0.84rem;
+  left: 0.84rem;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.gas-pool-create-summary__reels span {
+  min-width: 0;
+  padding: 0.42rem 0.46rem;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.84);
+  color: #0b5e3e;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 10px 20px rgba(20, 32, 21, 0.12);
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__reels span {
+  animation: gas-pool-reel-ready 2.4s ease-in-out infinite;
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__reels span:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__reels span:nth-child(3) {
+  animation-delay: 220ms;
 }
 
 .gas-pool-create-summary__fill {
@@ -2554,6 +2630,10 @@ body {
   border-radius: inherit;
   background: linear-gradient(90deg, #16c784, #f4c84a);
   transition: width 260ms ease;
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__fill span {
+  animation: gas-pool-fill-charge 1.7s ease-in-out infinite;
 }
 
 .gas-pool-create-summary__tickets {
@@ -2578,6 +2658,10 @@ body {
   animation: gas-pool-ticket-stack 2.8s ease-in-out infinite;
 }
 
+.gas-pool-create-summary--draft .gas-pool-create-summary__tickets span {
+  animation-duration: 4.4s;
+}
+
 .gas-pool-create-summary__tickets span:nth-child(2n) {
   transform: translateY(-0.08rem) rotate(4deg);
   animation-delay: 130ms;
@@ -2588,6 +2672,51 @@ body {
   animation-delay: 260ms;
 }
 
+.gas-pool-create-summary__prize {
+  position: absolute;
+  right: 1rem;
+  bottom: 1.72rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle at 30% 28%,
+      #ffffff 0 16%,
+      rgba(255, 255, 255, 0) 17%
+    ),
+    linear-gradient(135deg, #f8cf55, #16c784);
+  color: #064d36;
+  box-shadow: 0 14px 24px rgba(20, 32, 21, 0.16);
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__prize {
+  animation: gas-pool-prize-ready 2.25s ease-in-out infinite;
+}
+
+.gas-pool-create-summary__scan {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 0 35%,
+    rgba(255, 255, 255, 0.5) 49%,
+    transparent 62% 100%
+  );
+  opacity: 0;
+  transform: translateX(-60%);
+}
+
+.gas-pool-create-summary--ready .gas-pool-create-summary__scan {
+  animation: gas-pool-machine-scan 2.8s ease-in-out infinite;
+}
+
 @keyframes gas-pool-ticket-ready {
   0%,
   100% {
@@ -2596,6 +2725,17 @@ body {
 
   50% {
     transform: translateY(-0.32rem) rotate(1deg);
+  }
+}
+
+@keyframes gas-pool-ready-chip {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(22, 199, 132, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.13);
   }
 }
 
@@ -2610,6 +2750,17 @@ body {
   }
 }
 
+@keyframes gas-pool-fill-charge {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
 @keyframes gas-pool-coin-float {
   0%,
   100% {
@@ -2618,6 +2769,45 @@ body {
 
   50% {
     transform: translateY(-0.5rem) rotate(8deg);
+  }
+}
+
+@keyframes gas-pool-reel-ready {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-0.18rem);
+  }
+}
+
+@keyframes gas-pool-prize-ready {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-0.42rem) rotate(9deg);
+  }
+}
+
+@keyframes gas-pool-machine-scan {
+  0%,
+  56% {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+
+  70% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(60%);
   }
 }
 
@@ -2711,8 +2901,12 @@ body {
   .gas-pool-claim-stage__beam,
   .gas-pool-prize-burst__amount,
   .gas-pool-prize-burst__coin,
+  .gas-pool-create-summary__state,
+  .gas-pool-create-summary__reels span,
   .gas-pool-create-summary__tickets span,
   .gas-pool-create-summary__fill span,
+  .gas-pool-create-summary__prize,
+  .gas-pool-create-summary__scan,
   .gas-pool-claim-progress__step--active .gas-pool-claim-progress__dot {
     animation: none !important;
     transition: none !important;

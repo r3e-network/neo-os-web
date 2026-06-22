@@ -200,6 +200,17 @@ export default function PlayArea({
   const previewTicketCount = Number.isFinite(slotCountNumber)
     ? Math.min(Math.max(slotCountNumber, 3), 7)
     : 4;
+  const rewardPlanReady =
+    totalAmount.trim() !== "" &&
+    maxClaims.trim() !== "" &&
+    Number.isFinite(totalAmountNumber) &&
+    Number.isFinite(slotCountNumber) &&
+    totalAmountNumber > 0 &&
+    slotCountNumber > 0;
+  const rewardPlanState = rewardPlanReady ? "ready" : "draft";
+  const rewardMachineLabel = rewardPlanReady
+    ? t("rewardMachineReady")
+    : t("rewardMachineDraft");
   const poolFillPercent =
     Number.isFinite(totalAmountNumber) &&
     Number.isFinite(maxClaimNumber) &&
@@ -635,11 +646,21 @@ export default function PlayArea({
               </div>
               <div className="gas-pool-create-console">
                 <aside
-                  className="gas-pool-create-summary"
+                  className={[
+                    "gas-pool-create-summary",
+                    `gas-pool-create-summary--${rewardPlanState}`,
+                  ].join(" ")}
                   aria-label={t("rewardPlanTitle")}
                 >
                   <span className="gas-pool-create-summary__eyebrow">
                     {t("rewardPlanTitle")}
+                  </span>
+                  <span
+                    className="gas-pool-create-summary__state"
+                    aria-live="polite"
+                  >
+                    <Gift size={15} aria-hidden="true" />
+                    {rewardMachineLabel}
                   </span>
                   <strong className="gas-pool-create-summary__amount">
                     {displayTotalAmount}
@@ -647,16 +668,31 @@ export default function PlayArea({
                   <p>
                     {displayRewardRange} · {displayClaimSlots} · {displayExpiry}
                   </p>
-                  <div className="gas-pool-create-summary__stage" aria-hidden="true">
+                  <div
+                    className="gas-pool-create-summary__stage"
+                    aria-hidden="true"
+                  >
                     <img src="./gas-vault-stage.jpg" alt="" />
+                    <div className="gas-pool-create-summary__wash" />
+                    <div className="gas-pool-create-summary__reels">
+                      <span>{displayRewardRange}</span>
+                      <span>{displayClaimSlots}</span>
+                      <span>{displayExpiry}</span>
+                    </div>
                     <div className="gas-pool-create-summary__fill">
                       <span style={{ width: `${poolFillPercent}%` }} />
                     </div>
                     <div className="gas-pool-create-summary__tickets">
-                      {Array.from({ length: previewTicketCount }).map((_, index) => (
-                        <span key={index} />
-                      ))}
+                      {Array.from({ length: previewTicketCount }).map(
+                        (_, index) => (
+                          <span key={index} />
+                        ),
+                      )}
                     </div>
+                    <div className="gas-pool-create-summary__prize">
+                      <Coins size={17} aria-hidden="true" />
+                    </div>
+                    <div className="gas-pool-create-summary__scan" />
                   </div>
                   <div className="gas-pool-create-summary__tiles">
                     <span>
