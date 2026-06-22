@@ -263,11 +263,28 @@ export default function PlayArea({
     Number.isFinite(bountyValue) && bountyValue > 0 ? bounty : "0";
   const secretReady =
     secret.trim() !== "" && confirmSecret.trim() !== "" && !secretMismatch;
+  const createStageState = isCreating
+    ? "creating"
+    : secretReady
+      ? "ready"
+      : "draft";
   const shouldOpenBreakDesk =
     Boolean(vaultDetails) ||
     vaultIdInput.trim() !== "" ||
     canAttempt ||
     canReclaim;
+  const breakStageState = canReclaim
+    ? "claimable"
+    : canAttempt
+      ? "attempt"
+      : vaultDetails
+        ? "loaded"
+        : "idle";
+  const breakStageTarget = vaultDetails
+    ? `#${String(vaultDetails.id)}`
+    : vaultIdInput.trim()
+      ? `#${vaultIdInput.trim()}`
+      : t("vaultIdLabel");
   const [activeDesk, setActiveDesk] = useState<"create" | "break">(
     shouldOpenBreakDesk ? "break" : "create",
   );
@@ -329,6 +346,27 @@ export default function PlayArea({
             <aside className="vault-blueprint" aria-label={t("blueprintTitle")}>
               <div className="vault-blueprint__scene" aria-hidden="true">
                 <img src="./vault-challenge.jpg" alt="" />
+                <div className={`vault-system-stage vault-system-stage--${createStageState}`}>
+                  <span className="vault-system-stage__rail" />
+                  <span className="vault-system-stage__node vault-system-stage__node--bounty">
+                    <Coins size={18} aria-hidden="true" />
+                    <small>{t("bountyLabel")}</small>
+                    <strong>
+                      {blueprintBounty} {t("tokenGas")}
+                    </strong>
+                  </span>
+                  <span className="vault-system-stage__core">
+                    <span className="vault-system-stage__core-ring" />
+                    <LockKeyhole size={28} aria-hidden="true" />
+                  </span>
+                  <span className="vault-system-stage__node vault-system-stage__node--secret">
+                    <KeyRound size={18} aria-hidden="true" />
+                    <small>{t("secretLabel")}</small>
+                    <strong>
+                      {secretReady ? t("secretReady") : t("secretWaiting")}
+                    </strong>
+                  </span>
+                </div>
               </div>
               <div
                 className={`vault-blueprint__lock${secretReady ? " is-ready" : ""}${isCreating ? " is-creating" : ""}`}
@@ -510,6 +548,56 @@ export default function PlayArea({
           <div className="vault-col">
           <NeoCard title={t("breakVault")} className="vault-break-card">
             <div className="vault-form">
+              <section
+                className={`vault-break-stage vault-break-stage--${breakStageState}`}
+                aria-label={t("challengeDeskTitle")}
+              >
+                <picture className="vault-break-stage__media" aria-hidden="true">
+                  <source srcSet="./vault-challenge.jpg" type="image/jpeg" />
+                  <img src="./vault-challenge.jpg" alt="" />
+                </picture>
+                <span className="vault-break-stage__scan" aria-hidden="true" />
+                <div className="vault-break-stage__target">
+                  <span className="vault-break-stage__reticle" aria-hidden="true">
+                    {canReclaim ? <Trophy size={24} /> : <Crosshair size={24} />}
+                  </span>
+                  <span>{t("challengeDeskTitle")}</span>
+                  <strong>{breakStageTarget}</strong>
+                  <small>
+                    {vaultDetails
+                      ? `${detailDifficulty || t("difficultyLabel")} · ${detailRemainingDays} ${t("daysUnit")}`
+                      : t("vaultIdPlaceholder")}
+                  </small>
+                </div>
+                <div className="vault-break-stage__route" aria-hidden="true">
+                  <span className={vaultDetails ? "is-active" : ""}>
+                    <LockKeyhole size={15} />
+                    {t("vaultStatus")}
+                  </span>
+                  <span className={canAttempt ? "is-active" : ""}>
+                    <KeyRound size={15} />
+                    {t("secretAttemptLabel")}
+                  </span>
+                  <span className={canReclaim || canAttempt ? "is-active" : ""}>
+                    <Coins size={15} />
+                    {t("bountyLabel")}
+                  </span>
+                </div>
+                <dl className="vault-break-stage__readout">
+                  <div>
+                    <dt>{t("attemptFee")}</dt>
+                    <dd>
+                      {vaultDetails ? attemptFeeDisplay : "0"} {t("tokenGas")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t("netPayoutLabel")}</dt>
+                    <dd>
+                      {vaultDetails ? detailNetPayoutGas : "0"} {t("tokenGas")}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
               <div
                 className={`vault-target-card${vaultDetails ? " vault-target-card--loaded" : ""}${canAttempt ? " vault-target-card--attempt-ready" : ""}${canReclaim ? " vault-target-card--claimable" : ""}`}
               >
