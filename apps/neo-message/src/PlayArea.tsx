@@ -3,10 +3,12 @@
  */
 
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import {
   AlertTriangle,
   CalendarClock,
   Clock3,
+  CircleCheck,
   Eye,
   EyeOff,
   LockKeyhole,
@@ -58,7 +60,7 @@ function identiconColor(addr: string | undefined | null): string {
   const a = String(addr ?? "").toLowerCase();
   let hash = 0;
   for (let i = 0; i < a.length; i += 1) hash = (hash * 31 + a.charCodeAt(i)) % 100000;
-  return IDENTICON_HUES[hash % IDENTICON_HUES.length];
+  return IDENTICON_HUES[hash % IDENTICON_HUES.length] ?? IDENTICON_HUES[0]!;
 }
 
 // Two leading hex characters make a stable, glanceable monogram for an address.
@@ -161,6 +163,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : sendBlockedByAck
       ? t("readinessDeskNeedsAck")
       : t("readinessDeskReady");
+  const stageCompletion =
+    (recipientIsValid ? 34 : 0) +
+    (draftBody ? 33 : 0) +
+    (!sendBlockedByValidation && !sendBlockedByAck ? 33 : 0);
+  const messageStageState = isSending
+    ? "sending"
+    : sendBlockedByValidation
+      ? draftBody || recipientValue
+        ? "draft"
+        : "empty"
+      : sendBlockedByAck
+        ? "consent"
+        : "ready";
+  const messageStageStyle = {
+    "--nm-stage-progress": `${stageCompletion}%`,
+  } as CSSProperties;
 
   const onRecipientNicknameChange = (value: string) => {
     setRecipientNickname(value);
@@ -313,6 +331,63 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard title={t("composeTitle")} className="nm-compose-card">
         <div className="nm-compose-shell">
+          <section
+            className={`nm-message-stage nm-message-stage--${messageStageState}`}
+            aria-label={t("messageStageAria")}
+            style={messageStageStyle}
+          >
+            <figure className="nm-message-stage__visual">
+              <img src="./sealed-message-desk.jpg" alt="" loading="lazy" decoding="async" />
+              <span className="nm-message-stage__beam" aria-hidden="true" />
+              <span className="nm-message-stage__packet" aria-hidden="true">
+                {isTimed ? <CalendarClock size={20} /> : <LockKeyhole size={20} />}
+              </span>
+              <span className="nm-message-stage__seal" aria-hidden="true">
+                <ShieldCheck size={21} />
+              </span>
+            </figure>
+            <div className="nm-message-stage__copy">
+              <span className="nm-hero-eyebrow">{t("messageStageLabel")}</span>
+              <h3>{t("messageStageTitle")}</h3>
+              <p>{t("messageStageBody")}</p>
+              <div className="nm-message-stage__progress" aria-hidden="true">
+                <span />
+              </div>
+              <div className="nm-message-stage__readouts">
+                <span>
+                  <small>{t("recipientPreviewLabel")}</small>
+                  <strong>{deskRecipientPreview}</strong>
+                </span>
+                <span>
+                  <small>{t("deliveryPreviewLabel")}</small>
+                  <strong>{deskDeliveryPreview}</strong>
+                </span>
+                <span>
+                  <small>{t("readinessLabel")}</small>
+                  <strong>{deskReadinessLabel}</strong>
+                </span>
+                <span>
+                  <small>{t("characterBudgetLabel")}</small>
+                  <strong>{t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}</strong>
+                </span>
+              </div>
+            </div>
+            <div className="nm-message-stage__route" aria-hidden="true">
+              <span className={recipientIsValid ? "is-complete" : ""}>
+                <MessageSquareText />
+                <strong>{t("messageStageStepWrite")}</strong>
+              </span>
+              <span className={draftBody ? "is-complete" : ""}>
+                {isTimed ? <Eye /> : <EyeOff />}
+                <strong>{t("messageStageStepSeal")}</strong>
+              </span>
+              <span className={!sendBlockedByValidation && !sendBlockedByAck ? "is-complete" : ""}>
+                {isSending ? <SendHorizontal /> : <CircleCheck />}
+                <strong>{t("messageStageStepSend")}</strong>
+              </span>
+            </div>
+          </section>
+
           <div className="nm-form">
             <div className="nm-compose-intro">
               <span className="nm-compose-intro__icon" aria-hidden="true">
@@ -323,33 +398,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <p>{t("composeLead")}</p>
               </div>
             </div>
-
-            <section className="nm-seal-desk" aria-label={t("sealedDeskLabel")}>
-              <figure className="nm-seal-desk__image">
-                <img src="./sealed-message-desk.jpg" alt="" loading="lazy" decoding="async" />
-                <figcaption>
-                  <span>{t("sealedDeskLabel")}</span>
-                  <strong>{t("sealedDeskCaption")}</strong>
-                </figcaption>
-              </figure>
-              <div className="nm-seal-desk__steps">
-                <span>
-                  <MessageSquareText aria-hidden="true" />
-                  <small>{t("recipientPreviewLabel")}</small>
-                  <strong>{deskRecipientPreview}</strong>
-                </span>
-                <span>
-                  {isTimed ? <CalendarClock aria-hidden="true" /> : <LockKeyhole aria-hidden="true" />}
-                  <small>{t("deliveryPreviewLabel")}</small>
-                  <strong>{deskDeliveryPreview}</strong>
-                </span>
-                <span>
-                  <ShieldCheck aria-hidden="true" />
-                  <small>{t("readinessLabel")}</small>
-                  <strong>{deskReadinessLabel}</strong>
-                </span>
-              </div>
-            </section>
 
             <div className="nm-recipient-row">
               <NeoInput
@@ -486,7 +534,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
 
-          <aside className="nm-letter-preview" aria-label={t("messagePreviewTitle")}>
+          <aside className={`nm-letter-preview nm-letter-preview--${messageStageState}`} aria-label={t("messagePreviewTitle")}>
             <div className="nm-letter-preview__top">
               <span className={`nm-letter-preview__seal${isTimed ? " is-public" : ""}`} aria-hidden="true">
                 {isTimed ? <Eye size={22} /> : <EyeOff size={22} />}
