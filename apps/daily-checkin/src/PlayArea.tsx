@@ -173,7 +173,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div
-      className={`checkin-play-area streak-${streakTier}${ringReady ? " streak-can-checkin" : ""}`}
+      className={[
+        "checkin-play-area",
+        `streak-${streakTier}`,
+        ringReady ? "streak-can-checkin" : "",
+        milestoneReachable ? "streak-milestone-ready" : "",
+        showConfetti || reachedMilestone ? "streak-celebrating" : "",
+      ].filter(Boolean).join(" ")}
     >
       {/* Upper region — hero + week (left) and the primary action card (right)
           share a two-column grid on desktop so the core Check In action sits
