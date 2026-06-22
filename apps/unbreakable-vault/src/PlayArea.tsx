@@ -258,6 +258,7 @@ export default function PlayArea({
     DIFFICULTY_OPTIONS.find((option) => option.value === vaultDifficulty) ??
     DIFFICULTY_OPTIONS[0]!;
   const selectedDifficultyLabel = t(selectedDifficulty.labelKey);
+  const SelectedDifficultyIcon = selectedDifficulty.icon;
   const blueprintTitle = title.trim() || t("blueprintUntitled");
   const blueprintBounty =
     Number.isFinite(bountyValue) && bountyValue > 0 ? bounty : "0";
@@ -348,6 +349,11 @@ export default function PlayArea({
                 <img src="./vault-challenge.jpg" alt="" />
                 <div className={`vault-system-stage vault-system-stage--${createStageState}`}>
                   <span className="vault-system-stage__rail" />
+                  <picture className="vault-system-stage__token" aria-hidden="true">
+                    <source srcSet="./logo.avif" type="image/avif" />
+                    <source srcSet="./logo.webp" type="image/webp" />
+                    <img src="./logo.jpg" alt="" loading="eager" decoding="sync" />
+                  </picture>
                   <span className="vault-system-stage__node vault-system-stage__node--bounty">
                     <Coins size={18} aria-hidden="true" />
                     <small>{t("bountyLabel")}</small>
@@ -365,6 +371,11 @@ export default function PlayArea({
                     <strong>
                       {secretReady ? t("secretReady") : t("secretWaiting")}
                     </strong>
+                  </span>
+                  <span className="vault-system-stage__difficulty">
+                    <SelectedDifficultyIcon size={15} aria-hidden="true" />
+                    <strong>{selectedDifficultyLabel}</strong>
+                    <small>{selectedDifficulty.fee}</small>
                   </span>
                 </div>
               </div>
