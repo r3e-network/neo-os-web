@@ -1120,14 +1120,203 @@
   min-width: 0;
 }
 
+.gasbox-control-deck {
+  position: relative;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(18, 114, 75, 0.12);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255, 247, 223, 0.94), transparent 42%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 251, 245, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.66),
+    0 14px 28px rgba(32, 78, 52, 0.08);
+}
+
+.gasbox-control-deck::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 26%, rgba(255, 255, 255, 0.5) 48%, transparent 66%),
+    radial-gradient(circle at 86% 18%, rgba(22, 199, 132, 0.12), transparent 34%);
+  opacity: 0.72;
+  transform: translateX(-58%);
+}
+
+.gasbox-control-deck--active::before {
+  animation: gasbox-control-sheen 1.08s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
+}
+
+.gasbox-pull-command {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gasbox-cabinet-lever {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 94px;
+  border: 1px solid rgba(18, 114, 75, 0.12);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(235, 248, 240, 0.94)),
+    #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 10px 22px rgba(20, 32, 21, 0.09);
+}
+
+.gasbox-cabinet-lever__lights {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  display: inline-flex;
+  gap: 5px;
+  transform: translateX(-50%);
+}
+
+.gasbox-cabinet-lever__lights span {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(126, 133, 154, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.gasbox-cabinet-lever.is-ready .gasbox-cabinet-lever__lights span {
+  background: #16c784;
+  box-shadow:
+    0 0 0 3px rgba(22, 199, 132, 0.12),
+    0 0 12px rgba(22, 199, 132, 0.24);
+}
+
+.gasbox-cabinet-lever.is-active .gasbox-cabinet-lever__lights span {
+  animation: gasbox-lever-light-chase 0.62s ease-in-out infinite;
+}
+
+.gasbox-cabinet-lever.is-active .gasbox-cabinet-lever__lights span:nth-child(2) {
+  animation-delay: 90ms;
+}
+
+.gasbox-cabinet-lever.is-active .gasbox-cabinet-lever__lights span:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.gasbox-cabinet-lever__slot {
+  position: absolute;
+  top: 32px;
+  width: 42px;
+  height: 12px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background:
+    linear-gradient(180deg, rgba(20, 32, 21, 0.16), rgba(255, 255, 255, 0.72)),
+    #dbe7dd;
+  box-shadow:
+    inset 0 2px 4px rgba(20, 32, 21, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.gasbox-cabinet-lever__handle {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  width: 18px;
+  height: 42px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background:
+    linear-gradient(180deg, #ffe7a6, #c88721 62%, #8f5a10),
+    #d99a26;
+  box-shadow:
+    0 10px 18px rgba(107, 60, 2, 0.22),
+    inset 0 2px 0 rgba(255, 255, 255, 0.58);
+  transform: translateX(-50%) rotate(0deg);
+  transform-origin: 50% 8px;
+  transition:
+    transform 0.22s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow 0.22s ease;
+}
+
+.gasbox-cabinet-lever__handle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.78);
+  border-radius: var(--ns-radius-full, 9999px);
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.96), transparent 32%),
+    linear-gradient(145deg, #16c784, #0b8f5b);
+  box-shadow:
+    0 11px 18px rgba(18, 114, 75, 0.18),
+    inset 0 -3px 8px rgba(8, 106, 69, 0.24);
+  transform: translateX(-50%);
+}
+
+.gasbox-cabinet-lever.is-ready:not(.is-active) .gasbox-cabinet-lever__handle::after {
+  animation: gasbox-lever-ready 2.4s ease-in-out infinite;
+}
+
+.gasbox-cabinet-lever.is-active .gasbox-cabinet-lever__handle,
+.gasbox-lever-container.gasbox-lever--pulled .gasbox-cabinet-lever__handle {
+  transform: translateX(-50%) rotate(28deg);
+  box-shadow:
+    0 7px 14px rgba(107, 60, 2, 0.18),
+    inset 0 2px 0 rgba(255, 255, 255, 0.58);
+}
+
+.gasbox-cabinet-lever.is-locked {
+  opacity: 0.72;
+}
+
 .gasbox-lever-container.gasbox-lever--pulled {
   animation: gasbox-lever-pull 0.42s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes gasbox-control-sheen {
+  0% { transform: translateX(-58%); opacity: 0.32; }
+  45% { opacity: 0.8; }
+  100% { transform: translateX(58%); opacity: 0.24; }
 }
 
 @keyframes gasbox-lever-pull {
   0% { transform: scale(1); }
   45% { transform: scale(0.97); }
   100% { transform: scale(1); }
+}
+
+@keyframes gasbox-lever-ready {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+
+@keyframes gasbox-lever-light-chase {
+  0%, 100% {
+    background: rgba(22, 199, 132, 0.38);
+    box-shadow:
+      0 0 0 2px rgba(22, 199, 132, 0.08),
+      0 0 8px rgba(22, 199, 132, 0.14);
+  }
+  50% {
+    background: #f5a623;
+    box-shadow:
+      0 0 0 3px rgba(245, 166, 35, 0.14),
+      0 0 14px rgba(245, 166, 35, 0.32);
+  }
 }
 
 @keyframes gasbox-machine-jolt {
@@ -1452,6 +1641,15 @@
     grid-template-columns: 1fr;
   }
 
+  .gasbox-control-deck {
+    grid-template-columns: 78px minmax(0, 1fr);
+    padding: 10px;
+  }
+
+  .gasbox-cabinet-lever {
+    min-height: 88px;
+  }
+
   .gasbox-selected-actions {
     justify-content: stretch;
   }
@@ -1493,6 +1691,28 @@
     min-height: 184px;
   }
 
+  .gasbox-control-deck {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-cabinet-lever {
+    min-height: 74px;
+  }
+
+  .gasbox-cabinet-lever__slot {
+    top: 28px;
+  }
+
+  .gasbox-cabinet-lever__handle {
+    top: 39px;
+    height: 30px;
+  }
+
+  .gasbox-cabinet-lever__handle::after {
+    width: 30px;
+    height: 30px;
+  }
+
   .gasbox-play-console,
   .gasbox-machines-card {
     padding: 16px;
@@ -1522,6 +1742,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .gasbox-lever-container,
+  .gasbox-control-deck::before,
+  .gasbox-cabinet-lever__lights span,
+  .gasbox-cabinet-lever__handle,
+  .gasbox-cabinet-lever__handle::after,
   .gasbox-loading-spinner,
   .gasbox-stage-art--pulling > picture img,
   .gasbox-stage-art__capsule,
