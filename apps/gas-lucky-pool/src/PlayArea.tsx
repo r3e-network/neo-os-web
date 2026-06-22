@@ -133,13 +133,18 @@ export default function PlayArea({
     Boolean(lastTxid) &&
     !lastError;
   const preloadedLaunchKeyRef = useRef("");
+  const claimActionPreviewTimeout = useRef<number | null>(null);
+  const createActionPreviewTimeout = useRef<number | null>(null);
   const [claimKey, setClaimKey] = useState(currentClaimKey || launchClaimKey);
+  const [claimActionPreview, setClaimActionPreview] = useState(false);
+  const [createActionPreview, setCreateActionPreview] = useState(false);
   const displayClaimKey = maskClaimKey(lastClaimKey || claimKey);
   const claimError = splitClaimError(lastError);
+  const claimIsAnimating = isClaiming || claimActionPreview;
   const activeClaimProgress = resolveClaimProgress(
     claimProgress,
     claimStatus,
-    isClaiming,
+    claimIsAnimating,
   );
   const activeClaimProgressIndex = CLAIM_PROGRESS_STEPS.findIndex(
     (step) => step.key === activeClaimProgress,
@@ -172,7 +177,7 @@ export default function PlayArea({
     ? "success"
     : lastError
       ? "error"
-      : showClaimProgress || isClaiming
+      : showClaimProgress || claimIsAnimating
         ? "claiming"
         : claimKey
           ? "ready"
@@ -207,10 +212,13 @@ export default function PlayArea({
     Number.isFinite(slotCountNumber) &&
     totalAmountNumber > 0 &&
     slotCountNumber > 0;
+  const createMachineAnimating = isCreating || createActionPreview;
   const rewardPlanState = rewardPlanReady ? "ready" : "draft";
-  const rewardMachineLabel = rewardPlanReady
-    ? t("rewardMachineReady")
-    : t("rewardMachineDraft");
+  const rewardMachineLabel = createMachineAnimating
+    ? t("creatingPool")
+    : rewardPlanReady
+      ? t("rewardMachineReady")
+      : t("rewardMachineDraft");
   const poolFillPercent =
     Number.isFinite(totalAmountNumber) &&
     Number.isFinite(maxClaimNumber) &&
@@ -240,8 +248,43 @@ export default function PlayArea({
     if (currentPoolId) setPoolId(currentPoolId);
   }, [currentPoolId]);
 
+  useEffect(
+    () => () => {
+      if (claimActionPreviewTimeout.current !== null) {
+        window.clearTimeout(claimActionPreviewTimeout.current);
+      }
+      if (createActionPreviewTimeout.current !== null) {
+        window.clearTimeout(createActionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startClaimActionPreview = () => {
+    if (claimActionPreviewTimeout.current !== null) {
+      window.clearTimeout(claimActionPreviewTimeout.current);
+    }
+    setClaimActionPreview(true);
+    claimActionPreviewTimeout.current = window.setTimeout(() => {
+      setClaimActionPreview(false);
+      claimActionPreviewTimeout.current = null;
+    }, 1400);
+  };
+
+  const startCreateActionPreview = () => {
+    if (createActionPreviewTimeout.current !== null) {
+      window.clearTimeout(createActionPreviewTimeout.current);
+    }
+    setCreateActionPreview(true);
+    createActionPreviewTimeout.current = window.setTimeout(() => {
+      setCreateActionPreview(false);
+      createActionPreviewTimeout.current = null;
+    }, 1200);
+  };
+
   const submitClaim = () => {
-    if (!claimKey || isClaiming) return;
+    if (!claimKey || claimIsAnimating) return;
+    startClaimActionPreview();
     void dispatch("claimPool", {
       claimKey,
       poolId: launchPoolId,
@@ -251,7 +294,8 @@ export default function PlayArea({
   };
 
   const submitCreatePool = () => {
-    if (isCreating) return;
+    if (createMachineAnimating) return;
+    startCreateActionPreview();
     void dispatch("createPool", {
       totalAmount,
       minClaim,
@@ -649,7 +693,11 @@ export default function PlayArea({
                   className={[
                     "gas-pool-create-summary",
                     `gas-pool-create-summary--${rewardPlanState}`,
-                  ].join(" ")}
+                    createMachineAnimating &&
+                      "gas-pool-create-summary--launching",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   aria-label={t("rewardPlanTitle")}
                 >
                   <span className="gas-pool-create-summary__eyebrow">
@@ -857,9 +905,9 @@ export default function PlayArea({
                 type="button"
                 className="gas-pool-claim-only__button"
                 onClick={submitCreatePool}
-                disabled={isCreating}
+                disabled={createMachineAnimating}
               >
-                {isCreating ? t("creatingPool") : t("createPool")}
+                {createMachineAnimating ? t("creatingPool") : t("createPool")}
               </button>
             </div>
 

@@ -207,6 +207,9 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(screen.queryByText("OneGate QR claim")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
+    expect(container.querySelector(".gas-pool-claim-only--claiming")).toBeTruthy();
+    expect(screen.getByText("Claim progress")).toBeTruthy();
+    expect(screen.getAllByText("Wallet ready").length).toBeGreaterThan(0);
     expect(dispatch).toHaveBeenCalledWith("claimPool", {
       claimKey: "ogv_test_key_1234567890",
       poolId: "pool-001",
@@ -377,6 +380,8 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(container.querySelector(".gas-pool-create-summary--ready")).toBeTruthy();
     expect(screen.getByText("Vault charged and ready to launch")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Create pool" }));
+    expect(container.querySelector(".gas-pool-create-summary--launching")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Creating pool" })).toBeTruthy();
     expect(dispatch).toHaveBeenCalledWith("createPool", {
       totalAmount: "12",
       minClaim: "1",
@@ -558,8 +563,12 @@ describe("OneGate Vault PlayArea launch flow", () => {
     );
 
     expect(scss).toContain("@keyframes gas-pool-reel-ready");
+    expect(scss).toContain("@keyframes gas-pool-reel-launch");
     expect(scss).toContain("@keyframes gas-pool-prize-ready");
+    expect(scss).toContain("@keyframes gas-pool-prize-launch");
     expect(scss).toContain("@keyframes gas-pool-machine-scan");
+    expect(scss).toContain("@keyframes gas-pool-claim-stage-awake");
+    expect(scss).toContain("gas-pool-create-summary--launching");
     expect(scss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(scss).toContain(".gas-pool-create-summary__reels span");
     expect(scss).toContain(".gas-pool-create-summary__scan");
