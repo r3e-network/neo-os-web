@@ -14,6 +14,10 @@
   --fa-accent-strong: var(--ns-brand-strong, #0fb174);
   --fa-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --fa-accent-rgb: 22, 199, 132;
+  --fa-memory: #7467f0;
+  --fa-memory-rgb: 116, 103, 240;
+  --fa-warm: #f7a84b;
+  --fa-warm-rgb: 247, 168, 75;
   --fa-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   --fa-shadow-lg: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
   --fa-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
@@ -63,7 +67,7 @@
     font-size: 30px;
     line-height: 1.12;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   p {
@@ -125,7 +129,7 @@
   color: var(--fa-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -194,7 +198,7 @@
   strong {
     font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -225,7 +229,7 @@
     color: var(--fa-muted);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -235,7 +239,7 @@
     font-size: 20px;
     font-weight: 800;
     line-height: 1.16;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -265,12 +269,281 @@
 .forever-album-uploader {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--fa-line);
   border-radius: var(--ns-radius-md, 16px);
   background: var(--fa-surface-soft);
+}
+
+.forever-album-seal-stage {
+  position: relative;
+  isolation: isolate;
+  min-height: 292px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(var(--fa-memory-rgb), 0.18);
+  border-radius: var(--ns-radius-md, 16px);
+  background: #10131f;
+  box-shadow: 0 18px 44px rgba(20, 22, 38, 0.16);
+  color: #ffffff;
+}
+
+.forever-album-seal-stage__backdrop,
+.forever-album-seal-stage__backdrop img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.forever-album-seal-stage__backdrop img {
+  display: block;
+  object-fit: cover;
+  transform: scale(1.04);
+  filter: saturate(1.08) contrast(1.02);
+}
+
+.forever-album-seal-stage--ready .forever-album-seal-stage__backdrop img,
+.forever-album-seal-stage--sealing .forever-album-seal-stage__backdrop img {
+  animation: forever-album-stage-drift 10s ease-in-out infinite alternate;
+}
+
+.forever-album-seal-stage__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(14, 17, 28, 0.34) 0%, rgba(14, 17, 28, 0.88) 100%),
+    linear-gradient(110deg, rgba(var(--fa-memory-rgb), 0.56), rgba(var(--fa-accent-rgb), 0.18) 48%, rgba(var(--fa-warm-rgb), 0.26));
+}
+
+.forever-album-seal-stage__content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  min-height: 292px;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 12px;
+  padding: 16px;
+}
+
+.forever-album-seal-stage__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  span,
+  strong {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--ns-radius-full, 999px);
+    background: rgba(255, 255, 255, 0.13);
+    backdrop-filter: blur(14px);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  span {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  strong {
+    max-width: 45%;
+    padding: 8px 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.forever-album-seal-stage__gallery {
+  position: relative;
+  min-height: 132px;
+  margin: 2px 0 0;
+}
+
+.forever-album-seal-stage__frame {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: clamp(74px, 28%, 104px);
+  aspect-ratio: 0.74;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08)),
+    rgba(10, 13, 24, 0.52);
+  box-shadow: 0 16px 34px rgba(3, 6, 18, 0.34);
+  transform-origin: 50% 90%;
+}
+
+.forever-album-seal-stage__frame img,
+.forever-album-seal-stage__frame > span {
+  width: 100%;
+  height: 100%;
+}
+
+.forever-album-seal-stage__frame img {
+  display: block;
+  object-fit: cover;
+}
+
+.forever-album-seal-stage__frame > span {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.forever-album-seal-stage__frame small {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  overflow: hidden;
+  padding: 5px 6px;
+  border-radius: 8px;
+  background: rgba(8, 11, 21, 0.64);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.forever-album-seal-stage__frame--1 {
+  left: 3%;
+  top: 18px;
+  transform: rotate(-8deg);
+}
+
+.forever-album-seal-stage__frame--2 {
+  left: 28%;
+  top: 0;
+  z-index: 2;
+  transform: rotate(4deg);
+}
+
+.forever-album-seal-stage__frame--3 {
+  right: 17%;
+  top: 20px;
+  transform: rotate(-2deg);
+}
+
+.forever-album-seal-stage__frame--4 {
+  right: 4%;
+  top: 8px;
+  transform: rotate(9deg);
+}
+
+.forever-album-seal-stage__frame.is-placeholder {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.forever-album-seal-stage__frame.is-encrypted::after,
+.forever-album-seal-stage--private .forever-album-seal-stage__frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.28) 48%, transparent 70%);
+  opacity: 0.34;
+}
+
+.forever-album-seal-stage--ready .forever-album-seal-stage__frame,
+.forever-album-seal-stage--archive .forever-album-seal-stage__frame {
+  animation: forever-album-frame-float 3.8s ease-in-out infinite;
+}
+
+.forever-album-seal-stage--ready .forever-album-seal-stage__frame--2,
+.forever-album-seal-stage--archive .forever-album-seal-stage__frame--2 {
+  animation-delay: 180ms;
+}
+
+.forever-album-seal-stage--ready .forever-album-seal-stage__frame--3,
+.forever-album-seal-stage--archive .forever-album-seal-stage__frame--3 {
+  animation-delay: 360ms;
+}
+
+.forever-album-seal-stage--ready .forever-album-seal-stage__frame--4,
+.forever-album-seal-stage--archive .forever-album-seal-stage__frame--4 {
+  animation-delay: 540ms;
+}
+
+.forever-album-seal-stage--sealing .forever-album-seal-stage__frame {
+  animation: forever-album-frame-seal 980ms ease-in-out infinite;
+}
+
+.forever-album-seal-stage__rail {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.forever-album-seal-stage__rail span {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-full, 999px);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.forever-album-seal-stage__rail span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 46%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--fa-accent), var(--fa-warm));
+  opacity: 0.8;
+  transform: translateX(-100%);
+}
+
+.forever-album-seal-stage--ready .forever-album-seal-stage__rail span::after,
+.forever-album-seal-stage--sealing .forever-album-seal-stage__rail span::after {
+  animation: forever-album-rail-flow 1.7s ease-in-out infinite;
+}
+
+.forever-album-seal-stage__rail span:nth-child(2)::after {
+  animation-delay: 180ms;
+}
+
+.forever-album-seal-stage__rail span:nth-child(3)::after {
+  animation-delay: 360ms;
+}
+
+.forever-album-seal-stage__caption {
+  display: grid;
+  gap: 5px;
+  max-width: 92%;
+
+  strong {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 850;
+    line-height: 1.18;
+  }
+
+  span {
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.42;
+  }
 }
 
 .forever-album-file-picker {
@@ -337,9 +610,67 @@
   }
 }
 
+@keyframes forever-album-stage-drift {
+  0% {
+    transform: scale(1.04) translate3d(-1%, 0, 0);
+  }
+
+  100% {
+    transform: scale(1.08) translate3d(1.4%, -1%, 0);
+  }
+}
+
+@keyframes forever-album-frame-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+@keyframes forever-album-frame-seal {
+  0%,
+  100% {
+    scale: 1;
+    filter: brightness(1);
+  }
+
+  45% {
+    scale: 0.96;
+    filter: brightness(1.14);
+  }
+}
+
+@keyframes forever-album-rail-flow {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  55%,
+  100% {
+    transform: translateX(230%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .forever-album-file-picker.is-pulsing {
+  .forever-album-file-picker.is-pulsing,
+  .forever-album-seal-stage--ready .forever-album-seal-stage__backdrop img,
+  .forever-album-seal-stage--sealing .forever-album-seal-stage__backdrop img,
+  .forever-album-seal-stage--ready .forever-album-seal-stage__frame,
+  .forever-album-seal-stage--archive .forever-album-seal-stage__frame,
+  .forever-album-seal-stage--sealing .forever-album-seal-stage__frame,
+  .forever-album-seal-stage--ready .forever-album-seal-stage__rail span::after,
+  .forever-album-seal-stage--sealing .forever-album-seal-stage__rail span::after {
     animation: none;
+  }
+
+  .forever-album-file-picker,
+  .forever-album-seal-stage__frame,
+  .forever-album-upload-meter span {
+    transition: none;
   }
 }
 
@@ -566,7 +897,7 @@
   color: var(--fa-ink);
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .viewer-img,
@@ -633,6 +964,27 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .forever-album-seal-stage {
+    min-height: 268px;
+  }
+
+  .forever-album-seal-stage__content {
+    min-height: 268px;
+    padding: 14px;
+  }
+
+  .forever-album-seal-stage__gallery {
+    min-height: 116px;
+  }
+
+  .forever-album-seal-stage__frame {
+    width: clamp(64px, 30%, 92px);
+  }
+
+  .forever-album-seal-stage__caption {
+    max-width: 100%;
+  }
+
   .forever-album-howto-steps,
   .forever-album-safety-strip,
   .forever-album-upload-meta {
@@ -651,5 +1003,23 @@
   .forever-album-panel-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .forever-album-seal-stage__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .forever-album-seal-stage__header strong {
+    max-width: 100%;
+    width: fit-content;
+  }
+
+  .forever-album-seal-stage__frame--3 {
+    right: 8%;
+  }
+
+  .forever-album-seal-stage__frame--4 {
+    display: none;
   }
 }
