@@ -5,6 +5,13 @@
  */
 
 import { useMemo, useState } from "react";
+import {
+  Anchor as AnchorIcon,
+  Coins,
+  RefreshCw,
+  Route,
+  WalletCards,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { ProfitAnchorStats } from "./hooks/useProfitAnchor";
@@ -181,13 +188,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="anchor-primary-copy">
           <div className="anchor-primary-brand">
             <span className="anchor-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="5" r="3" />
-                <path d="M12 8v8" />
-                <path d="M5 12a7 7 0 0 0 14 0" />
-                <path d="M5 12H3" />
-                <path d="M21 12h-2" />
-              </svg>
+              <AnchorIcon size={22} />
             </span>
             <span className="anchor-kicker">{t("appName")}</span>
           </div>
@@ -292,14 +293,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             disabled={isBusy}
             onClick={() => void runSimpleAction("refreshAnchor")}
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-              <path d="M21 3v6h-6" />
-            </svg>
+            <RefreshCw size={18} aria-hidden="true" />
           </button>
         </div>
 
         <div className="anchor-action-panel">
+          <section
+            className={`anchor-capital-flow${amountIsValid ? " is-ready" : " is-blocked"}${claimReady ? " has-claim" : ""}${isBusy ? " is-busy" : ""}`}
+            aria-label={t("stakePath")}
+          >
+            <picture className="anchor-capital-flow__token" aria-hidden="true">
+              <source srcSet="./logo.avif" type="image/avif" />
+              <source srcSet="./logo.webp" type="image/webp" />
+              <img src="./logo.jpg" alt="" loading="eager" decoding="sync" />
+            </picture>
+            <span className="anchor-capital-flow__rail" aria-hidden="true" />
+            <div className="anchor-capital-flow__node anchor-capital-flow__node--wallet">
+              <WalletCards size={18} aria-hidden="true" />
+              <span>{t("preflightAmount")}</span>
+              <strong>{plannedAmountLabel}</strong>
+            </div>
+            <div className="anchor-capital-flow__node anchor-capital-flow__node--route">
+              <Route size={18} aria-hidden="true" />
+              <span>{t("preflightRoute")}</span>
+              <strong>{selectedAgent}</strong>
+            </div>
+            <div className="anchor-capital-flow__node anchor-capital-flow__node--claim">
+              <Coins size={18} aria-hidden="true" />
+              <span>{t("claimPlan")}</span>
+              <strong>{claimReady ? pendingRewardsDisplay : t("claimPlanEmpty")}</strong>
+            </div>
+          </section>
+
           <label className="anchor-amount-field">
             <span>{t("neoAmount")}</span>
             <input
