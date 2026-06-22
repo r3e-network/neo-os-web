@@ -211,6 +211,52 @@ export default function PlayArea({
   const canTrack =
     (operationId.trim().length > 0 || sourceTx.trim().length > 0) &&
     !sourceTxInvalid;
+  const workspaceStageDirection =
+    workspaceMode === "message"
+      ? messageDirection
+      : workspaceMode === "track"
+        ? trackDirection
+        : assetDirection;
+  const workspaceStageKind =
+    workspaceMode === "message"
+      ? "message"
+      : workspaceMode === "track"
+        ? trackKind
+        : "asset";
+  const workspaceStageReady =
+    workspaceMode === "asset"
+      ? canPrepareAsset
+      : workspaceMode === "message"
+        ? canPrepareMessage
+        : canTrack;
+  const workspaceStageActive =
+    pendingMode === workspaceMode || workspaceStageReady;
+  const workspaceStageDetail =
+    workspaceMode === "asset"
+      ? isPositiveAmount(assetAmount)
+        ? `${assetAmount} GAS`
+        : t("assetBridge")
+      : workspaceMode === "message"
+        ? messagePayload.trim()
+          ? t("previewReady")
+          : t("messageBridge")
+        : sourceTx.trim()
+          ? compactHash(sourceTx)
+          : operationId.trim() || kindLabel(t, trackKind);
+  const workspaceStageDestination =
+    workspaceMode === "asset"
+      ? assetRecipient.trim() || t("destinationAddress")
+      : workspaceMode === "message"
+        ? targetContract.trim() || t("targetContract")
+        : sourceTx.trim()
+          ? t("previewSourceTx")
+          : t("operationId");
+  const workspaceStageStatus =
+    pendingMode === workspaceMode
+      ? t("bridgeStagePreparing")
+      : workspaceStageReady
+        ? t("bridgeStageReady")
+        : t("bridgeStageWaiting");
 
   const runWorkspaceAction = useCallback(
     async (
@@ -433,12 +479,14 @@ export default function PlayArea({
           </p>
         </div>
         <figure className="bridge-hero-visual">
-          <img
-            src="./bridge-route.jpg"
-            alt={t("bridgeHeroImageAlt")}
-            loading="eager"
-            decoding="sync"
-          />
+          <picture>
+            <img
+              src="./bridge-route.jpg"
+              alt={t("bridgeHeroImageAlt")}
+              loading="eager"
+              decoding="sync"
+            />
+          </picture>
           <figcaption className="bridge-route-card" aria-label={t("routeAria")}>
             <span className="bridge-route-card__title">
               {t("routeCardTitle")}
@@ -518,6 +566,18 @@ export default function PlayArea({
             ))}
           </div>
         </div>
+
+        <BridgeRouteStage
+          t={t}
+          direction={workspaceStageDirection}
+          kind={workspaceStageKind}
+          mode={workspaceMode}
+          detail={workspaceStageDetail}
+          destination={workspaceStageDestination}
+          status={workspaceStageStatus}
+          active={workspaceStageActive}
+          pending={pendingMode === workspaceMode}
+        />
 
         {workspaceMode === "asset" && (
           <div className="bridge-form-grid">
@@ -908,6 +968,89 @@ export default function PlayArea({
 
 function bridgeRouteLabel(t: PlayAreaProps["t"], direction: DirectionValue) {
   return direction === "neox-to-n3" ? t("routeNeoXToN3") : t("routeN3ToNeoX");
+}
+
+function BridgeRouteStage({
+  t,
+  direction,
+  kind,
+  mode,
+  detail,
+  destination,
+  status,
+  active,
+  pending,
+}: {
+  t: PlayAreaProps["t"];
+  direction: DirectionValue;
+  kind: BridgeKindValue;
+  mode: WorkspaceMode;
+  detail: string;
+  destination: string;
+  status: string;
+  active: boolean;
+  pending: boolean;
+}) {
+  const source = direction === "neox-to-n3" ? t("neoX") : t("routeNeoN3");
+  const target = direction === "neox-to-n3" ? t("routeNeoN3") : t("neoX");
+  const kindText = kindLabel(t, kind);
+
+  return (
+    <figure
+      className={[
+        "bridge-route-stage",
+        `bridge-route-stage--${kind}`,
+        `bridge-route-stage--mode-${mode}`,
+        active ? "bridge-route-stage--active" : "",
+        pending ? "bridge-route-stage--pending" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-label={t("bridgeStageAria")}
+    >
+      <picture className="bridge-route-stage__media" aria-hidden="true">
+        <img
+          src="./bridge-route.jpg"
+          alt=""
+          loading="eager"
+          decoding="async"
+        />
+      </picture>
+      <div className="bridge-route-stage__scrim" aria-hidden="true" />
+      <div className="bridge-route-stage__map" aria-hidden="true">
+        <span className="bridge-route-stage__node bridge-route-stage__node--source">
+          <span>{source}</span>
+        </span>
+        <span className="bridge-route-stage__lane">
+          <span className="bridge-route-stage__flow" />
+          <span className="bridge-route-stage__packet bridge-route-stage__packet--one" />
+          <span className="bridge-route-stage__packet bridge-route-stage__packet--two" />
+          <span className="bridge-route-stage__packet bridge-route-stage__packet--three" />
+        </span>
+        <span className="bridge-route-stage__node bridge-route-stage__node--target">
+          <span>{target}</span>
+        </span>
+      </div>
+      <figcaption className="bridge-route-stage__caption">
+        <span className="bridge-route-stage__kicker">{kindText}</span>
+        <strong>{bridgeRouteLabel(t, direction)}</strong>
+        <span className="bridge-route-stage__status">
+          <span aria-hidden="true" />
+          {status}
+        </span>
+      </figcaption>
+      <dl className="bridge-route-stage__facts">
+        <div>
+          <dt>{t("bridgeStageIntent")}</dt>
+          <dd>{detail}</dd>
+        </div>
+        <div>
+          <dt>{t("bridgeStageTarget")}</dt>
+          <dd>{destination}</dd>
+        </div>
+      </dl>
+    </figure>
+  );
 }
 
 function BridgeRouteChooser({

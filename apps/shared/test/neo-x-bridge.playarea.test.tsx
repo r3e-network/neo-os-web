@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cleanup,
   fireEvent,
@@ -44,6 +46,12 @@ function t(key: string) {
     tabAsset: "Asset",
     tabMessage: "Message",
     tabTrack: "Track",
+    bridgeStageAria: "Cross-chain route stage",
+    bridgeStageIntent: "Intent",
+    bridgeStageTarget: "Target",
+    bridgeStagePreparing: "Preparing handoff",
+    bridgeStageReady: "Route ready",
+    bridgeStageWaiting: "Awaiting details",
     btnPrepareAsset: "Prepare asset handoff",
     btnPrepareMessage: "Prepare message intent",
     btnRefreshTracking: "Refresh tracking",
@@ -119,6 +127,44 @@ function props(
 afterEach(() => cleanup());
 
 describe("Neo X Bridge PlayArea", () => {
+  it("renders a resource-led bridge route stage instead of opening on raw fields", () => {
+    const { container } = render(<PlayArea {...props()} />);
+
+    const stage = container.querySelector(".bridge-route-stage");
+    expect(stage).toBeTruthy();
+    expect(stage?.classList.contains("bridge-route-stage--asset")).toBe(true);
+    expect(
+      stage?.querySelector('.bridge-route-stage__media img[src="./bridge-route.jpg"]'),
+    ).toBeTruthy();
+    expect(stage?.querySelector(".bridge-route-stage__lane")).toBeTruthy();
+    expect(stage?.querySelectorAll(".bridge-route-stage__packet").length).toBe(3);
+    expect(screen.getByText("Awaiting details")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
+    fireEvent.change(screen.getByLabelText("Destination address"), {
+      target: { value: RECIPIENT },
+    });
+
+    expect(
+      container.querySelector(".bridge-route-stage--active"),
+    ).toBeTruthy();
+    expect(screen.getByText("Route ready")).toBeTruthy();
+  });
+
+  it("keeps the route-stage animation reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../neo-x-bridge/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes bridge-route-stage-sheen");
+    expect(styles).toContain("@keyframes bridge-route-packet");
+    expect(styles).toContain("@keyframes bridge-route-lane-pulse");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.bridge-route-stage__packet[\s\S]*animation:\s*none/,
+    );
+  });
+
   it("prepares an asset bridge handoff from the visible workspace", async () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea {...props({ dispatch })} />);
