@@ -328,9 +328,22 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               </button>
             </div>
 
-            <section className="redenv-envelope-preview" aria-label={t("createPreviewTitle")}>
+            <section
+              className={[
+                "redenv-envelope-preview",
+                `redenv-envelope-preview--${activeTab}`,
+                openingId && "redenv-envelope-preview--opening",
+                luckyMessage && "redenv-envelope-preview--lucky",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-label={t("createPreviewTitle")}
+            >
               <div className="redenv-envelope-preview__art" aria-hidden="true">
                 <img src="./red-envelope-claim-card.jpg" alt="" />
+              </div>
+              <div className="redenv-envelope-preview__seal" aria-hidden="true">
+                <Gift size={20} />
               </div>
               <div className="redenv-envelope-preview__copy">
                 <span>{activeTab === "claim" ? t("claimTab") : t("createTab")}</span>
@@ -402,6 +415,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 </p>
                 <NeoButton
                   variant="primary"
+                  className="redenv-open-button"
                   loading={Boolean(openingId)}
                   disabled={isLoading || !selectedEnvelopeId.trim()}
                   onClick={claimSelectedEnvelope}
@@ -517,6 +531,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 )}
                 <NeoButton
                   variant="primary"
+                  className="redenv-send-button"
                   loading={isLoading}
                   disabled={isLoading || !canCreateEnvelope}
                   onClick={createEnvelope}
@@ -680,7 +695,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
       {luckyMessage && (
         <div className="redenv-modal-backdrop">
-          <div className="redenv-modal">
+          <div className="redenv-modal redenv-modal--lucky">
             <div className="redenv-modal-content">
               <div className="redenv-modal-icon" aria-hidden="true">
                 <img src="./red-envelope-claim-card.jpg" alt="" />
