@@ -282,6 +282,15 @@ const appMessages = {
     en: "Shape the web-data read as a small, auditable oracle intent.",
     zh: "把 Web 数据读取整理成简洁、可审计的预言机意图。",
   },
+  httpRouteWorkbench: { en: "Live oracle route", zh: "实时预言机路线" },
+  httpRouteWorkbenchCopy: {
+    en: "Follow the request as a source, extractor, and digest instead of a raw form.",
+    zh: "以数据源、抽取器和摘要的路线审阅请求，而不是只看原始表单。",
+  },
+  httpRouteSourceNode: { en: "Source node", zh: "数据源节点" },
+  httpRouteExtractNode: { en: "Extractor", zh: "抽取器" },
+  httpRouteDigestNode: { en: "Digest beacon", zh: "摘要信标" },
+  httpSignalsLabel: { en: "Route signals", zh: "路线信号" },
   httpPipelineTitle: { en: "Request pipeline", zh: "请求管线" },
   httpPipelineCopy: {
     en: "Compose the source, extraction path, and optional body as one reviewable oracle route.",

@@ -69,9 +69,19 @@ describe("Oracle HTTP Console PlayArea", () => {
     const { container } = render(<PlayArea {...makeProps(state, setStatus)} />);
 
     expect(container.querySelector(".http-pipeline-panel")).toBeTruthy();
+    expect(container.querySelector(".http-route-stage")).toBeTruthy();
+    expect(container.querySelector(".http-route-node--source")).toBeTruthy();
+    expect(container.querySelector(".http-route-node--extract")).toBeTruthy();
+    expect(container.querySelector(".http-route-node--digest")).toBeTruthy();
+    expect(container.querySelectorAll(".http-route-connector__packet").length).toBe(
+      2,
+    );
+    expect(container.querySelectorAll(".http-signal-chip--ok").length).toBe(3);
     expect((screen.getByLabelText("URL") as HTMLInputElement).value).toBe(
       "https://oracle.meshmini.app/mainnet/health",
     );
+    expect(screen.getByText("Live oracle route")).toBeTruthy();
+    expect(screen.getByText("Digest beacon")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("radio", { name: "Method: POST" }));
     const body = container.querySelector(
@@ -101,6 +111,8 @@ describe("Oracle HTTP Console PlayArea", () => {
     });
     clickPreview();
 
+    expect(document.querySelector(".http-route-stage--warn")).toBeTruthy();
+    expect(document.querySelector(".http-signal-chip--warn")).toBeTruthy();
     expect(screen.getAllByText("Enter a valid http(s) URL").length).toBeGreaterThan(
       0,
     );
