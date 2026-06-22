@@ -444,4 +444,6 @@ export const factoryMessages = {
   previewServiceOneGate: { en: "OneGate", zh: "OneGate" },
   previewLaunchState: { en: "Launch state", zh: "启动状态" },
   previewReadyToRegister: { en: "Ready to register", zh: "可登记" },
+  studioFlowLabel: { en: "Factory studio workflow", zh: "工厂工作流" },
+  studioPipeline: { en: "Build pipeline", zh: "创建流程" },
 } as const;

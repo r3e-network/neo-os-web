@@ -453,6 +453,111 @@ function FactoryPreviewCard({
   );
 }
 
+type StudioFlowStepState = "done" | "active" | "waiting" | "blocked";
+
+interface StudioFlowStat {
+  label: string;
+  value: string;
+}
+
+interface StudioFlowStep {
+  key: string;
+  label: string;
+  detail: string;
+  state: StudioFlowStepState;
+  icon: LucideIcon;
+}
+
+function FactoryStudioFlow({
+  kind,
+  t,
+  title,
+  eyebrow,
+  hint,
+  networkLabel,
+  stats,
+  steps,
+}: {
+  kind: FactoryKind;
+  t: PlayAreaProps["t"];
+  title: string;
+  eyebrow: string;
+  hint: string;
+  networkLabel: string;
+  stats: StudioFlowStat[];
+  steps: StudioFlowStep[];
+}) {
+  const imageSrc =
+    kind === "nep11"
+      ? "./nft-drop-preview.jpg"
+      : kind === "miniapp"
+        ? "./miniapp-launch-studio.jpg"
+        : "./token-mint-studio.jpg";
+
+  return (
+    <section
+      className="domain-factory-studio-flow"
+      aria-label={t("studioFlowLabel")}
+    >
+      <div
+        className={`domain-factory-studio-flow__stage domain-factory-studio-flow__stage--${kind}`}
+      >
+        <img
+          className="domain-factory-studio-flow__image"
+          src={imageSrc}
+          alt=""
+          loading="eager"
+          decoding="async"
+        />
+        <div className="domain-factory-studio-flow__scrim" />
+        <div className="domain-factory-studio-flow__copy">
+          <span>{eyebrow}</span>
+          <strong>{title}</strong>
+          <small>{hint}</small>
+        </div>
+        <dl className="domain-factory-studio-flow__stats">
+          {stats.map((stat) => (
+            <div key={stat.label}>
+              <dt>{stat.label}</dt>
+              <dd>{stat.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div className="domain-factory-studio-flow__pipeline">
+        <div className="domain-factory-studio-flow__pipeline-head">
+          <span>{t("studioPipeline")}</span>
+          <strong>{networkLabel}</strong>
+        </div>
+        <ol className="domain-factory-studio-flow__steps">
+          {steps.map((step) => {
+            const Icon = step.icon;
+
+            return (
+              <li
+                key={step.key}
+                className={`domain-factory-studio-flow__step domain-factory-studio-flow__step--${step.state}`}
+              >
+                <span
+                  className="domain-factory-studio-flow__step-icon"
+                  aria-hidden="true"
+                >
+                  <Icon size={16} />
+                </span>
+                <span className="domain-factory-studio-flow__step-copy">
+                  <strong>{step.label}</strong>
+                  <small>{step.detail}</small>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
 export interface FactoryPlayAreaProps extends PlayAreaProps {
   fixedKind: FactoryKind;
   appId: string;
@@ -702,6 +807,13 @@ export function FactoryPlayArea({
       ? { className: "is-ready", label: t("ready") }
       : { className: "is-blocked", label: t("blocked") }
     : { className: "is-draft", label: t("draft") };
+  const workflowState = storedPlan
+    ? storedPlan.publishable
+      ? "ready"
+      : "blocked"
+    : currentPlan.blockingErrors.length
+      ? "draft-needs-work"
+      : "draft-ready";
 
   const royaltyBpsNumber = Number(nep11.royaltyBps);
   const royaltyHint =
@@ -776,13 +888,107 @@ export function FactoryPlayArea({
       : t("planDraftReadyDetail");
   const nextStepLabel = storedPlan
     ? canExecute
-      ? t(
-          kind === "miniapp" ? "executeRecordAction" : "executeDeployAction",
-        )
+      ? t(kind === "miniapp" ? "executeRecordAction" : "executeDeployAction")
       : canSign
         ? t("signPlanAction")
         : t("fixBlockingIssues")
     : t("generatePlan");
+  const studioTitle =
+    kind === "nep11"
+      ? nep11CollectionLabel
+      : kind === "miniapp"
+        ? miniappNameLabel
+        : nep17NameLabel;
+  const studioEyebrow = t(
+    kind === "nep11"
+      ? "dropStudio"
+      : kind === "miniapp"
+        ? "launchStudio"
+        : "tokenStudio",
+  );
+  const studioHint =
+    kind === "nep11"
+      ? t("dropStudioHint", { symbol: nep11SymbolLabel })
+      : kind === "miniapp"
+        ? t("launchStudioHint", { appId: miniappIdLabel })
+        : t("tokenStudioHint", { symbol: nep17SymbolLabel });
+  const studioStats: StudioFlowStat[] =
+    kind === "nep11"
+      ? [
+          { label: t("symbol"), value: nep11SymbolLabel },
+          { label: t("previewMaxSupply"), value: nep11MaxSupplyLabel },
+          { label: t("previewRoyalty"), value: nep11RoyaltyLabel },
+        ]
+      : kind === "miniapp"
+        ? [
+            { label: t("appId"), value: miniappIdLabel },
+            { label: t("previewTemplate"), value: miniappTemplateLabel },
+            { label: t("previewServices"), value: miniappServiceLabel },
+          ]
+        : [
+            { label: t("symbol"), value: nep17SymbolLabel },
+            { label: t("previewSupply"), value: nep17SupplyLabel },
+            { label: t("previewMintPolicy"), value: nep17PolicyLabel },
+          ];
+  const draftHasBlockingIssues = currentPlan.blockingErrors.length > 0;
+  const signatureReady = Boolean(walletSignature || signatureInfo);
+  const studioSteps: StudioFlowStep[] = [
+    {
+      key: "draft",
+      label: t("draft"),
+      detail: draftHasBlockingIssues ? readinessDetail : kindLabel,
+      state: !storedPlan && draftHasBlockingIssues ? "active" : "done",
+      icon: PackagePlus,
+    },
+    {
+      key: "generate",
+      label: t("generatePlan"),
+      detail: storedPlan ? currentPlan.packageId : t("planDraftReadyDetail"),
+      state: isGenerating
+        ? "active"
+        : storedPlan
+          ? "done"
+          : draftHasBlockingIssues
+            ? "blocked"
+            : "active",
+      icon: BadgeCheck,
+    },
+    {
+      key: "sign",
+      label: t("signPlanAction"),
+      detail: signatureReady ? t("signed") : t("unsigned"),
+      state: isSigning
+        ? "active"
+        : signatureReady
+          ? "done"
+          : storedPlan
+            ? canSign
+              ? "active"
+              : "blocked"
+            : "waiting",
+      icon: ShieldCheck,
+    },
+    {
+      key: "execute",
+      label: t(
+        kind === "miniapp" ? "executeRecordAction" : "executeDeployAction",
+      ),
+      detail:
+        lastTxid || alreadyExecuted
+          ? t("executeConfirmed")
+          : artifactStatusLabel,
+      state: isExecuting
+        ? "active"
+        : lastTxid || alreadyExecuted
+          ? "done"
+          : storedPlan
+            ? canExecute
+              ? "active"
+              : "blocked"
+            : "waiting",
+      icon: Network,
+    },
+  ];
 
   function renderUseMyAddress(currentValue: string, apply: () => void) {
     if (!walletAddress || currentValue === walletAddress) return null;
@@ -813,7 +1019,13 @@ export function FactoryPlayArea({
   }
 
   return (
-    <div className={`domain-factory domain-factory--${kind}`}>
+    <div
+      className={`domain-factory domain-factory--${kind} domain-factory--stage-${workflowState}${
+        isGenerating ? " domain-factory--generating" : ""
+      }${isSigning ? " domain-factory--signing" : ""}${
+        isExecuting ? " domain-factory--executing" : ""
+      }`}
+    >
       <section className="domain-factory-hero">
         <div className="domain-factory-hero__lead">
           <span
@@ -854,8 +1066,23 @@ export function FactoryPlayArea({
         </div>
       </section>
 
+      <FactoryStudioFlow
+        kind={kind}
+        t={t}
+        title={studioTitle}
+        eyebrow={studioEyebrow}
+        hint={studioHint}
+        networkLabel={networkLabel}
+        stats={studioStats}
+        steps={studioSteps}
+      />
+
       <div className="domain-factory-grid">
-        <NeoCard variant="erobo" title={kindLabel}>
+        <NeoCard
+          variant="erobo"
+          title={kindLabel}
+          className="domain-factory-control-card"
+        >
           <div className="domain-factory-form">
             {kind === "nep17" && (
               <section
@@ -1126,7 +1353,10 @@ export function FactoryPlayArea({
                         }
                       />
                       {renderUseMyAddress(nep11.owner, () =>
-                        setNep11((draft) => ({ ...draft, owner: walletAddress })),
+                        setNep11((draft) => ({
+                          ...draft,
+                          owner: walletAddress,
+                        })),
                       )}
                     </div>
                   </>,
