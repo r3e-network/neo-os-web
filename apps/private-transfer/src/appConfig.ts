@@ -190,6 +190,18 @@ const appMessages = {
   introPointTeeDesc: { en: "Only Morpheus confidential compute can decrypt.", zh: "仅 Morpheus 隐私计算可解密。" },
   introPointNoFunds: { en: "No funds moved", zh: "不转移资金" },
   introPointNoFundsDesc: { en: "This seals an intent, never a payment.", zh: "本步骤封装意图，而非支付。" },
+  routeAria: { en: "Private transfer sealing route", zh: "隐私转账封装路线" },
+  routeTitle: { en: "Watch the sealed route", zh: "查看封装路线" },
+  routeBody: {
+    en: "The lane reacts to your recipient, amount, network health, and sealing result.",
+    zh: "这条路线会根据收款方、金额、网络健康状态与封装结果实时变化。",
+  },
+  routeRecipientPending: { en: "Recipient pending", zh: "等待收款方" },
+  routeRecipientInvalid: { en: "Invalid recipient", zh: "收款方无效" },
+  routeAmountPending: { en: "Amount pending", zh: "等待金额" },
+  routeStepCompose: { en: "Compose intent", zh: "填写意图" },
+  routeStepEncrypt: { en: "Encrypt locally", zh: "本地加密" },
+  routeStepMorpheus: { en: "Store for Morpheus", zh: "交给 Morpheus" },
 
   // Submit status
   statusInitial: { en: "Ready to seal private transfer details locally.", zh: "可在本地封装隐私转账细节。" },

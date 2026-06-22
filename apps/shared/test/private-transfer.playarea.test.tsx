@@ -1,4 +1,5 @@
 import React from "react";
+import fs from "node:fs";
 import {
   cleanup,
   fireEvent,
@@ -111,6 +112,40 @@ describe("Private Transfer PlayArea", () => {
 
     expect(screen.queryByText("Enter a valid Neo N3 address.")).toBeNull();
     expect(sealButton.disabled).toBe(false);
+  });
+
+  it("turns the static explainer into a stateful sealed-route stage", () => {
+    const { container } = render(<PlayArea {...props()} />);
+
+    const route = container.querySelector(".private-transfer__route");
+    expect(route).toBeTruthy();
+    expect(route?.classList.contains("private-transfer__route--draft")).toBe(
+      true,
+    );
+    expect(
+      container
+        .querySelector(".private-transfer__route-stage img")
+        ?.getAttribute("src"),
+    ).toBe("./private-transfer-stage.jpg");
+    expect(screen.getByText("Amount pending")).toBeTruthy();
+    expect(screen.getByText("Recipient pending")).toBeTruthy();
+
+    fireEvent.change(screen.getByPlaceholderText("N..."), {
+      target: { value: VALID_NEO_ADDRESS },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
+
+    expect(
+      container
+        .querySelector(".private-transfer__route")
+        ?.classList.contains("private-transfer__route--ready"),
+    ).toBe(true);
+    expect(screen.getAllByText("1 GAS").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("NR3E4D8N…qNih32").length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll(".private-transfer__route-steps li.is-ready")
+        .length,
+    ).toBe(1);
   });
 
   it("always shows the no-funds-moved disclosure and badges off-app lifecycle steps", () => {
@@ -388,5 +423,20 @@ describe("Private Transfer PlayArea", () => {
     // Nothing was persisted on a failed seal.
     expect(readSealedIntents()).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("backs the sealed route with motion and reduced-motion fallbacks", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../private-transfer/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes private-transfer-stage-drift");
+    expect(styles).toContain("@keyframes private-transfer-route-rail");
+    expect(styles).toContain("@keyframes private-transfer-packet-sealing");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.private-transfer__route--sealing \.private-transfer__route-packet[\s\S]*animation:\s*private-transfer-packet-sealing/,
+    );
   });
 });
