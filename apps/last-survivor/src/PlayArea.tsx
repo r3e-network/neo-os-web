@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type CSSProperties, useState } from "react";
 import {
   Clock3,
   Crown,
@@ -111,6 +111,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       ? t("settleBeforeBuy")
       : t("keyPrice");
   const buyKeysLabel = t("buyKeys");
+  const clampLanePercent = (value: number) => Math.min(92, Math.max(8, value));
+  const arenaDangerProgress = clampLanePercent(
+    liveDanger ? dangerProgress : needsLifecycleSync ? 92 : 10,
+  );
+  const arenaPlayerProgress = clampLanePercent(
+    totalKeys > 0 ? userSharePercent : 8,
+  );
+  const arenaPotProgress = clampLanePercent(
+    totalPot > 0 ? 12 + Math.log10(totalPot + 1) * 34 : 8,
+  );
+  const arenaLaneStyle = {
+    "--survivor-danger-progress": `${arenaDangerProgress}%`,
+    "--survivor-player-progress": `${arenaPlayerProgress}%`,
+    "--survivor-pot-progress": `${arenaPotProgress}%`,
+  } as CSSProperties;
 
   const formatBuyerAddress = (addr: string) => {
     if (!addr || addr.length < 10) return addr || "---";
@@ -235,6 +250,57 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
                 <strong>{t("pressConsoleTitle")}</strong>
                 <span>{t("pressConsoleHint")}</span>
+              </div>
+
+              <div
+                className="survivor-arena-lane"
+                aria-label={t("arenaMomentum")}
+                style={arenaLaneStyle}
+              >
+                <div className="survivor-arena-lane__head">
+                  <span>{t("arenaMomentum")}</span>
+                  <strong>{t("arenaMomentumHint")}</strong>
+                </div>
+                <div className="survivor-arena-lane__track" aria-hidden="true">
+                  <span className="survivor-arena-lane__pulse" />
+                  <span
+                    className={`survivor-arena-lane__marker survivor-arena-lane__marker--leader${
+                      lastBuyer ? " is-live" : ""
+                    }`}
+                  >
+                    <Crown size={15} />
+                  </span>
+                  <span
+                    className={`survivor-arena-lane__marker survivor-arena-lane__marker--player${
+                      userKeys > 0 ? " is-live" : ""
+                    }`}
+                  >
+                    <KeyRound size={15} />
+                  </span>
+                  <span
+                    className={`survivor-arena-lane__marker survivor-arena-lane__marker--pot${
+                      totalPot > 0 ? " is-live" : ""
+                    }`}
+                  >
+                    <Trophy size={15} />
+                  </span>
+                </div>
+                <div className="survivor-arena-lane__labels">
+                  <span>
+                    <small>{t("leaderMarker")}</small>
+                    <strong>
+                      {lastBuyer ? formatBuyerAddress(lastBuyer) : t("awaitingFirstKey")}
+                    </strong>
+                  </span>
+                  <span>
+                    <small>{t("playerMarker")}</small>
+                    <strong>{userKeys}</strong>
+                  </span>
+                  <span>
+                    <small>{t("potMarker")}</small>
+                    <strong>{formatNum(totalPot)} {t("tokenGas")}</strong>
+                  </span>
+                </div>
               </div>
 
               {/* Last buyer / current leader badge */}

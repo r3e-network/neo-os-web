@@ -156,6 +156,170 @@
   color: #0b6b49;
 }
 
+.survivor-arena-lane {
+  --survivor-danger-progress: 10%;
+  --survivor-player-progress: 8%;
+  --survivor-pot-progress: 8%;
+
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(255, 255, 255, 0)),
+    rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.survivor-arena-lane__head {
+  display: grid;
+  gap: 4px;
+
+  span {
+    @include pm.section-eyebrow;
+    color: #0b6b49;
+  }
+
+  strong {
+    color: pm.$ink;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+}
+
+.survivor-arena-lane__track {
+  position: relative;
+  min-height: 56px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(11, 107, 73, 0.1), rgba(22, 199, 132, 0.2), rgba(245, 166, 35, 0.12)),
+    rgba(248, 250, 252, 0.86);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 18px;
+    right: 18px;
+    height: 2px;
+    border-radius: 999px;
+    transform: translateY(-50%);
+  }
+
+  &::before {
+    background: rgba(20, 22, 38, 0.1);
+  }
+
+  &::after {
+    width: calc(var(--survivor-danger-progress) - 8%);
+    right: auto;
+    background: linear-gradient(90deg, #0b6b49, #16c784, #f5a623);
+    box-shadow: 0 0 18px rgba(22, 199, 132, 0.25);
+    animation: survivor-lane-progress 2.4s ease-in-out infinite;
+  }
+}
+
+.survivor-arena-lane__pulse {
+  position: absolute;
+  inset: 9px auto 9px 18px;
+  width: 72px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0));
+  mix-blend-mode: screen;
+  opacity: 0.72;
+  animation: survivor-lane-scan 2.8s linear infinite;
+}
+
+.survivor-arena-lane__marker {
+  position: absolute;
+  top: 50%;
+  left: var(--survivor-danger-progress);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  background: pm.$surface;
+  color: pm.$text-muted;
+  box-shadow: 0 10px 24px rgba(20, 64, 50, 0.16);
+  transform: translate(-50%, -50%);
+  transition:
+    left 360ms var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+
+  svg {
+    display: block;
+    stroke-width: 2.5;
+  }
+
+  &.is-live {
+    background: #ffffff;
+    color: #0b6b49;
+    animation: survivor-lane-marker-ready 2.2s ease-in-out infinite;
+  }
+}
+
+.survivor-arena-lane__marker--leader {
+  left: var(--survivor-danger-progress);
+}
+
+.survivor-arena-lane__marker--player {
+  left: var(--survivor-player-progress);
+}
+
+.survivor-arena-lane__marker--pot {
+  left: var(--survivor-pot-progress);
+}
+
+.survivor-arena-lane__marker--leader.is-live {
+  color: #a96700;
+  box-shadow:
+    0 10px 24px rgba(20, 64, 50, 0.16),
+    0 0 0 6px rgba(245, 166, 35, 0.12);
+}
+
+.survivor-arena-lane__labels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+
+  span {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(20, 22, 38, 0.06);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  small {
+    @include pm.section-eyebrow;
+    font-size: 9.5px;
+  }
+
+  strong {
+    overflow: hidden;
+    color: pm.$ink;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 .hero-container {
   display: grid;
   gap: 16px;
@@ -512,6 +676,39 @@
   }
 }
 
+@keyframes survivor-lane-progress {
+  0%,
+  100% {
+    opacity: 0.78;
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 22px rgba(22, 199, 132, 0.34);
+  }
+}
+
+@keyframes survivor-lane-scan {
+  from {
+    transform: translateX(-96px);
+  }
+
+  to {
+    transform: translateX(360px);
+  }
+}
+
+@keyframes survivor-lane-marker-ready {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -54%) scale(1.06);
+  }
+}
+
 .participation-detail {
   display: grid;
   gap: 2px;
@@ -711,13 +908,17 @@
   .status-active .status-dot,
   .last-buyer-badge,
   .last-buyer-icon,
+  .survivor-arena-lane__track::after,
+  .survivor-arena-lane__pulse,
+  .survivor-arena-lane__marker.is-live,
   .survivor-play-area--live .participation-icon,
   .claim-card-trophy,
   .claim-card-inner.is-winner {
     animation: none;
   }
 
-  .survivor-stage {
+  .survivor-stage,
+  .survivor-arena-lane__marker {
     transition: none;
   }
 }
@@ -952,6 +1153,23 @@
 
   .survivor-action-console .buy-keys-card {
     padding: 12px;
+  }
+
+  .survivor-arena-lane {
+    padding: 12px;
+  }
+
+  .survivor-arena-lane__labels {
+    grid-template-columns: 1fr;
+  }
+
+  .survivor-arena-lane__track {
+    min-height: 50px;
+  }
+
+  .survivor-arena-lane__marker {
+    width: 31px;
+    height: 31px;
   }
 
   .participation-bar {
