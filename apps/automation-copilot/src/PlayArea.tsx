@@ -276,6 +276,7 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                     type="number"
                     min={0}
                     inputMode="decimal"
+                    aria-label={t("targetPrice")}
                     placeholder={t("targetPricePlaceholder")}
                     onChange={(event) => { if (state.targetPrice) state.targetPrice.set(event.currentTarget.value); }}
                   />
