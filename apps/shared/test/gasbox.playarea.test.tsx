@@ -47,6 +47,9 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxPullIntent: "Pull confirmation details",
     gasboxPrizeFocus: "Prize focus",
     gasboxPrizeFocusOdds: "Drop chance",
+    gasboxReelEmpty: "No escrow-ready prizes are available for this machine.",
+    gasboxReelHint: "Ready to spin",
+    gasboxReelTitle: "Prize reel",
     gasboxPullBlockedInactive:
       "This machine is inactive. Choose an active machine or open Studio to update it.",
     gasboxPullBlockedInventory:
@@ -232,12 +235,15 @@ describe("GasBox PlayArea", () => {
     expect(screen.getByText("Pull decision")).toBeTruthy();
     expect(container.querySelector(".gasbox-control-deck")).not.toBeNull();
     expect(container.querySelector(".gasbox-cabinet-lever.is-ready")).not.toBeNull();
+    expect(container.querySelector(".gasbox-prize-reel--ready")).not.toBeNull();
+    expect(screen.getByText("Prize reel")).toBeTruthy();
+    expect(screen.getByText("Ready to spin")).toBeTruthy();
     expect(screen.getByText("Pick a capsule machine, pull on-chain, reveal the prize.")).toBeTruthy();
     expect(screen.getByText("Escrow checked")).toBeTruthy();
     expect(screen.getByText("Next-block reveal")).toBeTruthy();
     expect(screen.getByText("Ready for pull")).toBeTruthy();
     expect(screen.getByText("Escrow funded and available for draws.")).toBeTruthy();
-    expect(screen.getByText("5%")).toBeTruthy();
+    expect(screen.getAllByText("5%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/1 prize entries are currently unavailable/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Machines" }));
@@ -413,5 +419,7 @@ describe("GasBox PlayArea", () => {
     expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
     expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
     expect(container.querySelector(".gasbox-pull-btn--active")).not.toBeNull();
+    expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
+    expect(container.querySelector(".gasbox-reel-strip")).not.toBeNull();
   });
 });
