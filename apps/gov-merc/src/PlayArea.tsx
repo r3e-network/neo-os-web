@@ -108,9 +108,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
           <div className="gov-merc-scoreboard">
-            <div className="gov-merc-market-plate">
-              <img src="./logo.svg" alt="" aria-hidden="true" />
-              <div>
+            <figure className="gov-merc-market-stage">
+              <img
+                src="./gov-merc-market-stage.jpg"
+                alt=""
+                loading="eager"
+                decoding="async"
+                aria-hidden="true"
+              />
+              <figcaption>
                 <span>{t("marketPlateLabel")}</span>
                 <strong>{t("marketPlateEpoch", { epoch: currentEpoch })}</strong>
                 <em>
@@ -119,8 +125,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     tokenGas: t("tokenGas"),
                   })}
                 </em>
+              </figcaption>
+              <div className="gov-merc-market-stage__lanes" aria-hidden="true">
+                <span>{t("tokenNeo")}</span>
+                <span>{t("tokenGas")}</span>
               </div>
-            </div>
+            </figure>
             <MercHeroStats
               t={t}
               totalPool={totalPool}
