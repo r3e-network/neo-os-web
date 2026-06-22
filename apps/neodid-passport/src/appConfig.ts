@@ -126,6 +126,11 @@ const appMessages = {
   liveResolver: { en: "Morpheus NeoDID API", zh: "Morpheus NeoDID API" },
   passportWorkspaceTitle: { en: "Credential studio", zh: "凭证工作台" },
   passportPreview: { en: "Passport preview", zh: "护照预览" },
+  passportSealTrack: { en: "Passport issuance track", zh: "护照签发轨道" },
+  passportSealHint: { en: "Resolve DID to build the passport", zh: "解析 DID 后生成护照" },
+  sealSubject: { en: "Subject", zh: "主体" },
+  sealPayload: { en: "Payload", zh: "载荷" },
+  sealProof: { en: "Proof", zh: "证明" },
   credentialCardTitle: { en: "Identity passport", zh: "身份护照" },
   credentialFlowCopy: {
     en: "Resolve the DID, review the payload, then attach a proof only when the lane matches the relying party.",

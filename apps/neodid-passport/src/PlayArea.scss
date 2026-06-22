@@ -316,27 +316,97 @@
 }
 
 .neodid-passport__credential-preview {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px 14px;
   min-width: 0;
   padding: 16px;
+  overflow: hidden;
   border: 1px solid rgba(14, 165, 163, 0.16);
   border-radius: 20px;
   background:
     linear-gradient(135deg, rgba(14, 165, 163, 0.12), rgba(37, 99, 235, 0.08) 58%, rgba(255, 248, 236, 0.86)),
     #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+.neodid-passport__credential-preview::after {
+  content: "";
+  position: absolute;
+  inset: -42% auto -42% -35%;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+  opacity: 0.58;
+  transform: skewX(-18deg);
+  animation: neodid-passport-card-scan 6.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.neodid-passport__credential-preview > * {
+  position: relative;
+  z-index: 1;
+}
+
+.neodid-passport__credential-preview--active::after {
+  animation-duration: 1.8s;
+}
+
+.neodid-passport__credential-preview--built {
+  border-color: rgba(37, 99, 235, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 14px 30px rgba(37, 99, 235, 0.1);
+}
+
+.neodid-passport__credential-preview--signed {
+  border-color: rgba(22, 163, 74, 0.28);
+  background:
+    linear-gradient(135deg, rgba(14, 165, 163, 0.13), rgba(22, 163, 74, 0.1) 58%, rgba(255, 248, 236, 0.86)),
+    #ffffff;
 }
 
 .neodid-passport__credential-mark {
+  position: relative;
+  isolation: isolate;
   display: inline-grid;
   place-items: center;
   width: 58px;
   height: 58px;
+  overflow: hidden;
   border-radius: 20px;
   color: #ffffff;
   background: linear-gradient(145deg, var(--ndp-accent), var(--ndp-blue));
   box-shadow: 0 14px 26px rgba(14, 165, 163, 0.22);
+  animation: neodid-passport-seal-breathe 4.6s ease-in-out infinite;
+}
+
+.neodid-passport__credential-logo {
+  position: absolute;
+  inset: 7px;
+  display: block;
+  overflow: hidden;
+  border-radius: 15px;
+  opacity: 0.32;
+}
+
+.neodid-passport__credential-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.neodid-passport__credential-mark svg {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.24));
+}
+
+.neodid-passport__credential-preview--signed .neodid-passport__credential-mark {
+  animation: neodid-passport-seal-signed 2.8s ease-in-out infinite;
 }
 
 .neodid-passport__credential-copy {
@@ -397,6 +467,147 @@
   font-size: 0.78rem;
   font-weight: 800;
   line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neodid-passport__seal-track {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(14, 165, 163, 0.14);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(238, 249, 255, 0.74)),
+    rgba(255, 255, 255, 0.76);
+}
+
+.neodid-passport__seal-track-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.neodid-passport__seal-track-head span {
+  min-width: 0;
+  color: var(--ndp-accent-strong);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.neodid-passport__seal-track-head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ns-ink);
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.neodid-passport__seal-rail {
+  position: relative;
+  min-height: 42px;
+}
+
+.neodid-passport__seal-line,
+.neodid-passport__seal-line-progress {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  height: 3px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.neodid-passport__seal-line {
+  right: 18px;
+  background: rgba(14, 165, 163, 0.16);
+}
+
+.neodid-passport__seal-line-progress {
+  width: 33%;
+  max-width: calc(100% - 36px);
+  background: linear-gradient(90deg, var(--ndp-accent), var(--ndp-blue), #16a34a);
+  background-size: 180% 100%;
+  box-shadow: 0 0 18px rgba(14, 165, 163, 0.24);
+  animation: neodid-passport-route-flow 2.6s linear infinite;
+  transition: width 220ms ease;
+}
+
+.neodid-passport__credential-preview--built .neodid-passport__seal-line-progress {
+  width: 66%;
+}
+
+.neodid-passport__credential-preview--signed .neodid-passport__seal-line-progress {
+  width: calc(100% - 36px);
+}
+
+.neodid-passport__seal-token {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(14, 165, 163, 0.22);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ndp-accent-strong);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.09);
+  transform: translate(-50%, -50%);
+  transition:
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.neodid-passport__seal-token--subject {
+  left: 18px;
+}
+
+.neodid-passport__seal-token--payload {
+  left: 50%;
+  color: var(--ns-text-muted);
+}
+
+.neodid-passport__seal-token--proof {
+  left: calc(100% - 18px);
+  color: var(--ns-text-muted);
+}
+
+.neodid-passport__seal-token.is-ready {
+  border-color: rgba(22, 163, 74, 0.34);
+  color: #0f7a3e;
+  box-shadow:
+    0 9px 20px rgba(22, 163, 74, 0.14),
+    0 0 0 5px rgba(22, 163, 74, 0.08);
+  animation: neodid-passport-token-ready 2.6s ease-in-out infinite;
+}
+
+.neodid-passport__seal-labels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.neodid-passport__seal-labels span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -742,6 +953,69 @@
   font-weight: 650;
 }
 
+@keyframes neodid-passport-card-scan {
+  0%,
+  38% {
+    transform: translateX(0) skewX(-18deg);
+  }
+
+  62%,
+  100% {
+    transform: translateX(360%) skewX(-18deg);
+  }
+}
+
+@keyframes neodid-passport-seal-breathe {
+  0%,
+  100% {
+    box-shadow: 0 14px 26px rgba(14, 165, 163, 0.2);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow: 0 18px 34px rgba(37, 99, 235, 0.22);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes neodid-passport-seal-signed {
+  0%,
+  100% {
+    box-shadow:
+      0 14px 26px rgba(22, 163, 74, 0.2),
+      0 0 0 0 rgba(22, 163, 74, 0.14);
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow:
+      0 18px 34px rgba(22, 163, 74, 0.24),
+      0 0 0 8px rgba(22, 163, 74, 0);
+    transform: scale(1.025);
+  }
+}
+
+@keyframes neodid-passport-route-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 180% 50%;
+  }
+}
+
+@keyframes neodid-passport-token-ready {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
 @media (max-width: 980px) {
   .neodid-passport {
     padding: 16px;
@@ -798,6 +1072,28 @@
     width: fit-content;
   }
 
+  .neodid-passport__credential-mark {
+    width: 54px;
+    height: 54px;
+  }
+
+  .neodid-passport__seal-track-head {
+    display: grid;
+  }
+
+  .neodid-passport__seal-track-head strong {
+    text-align: left;
+  }
+
+  .neodid-passport__seal-token {
+    width: 30px;
+    height: 30px;
+  }
+
+  .neodid-passport__seal-labels span {
+    font-size: 0.66rem;
+  }
+
   .neodid-passport__actions {
     flex-direction: column;
   }
@@ -811,5 +1107,13 @@
   .neodid-passport__provider-card,
   .neodid-passport__external-link {
     transition: none;
+  }
+
+  .neodid-passport__credential-preview::after,
+  .neodid-passport__credential-mark,
+  .neodid-passport__credential-preview--signed .neodid-passport__credential-mark,
+  .neodid-passport__seal-line-progress,
+  .neodid-passport__seal-token.is-ready {
+    animation: none;
   }
 }
