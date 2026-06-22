@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { NeoButton } from "@shared/components-react";
-import ThreeDCoin from "@/components/ThreeDCoin";
+import ThreeDCoin from "../../../components/ThreeDCoin";
+import vaultBgUrl from "../../../static/bg_vault.png";
+import pedestalUrl from "../../../static/holo_pedestal.png";
+import winnerUrl from "../../../static/holo_winner.png";
 import "./CoinArena.scss";
 
 const PAYOUT_MULTIPLIER = 2;
@@ -54,15 +57,40 @@ export default function CoinArena({
 
   // The coin spins through both the commit and the reveal wait.
   const coinSpinning = isFlipping || revealing;
+  const stageState = coinSpinning
+    ? revealing
+      ? "revealing"
+      : "flipping"
+    : result
+      ? result.won
+        ? "won"
+        : "lost"
+      : "ready";
 
   return (
-    <div className="premium-arena">
+    <div className={`premium-arena premium-arena--${stageState}`} data-state={stageState}>
       <div className="arena-content">
-        <div className="arena-bg">
+        <div className="arena-bg" aria-hidden="true">
+          <img className="arena-bg__vault" src={vaultBgUrl} alt="" loading="eager" decoding="async" />
+          <span className="arena-bg__wash" />
           <div className="arena-orbit" />
+          <div className="arena-orbit arena-orbit--inner" />
           <div className={`arena-glow${coinSpinning ? " flipping" : ""}`} />
         </div>
-        <div className="coin-wrapper">
+        <div className="arena-stage" aria-hidden="true">
+          <img className="arena-stage__pedestal" src={pedestalUrl} alt="" loading="eager" decoding="async" />
+          {coinSpinning && (
+            <div className="coin-flight-trail">
+              <span />
+              <span />
+              <span />
+            </div>
+          )}
+          {result?.won && !coinSpinning && (
+            <img className="arena-stage__winner" src={winnerUrl} alt="" loading="lazy" decoding="async" />
+          )}
+        </div>
+        <div className={`coin-wrapper coin-wrapper--${stageState}`}>
           <ThreeDCoin
             result={displayOutcome}
             flipping={coinSpinning}

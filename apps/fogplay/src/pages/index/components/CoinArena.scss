@@ -2,46 +2,77 @@
   position: relative;
   box-sizing: border-box;
   width: 100%;
-  padding: 8px 0 4px;
+  min-height: 390px;
+  padding: 18px 16px 20px;
   overflow: hidden;
-  border: 0;
-  border-radius: 20px;
-  background: transparent;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(22, 199, 132, 0.12), transparent 34%),
+    #f8faf9;
 }
 
 .arena-content {
   position: relative;
   z-index: 10;
   display: flex;
+  min-height: 348px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 232px;
 }
 
-.arena-bg {
+.arena-bg,
+.arena-stage {
   position: absolute;
   inset: 0;
   z-index: -1;
+  pointer-events: none;
+}
+
+.arena-bg__vault {
+  position: absolute;
+  inset: -8% -10% auto;
+  width: 120%;
+  height: 74%;
+  object-fit: cover;
+  object-position: center 58%;
+  opacity: 0.34;
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.arena-bg__wash {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 249, 0.08), rgba(248, 250, 249, 0.92) 67%),
+    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.76), transparent 48%);
 }
 
 .arena-orbit {
   position: absolute;
-  top: 50%;
+  top: 47%;
   left: 50%;
-  width: 232px;
-  height: 232px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  width: 272px;
+  height: 272px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
   border-radius: 50%;
   transform: translate(-50%, -50%);
 }
 
+.arena-orbit--inner {
+  width: 192px;
+  height: 192px;
+  border-color: rgba(22, 199, 132, 0.18);
+  animation: arena-orbit-breathe 4.8s ease-in-out infinite;
+}
+
 .arena-glow {
   position: absolute;
-  top: 50%;
+  top: 47%;
   left: 50%;
-  width: 144px;
-  height: 144px;
+  width: 168px;
+  height: 168px;
   border-radius: 999px;
   background: var(--coin-arena-ambient);
   transform: translate(-50%, -50%);
@@ -49,20 +80,95 @@
 
   &.flipping {
     background: var(--coin-arena-ambient-flip);
-    transform: translate(-50%, -50%) scale(1.12);
+    transform: translate(-50%, -50%) scale(1.16);
   }
+}
+
+.arena-stage__pedestal {
+  position: absolute;
+  bottom: 74px;
+  left: 50%;
+  width: min(268px, 76vw);
+  transform: translateX(-50%);
+  opacity: 0.88;
+  filter: drop-shadow(0 18px 30px rgba(8, 20, 35, 0.18));
+  animation: pedestal-hum 3.6s ease-in-out infinite;
+}
+
+.premium-arena--flipping .arena-stage__pedestal,
+.premium-arena--revealing .arena-stage__pedestal {
+  animation-duration: 1.4s;
+  filter:
+    drop-shadow(0 18px 34px rgba(8, 20, 35, 0.2))
+    drop-shadow(0 0 24px rgba(22, 199, 132, 0.28));
+}
+
+.arena-stage__winner {
+  position: absolute;
+  right: 10px;
+  bottom: 52px;
+  width: 148px;
+  opacity: 0.88;
+  filter:
+    drop-shadow(0 16px 28px rgba(8, 20, 35, 0.18))
+    drop-shadow(0 0 22px rgba(22, 199, 132, 0.2));
+  animation: winner-token-in 560ms cubic-bezier(0.2, 0.78, 0.22, 1.08) both;
+}
+
+.coin-flight-trail {
+  position: absolute;
+  top: 78px;
+  left: 50%;
+  width: 1px;
+  height: 150px;
+  transform: translateX(-50%);
+}
+
+.coin-flight-trail span {
+  position: absolute;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(22, 199, 132, 0.86);
+  box-shadow: 0 0 20px rgba(22, 199, 132, 0.42);
+  opacity: 0;
+  transform: translate(-50%, 0) scale(0.6);
+  animation: flight-spark 920ms ease-out infinite;
+}
+
+.coin-flight-trail span:nth-child(1) {
+  top: 14px;
+}
+
+.coin-flight-trail span:nth-child(2) {
+  top: 64px;
+  animation-delay: 110ms;
+}
+
+.coin-flight-trail span:nth-child(3) {
+  top: 112px;
+  animation-delay: 220ms;
 }
 
 .coin-wrapper {
   position: relative;
   z-index: 2;
-  margin-bottom: 12px;
+  margin-bottom: 40px;
+}
+
+.coin-wrapper--won {
+  animation: result-pop 520ms cubic-bezier(0.18, 0.9, 0.2, 1.18) both;
+}
+
+.coin-wrapper--lost {
+  animation: result-settle 420ms ease-out both;
 }
 
 .status-box {
   position: relative;
   z-index: 3;
-  margin-top: 32px;
+  margin-top: 0;
 }
 
 .game-status-pill {
@@ -73,12 +179,10 @@
   border: 1px solid var(--coin-balance-pill-border);
   border-radius: 999px;
   background: var(--ns-brand-soft, #e4f8f0);
-  // Darker brand green so 13px/800 label text clears AA (>=4.5:1) on the soft fill.
   color: #047857;
   font-size: 13px;
   font-weight: 800;
 
-  // Reveal phase: amber pill to signal "committed, waiting for the next block".
   &.revealing {
     border-color: rgba(245, 158, 11, 0.32);
     background: #fef3c7;
@@ -94,6 +198,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
+  max-width: 360px;
   margin-top: 14px;
   padding: 10px 18px;
   border: 1px solid rgba(245, 158, 11, 0.28);
@@ -144,25 +249,28 @@
   align-items: stretch;
   justify-content: center;
   gap: 8px 18px;
+  max-width: 360px;
   margin-top: 14px;
   padding: 10px 18px;
   border: 1px solid var(--coin-balance-pill-border);
   border-radius: 14px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 6px 16px rgba(20, 22, 38, 0.05);
+  backdrop-filter: blur(10px);
 }
 
 .bet-preview__odds {
   flex-basis: 100%;
-  text-align: center;
   color: var(--coin-text-secondary);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-align: center;
 }
 
 .bet-preview__cell {
   display: flex;
+  min-width: 96px;
   flex-direction: column;
   gap: 2px;
 
@@ -190,8 +298,8 @@
 
 .result-banner {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -199,11 +307,14 @@
   padding: 8px 12px;
   border: 1px solid rgba(239, 68, 68, 0.24);
   border-radius: 12px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 26px rgba(20, 22, 38, 0.08);
+  animation: result-banner-in 360ms ease-out both;
+  backdrop-filter: blur(10px);
 
   &.won {
     border-color: rgba(16, 185, 129, 0.28);
-    background: rgba(16, 185, 129, 0.12);
+    background: rgba(236, 253, 245, 0.92);
   }
 }
 
@@ -223,6 +334,96 @@
   font-weight: 700;
 }
 
+@keyframes arena-orbit-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+@keyframes pedestal-hum {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  50% {
+    opacity: 0.96;
+    transform: translateX(-50%) translateY(-3px) scale(1.015);
+  }
+}
+
+@keyframes flight-spark {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.55);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -38px) scale(1.05);
+  }
+}
+
+@keyframes result-pop {
+  0% {
+    transform: translateY(16px) scale(0.94);
+  }
+
+  64% {
+    transform: translateY(-4px) scale(1.04);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes result-settle {
+  0% {
+    transform: translateY(-8px) rotate(-1deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes winner-token-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.84);
+  }
+
+  100% {
+    opacity: 0.88;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes result-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes status-dot-pulse {
   0%,
   100% {
@@ -237,30 +438,76 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .arena-glow,
+  .arena-orbit--inner,
+  .arena-stage__pedestal,
+  .coin-flight-trail span,
+  .coin-wrapper--won,
+  .coin-wrapper--lost,
+  .arena-stage__winner,
+  .result-banner,
   .status-dot.flipping {
     animation: none;
+  }
+
+  .arena-glow {
     transition: none;
   }
 }
 
 @media (max-width: 520px) {
   .premium-arena {
-    padding: 24px 10px;
-    border-radius: 18px;
+    min-height: 348px;
+    padding: 14px 10px 18px;
+    border-radius: 20px;
   }
 
   .arena-content {
-    min-height: 208px;
+    min-height: 316px;
+  }
+
+  .arena-bg__vault {
+    height: 70%;
+    opacity: 0.3;
   }
 
   .arena-orbit {
-    width: 204px;
-    height: 204px;
+    width: 218px;
+    height: 218px;
+  }
+
+  .arena-orbit--inner {
+    width: 158px;
+    height: 158px;
   }
 
   .arena-glow {
-    width: 124px;
-    height: 124px;
+    width: 126px;
+    height: 126px;
+  }
+
+  .arena-stage__pedestal {
+    bottom: 72px;
+    width: 218px;
+  }
+
+  .arena-stage__winner {
+    right: 4px;
+    bottom: 62px;
+    width: 104px;
+  }
+
+  .coin-wrapper {
+    margin-bottom: 34px;
+  }
+
+  .bet-preview,
+  .reveal-pending {
+    width: min(100%, 320px);
+    box-sizing: border-box;
+  }
+
+  .result-banner {
+    top: 10px;
+    right: 10px;
   }
 }
