@@ -55,6 +55,7 @@ function t(key: string) {
     stakePresets: "Stake presets",
     statusFailed: "Roll failed",
     statusReady: "Ready",
+    statusRolling: "Rolling...",
     statusSubmitting: "Submitting roll...",
     statusSubmitted: "Roll submitted",
   };
@@ -130,11 +131,27 @@ describe("Dice Game PlayArea", () => {
 
     expect(container.querySelector('.dice-stage__table source[srcset="./dice-stage.avif"]')).toBeTruthy();
     expect(container.querySelector('.dice-chip-rack__visual img[src="./dice-chip-rack.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".dice-table-console")).toBeTruthy();
     expect(container.querySelectorAll(".dice-face-grid__item").length).toBe(6);
     expect(screen.getByText("Ready on the table")).toBeTruthy();
-    expect(screen.getByText("Current round")).toBeTruthy();
+    expect(screen.getAllByText("Current round").length).toBeGreaterThan(0);
     expect(screen.getByText("Pick your lucky face")).toBeTruthy();
-    expect(screen.getByText("Chip rack")).toBeTruthy();
+    expect(screen.getAllByText("Chip rack").length).toBeGreaterThan(0);
+  });
+
+  it("shows real dice motion elements while a roll is submitting", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ isSubmitting: true })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".dice-stage")?.getAttribute("data-state")).toBe("rolling");
+    expect(container.querySelectorAll(".dice-stage__trail-die").length).toBe(3);
+    expect(container.querySelector(".dice-roll-button--rolling")).toBeTruthy();
+    expect(screen.getAllByText("Rolling...").length).toBeGreaterThan(0);
   });
 
   it("renders real local roll history instead of placeholder rows", () => {
