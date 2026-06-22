@@ -314,4 +314,28 @@ describe("Event Ticket Pass PlayArea", () => {
     expect(styles).toMatch(/background:\s*var\(--ns-surface-subtle/);
     expect(styles).toMatch(/color:\s*var\(--ns-text-2/);
   });
+
+  it("keeps pass and gate motion backed by reduced-motion fallbacks", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../event-ticket-pass/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes ticket-hero-drift");
+    expect(styles).toContain("@keyframes ticket-stage-sheen");
+    expect(styles).toContain("@keyframes ticket-scan-grid");
+    expect(styles).toContain("@keyframes ticket-pass-art-drift");
+    expect(styles).toContain(".ticket-create-preview--stage::after");
+    expect(styles).toContain(".ticket-scan-frame::after");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.ticket-create-preview--stage::after[\s\S]*animation:\s*ticket-stage-sheen/,
+    );
+    expect(styles).toMatch(
+      /\.ticket-scan-frame\s*\{[\s\S]*animation:\s*ticket-scan-grid/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ticket-pass__stub[\s\S]*animation:\s*none/,
+    );
+  });
 });
