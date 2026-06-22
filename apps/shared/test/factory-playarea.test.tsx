@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -282,6 +284,39 @@ describe("FactoryPlayArea", () => {
     const { FactoryPlayArea } = await loadFactoryModules();
     renderPlayArea(FactoryPlayArea as never, "nep11", buildState());
     expect(screen.getByText("250 bps = 2.5% of each sale")).toBeTruthy();
+    expect(
+      document.querySelector(".domain-factory-studio-flow__drop-deck"),
+    ).toBeTruthy();
+    expect(
+      document.querySelectorAll(".domain-factory-studio-flow__drop-deck img"),
+    ).toHaveLength(3);
+    expect(
+      document.querySelector(".domain-factory-drop-rail__stack"),
+    ).toBeTruthy();
+    expect(
+      document.querySelectorAll(".domain-factory-drop-rail__stack img"),
+    ).toHaveLength(3);
+    expect(
+      document.querySelector(".domain-factory-preview__edition-stack"),
+    ).toBeTruthy();
+    expect(
+      document.querySelectorAll(".domain-factory-preview__edition-stack img"),
+    ).toHaveLength(3);
+  });
+
+  it("keeps the NFT factory stage animated with reduced-motion support", () => {
+    const styles = readFileSync(
+      resolve(__dirname, "../factory/FactoryPlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".domain-factory-studio-flow__drop-deck");
+    expect(styles).toContain(".domain-factory-drop-rail__stack");
+    expect(styles).toContain(".domain-factory-preview__edition-stack");
+    expect(styles).toContain("@keyframes domain-factory-nft-card-float");
+    expect(styles).toContain("@keyframes domain-factory-nft-drop-cycle");
+    expect(styles).toContain("@keyframes domain-factory-nft-mint-scan");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
   it("binds the wallet signature into the copyable package JSON once signed", async () => {

@@ -176,6 +176,12 @@
   background: #07131c;
 }
 
+.domain-factory-studio-flow__copy,
+.domain-factory-studio-flow__stats {
+  position: relative;
+  z-index: 1;
+}
+
 .domain-factory-studio-flow__stage--nep17 {
   color: var(--ns-ink, #1e1e2e);
   background: var(--ns-surface, #ffffff);
@@ -200,6 +206,71 @@
 
 .domain-factory-studio-flow__stage--nep11 .domain-factory-studio-flow__image {
   object-position: 52% 50%;
+}
+
+.domain-factory-studio-flow__drop-deck {
+  position: absolute;
+  top: 26px;
+  right: clamp(18px, 4vw, 48px);
+  z-index: 0;
+  width: min(34%, 238px);
+  min-width: 176px;
+  aspect-ratio: 1.12;
+  pointer-events: none;
+}
+
+.domain-factory-studio-flow__drop-deck img {
+  position: absolute;
+  width: 58%;
+  aspect-ratio: 0.76;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 18px;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.34);
+  transform-origin: 50% 110%;
+  animation: domain-factory-nft-card-float 5.8s ease-in-out infinite;
+}
+
+.domain-factory-studio-flow__drop-deck img:nth-child(1) {
+  left: 0;
+  bottom: 4%;
+  transform: rotate(-10deg) translate3d(0, 0, 0);
+  animation-delay: -0.9s;
+}
+
+.domain-factory-studio-flow__drop-deck img:nth-child(2) {
+  left: 22%;
+  bottom: 12%;
+  z-index: 1;
+  transform: rotate(2deg) translate3d(0, -3%, 0);
+  animation-delay: -2.4s;
+}
+
+.domain-factory-studio-flow__drop-deck img:nth-child(3) {
+  right: 0;
+  bottom: 1%;
+  transform: rotate(13deg) translate3d(0, 0, 0);
+  animation-delay: -4s;
+}
+
+.domain-factory-studio-flow__mint-scan {
+  position: absolute;
+  left: 8%;
+  right: 6%;
+  top: 18%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(157, 246, 220, 0.92),
+    rgba(56, 209, 246, 0.82),
+    transparent
+  );
+  box-shadow:
+    0 0 18px rgba(56, 209, 246, 0.72),
+    0 0 38px rgba(32, 217, 155, 0.38);
+  animation: domain-factory-nft-mint-scan 3.6s ease-in-out infinite;
 }
 
 .domain-factory-studio-flow__stage--nep17 .domain-factory-studio-flow__image,
@@ -980,7 +1051,7 @@
 .domain-factory-drop-rail {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) minmax(110px, 0.35fr);
   gap: 14px;
   align-items: start;
   padding: 14px;
@@ -1025,6 +1096,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
   width: 40px;
   height: 40px;
   border-radius: 13px;
@@ -1036,6 +1109,8 @@
 .domain-factory-drop-rail__copy {
   display: grid;
   gap: 4px;
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
@@ -1072,7 +1147,61 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  position: relative;
+  z-index: 1;
   margin: 0;
+}
+
+.domain-factory-drop-rail__stack {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  min-height: 94px;
+  pointer-events: none;
+}
+
+.domain-factory-drop-rail__stack img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 58px;
+  aspect-ratio: 0.76;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 12px;
+  box-shadow: 0 14px 28px rgba(7, 19, 28, 0.18);
+  transform-origin: 50% 110%;
+  animation: domain-factory-nft-drop-cycle 5.2s ease-in-out infinite;
+}
+
+.domain-factory-drop-rail__stack img:nth-child(1) {
+  transform: translate(-82%, -45%) rotate(-14deg);
+  animation-delay: -0.7s;
+}
+
+.domain-factory-drop-rail__stack img:nth-child(2) {
+  z-index: 1;
+  transform: translate(-48%, -58%) rotate(0deg);
+  animation-delay: -2s;
+}
+
+.domain-factory-drop-rail__stack img:nth-child(3) {
+  transform: translate(-14%, -42%) rotate(13deg);
+  animation-delay: -3.4s;
+}
+
+.domain-factory-drop-rail__glow {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  width: 82px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(32, 217, 155, 0.28);
+  filter: blur(8px);
+  transform: translateX(-50%);
 }
 
 .domain-factory-drop-rail__stats div {
@@ -1471,11 +1600,67 @@
   box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
 }
 
-.domain-factory-preview__art img {
+.domain-factory-preview__art > img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.domain-factory-preview__edition-stack {
+  position: absolute;
+  inset: 18px 14px 64px;
+  pointer-events: none;
+}
+
+.domain-factory-preview__edition-stack img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: min(38%, 96px);
+  aspect-ratio: 0.76;
+  height: auto;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 14px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.3);
+  transform-origin: 50% 118%;
+  animation: domain-factory-nft-card-float 5.6s ease-in-out infinite;
+}
+
+.domain-factory-preview__edition-stack img:nth-child(1) {
+  transform: translate(-102%, -42%) rotate(-13deg);
+  animation-delay: -1.1s;
+}
+
+.domain-factory-preview__edition-stack img:nth-child(2) {
+  z-index: 1;
+  transform: translate(-50%, -56%) rotate(1deg);
+  animation-delay: -2.7s;
+}
+
+.domain-factory-preview__edition-stack img:nth-child(3) {
+  transform: translate(2%, -40%) rotate(14deg);
+  animation-delay: -4.1s;
+}
+
+.domain-factory-preview__mint-beam {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 26%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(157, 246, 220, 0.9),
+    rgba(56, 209, 246, 0.82),
+    transparent
+  );
+  box-shadow: 0 0 22px rgba(56, 209, 246, 0.68);
+  animation: domain-factory-nft-mint-scan 3.2s ease-in-out infinite;
 }
 
 .domain-factory-preview__art-overlay {
@@ -2365,6 +2550,17 @@
     max-width: 78%;
   }
 
+  .domain-factory-studio-flow__stage--nep11
+    .domain-factory-studio-flow__copy {
+    max-width: 68%;
+  }
+
+  .domain-factory-studio-flow__drop-deck {
+    right: 16px;
+    width: 190px;
+    min-width: 160px;
+  }
+
   .domain-factory-studio-flow__pipeline::before {
     display: none;
   }
@@ -2387,6 +2583,17 @@
 
   .domain-factory-drop-rail__stats {
     grid-template-columns: 1fr;
+  }
+
+  .domain-factory-drop-rail {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .domain-factory-drop-rail__stack {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: stretch;
+    min-height: 104px;
   }
 
   .domain-factory-secondary-grid {
@@ -2543,6 +2750,22 @@
     max-width: 100%;
   }
 
+  .domain-factory-studio-flow__stage--nep11 {
+    padding-top: 132px;
+  }
+
+  .domain-factory-studio-flow__stage--nep11
+    .domain-factory-studio-flow__copy {
+    max-width: 100%;
+  }
+
+  .domain-factory-studio-flow__drop-deck {
+    top: 12px;
+    right: 12px;
+    width: 150px;
+    min-width: 136px;
+  }
+
   .domain-factory-studio-flow__copy strong {
     font-size: 1.55rem;
     line-height: 1.02;
@@ -2594,6 +2817,14 @@
     flex-basis: auto;
   }
 
+  .domain-factory-preview__edition-stack {
+    inset: 16px 10px 58px;
+  }
+
+  .domain-factory-preview__edition-stack img {
+    width: min(34%, 76px);
+  }
+
   .domain-factory-token-rail {
     min-height: 238px;
   }
@@ -2628,6 +2859,14 @@
   .domain-factory-drop-rail__stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+  }
+
+  .domain-factory-drop-rail__stack {
+    min-height: 82px;
+  }
+
+  .domain-factory-drop-rail__stack img {
+    width: 48px;
   }
 
   .domain-factory-token-rail__stats div,
@@ -2749,8 +2988,51 @@
   }
 }
 
+@keyframes domain-factory-nft-card-float {
+  0%,
+  100% {
+    translate: 0 0;
+    filter: saturate(1);
+  }
+  48% {
+    translate: 0 -9px;
+    filter: saturate(1.08);
+  }
+}
+
+@keyframes domain-factory-nft-drop-cycle {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+@keyframes domain-factory-nft-mint-scan {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scaleX(0.72);
+  }
+  18%,
+  72% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0.92;
+    transform: translateY(92px) scaleX(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .domain-factory-studio-flow__image,
+  .domain-factory-studio-flow__drop-deck img,
+  .domain-factory-studio-flow__mint-scan,
+  .domain-factory-drop-rail__stack img,
+  .domain-factory-preview__edition-stack img,
+  .domain-factory-preview__mint-beam,
   .domain-factory-studio-flow__step--active
     .domain-factory-studio-flow__step-icon {
     animation: none;
