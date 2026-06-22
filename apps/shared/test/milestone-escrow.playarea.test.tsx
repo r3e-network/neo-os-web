@@ -50,6 +50,7 @@ function t(key: string, params?: Record<string, string | number>) {
     noMilestoneToApprove: "All milestones approved",
     noMilestoneToClaim: "No approved milestone to claim",
     planPreview: "Release plan",
+    previewNetwork: "Neo N3 - Milestone Escrow",
     refresh: "Refresh",
     releaseDesk: "Release desk",
     releaseDeskTitle: "Build a staged payout plan",
@@ -144,6 +145,10 @@ describe("Milestone Escrow PlayArea", () => {
     expect(screen.getByLabelText("Release plan")).toBeTruthy();
     expect(screen.getByText("Deal controls")).toBeTruthy();
     expect(screen.getByLabelText("Beneficiary")).toBeTruthy();
+    expect(document.querySelector(".create-plan-preview__stage-img")?.getAttribute("src")).toBe("./milestone-escrow-stage.jpg");
+    expect(document.querySelector(".create-plan-preview__logo source")?.getAttribute("srcset")).toBe("./logo.avif");
+    expect(document.querySelector(".create-plan-preview__token-logo img")?.getAttribute("src")).toBe("./logo.jpg");
+    expect(document.querySelector(".create-plan-preview__card")?.classList.contains("is-ready")).toBe(false);
     // The NEO asset option is back: both radios are present, GAS selected.
     const gasOption = screen.getByRole("radio", { name: "GAS" });
     const neoOption = screen.getByRole("radio", { name: "NEO" });
@@ -196,6 +201,8 @@ describe("Milestone Escrow PlayArea", () => {
     // Live total reflects the sum of all milestone amounts.
     expect(screen.getByText("4 GAS")).toBeTruthy();
     expect(container.querySelectorAll(".create-plan-preview__gate.is-funded")).toHaveLength(3);
+    expect(container.querySelector(".create-plan-preview__card")?.classList.contains("is-ready")).toBe(true);
+    expect((container.querySelector(".create-plan-preview__card") as HTMLElement).style.getPropertyValue("--escrow-route-progress")).toBe("100%");
 
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
@@ -256,6 +263,20 @@ describe("Milestone Escrow PlayArea", () => {
     expect(styles).toMatch(/\.milestone-row__toolbar\s*\{[\s\S]*justify-content:\s*space-between/);
     expect(styles).toMatch(/\.milestone-row__input \.neo-input__suffix\s*\{[\s\S]*font-weight:\s*800/);
     expect(styles).toMatch(/@media \(max-width: 420px\)[\s\S]*\.milestone-row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  });
+
+  it("keeps the create preview asset-led, animated, and reduced-motion safe", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../milestone-escrow/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(/\.create-plan-preview__stage-img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/@keyframes escrow-stage-drift/);
+    expect(styles).toMatch(/@keyframes escrow-token-submit/);
+    expect(styles).toMatch(/@keyframes escrow-route-flow/);
+    expect(styles).toMatch(/@keyframes escrow-gate-funded/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.create-plan-preview__route::after/);
   });
 
   it("switches to NEO and dispatches createEscrow with the NEO asset", () => {
