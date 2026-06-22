@@ -203,6 +203,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ))}
               </div>
               <div
+                className={[
+                  "tarot-oracle-lane",
+                  questionText ? "tarot-oracle-lane--intent" : "",
+                  hasDrawn ? "tarot-oracle-lane--drawn" : "",
+                  allFlipped ? "tarot-oracle-lane--revealed" : "",
+                  isDealing ? "tarot-oracle-lane--dealing" : "",
+                ].filter(Boolean).join(" ")}
+                aria-label={t("oracleLaneLabel")}
+              >
+                <span className={`tarot-oracle-lane__step${questionText ? " is-ready" : ""}`}>
+                  <span className="tarot-oracle-lane__card" aria-hidden="true">
+                    <img src={TAROT_CARD_BACK} alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <small>{t("oracleLaneIntent")}</small>
+                </span>
+                <span className={`tarot-oracle-lane__step${hasDrawn ? " is-ready" : ""}`}>
+                  <span className="tarot-oracle-lane__card" aria-hidden="true">
+                    <img src={TAROT_CARD_BACK} alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <small>{t("oracleLaneDraw")}</small>
+                </span>
+                <span className={`tarot-oracle-lane__step${allFlipped ? " is-ready" : ""}`}>
+                  <span className="tarot-oracle-lane__card" aria-hidden="true">
+                    <img src={TAROT_CARD_BACK} alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <small>{t("oracleLaneReveal")}</small>
+                </span>
+              </div>
+              <div
                 className={`tarot-intention-board${questionText ? " is-ready" : ""}`}
                 aria-label={t("questionPreviewLabel")}
               >
