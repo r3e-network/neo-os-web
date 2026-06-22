@@ -245,6 +245,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const riskTone = hf >= 2 ? "safe" : hf >= 1.2 ? "caution" : "danger";
   const selectedLtvOption = ltvOptions.find((option) => option.tier === selectedTier);
   const borrowInputValue = localCollateralAmt || collateralAmount;
+  const hasBorrowDraft = Number.isFinite(collateralNum) && collateralNum > 0;
   const previewCollateralLabel =
     Number.isFinite(collateralNum) && collateralNum > 0
       ? `${collateralNum.toLocaleString(undefined, { maximumFractionDigits: 2 })} NEO`
@@ -260,6 +261,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         : hasLoan
           ? "active"
           : "setup";
+  const borrowFlowState = isBorrowing
+    ? "borrowing"
+    : hasActiveLoan
+      ? "locked"
+      : hasBorrowDraft
+        ? "ready"
+        : "draft";
   const rootClassName = [
     "selfloan-play-area",
     `selfloan-play-area--${riskTone}`,
@@ -456,6 +464,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Coins size={14} />
                   {t("poolAvailable")}: <strong>{poolDisplay}</strong>
                 </span>
+              </div>
+
+              <div
+                className={[
+                  "selfloan-flow-board",
+                  `selfloan-flow-board--${borrowFlowState}`,
+                ].join(" ")}
+                role="group"
+                aria-label={t("borrowFlowBoard")}
+              >
+                <div className="selfloan-flow-board__head">
+                  <span>{t("borrowFlowKicker")}</span>
+                  <strong>
+                    {isBorrowing
+                      ? t("borrowFlowBorrowing")
+                      : hasBorrowDraft
+                        ? t("borrowFlowReady")
+                        : t("borrowFlowDraft")}
+                  </strong>
+                </div>
+                <div className="selfloan-flow-board__route" aria-hidden="true">
+                  <span className="selfloan-flow-board__rail" />
+                  <span className="selfloan-flow-board__packet selfloan-flow-board__packet--neo">
+                    NEO
+                  </span>
+                  <span className="selfloan-flow-board__packet selfloan-flow-board__packet--gas">
+                    GAS
+                  </span>
+                </div>
+                <div className="selfloan-flow-board__nodes">
+                  <span className={`selfloan-flow-node${hasBorrowDraft ? " is-ready" : ""}`}>
+                    <LockKeyhole size={15} aria-hidden="true" />
+                    <small>{t("flowNodeCollateral")}</small>
+                    <strong>{previewCollateralLabel}</strong>
+                  </span>
+                  <span className={`selfloan-flow-node${ltvPct > 0 ? " is-ready" : ""}`}>
+                    <Gauge size={15} aria-hidden="true" />
+                    <small>{t("flowNodeLtv")}</small>
+                    <strong>{ltvPct > 0 ? `${ltvPct}%` : "—"}</strong>
+                  </span>
+                  <span className={`selfloan-flow-node${expectedBorrow > 0 ? " is-ready" : ""}`}>
+                    <Coins size={15} aria-hidden="true" />
+                    <small>{t("flowNodeBorrow")}</small>
+                    <strong>{expectedBorrowLabel}</strong>
+                  </span>
+                </div>
               </div>
 
               <div className="selfloan-borrow-desk">
