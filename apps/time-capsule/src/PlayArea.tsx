@@ -217,6 +217,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <small>{t("messageStageCopy")}</small>
                 </span>
               </div>
+              <div
+                className={[
+                  "capsule-letter-dock",
+                  hasMessageDraft ? "is-writing" : "",
+                  canCreate ? "is-ready" : "",
+                  isCreating ? "is-sealing" : "",
+                ].filter(Boolean).join(" ")}
+                aria-label={t("letterDockLabel")}
+              >
+                <span className="capsule-letter-dock__stamp" aria-hidden="true">
+                  <SelectedCategoryIcon size={18} />
+                </span>
+                <span className="capsule-letter-dock__copy">
+                  <small>{t("letterDockKicker")}</small>
+                  <strong>{titlePreview}</strong>
+                  <span>
+                    {contentPreview
+                      ? t("letterDockCount", { count: contentPreview.length })
+                      : t("letterDockEmpty")}
+                  </span>
+                </span>
+                <span className="capsule-letter-dock__rail" aria-hidden="true">
+                  <span />
+                </span>
+                <span className="capsule-letter-dock__seal" aria-hidden="true">
+                  <LockKeyhole size={16} />
+                </span>
+              </div>
               <NeoInput
                 label={t("titleLabel")}
                 placeholder={t("titlePlaceholder")}

@@ -43,6 +43,10 @@ function t(key: string) {
     durationPresets: "Duration presets",
     daysShort: "D",
     contentStorageNote: "Your full message is stored locally on this device.",
+    letterDockLabel: "Message sealing dock",
+    letterDockKicker: "Letter loading",
+    letterDockEmpty: "Write a title or message to load the capsule.",
+    letterDockCount: "{count} characters ready to seal",
     capsuleBoardTitle: "Capsule seal board",
     capsuleBoardDraft: "Draft slot",
     capsuleBoardReadySeal: "Ready to seal",
@@ -146,6 +150,8 @@ describe("Time Capsule PlayArea", () => {
 
     expect(container.querySelector("select")).toBeNull();
     expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(screen.getByLabelText("Message sealing dock")).toBeTruthy();
+    expect(container.querySelector(".capsule-letter-dock.is-ready")).toBeTruthy();
 
     const gift = screen.getByRole("radio", { name: "Gift A timed reveal for someone else" });
     const publicVisibility = screen.getByRole("radio", { name: "Public Anyone can reveal after unlock" });
@@ -179,6 +185,9 @@ describe("Time Capsule PlayArea", () => {
 
     expect(container.querySelector(".capsule-play-area.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-seal-workbench.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-letter-dock.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector(".capsule-letter-dock__rail")).toBeTruthy();
+    expect(container.querySelector(".capsule-letter-dock__seal")).toBeTruthy();
     expect(container.querySelector(".capsule-preview-panel.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-game-board.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector('.capsule-game-token img[src="./logo.jpg"]')).toBeTruthy();
@@ -256,6 +265,9 @@ describe("Time Capsule PlayArea", () => {
     );
 
     expect(playAreaStyles).toContain("@keyframes capsule-preview-sweep");
+    expect(playAreaStyles).toContain("@keyframes capsule-letter-glint");
+    expect(playAreaStyles).toContain("@keyframes capsule-letter-load");
+    expect(playAreaStyles).toContain("@keyframes capsule-letter-seal");
     expect(playAreaStyles).toContain("@keyframes capsule-ready-card");
     expect(playAreaStyles).toContain("@keyframes capsule-game-route-flow");
     expect(playAreaStyles).toContain("@keyframes capsule-game-token-route");
@@ -264,6 +276,7 @@ describe("Time Capsule PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes capsule-game-seal-pulse");
     expect(playAreaStyles).toContain("@keyframes capsule-game-icon-ready");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(playAreaStyles).toContain(".capsule-letter-dock");
     expect(playAreaStyles).toContain(".capsule-game-token");
     expect(playAreaStyles).toContain(".capsule-game-slot--seal.is-sealing");
     expect(playAreaStyles).toContain(".capsule-game-slot");
