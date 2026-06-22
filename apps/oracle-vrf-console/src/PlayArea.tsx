@@ -117,12 +117,20 @@ export default function PlayArea({
   const modeField = consoleConfig.fields.find((field) => field.key === "mode");
   const modeOptions = modeField?.options ?? [];
   const selectedMode =
-    modeOptions.find((option) => option.value === modeValue) ??
-    modeOptions[0];
+    modeOptions.find((option) => option.value === modeValue) ?? modeOptions[0];
   const selectedModeLabel = selectedMode
     ? optionLabel(selectedMode, t)
     : modeValue;
   const draftOk = draftResult.payload.status !== "input_required";
+  const seedReady =
+    consumerValue.trim().length > 0 && saltValue.trim().length > 0;
+  const proofState = result
+    ? result.payload.status === "input_required"
+      ? "warn"
+      : "ready"
+    : draftOk
+      ? "draft"
+      : "warn";
   const requestSummary = consoleConfig.fields.slice(0, 4).map((field) => ({
     key: field.key,
     label: t(field.labelKey),
@@ -180,8 +188,11 @@ export default function PlayArea({
   }
 
   return (
-    <div className="vrf-play-area">
-      <section className="vrf-hero" aria-label={t("panelTitle")}>
+    <div className={`vrf-play-area vrf-play-area--${proofState}`}>
+      <section
+        className={`vrf-hero vrf-hero--${proofState}`}
+        aria-label={t("panelTitle")}
+      >
         <img
           className="vrf-hero__media"
           src="./vrf-randomness-stage.jpg"
@@ -225,17 +236,17 @@ export default function PlayArea({
       </section>
 
       <section className="vrf-flow" aria-label={t("vrfFlowTitle")}>
-        <span>
+        <span className={seedReady ? "is-ready" : undefined}>
           <KeyRound size={18} aria-hidden="true" />
           <strong>{t("vrfFlowSeed")}</strong>
           <small>{t("vrfFlowSeedDesc")}</small>
         </span>
-        <span>
+        <span className={rounds >= 1 ? "is-ready" : undefined}>
           <Shuffle size={18} aria-hidden="true" />
           <strong>{t("vrfFlowDraw")}</strong>
           <small>{t("vrfFlowDrawDesc")}</small>
         </span>
-        <span>
+        <span className={draftOk ? "is-ready" : undefined}>
           <ShieldCheck size={18} aria-hidden="true" />
           <strong>{t("vrfFlowVerify")}</strong>
           <small>{t("vrfFlowVerifyDesc")}</small>
@@ -266,7 +277,10 @@ export default function PlayArea({
             ))}
           </div>
 
-          <section className="vrf-ticket-panel" aria-label={t("vrfTicketTitle")}>
+          <section
+            className="vrf-ticket-panel"
+            aria-label={t("vrfTicketTitle")}
+          >
             <div className="vrf-ticket-panel__head">
               <div className="vrf-section-copy">
                 <small>{t("vrfTicketTitle")}</small>
@@ -286,7 +300,11 @@ export default function PlayArea({
               </span>
             </div>
 
-            <div className="vrf-ticket-board">
+            <div
+              className={`vrf-ticket-board vrf-ticket-board--${draftOk ? "ready" : "warn"}${
+                result ? " vrf-ticket-board--built" : ""
+              }`}
+            >
               <div className="vrf-ticket-seed">
                 <div className="vrf-ticket-step">
                   <span aria-hidden="true">
@@ -418,7 +436,10 @@ export default function PlayArea({
                             : t("modeSingleHint")}
                         </small>
                         {selected && (
-                          <span className="vrf-mode-card__check" aria-hidden="true">
+                          <span
+                            className="vrf-mode-card__check"
+                            aria-hidden="true"
+                          >
                             <Check size={14} />
                           </span>
                         )}
@@ -442,7 +463,24 @@ export default function PlayArea({
           </div>
         </div>
 
-        <aside className="vrf-proof-card" aria-live="polite">
+        <aside
+          className={`vrf-proof-card vrf-proof-card--${
+            result
+              ? result.payload.status === "input_required"
+                ? "warn"
+                : "ready"
+              : "empty"
+          }`}
+          aria-live="polite"
+        >
+          <figure className="vrf-proof-oracle" aria-hidden="true">
+            <img
+              src="./oracle-workspace-stage.jpg"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
           <header className="vrf-card-head">
             <span aria-hidden="true">
               <ReceiptText size={19} />
