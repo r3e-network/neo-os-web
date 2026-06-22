@@ -438,6 +438,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               ].filter(Boolean).join(" ")}
               aria-label={t("capsuleBoardTitle")}
             >
+              <picture className="capsule-game-token" aria-hidden="true">
+                <source srcSet="./logo.avif" type="image/avif" />
+                <source srcSet="./logo.webp" type="image/webp" />
+                <img
+                  src="./logo.jpg"
+                  alt=""
+                  loading="eager"
+                  decoding="sync"
+                />
+              </picture>
               <span className={`capsule-game-slot capsule-game-slot--draft${hasMessageDraft ? " is-active" : ""}`}>
                 <FileText size={16} aria-hidden="true" />
                 <small>{t("capsuleBoardDraft")}</small>
