@@ -249,166 +249,203 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <section className="dice-playarea" aria-label={t("rollDice")}>
       <div className="dice-shell">
-        <div className="dice-stage" aria-live="polite" data-state={stageState}>
-          <div className="dice-stage__visual">
-            <picture className="dice-stage__table" aria-hidden="true">
-              <source srcSet="./dice-stage.avif" type="image/avif" />
-              <source srcSet="./dice-stage.webp" type="image/webp" />
-              <img
-                src="./dice-stage.jpg"
-                alt=""
-                decoding="sync"
-                loading="eager"
-              />
-            </picture>
-            {isRolling && (
-              <div
-                className="dice-stage__throw-trail"
-                key={`throw-${throwPulse}-${faceInput}`}
-                aria-hidden="true"
-              >
-                {rollingFaces.map((face, index) => (
-                  <DiceFaceImage
-                    key={`${face}-${index}`}
-                    face={face ?? faceInput}
-                    className={`dice-stage__trail-die dice-stage__trail-die--${index + 1}`}
-                    alt=""
-                  />
-                ))}
-              </div>
-            )}
-            <DiceFaceImage
-              face={displayFace}
-              className={`dice-stage__die dice-stage__die--${stageState}${dieIsPreview ? " dice-stage__die--preview" : ""}${dieIsPreview && selectionPulse > 0 ? " dice-stage__die--selected" : ""}`}
-              key={`${displayFace}-${selectionPulse}`}
-              alt={stageDieLabel}
-            />
-            <p className="dice-stage__caption" aria-live="polite">
-              <Sparkles size={14} aria-hidden="true" />
-              <span>{tableCaption}</span>
-              <strong>{showResult ? lastRoll : faceInput}</strong>
-            </p>
-          </div>
-
-          <div className="dice-stage__details">
-            <div className="dice-stage__eyebrow-row">
-              <p className="dice-eyebrow">{t("diceHeroTitle")}</p>
-              {chainLabel && (
-                <span
-                  className={`dice-chain-badge${chainLabel.startsWith("Neo X") ? " dice-chain-badge--evm" : ""}`}
-                  title={`${t("networkLabel")}: ${chainLabel}`}
+        <form className="dice-game-form" onSubmit={handleSubmit}>
+          <div className="dice-stage" aria-live="polite" data-state={stageState}>
+            <div className="dice-stage__visual">
+              <picture className="dice-stage__table" aria-hidden="true">
+                <source srcSet="./dice-stage.avif" type="image/avif" />
+                <source srcSet="./dice-stage.webp" type="image/webp" />
+                <img
+                  src="./dice-stage.jpg"
+                  alt=""
+                  decoding="sync"
+                  loading="eager"
+                />
+              </picture>
+              {isRolling && (
+                <div
+                  className="dice-stage__throw-trail"
+                  key={`throw-${throwPulse}-${faceInput}`}
+                  aria-hidden="true"
                 >
-                  <span className="dice-chain-badge__dot" aria-hidden="true" />
-                  {chainLabel}
-                </span>
+                  {rollingFaces.map((face, index) => (
+                    <DiceFaceImage
+                      key={`${face}-${index}`}
+                      face={face ?? faceInput}
+                      className={`dice-stage__trail-die dice-stage__trail-die--${index + 1}`}
+                      alt=""
+                    />
+                  ))}
+                </div>
               )}
-            </div>
-            <h2>
-              {isThrowing
-                ? t("throwingTitle")
-                : isResolving
-                  ? t("resolvingTitle")
-                  : isUnresolved
-                    ? t("statusSettlementPending")
-                    : showResult
-                      ? outcomeLabel
-                      : t("readyTitle")}
-            </h2>
-            <p>
-              {isThrowing
-                ? t("throwingBody")
-                : isResolving
-                  ? t("resolvingBody")
-                  : isUnresolved
-                    ? t("settlementPendingBody")
-                    : showResult
-                      ? outcomeBody
-                      : t("diceHeroSubtitle")}
-            </p>
-
-            {isUnresolved && (
-              <p className="dice-pending-reassure">
-                {t("settlementPendingReassure")}
+              <DiceFaceImage
+                face={displayFace}
+                className={`dice-stage__die dice-stage__die--${stageState}${dieIsPreview ? " dice-stage__die--preview" : ""}${dieIsPreview && selectionPulse > 0 ? " dice-stage__die--selected" : ""}`}
+                key={`${displayFace}-${selectionPulse}`}
+                alt={stageDieLabel}
+              />
+              <p className="dice-stage__caption" aria-live="polite">
+                <Sparkles size={14} aria-hidden="true" />
+                <span>{tableCaption}</span>
+                <strong>{showResult ? lastRoll : faceInput}</strong>
               </p>
-            )}
+            </div>
 
-            {(isRolling || isUnresolved || showResult) && (
-              <div
-                className={`dice-result dice-result--${isUnresolved ? "pending" : stageState}`}
-                role="status"
-              >
-                {isRolling ? (
-                  <>
-                    <span className="dice-result__spinner" aria-hidden="true" />
-                    <span className="dice-result__label">
-                      {t("statusRolling")}
-                    </span>
-                  </>
-                ) : isUnresolved ? (
-                  <>
-                    <span className="dice-result__label">
-                      {t("statusSettlementPending")}
-                    </span>
+            <div className="dice-table-console">
+              <div className="dice-face-tray">
+                <div className="dice-face-tray__head">
+                  <span>{t("pickYourFace")}</span>
+                  <strong>{t("faceTrayHint")}</strong>
+                </div>
+                <div className="dice-face-grid" aria-label={t("selectedFace")}>
+                  {FACES.map((face) => (
                     <button
+                      key={face}
                       type="button"
-                      className="dice-recheck-button"
-                      onClick={() => void dispatch("recheckSettlement", {})}
+                      aria-pressed={face === faceInput}
+                      className={`dice-face-grid__item${face === faceInput ? " dice-face-grid__item--active" : ""}`}
+                      disabled={controlsLocked}
+                      onClick={() => chooseFace(face)}
                     >
-                      {t("checkAgain")}
+                      <DiceFaceImage
+                        face={face}
+                        className="dice-face-grid__die"
+                        alt=""
+                      />
+                      <span>{face}</span>
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="dice-result__roll">
-                      {t("rolledLabel")} <strong>{lastRoll}</strong>
-                    </span>
-                    <span className="dice-result__verdict">{outcomeLabel}</span>
-                  </>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className={`dice-roll-button${isRolling ? " dice-roll-button--rolling" : ""}`}
+                disabled={controlsLocked || !stakeIsValid}
+              >
+                <Dices size={19} aria-hidden="true" />
+                {isRolling ? t("statusRolling") : t("rollAction")}
+              </button>
+            </div>
+
+            <div className="dice-stage__details">
+              <div className="dice-stage__eyebrow-row">
+                <p className="dice-eyebrow">{t("diceHeroTitle")}</p>
+                {chainLabel && (
+                  <span
+                    className={`dice-chain-badge${chainLabel.startsWith("Neo X") ? " dice-chain-badge--evm" : ""}`}
+                    title={`${t("networkLabel")}: ${chainLabel}`}
+                  >
+                    <span className="dice-chain-badge__dot" aria-hidden="true" />
+                    {chainLabel}
+                  </span>
                 )}
               </div>
-            )}
+              <h2>
+                {isThrowing
+                  ? t("throwingTitle")
+                  : isResolving
+                    ? t("resolvingTitle")
+                    : isUnresolved
+                      ? t("statusSettlementPending")
+                      : showResult
+                        ? outcomeLabel
+                        : t("readyTitle")}
+              </h2>
+              <p>
+                {isThrowing
+                  ? t("throwingBody")
+                  : isResolving
+                    ? t("resolvingBody")
+                    : isUnresolved
+                      ? t("settlementPendingBody")
+                      : showResult
+                        ? outcomeBody
+                        : t("diceHeroSubtitle")}
+              </p>
 
-            <div className="dice-metric-grid">
-              <span>
-                {t("oddsLabel")}
-                <strong>1 / 6</strong>
-              </span>
-              <span>
-                {t("feeLabel")}
-                <strong>5%</strong>
-              </span>
-              <span>
-                {t("rangeLabel")}
-                <strong>
-                  {MIN_STAKE}-{maxStake} GAS
-                </strong>
-              </span>
-              {houseLiquidity > 0 && (
-                <span title={t("maxPayableLabel")}>
-                  {t("houseLiquidityLabel")}
-                  <strong>{houseLiquidity.toFixed(2)} GAS</strong>
-                </span>
+              {isUnresolved && (
+                <p className="dice-pending-reassure">
+                  {t("settlementPendingReassure")}
+                </p>
               )}
-            </div>
-            <p className="dice-edge-note" title={t("diceRiskCopy")}>
-              <Coins size={14} aria-hidden="true" />
-              <span>{houseEdgeNote}</span>
-            </p>
-            <div className="dice-rule-strip" aria-label={t("diceRoundSummary")}>
-              <span>{t("diceRuleCommit")}</span>
-              <span>{t("diceRuleCallback")}</span>
-              <span>{t("diceRuleRefund")}</span>
+
+              {(isRolling || isUnresolved || showResult) && (
+                <div
+                  className={`dice-result dice-result--${isUnresolved ? "pending" : stageState}`}
+                  role="status"
+                >
+                  {isRolling ? (
+                    <>
+                      <span className="dice-result__spinner" aria-hidden="true" />
+                      <span className="dice-result__label">
+                        {t("statusRolling")}
+                      </span>
+                    </>
+                  ) : isUnresolved ? (
+                    <>
+                      <span className="dice-result__label">
+                        {t("statusSettlementPending")}
+                      </span>
+                      <button
+                        type="button"
+                        className="dice-recheck-button"
+                        onClick={() => void dispatch("recheckSettlement", {})}
+                      >
+                        {t("checkAgain")}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="dice-result__roll">
+                        {t("rolledLabel")} <strong>{lastRoll}</strong>
+                      </span>
+                      <span className="dice-result__verdict">{outcomeLabel}</span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="dice-metric-grid">
+                <span>
+                  {t("oddsLabel")}
+                  <strong>1 / 6</strong>
+                </span>
+                <span>
+                  {t("feeLabel")}
+                  <strong>5%</strong>
+                </span>
+                <span>
+                  {t("rangeLabel")}
+                  <strong>
+                    {MIN_STAKE}-{maxStake} GAS
+                  </strong>
+                </span>
+                {houseLiquidity > 0 && (
+                  <span title={t("maxPayableLabel")}>
+                    {t("houseLiquidityLabel")}
+                    <strong>{houseLiquidity.toFixed(2)} GAS</strong>
+                  </span>
+                )}
+              </div>
+              <p className="dice-edge-note" title={t("diceRiskCopy")}>
+                <Coins size={14} aria-hidden="true" />
+                <span>{houseEdgeNote}</span>
+              </p>
+              <div className="dice-rule-strip" aria-label={t("diceRoundSummary")}>
+                <span>{t("diceRuleCommit")}</span>
+                <span>{t("diceRuleCallback")}</span>
+                <span>{t("diceRuleRefund")}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="dice-bet-panel">
-          <div className="dice-panel-heading">
-            <span>{t("diceStakeDeskTitle")}</span>
-            <strong>{t("rollAction")}</strong>
-          </div>
+          <div className="dice-bet-panel">
+            <div className="dice-panel-heading">
+              <span>{t("currentRound")}</span>
+              <strong>{t("stakeRackTitle")}</strong>
+            </div>
 
-          <form className="dice-bet-form" onSubmit={handleSubmit}>
             <div
               className="dice-current-round"
               aria-label={t("diceBetSummary")}
@@ -445,41 +482,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 size={23}
                 aria-hidden="true"
               />
-            </div>
-
-            <button
-              type="submit"
-              className={`dice-roll-button${isRolling ? " dice-roll-button--rolling" : ""}`}
-              disabled={controlsLocked || !stakeIsValid}
-            >
-              <Dices size={19} aria-hidden="true" />
-              {isRolling ? t("statusRolling") : t("rollAction")}
-            </button>
-
-            <div className="dice-face-tray">
-              <div className="dice-face-tray__head">
-                <span>{t("pickYourFace")}</span>
-                <strong>{t("faceTrayHint")}</strong>
-              </div>
-              <div className="dice-face-grid" aria-label={t("selectedFace")}>
-                {FACES.map((face) => (
-                  <button
-                    key={face}
-                    type="button"
-                    aria-pressed={face === faceInput}
-                    className={`dice-face-grid__item${face === faceInput ? " dice-face-grid__item--active" : ""}`}
-                    disabled={controlsLocked}
-                    onClick={() => chooseFace(face)}
-                  >
-                    <DiceFaceImage
-                      face={face}
-                      className="dice-face-grid__die"
-                      alt=""
-                    />
-                    <span>{face}</span>
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div className="dice-chip-rack">
@@ -566,44 +568,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {!isEvmChain && (
               <p className="dice-trust-line">{t("vrfTrustLine")}</p>
             )}
-          </form>
 
-          {directCredit > 0 && (
-            <div className="dice-credit-banner" role="status">
-              <span>
-                {t("directCreditBanner", {
-                  amount: directCredit.toFixed(2),
-                  tokenGas: t("tokenGas"),
-                })}
-              </span>
-              {!isEvmChain && (
-                <button
-                  type="button"
-                  className="dice-credit-withdraw"
-                  disabled={isSubmitting}
-                  onClick={() => void dispatch("withdrawCredit", {})}
-                >
-                  {t("withdrawCredit")}
-                </button>
+            {directCredit > 0 && (
+              <div className="dice-credit-banner" role="status">
+                <span>
+                  {t("directCreditBanner", {
+                    amount: directCredit.toFixed(2),
+                    tokenGas: t("tokenGas"),
+                  })}
+                </span>
+                {!isEvmChain && (
+                  <button
+                    type="button"
+                    className="dice-credit-withdraw"
+                    disabled={isSubmitting}
+                    onClick={() => void dispatch("withdrawCredit", {})}
+                  >
+                    {t("withdrawCredit")}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div
+              className={`dice-status-bar${formError ? " dice-status-bar--error" : ""}`}
+              aria-live="polite"
+            >
+              <span>{formError || lastStatus}</span>
+              <strong>
+                {t("dicePayoutLabel")}: {activePayout}
+              </strong>
+              {lastTxid && (
+                <code>
+                  {t("lastTx")}: {formatHash(lastTxid, 10, 8)}
+                </code>
               )}
             </div>
-          )}
-
-          <div
-            className={`dice-status-bar${formError ? " dice-status-bar--error" : ""}`}
-            aria-live="polite"
-          >
-            <span>{formError || lastStatus}</span>
-            <strong>
-              {t("dicePayoutLabel")}: {activePayout}
-            </strong>
-            {lastTxid && (
-              <code>
-                {t("lastTx")}: {formatHash(lastTxid, 10, 8)}
-              </code>
-            )}
           </div>
-        </div>
+        </form>
 
         <details className="dice-route-panel">
           <summary className="dice-panel-heading">
