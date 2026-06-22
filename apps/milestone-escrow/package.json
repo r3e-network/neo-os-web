@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "uni",
-    "dev:h5": "vite -p h5",
+    "dev:h5": "vite",
     "build": "vite build",
     "test": "vitest run"
   },
