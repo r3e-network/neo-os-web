@@ -30,13 +30,15 @@
   cursor: pointer;
   transition:
     background 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    transform 0.15s ease;
   color: pm.$text;
   font-size: 20px;
 
   &:hover:not(:disabled) {
     background: pm.$surface;
     border-color: rgba(20, 22, 38, 0.16);
+    transform: translateY(-1px);
   }
   &:focus-visible {
     outline: none;
@@ -54,9 +56,8 @@
 }
 
 .adjust-icon {
-  font-weight: 800;
-  font-size: 18px;
-  line-height: 1;
+  display: block;
+  stroke-width: 2.7;
 }
 
 .key-display {
@@ -122,6 +123,7 @@
     background: pm.$neo-soft;
     border-color: rgba(22, 199, 132, 0.5);
     color: pm.$neo-strong;
+    animation: survivor-preset-confirm 260ms ease-out both;
   }
 }
 
@@ -145,6 +147,9 @@
 }
 
 .cost-value-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 18px;
   font-weight: 800;
   color: pm.$neo-strong;
@@ -152,7 +157,8 @@
 }
 
 .cost-gas-icon {
-  margin-right: 4px;
+  display: block;
+  stroke-width: 2.4;
 }
 
 .hint-text-glass {
@@ -201,4 +207,29 @@
   font-weight: 700;
   box-shadow: none;
   cursor: not-allowed;
+}
+
+@keyframes survivor-preset-confirm {
+  0% {
+    transform: scale(0.94);
+  }
+
+  72% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-adjust-btn,
+  .preset-chip {
+    transition: none;
+  }
+
+  .preset-chip.active {
+    animation: none;
+  }
 }
