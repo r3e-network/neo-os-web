@@ -56,6 +56,7 @@ $amber: #f59e0b;
 .checkin-play-area {
   display: grid;
   gap: 20px;
+  box-sizing: border-box;
   padding: 20px 24px 32px;
   max-width: 880px;
   margin: 0 auto;
@@ -92,12 +93,23 @@ $amber: #f59e0b;
   align-items: start;
 }
 
-.checkin-top-left,
+.checkin-top-left {
+  display: contents;
+}
+
 .checkin-top-right {
+  grid-column: 2;
+  grid-row: 1 / span 3;
   display: grid;
   gap: 20px;
   min-width: 0;
   align-content: start;
+}
+
+.checkin-streak-section,
+.checkin-streak-stage,
+.checkin-week-wrapper {
+  grid-column: 1;
 }
 
 /* The action rail stretches to the top of the column so the primary CTA is
@@ -118,6 +130,29 @@ $amber: #f59e0b;
 @media (max-width: 720px) {
   .checkin-top-grid {
     grid-template-columns: 1fr;
+  }
+
+  .checkin-streak-section,
+  .checkin-top-right,
+  .checkin-streak-stage,
+  .checkin-week-wrapper {
+    grid-column: 1;
+  }
+
+  .checkin-streak-section {
+    grid-row: 1;
+  }
+
+  .checkin-top-right {
+    grid-row: 2;
+  }
+
+  .checkin-streak-stage {
+    grid-row: 3;
+  }
+
+  .checkin-week-wrapper {
+    grid-row: 4;
   }
 }
 
@@ -167,6 +202,7 @@ $amber: #f59e0b;
   align-items: center;
   gap: 18px;
   width: 100%;
+  box-sizing: border-box;
   padding: 22px 24px;
   border-radius: $ns-radius;
   background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 64%);
@@ -292,6 +328,29 @@ $amber: #f59e0b;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.streak-milestone-ready .checkin-streak-stage__tokens span:last-child {
+  border-color: rgba(245, 158, 11, 0.38);
+  background: rgba(255, 252, 244, 0.94);
+  box-shadow:
+    0 14px 28px rgba(245, 158, 11, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62);
+  animation: checkin-reward-token-ready 2.6s ease-in-out infinite;
+}
+
+.streak-milestone-ready .checkin-streak-stage__tokens span:last-child strong {
+  color: #9a5a12;
+}
+
+@keyframes checkin-reward-token-ready {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 /* Icon badge — the streak figure, accent-ringed */
@@ -481,6 +540,27 @@ $amber: #f59e0b;
   }
 }
 
+.streak-celebrating .checkin-fire-ring {
+  animation: checkin-success-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.streak-can-checkin .checkin-streak-section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    112deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.42) 42%,
+    rgba(22, 199, 132, 0.12) 52%,
+    transparent 74%
+  );
+  pointer-events: none;
+  transform: translateX(-72%);
+  animation: checkin-ready-sheen 4.8s ease-in-out infinite;
+}
+
 @keyframes checkin-ring-pulse {
   0%,
   100% {
@@ -492,8 +572,38 @@ $amber: #f59e0b;
   }
 }
 
+@keyframes checkin-success-pop {
+  0% {
+    transform: scale(0.96);
+  }
+  58% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes checkin-ready-sheen {
+  0%,
+  68% {
+    opacity: 0;
+    transform: translateX(-72%);
+  }
+  78% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(72%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .streak-can-checkin .checkin-fire-ring {
+  .streak-milestone-ready .checkin-streak-stage__tokens span:last-child,
+  .streak-celebrating .checkin-fire-ring,
+  .streak-can-checkin .checkin-fire-ring,
+  .streak-can-checkin .checkin-streak-section::after {
     animation: none;
   }
 }
@@ -598,6 +708,17 @@ $amber: #f59e0b;
   }
 }
 
+.checkin-week-day-slot.today-ready::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(22, 199, 132, 0.32);
+  border-radius: 10px;
+  opacity: 0;
+  pointer-events: none;
+  animation: checkin-today-ready-ring 1.7s ease-in-out infinite;
+}
+
 .checkin-day-icon {
   display: inline-flex;
   align-items: center;
@@ -634,6 +755,33 @@ $amber: #f59e0b;
   border-radius: 999px;
   background: $ac;
   transition: width 320ms ease;
+}
+
+.streak-can-checkin .checkin-connector-fill {
+  background: linear-gradient(90deg, $ac 0%, #26d99a 50%, $ac 100%);
+  background-size: 180% 100%;
+  animation: checkin-progress-flow 1.8s linear infinite;
+}
+
+@keyframes checkin-today-ready-ring {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes checkin-progress-flow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 180% 50%;
+  }
 }
 
 /* ============================================================
@@ -1265,16 +1413,14 @@ $amber: #f59e0b;
     padding-right: 0;
   }
 
-  /* The connect/ready invite is a wider pill that would collide with the streak
+  /* The connect invite is a wider pill that would collide with the streak
      title in the top-right corner on narrow screens. Drop it to its own full-
      width line below the ring + body instead of overlapping the title. */
-  .checkin-streak-section:has(.checkin-tier-badge.connect),
-  .checkin-streak-section:has(.checkin-tier-badge.ready) {
+  .checkin-streak-section:has(.checkin-tier-badge.connect) {
     flex-wrap: wrap;
   }
 
-  .checkin-tier-badge.connect,
-  .checkin-tier-badge.ready {
+  .checkin-tier-badge.connect {
     position: static;
     order: 3;
     width: 100%;
@@ -1283,6 +1429,13 @@ $amber: #f59e0b;
     padding: 9px 14px;
     text-align: center;
     white-space: nowrap;
+  }
+
+  .checkin-tier-badge.ready {
+    top: 16px;
+    right: 18px;
+    min-height: 0;
+    padding: 5px 11px;
   }
 
   .checkin-fire-ring {
@@ -1512,6 +1665,10 @@ $amber: #f59e0b;
   font-size: 15px;
 }
 
+.checkin-actions-grid .checkin-btn--ready:not(:disabled) {
+  animation: checkin-cta-breathe 2.2s ease-in-out infinite;
+}
+
 .checkin-actions-secondary {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -1525,6 +1682,18 @@ $amber: #f59e0b;
 @media (max-width: 520px) {
   .checkin-actions-secondary {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes checkin-cta-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 10px 24px rgba(10, 122, 82, 0.22);
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px rgba(10, 122, 82, 0.3);
   }
 }
 
@@ -1612,7 +1781,10 @@ $amber: #f59e0b;
 
 @media (prefers-reduced-motion: reduce) {
   .checkin-reward-reveal,
-  .checkin-reward-reveal__icon {
+  .checkin-reward-reveal__icon,
+  .checkin-week-day-slot.today-ready::after,
+  .streak-can-checkin .checkin-connector-fill,
+  .checkin-actions-grid .checkin-btn--ready:not(:disabled) {
     animation: none;
   }
 }

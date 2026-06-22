@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -48,6 +48,7 @@ function t(key: string, params?: Record<string, string | number>) {
     milestoneImpactPending: "{days} more UTC days until the next milestone payout.",
     milestoneImpactReady: "This check-in reaches the day {day} reward.",
     milestoneDonePending: "{days} more UTC days until the next milestone payout after today's check-in.",
+    milestoneRewardUnlocked: "Day {day} reward unlocked.",
     milestones: "Milestones",
     milestoneSecured: "Day {day} secured",
     milestoneSecuredCopy: "This UTC day is recorded. {days} more UTC days until the next milestone payout.",
@@ -139,8 +140,13 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("Daily Check-in PlayArea", () => {
   it("renders the full check-in, reward, history, and evidence workflow", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
 
+    expect(container.querySelector(".checkin-play-area.streak-can-checkin")).toBeTruthy();
+    expect(container.querySelector(".checkin-play-area.streak-milestone-ready")).toBeTruthy();
+    expect(container.querySelector(".checkin-week-day-slot.today-ready")).toBeTruthy();
+    expect(container.querySelector(".checkin-connector-fill")).toBeTruthy();
+    expect(container.querySelector(".checkin-btn--ready")).toBeTruthy();
     expect(document.querySelector('.checkin-streak-stage img[src="./streak-plaza.jpg"]')).toBeTruthy();
     expect(screen.getAllByText("6 Day Streak").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Check In Now" })).toBeTruthy();
@@ -170,6 +176,31 @@ describe("Daily Check-in PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
     expect(dispatch).toHaveBeenCalledWith("refreshStatus");
+  });
+
+  it("marks the streak surface as celebrating when a milestone check-in lands", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    const { container, rerender } = render(
+      <PlayArea t={t} state={state({ currentStreakRaw: 6, canCheckIn: true })} dispatch={dispatch} />,
+    );
+
+    rerender(
+      <PlayArea
+        t={t}
+        state={state({
+          currentStreakRaw: 7,
+          canCheckIn: false,
+          unclaimedRewards: 101000000,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector(".checkin-play-area.streak-celebrating")).toBeTruthy();
+    });
+    expect(screen.getByText("Milestone reached")).toBeTruthy();
+    expect(screen.getByText("Day 7 reward unlocked.")).toBeTruthy();
   });
 
   it("uses the wait state as the check-in button accessible name", () => {
