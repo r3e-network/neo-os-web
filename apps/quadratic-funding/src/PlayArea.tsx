@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { CircleDollarSign, FolderKanban, HandCoins } from "lucide-react";
+import {
+  CircleDollarSign,
+  FolderKanban,
+  HandCoins,
+  Sparkles,
+} from "lucide-react";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -103,6 +108,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedContributionProject = projects.find(
     (project) => String(project.id ?? "") === contributeProjectId.trim(),
   );
+  const selectedContributionProjectName = selectedContributionProject
+    ? String(
+        selectedContributionProject.name ||
+          `#${selectedContributionProject.id}`,
+      )
+    : t("selectProjectHint");
+  const selectedContributionDonors = selectedContributionProject
+    ? String(selectedContributionProject.contributorCount ?? 0)
+    : "0";
+  const selectedContributionMatch = selectedContributionProject
+    ? formatTokenAmount(selectedContributionProject.matchedAmount)
+    : "0";
+  const contributionAmountLabel = contributeAmount.trim()
+    ? `${contributeAmount.trim()} GAS`
+    : "— GAS";
   const contributionAmountPresets = ["1", "2", "5", "10"];
   const canRegisterProject = Boolean(
     selectedRound &&
@@ -383,7 +403,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                             {formatTokenAmount(project.matchedAmount)}
                           </span>
                         </div>
-                        {project.link && (
+                        {Boolean(project.link) && (
                           <span className="qf-project-link">
                             {String(project.link)}
                           </span>
@@ -444,6 +464,58 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}
                   </strong>
                   <small>{selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}</small>
+                </div>
+              </div>
+
+              <div
+                className={`qf-flow-stage${
+                  selectedContributionProject ? " is-project-selected" : ""
+                }${contributeAmount.trim() ? " is-funded" : ""}${
+                  isContributing ? " is-contributing" : ""
+                }`}
+                aria-label={t("qfAmplifyTitle")}
+              >
+                <img
+                  className="qf-flow-stage__image"
+                  src="./funding-desk.jpg"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="qf-flow-stage__scrim" aria-hidden="true" />
+                <div className="qf-flow-stage__nodes">
+                  <div className="qf-flow-node qf-flow-node--donor">
+                    <span>
+                      <HandCoins aria-hidden="true" />
+                      {t("qfDonationTicket")}
+                    </span>
+                    <strong>{contributionAmountLabel}</strong>
+                    <small>{t("qfAmountPresets")}</small>
+                  </div>
+                  <div className="qf-flow-node qf-flow-node--pool">
+                    <span>
+                      <Sparkles aria-hidden="true" />
+                      {t("sidebarMatchingPool")}
+                    </span>
+                    <strong>{matchingPoolDisplay}</strong>
+                    <small>{t("qfMatchSignal")}</small>
+                  </div>
+                  <div className="qf-flow-node qf-flow-node--project">
+                    <span>
+                      <FolderKanban aria-hidden="true" />
+                      {t("qfPickProject")}
+                    </span>
+                    <strong>{selectedContributionProjectName}</strong>
+                    <small>
+                      {t("donors")}: {selectedContributionDonors} ·{" "}
+                      {t("matchedAmount")}: {selectedContributionMatch}
+                    </small>
+                  </div>
+                </div>
+                <div className="qf-flow-stage__river" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
                 </div>
               </div>
 
