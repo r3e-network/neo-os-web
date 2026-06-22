@@ -382,7 +382,7 @@
 
 .vault-blueprint__scene {
   position: relative;
-  min-height: 132px;
+  min-height: 168px;
   margin: -8px -8px 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.72);
@@ -419,7 +419,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 132px;
+  min-height: 168px;
   object-fit: cover;
   object-position: center;
 }
@@ -448,6 +448,38 @@
   box-shadow: 0 0 18px rgba(22, 199, 132, 0.28);
   transform: translateY(-50%);
   opacity: 0.78;
+}
+
+.vault-system-stage__token {
+  position: absolute;
+  top: calc(50% - 17px);
+  left: 16%;
+  z-index: 3;
+  display: block;
+  width: 34px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 13px;
+  opacity: 0.82;
+  transform: rotate(-8deg) scale(0.94);
+  filter: drop-shadow(0 12px 14px rgba(10, 128, 80, 0.18));
+  pointer-events: none;
+}
+
+.vault-system-stage__token img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vault-system-stage__token::after {
+  position: absolute;
+  inset: -2px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 15px;
+  content: "";
+  pointer-events: none;
 }
 
 .vault-system-stage__node {
@@ -530,6 +562,51 @@
   transform: scale(0.86);
 }
 
+.vault-system-stage__difficulty {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(72%, 180px);
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--vault-accent-strong);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+
+.vault-system-stage__difficulty svg {
+  flex: 0 0 auto;
+}
+
+.vault-system-stage__difficulty strong,
+.vault-system-stage__difficulty small {
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-system-stage__difficulty strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.vault-system-stage__difficulty small {
+  color: var(--vault-gold);
+  font-size: 0.68rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
 .vault-system-stage--ready .vault-system-stage__core,
 .vault-system-stage--creating .vault-system-stage__core {
   background:
@@ -541,13 +618,32 @@
   animation: vault-system-ready-ring 1.8s ease-in-out infinite;
 }
 
+.vault-system-stage--draft .vault-system-stage__token {
+  animation: vault-system-token-idle 3.2s ease-in-out infinite;
+}
+
 .vault-system-stage--ready .vault-system-stage__rail,
 .vault-system-stage--creating .vault-system-stage__rail {
   animation: vault-system-flow 1.7s linear infinite;
 }
 
+.vault-system-stage--ready .vault-system-stage__token {
+  opacity: 1;
+  animation: vault-system-token-route 2.8s ease-in-out infinite;
+}
+
+.vault-system-stage--ready .vault-system-stage__difficulty,
+.vault-system-stage--creating .vault-system-stage__difficulty {
+  animation: vault-system-difficulty-ready 1.9s ease-in-out infinite;
+}
+
 .vault-system-stage--creating .vault-system-stage__core {
   animation: vault-system-seal 760ms ease-in-out infinite;
+}
+
+.vault-system-stage--creating .vault-system-stage__token {
+  opacity: 1;
+  animation: vault-system-token-seal 760ms ease-in-out infinite;
 }
 
 .vault-blueprint__lock {
@@ -1521,6 +1617,63 @@
   }
 }
 
+@keyframes vault-system-token-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-8deg) scale(0.94);
+  }
+
+  50% {
+    transform: translateY(-4px) rotate(3deg) scale(1);
+  }
+}
+
+@keyframes vault-system-token-route {
+  0%,
+  100% {
+    left: 16%;
+    transform: rotate(-8deg) scale(0.94);
+  }
+
+  46% {
+    left: calc(50% - 17px);
+    transform: translateY(-4px) rotate(5deg) scale(1.08);
+  }
+
+  78% {
+    left: calc(84% - 34px);
+    transform: rotate(9deg) scale(1);
+  }
+}
+
+@keyframes vault-system-token-seal {
+  0%,
+  100% {
+    left: calc(50% - 17px);
+    transform: rotate(-6deg) scale(1);
+  }
+
+  50% {
+    left: calc(50% - 17px);
+    transform: translateY(-4px) rotate(8deg) scale(1.1);
+  }
+}
+
+@keyframes vault-system-difficulty-ready {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.74);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  }
+
+  50% {
+    border-color: rgba(216, 154, 32, 0.42);
+    box-shadow:
+      0 12px 24px rgba(15, 23, 42, 0.12),
+      0 0 0 4px rgba(216, 154, 32, 0.12);
+  }
+}
+
 @keyframes vault-system-seal {
   0%,
   100% {
@@ -1725,12 +1878,12 @@
   }
 
   .vault-blueprint__scene {
-    min-height: 92px;
+    min-height: 128px;
     margin: -4px -4px 0;
   }
 
   .vault-blueprint__scene img {
-    min-height: 92px;
+    min-height: 128px;
   }
 
   .vault-blueprint__facts {
@@ -1774,6 +1927,18 @@
 
   .vault-system-stage__node--secret {
     justify-self: start;
+  }
+
+  .vault-system-stage__token {
+    top: calc(50% - 14px);
+    width: 28px;
+    border-radius: 11px;
+  }
+
+  .vault-system-stage__difficulty {
+    bottom: 0;
+    max-width: calc(100% - 18px);
+    padding: 6px 8px;
   }
 
   .vault-break-stage,
@@ -1829,6 +1994,8 @@
   .vault-system-stage__rail,
   .vault-system-stage__core,
   .vault-system-stage__core-ring,
+  .vault-system-stage__token,
+  .vault-system-stage__difficulty,
   .vault-blueprint__lock,
   .vault-blueprint__lock.is-ready::after,
   .vault-blueprint__lock.is-creating,
