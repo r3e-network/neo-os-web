@@ -47,7 +47,9 @@ interface Token {
 const popularPairs = POPULAR_PAIRS.map((pair) => ({ ...pair }));
 
 const formatBalance = (token: Token | null) =>
-  token ? token.balance.toLocaleString(undefined, { maximumFractionDigits: 8 }) : "0";
+  token
+    ? token.balance.toLocaleString(undefined, { maximumFractionDigits: 8 })
+    : "0";
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
@@ -66,10 +68,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const minReceived = str("minReceived", "");
   // routerAvailable defaults to false: the manifest declares no router, so the
   // honest baseline is "no on-chain route" unless state says otherwise.
-  const routerAvailable = state.routerAvailable ? bool("routerAvailable") : false;
+  const routerAvailable = state.routerAvailable
+    ? bool("routerAvailable")
+    : false;
   const rateStale = bool("rateStale");
   const rateAsOf = str("rateAsOf", "");
-  const walletConnected = state.walletConnected ? bool("walletConnected") : false;
+  const walletConnected = state.walletConnected
+    ? bool("walletConnected")
+    : false;
 
   // A single source of truth for "is there a usable quote loaded right now".
   // Drives the badge, exchange-rate cell, and minimum-received cell so the three
@@ -87,7 +93,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         : exchangeRate
           ? t("swapRouteReady")
           : t("swapRouteUnavailable");
-  const routeReady = routerAvailable && !rateLoading && !rateStale && !!exchangeRate;
+  const routeReady =
+    routerAvailable && !rateLoading && !rateStale && !!exchangeRate;
 
   // De-duplicated no-data wording. The single authoritative "unavailable" message
   // lives in the router notice / preview banner — the rate and min-received cells
@@ -112,9 +119,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const toSymbol = toToken?.symbol || t("selectToken");
   const pairLabel = `${fromSymbol}/${toSymbol}`;
   const receiveEstimate = toAmount || "0.00";
-  const routeModeLabel = routerAvailable ? t("routeModeLive") : t("routeModePreview");
-  const routeModeBody = routerAvailable ? t("routeModeLiveBody") : t("routeModePreviewBody");
-  const routeSource = hasQuote ? t("routeSourceMorpheus") : t("routeSourceAwaiting");
+  const routeModeLabel = routerAvailable
+    ? t("routeModeLive")
+    : t("routeModePreview");
+  const routeModeBody = routerAvailable
+    ? t("routeModeLiveBody")
+    : t("routeModePreviewBody");
+  const routeSource = hasQuote
+    ? t("routeSourceMorpheus")
+    : t("routeSourceAwaiting");
+  const deskState = routeReady
+    ? "live"
+    : rateLoading
+      ? "loading"
+      : hasQuote
+        ? "quoted"
+        : "planning";
 
   // Slippage above 1% (100 bps) warrants a gentle warning — the minimum received
   // can come in notably below the quote.
@@ -156,9 +176,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 min={0}
                 placeholder={t("enterAmount")}
                 aria-label={t("payAmountLabel")}
-                onChange={(value) => { void dispatch("setFromAmount", value); }}
+                onChange={(value) => {
+                  void dispatch("setFromAmount", value);
+                }}
               />
-              <NeoButton size="sm" variant="secondary" onClick={() => dispatch("setMaxAmount")}>
+              <NeoButton
+                size="sm"
+                variant="secondary"
+                onClick={() => dispatch("setMaxAmount")}
+              >
                 {t("max")}
               </NeoButton>
             </div>
@@ -178,7 +204,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <section className="neo-swap-asset-card neo-swap-asset-card--receive">
           <div className="neo-swap-asset-card__top">
-            <span className="neo-swap-asset-card__label">{t("receiveEstimated")}</span>
+            <span className="neo-swap-asset-card__label">
+              {t("receiveEstimated")}
+            </span>
             <span className="neo-swap-balance-line">
               {t("balance")}: {formatBalance(toToken)}
             </span>
@@ -201,23 +229,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <div className="neo-swap-quote-metrics" aria-label={t("quoteSummary")}>
         <div>
-          <span><TrendingUp size={14} aria-hidden="true" />{t("exchangeRate")}</span>
+          <span>
+            <TrendingUp size={14} aria-hidden="true" />
+            {t("exchangeRate")}
+          </span>
           <strong>{rateDisplay}</strong>
         </div>
         <div>
-          <span><ShieldCheck size={14} aria-hidden="true" />{t("minReceived")}</span>
+          <span>
+            <ShieldCheck size={14} aria-hidden="true" />
+            {t("minReceived")}
+          </span>
           <strong>{formattedMinReceived}</strong>
         </div>
         <div>
-          <span><SlidersHorizontal size={14} aria-hidden="true" />{t("slippage")}</span>
+          <span>
+            <SlidersHorizontal size={14} aria-hidden="true" />
+            {t("slippage")}
+          </span>
           <strong>{slippage}</strong>
         </div>
       </div>
 
-      <div className="neo-swap-control-dock" role="group" aria-label={t("slippage")}>
+      <div
+        className="neo-swap-control-dock"
+        role="group"
+        aria-label={t("slippage")}
+      >
         <div className="neo-swap-control-dock__copy">
-          <span className="neo-swap-control-dock__label">{t("slippageControl")}</span>
-          <p className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}>
+          <span className="neo-swap-control-dock__label">
+            {t("slippageControl")}
+          </span>
+          <p
+            className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}
+          >
             {slippageHigh ? t("slippageHigh") : t("slippageHint")}
           </p>
         </div>
@@ -237,7 +282,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </button>
             );
           })}
-          <div className={`neo-swap-chip-custom${isCustomSlippage ? " is-active" : ""}`}>
+          <div
+            className={`neo-swap-chip-custom${isCustomSlippage ? " is-active" : ""}`}
+          >
             <NeoInput
               className="neo-swap-slippage-input"
               type="number"
@@ -247,7 +294,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               value={customSlippageDisplay}
               placeholder={t("slippageCustom")}
               aria-label={t("slippageCustomLabel")}
-              onChange={(value) => { void dispatch("setSlippage", value); }}
+              onChange={(value) => {
+                void dispatch("setSlippage", value);
+              }}
             />
             <span aria-hidden="true">%</span>
           </div>
@@ -292,15 +341,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <dl className="neo-swap-route-facts">
           <div>
-            <dt><Network size={14} aria-hidden="true" />{t("networkLabel")}</dt>
+            <dt>
+              <Network size={14} aria-hidden="true" />
+              {t("networkLabel")}
+            </dt>
             <dd>{t("tokenNeo")} N3</dd>
           </div>
           <div>
-            <dt><Clock size={14} aria-hidden="true" />{t("estSettlement")}</dt>
+            <dt>
+              <Clock size={14} aria-hidden="true" />
+              {t("estSettlement")}
+            </dt>
             <dd>{t("estSettlementValue")}</dd>
           </div>
           <div>
-            <dt><Fuel size={14} aria-hidden="true" />{t("networkFeeLabel")}</dt>
+            <dt>
+              <Fuel size={14} aria-hidden="true" />
+              {t("networkFeeLabel")}
+            </dt>
             <dd>{t("networkFeeValue")}</dd>
           </div>
         </dl>
@@ -309,7 +367,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   );
 
   return (
-    <div className="neo-swap-play-area">
+    <div className={`neo-swap-play-area neo-swap-play-area--${deskState}`}>
       <section className="neo-swap-hero-panel" aria-label={t("title")}>
         <SwapHero
           t={t}
@@ -327,7 +385,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="neo-swap-section-header">
             <div>
               <span>{t("tabSwap")}</span>
-              <strong>{fromSymbol} {t("swapArrow")} {toSymbol}</strong>
+              <strong>
+                {fromSymbol} {t("swapArrow")} {toSymbol}
+              </strong>
             </div>
             <span
               className={`neo-swap-route-badge${routeReady ? " is-ready" : ""}`}
@@ -337,6 +397,54 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
+          <div
+            className={`neo-swap-liquidity-stage neo-swap-liquidity-stage--${deskState}`}
+            role="region"
+            aria-label={t("liquidityPool")}
+          >
+            <img
+              className="neo-swap-liquidity-stage__image"
+              src="./swap-liquidity-stage.jpg"
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+            />
+            <div
+              className="neo-swap-liquidity-stage__shade"
+              aria-hidden="true"
+            />
+            <div className="neo-swap-token-orb neo-swap-token-orb--from">
+              <TokenIcon symbol={fromSymbol} />
+              <span>{t("payWith")}</span>
+              <strong>{fromSymbol}</strong>
+              <small>
+                {t("balance")}: {formatBalance(fromToken)}
+              </small>
+            </div>
+            <div className="neo-swap-liquidity-lane" aria-hidden="true">
+              <span className="neo-swap-liquidity-lane__rail" />
+              <span className="neo-swap-liquidity-lane__pulse neo-swap-liquidity-lane__pulse--one" />
+              <span className="neo-swap-liquidity-lane__pulse neo-swap-liquidity-lane__pulse--two" />
+              <span className="neo-swap-liquidity-lane__pulse neo-swap-liquidity-lane__pulse--three" />
+              <span className="neo-swap-liquidity-lane__rate">
+                {rateLoading ? t("loadingRate") : rateDisplay}
+              </span>
+            </div>
+            <div className="neo-swap-token-orb neo-swap-token-orb--to">
+              <TokenIcon symbol={toSymbol} />
+              <span>{t("receiveEstimated")}</span>
+              <strong>{toSymbol}</strong>
+              <small>
+                {t("minReceived")}: {formattedMinReceived}
+              </small>
+            </div>
+            <div className="neo-swap-liquidity-stage__status">
+              <span>{routeModeLabel}</span>
+              <strong>{routeHealth}</strong>
+            </div>
+          </div>
+
           {!walletConnected && (
             <div className="neo-swap-intro" role="status">
               <div className="neo-swap-intro__lead">
@@ -344,7 +452,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Wallet size={18} />
                 </span>
                 <div>
-                  <strong className="neo-swap-intro__title">{t("introHeading")}</strong>
+                  <strong className="neo-swap-intro__title">
+                    {t("introHeading")}
+                  </strong>
                   <p className="neo-swap-intro__body">{t("introBody")}</p>
                 </div>
               </div>
@@ -383,23 +493,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
 
           {!routerAvailable && (
-            <div className="neo-swap-preview" role="region" aria-label={t("pricePreviewTitle")}>
+            <div
+              className="neo-swap-preview"
+              role="region"
+              aria-label={t("pricePreviewTitle")}
+            >
               <div className="neo-swap-preview__head">
                 <span className="neo-swap-preview__eyebrow">
                   <Sparkles size={14} aria-hidden="true" />
                   {t("pricePreviewTitle")}
                 </span>
                 <span className="neo-swap-preview__meta">
-                  <span className="neo-swap-preview__mode">{routeModeLabel}</span>
+                  <span className="neo-swap-preview__mode">
+                    {routeModeLabel}
+                  </span>
                   {rateAsOf && (
-                    <span className={`neo-swap-preview__asof${rateStale ? " is-stale" : ""}`}>
-                      {rateStale ? t("rateStale") : t("rateAsOf", { time: rateAsOf })}
+                    <span
+                      className={`neo-swap-preview__asof${rateStale ? " is-stale" : ""}`}
+                    >
+                      {rateStale
+                        ? t("rateStale")
+                        : t("rateAsOf", { time: rateAsOf })}
                     </span>
                   )}
                 </span>
               </div>
               {rateLoading ? (
-                <strong className="neo-swap-preview__rate is-muted">{t("loadingRate")}</strong>
+                <strong className="neo-swap-preview__rate is-muted">
+                  {t("loadingRate")}
+                </strong>
               ) : previewRateAvailable ? (
                 <strong className="neo-swap-preview__rate">
                   <span className="neo-swap-preview__rate-lead">
@@ -433,7 +555,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {tradeForm}
 
               {rateAsOf && (
-                <p className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}>
+                <p
+                  className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}
+                >
                   {rateStale
                     ? t("rateSourceStaleAsOf", { time: rateAsOf })
                     : t("rateSourceAsOf", { time: rateAsOf })}
@@ -449,7 +573,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 disabled={!bool("canSwap")}
                 onClick={() => dispatch("executeSwap")}
               >
-                {bool("isSwapping") ? t("swapping") : str("swapButtonText", t("tabSwap"))}
+                {bool("isSwapping")
+                  ? t("swapping")
+                  : str("swapButtonText", t("tabSwap"))}
               </NeoButton>
             </>
           ) : (
@@ -511,7 +637,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 >
                   <TokenIcon symbol={token.symbol} />
                   <strong>{token.symbol}</strong>
-                  <small>{t("balance")}: {formatBalance(token)}</small>
+                  <small>
+                    {t("balance")}: {formatBalance(token)}
+                  </small>
                 </button>
               ))}
             </div>
