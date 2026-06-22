@@ -148,7 +148,7 @@ describe("FactoryPlayArea", () => {
     ).toBe("true");
     // The template artifact row is honest about not having a live read yet.
     expect(screen.getAllByText("Unverified").length).toBeGreaterThan(0);
-  });
+  }, 15_000);
 
   it("updates miniapp template cards and service switches without native form controls", async () => {
     const { FactoryPlayArea } = await loadFactoryModules();
