@@ -185,8 +185,44 @@ export default function PlayArea({
         relayResult.hash;
       return typeof candidate === "string" && candidate.trim()
         ? candidate.trim()
-        : null;
+          : null;
     })();
+
+  const relayPhase = isRelaying
+    ? "relaying"
+    : isCheckingSponsorship
+      ? "checking"
+      : relayResult
+        ? "submitted"
+        : canSubmitRelay
+          ? "ready"
+          : sponsorAmountIsValid && aaAddressValid
+            ? "funding"
+            : aaAddressValid
+              ? "sponsor"
+              : "draft";
+  const relayPhaseLabel =
+    relayPhase === "relaying"
+      ? t("relayBoardRelaying")
+      : relayPhase === "checking"
+        ? t("relayBoardChecking")
+        : relayPhase === "submitted"
+          ? t("relayBoardSubmitted")
+          : relayPhase === "ready"
+            ? t("relayBoardReady")
+            : relayPhase === "funding"
+              ? t("relayBoardFunding")
+              : relayPhase === "sponsor"
+                ? t("relayBoardSponsor")
+                : t("relayBoardDraft");
+  const routeStepClass = (ready: boolean, active: boolean) =>
+    [
+      "relay-route__step",
+      ready ? "relay-route__step--ready" : "",
+      active ? "relay-route__step--active" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
 
   let resultTone: "ok" | "warn" | "info" = "info";
   let resultText = "";
@@ -391,8 +427,73 @@ export default function PlayArea({
         </div>
       </NeoCard>
 
+      <section
+        className={`relay-control-deck relay-control-deck--${relayPhase}`}
+        aria-label={t("relayBoardLabel")}
+      >
+        <picture className="relay-control-deck__media" aria-hidden="true">
+          <img src="./aa-relay-station.jpg" alt="" loading="eager" decoding="async" />
+        </picture>
+        <div className="relay-control-deck__wash" aria-hidden="true" />
+        <div className="relay-control-deck__header">
+          <span>{t("relayBoardKicker")}</span>
+          <strong>{relayPhaseLabel}</strong>
+        </div>
+        <div className="relay-control-deck__nodes">
+          <article
+            className={`relay-control-node${
+              aaAddressValid ? " relay-control-node--ready" : ""
+            }`}
+          >
+            <span className="relay-control-node__icon" aria-hidden="true">
+              <WalletCards size={18} />
+            </span>
+            <div>
+              <small>{t("relayBoardAA")}</small>
+              <strong title={draftAAAddress}>{draftAAAddress}</strong>
+            </div>
+          </article>
+          <article
+            className={`relay-control-node${
+              sponsorAmountIsValid ? " relay-control-node--ready" : ""
+            }`}
+          >
+            <span className="relay-control-node__icon" aria-hidden="true">
+              <CircleDollarSign size={18} />
+            </span>
+            <div>
+              <small>{t("relayBoardPaymaster")}</small>
+              <strong>{sponsorAmountTrimmed || "—"} GAS</strong>
+            </div>
+          </article>
+          <article
+            className={`relay-control-node${
+              payloadJsonIsValid ? " relay-control-node--ready" : ""
+            }`}
+          >
+            <span className="relay-control-node__icon" aria-hidden="true">
+              <FileJson2 size={18} />
+            </span>
+            <div>
+              <small>{t("relayBoardPayload")}</small>
+              <strong>{payloadSummary.operation}</strong>
+            </div>
+          </article>
+        </div>
+        <div className="relay-control-deck__track" aria-hidden="true">
+          <span className="relay-control-deck__track-line" />
+          <span className="relay-control-deck__packet relay-control-deck__packet--one" />
+          <span className="relay-control-deck__packet relay-control-deck__packet--two" />
+        </div>
+      </section>
+
       <section className="relay-route" aria-label={t("relayFlowLabel")}>
-        <div className="relay-route__step">
+        <div
+          className={routeStepClass(
+            aaAddressValid,
+            isCheckingSponsorship,
+          )}
+        >
           <span aria-hidden="true">
             <ShieldCheck size={18} />
           </span>
@@ -401,7 +502,12 @@ export default function PlayArea({
             <p>{t("relayFlowSponsorDesc")}</p>
           </div>
         </div>
-        <div className="relay-route__step">
+        <div
+          className={routeStepClass(
+            canRequestSponsor,
+            isCheckingSponsorship && sponsorAmountIsValid,
+          )}
+        >
           <span aria-hidden="true">
             <WalletCards size={18} />
           </span>
@@ -410,7 +516,7 @@ export default function PlayArea({
             <p>{t("relayFlowRequestDesc")}</p>
           </div>
         </div>
-        <div className="relay-route__step">
+        <div className={routeStepClass(canSubmitRelay, isRelaying)}>
           <span aria-hidden="true">
             <Rocket size={18} />
           </span>

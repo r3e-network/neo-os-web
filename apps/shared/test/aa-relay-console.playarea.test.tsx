@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cleanup,
   fireEvent,
@@ -59,6 +61,18 @@ function t(key: string) {
     relayPayloadOperation: "Operation",
     relayPayloadTarget: "Target",
     relayPayloadArgs: "Args",
+    relayBoardLabel: "Live AA relay board",
+    relayBoardKicker: "Relay line",
+    relayBoardDraft: "Set the AA account to open the relay line.",
+    relayBoardSponsor: "Account found. Check sponsorship before requesting coverage.",
+    relayBoardFunding: "Paymaster amount ready. Request sponsorship or submit a valid payload.",
+    relayBoardReady: "Relay payload ready for a sponsored on-chain submission.",
+    relayBoardChecking: "Checking paymaster coverage for this account.",
+    relayBoardRelaying: "Relayer is broadcasting the validated payload.",
+    relayBoardSubmitted: "Relay response received. Verify the returned transaction state.",
+    relayBoardAA: "AA account",
+    relayBoardPaymaster: "Paymaster",
+    relayBoardPayload: "Payload",
     dappId: "Paymaster Dapp ID",
     dappIdHint: "Optional paymaster scope.",
     dappIdPlaceholder: "Optional dapp id",
@@ -147,9 +161,16 @@ describe("AA Relay Console PlayArea", () => {
         .value,
     ).toBe(payload);
     expect(document.querySelector('.relay-hero__stage img[src="./aa-relay-station.jpg"]')).toBeTruthy();
+    expect(screen.getByLabelText("Live AA relay board")).toBeTruthy();
+    expect(document.querySelector(".relay-control-deck--ready")).toBeTruthy();
+    expect(document.querySelector('.relay-control-deck__media img[src="./aa-relay-station.jpg"]')).toBeTruthy();
+    expect(document.querySelectorAll(".relay-control-node--ready")).toHaveLength(3);
+    expect(document.querySelectorAll(".relay-control-deck__packet")).toHaveLength(2);
+    expect(screen.getByText("Relay payload ready for a sponsored on-chain submission.")).toBeTruthy();
     expect(screen.getByLabelText("AA relay workflow")).toBeTruthy();
+    expect(document.querySelectorAll(".relay-route__step--ready")).toHaveLength(3);
     expect(screen.getByLabelText("Payload lens")).toBeTruthy();
-    expect(screen.getByText("transfer")).toBeTruthy();
+    expect(screen.getAllByText("transfer").length).toBeGreaterThanOrEqual(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Check Sponsorship" }));
     await waitFor(() => {
@@ -267,5 +288,22 @@ describe("AA Relay Console PlayArea", () => {
       (screen.getByRole("button", { name: "Check Sponsorship" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("keeps the relay board animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../aa-relay-console/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain(".relay-control-deck");
+    expect(styles).toContain("@keyframes relay-deck-camera");
+    expect(styles).toContain("@keyframes relay-track-scan");
+    expect(styles).toContain("@keyframes relay-packet-run");
+    expect(styles).toContain("@keyframes relay-route-active");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.relay-control-deck__packet[\s\S]*animation:\s*none/,
+    );
   });
 });
