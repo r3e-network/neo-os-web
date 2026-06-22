@@ -290,6 +290,28 @@ const appMessages = {
     en: "Build a small, reviewable compute package with an explicit privacy boundary.",
     zh: "构建简洁、可审阅、隐私边界明确的计算包。",
   },
+  computePipelineLabel: { en: "Compute request pipeline", zh: "计算请求管线" },
+  computePipelineKicker: { en: "Service pipeline", zh: "服务管线" },
+  computePipelineDraft: {
+    en: "Fix input JSON before packaging.",
+    zh: "修复输入 JSON 后再打包。",
+  },
+  computePipelineReady: {
+    en: "Request package is ready to preview.",
+    zh: "请求包已准备好生成预览。",
+  },
+  computePipelineBuilt: {
+    en: "Preview package built and auditable.",
+    zh: "预览包已生成，可审计。",
+  },
+  computePipelineWarn: {
+    en: "Pipeline stopped at input validation.",
+    zh: "管线停在输入校验阶段。",
+  },
+  computePipelineWorkflow: { en: "Workflow", zh: "工作流" },
+  computePipelinePrivacy: { en: "Privacy seal", zh: "隐私封装" },
+  computePipelineInput: { en: "JSON input", zh: "JSON 输入" },
+  computePipelineDigest: { en: "Digest", zh: "摘要" },
   computeCapsuleTitle: { en: "Compute capsule", zh: "计算胶囊" },
   computeCapsuleCopy: {
     en: "Assemble workflow, privacy, and input as one package before reviewing the digest.",
