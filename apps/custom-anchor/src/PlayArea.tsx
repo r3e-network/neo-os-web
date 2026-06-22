@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SyntheticEvent } from "react";
+import type { CSSProperties, SyntheticEvent } from "react";
 import {
+  ArrowRight,
   BadgeCheck,
   ChevronDown,
   CircleAlert,
   Coins,
+  Gauge,
   Landmark,
   Network,
   Orbit,
@@ -67,6 +69,10 @@ export default function PlayArea({
   const neoCredit = str("neoCredit", "0");
   const gasCredit = str("gasCredit", "0");
   const rewardPerNeo = str("rewardPerNeo", "0");
+  const userStake = str("userStake", "0");
+  const pendingRewards = str("pendingRewards", "0");
+  const rewardReserve = str("rewardReserve", "0");
+  const totalStaked = str("totalStaked", "0");
   const discoveredAnchors = val<DiscoveredAnchor[]>("discoveredAnchors") ?? [];
   const anchorLinked = Boolean(anchorAppId);
   const anchorNotRegistered = anchorLinked && anchorMode === 0;
@@ -174,6 +180,52 @@ export default function PlayArea({
     : anchorReady
       ? status?.msg || workflowStatus
       : t("anchorAwaitingInput");
+  const clampedAgentCount =
+    anchorLinked && !anchorNotRegistered
+      ? Math.max(0, Math.min(ANCHOR_AGENT_COUNT, agentCount))
+      : 0;
+  const agentFillPercent = Math.round(
+    (clampedAgentCount / ANCHOR_AGENT_COUNT) * 100,
+  );
+  const illuminatedAgentNodes = Math.max(
+    0,
+    Math.min(7, Math.round((clampedAgentCount / ANCHOR_AGENT_COUNT) * 7)),
+  );
+  const operationLaneState = hasStatusError
+    ? "error"
+    : busyAction
+      ? "busy"
+      : hasNoAgents
+        ? "blocked"
+        : anchorReady && amountValid
+          ? "ready"
+          : anchorReady
+            ? "draft"
+            : "empty";
+  const operationLaneStyle = {
+    "--agent-fill": `${agentFillPercent}%`,
+  } as CSSProperties;
+  const selectedAnchorLabel = anchorReady
+    ? truncate((anchorInput.trim() || anchorAppId).trim())
+    : t("anchorLaneAnchorPending");
+  const selectedAmountLabel = amountValid
+    ? `${amountInput.trim()} NEO`
+    : t("anchorLaneAmountPending");
+  const agentProgressLabel =
+    anchorLinked && !anchorNotRegistered
+      ? `${clampedAgentCount}/${ANCHOR_AGENT_COUNT}`
+      : t("anchorLaneAgentsPending");
+  const operationLaneStatus = hasStatusError
+    ? t("anchorLaneStateError")
+    : busyAction
+      ? t("anchorLaneStateBusy")
+      : hasNoAgents
+        ? t("anchorLaneStateBlocked")
+        : anchorReady && amountValid
+          ? t("anchorLaneStateReady")
+          : anchorReady
+            ? t("anchorLaneStateDraft")
+            : t("anchorLaneStateEmpty");
 
   const runAction = async (
     event: SyntheticEvent,
@@ -370,6 +422,77 @@ export default function PlayArea({
           <span>{t("actionPanelLabel")}</span>
           <h3>{t("actionPanelTitle")}</h3>
           <p>{t("actionPanelBody")}</p>
+        </div>
+
+        <div
+          className={`custom-anchor-operation-lane custom-anchor-operation-lane--${operationLaneState}`}
+          role="group"
+          aria-label={t("anchorLaneAria")}
+          style={operationLaneStyle}
+        >
+          <div className="custom-anchor-operation-lane__stage" aria-hidden="true">
+            <img src="./custom-anchor-stage.jpg" alt="" decoding="async" />
+            <span className="custom-anchor-operation-lane__scan" />
+            <span className="custom-anchor-operation-lane__orb custom-anchor-operation-lane__orb--stake">
+              <Coins size={18} />
+            </span>
+            <span className="custom-anchor-operation-lane__orb custom-anchor-operation-lane__orb--agents">
+              <Network size={18} />
+            </span>
+            <span className="custom-anchor-operation-lane__orb custom-anchor-operation-lane__orb--rewards">
+              <Sparkles size={18} />
+            </span>
+            <span className="custom-anchor-operation-lane__agent-ring">
+              {Array.from({ length: 7 }, (_, index) => (
+                <i
+                  key={index}
+                  className={index < illuminatedAgentNodes ? "is-lit" : ""}
+                />
+              ))}
+            </span>
+          </div>
+          <div className="custom-anchor-operation-lane__copy">
+            <span className="custom-anchor-kicker">{t("anchorLaneLabel")}</span>
+            <h4>{t("anchorLaneTitle")}</h4>
+            <p>{t("anchorLaneBody")}</p>
+            <div className="custom-anchor-operation-lane__readouts">
+              <span>
+                <small>{t("anchorLaneAnchor")}</small>
+                <strong>{selectedAnchorLabel}</strong>
+              </span>
+              <span>
+                <small>{t("anchorLaneAmount")}</small>
+                <strong>{selectedAmountLabel}</strong>
+              </span>
+              <span>
+                <small>{t("anchorLaneAgents")}</small>
+                <strong>{agentProgressLabel}</strong>
+              </span>
+              <span>
+                <small>{t("anchorLaneStatus")}</small>
+                <strong>{operationLaneStatus}</strong>
+              </span>
+            </div>
+          </div>
+          <div className="custom-anchor-operation-lane__flow" aria-hidden="true">
+            <span className="is-active">
+              <Landmark size={16} />
+              <small>{t("anchorLaneStepStake")}</small>
+              <strong>{selectedAmountLabel}</strong>
+            </span>
+            <ArrowRight size={15} />
+            <span className={anchorLinked && !anchorNotRegistered ? "is-active" : ""}>
+              <Network size={16} />
+              <small>{t("anchorLaneStepAgents")}</small>
+              <strong>{agentProgressLabel}</strong>
+            </span>
+            <ArrowRight size={15} />
+            <span className={Number(pendingRewards) > 0 ? "is-active" : ""}>
+              <Gauge size={16} />
+              <small>{t("anchorLaneStepRewards")}</small>
+              <strong>{pendingRewards} GAS</strong>
+            </span>
+          </div>
         </div>
 
         <div
@@ -598,19 +721,19 @@ export default function PlayArea({
         <div className="custom-anchor-metrics" aria-live="polite">
           <div>
             <span>{t("userStake")}</span>
-            <strong>{str("userStake")} NEO</strong>
+            <strong>{userStake} NEO</strong>
           </div>
           <div>
             <span>{t("pendingRewards")}</span>
-            <strong>{str("pendingRewards")} GAS</strong>
+            <strong>{pendingRewards} GAS</strong>
           </div>
           <div>
             <span>{t("rewardReserve")}</span>
-            <strong>{str("rewardReserve")} GAS</strong>
+            <strong>{rewardReserve} GAS</strong>
           </div>
           <div>
             <span>{t("totalStaked")}</span>
-            <strong>{str("totalStaked")} NEO</strong>
+            <strong>{totalStaked} NEO</strong>
           </div>
         </div>
       </section>

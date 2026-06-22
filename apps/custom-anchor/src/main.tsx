@@ -10,6 +10,7 @@ import {
   type AnchorContractArg,
 } from "@shared/utils/anchor-agents";
 import { waitForDepositConfirmation } from "@shared/composables/useContractInteraction";
+import type { ContractArg } from "@shared/services";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -19,9 +20,8 @@ import { messages } from "./locale/messages";
  * scalars; the runtime SDK tolerates nested Array values. Widen at the invoke
  * boundary (mirrors neo-multisig's toChainArgs).
  */
-type ChainArg = { type: string; value: string | number | boolean };
-function toChainArgs(args: AnchorContractArg[]): ChainArg[] {
-  return args as unknown as ChainArg[];
+function toChainArgs(args: AnchorContractArg[]): ContractArg[] {
+  return args as unknown as ContractArg[];
 }
 
 const appId = "miniapp-custom-anchor";
