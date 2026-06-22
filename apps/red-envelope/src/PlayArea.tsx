@@ -341,6 +341,16 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             >
               <div className="redenv-envelope-preview__art" aria-hidden="true">
                 <img src="./red-envelope-claim-card.jpg" alt="" />
+                <div className="redenv-envelope-preview__packets">
+                  {["one", "two", "three", "four", "five"].map((packet) => (
+                    <span
+                      key={packet}
+                      className={`redenv-envelope-preview__packet redenv-envelope-preview__packet--${packet}`}
+                    >
+                      <img src="./red-envelope-claim-card.jpg" alt="" />
+                    </span>
+                  ))}
+                </div>
               </div>
               <div className="redenv-envelope-preview__seal" aria-hidden="true">
                 <Gift size={20} />
