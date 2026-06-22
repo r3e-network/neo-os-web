@@ -5,6 +5,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
+import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -20,6 +21,9 @@ interface PlayAreaProps {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
+  const [localRitualState, setLocalRitualState] = useState<
+    "" | "confirming" | "sealing"
+  >("");
 
   const totalDestroyed = num("totalDestroyed");
   const gasReclaimedDisplay = str("gasReclaimedDisplay", "0");
@@ -68,9 +72,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : hashReady
       ? t("hashReadyCopy")
       : t("hashTooShortCopy");
-  const ritualState = isDestroying
+  const burialBusy = isDestroying || localRitualState === "sealing";
+  const ritualState = burialBusy
     ? "sealing"
-    : showConfirm
+    : showConfirm || localRitualState === "confirming"
       ? "confirming"
       : hashReady
         ? "ready"
@@ -122,6 +127,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     `grave-ritual-stage--${ritualState}`,
   ].join(" ");
 
+  const handleBurialAction = async () => {
+    if (!hashReady || isLoading || burialBusy) return;
+    const action = showConfirm ? "executeDestroy" : "initiateDestroy";
+    setLocalRitualState(showConfirm ? "sealing" : "confirming");
+    try {
+      await dispatch(action);
+    } finally {
+      setLocalRitualState("");
+    }
+  };
+
   return (
     <div className={`graveyard-play-area graveyard-play-area--${ritualState}`}>
       {/* Hero — purposeful head with icon badge, title, subtitle, stat tiles */}
@@ -154,11 +170,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
         </div>
-        <picture className="grave-hero-art" aria-hidden="true">
-          <source srcSet="logo.avif" type="image/avif" />
-          <source srcSet="logo.webp" type="image/webp" />
-          <img src="logo.jpg" alt="" loading="eager" decoding="async" />
-        </picture>
+        <figure className="grave-hero-art" aria-hidden="true">
+          <img
+            src="memory-vault-stage.jpg"
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption>
+            <span>{t("memoryVaultStage")}</span>
+            <strong>{hashReady ? t("hashReady") : t("hashPending")}</strong>
+          </figcaption>
+        </figure>
       </div>
 
       {/* Main grid — burial chamber + records side by side on wide screens */}
@@ -166,17 +189,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {/* Destruction Chamber */}
         <NeoCard className="grave-chamber" title={t("destroyAsset")}>
           <section className={ritualClassName} aria-label={t("burialReview")}>
-            <picture className="grave-ritual-stage__banner" aria-hidden="true">
-              <source srcSet="logo.avif" type="image/avif" />
-              <source srcSet="logo.webp" type="image/webp" />
-              <img src="logo.jpg" alt="" loading="eager" decoding="async" />
-            </picture>
+            <img
+              className="grave-ritual-stage__banner"
+              src="memory-vault-stage.jpg"
+              alt=""
+              loading="eager"
+              decoding="async"
+              aria-hidden="true"
+            />
             <div className="grave-ritual-stage__focus">
-              <picture className="grave-ritual-stage__seal" aria-hidden="true">
-                <source srcSet="logo.avif" type="image/avif" />
-                <source srcSet="logo.webp" type="image/webp" />
-                <img src="logo.jpg" alt="" loading="eager" decoding="async" />
-              </picture>
+              <figure className="grave-ritual-stage__seal" aria-hidden="true">
+                <img
+                  src="memory-vault-stage.jpg"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span>{t("hashPreview")}</span>
+                  <strong>{hashReady ? t("sealReady") : t("sealEmpty")}</strong>
+                </figcaption>
+              </figure>
               <div className="grave-ritual-stage__copy">
                 <span>{t("transactionPath")}</span>
                 <strong>{readinessTitle}</strong>
@@ -205,72 +238,86 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </section>
 
           <div className={`destroy-form destroy-form--${ritualState}`}>
-            {/* Compose mode: write the memory (hashed locally) or paste a hash. */}
-            <div
-              className="grave-compose-toggle"
-              role="tablist"
-              aria-label={t("destroyAsset")}
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={isWriteMode}
-                className={`grave-compose-tab${isWriteMode ? " active" : ""}`}
-                disabled={isDestroying}
-                onClick={() => dispatch("setComposeMode", "write")}
+            <section className="grave-memory-console" aria-label={t("memoryConsole")}>
+              {/* Compose mode: write the memory (hashed locally) or paste a hash. */}
+              <div
+                className="grave-compose-toggle"
+                role="tablist"
+                aria-label={t("destroyAsset")}
               >
-                {t("composeModeWrite")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={!isWriteMode}
-                className={`grave-compose-tab${!isWriteMode ? " active" : ""}`}
-                disabled={isDestroying}
-                onClick={() => dispatch("setComposeMode", "hash")}
-              >
-                {t("composeModeHash")}
-              </button>
-            </div>
-            {isWriteMode ? (
-              <>
-                <NeoInput
-                  type="textarea"
-                  value={memoryText}
-                  label={t("memoryTextLabel")}
-                  placeholder={t("memoryTextPlaceholder")}
-                  hint={t("memoryTextHint")}
-                  onChange={(val) => dispatch("setMemoryText", val)}
-                />
-                {trimmedAssetHash && (
-                  <p
-                    className="grave-local-hash"
-                    aria-label={t("hashFromMemory")}
-                  >
-                    <span className="grave-local-hash-label">
-                      {t("hashFromMemory")}
-                    </span>
-                    <code className="grave-local-hash-value">
-                      {hashPreview}
-                    </code>
-                  </p>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={isWriteMode}
+                  className={`grave-compose-tab${isWriteMode ? " active" : ""}`}
+                  disabled={burialBusy}
+                  onClick={() => dispatch("setComposeMode", "write")}
+                >
+                  <FileText size={16} aria-hidden="true" />
+                  <span>{t("composeModeWrite")}</span>
+                  <small>{t("composeModeWriteHint")}</small>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={!isWriteMode}
+                  className={`grave-compose-tab${!isWriteMode ? " active" : ""}`}
+                  disabled={burialBusy}
+                  onClick={() => dispatch("setComposeMode", "hash")}
+                >
+                  <Hash size={16} aria-hidden="true" />
+                  <span>{t("composeModeHash")}</span>
+                  <small>{t("composeModeHashHint")}</small>
+                </button>
+              </div>
+
+              <div className="grave-memory-console__surface">
+                <div className="grave-memory-console__head">
+                  <span>{t("memoryConsole")}</span>
+                  <strong>{selectedMemoryTypeLabel}</strong>
+                </div>
+                {isWriteMode ? (
+                  <>
+                    <NeoInput
+                      type="textarea"
+                      value={memoryText}
+                      label={t("memoryTextLabel")}
+                      placeholder={t("memoryTextPlaceholder")}
+                      hint={t("memoryTextHint")}
+                      onChange={(val) => dispatch("setMemoryText", val)}
+                    />
+                    {trimmedAssetHash && (
+                      <p
+                        className="grave-local-hash"
+                        aria-label={t("hashFromMemory")}
+                      >
+                        <span className="grave-local-hash-label">
+                          {t("hashFromMemory")}
+                        </span>
+                        <code className="grave-local-hash-value">
+                          {hashPreview}
+                        </code>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <NeoInput
+                    value={assetHash}
+                    label={t("assetHash")}
+                    placeholder={t("assetHashPlaceholder")}
+                    hint={!hashError ? t("assetHashHint") : ""}
+                    error={hashError}
+                    onChange={(val) => state.assetHash?.set(val)}
+                  />
                 )}
-              </>
-            ) : (
-              <NeoInput
-                value={assetHash}
-                label={t("assetHash")}
-                placeholder={t("assetHashPlaceholder")}
-                hint={!hashError ? t("assetHashHint") : ""}
-                error={hashError}
-                onChange={(val) => state.assetHash?.set(val)}
-              />
-            )}
+              </div>
+            </section>
+
             <div className="grave-hash-actions">
               <NeoButton
                 variant="secondary"
                 size="sm"
-                disabled={(!assetHash && !memoryText) || isDestroying}
+                disabled={(!assetHash && !memoryText) || burialBusy}
                 onClick={() => {
                   if (isWriteMode) {
                     void dispatch("setMemoryText", "");
@@ -293,7 +340,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={`type-option${memoryType === option.value ? " active" : ""}`}
                     onClick={() => state.memoryType?.set(option.value)}
                   >
-                    {option.label}
+                    <span>{option.label}</span>
                   </button>
                 ))}
               </div>
@@ -373,17 +420,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="primary"
               size="lg"
               block
-              loading={isDestroying}
-              disabled={!hashReady || isLoading}
+              loading={burialBusy}
+              disabled={!hashReady || isLoading || burialBusy}
               className={showWarningShake ? "grave-cta-attention" : ""}
               aria-label={
                 showConfirm ? t("confirmDestroy") : t("destroyForever")
               }
-              onClick={() =>
-                dispatch(showConfirm ? "executeDestroy" : "initiateDestroy")
-              }
+              onClick={handleBurialAction}
             >
-              {isDestroying
+              {burialBusy
                 ? t("destroying")
                 : showConfirm
                   ? t("confirmDestroy")

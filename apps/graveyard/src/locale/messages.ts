@@ -9,6 +9,10 @@ const appMessages = {
   itemsDestroyed: { en: "Buried", zh: "已埋葬" },
   gasReclaimed: { en: "Burial Fees", zh: "埋葬费用" },
   destroyAsset: { en: "Burial Chamber", zh: "埋葬室" },
+  memoryVaultStage: { en: "Memory vault", zh: "记忆封存台" },
+  memoryConsole: { en: "Memory console", zh: "记忆控制台" },
+  sealReady: { en: "Seal ready", zh: "封存就绪" },
+  sealEmpty: { en: "Awaiting memory", zh: "等待记忆" },
   assetHash: { en: "Content hash", zh: "内容哈希" },
   assetHashPlaceholder: { en: "Enter encrypted content hash...", zh: "输入加密内容哈希..." },
   assetHashHint: {
@@ -144,6 +148,14 @@ const appMessages = {
   // Compose mode: write the memory (hashed locally) vs paste a pre-made hash.
   composeModeWrite: { en: "Write memory", zh: "撰写记忆" },
   composeModeHash: { en: "I have a hash", zh: "已有哈希" },
+  composeModeWriteHint: {
+    en: "Hash locally from a private note",
+    zh: "从私密文字本地生成哈希",
+  },
+  composeModeHashHint: {
+    en: "Use an existing encrypted target",
+    zh: "使用已有加密目标",
+  },
   memoryTextLabel: { en: "Your memory", zh: "你的记忆" },
   memoryTextPlaceholder: {
     en: "Write the memory to bury. It is hashed on your device — only the hash is written on-chain, never the text.",
