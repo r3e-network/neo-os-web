@@ -181,6 +181,7 @@ describe("Time Capsule PlayArea", () => {
     expect(container.querySelector(".capsule-seal-workbench.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-preview-panel.is-ready.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-game-board.is-ready.is-sealing")).toBeTruthy();
+    expect(container.querySelector('.capsule-game-token img[src="./logo.jpg"]')).toBeTruthy();
     expect(container.querySelector(".capsule-game-slot--seal.is-active.is-sealing")).toBeTruthy();
     expect(container.querySelector(".capsule-game-slot--unlock.is-active")).toBeTruthy();
   });
@@ -257,10 +258,13 @@ describe("Time Capsule PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes capsule-preview-sweep");
     expect(playAreaStyles).toContain("@keyframes capsule-ready-card");
     expect(playAreaStyles).toContain("@keyframes capsule-game-route-flow");
+    expect(playAreaStyles).toContain("@keyframes capsule-game-token-route");
+    expect(playAreaStyles).toContain("@keyframes capsule-game-token-seal");
     expect(playAreaStyles).toContain("@keyframes capsule-game-slot-scan");
     expect(playAreaStyles).toContain("@keyframes capsule-game-seal-pulse");
     expect(playAreaStyles).toContain("@keyframes capsule-game-icon-ready");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(playAreaStyles).toContain(".capsule-game-token");
     expect(playAreaStyles).toContain(".capsule-game-slot--seal.is-sealing");
     expect(playAreaStyles).toContain(".capsule-game-slot");
     expect(heroStyles).toContain("@keyframes capsule-hero-drift");
