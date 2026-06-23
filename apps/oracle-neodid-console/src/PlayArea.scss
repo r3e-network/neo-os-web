@@ -312,6 +312,158 @@
   line-height: 1.35;
 }
 
+.neodid-identity-track {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(14, 116, 144, 0.16);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.12), transparent 32%),
+    radial-gradient(circle at 88% 76%, rgba(16, 185, 129, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.86));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 14px 34px rgba(14, 116, 144, 0.08);
+}
+
+.neodid-identity-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(112deg, transparent 0%, rgba(255, 255, 255, 0.56) 46%, transparent 58%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.neodid-identity-track.is-ready::before {
+  animation: neodid-track-sheen 4.4s ease-in-out infinite;
+}
+
+.neodid-identity-track__rail {
+  position: absolute;
+  top: 50%;
+  left: 8%;
+  right: 8%;
+  z-index: 1;
+  height: 3px;
+  border-radius: var(--ns-radius-full, 999px);
+  background:
+    linear-gradient(90deg, rgba(14, 116, 144, 0.12), rgba(14, 116, 144, 0.72), rgba(16, 185, 129, 0.72), rgba(14, 116, 144, 0.12));
+  background-size: 220px 100%;
+  box-shadow: 0 0 18px rgba(14, 116, 144, 0.2);
+  transform: translateY(-50%);
+}
+
+.neodid-identity-track.is-ready .neodid-identity-track__rail {
+  animation: neodid-track-rail-flow 2.4s linear infinite;
+}
+
+.neodid-identity-track.is-blocked .neodid-identity-track__rail {
+  background:
+    linear-gradient(90deg, rgba(217, 119, 6, 0.16), rgba(217, 119, 6, 0.52), rgba(14, 116, 144, 0.16));
+}
+
+.neodid-identity-track__token {
+  position: absolute;
+  top: calc(50% - 18px);
+  left: 7%;
+  z-index: 3;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--ns-radius-full, 999px);
+  background: #ffffff;
+  box-shadow:
+    0 12px 26px rgba(14, 116, 144, 0.18),
+    0 0 0 5px rgba(207, 250, 254, 0.62);
+}
+
+.neodid-identity-track__token img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.neodid-identity-track__token::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: inherit;
+}
+
+.neodid-identity-track.is-ready .neodid-identity-track__token {
+  animation: neodid-track-token-route 3.8s ease-in-out infinite;
+}
+
+.neodid-identity-track__node {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 106px;
+  padding: 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ns-text-2, #5b6478);
+  box-shadow: 0 10px 22px rgba(14, 116, 144, 0.06);
+}
+
+.neodid-identity-track__node svg {
+  color: #0e7490;
+}
+
+.neodid-identity-track__node span {
+  color: #0e7490;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.neodid-identity-track__node strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-ink, #111827);
+  font-size: 12.5px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neodid-identity-track__node.is-ready {
+  border-color: rgba(14, 116, 144, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.neodid-identity-track__node.is-blocked {
+  border-color: rgba(217, 119, 6, 0.2);
+  background: rgba(255, 247, 237, 0.94);
+}
+
+.neodid-identity-track__node.is-blocked svg,
+.neodid-identity-track__node.is-blocked span,
+.neodid-identity-track__node.is-blocked strong {
+  color: #b45309;
+}
+
 .neodid-summary-strip,
 .neodid-result-rows,
 .neodid-digest-strip {
@@ -643,6 +795,50 @@
   white-space: pre-wrap;
 }
 
+@keyframes neodid-track-sheen {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateX(-45%);
+  }
+  42% {
+    opacity: 0.78;
+  }
+  72% {
+    opacity: 0;
+    transform: translateX(45%);
+  }
+}
+
+@keyframes neodid-track-rail-flow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 220px 0;
+  }
+}
+
+@keyframes neodid-track-token-route {
+  0%,
+  100% {
+    left: 7%;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  30% {
+    left: calc(37% - 18px);
+    transform: translate3d(0, -5px, 0) scale(1.06);
+  }
+  58% {
+    left: calc(63% - 18px);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  82% {
+    left: calc(93% - 36px);
+    transform: translate3d(0, -3px, 0) scale(1.04);
+  }
+}
+
 @media (max-width: 980px) {
   .neodid-hero,
   .neodid-workspace {
@@ -690,6 +886,7 @@
 
   .neodid-hero__metrics,
   .neodid-flow,
+  .neodid-identity-track,
   .neodid-provider-grid,
   .neodid-claim-grid,
   .neodid-summary-strip,
@@ -702,6 +899,40 @@
     min-height: 112px;
   }
 
+  .neodid-identity-track {
+    padding-left: 44px;
+  }
+
+  .neodid-identity-track__rail {
+    top: 14px;
+    bottom: 14px;
+    left: 24px;
+    right: auto;
+    width: 3px;
+    height: auto;
+    background:
+      linear-gradient(180deg, rgba(14, 116, 144, 0.12), rgba(14, 116, 144, 0.72), rgba(16, 185, 129, 0.72), rgba(14, 116, 144, 0.12));
+    background-size: 100% 220px;
+    transform: none;
+  }
+
+  .neodid-identity-track.is-ready .neodid-identity-track__rail {
+    animation: neodid-track-rail-flow-mobile 2.4s linear infinite;
+  }
+
+  .neodid-identity-track__token {
+    top: 18px;
+    left: 7px;
+  }
+
+  .neodid-identity-track.is-ready .neodid-identity-track__token {
+    animation: neodid-track-token-route-mobile 3.8s ease-in-out infinite;
+  }
+
+  .neodid-identity-track__node {
+    min-height: 78px;
+  }
+
   .neodid-request-card,
   .neodid-result-card {
     padding: 14px;
@@ -709,5 +940,46 @@
 
   .neodid-action-row .neo-btn {
     flex: 1 1 180px;
+  }
+}
+
+@keyframes neodid-track-rail-flow-mobile {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 220px;
+  }
+}
+
+@keyframes neodid-track-token-route-mobile {
+  0%,
+  100% {
+    top: 18px;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  30% {
+    top: calc(36% - 18px);
+    transform: translate3d(0, 0, 0) scale(1.06);
+  }
+  58% {
+    top: calc(64% - 18px);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  82% {
+    top: calc(100% - 54px);
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neodid-identity-track::before,
+  .neodid-identity-track__rail,
+  .neodid-identity-track__token {
+    animation: none !important;
+  }
+
+  .neodid-provider-card:hover {
+    transform: none;
   }
 }
