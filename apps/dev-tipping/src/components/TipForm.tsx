@@ -5,6 +5,7 @@ import type { Developer } from "../composables/useDevTippingStats";
 interface TipFormProps {
   developers: Developer[];
   selectedDevId: number | null;
+  selectedDeveloperName?: string;
   amount: string;
   anonymous: boolean;
   isLoading: boolean;
@@ -21,7 +22,7 @@ const MIN_TIP = 0.001;
 /** First-letter monogram for a developer name; falls back to "#" for empty names. */
 function devInitial(name: string): string {
   const trimmed = name.trim();
-  return trimmed ? trimmed[0].toUpperCase() : "#";
+  return trimmed ? trimmed.slice(0, 1).toUpperCase() : "#";
 }
 
 // The on-chain Tipped event carries only devId, tipper, amount and anonymous —
@@ -31,6 +32,7 @@ function devInitial(name: string): string {
 export default function TipForm({
   developers,
   selectedDevId,
+  selectedDeveloperName = "",
   amount,
   anonymous,
   isLoading,
@@ -50,14 +52,23 @@ export default function TipForm({
       : t("tipRecipientPending");
   const amountLabel = amountIsValid ? `${amount} ${t("tokenGas")}` : t("tipAmountPending");
   const canSubmit = selectedDevId !== null && amountIsValid && !isLoading;
+  const formClassName = [
+    "form-group",
+    "tip-form",
+    selectedDevId !== null ? "tip-form--recipient-ready" : "",
+    amountIsValid ? "tip-form--amount-ready" : "",
+    canSubmit ? "tip-form--ready" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const handleManualDeveloperId = (value: string) => {
     const devId = Number.parseInt(value, 10);
     onSelectDev(Number.isSafeInteger(devId) && devId > 0 ? devId : null);
   };
 
   return (
-    <div className="form-group">
-      <div className="tip-preview-card" aria-label={t("tipPreviewTitle")}>
+    <div className={formClassName}>
+      <div className={`tip-preview-card${canSubmit ? " tip-preview-card--ready" : ""}`} aria-label={t("tipPreviewTitle")}>
         <span className="tip-preview-card__icon" aria-hidden="true">
           <HeartHandshake size={20} />
         </span>
@@ -75,6 +86,18 @@ export default function TipForm({
             <strong>{anonymous ? t("anonymousOn") : t("anonymousOff")}</strong>
           </span>
         </div>
+      </div>
+
+      <div className="tip-flow-lane" aria-label={t("tipPreviewTitle")}>
+        <span className={`tip-flow-lane__node${selectedDevId !== null ? " is-ready" : ""}`}>
+          {selectedDeveloperName || recipientLabel}
+        </span>
+        <span className="tip-flow-lane__track" aria-hidden="true">
+          <span />
+        </span>
+        <span className={`tip-flow-lane__node${amountIsValid ? " is-ready" : ""}`}>
+          {amountLabel}
+        </span>
       </div>
 
       {developers.length > 0 ? (
