@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -26,6 +26,8 @@ import type { ObservableState } from "@shared/react/context";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { consoleConfig } from "./appConfig";
 import "./PlayArea.scss";
+
+type SealActionPreview = "build" | "copy";
 
 function initialValues(
   launchParams: Record<string, string> = {},
@@ -80,6 +82,10 @@ export default function PlayArea({
   );
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [actionPreview, setActionPreview] =
+    useState<SealActionPreview | null>(null);
+  const actionPreviewTimeout = useRef<number | null>(null);
+  const copiedTimeout = useRef<number | null>(null);
   const [initialDigest] = useState(() =>
     readObservable(state, "lastDigest", t("digestPlaceholder")),
   );
@@ -120,6 +126,24 @@ export default function PlayArea({
   const recipientValue = values.recipient ?? "";
   const payloadValue = values.payload ?? "";
   const recipientLabel = recipientValue.trim() || t("digestPlaceholder");
+  const isBuilding = actionPreview === "build";
+  const isCopying = actionPreview === "copy";
+  const stageStatus = isBuilding
+    ? t("sealStageBuilding")
+    : isCopying
+      ? t("sealStageCopying")
+      : result
+        ? t("sealStageReady")
+        : t("sealStageIdle");
+  const stageClassName = [
+    "seal-process-stage",
+    isBuilding ? "seal-process-stage--building" : "",
+    isCopying ? "seal-process-stage--copying" : "",
+    result ? "seal-process-stage--ready" : "",
+    !draftOk ? "seal-process-stage--warning" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const summaryItems = [
     {
       key: "protection",
@@ -142,6 +166,29 @@ export default function PlayArea({
       value: boolLabel(payloadValid, t),
     },
   ];
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        window.clearTimeout(actionPreviewTimeout.current);
+      }
+      if (copiedTimeout.current !== null) {
+        window.clearTimeout(copiedTimeout.current);
+      }
+    },
+    [],
+  );
+
+  function startActionPreview(action: SealActionPreview) {
+    if (actionPreviewTimeout.current !== null) {
+      window.clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = window.setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, 1200);
+  }
 
   function updateValue(key: string, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -171,6 +218,7 @@ export default function PlayArea({
   }
 
   function buildPreview() {
+    startActionPreview("build");
     applyResult(consoleConfig.buildResult(values, t));
   }
 
@@ -184,13 +232,28 @@ export default function PlayArea({
 
   async function copyPayload() {
     if (!payloadText) return;
+    startActionPreview("copy");
     await services.clipboard.copy(payloadText, consoleConfig.copiedKey);
     setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    if (copiedTimeout.current !== null) {
+      window.clearTimeout(copiedTimeout.current);
+    }
+    copiedTimeout.current = window.setTimeout(() => {
+      setCopied(false);
+      copiedTimeout.current = null;
+    }, 1600);
   }
 
   return (
-    <div className="seal-play-area">
+    <div
+      className={[
+        "seal-play-area",
+        isBuilding ? "seal-play-area--building" : "",
+        isCopying ? "seal-play-area--copying" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <section className="seal-hero" aria-label={t("panelTitle")}>
         <img
           className="seal-hero__media"
@@ -287,6 +350,39 @@ export default function PlayArea({
               </span>
             ))}
           </div>
+
+          <section
+            className={stageClassName}
+            aria-label={t("sealStageTitle")}
+            aria-live="polite"
+          >
+            <img
+              className="seal-process-stage__media"
+              src="./seal-reference-stage.jpg"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              aria-hidden="true"
+            />
+            <div className="seal-process-stage__shade" aria-hidden="true" />
+            <div className="seal-process-stage__rail" aria-hidden="true">
+              <span className="seal-process-stage__node seal-process-stage__node--source">
+                <FileJson2 size={18} />
+              </span>
+              <span className="seal-process-stage__route" />
+              <span className="seal-process-stage__packet">
+                <MailCheck size={19} />
+              </span>
+              <span className="seal-process-stage__node seal-process-stage__node--checksum">
+                <Fingerprint size={18} />
+              </span>
+            </div>
+            <div className="seal-process-stage__copy">
+              <small>{t("sealStageTitle")}</small>
+              <strong>{stageStatus}</strong>
+              <span>{t("sealStageCopy")}</span>
+            </div>
+          </section>
 
           <section
             className="seal-purpose-panel"
@@ -417,9 +513,18 @@ export default function PlayArea({
           </section>
 
           <div className="seal-actions">
-            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              loading={isBuilding}
+              onClick={buildPreview}
+            >
               <Play size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.primaryActionKey)}</span>
+              <span>
+                {isBuilding
+                  ? t("sealBuildActionActive")
+                  : t(consoleConfig.primaryActionKey)}
+              </span>
             </NeoButton>
             <NeoButton variant="ghost" size="lg" onClick={reset}>
               <RotateCcw size={18} aria-hidden="true" />
@@ -428,7 +533,16 @@ export default function PlayArea({
           </div>
         </div>
 
-        <aside className="seal-result-card" aria-live="polite">
+        <aside
+          className={[
+            "seal-result-card",
+            isBuilding ? "is-building" : "",
+            isCopying ? "is-copying" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          aria-live="polite"
+        >
           <header className="seal-card-head">
             <span aria-hidden="true">
               <LockKeyhole size={19} />
@@ -474,16 +588,23 @@ export default function PlayArea({
                 ))}
               </div>
               <div className="seal-payload-actions">
-                <NeoButton variant="secondary" size="sm" onClick={copyPayload}>
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  loading={isCopying}
+                  onClick={copyPayload}
+                >
                   {copied ? (
                     <Check size={16} aria-hidden="true" />
                   ) : (
                     <Copy size={16} aria-hidden="true" />
                   )}
                   <span>
-                    {copied
-                      ? t(consoleConfig.copiedKey)
-                      : t(consoleConfig.copyActionKey)}
+                    {isCopying
+                      ? t("sealCopyActionActive")
+                      : copied
+                        ? t(consoleConfig.copiedKey)
+                        : t(consoleConfig.copyActionKey)}
                   </span>
                 </NeoButton>
               </div>

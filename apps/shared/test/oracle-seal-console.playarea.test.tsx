@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -76,6 +78,8 @@ describe("Oracle Seal Console PlayArea", () => {
 
     expect(container.querySelector(".seal-composer-panel")).toBeTruthy();
     expect(container.querySelector(".seal-purpose-track")).toBeTruthy();
+    expect(container.querySelector(".seal-process-stage")).toBeTruthy();
+    expect(screen.getByText("Ready to build reference")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "Purpose: Attestation" }));
     fireEvent.change(screen.getByLabelText("Recipient"), {
       target: { value: "oracle-route-alpha" },
@@ -88,6 +92,8 @@ describe("Oracle Seal Console PlayArea", () => {
     expect(
       screen.getByText("Attestation envelope reference prepared"),
     ).toBeTruthy();
+    expect(container.querySelector(".seal-process-stage--building")).toBeTruthy();
+    expect(screen.getByText("Building envelope reference...")).toBeTruthy();
     const payload = container.querySelector(".console-tool__payload-card pre");
     expect(payload?.textContent).toContain("oracle.seal.envelope");
     expect(payload?.textContent).toContain("payloadDigest");
@@ -97,6 +103,8 @@ describe("Oracle Seal Console PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Copy" }));
     await waitFor(() => expect(copy).toHaveBeenCalled());
+    expect(container.querySelector(".seal-process-stage--copying")).toBeTruthy();
+    expect(screen.getByText("Copying reference metadata...")).toBeTruthy();
     expect(copy.mock.calls[0]?.[0]).not.toContain("do-not-leak");
   });
 
@@ -116,5 +124,26 @@ describe("Oracle Seal Console PlayArea", () => {
     expect(state.requestCount?.get?.()).toBe(0);
     expect(state.lastDigest?.get?.()).toBe("—");
     expect(setStatus).toHaveBeenCalledWith("Enter a valid JSON payload", "warning");
+  });
+
+  it("keeps the envelope workbench motion and reduced-motion fallback covered", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../oracle-seal-console/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes seal-stage-package-route");
+    expect(styles).toContain("@keyframes seal-stage-copy-pulse");
+    expect(styles).toContain("@keyframes seal-stage-route-scan");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.seal-process-stage--building \.seal-process-stage__packet[\s\S]*animation:\s*seal-stage-package-route/,
+    );
+    expect(styles).toMatch(
+      /\.seal-process-stage--copying \.seal-process-stage__packet[\s\S]*animation:\s*seal-stage-copy-pulse/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.seal-process-stage__packet[\s\S]*animation:\s*none/,
+    );
   });
 });
