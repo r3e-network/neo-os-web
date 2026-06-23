@@ -353,6 +353,18 @@
   animation: fogplay-table-glow 1.2s ease-in-out infinite;
 }
 
+.coinflip-play-area--revealing .reveal-pending {
+  border-color: rgba(245, 158, 11, 0.38);
+  box-shadow:
+    0 10px 24px rgba(245, 158, 11, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+  animation: fogplay-reveal-panel-pulse 1.05s ease-in-out infinite;
+}
+
+.coinflip-play-area--revealing .play-hero__badge {
+  animation-duration: 1.15s;
+}
+
 .coinflip-game-table__arena,
 .coinflip-game-table__wager {
   min-width: 0;
@@ -603,6 +615,21 @@
   }
 }
 
+@keyframes fogplay-reveal-panel-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 24px rgba(245, 158, 11, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+  }
+
+  50% {
+    box-shadow:
+      0 14px 30px rgba(245, 158, 11, 0.18),
+      0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+  }
+}
+
 @keyframes fogplay-wager-in {
   from {
     opacity: 0;
@@ -643,6 +670,7 @@
   .coinflip-play-area::after,
   .play-hero::after,
   .play-hero__badge,
+  .coinflip-play-area--revealing .reveal-pending,
   .coinflip-game-table::before,
   .coinflip-game-table__wager .wager-panel,
   .history-section,

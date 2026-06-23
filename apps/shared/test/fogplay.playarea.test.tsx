@@ -200,6 +200,44 @@ describe("FogPlay PlayArea", () => {
     });
   });
 
+  it("turns a manual reveal retry into immediate reveal motion", async () => {
+    let resolveReveal: (() => void) | undefined;
+    const dispatch = vi.fn((name: string) => {
+      if (name === "revealResult") {
+        return new Promise<void>((resolve) => {
+          resolveReveal = resolve;
+        });
+      }
+      return Promise.resolve();
+    });
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          hasPendingBet: true,
+          revealFailed: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reveal Result" }));
+
+    expect(dispatch).toHaveBeenCalledWith("revealResult");
+    await waitFor(() => {
+      expect(container.querySelector(".coinflip-play-area--tossing")).toBeTruthy();
+      expect(container.querySelector(".coinflip-play-area--revealing")).toBeTruthy();
+      expect(container.querySelector(".premium-arena--revealing")).toBeTruthy();
+      expect(container.querySelector(".coin-wrapper--revealing")).toBeTruthy();
+      expect(container.querySelector(".game-status-pill.revealing")).toBeTruthy();
+      expect(container.querySelector(".coin-flight-trail")).toBeTruthy();
+      expect(screen.getAllByText("Revealing next block").length).toBeGreaterThan(0);
+    });
+
+    resolveReveal?.();
+  });
+
   it("renders the win state and dismisses the cinematic reward overlay", async () => {
     const dispatch = vi.fn(async () => undefined);
 
@@ -244,6 +282,7 @@ describe("FogPlay PlayArea", () => {
     expect(styles).toContain("@keyframes coin-toss-arc");
     expect(styles).toContain("@keyframes flight-spark");
     expect(styles).toContain("@keyframes fogplay-runway-coin");
+    expect(styles).toContain("@keyframes fogplay-reveal-panel-pulse");
     expect(styles).toContain("@keyframes entry-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
