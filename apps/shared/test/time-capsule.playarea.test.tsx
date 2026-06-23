@@ -45,6 +45,20 @@ function t(key: string) {
     durationPresets: "Duration presets",
     daysShort: "D",
     contentStorageNote: "Your full message is stored locally on this device.",
+    collectTips: "Collect tips",
+    collectingTips: "Collecting tips...",
+    collectTipsHint: "Collect public fishing tips.",
+    fish: "Fish",
+    fishSummary: "Discover public capsules",
+    fishFactTip: "0.05 GAS tip",
+    fishFactSealed: "Sealed until unlock",
+    fishFactCharged: "Charged route",
+    fishCandidatesTitle: "Public capsules",
+    fishCandidatesRefresh: "Refresh candidates",
+    fishCandidatesLoading: "Loading candidates...",
+    fishCandidatesHint: "Pick a public capsule before tipping.",
+    fishCandidatesEmpty: "No public capsules yet.",
+    fishTipThis: "Fish this capsule",
     letterDockLabel: "Message sealing dock",
     letterDockKicker: "Letter loading",
     letterDockEmpty: "Write a title or message to load the capsule.",
@@ -67,6 +81,10 @@ function t(key: string) {
     unlocks: "Unlocks:",
     open: "Open Capsule",
     notUnlockedYet: "Not unlocked yet",
+    prepaidCreditLabel: "Recoverable credit",
+    prepaidCreditHint: "A previous deposit can be withdrawn.",
+    withdrawCredit: "Withdraw credit",
+    withdrawingCredit: "Withdrawing credit...",
   };
   return messages[key] ?? key;
 }
@@ -205,6 +223,186 @@ describe("Time Capsule PlayArea", () => {
     expect(container.querySelector(".capsule-game-slot--unlock.is-active")).toBeTruthy();
   });
 
+  it("previews create sealing immediately and locks both create entry points", async () => {
+    let finishCreate: (() => void) | undefined;
+    const createPromise = new Promise<void>((resolve) => {
+      finishCreate = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "createCapsule" ? createPromise : Promise.resolve(),
+    );
+
+    const { container } = render(
+      <PlayArea t={t} state={state([])} dispatch={dispatch} />,
+    );
+
+    const createButtons = screen.getAllByRole("button", {
+      name: "Create Capsule (0.2 GAS)",
+    });
+    fireEvent.click(createButtons[0]!);
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("createCapsule");
+      expect(container.querySelector(".capsule-play-area")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".capsule-play-area.is-sealing")).toBeTruthy();
+      expect(container.querySelector(".capsule-seal-workbench.is-sealing")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".capsule-letter-dock.is-sealing")).toBeTruthy();
+      expect(container.querySelector(".capsule-preview-panel.is-sealing")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".capsule-game-board.is-sealing")).toBeTruthy();
+    });
+
+    expect(createButtons[0]?.getAttribute("aria-busy")).toBe("true");
+    expect(createButtons[1]?.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(createButtons[0]!);
+    fireEvent.click(createButtons[1]!);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    finishCreate?.();
+  });
+
+  it("previews recovery, collect, candidate refresh, fish, and open actions locally", async () => {
+    let finishWithdraw: (() => void) | undefined;
+    const withdrawPromise = new Promise<void>((resolve) => {
+      finishWithdraw = resolve;
+    });
+    const withdrawDispatch = vi.fn((name: string) =>
+      name === "withdrawCredit" ? withdrawPromise : Promise.resolve(),
+    );
+    const withdrawView = render(
+      <PlayArea
+        t={t}
+        state={state([], { hasCredit: true, reusableCredit: "0.2" })}
+        dispatch={withdrawDispatch}
+      />,
+    );
+
+    const withdrawButton = screen.getByRole("button", { name: "Withdraw credit" });
+    fireEvent.click(withdrawButton);
+
+    await waitFor(() => {
+      expect(withdrawDispatch).toHaveBeenCalledWith("withdrawCredit");
+      expect(withdrawView.container.querySelector(".capsule-play-area.is-recovering")).toBeTruthy();
+      expect(withdrawView.container.querySelector(".capsule-recovery-card.is-recovering")).toBeTruthy();
+    });
+    expect(withdrawButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(withdrawButton);
+    expect(withdrawDispatch).toHaveBeenCalledTimes(1);
+    finishWithdraw?.();
+    withdrawView.unmount();
+
+    let finishCollect: (() => void) | undefined;
+    const collectPromise = new Promise<void>((resolve) => {
+      finishCollect = resolve;
+    });
+    const collectDispatch = vi.fn((name: string) =>
+      name === "withdrawFishRevenue" ? collectPromise : Promise.resolve(),
+    );
+    const collectView = render(
+      <PlayArea t={t} state={state([])} dispatch={collectDispatch} />,
+    );
+
+    const collectButton = screen.getByRole("button", { name: "Collect tips" });
+    fireEvent.click(collectButton);
+
+    await waitFor(() => {
+      expect(collectDispatch).toHaveBeenCalledWith("withdrawFishRevenue");
+      expect(collectView.container.querySelector(".capsule-play-area.is-collecting")).toBeTruthy();
+      expect(collectView.container.querySelector(".capsule-actions.is-collecting")).toBeTruthy();
+      expect(collectView.container.querySelector(".capsule-collect-tips.is-collecting")).toBeTruthy();
+    });
+    expect(collectButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(collectButton);
+    expect(collectDispatch).toHaveBeenCalledTimes(1);
+    finishCollect?.();
+    collectView.unmount();
+
+    let finishLoad: (() => void) | undefined;
+    const loadPromise = new Promise<void>((resolve) => {
+      finishLoad = resolve;
+    });
+    const loadDispatch = vi.fn((name: string) =>
+      name === "loadFishCandidates" ? loadPromise : Promise.resolve(),
+    );
+    const loadView = render(
+      <PlayArea t={t} state={state([])} dispatch={loadDispatch} />,
+    );
+
+    const refreshButton = screen.getByRole("button", { name: "Refresh candidates" });
+    fireEvent.click(refreshButton);
+
+    await waitFor(() => {
+      expect(loadDispatch).toHaveBeenCalledWith("loadFishCandidates");
+      expect(loadView.container.querySelector(".capsule-actions.is-loading-candidates")).toBeTruthy();
+    });
+    expect(refreshButton.textContent).toBe("Loading candidates...");
+    fireEvent.click(refreshButton);
+    expect(loadDispatch).toHaveBeenCalledTimes(1);
+    finishLoad?.();
+    loadView.unmount();
+
+    let finishFish: (() => void) | undefined;
+    const fishPromise = new Promise<void>((resolve) => {
+      finishFish = resolve;
+    });
+    const fishDispatch = vi.fn((name: string) =>
+      name === "fishCapsule" ? fishPromise : Promise.resolve(),
+    );
+    const fishView = render(
+      <PlayArea
+        t={t}
+        state={state([], {
+          fishCandidates: [{ id: "42", category: 2, unlockTime: Date.now() + 10_000 }],
+        })}
+        dispatch={fishDispatch}
+      />,
+    );
+
+    const fishButton = screen.getByRole("button", { name: "Fish this capsule" });
+    fireEvent.click(fishButton);
+
+    await waitFor(() => {
+      expect(fishDispatch).toHaveBeenCalledWith("fishCapsule", "42");
+      expect(fishView.container.querySelector(".capsule-play-area.is-fishing")).toBeTruthy();
+      expect(fishView.container.querySelector(".capsule-actions.is-fishing")).toBeTruthy();
+      expect(fishView.container.querySelector(".capsule-fish-candidates__item.is-fishing")?.getAttribute("aria-busy")).toBe("true");
+    });
+    expect(fishButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(fishButton);
+    expect(fishDispatch).toHaveBeenCalledTimes(1);
+    finishFish?.();
+    fishView.unmount();
+
+    let finishOpen: (() => void) | undefined;
+    const openPromise = new Promise<void>((resolve) => {
+      finishOpen = resolve;
+    });
+    const openDispatch = vi.fn((name: string) =>
+      name === "openCapsule" ? openPromise : Promise.resolve(),
+    );
+    const readyCapsule = {
+      id: "8",
+      title: "Yesterday note",
+      unlockTime: Math.floor(Date.now() / 1000) - 60,
+      locked: true,
+      revealed: false,
+    };
+    const openView = render(
+      <PlayArea t={t} state={state([readyCapsule])} dispatch={openDispatch} />,
+    );
+
+    const openButton = screen.getByRole("button", { name: "Open Capsule" });
+    fireEvent.click(openButton);
+
+    await waitFor(() => {
+      expect(openDispatch).toHaveBeenCalledWith("openCapsule", readyCapsule);
+      expect(openView.container.querySelector(".capsule-play-area.is-opening")).toBeTruthy();
+      expect(openView.container.querySelector(".capsule-item.is-opening")?.getAttribute("aria-busy")).toBe("true");
+    });
+    expect(openButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(openButton);
+    expect(openDispatch).toHaveBeenCalledTimes(1);
+    finishOpen?.();
+  });
+
   it("labels local capsules with visual state classes for locked, ready, and revealed states", () => {
     const now = Math.floor(Date.now() / 1000);
     const { container } = render(
@@ -288,12 +486,17 @@ describe("Time Capsule PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes capsule-game-slot-scan");
     expect(playAreaStyles).toContain("@keyframes capsule-game-seal-pulse");
     expect(playAreaStyles).toContain("@keyframes capsule-game-icon-ready");
+    expect(playAreaStyles).toContain("@keyframes capsule-action-sweep");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(playAreaStyles).toContain(".capsule-letter-dock");
     expect(playAreaStyles).toContain(".capsule-time-lock-dial");
     expect(playAreaStyles).toContain(".capsule-game-token");
     expect(playAreaStyles).toContain(".capsule-game-slot--seal.is-sealing");
     expect(playAreaStyles).toContain(".capsule-game-slot");
+    expect(playAreaStyles).toContain(".capsule-actions.is-fishing");
+    expect(playAreaStyles).toContain(".capsule-collect-tips.is-collecting");
+    expect(playAreaStyles).toContain(".capsule-recovery-card.is-recovering");
+    expect(playAreaStyles).toContain(".capsule-item.is-opening");
     expect(heroStyles).toContain("@keyframes capsule-hero-drift");
     expect(heroStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(listStyles).toContain("@keyframes capsule-empty-badge");
