@@ -93,7 +93,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }, 1300);
   };
 
-  const recentHistory = useMemo(() => (gameHistory ?? []).slice(0, 10), [gameHistory]);
+  const recentHistory = useMemo(
+    () => (gameHistory ?? []).slice(0, 10),
+    [gameHistory],
+  );
   const historyCoinArt: Record<"heads" | "tails", string> = {
     heads: coinHeadsUrl,
     tails: coinTailsUrl,
@@ -120,7 +123,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   return (
-    <div className={playAreaClassName}>
+    <div
+      className={playAreaClassName}
+      aria-busy={flipIsAnimating || revealIsAnimating || undefined}
+    >
       <header className="play-hero">
         <div className="play-hero__head">
           <span className="play-hero__badge" aria-hidden="true">
@@ -171,7 +177,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         )}
       </header>
 
-      <main className="coinflip-game-table" aria-label={t("title")}>
+      <main
+        className="coinflip-game-table"
+        aria-label={t("title")}
+        aria-busy={flipIsAnimating || revealIsAnimating || undefined}
+      >
         <div className="coinflip-game-table__arena">
           <ArenaHero
             t={t}
@@ -213,7 +223,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo">
             <div className="history-empty">
               <span className="history-empty__icon" aria-hidden="true">
-                <img src={coinHeadsUrl} alt="" loading="lazy" decoding="async" />
+                <img
+                  src={coinHeadsUrl}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               </span>
               <span className="history-empty__text">{t("noHistory")}</span>
             </div>
