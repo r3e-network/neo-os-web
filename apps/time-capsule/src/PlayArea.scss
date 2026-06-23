@@ -391,6 +391,216 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   gap: 12px;
 }
 
+.capsule-time-lock-dial {
+  --capsule-time-fill: 28%;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 13px;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: var(--ns-radius-lg, 18px);
+  background:
+    radial-gradient(circle at 78% 8%, rgba(245, 166, 35, 0.12), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(228, 248, 240, 0.78));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 10px 22px rgba(22, 199, 132, 0.07);
+}
+
+.capsule-time-lock-dial::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+}
+
+.capsule-time-lock-dial.is-valid::after {
+  animation: capsule-time-lock-scan 4.2s ease-in-out infinite;
+}
+
+.capsule-time-lock-dial__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 74px;
+  aspect-ratio: 1;
+}
+
+.capsule-time-lock-dial__ring,
+.capsule-time-lock-dial__core {
+  position: absolute;
+  border-radius: 999px;
+}
+
+.capsule-time-lock-dial__ring {
+  inset: 0;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  background:
+    conic-gradient($accent-strong var(--capsule-time-fill), rgba(22, 199, 132, 0.12) 0),
+    rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 9px rgba(255, 255, 255, 0.9),
+    0 12px 22px rgba(22, 199, 132, 0.12);
+}
+
+.capsule-time-lock-dial.is-valid .capsule-time-lock-dial__ring {
+  animation: capsule-time-lock-orbit 3.2s ease-in-out infinite;
+}
+
+.capsule-time-lock-dial__core {
+  inset: 18px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: $accent-strong;
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.16);
+}
+
+.capsule-time-lock-dial__console {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
+.capsule-time-lock-dial__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.capsule-time-lock-dial__head span {
+  color: $accent-strong;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.capsule-time-lock-dial__head strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capsule-time-lock-dial__control {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  gap: 8px;
+  align-items: center;
+}
+
+.capsule-time-lock-dial__control button,
+.capsule-time-lock-dial__control label {
+  height: 42px;
+  border-radius: var(--ns-radius-full, 9999px);
+}
+
+.capsule-time-lock-dial__control button {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: $accent-strong;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.capsule-time-lock-dial__control button:hover:not(:disabled) {
+  border-color: rgba(22, 199, 132, 0.32);
+  box-shadow: 0 8px 16px rgba(22, 199, 132, 0.08);
+  transform: translateY(-1px);
+}
+
+.capsule-time-lock-dial__control button:disabled {
+  color: var(--ns-text-faint, #aeb4c2);
+  cursor: default;
+}
+
+.capsule-time-lock-dial__control label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  background: #ffffff;
+  box-shadow: inset 0 2px 8px rgba(20, 22, 38, 0.04);
+}
+
+.capsule-time-lock-dial__control input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 14px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ns-ink, #1e1e2e);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.capsule-time-lock-dial__control input::-webkit-outer-spin-button,
+.capsule-time-lock-dial__control input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.capsule-time-lock-dial__control input {
+  -moz-appearance: textfield;
+}
+
+.capsule-time-lock-dial__control label span {
+  padding: 0 13px 0 5px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.capsule-time-lock-dial__track {
+  height: 8px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(22, 199, 132, 0.1);
+}
+
+.capsule-time-lock-dial__track span {
+  display: block;
+  width: var(--capsule-time-fill);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, $accent-strong, #f5a623);
+  box-shadow: 0 0 16px rgba(22, 199, 132, 0.2);
+  transition: width 220ms ease;
+}
+
+.capsule-time-lock-dial.is-valid .capsule-time-lock-dial__track span {
+  animation: capsule-time-lock-glow 2.8s ease-in-out infinite;
+}
+
 .capsule-duration-presets {
   display: flex;
   flex-wrap: wrap;
@@ -432,6 +642,12 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
     color: $accent-strong;
     animation: capsule-choice-confirm 260ms ease-out both;
   }
+}
+
+.capsule-time-lock-dial__control button:focus-visible,
+.capsule-time-lock-dial__control input:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .capsule-choice-field {
@@ -1473,6 +1689,49 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 }
 
+@keyframes capsule-time-lock-scan {
+  0%,
+  52% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  68% {
+    opacity: 0.66;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes capsule-time-lock-orbit {
+  0%,
+  100% {
+    filter: saturate(1);
+    transform: rotate(0deg);
+  }
+
+  50% {
+    filter: saturate(1.12);
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes capsule-time-lock-glow {
+  0%,
+  100% {
+    opacity: 0.86;
+    transform: scaleX(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1.01);
+  }
+}
+
 @keyframes capsule-preview-sweep {
   0%,
   54% {
@@ -1795,6 +2054,25 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
     display: none;
   }
 
+  .capsule-time-lock-dial {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .capsule-time-lock-dial__face {
+    justify-self: center;
+    width: 64px;
+  }
+
+  .capsule-time-lock-dial__head {
+    display: grid;
+    gap: 4px;
+  }
+
+  .capsule-time-lock-dial__head strong {
+    text-align: left;
+  }
+
   .capsule-message-input .neo-input__textarea {
     min-height: 84px;
   }
@@ -1920,6 +2198,9 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   .capsule-letter-dock.is-writing .capsule-letter-dock__stamp,
   .capsule-letter-dock.is-writing .capsule-letter-dock__rail > span,
   .capsule-letter-dock.is-sealing .capsule-letter-dock__seal,
+  .capsule-time-lock-dial::after,
+  .capsule-time-lock-dial.is-valid .capsule-time-lock-dial__ring,
+  .capsule-time-lock-dial.is-valid .capsule-time-lock-dial__track span,
   .capsule-duration-chip.is-selected,
   .capsule-choice-card.is-selected .capsule-choice-card__icon,
   .capsule-preview-panel::before,
@@ -1949,6 +2230,8 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   .capsule-preview-grid span,
   .capsule-game-slot,
   .capsule-letter-dock,
+  .capsule-time-lock-dial__control button,
+  .capsule-time-lock-dial__track span,
   .capsule-duration-chip,
   .capsule-choice-card,
   .capsule-item {

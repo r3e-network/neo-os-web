@@ -115,6 +115,8 @@ const appMessages = {
   unlockIn: { en: "Lock Duration", zh: "锁定时长" },
   daysPlaceholder: { en: "30", zh: "30" },
   durationPresets: { en: "Duration presets", zh: "常用锁定时长" },
+  decreaseLockDuration: { en: "Decrease lock duration", zh: "减少锁定时长" },
+  increaseLockDuration: { en: "Increase lock duration", zh: "增加锁定时长" },
   daysShort: { en: "D", zh: "天" },
   hoursShort: { en: "H", zh: "时" },
   minShort: { en: "M", zh: "分" },
