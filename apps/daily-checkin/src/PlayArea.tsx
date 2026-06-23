@@ -15,6 +15,8 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+type ActionPreview = "checkIn" | "claim" | "refresh";
+
 const evidenceText = (value: unknown, empty: string): string => {
   if (!value) return empty;
   return JSON.stringify(value, null, 2);
@@ -68,6 +70,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const weekSlotToday = weekSlotFilled === 7 && canCheckIn ? 1 : Math.min(weekSlotFilled + 1, 7);
 
   const [showConfetti, setShowConfetti] = useState(false);
+  const [actionPreview, setActionPreview] = useState<ActionPreview | null>(null);
+  const actionPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track the previously observed value via a ref so it faithfully mirrors the
   // last render's canCheckIn on every edge — avoids the prior bug where prev
   // stuck at `true` because it was only updated in the non-firing branch.
@@ -80,6 +84,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     const timer = setTimeout(() => setShowConfetti(false), 2200);
     return () => clearTimeout(timer);
   }, [canCheckIn]);
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeoutRef.current !== null) {
+        clearTimeout(actionPreviewTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // Milestone payout reveal — when a check-in lands the streak ON a milestone
   // day (the streak counter crosses 7 or 14 upward), surface the +GAS reward the
@@ -99,16 +112,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }, [currentStreak]);
 
   const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
+  const checkInPreview = actionPreview === "checkIn";
+  const claimPreview = actionPreview === "claim";
+  const refreshPreview = actionPreview === "refresh";
+  const isCheckInBusy = isCheckingIn || checkInPreview;
+  const isClaimBusy = isClaiming || claimPreview;
+  const isRefreshBusy = isRefreshing || refreshPreview;
+  const isActionBusy = isCheckInBusy || isClaimBusy || isRefreshBusy;
   // A chain read is genuinely in flight only while the global coordinator is
   // running before the first successful load. Once it settles with no wallet
   // (the standalone resting state) isLoading is false again — that is NOT a
   // loading state and must not show a "Loading…" pill.
-  const statusReadInFlight = !hasLoadedStatus && (isLoading || isRefreshing);
+  const statusReadInFlight = !hasLoadedStatus && (isLoading || isRefreshBusy);
   // The settled first-open / disconnected resting state: the initial read has
   // resolved with no wallet/data (isLoading back to false) and nothing else is
   // running. This is the empty archetype state — not a loading state.
-  const awaitingConnect = !hasLoadedStatus && !isLoading && !isRefreshing && !isCheckingIn;
-  const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading || isPaused;
+  const awaitingConnect = !hasLoadedStatus && !isLoading && !isRefreshBusy && !isCheckInBusy;
+  const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading || isPaused || isActionBusy;
   // Only collapse the primary verb to "Loading…" while a read is actually in
   // flight. In the settled disconnected state keep the real "Check In Now"
   // label (disabled) so the game's core action is always visible and named,
@@ -126,7 +146,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Block claiming when the contract is paused or the reward pool cannot cover
   // the accrued amount, so the CTA never invites a transaction that will fault.
   const claimBlocked = isPaused || claimableButUnfunded;
-  const claimDisabled = !hasClaimable || isClaiming || claimBlocked;
+  const claimDisabled = !hasClaimable || isActionBusy || claimBlocked;
   // When there is genuinely nothing accrued, the claim CTA reads as an explicit
   // "Nothing to claim yet" dead-state rather than an active-looking
   // "Claim Rewards (0 GAS)" — so the disabled button is not a confusing
@@ -179,8 +199,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const routeRunnerClassName = [
     "checkin-route-runner",
     canCheckIn ? "checkin-route-runner--ready" : "",
+    isCheckInBusy ? "checkin-route-runner--checking-in" : "",
     showConfetti || reachedMilestone ? "checkin-route-runner--celebrating" : "",
   ].filter(Boolean).join(" ");
+  const actionCardClassName = [
+    "checkin-action-card",
+    isActionBusy ? "checkin-action-card--busy" : "",
+    isCheckInBusy ? "checkin-action-card--checkin" : "",
+    isClaimBusy ? "checkin-action-card--claim" : "",
+    isRefreshBusy ? "checkin-action-card--refresh" : "",
+  ].filter(Boolean).join(" ");
+
+  const startActionPreview = (action: ActionPreview) => {
+    if (actionPreviewTimeoutRef.current !== null) {
+      clearTimeout(actionPreviewTimeoutRef.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeoutRef.current = setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeoutRef.current = null;
+    }, 1400);
+  };
+
+  const handleCheckIn = async () => {
+    if (checkInDisabled) return;
+    startActionPreview("checkIn");
+    await dispatch("doCheckIn");
+  };
+
+  const handleClaimRewards = async () => {
+    if (claimDisabled) return;
+    startActionPreview("claim");
+    await dispatch("claimRewards");
+  };
+
+  const handleRefreshStatus = async () => {
+    if (isLoading || isClaimBusy || isCheckInBusy || isRefreshBusy) return;
+    startActionPreview("refresh");
+    await dispatch("refreshStatus");
+  };
 
   return (
     <div
@@ -189,8 +246,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         `streak-${streakTier}`,
         ringReady ? "streak-can-checkin" : "",
         milestoneReachable ? "streak-milestone-ready" : "",
+        isCheckInBusy ? "streak-checking-in" : "",
         showConfetti || reachedMilestone ? "streak-celebrating" : "",
       ].filter(Boolean).join(" ")}
+      aria-busy={isActionBusy || undefined}
     >
       {/* Upper region — hero + week (left) and the primary action card (right)
           share a two-column grid on desktop so the core Check In action sits
@@ -245,7 +304,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </figure>
 
       {/* Week progress + next check-in countdown together (one timing context) */}
-      <div className="checkin-week-wrapper" aria-label={t("rewardProgress")}>
+      <div
+        className="checkin-week-wrapper"
+        aria-label={t("rewardProgress")}
+        aria-busy={isActionBusy || undefined}
+      >
         <div className="checkin-week-progress-label">
           <span className="checkin-progress-text">{weekSlotFilled}/7 {t("days")}</span>
           <span className="checkin-week-complete-badge">
@@ -323,7 +386,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       ) : null}
 
       {/* Primary action — surfaced right after the hero, with inline status */}
-      <NeoCard variant="erobo" className="checkin-action-card">
+      <NeoCard variant="erobo" className={actionCardClassName}>
         {showStatusPill && (
           <div className={`status-pill${lastError ? " error" : ""}`}>
             <span>{lastError || workflowStatus}</span>
@@ -332,14 +395,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {awaitingConnect && (
           <p className="checkin-connect-hint">{t("connectHint")}</p>
         )}
-        <div className="checkin-actions-grid">
+        <div className="checkin-actions-grid" aria-busy={isActionBusy || undefined}>
           <NeoButton
             variant={canCheckIn ? "success" : "secondary"}
             size="lg"
             disabled={checkInDisabled}
-            loading={isCheckingIn}
+            loading={isCheckInBusy}
             className={`checkin-btn${canCheckIn ? " checkin-btn--ready" : ""}`}
-            onClick={() => dispatch("doCheckIn")}
+            onClick={handleCheckIn}
             aria-label={checkInLabel}
           >
             {checkInLabel}
@@ -350,9 +413,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="primary"
             size="lg"
             disabled={claimDisabled}
-            loading={isClaiming}
+            loading={isClaimBusy}
             className={`checkin-claim-btn${!hasClaimable && !claimBlocked ? " checkin-claim-btn--empty" : ""}`}
-            onClick={() => dispatch("claimRewards")}
+            onClick={handleClaimRewards}
             aria-label={hasClaimable ? t("claimRewards") : t("claimNothingYet")}
           >
             {claimLabel}
@@ -360,9 +423,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoButton
             variant="secondary"
             size="lg"
-            disabled={isLoading || isClaiming}
-            loading={isRefreshing}
-            onClick={() => dispatch("refreshStatus")}
+            disabled={isLoading || isClaimBusy || isCheckInBusy || isRefreshBusy}
+            loading={isRefreshBusy}
+            onClick={handleRefreshStatus}
             aria-label={t("refreshStatus")}
           >
             {t("refreshStatus")}

@@ -184,16 +184,105 @@ describe("Daily Check-in PlayArea", () => {
 
   it("dispatches all visible business actions", () => {
     const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const checkInView = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Check In Now" }));
     expect(dispatch).toHaveBeenCalledWith("doCheckIn");
+    checkInView.unmount();
+
+    const claimView = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Claim Rewards" }));
     expect(dispatch).toHaveBeenCalledWith("claimRewards");
+    claimView.unmount();
+
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
     expect(dispatch).toHaveBeenCalledWith("refreshStatus");
+  });
+
+  it("previews check-in route motion immediately and locks peer actions", async () => {
+    let finishCheckIn: (() => void) | undefined;
+    const checkInPromise = new Promise<void>((resolve) => {
+      finishCheckIn = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "doCheckIn" ? checkInPromise : Promise.resolve(),
+    );
+
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Check In Now" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("doCheckIn");
+      expect(container.querySelector(".checkin-play-area")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".checkin-week-wrapper")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".checkin-actions-grid")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".streak-checking-in")).toBeTruthy();
+      expect(container.querySelector(".checkin-route-runner--checking-in")).toBeTruthy();
+      expect(container.querySelector(".checkin-action-card--busy.checkin-action-card--checkin")).toBeTruthy();
+    });
+
+    const checkInButton = screen.getByRole("button", { name: "Check In Now" }) as HTMLButtonElement;
+    expect(checkInButton.disabled).toBe(true);
+    expect(checkInButton.getAttribute("aria-busy")).toBe("true");
+
+    expect((screen.getByRole("button", { name: "Claim Rewards" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(checkInButton);
+    fireEvent.click(screen.getByRole("button", { name: "Claim Rewards" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    finishCheckIn?.();
+  });
+
+  it("previews claim and refresh actions with scoped busy states", async () => {
+    let finishClaim: (() => void) | undefined;
+    const claimPromise = new Promise<void>((resolve) => {
+      finishClaim = resolve;
+    });
+    const claimDispatch = vi.fn((name: string) =>
+      name === "claimRewards" ? claimPromise : Promise.resolve(),
+    );
+    const claimView = render(<PlayArea t={t} state={state()} dispatch={claimDispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Claim Rewards" }));
+
+    await waitFor(() => {
+      expect(claimDispatch).toHaveBeenCalledWith("claimRewards");
+      expect(claimView.container.querySelector(".checkin-action-card--busy.checkin-action-card--claim")).toBeTruthy();
+      expect(claimView.container.querySelector(".checkin-play-area")?.getAttribute("aria-busy")).toBe("true");
+    });
+    expect((screen.getByRole("button", { name: "Claim Rewards" }) as HTMLButtonElement).getAttribute("aria-busy")).toBe("true");
+    expect((screen.getByRole("button", { name: "Check In Now" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement).disabled).toBe(true);
+    finishClaim?.();
+    claimView.unmount();
+
+    let finishRefresh: (() => void) | undefined;
+    const refreshPromise = new Promise<void>((resolve) => {
+      finishRefresh = resolve;
+    });
+    const refreshDispatch = vi.fn((name: string) =>
+      name === "refreshStatus" ? refreshPromise : Promise.resolve(),
+    );
+    const refreshView = render(<PlayArea t={t} state={state()} dispatch={refreshDispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
+
+    await waitFor(() => {
+      expect(refreshDispatch).toHaveBeenCalledWith("refreshStatus");
+      expect(refreshView.container.querySelector(".checkin-action-card--busy.checkin-action-card--refresh")).toBeTruthy();
+      expect(refreshView.container.querySelector(".checkin-actions-grid")?.getAttribute("aria-busy")).toBe("true");
+    });
+    expect((screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement).getAttribute("aria-busy")).toBe("true");
+    expect((screen.getByRole("button", { name: "Check In Now" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Claim Rewards" }) as HTMLButtonElement).disabled).toBe(true);
+    finishRefresh?.();
   });
 
   it("marks the streak surface as celebrating when a milestone check-in lands", async () => {
