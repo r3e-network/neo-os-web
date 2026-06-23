@@ -103,6 +103,36 @@ export default function PlayArea({
     !notBackupOwner;
   const canUpdateHook =
     accountReady && Boolean(hookHash.trim()) && !isHookBusy && !notBackupOwner;
+  const isPermissionRouteBusy = isRefreshing || isVerifierBusy || isHookBusy;
+  const hasPendingChange = hasPendingVerifier || hasPendingHook;
+  const routeStageState = isVerifierBusy
+    ? "verifier"
+    : isHookBusy
+      ? "hook"
+      : isRefreshing
+        ? "inspect"
+        : hasPendingChange
+          ? "timelock"
+          : hasInspected
+            ? "ready"
+            : accountReady
+              ? "armed"
+              : "empty";
+  const routeStageStatus = isVerifierBusy
+    ? t("permissionsRouteStatusVerifier")
+    : isHookBusy
+      ? t("permissionsRouteStatusHook")
+      : isRefreshing
+        ? t("permissionsRouteStatusInspect")
+        : hasPendingVerifier
+          ? t("permissionsRouteStatusPendingVerifier")
+          : hasPendingHook
+            ? t("permissionsRouteStatusPendingHook")
+            : hasInspected
+              ? t("permissionsRouteStatusReady")
+              : accountReady
+                ? t("permissionsRouteStatusArmed")
+                : t("permissionsRouteStatusEmpty");
 
   // Humanize a pending-update unlock timestamp into a status line. The value is
   // the contract's getPending*UpdateTime, computed as InitiatedAt (Runtime.Time)
@@ -298,6 +328,61 @@ export default function PlayArea({
               <small>{t("timelockPurpose")}</small>
             </span>
           </div>
+
+          <section
+            className={`permissions-route-stage permissions-route-stage--${routeStageState}`}
+            aria-label={t("permissionsRouteStageTitle")}
+            aria-busy={isPermissionRouteBusy}
+          >
+            <figure className="permissions-route-stage__visual">
+              <img src="./permission-console.jpg" alt="" aria-hidden="true" />
+              <span className="permissions-route-stage__scan" aria-hidden="true" />
+            </figure>
+            <div className="permissions-route-stage__content">
+              <div className="permissions-route-stage__head">
+                <span>{t("permissionsRouteStageLabel")}</span>
+                <strong>{t("permissionsRouteStageTitle")}</strong>
+                <p>{t("permissionsRouteStageCopy")}</p>
+              </div>
+              <div
+                className="permissions-route-stage__status"
+                role="status"
+                aria-live="polite"
+              >
+                <span>{t("permissionsRouteStatusLabel")}</span>
+                <strong>{routeStageStatus}</strong>
+              </div>
+              <div className="permissions-route-map" aria-hidden="true">
+                <span className="permissions-route-map__node permissions-route-map__node--account">
+                  <Fingerprint size={18} />
+                  <strong>{t("permissionsRouteAccount")}</strong>
+                  <small>{accountIdHash.trim() || PLACEHOLDER}</small>
+                </span>
+                <i className="permissions-route-map__lane" />
+                <span className="permissions-route-map__node permissions-route-map__node--verifier">
+                  <BadgeCheck size={18} />
+                  <strong>{t("permissionsRouteVerifier")}</strong>
+                  <small>{verifierHash.trim() || normalize(currentVerifier)}</small>
+                </span>
+                <i className="permissions-route-map__lane" />
+                <span className="permissions-route-map__node permissions-route-map__node--timelock">
+                  <Clock3 size={18} />
+                  <strong>{t("permissionsRouteTimelock")}</strong>
+                  <small>
+                    {hasPendingChange
+                      ? t("permissionsRoutePending")
+                      : t("permissionsRouteGuard")}
+                  </small>
+                </span>
+                <i className="permissions-route-map__lane" />
+                <span className="permissions-route-map__node permissions-route-map__node--hook">
+                  <Link2 size={18} />
+                  <strong>{t("permissionsRouteHook")}</strong>
+                  <small>{hookHash.trim() || normalize(currentHook)}</small>
+                </span>
+              </div>
+            </div>
+          </section>
 
           {notBackupOwner && (
             <p

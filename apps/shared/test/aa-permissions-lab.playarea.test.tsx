@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cleanup,
   fireEvent,
@@ -64,6 +66,28 @@ function t(key: string) {
     permissionsFlowHookDesc: "Change policy hook.",
     writeStagePropose: "Propose rotation",
     writeStageConfirm: "Confirm or cancel",
+    permissionsRouteStageLabel: "Permission route",
+    permissionsRouteStageTitle:
+      "Route the account through verifier, timelock, and hook",
+    permissionsRouteStageCopy:
+      "Treat every write as a routed permission change.",
+    permissionsRouteStatusLabel: "Route status",
+    permissionsRouteStatusEmpty: "Waiting for an account hash",
+    permissionsRouteStatusArmed: "Account selected — inspect live state",
+    permissionsRouteStatusInspect: "Reading verifier, hook, and owner",
+    permissionsRouteStatusVerifier: "Verifier proposal is in flight",
+    permissionsRouteStatusHook: "Hook proposal is in flight",
+    permissionsRouteStatusPendingVerifier:
+      "Verifier proposal is waiting on the timelock",
+    permissionsRouteStatusPendingHook:
+      "Hook proposal is waiting on the timelock",
+    permissionsRouteStatusReady: "Live permission route loaded",
+    permissionsRouteAccount: "Account",
+    permissionsRouteVerifier: "Verifier",
+    permissionsRouteTimelock: "Timelock",
+    permissionsRouteHook: "Hook",
+    permissionsRoutePending: "Pending update",
+    permissionsRouteGuard: "Safety guard",
     permissionsStateLabel: "Live state",
     permissionsStateTitle: "Current permissions",
     permissionsStateEmpty: "Inspect an account to load its permissions",
@@ -136,6 +160,13 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
     expect((screen.getByLabelText("Hook Hash") as HTMLInputElement).value).toBe(
       HOOK_HASH,
     );
+    expect(
+      screen.getByRole("region", {
+        name: "Route the account through verifier, timelock, and hook",
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText("Account selected — inspect live state")).toBeTruthy();
+    expect(screen.getByText("Safety guard")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh State" }));
     fireEvent.click(screen.getByRole("button", { name: "Update Verifier" }));
@@ -210,6 +241,7 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
       />,
     );
     expect(screen.getAllByText("configured").length).toBeGreaterThan(0);
+    expect(screen.getByText("Live permission route loaded")).toBeTruthy();
   });
 
   it("surfaces a confirm/cancel banner for a pending verifier rotation", async () => {
@@ -226,6 +258,10 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
     );
 
     expect(screen.getByText("Pending verifier rotation")).toBeTruthy();
+    expect(
+      screen.getByText("Verifier proposal is waiting on the timelock"),
+    ).toBeTruthy();
+    expect(screen.getByText("Pending update")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("confirmVerifier", ACCOUNT_ID_HASH);
@@ -264,5 +300,44 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
     expect(
       (screen.getByLabelText("Verifier Hash") as HTMLInputElement).value,
     ).toBe(nextVerifier);
+  });
+
+  it("marks the permission route stage as busy while a verifier proposal is in flight", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ isVerifierBusy: true })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}&verifierHash=${VERIFIER_HASH}`,
+        )}
+      />,
+    );
+
+    const routeStage = screen.getByRole("region", {
+      name: "Route the account through verifier, timelock, and hook",
+    });
+    expect(routeStage.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector(".permissions-route-stage--verifier")).toBeTruthy();
+    expect(screen.getByText("Verifier proposal is in flight")).toBeTruthy();
+  });
+
+  it("keeps the permission route stage animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../aa-permissions-lab/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes permissions-route-flow");
+    expect(styles).toContain("@keyframes permissions-scan-frame");
+    expect(styles).toContain("@keyframes permissions-node-active");
+    expect(styles).toContain("@keyframes permissions-node-hold");
+    expect(styles).toContain(".permissions-route-stage--verifier");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.permissions-route-stage__scan/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.permissions-route-map__lane::after[\s\S]*animation:\s*none/,
+    );
   });
 });

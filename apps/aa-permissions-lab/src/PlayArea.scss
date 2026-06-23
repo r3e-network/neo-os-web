@@ -419,6 +419,233 @@
   -webkit-line-clamp: 3;
 }
 
+.permissions-route-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 0.58fr);
+  gap: 14px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(14, 165, 163, 0.16);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(238, 249, 255, 0.9)),
+    #ffffff;
+  box-shadow: var(--perm-shadow);
+}
+
+.permissions-route-stage__visual {
+  position: relative;
+  min-height: 250px;
+  margin: 0;
+  overflow: hidden;
+  background: #eef9ff;
+}
+
+.permissions-route-stage__visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.permissions-route-stage__visual::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.72), transparent 44%),
+    linear-gradient(0deg, rgba(15, 23, 42, 0.16), transparent 54%);
+}
+
+.permissions-route-stage__scan {
+  position: absolute;
+  inset: 14px;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 18px;
+  opacity: 0.76;
+}
+
+.permissions-route-stage--inspect .permissions-route-stage__scan,
+.permissions-route-stage--verifier .permissions-route-stage__scan,
+.permissions-route-stage--hook .permissions-route-stage__scan,
+.permissions-route-stage--timelock .permissions-route-stage__scan {
+  animation: permissions-scan-frame 1.8s ease-in-out infinite;
+}
+
+.permissions-route-stage__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  align-content: center;
+  min-width: 0;
+  padding: 18px 18px 18px 0;
+}
+
+.permissions-route-stage__head {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.permissions-route-stage__head span,
+.permissions-route-stage__status span {
+  color: var(--perm-accent-strong);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.permissions-route-stage__head strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.24;
+}
+
+.permissions-route-stage__head p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.permissions-route-stage__status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(14, 165, 163, 0.14);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.permissions-route-stage__status strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.84rem;
+  font-weight: 900;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.permissions-route-map {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+}
+
+.permissions-route-map__node {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  min-height: 104px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 24, 39, 0.07);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.86);
+}
+
+.permissions-route-map__node svg {
+  color: var(--perm-accent-strong);
+}
+
+.permissions-route-map__node strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.permissions-route-map__node small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-text-muted, #8a92a6);
+  font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.permissions-route-map__node--account,
+.permissions-route-stage--ready .permissions-route-map__node,
+.permissions-route-stage--inspect .permissions-route-map__node--account,
+.permissions-route-stage--verifier .permissions-route-map__node--verifier,
+.permissions-route-stage--hook .permissions-route-map__node--hook,
+.permissions-route-stage--timelock .permissions-route-map__node--timelock {
+  border-color: rgba(14, 165, 163, 0.24);
+  background: rgba(14, 165, 163, 0.09);
+}
+
+.permissions-route-stage--verifier .permissions-route-map__node--verifier,
+.permissions-route-stage--hook .permissions-route-map__node--hook,
+.permissions-route-stage--inspect .permissions-route-map__node--account {
+  animation: permissions-node-active 940ms ease-in-out infinite;
+}
+
+.permissions-route-stage--timelock .permissions-route-map__node--timelock {
+  animation: permissions-node-hold 1.5s ease-in-out infinite;
+}
+
+.permissions-route-map__lane {
+  position: relative;
+  display: block;
+  align-self: center;
+  height: 2px;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(14, 165, 163, 0.16);
+}
+
+.permissions-route-map__lane::after {
+  position: absolute;
+  inset: 0;
+  width: 54%;
+  content: "";
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--perm-accent), transparent);
+  transform: translateX(-110%);
+}
+
+.permissions-route-stage--inspect .permissions-route-map__lane::after,
+.permissions-route-stage--verifier .permissions-route-map__lane::after,
+.permissions-route-stage--hook .permissions-route-map__lane::after,
+.permissions-route-stage--timelock .permissions-route-map__lane::after,
+.permissions-route-stage--ready .permissions-route-map__lane::after {
+  animation: permissions-route-flow 1.25s ease-in-out infinite;
+}
+
+.permissions-route-map__lane:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.permissions-route-map__node--timelock {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.permissions-route-map__node--hook {
+  grid-column: 3;
+  grid-row: 2;
+}
+
 .permissions-operation-intro {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -609,6 +836,18 @@
   .permissions-hero__visual {
     min-height: 260px;
   }
+
+  .permissions-route-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .permissions-route-stage__visual {
+    min-height: 210px;
+  }
+
+  .permissions-route-stage__content {
+    padding: 0 14px 14px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -618,6 +857,7 @@
   }
 
   .permissions-hero,
+  .permissions-route-stage,
   .permissions-command,
   .permissions-operation-card,
   .permissions-state-panel {
@@ -641,8 +881,29 @@
   .permissions-flow-rail,
   .permissions-account-card__facts,
   .permissions-action-grid,
-  .permissions-pending__actions {
+  .permissions-pending__actions,
+  .permissions-route-map {
     grid-template-columns: 1fr;
+  }
+
+  .permissions-route-map__lane {
+    width: 2px;
+    height: 24px;
+    justify-self: center;
+  }
+
+  .permissions-route-map__lane::after {
+    width: 100%;
+    height: 54%;
+    background: linear-gradient(180deg, transparent, var(--perm-accent), transparent);
+    transform: translateY(-110%);
+  }
+
+  .permissions-route-map__lane,
+  .permissions-route-map__node--timelock,
+  .permissions-route-map__node--hook {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .permissions-section-heading {
@@ -665,5 +926,63 @@
   .permissions-flow-rail span,
   .permissions-operation-intro {
     transition: none;
+  }
+
+  .permissions-route-stage__scan,
+  .permissions-route-map__node,
+  .permissions-route-map__lane::after {
+    animation: none;
+  }
+}
+
+@keyframes permissions-route-flow {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  48%,
+  100% {
+    transform: translateX(190%);
+  }
+}
+
+@keyframes permissions-scan-frame {
+  0%,
+  100% {
+    opacity: 0.46;
+    transform: scale(0.985);
+  }
+
+  50% {
+    opacity: 0.94;
+    transform: scale(1);
+  }
+}
+
+@keyframes permissions-node-active {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(14, 165, 163, 0.1);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(14, 165, 163, 0.28),
+      0 12px 22px rgba(14, 165, 163, 0.16);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes permissions-node-hold {
+  0%,
+  100% {
+    border-color: rgba(245, 158, 11, 0.24);
+    background: #fffbeb;
+  }
+
+  50% {
+    border-color: rgba(245, 158, 11, 0.52);
+    background: #fff7d6;
   }
 }

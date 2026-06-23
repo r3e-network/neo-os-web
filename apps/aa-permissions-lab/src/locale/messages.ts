@@ -144,6 +144,57 @@ const appMessages = {
   },
   writeStagePropose: { en: "Propose rotation", zh: "提议轮换" },
   writeStageConfirm: { en: "Confirm or cancel", zh: "确认或取消" },
+  permissionsRouteStageLabel: {
+    en: "Permission route",
+    zh: "权限路由",
+  },
+  permissionsRouteStageTitle: {
+    en: "Route the account through verifier, timelock, and hook",
+    zh: "让账户经过 Verifier、锁定期与 Hook 路由",
+  },
+  permissionsRouteStageCopy: {
+    en: "Treat every write as a routed permission change: inspect the account, propose exactly one boundary update, then confirm after the safety window.",
+    zh: "把每次写入都当成一次权限路由变更：先检查账户，只提议一个边界更新，再在安全窗口后确认。",
+  },
+  permissionsRouteStatusLabel: { en: "Route status", zh: "路由状态" },
+  permissionsRouteStatusEmpty: {
+    en: "Waiting for an account hash",
+    zh: "等待账户哈希",
+  },
+  permissionsRouteStatusArmed: {
+    en: "Account selected — inspect live state",
+    zh: "已选择账户 —— 检查链上状态",
+  },
+  permissionsRouteStatusInspect: {
+    en: "Reading verifier, hook, and owner",
+    zh: "正在读取 Verifier、Hook 与所有者",
+  },
+  permissionsRouteStatusVerifier: {
+    en: "Verifier proposal is in flight",
+    zh: "Verifier 提议正在提交",
+  },
+  permissionsRouteStatusHook: {
+    en: "Hook proposal is in flight",
+    zh: "Hook 提议正在提交",
+  },
+  permissionsRouteStatusPendingVerifier: {
+    en: "Verifier proposal is waiting on the timelock",
+    zh: "Verifier 提议正在等待锁定期",
+  },
+  permissionsRouteStatusPendingHook: {
+    en: "Hook proposal is waiting on the timelock",
+    zh: "Hook 提议正在等待锁定期",
+  },
+  permissionsRouteStatusReady: {
+    en: "Live permission route loaded",
+    zh: "实时权限路由已加载",
+  },
+  permissionsRouteAccount: { en: "Account", zh: "账户" },
+  permissionsRouteVerifier: { en: "Verifier", zh: "Verifier" },
+  permissionsRouteTimelock: { en: "Timelock", zh: "锁定期" },
+  permissionsRouteHook: { en: "Hook", zh: "Hook" },
+  permissionsRoutePending: { en: "Pending update", zh: "待处理更新" },
+  permissionsRouteGuard: { en: "Safety guard", zh: "安全保护" },
   permissionsStateLabel: { en: "Live state", zh: "实时状态" },
   permissionsStateTitle: { en: "Current permissions", zh: "当前权限" },
   permissionsStateEmpty: {
