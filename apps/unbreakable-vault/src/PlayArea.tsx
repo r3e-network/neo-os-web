@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   Clock3,
@@ -63,6 +63,7 @@ const DIFFICULTY_OPTIONS = [
 }>;
 
 const BOUNTY_PRESETS = ["1", "5", "10"] as const;
+type VaultActionPreview = "create" | "load" | "attempt" | "topUp" | "reclaim";
 
 /** Status enum → localized pill label key. */
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -127,6 +128,9 @@ export default function PlayArea({
   const [secret, setSecret] = useState("");
   const [confirmSecret, setConfirmSecret] = useState("");
   const [topUpAmount, setTopUpAmount] = useState("");
+  const [actionPreview, setActionPreview] =
+    useState<VaultActionPreview | null>(null);
+  const actionPreviewTimeout = useRef<number | null>(null);
 
   const isMainnet = launchContext?.network === "mainnet";
   const bountyValue = Number.parseFloat(bounty);
@@ -159,8 +163,43 @@ export default function PlayArea({
           ? "createNeedSecret"
           : "createReady";
 
+  const createPreview = actionPreview === "create";
+  const loadPreview = actionPreview === "load";
+  const attemptPreview = actionPreview === "attempt";
+  const topUpPreview = actionPreview === "topUp";
+  const reclaimPreview = actionPreview === "reclaim";
+  const isCreateBusy = isCreating || createPreview;
+  const isLoadBusy = isLoading || loadPreview;
+  const isAttemptBusy = isLoading || attemptPreview;
+  const isTopUpBusy = topUpPreview;
+  const isReclaimBusy = isClaiming || reclaimPreview;
+  const isBreakActionBusy =
+    isLoadBusy || isAttemptBusy || isTopUpBusy || isReclaimBusy;
+  const isVaultActionBusy = isCreateBusy || isBreakActionBusy;
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        window.clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startActionPreview = (action: VaultActionPreview) => {
+    if (actionPreviewTimeout.current !== null) {
+      window.clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = window.setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, 1400);
+  };
+
   const handleCreate = async () => {
-    if (!canSubmitCreate) return;
+    if (!canSubmitCreate || isVaultActionBusy) return;
+    startActionPreview("create");
     try {
       await dispatch("createVault", {
         bounty,
@@ -184,6 +223,8 @@ export default function PlayArea({
   };
 
   const handleLoadVault = async (id?: unknown) => {
+    if (isLoadBusy || !String(id ?? "").trim()) return;
+    startActionPreview("load");
     try {
       await dispatch("loadVault", id);
     } catch (error) {
@@ -195,6 +236,8 @@ export default function PlayArea({
   };
 
   const handleAttemptBreak = async () => {
+    if (!canAttempt || isAttemptBusy) return;
+    startActionPreview("attempt");
     try {
       await dispatch("attemptBreak");
     } catch (error) {
@@ -206,6 +249,8 @@ export default function PlayArea({
   };
 
   const handleSettleVault = async () => {
+    if (!canReclaim || isReclaimBusy) return;
+    startActionPreview("reclaim");
     try {
       await dispatch("settleVault");
     } catch (error) {
@@ -217,7 +262,10 @@ export default function PlayArea({
   };
 
   const handleIncreaseBounty = async () => {
-    if (!vaultDetails || !topUpAmount.trim()) return;
+    if (!vaultDetails || !topUpAmount.trim() || isTopUpBusy || isLoadBusy) {
+      return;
+    }
+    startActionPreview("topUp");
     try {
       await dispatch(
         "increaseBounty",
@@ -268,7 +316,7 @@ export default function PlayArea({
   const bountyReady = Number.isFinite(bountyValue) && bountyValue >= 1;
   const secretReady =
     secret.trim() !== "" && confirmSecret.trim() !== "" && !secretMismatch;
-  const createStageState = isCreating
+  const createStageState = isCreateBusy
     ? "creating"
     : secretReady
       ? "ready"
@@ -277,12 +325,13 @@ export default function PlayArea({
     Boolean(vaultDetails) ||
     vaultIdInput.trim() !== "" ||
     canAttempt ||
-    canReclaim;
+    canReclaim ||
+    isBreakActionBusy;
   const breakStageState = canReclaim
     ? "claimable"
-    : canAttempt
+    : canAttempt || isAttemptBusy
       ? "attempt"
-      : vaultDetails
+      : vaultDetails || isLoadBusy
         ? "loaded"
         : "idle";
   const breakStageTarget = vaultDetails
@@ -298,8 +347,64 @@ export default function PlayArea({
     if (shouldOpenBreakDesk) setActiveDesk("break");
   }, [shouldOpenBreakDesk]);
 
+  const vaultPlayAreaClassName = [
+    "vault-play-area",
+    isVaultActionBusy ? "vault-play-area--action-busy" : "",
+    isCreateBusy ? "vault-play-area--creating" : "",
+    isAttemptBusy ? "vault-play-area--attempting" : "",
+    isTopUpBusy ? "vault-play-area--funding" : "",
+    isReclaimBusy ? "vault-play-area--reclaiming" : "",
+  ].filter(Boolean).join(" ");
+  const commandShellClassName = [
+    "vault-command-shell",
+    `vault-command-shell--${activeDesk}`,
+    isVaultActionBusy ? "vault-command-shell--action-busy" : "",
+  ].filter(Boolean).join(" ");
+  const blueprintLockClassName = [
+    "vault-blueprint__lock",
+    secretReady ? "is-ready" : "",
+    isCreateBusy ? "is-creating" : "",
+  ].filter(Boolean).join(" ");
+  const breakStageClassName = [
+    "vault-break-stage",
+    `vault-break-stage--${breakStageState}`,
+    isLoadBusy ? "vault-break-stage--loading" : "",
+    isAttemptBusy ? "vault-break-stage--breaking" : "",
+    isTopUpBusy ? "vault-break-stage--funding" : "",
+    isReclaimBusy ? "vault-break-stage--reclaiming" : "",
+  ].filter(Boolean).join(" ");
+  const targetCardClassName = [
+    "vault-target-card",
+    vaultDetails ? "vault-target-card--loaded" : "",
+    canAttempt ? "vault-target-card--attempt-ready" : "",
+    canReclaim ? "vault-target-card--claimable" : "",
+    isBreakActionBusy ? "vault-target-card--busy" : "",
+    isAttemptBusy ? "vault-target-card--attempting" : "",
+    isTopUpBusy ? "vault-target-card--funding" : "",
+    isReclaimBusy ? "vault-target-card--reclaiming" : "",
+  ].filter(Boolean).join(" ");
+  const idScannerClassName = [
+    "vault-id-scanner",
+    vaultIdInput.trim() ? "is-armed" : "",
+    vaultDetails ? "is-locked" : "",
+    isLoadBusy ? "is-loading" : "",
+  ].filter(Boolean).join(" ");
+  const secretAttemptClassName = [
+    "vault-secret-attempt",
+    attemptSecret.trim() ? "is-charged" : "",
+    canAttempt ? "is-ready" : "",
+    isAttemptBusy ? "is-breaking" : "",
+  ].filter(Boolean).join(" ");
+  const topUpClassName = [
+    "vault-topup",
+    isTopUpBusy ? "vault-topup--busy" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className="vault-play-area">
+    <div
+      className={vaultPlayAreaClassName}
+      aria-busy={isVaultActionBusy || undefined}
+    >
       <VaultHero t={t} />
 
       <div className="vault-stats">
@@ -314,8 +419,9 @@ export default function PlayArea({
       </div>
 
       <section
-        className={`vault-command-shell vault-command-shell--${activeDesk}`}
+        className={commandShellClassName}
         aria-label={t("challengeConsole")}
+        aria-busy={isVaultActionBusy || undefined}
       >
         <div className="vault-command-shell__head">
           <div>
@@ -384,7 +490,7 @@ export default function PlayArea({
                 </div>
               </div>
               <div
-                className={`vault-blueprint__lock${secretReady ? " is-ready" : ""}${isCreating ? " is-creating" : ""}`}
+                className={blueprintLockClassName}
                 aria-hidden="true"
               >
                 <LockKeyhole size={32} />
@@ -623,12 +729,13 @@ export default function PlayArea({
                 variant="primary"
                 size="lg"
                 block
-                loading={isCreating || isLoading}
-                disabled={!canSubmitCreate || isCreating}
+                className="vault-action-button vault-action-button--create"
+                loading={isCreateBusy}
+                disabled={!canSubmitCreate || isCreateBusy}
                 aria-label={t("createVaultButton")}
                 onClick={handleCreate}
               >
-                {isCreating ? t("creatingVault") : t("createVaultButton")}
+                {isCreateBusy ? t("creatingVault") : t("createVaultButton")}
               </NeoButton>
             </div>
           </div>
@@ -640,8 +747,9 @@ export default function PlayArea({
           <NeoCard title={t("breakVault")} className="vault-break-card">
             <div className="vault-form">
               <section
-                className={`vault-break-stage vault-break-stage--${breakStageState}`}
+                className={breakStageClassName}
                 aria-label={t("challengeDeskTitle")}
+                aria-busy={isBreakActionBusy || undefined}
               >
                 <picture className="vault-break-stage__media" aria-hidden="true">
                   <source srcSet="./vault-challenge.jpg" type="image/jpeg" />
@@ -690,7 +798,8 @@ export default function PlayArea({
                 </dl>
               </section>
               <div
-                className={`vault-target-card${vaultDetails ? " vault-target-card--loaded" : ""}${canAttempt ? " vault-target-card--attempt-ready" : ""}${canReclaim ? " vault-target-card--claimable" : ""}`}
+                className={targetCardClassName}
+                aria-busy={isBreakActionBusy || undefined}
               >
                 <span className="vault-target-card__icon" aria-hidden="true">
                   {vaultDetails ? (
@@ -727,14 +836,7 @@ export default function PlayArea({
                   </span>
                 </div>
               </div>
-              <div
-                className={[
-                  "vault-id-scanner",
-                  vaultIdInput.trim() ? "is-armed" : "",
-                  vaultDetails ? "is-locked" : "",
-                  isLoading ? "is-loading" : "",
-                ].filter(Boolean).join(" ")}
-              >
+              <div className={idScannerClassName}>
                 <span className="vault-id-scanner__reticle" aria-hidden="true">
                   <Crosshair size={18} />
                 </span>
@@ -753,7 +855,8 @@ export default function PlayArea({
                 <NeoButton
                   variant="secondary"
                   size="sm"
-                  disabled={!vaultIdInput || isLoading}
+                  loading={isLoadBusy}
+                  disabled={!vaultIdInput || isLoadBusy}
                   onClick={() => handleLoadVault(vaultIdInput)}
                 >
                   {t("loadVault")}
@@ -830,11 +933,8 @@ export default function PlayArea({
                   )}
                   {vaultStatus === "active" && (
                     <div
-                      className={[
-                        "vault-secret-attempt",
-                        attemptSecret.trim() ? "is-charged" : "",
-                        canAttempt ? "is-ready" : "",
-                      ].filter(Boolean).join(" ")}
+                      className={secretAttemptClassName}
+                      aria-busy={isAttemptBusy || undefined}
                     >
                       <span className="vault-secret-attempt__icon" aria-hidden="true">
                         <KeyRound size={18} />
@@ -868,8 +968,9 @@ export default function PlayArea({
                     variant="danger"
                     size="lg"
                     block
-                    loading={isLoading}
-                    disabled={!canAttempt}
+                    className="vault-action-button vault-action-button--attempt"
+                    loading={isAttemptBusy}
+                    disabled={!canAttempt || isAttemptBusy}
                     aria-label={t("attemptBreak")}
                     onClick={handleAttemptBreak}
                   >
@@ -878,7 +979,10 @@ export default function PlayArea({
                   <p className="vault-secret-note">{t("attemptCostNote")}</p>
                   {/* Top up — anyone can grow an active vault's bounty (contract has
                   increaseBounty, advertised in the operation panel). */}
-                  <div className="vault-topup">
+                  <div
+                    className={topUpClassName}
+                    aria-busy={isTopUpBusy || undefined}
+                  >
                     <NeoInput
                       label={t("increaseBountyLabel")}
                       type="number"
@@ -890,8 +994,8 @@ export default function PlayArea({
                     <NeoButton
                       variant="secondary"
                       size="sm"
-                      loading={isCreating}
-                      disabled={!topUpAmount.trim() || isCreating || isLoading}
+                      loading={isTopUpBusy}
+                      disabled={!topUpAmount.trim() || isTopUpBusy || isLoadBusy}
                       aria-label={t("increaseBounty")}
                       onClick={handleIncreaseBounty}
                     >
@@ -906,8 +1010,9 @@ export default function PlayArea({
                   variant="primary"
                   size="lg"
                   block
-                  loading={isClaiming}
-                  disabled={isClaiming || isLoading}
+                  className="vault-action-button vault-action-button--reclaim"
+                  loading={isReclaimBusy}
+                  disabled={isReclaimBusy || isLoadBusy}
                   aria-label={t("reclaimVault")}
                   onClick={handleSettleVault}
                 >
