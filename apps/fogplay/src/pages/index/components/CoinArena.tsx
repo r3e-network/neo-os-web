@@ -66,19 +66,75 @@ export default function CoinArena({
         ? "won"
         : "lost"
       : "ready";
+  const raceState = isFlipping
+    ? "committing"
+    : revealing || (hasPendingBet && !result)
+      ? "revealing"
+      : result
+        ? "settled"
+        : "ready";
+  const raceSteps = [
+    {
+      key: "commit",
+      label: t("timelineCommit"),
+      value: raceState === "ready" ? t("timelineReady") : t("timelineOnChain"),
+      active: raceState === "committing",
+      complete: raceState !== "ready",
+    },
+    {
+      key: "block",
+      label: t("timelineBlock"),
+      value:
+        raceState === "revealing"
+          ? t("timelineListening")
+          : result
+            ? t("timelineResultReady")
+            : t("timelineWaiting"),
+      active: raceState === "revealing",
+      complete: raceState === "revealing" || raceState === "settled",
+    },
+    {
+      key: "settle",
+      label: t("timelineSettle"),
+      value: result
+        ? result.won
+          ? t("timelineWon")
+          : t("timelineLost")
+        : revealFailed
+          ? t("timelineNeedsRetry")
+          : t("timelineWaiting"),
+      active: raceState === "settled",
+      complete: Boolean(result),
+    },
+  ];
 
   return (
-    <div className={`premium-arena premium-arena--${stageState}`} data-state={stageState}>
+    <div
+      className={`premium-arena premium-arena--${stageState}`}
+      data-state={stageState}
+    >
       <div className="arena-content">
         <div className="arena-bg" aria-hidden="true">
-          <img className="arena-bg__vault" src={vaultBgUrl} alt="" loading="eager" decoding="async" />
+          <img
+            className="arena-bg__vault"
+            src={vaultBgUrl}
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
           <span className="arena-bg__wash" />
           <div className="arena-orbit" />
           <div className="arena-orbit arena-orbit--inner" />
           <div className={`arena-glow${coinSpinning ? " flipping" : ""}`} />
         </div>
         <div className="arena-stage" aria-hidden="true">
-          <img className="arena-stage__pedestal" src={pedestalUrl} alt="" loading="eager" decoding="async" />
+          <img
+            className="arena-stage__pedestal"
+            src={pedestalUrl}
+            alt=""
+            loading="eager"
+            decoding="async"
+          />
           {coinSpinning && (
             <div className="coin-flight-trail">
               <span />
@@ -87,7 +143,13 @@ export default function CoinArena({
             </div>
           )}
           {result?.won && !coinSpinning && (
-            <img className="arena-stage__winner" src={winnerUrl} alt="" loading="lazy" decoding="async" />
+            <img
+              className="arena-stage__winner"
+              src={winnerUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
           )}
         </div>
         <div className={`coin-wrapper coin-wrapper--${stageState}`}>
@@ -104,6 +166,33 @@ export default function CoinArena({
             <span>{statusText}</span>
           </div>
         </div>
+        <div
+          className={`commit-reveal-race commit-reveal-race--${raceState}`}
+          aria-label={t("commitRevealTimeline")}
+        >
+          <div className="commit-reveal-race__track" aria-hidden="true">
+            <span className="commit-reveal-race__fill" />
+            <span className="commit-reveal-race__runner" />
+          </div>
+          <div className="commit-reveal-race__steps" role="list">
+            {raceSteps.map((step) => (
+              <span
+                key={step.key}
+                className={[
+                  "commit-reveal-race__step",
+                  step.active ? "is-active" : "",
+                  step.complete ? "is-complete" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                role="listitem"
+              >
+                <small>{step.label}</small>
+                <strong>{step.value}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Pending-reveal banner: the bet is committed + irrevocable on-chain. */}
         {hasPendingBet && (
@@ -112,7 +201,9 @@ export default function CoinArena({
               {revealFailed ? t("revealStalled") : t("betPlacedRevealing")}
             </span>
             {!revealFailed && (
-              <span className="reveal-pending__reassure">{t("betLockedReassure")}</span>
+              <span className="reveal-pending__reassure">
+                {t("betLockedReassure")}
+              </span>
             )}
             {revealFailed && (
               <NeoButton
@@ -136,15 +227,24 @@ export default function CoinArena({
             </span>
             <span className="bet-preview__divider" aria-hidden="true" />
             <span className="bet-preview__cell">
-              <span className="bet-preview__label">{t("payoutPreviewLabel")}</span>
+              <span className="bet-preview__label">
+                {t("payoutPreviewLabel")}
+              </span>
               <strong>{payoutPreview}</strong>
             </span>
             <span className="bet-preview__odds">{t("oddsChip")}</span>
           </div>
         )}
         {result && !coinSpinning && (
-          <div className={`result-banner${result.won ? " won" : ""}`} role="status" aria-live="polite" aria-atomic="true">
-            <span className="result-text">{result.won ? t("youWon") : t("youLost")}</span>
+          <div
+            className={`result-banner${result.won ? " won" : ""}`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <span className="result-text">
+              {result.won ? t("youWon") : t("youLost")}
+            </span>
             <span className="outcome-tag">{t(result.outcome)}</span>
           </div>
         )}
