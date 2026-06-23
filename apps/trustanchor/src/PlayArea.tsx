@@ -5,6 +5,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { Coins, Route, ShieldCheck, WalletCards } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { TrustAnchorStats } from "./hooks/useTrustAnchor";
@@ -97,6 +98,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isBusy = Boolean(busyAction) || submitting;
   const claimReady = pendingRewards > 0;
   const canRecoverCredit = pendingWithdraw > 0;
+  const plannedAmountLabel = amountIsValid
+    ? `${normalizedAmount} NEO`
+    : t("amountNeedsWholeNeo");
+  const capitalFlowClassName = [
+    "anchor-capital-flow",
+    amountIsValid ? "is-ready" : "is-blocked",
+    claimReady ? "has-claim" : "",
+    isBusy ? "is-busy" : "",
+    stats?.selectedAgentId ? "has-route" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
     if (!amountIsValid) {
@@ -216,6 +229,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="anchor-action-panel">
+            <section
+              className={capitalFlowClassName}
+              aria-label={t("stakePath")}
+            >
+              <picture className="anchor-capital-flow__token" aria-hidden="true">
+                <source srcSet="./logo.avif" type="image/avif" />
+                <source srcSet="./logo.webp" type="image/webp" />
+                <img src="./logo.jpg" alt="" loading="eager" decoding="sync" />
+              </picture>
+              <span className="anchor-capital-flow__rail" aria-hidden="true" />
+              <div className="anchor-capital-flow__node anchor-capital-flow__node--wallet">
+                <WalletCards size={18} aria-hidden="true" />
+                <span>{t("preflightAmount")}</span>
+                <strong>{plannedAmountLabel}</strong>
+              </div>
+              <div className="anchor-capital-flow__node anchor-capital-flow__node--route">
+                <Route size={18} aria-hidden="true" />
+                <span>{t("preflightRoute")}</span>
+                <strong>{stats?.selectedAgentId ? selectedAgent : t("routeAwaiting")}</strong>
+              </div>
+              <div className="anchor-capital-flow__node anchor-capital-flow__node--claim">
+                <Coins size={18} aria-hidden="true" />
+                <span>{t("claimPlan")}</span>
+                <strong>{claimReady ? pendingRewardsDisplay : t("claimPlanEmpty")}</strong>
+              </div>
+            </section>
+
             <label className="anchor-amount-field">
               <span>{t("neoAmount")}</span>
               <input
@@ -243,6 +283,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </button>
               ))}
             </div>
+
+            <p
+              className={`anchor-inline-status${amountIsValid ? " is-ready" : " is-blocked"}`}
+              aria-live="polite"
+            >
+              <ShieldCheck size={16} aria-hidden="true" />
+              <span>{amountIsValid ? plannedAmountLabel : t("amountNeedsWholeNeo")}</span>
+              <em>{amountIsValid ? t("amountPlanReady") : t("amountPlanBlocked")}</em>
+            </p>
 
             <div className="anchor-action-buttons" aria-label={t("actionPanelTitle")}>
               <button
