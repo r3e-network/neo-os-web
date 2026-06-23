@@ -125,6 +125,7 @@ const appMessages = {
   packetsPlaceholder: { en: "Number of packets", zh: "红包数量" },
   expiryPlaceholder: { en: "Expiry (hours)", zh: "过期时长 (小时)" },
   sendRedEnvelope: { en: "Send Red Envelope", zh: "发送红包" },
+  sendingRedEnvelope: { en: "Sending packets...", zh: "红包发送中..." },
   availableEnvelopes: { en: "Active envelopes", zh: "可领取红包" },
   from: { en: "From {sender}", zh: "来自 {sender}" },
   fromPrefix: { en: "From", zh: "来自" },
