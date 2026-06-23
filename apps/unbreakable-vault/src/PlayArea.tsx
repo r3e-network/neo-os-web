@@ -647,20 +647,38 @@ export default function PlayArea({
                   </span>
                 </div>
               </div>
-              <NeoInput
-                label={t("vaultIdLabel")}
-                placeholder={t("vaultIdPlaceholder")}
-                value={vaultIdInput}
-                onChange={(v) => state.vaultIdInput?.set(v)}
-              />
-              <NeoButton
-                variant="secondary"
-                size="sm"
-                disabled={!vaultIdInput || isLoading}
-                onClick={() => handleLoadVault(vaultIdInput)}
+              <div
+                className={[
+                  "vault-id-scanner",
+                  vaultIdInput.trim() ? "is-armed" : "",
+                  vaultDetails ? "is-locked" : "",
+                  isLoading ? "is-loading" : "",
+                ].filter(Boolean).join(" ")}
               >
-                {t("loadVault")}
-              </NeoButton>
+                <span className="vault-id-scanner__reticle" aria-hidden="true">
+                  <Crosshair size={18} />
+                </span>
+                <label className="vault-id-scanner__field">
+                  <span>{t("vaultIdLabel")}</span>
+                  <input
+                    aria-label={t("vaultIdLabel")}
+                    placeholder={t("vaultIdPlaceholder")}
+                    value={vaultIdInput}
+                    autoComplete="off"
+                    spellCheck={false}
+                    onChange={(event) => state.vaultIdInput?.set(event.currentTarget.value)}
+                  />
+                </label>
+                <span className="vault-id-scanner__beam" aria-hidden="true" />
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={!vaultIdInput || isLoading}
+                  onClick={() => handleLoadVault(vaultIdInput)}
+                >
+                  {t("loadVault")}
+                </NeoButton>
+              </div>
               {vaultDetails && (
                 <>
                   {/* What you are trying to break — surfaced BEFORE paying the fee. */}
@@ -731,13 +749,31 @@ export default function PlayArea({
                     </div>
                   )}
                   {vaultStatus === "active" && (
-                    <NeoInput
-                      label={t("secretAttemptLabel")}
-                      type="password"
-                      placeholder={t("secretAttemptPlaceholder")}
-                      value={attemptSecret}
-                      onChange={(v) => state.attemptSecret?.set(v)}
-                    />
+                    <div
+                      className={[
+                        "vault-secret-attempt",
+                        attemptSecret.trim() ? "is-charged" : "",
+                        canAttempt ? "is-ready" : "",
+                      ].filter(Boolean).join(" ")}
+                    >
+                      <span className="vault-secret-attempt__icon" aria-hidden="true">
+                        <KeyRound size={18} />
+                      </span>
+                      <label className="vault-secret-attempt__field">
+                        <span>{t("secretAttemptLabel")}</span>
+                        <input
+                          aria-label={t("secretAttemptLabel")}
+                          type="password"
+                          placeholder={t("secretAttemptPlaceholder")}
+                          value={attemptSecret}
+                          autoComplete="off"
+                          onChange={(event) => state.attemptSecret?.set(event.currentTarget.value)}
+                        />
+                      </label>
+                      <span className="vault-secret-attempt__charge" aria-hidden="true">
+                        <span />
+                      </span>
+                    </div>
                   )}
                 </>
               )}
