@@ -104,6 +104,8 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform: scale(1.04);
+  animation: multisig-hero-drift 18s ease-in-out infinite alternate;
 }
 
 .multisig-hero__shade {
@@ -231,6 +233,259 @@
   overflow-wrap: anywhere;
 }
 
+.multisig-route-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(22, 166, 111, 0.18);
+  border-radius: var(--ms-radius);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(226, 247, 236, 0.72)
+    ),
+    var(--ms-surface-strong);
+  box-shadow: var(--ms-shadow);
+}
+
+.multisig-route-stage::before {
+  content: "";
+  position: absolute;
+  inset: -80% -26%;
+  z-index: -1;
+  background: linear-gradient(
+    112deg,
+    transparent 31%,
+    rgba(255, 255, 255, 0.68) 44%,
+    rgba(255, 221, 158, 0.38) 50%,
+    transparent 63%
+  );
+  opacity: 0.72;
+  transform: translateX(-46%);
+  animation: multisig-route-sheen 8.5s ease-in-out infinite;
+}
+
+.multisig-route-stage__media {
+  position: relative;
+  min-height: 198px;
+  overflow: hidden;
+  border: 1px solid rgba(23, 33, 28, 0.12);
+  border-radius: var(--ms-radius);
+  background: #edf7ef;
+  box-shadow: var(--ms-shadow-soft);
+}
+
+.multisig-route-stage__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.02);
+  animation: multisig-stage-breathe 9s ease-in-out infinite;
+}
+
+.multisig-route-stage__proposal {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: min(46%, 172px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 34px rgba(30, 50, 38, 0.22);
+  animation: multisig-proposal-card-float 4.8s ease-in-out infinite;
+}
+
+.multisig-route-stage__proposal img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.25;
+  object-fit: cover;
+}
+
+.multisig-route-stage__pulse {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.96) 0 28%, transparent 31%),
+    rgba(22, 166, 111, 0.34);
+  box-shadow: 0 0 0 0 rgba(22, 166, 111, 0.28);
+  animation: multisig-route-pulse 2.8s ease-out infinite;
+}
+
+.multisig-route-stage__body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.multisig-route-stage__body > p {
+  max-width: 760px;
+  margin: -4px 0 0;
+  color: var(--ms-text);
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.5;
+}
+
+.multisig-route-stage__track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin: 1px 0;
+}
+
+.multisig-route-stage__rail {
+  position: absolute;
+  right: 12px;
+  left: 12px;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 166, 111, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.multisig-route-stage__rail::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(22, 166, 111, 0.52),
+    #d8a038,
+    transparent
+  );
+  transform: translateX(-72%);
+  animation: multisig-route-rail-flow 3.6s linear infinite;
+}
+
+.multisig-route-stage__packet {
+  position: absolute;
+  left: 8%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--ms-brand);
+  box-shadow:
+    0 0 0 5px rgba(22, 166, 111, 0.13),
+    0 8px 20px rgba(8, 123, 80, 0.24);
+  animation: multisig-route-packet 4.2s cubic-bezier(0.62, 0, 0.3, 1) infinite;
+}
+
+.multisig-route-stage__packet--two {
+  opacity: 0.74;
+  animation-delay: 1.7s;
+}
+
+.multisig-route-stage--cancelling .multisig-route-stage__packet,
+.multisig-route-stage--cancelled .multisig-route-stage__packet {
+  background: var(--ms-gold);
+  box-shadow:
+    0 0 0 5px rgba(216, 160, 56, 0.16),
+    0 8px 20px rgba(138, 90, 10, 0.22);
+}
+
+.multisig-route-stage--released .multisig-route-stage__packet {
+  background: var(--ms-brand-strong);
+}
+
+.multisig-route-stage__nodes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.multisig-route-stage__node {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-height: 74px;
+  padding: 10px;
+  border: 1px solid var(--ms-line);
+  border-radius: var(--ms-radius-sm);
+  background: rgba(255, 255, 255, 0.72);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.multisig-route-stage__node.is-active {
+  border-color: rgba(22, 166, 111, 0.34);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--ms-shadow-soft);
+  transform: translateY(-2px);
+}
+
+.multisig-route-stage__node.is-complete {
+  border-color: rgba(22, 166, 111, 0.28);
+  background: rgba(226, 247, 236, 0.86);
+}
+
+.multisig-route-stage__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ms-brand-strong);
+  box-shadow: var(--ms-shadow-soft);
+}
+
+.multisig-route-stage__node.is-active .multisig-route-stage__icon {
+  animation: multisig-route-node-ready 1.9s ease-in-out infinite;
+}
+
+.multisig-route-stage__node.is-complete .multisig-route-stage__icon {
+  background: var(--ms-brand);
+  color: #fff;
+}
+
+.multisig-route-stage__node strong {
+  display: block;
+  color: var(--ms-ink);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.multisig-route-stage__node small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ms-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .multisig-workspace {
   display: grid;
   grid-template-columns: minmax(360px, 0.98fr) minmax(0, 1.02fr);
@@ -353,7 +608,9 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--ms-brand), #cfa15e);
+  background: linear-gradient(90deg, var(--ms-brand), #cfa15e, var(--ms-brand));
+  background-size: 180% 100%;
+  animation: multisig-progress-flow 3.2s linear infinite;
 }
 
 .multisig-board__signers {
@@ -551,9 +808,7 @@
 .multisig-threshold-chip.is-active,
 .multisig-asset-toggle__option.is-active {
   border-color: rgba(22, 166, 111, 0.42);
-  background:
-    linear-gradient(135deg, rgba(226, 247, 236, 0.92), #fff),
-    #fff;
+  background: linear-gradient(135deg, rgba(226, 247, 236, 0.92), #fff), #fff;
   color: var(--ms-brand-strong);
   box-shadow: inset 0 0 0 1px rgba(22, 166, 111, 0.18);
 }
@@ -733,9 +988,16 @@
 .multisig-proposal-preview__art {
   position: absolute;
   inset: 0;
-  background-image: url("../multisig-proposal-card.jpg");
-  background-size: cover;
-  background-position: center;
+  transform: scale(1.02);
+  animation: multisig-stage-breathe 10s ease-in-out infinite;
+}
+
+.multisig-proposal-preview__art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .multisig-proposal-preview__copy {
@@ -752,6 +1014,7 @@
   box-shadow: 0 12px 30px rgba(30, 50, 38, 0.12);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+  animation: multisig-proposal-card-float 5.8s ease-in-out infinite;
 }
 
 .multisig-proposal-preview__copy strong {
@@ -1062,7 +1325,8 @@
 
 @media (max-width: 1080px) {
   .multisig-workspace,
-  .multisig-hero {
+  .multisig-hero,
+  .multisig-route-stage {
     grid-template-columns: 1fr;
   }
 
@@ -1098,6 +1362,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .multisig-route-stage__nodes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .multisig-request-panel,
   .multisig-activity-panel,
   .multisig-signer-panel,
@@ -1117,13 +1385,163 @@
   }
 }
 
+@media (max-width: 480px) {
+  .multisig-route-stage {
+    padding: 12px;
+  }
+
+  .multisig-route-stage__media {
+    min-height: 176px;
+  }
+
+  .multisig-route-stage__nodes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes multisig-hero-drift {
+  0% {
+    transform: scale(1.04) translate3d(-6px, -4px, 0);
+  }
+
+  100% {
+    transform: scale(1.08) translate3d(8px, 5px, 0);
+  }
+}
+
+@keyframes multisig-stage-breathe {
+  0%,
+  100% {
+    transform: scale(1.02);
+  }
+
+  50% {
+    transform: scale(1.065);
+  }
+}
+
+@keyframes multisig-route-sheen {
+  0%,
+  48% {
+    transform: translateX(-46%);
+  }
+
+  78%,
+  100% {
+    transform: translateX(46%);
+  }
+}
+
+@keyframes multisig-route-packet {
+  0% {
+    transform: translateX(0) scale(0.78);
+    opacity: 0;
+  }
+
+  12%,
+  78% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(74vw) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes multisig-route-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 166, 111, 0.28);
+    transform: scale(0.92);
+  }
+
+  70% {
+    box-shadow: 0 0 0 22px rgba(22, 166, 111, 0);
+    transform: scale(1);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 166, 111, 0);
+    transform: scale(0.92);
+  }
+}
+
+@keyframes multisig-route-node-ready {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: var(--ms-shadow-soft);
+  }
+
+  50% {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(8, 123, 80, 0.18);
+  }
+}
+
+@keyframes multisig-proposal-card-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate3d(0, -5px, 0) rotate(-0.4deg);
+  }
+}
+
+@keyframes multisig-progress-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 180% 50%;
+  }
+}
+
+@keyframes multisig-route-rail-flow {
+  0% {
+    transform: translateX(-72%);
+  }
+
+  100% {
+    transform: translateX(72%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .multisig-history-card,
-  .multisig-route-details > summary svg {
+  .multisig-route-details > summary svg,
+  .multisig-route-stage__node {
     transition: none;
   }
 
   .multisig-history-card:hover {
+    transform: none;
+  }
+
+  .multisig-hero__image,
+  .multisig-route-stage::before,
+  .multisig-route-stage__image,
+  .multisig-route-stage__proposal,
+  .multisig-route-stage__pulse,
+  .multisig-route-stage__rail::before,
+  .multisig-route-stage__packet,
+  .multisig-route-stage__node.is-active .multisig-route-stage__icon,
+  .multisig-board__progress span,
+  .multisig-approval-card__track span,
+  .multisig-proposal-preview__art,
+  .multisig-proposal-preview__copy {
+    animation: none;
+  }
+
+  .multisig-hero__image,
+  .multisig-route-stage__image,
+  .multisig-route-stage__proposal,
+  .multisig-route-stage__node.is-active,
+  .multisig-proposal-preview__art,
+  .multisig-proposal-preview__copy {
     transform: none;
   }
 }
