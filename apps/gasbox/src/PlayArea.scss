@@ -2226,6 +2226,8 @@
   .gasbox-stage-art--pulling > picture img,
   .gasbox-stage-art__capsule,
   .gasbox-pull-btn--active svg,
+  .gasbox-pending::before,
+  .gasbox-pending__spinner,
   .gasbox-result-content,
   .gasbox-result-theater__beam,
   .gasbox-result-theater__capsule,
@@ -3548,12 +3550,53 @@
 }
 
 .gasbox-pending {
+  position: relative;
   display: grid;
   gap: 12px;
+  overflow: hidden;
   padding: 16px;
   border-radius: var(--ns-radius-md, 16px);
   border: 1px solid var(--ns-brand-soft-border, #c7efe0);
   background: linear-gradient(135deg, var(--ns-surface, #ffffff) 0%, var(--ns-brand-soft, #e4f8f0) 100%);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.7) 42%, rgba(245, 166, 35, 0.22) 50%, transparent 66%);
+    opacity: 0;
+    transform: translateX(-115%);
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  &--revealing {
+    border-color: rgba(245, 166, 35, 0.42);
+    background:
+      radial-gradient(circle at 12% 0%, rgba(245, 166, 35, 0.18), transparent 42%),
+      linear-gradient(135deg, var(--ns-surface, #ffffff) 0%, var(--ns-brand-soft, #e4f8f0) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.84),
+      0 14px 32px rgba(245, 166, 35, 0.12);
+
+    &::before {
+      opacity: 1;
+      animation: gasbox-pending-reveal-sweep 1.04s ease-out infinite;
+    }
+
+    .gasbox-pending__spinner {
+      border-color: rgba(245, 166, 35, 0.18);
+      border-top-color: var(--ns-warning, #f5a623);
+      animation:
+        gasbox-spin 0.58s linear infinite,
+        gasbox-pending-reveal-pop 780ms ease-in-out infinite;
+    }
+  }
 
   &__head {
     display: flex;
@@ -3618,6 +3661,17 @@
 @keyframes gasbox-pending-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.55; transform: scale(0.9); }
+}
+
+@keyframes gasbox-pending-reveal-sweep {
+  0% { opacity: 0; transform: translateX(-115%); }
+  18%, 72% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(115%); }
+}
+
+@keyframes gasbox-pending-reveal-pop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
 
 .gasbox-creator-controls {
