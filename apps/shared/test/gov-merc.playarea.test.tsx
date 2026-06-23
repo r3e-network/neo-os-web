@@ -48,10 +48,12 @@ function t(key: string, params?: Record<string, string | number>) {
     marketPlateEpoch: `Epoch #${params?.epoch ?? 0}`,
     marketPlateLabel: "Live influence round",
     marketPlateTopBid: `Top bid: ${params?.amount ?? "0"} ${params?.tokenGas ?? "GAS"}`,
+    marketRouting: "Routing transaction",
     marketReady: "Ready",
     marketSignalTitle: "Neo N3 governance desk",
     minBidLabel: "Minimum first bid",
     noBids: "No bids yet",
+    placingBid: "Routing GAS bid...",
     placeBid: "Place Bid",
     reclaimCopy: "Reclaim losing bids.",
     reclaimEmpty: "No losing bids to reclaim",
@@ -67,6 +69,7 @@ function t(key: string, params?: Record<string, string | number>) {
     settleLastLabel: "Last settled",
     settleNoBidsHint: "Place at least one GAS bid.",
     settleNone: "No epoch settled yet",
+    settlingEpoch: "Settling epoch...",
     settleTitle: "Settle epoch",
     settlementWindow: "Settlement window",
     stakedBalanceLabel: "Your staked balance",
@@ -82,6 +85,9 @@ function t(key: string, params?: Record<string, string | number>) {
     withdrawCredit: "Withdraw unused credit",
     withdrawDrawerTitle: "Unstake or adjust NEO",
     withdrawNeo: "Unstake NEO",
+    stakingNeo: "Staking NEO...",
+    unstakingNeo: "Unstaking NEO...",
+    connectingWallet: "Connecting wallet...",
     yourDeposits: "Your Deposits",
   };
   let message = messages[key] ?? key;
@@ -157,6 +163,32 @@ describe("Gov Merc PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Connect wallet" }));
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("connectWallet"));
+    expect(screen.getByRole("button", { name: "Connecting wallet..." })).toBeTruthy();
+  });
+
+  it("shows immediate market motion when routing a GAS bid", async () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "NTestAddressForGovMerc1111111111111",
+          bidAmount: "3",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Place Bid" }));
+
+    expect(container.querySelector(".gov-merc-market-stage.is-bidding")).toBeTruthy();
+    expect(container.querySelector(".gov-merc-action-card--bid.is-routing")).toBeTruthy();
+    expect(container.querySelector(".gov-merc-action-status")?.textContent).toBe(
+      "Routing GAS bid...",
+    );
+    expect(screen.getByRole("button", { name: "Routing GAS bid..." })).toBeTruthy();
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("placeBid"));
   });
 
   it("keeps the stage responsive and motion-safe", () => {
@@ -164,16 +196,32 @@ describe("Gov Merc PlayArea", () => {
       `${process.cwd()}/../gov-merc/src/PlayArea.scss`,
       "utf8",
     );
+    const actionStyles = readFileSync(
+      `${process.cwd()}/../gov-merc/src/components/MercActionCards.scss`,
+      "utf8",
+    );
 
     expect(styles).toContain(".gov-merc-market-stage");
+    expect(styles).toContain(".gov-merc-market-stage__action");
     expect(styles).toContain("@keyframes gov-merc-stage-drift");
     expect(styles).toContain("@keyframes gov-merc-stage-signal");
+    expect(styles).toContain("@keyframes gov-merc-market-route");
+    expect(styles).toContain("@keyframes gov-merc-settle-plate");
+    expect(styles).toContain("@keyframes gov-merc-action-status");
+    expect(actionStyles).toContain("@keyframes gov-merc-card-action-status");
+    expect(actionStyles).not.toMatch(/transform:\s*translateY\(-1px\)/);
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /@media \(max-width: 640px\)[\s\S]*\.gov-merc-market-stage[\s\S]*min-height:\s*184px/,
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.gov-merc-market-stage img[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.gov-merc-market-stage__action[\s\S]*transition:\s*none/,
+    );
+    expect(actionStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.gov-merc-action-status[\s\S]*animation:\s*none/,
     );
   });
 });
