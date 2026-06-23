@@ -56,6 +56,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const searchResult = val<SearchResult | null>("searchResult", null);
   const registrationCost = num("registrationCost");
   const previewName = searchResult?.name ?? formatSearchName(searchQuery);
+  const hasQuery = searchQuery.trim().length > 0;
+  const playAreaClassName = [
+    "neo-ns-play-area",
+    hasQuery ? "neo-ns-play-area--query-ready" : "",
+    isSearching ? "neo-ns-play-area--searching" : "",
+    searchResult
+      ? searchResult.available
+        ? "neo-ns-play-area--available"
+        : "neo-ns-play-area--taken"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const resultCardClassName = [
+    "nns-result-card",
+    searchResult
+      ? searchResult.available
+        ? "nns-result-card--available"
+        : "nns-result-card--taken"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const setSearch = (v: string) => {
     if (state.searchQuery) state.searchQuery.set(v);
@@ -76,7 +99,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const showReference = !managingDomain;
 
   return (
-    <div className="neo-ns-play-area">
+    <div className={playAreaClassName}>
       <section className="nns-hero" aria-label={t("title")}>
         <div className="nns-hero__copy">
           <span className="nns-hero__badge" aria-hidden="true">
@@ -154,7 +177,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               loading={isSearching}
               onClick={() => dispatch("searchDomain")}
               aria-label={t("search")}
-              className="nns-search-button"
+              className={`nns-search-button${hasQuery ? " nns-search-button--ready" : ""}`}
             >
               <Search size={16} aria-hidden="true" />
               {t("search")}
@@ -179,13 +202,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <NeoCard
           variant="erobo"
-          className={`nns-result-card${
-            searchResult
-              ? searchResult.available
-                ? " nns-result-card--available"
-                : " nns-result-card--taken"
-              : ""
-          }`}
+          className={resultCardClassName}
         >
           {searchResult ? (
             <>
