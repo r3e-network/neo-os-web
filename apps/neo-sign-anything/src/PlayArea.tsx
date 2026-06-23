@@ -67,6 +67,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const previewStatus = canSubmit ? t("ready") : t("awaitingSignature");
   const byteUsage = Math.min(100, Math.round((messageBytes / 1024) * 100));
   const isOverLimit = messageBytes > 1024;
+  const playAreaClassName = [
+    "sign-play-area",
+    canSubmit ? "sign-play-area--ready" : "",
+    signature ? "sign-play-area--signed" : "",
+    txHash ? "sign-play-area--broadcasted" : "",
+    actionBusy ? "sign-play-area--busy" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const documentPreviewClassName = [
+    "sign-document-preview",
+    "sign-document-preview--editor",
+    canSubmit ? "sign-document-preview--ready" : "",
+    isOverLimit ? "sign-document-preview--over-limit" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const resultPanelClassName = [
+    "sign-result-panel",
+    signature || txHash ? "sign-result-panel--ready" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const messageTemplates = [
     {
       key: "release",
@@ -104,7 +127,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   );
 
   return (
-    <div className="sign-play-area">
+    <div className={playAreaClassName}>
       <div className="sign-shell">
         <section className="sign-main" aria-label={t("signHeroTitle")}>
           <div className="sign-hero">
@@ -184,7 +207,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </button>
                   ))}
                 </div>
-                <div className="sign-document-preview sign-document-preview--editor" aria-label={t("messagePreviewLabel")}>
+                <div className={documentPreviewClassName} aria-label={t("messagePreviewLabel")}>
                   <div className="sign-document-preview__paper">
                     <div className="sign-document-preview__toolbar">
                       <span className="sign-document-preview__type">{previewTitle}</span>
@@ -288,7 +311,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               )}
             </NeoCard>
 
-            <NeoCard variant="erobo" className="sign-result-panel">
+            <NeoCard variant="erobo" className={resultPanelClassName}>
               <div className="sign-section-heading">
                 <span>{t("resultPanelTitle")}</span>
                 <strong>{signature || txHash ? t("ready") : t("awaitingSignature")}</strong>
