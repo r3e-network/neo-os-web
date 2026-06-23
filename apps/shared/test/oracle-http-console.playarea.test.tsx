@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -73,9 +80,9 @@ describe("Oracle HTTP Console PlayArea", () => {
     expect(container.querySelector(".http-route-node--source")).toBeTruthy();
     expect(container.querySelector(".http-route-node--extract")).toBeTruthy();
     expect(container.querySelector(".http-route-node--digest")).toBeTruthy();
-    expect(container.querySelectorAll(".http-route-connector__packet").length).toBe(
-      2,
-    );
+    expect(
+      container.querySelectorAll(".http-route-connector__packet").length,
+    ).toBe(2);
     expect(container.querySelectorAll(".http-signal-chip--ok").length).toBe(3);
     expect((screen.getByLabelText("URL") as HTMLInputElement).value).toBe(
       "https://oracle.meshmini.app/mainnet/health",
@@ -88,14 +95,14 @@ describe("Oracle HTTP Console PlayArea", () => {
       ".http-body-editor textarea",
     ) as HTMLTextAreaElement;
     expect(body.disabled).toBe(false);
-    fireEvent.change(body, { target: { value: "{\"sample\":true}" } });
+    fireEvent.change(body, { target: { value: '{"sample":true}' } });
 
     clickPreview();
 
     expect(screen.getByText("POST oracle request prepared")).toBeTruthy();
-    expect(container.querySelector(".http-payload-card pre")?.textContent).toContain(
-      "sample",
-    );
+    expect(
+      container.querySelector(".http-payload-card pre")?.textContent,
+    ).toContain("sample");
     expect(state.requestCount?.get?.()).toBe(1);
     expect(state.lastDigest?.get?.()).toBe("0xe052e509");
     expect(setStatus).not.toHaveBeenCalled();
@@ -113,14 +120,74 @@ describe("Oracle HTTP Console PlayArea", () => {
 
     expect(document.querySelector(".http-route-stage--warn")).toBeTruthy();
     expect(document.querySelector(".http-signal-chip--warn")).toBeTruthy();
-    expect(screen.getAllByText("Enter a valid http(s) URL").length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByText("Enter a valid http(s) URL").length,
+    ).toBeGreaterThan(0);
     expect(state.requestCount?.get?.()).toBe(0);
     expect(state.lastDigest?.get?.()).toBe("—");
     expect(setStatus).toHaveBeenCalledWith(
       "Enter a valid http(s) URL",
       "warning",
     );
+  });
+
+  it("keeps one primary preview action and exposes local route and copy motion", async () => {
+    const state = makeState();
+    const services = makeServices();
+    const { container } = render(
+      <PlayArea {...makeProps(state)} services={services} />,
+    );
+
+    expect(container.querySelector(".http-summary-strip")).toBeNull();
+    expect(
+      screen.getAllByRole("button", { name: "Preview Request" }),
+    ).toHaveLength(1);
+
+    clickPreview();
+
+    await waitFor(() => {
+      expect(container.querySelector(".http-play-area--routing")).toBeTruthy();
+      expect(
+        container.querySelector(".http-route-stage--routing"),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("button", { name: "Routing request..." }),
+      ).toBeTruthy();
+    });
+    expect(container.firstElementChild?.getAttribute("aria-busy")).toBe("true");
+    expect(
+      container.querySelector(".http-route-stage")?.getAttribute("aria-busy"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Routing request..." }));
+    expect(state.requestCount?.get?.()).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+
+    await waitFor(() => {
+      expect(container.querySelector(".http-play-area--copying")).toBeTruthy();
+      expect(
+        container.querySelector(".http-result-card--copying"),
+      ).toBeTruthy();
+      expect(
+        screen.getByRole("button", { name: "Copying payload..." }),
+      ).toBeTruthy();
+    });
+    expect(services.clipboard.copy).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps HTTP route motion with a reduced-motion fallback", () => {
+    const styles = readFileSync(
+      "../oracle-http-console/src/PlayArea.scss",
+      "utf8",
+    );
+
+    expect(styles).toContain(".http-route-stage--routing");
+    expect(styles).toContain("@keyframes http-route-node-routing");
+    expect(styles).toContain("@keyframes http-action-sweep");
+    expect(styles).toContain(".http-result-card--copying");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toContain(".http-route-stage--routing::after");
+    expect(styles).toContain(".http-result-card--copying::after");
   });
 });

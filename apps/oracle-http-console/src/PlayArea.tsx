@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Braces,
   Check,
@@ -64,6 +64,8 @@ function boolLabel(value: unknown, t: PlayAreaProps["t"]) {
   return value === true ? t("yes") : t("no");
 }
 
+type HttpActionPreview = "preview" | "copy";
+
 export default function PlayArea({
   t,
   state,
@@ -76,6 +78,12 @@ export default function PlayArea({
   );
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [actionPreview, setActionPreview] = useState<HttpActionPreview | null>(
+    null,
+  );
+  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [initialDigest] = useState(() =>
     readObservable(state, "lastDigest", t("digestPlaceholder")),
   );
@@ -130,28 +138,6 @@ export default function PlayArea({
   const draftDigest = String(
     draftResult.payload.digest ?? t("digestPlaceholder"),
   );
-  const requestSummary = [
-    {
-      key: "method",
-      label: t("method"),
-      value: selectedMethodLabel,
-    },
-    {
-      key: "source",
-      label: t("httpSourceLabel"),
-      value: compactUrl(urlValue),
-    },
-    {
-      key: "path",
-      label: t("httpExtractionLabel"),
-      value: jsonPathValue.trim() || t("notAvailable"),
-    },
-    {
-      key: "body",
-      label: t("httpBodyState"),
-      value: bodyEnabled ? t("httpBodyIncluded") : t("httpBodyIgnored"),
-    },
-  ];
   const routeSignals = [
     {
       key: "url",
@@ -172,8 +158,32 @@ export default function PlayArea({
       value: bodyEnabled ? t("httpBodyIncluded") : t("httpBodyIgnored"),
     },
   ];
+  const isPreviewing = actionPreview === "preview";
+  const isCopying = actionPreview === "copy";
+  const isLocalActionBusy = actionPreview !== null;
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  function startActionPreview(action: HttpActionPreview, duration = 1100) {
+    if (actionPreviewTimeout.current !== null) {
+      clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, duration);
+  }
 
   function updateValue(key: string, value: string) {
+    if (isPreviewing) return;
     setValues((current) => ({ ...current, [key]: value }));
   }
 
@@ -201,10 +211,13 @@ export default function PlayArea({
   }
 
   function buildPreview() {
+    if (isPreviewing) return;
+    startActionPreview("preview", 1100);
     applyResult(consoleConfig.buildResult(values, t));
   }
 
   function reset() {
+    if (isLocalActionBusy) return;
     setValues(initialValues(launchContext?.params));
     setResult(null);
     setObservable(state, "lastStatus", initialStatus);
@@ -213,14 +226,24 @@ export default function PlayArea({
   }
 
   async function copyPayload() {
-    if (!payloadText) return;
+    if (!payloadText || isCopying) return;
+    startActionPreview("copy", 900);
     await services.clipboard.copy(payloadText, consoleConfig.copiedKey);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
-    <div className="http-play-area">
+    <div
+      className={[
+        "http-play-area",
+        isPreviewing ? "http-play-area--routing" : "",
+        isCopying ? "http-play-area--copying" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-busy={isLocalActionBusy || undefined}
+    >
       <section className="http-hero" aria-label={t("panelTitle")}>
         <img
           className="http-hero__media"
@@ -294,21 +317,10 @@ export default function PlayArea({
             </div>
           </header>
 
-          <div
-            className="http-summary-strip"
-            aria-label={t("consoleSelectedValues")}
-          >
-            {requestSummary.map((item) => (
-              <span key={item.key}>
-                <small>{item.label}</small>
-                <strong>{item.value}</strong>
-              </span>
-            ))}
-          </div>
-
           <section
-            className={routeStageClassName}
+            className={`${routeStageClassName}${isPreviewing ? " http-route-stage--routing" : ""}`}
             aria-label={t("httpRouteWorkbench")}
+            aria-busy={isPreviewing || undefined}
           >
             <div className="http-route-stage__head">
               <div className="http-section-copy">
@@ -378,16 +390,6 @@ export default function PlayArea({
             </div>
           </section>
 
-          <div
-            className="http-quick-actions"
-            aria-label={t("httpResultPreview")}
-          >
-            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
-              <Play size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.primaryActionKey)}</span>
-            </NeoButton>
-          </div>
-
           <section
             className="http-pipeline-panel"
             aria-label={t("httpPipelineTitle")}
@@ -429,6 +431,7 @@ export default function PlayArea({
                     className={`http-method-card${
                       selected ? " http-method-card--selected" : ""
                     }`}
+                    disabled={isPreviewing}
                     onClick={() => updateValue("method", option.value)}
                   >
                     <span aria-hidden="true">
@@ -460,7 +463,9 @@ export default function PlayArea({
             <div className="http-pipeline-board">
               <label
                 className={`http-pipeline-node${
-                  urlValid ? " http-pipeline-node--ok" : " http-pipeline-node--warn"
+                  urlValid
+                    ? " http-pipeline-node--ok"
+                    : " http-pipeline-node--warn"
                 }`}
               >
                 <span className="http-pipeline-node__icon" aria-hidden="true">
@@ -482,13 +487,18 @@ export default function PlayArea({
                   value={urlValue}
                   placeholder={t("urlPlaceholder")}
                   aria-label={t("url")}
-                  onChange={(event) => updateValue("url", event.currentTarget.value)}
+                  disabled={isPreviewing}
+                  onChange={(event) =>
+                    updateValue("url", event.currentTarget.value)
+                  }
                 />
               </label>
 
               <label
                 className={`http-pipeline-node${
-                  pathValid ? " http-pipeline-node--ok" : " http-pipeline-node--warn"
+                  pathValid
+                    ? " http-pipeline-node--ok"
+                    : " http-pipeline-node--warn"
                 }`}
               >
                 <span className="http-pipeline-node__icon" aria-hidden="true">
@@ -510,6 +520,7 @@ export default function PlayArea({
                   value={jsonPathValue}
                   placeholder={t("jsonPathPlaceholder")}
                   aria-label={t("jsonPath")}
+                  disabled={isPreviewing}
                   onChange={(event) =>
                     updateValue("jsonPath", event.currentTarget.value)
                   }
@@ -547,13 +558,15 @@ export default function PlayArea({
                     <textarea
                       value={bodyValue}
                       placeholder={t("bodyPlaceholder")}
-                      disabled={!bodyEnabled}
+                      disabled={!bodyEnabled || isPreviewing}
                       onChange={(event) =>
                         updateValue("body", event.currentTarget.value)
                       }
                     />
                     <small>
-                      {bodyEnabled ? t("httpBodyPostHint") : t("httpBodyGetHint")}
+                      {bodyEnabled
+                        ? t("httpBodyPostHint")
+                        : t("httpBodyGetHint")}
                     </small>
                   </label>
                 </div>
@@ -562,18 +575,45 @@ export default function PlayArea({
           </section>
 
           <div className="http-actions">
-            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
-              <Play size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.primaryActionKey)}</span>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              disabled={isPreviewing}
+              className={isPreviewing ? "is-routing" : undefined}
+              aria-label={
+                isPreviewing
+                  ? t("previewingRequest")
+                  : t(consoleConfig.primaryActionKey)
+              }
+              onClick={buildPreview}
+            >
+              {isPreviewing ? (
+                <DatabaseZap size={18} aria-hidden="true" />
+              ) : (
+                <Play size={18} aria-hidden="true" />
+              )}
+              <span>
+                {isPreviewing
+                  ? t("previewingRequest")
+                  : t(consoleConfig.primaryActionKey)}
+              </span>
             </NeoButton>
-            <NeoButton variant="ghost" size="lg" onClick={reset}>
+            <NeoButton
+              variant="ghost"
+              size="lg"
+              disabled={isLocalActionBusy}
+              onClick={reset}
+            >
               <RotateCcw size={18} aria-hidden="true" />
               <span>{t(consoleConfig.resetActionKey)}</span>
             </NeoButton>
           </div>
         </div>
 
-        <aside className="http-result-card" aria-live="polite">
+        <aside
+          className={`http-result-card${isCopying ? " http-result-card--copying" : ""}`}
+          aria-live="polite"
+        >
           <header className="http-card-head">
             <span aria-hidden="true">
               <FileJson2 size={19} />
@@ -619,16 +659,31 @@ export default function PlayArea({
                 ))}
               </div>
               <div className="http-payload-actions">
-                <NeoButton variant="secondary" size="sm" onClick={copyPayload}>
-                  {copied ? (
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={isCopying}
+                  className={isCopying ? "is-copying" : undefined}
+                  aria-label={
+                    isCopying
+                      ? t("copyingPayload")
+                      : t(consoleConfig.copyActionKey)
+                  }
+                  onClick={copyPayload}
+                >
+                  {isCopying ? (
+                    <DatabaseZap size={16} aria-hidden="true" />
+                  ) : copied ? (
                     <Check size={16} aria-hidden="true" />
                   ) : (
                     <Copy size={16} aria-hidden="true" />
                   )}
                   <span>
-                    {copied
-                      ? t(consoleConfig.copiedKey)
-                      : t(consoleConfig.copyActionKey)}
+                    {isCopying
+                      ? t("copyingPayload")
+                      : copied
+                        ? t(consoleConfig.copiedKey)
+                        : t(consoleConfig.copyActionKey)}
                   </span>
                 </NeoButton>
               </div>
