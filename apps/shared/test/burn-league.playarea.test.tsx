@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -21,6 +27,7 @@ function t(key: string, params?: Record<string, string | number>) {
     burnPresets: "Burn amount presets",
     burnRange: `Burn range: ${params?.min ?? 1}-${params?.max ?? 1000} GAS`,
     burnRangeError: `Enter a burn amount from ${params?.min ?? 1} to ${params?.max ?? 1000} GAS.`,
+    burning: "Burning...",
     burnReview: "Burn review checklist",
     burnServiceUnavailableTitle: "Burn league data unavailable",
     burnTokens: "Burn Tokens",
@@ -41,6 +48,8 @@ function t(key: string, params?: Record<string, string | number>) {
     noEntriesTitle: "No leaderboard entries yet",
     noLeaderYet: "No burns yet",
     outOf: `of ${params?.total ?? 0} players`,
+    prepaidCreditHint: "Withdraw unused GAS from a failed burn.",
+    prepaidCreditLabel: "Prepaid credit",
     prizePool: "Prize pool",
     projectedTotal: "Projected total",
     projectedRank: "Projected rank",
@@ -64,6 +73,8 @@ function t(key: string, params?: Record<string, string | number>) {
     subtitle: "Burn tokens, earn rewards",
     title: "Burn League",
     totalBurned: "Total Burned",
+    withdrawingCredit: "Withdrawing...",
+    withdrawCredit: "Withdraw credit",
     yourBurns: "Your Burns",
     yourRank: "Your Rank",
   };
@@ -272,6 +283,115 @@ describe("Burn League PlayArea", () => {
     );
   });
 
+  it("previews burn, settle, and credit withdrawal immediately", async () => {
+    let finishBurn: (() => void) | undefined;
+    const burnPromise = new Promise<void>((resolve) => {
+      finishBurn = resolve;
+    });
+    const burnDispatch = vi.fn((name: string) =>
+      name === "burn" ? burnPromise : Promise.resolve(),
+    );
+    const burnView = render(
+      <PlayArea t={t} state={state()} dispatch={burnDispatch} />,
+    );
+
+    const burnButton = screen.getByRole("button", { name: "Burn Now" });
+    fireEvent.click(burnButton);
+
+    await waitFor(() => {
+      const root = burnView.container.querySelector(
+        ".burn-league-play-area",
+      );
+      expect(burnDispatch).toHaveBeenCalledWith("burn", "1");
+      expect(root?.className).toContain("burn-league-play-area--burning");
+      expect(root?.getAttribute("aria-busy")).toBe("true");
+    });
+    expect(screen.getByRole("button", { name: "Burning..." })).toBeTruthy();
+    fireEvent.click(burnButton);
+    expect(burnDispatch).toHaveBeenCalledTimes(1);
+    finishBurn?.();
+    burnView.unmount();
+
+    let finishSettle: (() => void) | undefined;
+    const settlePromise = new Promise<void>((resolve) => {
+      finishSettle = resolve;
+    });
+    const settleDispatch = vi.fn((name: string) =>
+      name === "settle" ? settlePromise : Promise.resolve(),
+    );
+    const settleView = render(
+      <PlayArea
+        t={t}
+        state={state({
+          seasonPhase: "ended",
+          needsSettle: true,
+          seasonStatusLabel: "Ended — awaiting settle",
+        })}
+        dispatch={settleDispatch}
+      />,
+    );
+
+    const settleButton = screen.getByRole("button", { name: "Settle season" });
+    fireEvent.click(settleButton);
+
+    await waitFor(() => {
+      const root = settleView.container.querySelector(
+        ".burn-league-play-area",
+      );
+      expect(settleDispatch).toHaveBeenCalledWith("settle");
+      expect(root?.className).toContain("burn-league-play-area--settling");
+      expect(
+        settleView.container
+          .querySelector(".burn-league-season")
+          ?.getAttribute("aria-busy"),
+      ).toBe("true");
+    });
+    fireEvent.click(settleButton);
+    expect(settleDispatch).toHaveBeenCalledTimes(1);
+    finishSettle?.();
+    settleView.unmount();
+
+    let finishWithdraw: (() => void) | undefined;
+    const withdrawPromise = new Promise<void>((resolve) => {
+      finishWithdraw = resolve;
+    });
+    const withdrawDispatch = vi.fn((name: string) =>
+      name === "withdrawCredit" ? withdrawPromise : Promise.resolve(),
+    );
+    const withdrawView = render(
+      <PlayArea
+        t={t}
+        state={state({
+          prepaidCredit: 0.2,
+          prepaidCreditDisplay: "0.20 GAS",
+        })}
+        dispatch={withdrawDispatch}
+      />,
+    );
+
+    const withdrawButton = screen.getByRole("button", {
+      name: "Withdraw credit",
+    });
+    fireEvent.click(withdrawButton);
+
+    await waitFor(() => {
+      const root = withdrawView.container.querySelector(
+        ".burn-league-play-area",
+      );
+      expect(withdrawDispatch).toHaveBeenCalledWith("withdrawCredit");
+      expect(root?.className).toContain("burn-league-play-area--recovering");
+      expect(
+        withdrawView.container.querySelector(
+          ".burn-league-recovery-card.is-withdrawing",
+        ),
+      ).toBeTruthy();
+    });
+    expect(withdrawButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(withdrawButton);
+    expect(withdrawDispatch).toHaveBeenCalledTimes(1);
+    finishWithdraw?.();
+  });
+
   it("blocks out-of-range burns before wallet intent submission", () => {
     const dispatch = vi.fn();
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
@@ -358,6 +478,8 @@ describe("Burn League PlayArea", () => {
     expect(styles).toContain("@keyframes burn-league-scoreboard-ready");
     expect(styles).toContain("@keyframes burn-league-cta-ready");
     expect(styles).toContain("@keyframes burn-league-row-in");
+    expect(styles).toContain("@keyframes burn-league-action-sweep");
+    expect(styles).toContain(".burn-league-recovery-card.is-withdrawing");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /\.burn-league-play-area--burning \.burn-league-stake-stage[\s\S]*animation:\s*burn-league-stage-burn/,
@@ -372,6 +494,9 @@ describe("Burn League PlayArea", () => {
       /\.burn-league-play-area--armed \.burn-league-fuel-chamber::after[\s\S]*animation:\s*burn-league-chamber-scan/,
     );
     expect(styles).toMatch(
+      /\.burn-league-play-area--settling \.burn-league-season::after[\s\S]*animation:\s*burn-league-action-sweep/,
+    );
+    expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-cta \.neo-btn--primary[\s\S]*animation:\s*none/,
     );
     expect(styles).toMatch(
@@ -379,6 +504,12 @@ describe("Burn League PlayArea", () => {
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-ember-burst__spark[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-season::after[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-recovery-card\.is-withdrawing::after[\s\S]*animation:\s*none/,
     );
   });
 });

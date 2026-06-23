@@ -354,6 +354,7 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 /* ── Season lifecycle banner ─────────────────────────── */
 .burn-league-season {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -362,6 +363,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-sm, 0 2px 10px rgba(20, 22, 38, 0.04));
+  overflow: hidden;
 }
 
 .burn-league-season--active {
@@ -372,6 +374,34 @@ $burn-amber: var(--ns-warning, #f5a623);
 .burn-league-season--ended {
   border-color: rgba(245, 166, 35, 0.3);
   background: var(--ns-warning-soft, #fff3dd);
+}
+
+.burn-league-play-area--settling .burn-league-season--ended {
+  border-color: rgba(245, 166, 35, 0.48);
+  box-shadow:
+    var(--ns-shadow-sm, 0 2px 10px rgba(20, 22, 38, 0.04)),
+    0 16px 34px rgba(245, 166, 35, 0.16);
+}
+
+.burn-league-play-area--settling .burn-league-season::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255, 255, 255, 0.68),
+    transparent
+  );
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+  animation: burn-league-action-sweep 1.18s ease-in-out infinite;
+}
+
+.burn-league-season > * {
+  position: relative;
+  z-index: 1;
 }
 
 .burn-league-season-head {
@@ -508,7 +538,37 @@ $burn-amber: var(--ns-warning, #f5a623);
 
 /* ── Recovery Card (withdraw unused prepaid burn-credit) ── */
 .burn-league-recovery-card {
+  position: relative;
   width: 100%;
+  overflow: hidden;
+}
+
+.burn-league-recovery-card.is-withdrawing {
+  border-color: rgba(22, 199, 132, 0.34);
+  box-shadow:
+    var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05)),
+    0 14px 30px rgba(22, 199, 132, 0.12);
+}
+
+.burn-league-recovery-card.is-withdrawing::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255, 255, 255, 0.64),
+    transparent
+  );
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+  animation: burn-league-action-sweep 1.16s ease-in-out infinite;
+}
+
+.burn-league-recovery-card .neo-card__body {
+  position: relative;
+  z-index: 1;
 }
 
 .burn-league-recovery-card__body {
@@ -2099,6 +2159,23 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
+@keyframes burn-league-action-sweep {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  42% {
+    opacity: 0.76;
+  }
+
+  78% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .burn-league-celebrate,
   .burn-league-celebrate-card,
@@ -2116,8 +2193,10 @@ $burn-amber: var(--ns-warning, #f5a623);
   .burn-league-fuel-chamber,
   .burn-league-fuel-chamber::after,
   .burn-league-scoreboard,
+  .burn-league-season::after,
   .burn-league-impact-value,
   .burn-league-burn-cta .neo-btn--primary,
+  .burn-league-recovery-card.is-withdrawing::after,
   .burn-league-empty-icon,
   .burn-league-leaderboard-row {
     animation: none;

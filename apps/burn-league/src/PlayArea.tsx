@@ -50,6 +50,7 @@ const MIN_BURN_FALLBACK = 1;
 const MAX_BURN_FALLBACK = 1000;
 
 type SeasonPhase = "dormant" | "active" | "ended";
+type ArenaActionPreview = "burn" | "settle" | "withdrawCredit";
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
@@ -107,6 +108,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [localBurnAmount, setLocalBurnAmount] = useState("");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [amountPulse, setAmountPulse] = useState(0);
+  const [actionPreview, setActionPreview] =
+    useState<ArenaActionPreview | null>(null);
+  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // ── Win / settle celebration ──────────────────────────────────────────
   // Fire once per settle on the real event edge: lastSettleResult is stamped
@@ -123,7 +129,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     setCelebration(settleResult);
   }, [settleResult]);
 
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
   const dismissCelebration = () => setCelebration(null);
+
+  const startActionPreview = (action: ArenaActionPreview) => {
+    if (actionPreviewTimeout.current !== null) {
+      clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, 1400);
+  };
 
   const currentBurnAmount = localBurnAmount || burnAmount;
   const currentBurnAmountNumber = Number(currentBurnAmount);
@@ -154,15 +180,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     min: minBurn,
     max: maxBurn,
   });
+  const burnPreview = actionPreview === "burn";
+  const settlePreview = actionPreview === "settle";
+  const withdrawCreditPreview = actionPreview === "withdrawCredit";
+  const hasPreviewAction = actionPreview !== null;
+  const isBurnActionBusy = isBurning || burnPreview;
+  const isSettleActionBusy = isSettling || settlePreview;
+  const isWithdrawCreditBusy = withdrawCreditPreview;
+  const isLocalActionBusy = hasPreviewAction || isBurning || isSettling;
+  const isWithdrawCreditDisabled =
+    isLoading || isWithdrawCreditBusy || isLocalActionBusy;
 
   // Burns are blocked while a season has ended and is awaiting settle.
-  const burnDisabled = isBurning || !amountIsValid || needsSettle;
+  const burnDisabled =
+    isBurnActionBusy || isLocalActionBusy || !amountIsValid || needsSettle;
   const playAreaClassName = [
     "burn-league-play-area",
     seasonPhase === "active" ? "burn-league-play-area--live" : "",
     amountIsValid ? "burn-league-play-area--armed" : "",
-    isBurning ? "burn-league-play-area--burning" : "",
-    isSettling ? "burn-league-play-area--settling" : "",
+    isBurnActionBusy ? "burn-league-play-area--burning" : "",
+    isSettleActionBusy ? "burn-league-play-area--settling" : "",
+    isWithdrawCreditBusy ? "burn-league-play-area--recovering" : "",
     userIsLeader ? "burn-league-play-area--leader" : "",
   ]
     .filter(Boolean)
@@ -181,12 +219,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleBurn = async () => {
+    if (burnDisabled) return;
+    startActionPreview("burn");
     await dispatch("burn", localBurnAmount || burnAmount);
     setLocalBurnAmount("");
   };
 
   const handleSettle = async () => {
+    if (isSettleActionBusy || isLocalActionBusy) return;
+    startActionPreview("settle");
     await dispatch("settle");
+  };
+
+  const handleWithdrawCredit = async () => {
+    if (isWithdrawCreditDisabled) return;
+    startActionPreview("withdrawCredit");
+    await dispatch("withdrawCredit");
   };
 
   const handleReset = () => {
@@ -214,7 +262,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }
 
   return (
-    <div className={playAreaClassName}>
+    <div
+      className={playAreaClassName}
+      aria-busy={isLocalActionBusy || undefined}
+    >
       {/* Win/payout celebration — fires once per settle on the real event edge. */}
       {celebration && (
         <div className="burn-league-celebrate" role="dialog" aria-modal="false">
@@ -344,6 +395,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div
         className={`burn-league-season burn-league-season--${seasonPhase}`}
         role="status"
+        aria-busy={isSettleActionBusy || undefined}
       >
         <div className="burn-league-season-head">
           <span className="burn-league-season-eyebrow">
@@ -409,8 +461,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               variant="primary"
               size="md"
-              loading={isSettling}
-              disabled={isSettling}
+              loading={isSettleActionBusy}
+              disabled={isSettleActionBusy || isLocalActionBusy}
               aria-label={t("settleSeason")}
               onClick={handleSettle}
             >
@@ -548,7 +600,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className="burn-league-stepper"
                     aria-label={t("decreaseBurn")}
                     disabled={
-                      isBurning ||
+                      isBurnActionBusy ||
                       (amountIsValid && currentBurnAmountNumber <= minBurn)
                     }
                     onClick={() => nudgeBurnAmount(-1)}
@@ -569,6 +621,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         min={minBurn}
                         max={maxBurn}
                         inputMode="decimal"
+                        disabled={isBurnActionBusy}
                         onChange={(event) =>
                           handleBurnAmountChange(event.currentTarget.value)
                         }
@@ -594,7 +647,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className="burn-league-stepper"
                     aria-label={t("increaseBurn")}
                     disabled={
-                      isBurning ||
+                      isBurnActionBusy ||
                       (amountIsValid && currentBurnAmountNumber >= maxBurn)
                     }
                     onClick={() => nudgeBurnAmount(1)}
@@ -611,6 +664,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       key={preset}
                       className={`burn-league-preset${currentBurnAmount === preset ? " is-active" : ""}`}
                       type="button"
+                      disabled={isBurnActionBusy}
                       onClick={() => handleBurnAmountChange(preset)}
                     >
                       {preset} GAS
@@ -683,12 +737,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     variant="primary"
                     size="lg"
                     block
-                    loading={isBurning}
+                    loading={isBurnActionBusy}
                     disabled={burnDisabled}
-                    aria-label={isBurning ? t("burning") : t("burn")}
+                    aria-label={isBurnActionBusy ? t("burning") : t("burn")}
                     onClick={handleBurn}
                   >
-                    {t("burn")}
+                    {isBurnActionBusy ? t("burning") : t("burn")}
                   </NeoButton>
                   <span
                     className="burn-league-review-tip"
@@ -727,7 +781,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <NeoButton
                   variant="secondary"
                   size="lg"
-                  disabled={isBurning}
+                  disabled={isBurnActionBusy || isLocalActionBusy}
                   onClick={handleReset}
                 >
                   {t("resetBurn")}
@@ -798,7 +852,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           complete. The contract reuses it on the next burn, or the player can
           withdraw it back to the wallet here (money-in needs money-out). */}
       {prepaidCredit > 0 && (
-        <NeoCard variant="erobo" className="burn-league-recovery-card">
+        <NeoCard
+          variant="erobo"
+          className={[
+            "burn-league-recovery-card",
+            isWithdrawCreditBusy ? "is-withdrawing" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <div className="burn-league-recovery-card__body">
             <div className="burn-league-recovery-card__copy">
               <span className="burn-league-recovery-card__title">
@@ -811,12 +873,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               size="md"
               variant="secondary"
-              loading={isLoading}
-              disabled={isLoading}
-              onClick={() => dispatch("withdrawCredit")}
+              loading={isLoading || isWithdrawCreditBusy}
+              disabled={isWithdrawCreditDisabled}
+              onClick={handleWithdrawCredit}
               aria-label={t("withdrawCredit")}
             >
-              {t("withdrawCredit")}
+              {isWithdrawCreditBusy
+                ? t("withdrawingCredit")
+                : t("withdrawCredit")}
             </NeoButton>
           </div>
         </NeoCard>
