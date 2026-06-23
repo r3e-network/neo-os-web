@@ -208,6 +208,7 @@
 }
 
 .price-market-board,
+.price-oracle-route,
 .price-action-panel,
 .price-reference {
   min-width: 0;
@@ -218,6 +219,8 @@
 }
 
 .price-market-board {
+  grid-column: 1;
+  grid-row: 1;
   position: relative;
   display: grid;
   gap: 18px;
@@ -226,6 +229,24 @@
   background:
     linear-gradient(135deg, rgba(32, 217, 155, 0.08) 0%, rgba(56, 209, 246, 0.06) 50%, rgba(255, 255, 255, 0) 100%),
     var(--ns-surface, #ffffff);
+}
+
+.price-oracle-route {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(15, 138, 99, 0.08), rgba(56, 209, 246, 0.08)),
+    var(--ns-surface, #ffffff);
+}
+
+.price-action-panel {
+  grid-column: 2;
+  grid-row: 1 / span 2;
 }
 
 .price-market-board__head,
@@ -439,6 +460,191 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 1.45;
+}
+
+.price-oracle-route__head {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.84fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.price-oracle-route__head > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.price-oracle-route__head span,
+.price-oracle-node small {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.price-oracle-route__head strong {
+  color: var(--ns-ink, #111827);
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.price-oracle-route__head > small {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.price-oracle-route__path {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.price-oracle-route__path::before {
+  content: "";
+  position: absolute;
+  top: 25px;
+  left: 14%;
+  right: 14%;
+  height: 3px;
+  border-radius: var(--ns-radius-full);
+  background:
+    linear-gradient(90deg, rgba(20, 184, 166, 0.18), rgba(56, 209, 246, 0.72), rgba(32, 217, 155, 0.18));
+  box-shadow: 0 0 22px rgba(56, 209, 246, 0.2);
+}
+
+.price-oracle-route__packet {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 13%;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--ns-radius-full);
+  background: #20d99b;
+  box-shadow:
+    0 0 0 6px rgba(32, 217, 155, 0.14),
+    0 10px 24px rgba(20, 184, 166, 0.28);
+  opacity: 0;
+  transform: translateX(0) scale(0.9);
+}
+
+.price-oracle-route--loading .price-oracle-route__packet {
+  opacity: 1;
+  animation: price-route-packet 2s ease-in-out infinite;
+}
+
+.price-oracle-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  min-height: 128px;
+  padding: 13px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.price-oracle-node__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(32, 217, 155, 0.16);
+  border-radius: var(--ns-radius-md);
+  background: rgba(231, 255, 245, 0.9);
+  color: #047857;
+  box-shadow: 0 12px 26px rgba(7, 19, 28, 0.1);
+}
+
+.price-oracle-node__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.price-oracle-node strong {
+  color: var(--ns-ink, #111827);
+  font-size: 12.5px;
+  font-weight: 850;
+  line-height: 1.32;
+  overflow-wrap: anywhere;
+}
+
+.price-oracle-route--loading .price-oracle-node__icon {
+  animation: price-route-node-pulse 1.5s ease-in-out infinite;
+}
+
+.price-oracle-route--fresh .price-oracle-node--feed .price-oracle-node__icon {
+  background: rgba(214, 255, 234, 0.95);
+  color: #047857;
+  animation: price-route-confirm 2.4s ease-in-out infinite;
+}
+
+.price-oracle-route--stale .price-oracle-node--freshness .price-oracle-node__icon,
+.price-oracle-route--warn .price-oracle-node--freshness .price-oracle-node__icon {
+  background: rgba(255, 243, 221, 0.95);
+  color: #b9791a;
+}
+
+@keyframes price-route-packet {
+  0% {
+    left: 13%;
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    left: calc(50% - 8px);
+    transform: scale(1);
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(87% - 16px);
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes price-route-node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 12px 26px rgba(7, 19, 28, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 12px 26px rgba(7, 19, 28, 0.1),
+      0 0 0 7px rgba(32, 217, 155, 0.12);
+  }
+}
+
+@keyframes price-route-confirm {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .price-signal-strip {
@@ -669,6 +875,16 @@
   flex: 0 0 auto;
 }
 
+.price-query-spinner {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.42);
+  border-top-color: #ffffff;
+  border-radius: var(--ns-radius-full);
+  animation: price-spin 0.9s linear infinite;
+}
+
 .price-selected-note {
   margin: 0;
   padding: 12px 13px;
@@ -756,6 +972,13 @@
     grid-template-columns: 1fr;
   }
 
+  .price-market-board,
+  .price-oracle-route,
+  .price-action-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   .price-hero {
     min-height: 420px;
     align-items: start;
@@ -792,6 +1015,7 @@
 
   .price-hero__metrics,
   .price-pair-grid,
+  .price-oracle-route__head,
   .price-signal-strip,
   .price-reference__rows {
     grid-template-columns: 1fr;
@@ -802,6 +1026,7 @@
   }
 
   .price-market-board,
+  .price-oracle-route,
   .price-action-panel,
   .price-reference {
     border-radius: var(--ns-radius-lg);
@@ -809,6 +1034,41 @@
 
   .price-market-board {
     padding: 18px;
+  }
+
+  .price-oracle-route {
+    padding: 16px;
+  }
+
+  .price-oracle-route__path {
+    grid-template-columns: 1fr;
+    padding-left: 28px;
+  }
+
+  .price-oracle-route__path::before {
+    top: 18px;
+    bottom: 18px;
+    left: 19px;
+    right: auto;
+    width: 3px;
+    height: auto;
+    background:
+      linear-gradient(180deg, rgba(20, 184, 166, 0.18), rgba(56, 209, 246, 0.72), rgba(32, 217, 155, 0.18));
+  }
+
+  .price-oracle-route__packet {
+    top: 17px;
+    left: 12px;
+  }
+
+  .price-oracle-route--loading .price-oracle-route__packet {
+    animation-name: price-route-packet-mobile;
+  }
+
+  .price-oracle-node {
+    min-height: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
   }
 
   .price-market-board__head {
@@ -827,5 +1087,43 @@
 
   .price-pair-card__cue {
     align-self: center;
+  }
+}
+
+@keyframes price-route-packet-mobile {
+  0% {
+    top: 17px;
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    top: calc(50% - 8px);
+    transform: scale(1);
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% - 34px);
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .price-market-state__spinner,
+  .price-query-spinner,
+  .price-oracle-route--loading .price-oracle-route__packet,
+  .price-oracle-route--loading .price-oracle-node__icon,
+  .price-oracle-route--fresh .price-oracle-node--feed .price-oracle-node__icon {
+    animation: none;
+  }
+
+  .price-oracle-route__packet {
+    opacity: 1;
   }
 }
