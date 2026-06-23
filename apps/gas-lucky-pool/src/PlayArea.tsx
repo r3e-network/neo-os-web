@@ -3,6 +3,8 @@ import {
   Clock3,
   Coins,
   Gift,
+  Minus,
+  Plus,
   Sparkles,
   Users,
   WalletCards,
@@ -61,6 +63,24 @@ const CLAIM_PROGRESS_STEPS = [
 ] as const;
 const TOTAL_AMOUNT_PRESETS = ["20", "50", "100"];
 const CLAIM_SLOT_PRESETS = ["10", "25", "50"];
+const CLAIM_RANGE_PRESETS = [
+  { key: "small", min: "1", max: "3", label: "claimRangeSmall" },
+  { key: "balanced", min: "1", max: "5", label: "claimRangeBalanced" },
+  { key: "jackpot", min: "5", max: "20", label: "claimRangeJackpot" },
+] as const;
+
+function stepDecimal(value: string, delta: number, min: number): string {
+  const current = Number.parseFloat(value);
+  const base = Number.isFinite(current) ? current : min;
+  const next = Math.max(min, base + delta);
+  return String(Math.round(next * 100) / 100).replace(/\.0+$/, "");
+}
+
+function stepInteger(value: string, delta: number, min: number): string {
+  const current = Number.parseInt(value, 10);
+  const base = Number.isFinite(current) ? current : min;
+  return String(Math.max(min, base + delta));
+}
 
 function resolveClaimProgress(
   progress: string,
@@ -200,8 +220,14 @@ export default function PlayArea({
     : t("rewardSlotsUnset");
   const displayExpiry = t("rewardExpiryHours", { hours: expiryHours || "24" });
   const totalAmountNumber = Number.parseFloat(totalAmount);
+  const minClaimNumber = Number.parseFloat(minClaim);
   const maxClaimNumber = Number.parseFloat(maxClaim || "5");
   const slotCountNumber = Number.parseInt(maxClaims, 10);
+  const rewardRangeReady =
+    Number.isFinite(minClaimNumber) &&
+    Number.isFinite(maxClaimNumber) &&
+    minClaimNumber > 0 &&
+    maxClaimNumber >= minClaimNumber;
   const previewTicketCount = Number.isFinite(slotCountNumber)
     ? Math.min(Math.max(slotCountNumber, 3), 7)
     : 4;
@@ -211,14 +237,25 @@ export default function PlayArea({
     Number.isFinite(totalAmountNumber) &&
     Number.isFinite(slotCountNumber) &&
     totalAmountNumber > 0 &&
-    slotCountNumber > 0;
+    slotCountNumber > 0 &&
+    rewardRangeReady;
   const createMachineAnimating = isCreating || createActionPreview;
-  const rewardPlanState = rewardPlanReady ? "ready" : "draft";
+  const rewardPlanState =
+    rewardRangeReady || (!minClaim.trim() && !maxClaim.trim())
+      ? rewardPlanReady
+        ? "ready"
+        : "draft"
+      : "invalid";
   const rewardMachineLabel = createMachineAnimating
     ? t("creatingPool")
     : rewardPlanReady
       ? t("rewardMachineReady")
       : t("rewardMachineDraft");
+  const createHint = !rewardRangeReady
+    ? t("rewardPlanInvalidRange")
+    : rewardPlanReady
+      ? t("rewardPlanReadyHint")
+      : t("rewardPlanIncomplete");
   const poolFillPercent =
     Number.isFinite(totalAmountNumber) &&
     Number.isFinite(maxClaimNumber) &&
@@ -294,7 +331,7 @@ export default function PlayArea({
   };
 
   const submitCreatePool = () => {
-    if (createMachineAnimating) return;
+    if (createMachineAnimating || !rewardPlanReady) return;
     startCreateActionPreview();
     void dispatch("createPool", {
       totalAmount,
@@ -742,6 +779,41 @@ export default function PlayArea({
                     </div>
                     <div className="gas-pool-create-summary__scan" />
                   </div>
+                  <div
+                    className="gas-pool-create-summary__route"
+                    aria-label={t("rewardRouteTitle")}
+                  >
+                    <span
+                      className={
+                        totalAmountNumber > 0 ? "is-active" : undefined
+                      }
+                    >
+                      <Coins size={14} aria-hidden="true" />
+                      {t("rewardRouteCharge")}
+                    </span>
+                    <span
+                      className={
+                        rewardRangeReady && slotCountNumber > 0
+                          ? "is-active"
+                          : undefined
+                      }
+                    >
+                      <Users size={14} aria-hidden="true" />
+                      {t("rewardRouteSplit")}
+                    </span>
+                    <span className={rewardPlanReady ? "is-active" : undefined}>
+                      <WalletCards size={14} aria-hidden="true" />
+                      {t("rewardRouteScan")}
+                    </span>
+                    <span
+                      className={
+                        createMachineAnimating ? "is-active" : undefined
+                      }
+                    >
+                      <Gift size={14} aria-hidden="true" />
+                      {t("rewardRouteUnwrap")}
+                    </span>
+                  </div>
                   <div className="gas-pool-create-summary__tiles">
                     <span>
                       <Sparkles size={16} aria-hidden="true" />
@@ -770,20 +842,42 @@ export default function PlayArea({
                       </span>
                       <small>{t("totalAmountHint")}</small>
                     </div>
-                    <label className="gas-pool-inline-input">
-                      <span className="gas-pool-sr-only">
-                        {t("totalAmount")}
-                      </span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        aria-label={t("totalAmount")}
-                        min="1"
-                        value={totalAmount}
-                        onChange={(event) => setTotalAmount(event.target.value)}
-                      />
-                      <em>GAS</em>
-                    </label>
+                    <div className="gas-pool-stepper">
+                      <button
+                        type="button"
+                        aria-label={t("decreaseTotalAmount")}
+                        onClick={() =>
+                          setTotalAmount(stepDecimal(totalAmount, -5, 1))
+                        }
+                      >
+                        <Minus size={15} aria-hidden="true" />
+                      </button>
+                      <label className="gas-pool-inline-input">
+                        <span className="gas-pool-sr-only">
+                          {t("totalAmount")}
+                        </span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          aria-label={t("totalAmount")}
+                          min="1"
+                          value={totalAmount}
+                          onChange={(event) =>
+                            setTotalAmount(event.target.value)
+                          }
+                        />
+                        <em>GAS</em>
+                      </label>
+                      <button
+                        type="button"
+                        aria-label={t("increaseTotalAmount")}
+                        onClick={() =>
+                          setTotalAmount(stepDecimal(totalAmount, 5, 1))
+                        }
+                      >
+                        <Plus size={15} aria-hidden="true" />
+                      </button>
+                    </div>
                     <div
                       className="gas-pool-quick-picks"
                       aria-label={t("totalAmountHint")}
@@ -833,6 +927,28 @@ export default function PlayArea({
                         />
                       </label>
                     </div>
+                    <div
+                      className="gas-pool-range-presets"
+                      aria-label={t("claimRangeHint")}
+                    >
+                      {CLAIM_RANGE_PRESETS.map((preset) => (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          className={
+                            minClaim === preset.min && maxClaim === preset.max
+                              ? "is-active"
+                              : ""
+                          }
+                          onClick={() => {
+                            setMinClaim(preset.min);
+                            setMaxClaim(preset.max);
+                          }}
+                        >
+                          {t(preset.label)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="gas-pool-control-card">
@@ -859,6 +975,26 @@ export default function PlayArea({
                         {t("rewardSlotsCount", { count: "" }).trim()}
                       </em>
                     </label>
+                    <div className="gas-pool-stepper gas-pool-stepper--compact">
+                      <button
+                        type="button"
+                        aria-label={t("decreaseMaxClaims")}
+                        onClick={() =>
+                          setMaxClaims(stepInteger(maxClaims, -1, 1))
+                        }
+                      >
+                        <Minus size={14} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t("increaseMaxClaims")}
+                        onClick={() =>
+                          setMaxClaims(stepInteger(maxClaims, 1, 1))
+                        }
+                      >
+                        <Plus size={14} aria-hidden="true" />
+                      </button>
+                    </div>
                     <div
                       className="gas-pool-quick-picks"
                       aria-label={t("maxClaimsHint")}
@@ -898,17 +1034,44 @@ export default function PlayArea({
                       />
                       <em>h</em>
                     </label>
+                    <div className="gas-pool-stepper gas-pool-stepper--compact">
+                      <button
+                        type="button"
+                        aria-label={t("decreaseExpiryHours")}
+                        onClick={() =>
+                          setExpiryHours(stepInteger(expiryHours, -1, 1))
+                        }
+                      >
+                        <Minus size={14} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t("increaseExpiryHours")}
+                        onClick={() =>
+                          setExpiryHours(stepInteger(expiryHours, 1, 1))
+                        }
+                      >
+                        <Plus size={14} aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
               <button
                 type="button"
-                className="gas-pool-claim-only__button"
+                className="gas-pool-claim-only__button gas-pool-create-submit"
                 onClick={submitCreatePool}
-                disabled={createMachineAnimating}
+                disabled={createMachineAnimating || !rewardPlanReady}
               >
                 {createMachineAnimating ? t("creatingPool") : t("createPool")}
               </button>
+              <p
+                className={`gas-pool-create-submit-hint${
+                  rewardPlanReady ? " is-ready" : ""
+                }`}
+              >
+                {createHint}
+              </p>
             </div>
 
             <details className="gas-pool-manage-drawer">
