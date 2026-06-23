@@ -242,6 +242,39 @@ export default function PlayArea({
       : !hasPolicyDetails
         ? t("needsPolicyDetails")
         : t("needsCouncilEligibility");
+  const floorStageState = isCreating
+    ? "publishing"
+    : canSubmitProposal
+      ? "ready"
+      : hasBrief || showPolicyFields || policyValue.trim()
+        ? "draft"
+        : "idle";
+  const floorStageTitle =
+    floorStageState === "publishing"
+      ? t("floorStagePublishingTitle")
+      : floorStageState === "ready"
+        ? t("floorStageReadyTitle")
+        : floorStageState === "draft"
+          ? t("floorStageDraftTitle")
+          : t("floorStageIdleTitle");
+  const floorStageHint =
+    floorStageState === "publishing"
+      ? t("floorStagePublishingHint")
+      : floorStageState === "ready"
+        ? t("floorStageReadyHint")
+        : floorStageState === "draft"
+          ? t("floorStageDraftHint")
+          : t("floorStageIdleHint");
+  const floorSeatLabel = canWrite
+    ? t("floorSeatReady")
+    : walletAddress
+      ? t("floorSeatReadOnly")
+      : t("floorSeatConnect");
+  const floorPolicyLabel = showPolicyFields
+    ? hasPolicyDetails
+      ? t("floorPolicyReady")
+      : t("floorPolicyMissing")
+    : t("floorPolicyText");
 
   const statusLabel = (proposal: Proposal) => {
     const key = proposal.statusKey || "pending";
@@ -295,6 +328,7 @@ export default function PlayArea({
     ownerMatchesAddress(proposal.creator, walletAddress);
 
   const handleCreateProposal = async () => {
+    if (isCreating || !canSubmitProposal) return;
     // dispatch forwards the action payload at runtime (typed Promise<void>);
     // the createProposal handler resolves to a truthy tx on success and
     // undefined on failure (validation throw, network/gas error). Only clear
@@ -508,6 +542,51 @@ export default function PlayArea({
             </section>
           </div>
 
+          <section
+            className={`council-floor-stage council-floor-stage--${floorStageState}`}
+            role="region"
+            aria-label={t("floorStageLabel")}
+            aria-live="polite"
+            aria-busy={isCreating || undefined}
+          >
+            <div className="council-floor-stage__copy">
+              <span>{t("floorStageLabel")}</span>
+              <strong>{floorStageTitle}</strong>
+              <p>{floorStageHint}</p>
+            </div>
+            <div
+              className="council-floor-stage__route"
+              aria-label={t("governanceFlow")}
+            >
+              <span className={canWrite ? "is-ready" : ""}>
+                <UsersRound aria-hidden="true" />
+                <small>{t("floorSeat")}</small>
+                <strong>{floorSeatLabel}</strong>
+              </span>
+              <span className={hasBrief ? "is-ready" : ""}>
+                <PencilLine aria-hidden="true" />
+                <small>{t("floorBrief")}</small>
+                <strong>
+                  {hasBrief ? t("floorBriefReady") : t("floorBriefMissing")}
+                </strong>
+              </span>
+              <span className={hasPolicyDetails ? "is-ready" : ""}>
+                <Landmark aria-hidden="true" />
+                <small>{t("floorPolicy")}</small>
+                <strong>{floorPolicyLabel}</strong>
+              </span>
+              <span className={canSubmitProposal ? "is-ready" : ""}>
+                <Clock3 aria-hidden="true" />
+                <small>{t("floorWindow")}</small>
+                <strong>{selectedDurationLabel}</strong>
+              </span>
+            </div>
+            <div className="council-floor-stage__packet" aria-hidden="true">
+              <span />
+              <strong>{t("floorPacket")}</strong>
+            </div>
+          </section>
+
           <div className="council-create-workbench">
             <div className="council-create-controls">
               <section
@@ -639,7 +718,9 @@ export default function PlayArea({
                     })}
                   </div>
                   <NeoInput
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={policyValue}
                     placeholder={t("policyValuePlaceholder")}
                     label={t("policyValue")}
@@ -689,11 +770,17 @@ export default function PlayArea({
               variant="primary"
               size="md"
               block
-              loading={isCreating}
+              className={`council-submit-button${isCreating ? " council-submit-button--publishing" : ""}`}
               disabled={isCreating || !canSubmitProposal}
               onClick={handleCreateProposal}
             >
-              {t("submitProposal")}
+              {isCreating && (
+                <span
+                  className="council-submit-button__spinner"
+                  aria-hidden="true"
+                />
+              )}
+              {isCreating ? t("submittingProposal") : t("submitProposal")}
             </NeoButton>
           </div>
         </NeoCard>
