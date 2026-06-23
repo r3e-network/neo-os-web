@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-06-01T19:51:53.234Z",
+  "target": "Quadratic Funding current host embedded layout",
+  "results": [
+    {
+      "scenario": "desktop",
+      "url": "http://127.0.0.1:3028/miniapps/quadratic-funding?network=testnet",
+      "iframe": {
+        "box": {
+          "x": 18,
+          "y": 131,
+          "width": 1052,
+          "height": 828
+        },
+        "className": "block min-h-[580px] h-[calc(100vh-172px)] w-full border-0 bg-white transition-opacity duration-300 opacity-100"
+      },
+      "frameMetrics": {
+        "bodyScrollHeight": 828,
+        "documentScrollHeight": 828,
+        "innerHeight": 828,
+        "textLength": 0,
+        "hasCreateRound": false,
+        "hasRegisterProject": false,
+        "hasContribute": false,
+        "buttons": [],
+        "sections": []
+      },
+      "hostMetrics": {
+        "pageHeight": 1994,
+        "activityY": 985,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "clippedByHeight": false,
+        "activityStartsAfterIframe": true,
+        "keyTextsPresent": false,
+        "noErrorOverlay": true,
+        "noPageErrors": false,
+        "noUnexpectedConsole": false
+      },
+      "unexpectedConsole": [
+        {
+          "type": "error",
+          "text": "TypeError: Cannot read properties of undefined (reading 'toString')\n    at formatAmount (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:30404)\n    at Object.get (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:35739)\n    at http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:974\n    at Object.ss [as useSyncExternalStore] (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:6:19131)\n    at Tc.D.useSyncExternalStore (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:1:6602)\n    at us (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:1061)\n    at fs (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:9733)\n    at ju (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:6:16997)\n    at Yu (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:8:3154)\n    at va (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:8:44928)"
+        }
+      ],
+      "pageErrors": [
+        {
+          "message": "Cannot read properties of undefined (reading 'toString')",
+          "stack": "TypeError: Cannot read properties of undefined (reading 'toString')\n    at formatAmount (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:30404)\n    at Object.get (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:35739)\n    at http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:974\n    at Object.ss [as useSyncExternalStore] (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:6:19131)\n    at Tc.D.useSyncExternalStore (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:1:6602)\n    at us (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:1061)\n    at fs (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/index-D87IlnbG.js:98:9733)\n    at ju (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:6:16997)\n    at Yu (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:8:3154)\n    at va (http://127.0.0.1:3028/miniapps/quadratic-funding/assets/react-vendor-DIoVj25y.js:8:44928)"
+        }
+      ],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-current/desktop-current.png"
+    },
+    {
+      "scenario": "mobile",
+      "url": "http://127.0.0.1:3028/miniapps/quadratic-funding?network=testnet",
+      "iframe": {
+        "box": {
+          "x": 14,
+          "y": 123,
+          "width": 362,
+          "height": 672
+        },
+        "className": "block min-h-[580px] h-[calc(100vh-172px)] w-full border-0 bg-white transition-opacity duration-300 opacity-100"
+      },
+      "frameMetrics": {
+        "bodyScrollHeight": 1874,
+        "documentScrollHeight": 1874,
+        "innerHeight": 672,
+        "textLength": 801,
+        "hasCreateRound": true,
+        "hasRegisterProject": true,
+        "hasContribute": true,
+        "buttons": [
+          "Contribute",
+          "Refresh rounds",
+          "Rounds (0)",
+          "Projects (0)",
+          "Contribute",
+          "Create Round",
+          "Refresh"
+        ],
+        "sections": [
+          "Fund public goods with matching power"
+        ]
+      },
+      "hostMetrics": {
+        "pageHeight": 2434,
+        "activityY": 821,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "clippedByHeight": true,
+        "activityStartsAfterIframe": true,
+        "keyTextsPresent": true,
+        "noErrorOverlay": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": false
+      },
+      "unexpectedConsole": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        }
+      ],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-current/mobile-current.png"
+    }
+  ]
+}

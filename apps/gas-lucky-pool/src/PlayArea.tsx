@@ -860,10 +860,10 @@ export default function PlayArea({
                           {t("totalAmount")}
                         </span>
                         <input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
+                          pattern="[0-9]*[.]?[0-9]*"
                           aria-label={t("totalAmount")}
-                          min="1"
                           value={totalAmount}
                           onChange={(event) =>
                             setTotalAmount(event.target.value)
@@ -910,10 +910,10 @@ export default function PlayArea({
                       <label>
                         <span>{t("minClaim")}</span>
                         <input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
+                          pattern="[0-9]*[.]?[0-9]*"
                           aria-label={t("minClaim")}
-                          min="1"
                           value={minClaim}
                           onChange={(event) => setMinClaim(event.target.value)}
                         />
@@ -921,10 +921,10 @@ export default function PlayArea({
                       <label>
                         <span>{t("maxClaim")}</span>
                         <input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
+                          pattern="[0-9]*[.]?[0-9]*"
                           aria-label={t("maxClaim")}
-                          min="1"
                           value={maxClaim}
                           onChange={(event) => setMaxClaim(event.target.value)}
                         />
@@ -1097,9 +1097,9 @@ export default function PlayArea({
                 <label className="gas-pool-form__field">
                   <span>{t("topUpAmount")}</span>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    min="0"
+                    pattern="[0-9]*[.]?[0-9]*"
                     value={topUpAmount}
                     onChange={(event) => setTopUpAmount(event.target.value)}
                   />

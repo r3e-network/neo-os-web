@@ -1,0 +1,128 @@
+[
+  {
+    "slug": "aa-account-lab",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "overlayCount": 3,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1298.65625,
+      "headings": [
+        "Account control center for Neo AA shells",
+        "Account state"
+      ],
+      "disabledButtons": 0
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-account-lab-desktop.png"
+  },
+  {
+    "slug": "aa-relay-console",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "overlayCount": 3,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1094.5625,
+      "headings": [
+        "Sponsored relay desk for AA payloads",
+        "Sponsorship state"
+      ],
+      "disabledButtons": 0
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-relay-console-desktop.png"
+  },
+  {
+    "slug": "recovery-guardian",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "overlayCount": 3,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1540.09375,
+      "headings": [
+        "Social recovery workspace",
+        "Recovery state"
+      ],
+      "disabledButtons": 0
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/recovery-guardian-desktop.png"
+  },
+  {
+    "slug": "aa-account-lab",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "overlayCount": 2,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 2861.09375,
+      "headings": [
+        "Account control center for Neo AA shells",
+        "Account state"
+      ],
+      "disabledButtons": 0
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-account-lab-mobile.png"
+  },
+  {
+    "slug": "aa-relay-console",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "overlayCount": 2,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 2802.21875,
+      "headings": [
+        "Sponsored relay desk for AA payloads",
+        "Sponsorship state"
+      ],
+      "disabledButtons": 0
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/aa-relay-console-mobile.png"
+  },
+  {
+    "slug": "recovery-guardian",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "overlayCount": 2,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 3041.5625,
+      "headings": [
+        "Social recovery workspace",
+        "Recovery state"
+      ],
+      "disabledButtons": 0
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-wallet-surfaces-browser-after/recovery-guardian-mobile.png"
+  }
+]

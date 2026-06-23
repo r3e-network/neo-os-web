@@ -1,0 +1,258 @@
+{
+  "generatedAt": "2026-06-01T20:07:01.066Z",
+  "target": "Quadratic Funding runtime crash and embedded layout after fix",
+  "passed": true,
+  "consolePolicy": "429 rate-limit resource messages are recorded separately and not treated as UI regressions",
+  "results": [
+    {
+      "scenario": "desktop",
+      "url": "http://127.0.0.1:3028/miniapps/quadratic-funding?network=testnet",
+      "iframe": {
+        "src": "/miniapps/quadratic-funding/index.html?network=testnet&source=embed",
+        "className": "block h-[2200px] sm:h-[1800px] lg:h-[1600px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 18,
+          "y": 131,
+          "width": 1052,
+          "height": 1600
+        }
+      },
+      "states": {
+        "rounds": {
+          "tabName": "rounds",
+          "height": 1600,
+          "innerHeight": 1600,
+          "textLength": 5703,
+          "textSample": "Quadratic Funding Fund public goods with matching power Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console. Contribute Refresh rounds Selected round QF Round-1778240872384-242178 Matching Pool 0.2 GAS Live rounds 0/30 Projects 0 Rounds 30 Projects 0 Live rounds 0 Matching pool 0.2 GAS Rounds (30) Projects (0) Contribute Create Round Round title Matching pool Start time End time Round description Matching pool is locked at creation; you can top up",
+          "hasHero": true,
+          "hasCreateRound": true,
+          "hasRoundList": true,
+          "hasRegisterProject": true,
+          "hasQuickContribute": true,
+          "listConstraint": [
+            {
+              "clientHeight": 520,
+              "scrollHeight": 6373,
+              "constrained": true
+            }
+          ],
+          "buttons": [
+            "Contribute",
+            "Refresh rounds",
+            "Rounds (30)",
+            "Projects (0)",
+            "Contribute",
+            "Create Round",
+            "Refresh",
+            "QF Round-1778240872384-242178finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleMar 18 - Mar 19Creator0x3837...066d",
+            "QF Round-1778823955881-7331endedcodex quadratic roundMatching remaining20000000Total contributed10000000ScheduleSep 8 - Sep 10Creator0x561c...310c",
+            "QF Round-1778830066756-445987endedcodex quadratic roundMatching remaining20000000Total contributed0ScheduleNov 18 - Nov 20Creator0x3837...066d",
+            "QF Round-1778830595483-532841finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleNov 24 - Nov 26Creator0x3837...066d",
+            "QF Round-1778848529751-798458finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleJun 20 - Jun 21Creator0x3837...066d",
+            "QF Round-1778904165883-612357finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleMar 25 - Mar 26Creator0x3837...066d",
+            "QF Round-1778907437224-617221finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleMay 1 - May 3Creator0x3837...066d",
+            "QF Round-1778909496067-451165finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleMay 25 - May 27Creator0x3837...066d",
+            "QF Round-1779067970354-222398finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleJun 3 - Jun 4Creator0x3837...066d",
+            "QF Round-1779071808251-430391finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleJul 17 - Jul 19Creator0x3837...066d",
+            "QF Round-1779154934884-261164finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleMar 5 - Mar 7Creator0x3837...066d",
+            "QF Round-1779155275391-101276finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleMar 9 - Mar 11Creator0x3837...066d",
+            "QF Round-1779157546095-85048finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleApr 4 - Apr 6Creator0x3837...066d",
+            "QF Round-1779240288525-386930finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleNov 18 - Nov 20Creator0x3837...066d",
+            "QF Round-1779242066263-680859finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleDec 9 - Dec 10Creator0x3837...066d",
+            "QF Round-1779246245194-199300finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleJan 26 - Jan 28Creator0x3837...066d",
+            "QF Round-1779328081850-899186finalizedcodex quadratic roundMatching remaining15000000Total contributed10000000ScheduleAug 30 - Sep 1Creator0x3837...066d"
+          ]
+        },
+        "projects": {
+          "tabName": "projects",
+          "height": 1600,
+          "innerHeight": 1600,
+          "textLength": 691,
+          "textSample": "Quadratic Funding Fund public goods with matching power Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console. Contribute Refresh rounds Selected round QF Round-1778240872384-242178 Matching Pool 0.2 GAS Live rounds 0/30 Projects 0 Rounds 30 Projects 0 Live rounds 0 Matching pool 0.2 GAS Rounds (30) Projects (0) Contribute Register Project Project name Project description Project link QF Round-1778240872384-242178 Register Project Project ledger Loa",
+          "hasHero": true,
+          "hasCreateRound": true,
+          "hasRoundList": true,
+          "hasRegisterProject": true,
+          "hasQuickContribute": false,
+          "listConstraint": [
+            {
+              "clientHeight": 0,
+              "scrollHeight": 0,
+              "constrained": true
+            }
+          ],
+          "buttons": [
+            "Contribute",
+            "Refresh rounds",
+            "Rounds (30)",
+            "Projects (0)",
+            "Contribute",
+            "Register Project"
+          ]
+        },
+        "contribute": {
+          "tabName": "contribute",
+          "height": 1600,
+          "innerHeight": 1600,
+          "textLength": 735,
+          "textSample": "Quadratic Funding Fund public goods with matching power Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console. Contribute Refresh rounds Selected round QF Round-1778240872384-242178 Matching Pool 0.2 GAS Live rounds 0/30 Projects 1 Rounds 30 Projects 1 Live rounds 0 Matching pool 0.2 GAS Rounds (30) Projects (1) Contribute Quick Contribute Selected Round QF Round-1778240872384-242178 Project ID Amount Memo (optional) Contribution calls are signed ag",
+          "hasHero": true,
+          "hasCreateRound": true,
+          "hasRoundList": true,
+          "hasRegisterProject": true,
+          "hasQuickContribute": true,
+          "listConstraint": [],
+          "buttons": [
+            "Contribute",
+            "Refresh rounds",
+            "Rounds (30)",
+            "Projects (1)",
+            "Contribute",
+            "Contribute"
+          ]
+        }
+      },
+      "hostMetrics": {
+        "pageHeight": 2766,
+        "activityY": 1757,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "roundWorkflowVisible": true,
+        "projectWorkflowReachable": true,
+        "contributeWorkflowReachable": true,
+        "repeatedDataConstrained": true,
+        "noErrorOverlay": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-layout-after/desktop-after.png"
+    },
+    {
+      "scenario": "mobile",
+      "url": "http://127.0.0.1:3028/miniapps/quadratic-funding?network=testnet",
+      "iframe": {
+        "src": "/miniapps/quadratic-funding/index.html?network=testnet&source=embed",
+        "className": "block h-[2200px] sm:h-[1800px] lg:h-[1600px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 14,
+          "y": 123,
+          "width": 362,
+          "height": 2200
+        }
+      },
+      "states": {
+        "rounds": {
+          "tabName": "rounds",
+          "height": 2200,
+          "innerHeight": 2200,
+          "textLength": 801,
+          "textSample": "Quadratic Funding Fund public goods with matching power Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console. Contribute Refresh rounds Selected round N/A Matching Pool N/A Live rounds 0/0 Projects 0 Rounds 0 Projects 0 Live rounds 0 Matching pool N/A Rounds (0) Projects (0) Contribute Create Round Round title Matching pool Start time End time Round description Matching pool is locked at creation; you can top up later. Create Round Funding Rounds R",
+          "hasHero": true,
+          "hasCreateRound": true,
+          "hasRoundList": true,
+          "hasRegisterProject": true,
+          "hasQuickContribute": false,
+          "listConstraint": [],
+          "buttons": [
+            "Contribute",
+            "Refresh rounds",
+            "Rounds (0)",
+            "Projects (0)",
+            "Contribute",
+            "Create Round",
+            "Refresh"
+          ]
+        },
+        "projects": {
+          "tabName": "projects",
+          "height": 2200,
+          "innerHeight": 2200,
+          "textLength": 771,
+          "textSample": "Quadratic Funding Fund public goods with matching power Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console. Contribute Refresh rounds Selected round N/A Matching Pool N/A Live rounds 0/0 Projects 0 Rounds 0 Projects 0 Live rounds 0 Matching pool N/A Rounds (0) Projects (0) Contribute Register Project Project name Project description Project link Select or create a round before registering a project. Register Project Project ledger No projects in ",
+          "hasHero": true,
+          "hasCreateRound": true,
+          "hasRoundList": true,
+          "hasRegisterProject": true,
+          "hasQuickContribute": false,
+          "listConstraint": [],
+          "buttons": [
+            "Contribute",
+            "Refresh rounds",
+            "Rounds (0)",
+            "Projects (0)",
+            "Contribute",
+            "Register Project"
+          ]
+        },
+        "contribute": {
+          "tabName": "contribute",
+          "height": 2200,
+          "innerHeight": 2200,
+          "textLength": 657,
+          "textSample": "Quadratic Funding Fund public goods with matching power Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console. Contribute Refresh rounds Selected round N/A Matching Pool N/A Live rounds 0/0 Projects 0 Rounds 0 Projects 0 Live rounds 0 Matching pool N/A Rounds (0) Projects (0) Contribute Quick Contribute Selected Round No funding round selected Project ID Amount Memo (optional) Select a round before contributing. Contribute Round setup Create a round",
+          "hasHero": true,
+          "hasCreateRound": true,
+          "hasRoundList": true,
+          "hasRegisterProject": true,
+          "hasQuickContribute": true,
+          "listConstraint": [],
+          "buttons": [
+            "Contribute",
+            "Refresh rounds",
+            "Rounds (0)",
+            "Projects (0)",
+            "Contribute",
+            "Contribute"
+          ]
+        }
+      },
+      "hostMetrics": {
+        "pageHeight": 3962,
+        "activityY": 2349,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "roundWorkflowVisible": true,
+        "projectWorkflowReachable": true,
+        "contributeWorkflowReachable": true,
+        "repeatedDataConstrained": true,
+        "noErrorOverlay": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true
+      },
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        }
+      ],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/quadratic-funding-layout-after/mobile-after.png"
+    }
+  ]
+}

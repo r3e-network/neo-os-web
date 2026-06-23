@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { isNeoNetwork } from "@/lib/neo-network";
+import {
+  assertWalletNetworkMatchesTarget,
+  isNeoNetwork,
+} from "@/lib/neo-network";
+import { getActiveRpcNetwork } from "@/lib/rpc-helpers";
 import {
   WalletAdapter,
   WalletAccount,
@@ -12,6 +16,7 @@ import {
   WalletBalance,
   WalletConnectionError,
   WalletNotInstalledError,
+  WalletTransactionError,
 } from "./adapters";
 
 export type WalletProvider = "nep21" | "neoline" | "onegate" | "wif";
@@ -30,6 +35,7 @@ export type WalletOption = {
 interface WalletState {
   connected: boolean;
   address: string;
+  accountHash: string;
   publicKey: string;
   network: NeoWalletNetwork | null;
   provider: WalletProvider | null;
@@ -64,6 +70,9 @@ type WalletStore = WalletState & WalletActions;
 const BALANCE_REFRESH_INTERVAL_MS = 60_000;
 /** Re-read the balance once a submitted transaction has had time to land in a block. */
 const POST_INVOKE_BALANCE_REFRESH_DELAY_MS = 15_000;
+/** Wallet extensions can hang without rejecting when locked or half-injected. */
+const WALLET_CONNECT_TIMEOUT_MS = 12_000;
+const WALLET_BALANCE_TIMEOUT_MS = 10_000;
 
 let balanceRefreshInterval: ReturnType<typeof setInterval> | null = null;
 let postInvokeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -88,6 +97,29 @@ function stopBalanceAutoRefresh() {
     document.removeEventListener("visibilitychange", balanceVisibilityListener);
   }
   balanceVisibilityListener = null;
+}
+
+function withWalletTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new WalletConnectionError(message));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 }
 
 function startBalanceAutoRefresh() {
@@ -125,13 +157,18 @@ function scheduleBalanceRefreshAfterTransaction() {
 }
 
 /**
- * Wrap an adapter so every successful invoke/invokeMultiple schedules a
- * balance refresh. All invoke lanes resolve adapters through this module, so
- * this keeps the store balance truthful without touching the call sites.
+ * Wrap an adapter so signing and transaction paths use a fresh wallet-network
+ * read. Successful transaction paths also schedule balance refreshes.
  */
-function withBalanceRefreshOnInvoke(adapter: WalletAdapter): WalletAdapter {
+function withWalletOperationGuards(adapter: WalletAdapter): WalletAdapter {
+  const signMessage = adapter.signMessage.bind(adapter);
+  adapter.signMessage = async (message) => {
+    await assertAdapterNetworkFresh(adapter);
+    return signMessage(message);
+  };
   const invoke = adapter.invoke.bind(adapter);
   adapter.invoke = async (params) => {
+    await assertAdapterNetworkFresh(adapter);
     const result = await invoke(params);
     scheduleBalanceRefreshAfterTransaction();
     return result;
@@ -139,7 +176,17 @@ function withBalanceRefreshOnInvoke(adapter: WalletAdapter): WalletAdapter {
   const invokeMultiple = adapter.invokeMultiple?.bind(adapter);
   if (invokeMultiple) {
     adapter.invokeMultiple = async (params, signers) => {
+      await assertAdapterNetworkFresh(adapter);
       const result = await invokeMultiple(params, signers);
+      scheduleBalanceRefreshAfterTransaction();
+      return result;
+    };
+  }
+  const send = adapter.send?.bind(adapter);
+  if (send) {
+    adapter.send = async (asset, amount, to, from) => {
+      await assertAdapterNetworkFresh(adapter);
+      const result = await send(asset, amount, to, from);
       scheduleBalanceRefreshAfterTransaction();
       return result;
     };
@@ -148,10 +195,10 @@ function withBalanceRefreshOnInvoke(adapter: WalletAdapter): WalletAdapter {
 }
 
 const adapters: Record<WalletProvider, WalletAdapter> = {
-  nep21: withBalanceRefreshOnInvoke(new Nep21Adapter()),
-  neoline: withBalanceRefreshOnInvoke(new NeoLineAdapter()),
-  onegate: withBalanceRefreshOnInvoke(new OneGateAdapter()),
-  wif: withBalanceRefreshOnInvoke(new WifAdapter()),
+  nep21: withWalletOperationGuards(new Nep21Adapter()),
+  neoline: withWalletOperationGuards(new NeoLineAdapter()),
+  onegate: withWalletOperationGuards(new OneGateAdapter()),
+  wif: withWalletOperationGuards(new WifAdapter()),
 };
 
 const walletProviderIds = new Set<WalletProvider>([
@@ -195,22 +242,65 @@ async function readWalletNetwork(
   }
 }
 
+function getWalletTargetNetwork(): NeoWalletNetwork {
+  return getActiveRpcNetwork();
+}
+
+async function assertAdapterNetworkFresh(adapter: WalletAdapter): Promise<void> {
+  const previous = useWalletStore.getState().network;
+  const latest = await readWalletNetwork(adapter);
+  if (latest !== previous) {
+    useWalletStore.setState({ network: latest });
+  }
+  const target = getWalletTargetNetwork();
+  if (!latest) {
+    throw new WalletTransactionError(
+      `Wallet network is not verified. Reconnect your wallet on ${target} before submitting.`,
+    );
+  }
+  if (latest !== target) {
+    throw new WalletTransactionError(
+      `Wallet is on ${latest} but this app targets ${target}. Switch wallet network before submitting.`,
+    );
+  }
+  if (latest === previous) return;
+  throw new WalletTransactionError(
+    `Wallet network changed to ${latest}. Review the selected network and submit again.`,
+  );
+}
+
+function assertWalletNetworkForConnect(
+  network: NeoWalletNetwork | null,
+): void {
+  assertWalletNetworkMatchesTarget(network, getWalletTargetNetwork());
+}
+
 function walletConnectErrorMessage(
   adapter: WalletAdapter,
   err: unknown,
 ): string {
   if (err instanceof WalletNotInstalledError) {
-    return `Please install ${adapter.name} wallet`;
+    return `${adapter.name} was not detected. Install or enable the extension, allow site access for this page, then reload and try again.`;
   }
   const raw = err instanceof Error ? err.message : String(err);
   const lower = raw.toLowerCase();
   if (lower.includes("reject") || lower.includes("denied") || lower.includes("cancel")) {
     return "Wallet connection was rejected. Please try again and approve the request in your wallet.";
   }
-  if (lower.includes("timeout")) {
-    return "Connection timed out. Please check your wallet is unlocked and try again.";
+  if (lower.includes("timeout") || lower.includes("timed out")) {
+    return `${adapter.name} did not respond. Unlock the extension, confirm it has site access for this page, reload, then try again.`;
   }
   return raw || "Wallet connection failed";
+}
+
+function isWalletNetworkGuardError(err: unknown): boolean {
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+  return (
+    lower.includes("wallet is on") ||
+    lower.includes("wallet network is not verified") ||
+    lower.includes("switch wallet network")
+  );
 }
 
 /**
@@ -229,10 +319,12 @@ function attachAdapterListeners(
       try {
         const nextAccount = await adapter.connect();
         const nextNetwork = await readWalletNetwork(adapter, nextAccount);
+        assertWalletNetworkForConnect(nextNetwork);
         const nextBalance = await adapter.getBalance(nextAccount.address);
         set({
           connected: true,
           address: nextAccount.address,
+          accountHash: nextAccount.accountHash || "",
           publicKey: nextAccount.publicKey,
           network: nextNetwork,
           provider,
@@ -240,26 +332,49 @@ function attachAdapterListeners(
           loading: false,
           error: null,
         });
-      } catch (_e: unknown) {
+      } catch (err: unknown) {
+        const message = walletConnectErrorMessage(adapter, err);
+        void adapter.disconnect();
         stopBalanceAutoRefresh();
         set({
           connected: false,
           address: "",
+          accountHash: "",
           publicKey: "",
           network: null,
           provider: null,
           balance: null,
           loading: false,
           restorePending: false,
-          error: "Wallet account changed. Please reconnect.",
+          error: message || "Wallet account changed. Please reconnect.",
         });
       }
     }));
   }
   if (adapter.onNetworkChanged) {
     cleanups.push(adapter.onNetworkChanged(async () => {
-      set({ network: await readWalletNetwork(adapter) });
-      await get().refreshBalance();
+      try {
+        const nextNetwork = await readWalletNetwork(adapter);
+        assertWalletNetworkForConnect(nextNetwork);
+        set({ network: nextNetwork, error: null });
+        await get().refreshBalance();
+      } catch (err: unknown) {
+        const message = walletConnectErrorMessage(adapter, err);
+        void adapter.disconnect();
+        stopBalanceAutoRefresh();
+        set({
+          connected: false,
+          address: "",
+          accountHash: "",
+          publicKey: "",
+          network: null,
+          provider: null,
+          balance: null,
+          loading: false,
+          restorePending: false,
+          error: message || "Wallet network changed. Please reconnect.",
+        });
+      }
     }));
   }
   walletEventCleanup = cleanups.length
@@ -273,6 +388,7 @@ export const useWalletStore = create<WalletStore>()(
       // State
       connected: false,
       address: "",
+      accountHash: "",
       publicKey: "",
       network: null,
       provider: null,
@@ -293,13 +409,23 @@ export const useWalletStore = create<WalletStore>()(
           if (provider === "wif") {
             throw new WalletConnectionError("Use connectWif() for developer key wallets");
           }
-          const account = await adapter.connect();
+          const account = await withWalletTimeout(
+            adapter.connect(),
+            WALLET_CONNECT_TIMEOUT_MS,
+            "Wallet connection timed out.",
+          );
           const network = await readWalletNetwork(adapter, account);
-          const balance = await adapter.getBalance(account.address);
+          assertWalletNetworkForConnect(network);
+          const balance = await withWalletTimeout(
+            adapter.getBalance(account.address),
+            WALLET_BALANCE_TIMEOUT_MS,
+            "Wallet balance read timed out.",
+          );
 
           set({
             connected: true,
             address: account.address,
+            accountHash: account.accountHash || "",
             publicKey: account.publicKey,
             network,
             provider,
@@ -317,10 +443,12 @@ export const useWalletStore = create<WalletStore>()(
             Boolean(previous.address) &&
             !previous.connected;
 
+          void adapter.disconnect();
           stopBalanceAutoRefresh();
           set({
             connected: false,
             address: preservePendingIdentity ? previous.address : "",
+            accountHash: preservePendingIdentity ? previous.accountHash : "",
             publicKey: preservePendingIdentity ? previous.publicKey : "",
             network: preservePendingIdentity ? previous.network : null,
             provider: preservePendingIdentity ? provider : null,
@@ -346,18 +474,28 @@ export const useWalletStore = create<WalletStore>()(
 
         set({ loading: true });
         try {
-          const account = await adapter.connectSilently();
+          const account = await withWalletTimeout(
+            adapter.connectSilently(),
+            WALLET_CONNECT_TIMEOUT_MS,
+            "Wallet session restore timed out.",
+          );
           if (!account) {
             set({ loading: false, restorePending: true });
             return;
           }
           const network = await readWalletNetwork(adapter, account);
-          const balance = await adapter.getBalance(account.address);
+          assertWalletNetworkForConnect(network);
+          const balance = await withWalletTimeout(
+            adapter.getBalance(account.address),
+            WALLET_BALANCE_TIMEOUT_MS,
+            "Wallet balance read timed out.",
+          );
 
           clearWalletEventCleanup();
           set({
             connected: true,
             address: account.address,
+            accountHash: account.accountHash || "",
             // Silent dAPI reads do not expose the public key; keep the one
             // captured during the original interactive connect.
             publicKey: account.publicKey || get().publicKey,
@@ -371,8 +509,15 @@ export const useWalletStore = create<WalletStore>()(
 
           attachAdapterListeners(adapter, provider, set, get);
           startBalanceAutoRefresh();
-        } catch (_e: unknown) {
-          set({ loading: false, restorePending: true });
+        } catch (err: unknown) {
+          void adapter.disconnect();
+          set({
+            loading: false,
+            restorePending: true,
+            error: isWalletNetworkGuardError(err)
+              ? walletConnectErrorMessage(adapter, err)
+              : get().error,
+          });
         }
       },
 
@@ -390,6 +535,7 @@ export const useWalletStore = create<WalletStore>()(
           set({
             connected: true,
             address: account.address,
+            accountHash: account.accountHash || "",
             publicKey: account.publicKey,
             network,
             provider: "wif",
@@ -408,6 +554,7 @@ export const useWalletStore = create<WalletStore>()(
           set({
             connected: false,
             address: "",
+            accountHash: "",
             publicKey: "",
             network: null,
             provider: null,
@@ -429,6 +576,7 @@ export const useWalletStore = create<WalletStore>()(
         set({
           connected: false,
           address: "",
+          accountHash: "",
           publicKey: "",
           network: null,
           provider: null,
@@ -448,6 +596,7 @@ export const useWalletStore = create<WalletStore>()(
           set({
             connected: false,
             address: "",
+            accountHash: "",
             publicKey: "",
             network: null,
             provider: null,
@@ -458,11 +607,28 @@ export const useWalletStore = create<WalletStore>()(
         }
 
         try {
-          const balance = await adapter.getBalance(address);
           const network = await readWalletNetwork(adapter);
-          set({ balance, network });
-        } catch (_e: unknown) {
-          console.warn("[wallet-store] refreshBalance failed:", _e instanceof Error ? _e.message : String(_e));
+          assertWalletNetworkForConnect(network);
+          const balance = await adapter.getBalance(address);
+          set({ balance, network, error: null });
+        } catch (err: unknown) {
+          console.warn("[wallet-store] refreshBalance failed:", err instanceof Error ? err.message : String(err));
+          if (!isWalletNetworkGuardError(err)) return;
+          const message = walletConnectErrorMessage(adapter, err);
+          void adapter.disconnect();
+          stopBalanceAutoRefresh();
+          set({
+            connected: false,
+            address: "",
+            accountHash: "",
+            publicKey: "",
+            network: null,
+            provider: null,
+            balance: null,
+            loading: false,
+            restorePending: false,
+            error: message,
+          });
         }
       },
 
@@ -477,6 +643,7 @@ export const useWalletStore = create<WalletStore>()(
         return {
           provider: persistable ? state.provider : null,
           address: persistable ? state.address : "",
+          accountHash: persistable ? state.accountHash : "",
           publicKey: persistable ? state.publicKey : "",
           network: persistable ? state.network : null,
         };
@@ -490,6 +657,7 @@ export const useWalletStore = create<WalletStore>()(
           ...currentState,
           provider,
           address: provider && typeof persisted?.address === "string" ? persisted.address : "",
+          accountHash: provider && typeof persisted?.accountHash === "string" ? persisted.accountHash : "",
           publicKey: provider && typeof persisted?.publicKey === "string" ? persisted.publicKey : "",
           network: provider && isNeoNetwork(persisted?.network) ? persisted.network : null,
           // A persisted session is only a candidate until restoreSession

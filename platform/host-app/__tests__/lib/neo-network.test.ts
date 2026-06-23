@@ -8,8 +8,15 @@ describe("neo network safety helpers", () => {
   it("normalizes Neo N3 mainnet and testnet identifiers", () => {
     expect(normalizeNeoNetwork("neo-n3-mainnet")).toBe("mainnet");
     expect(normalizeNeoNetwork("testnet")).toBe("testnet");
+    expect(normalizeNeoNetwork("Main")).toBe("mainnet");
+    expect(normalizeNeoNetwork("Test")).toBe("testnet");
     expect(normalizeNeoNetwork(860833102)).toBe("mainnet");
     expect(normalizeNeoNetwork(894710606)).toBe("testnet");
+    expect(normalizeNeoNetwork(3)).toBe("mainnet");
+    expect(normalizeNeoNetwork("6")).toBe("testnet");
+    expect(normalizeNeoNetwork({ network: 894710606 })).toBe("testnet");
+    expect(normalizeNeoNetwork({ defaultNetwork: "MainNet" })).toBe("mainnet");
+    expect(normalizeNeoNetwork({ chainId: "neo-n3-mainnet" })).toBe("mainnet");
     expect(normalizeNeoNetwork("unknown")).toBeNull();
   });
 

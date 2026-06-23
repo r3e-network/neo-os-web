@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:4198",
+  "copyAddressDisabled": true,
+  "clipboardHasReport": true,
+  "clipboardHasChecklist": true,
+  "suggestedFilename": "wallet-health-report.txt",
+  "mobileHorizontalOverflow": 0,
+  "consoleErrors": [],
+  "screenshots": [
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/wallet-health-report-actions-after/desktop-report-actions.png",
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/wallet-health-report-actions-after/mobile-report-actions.png"
+  ]
+}

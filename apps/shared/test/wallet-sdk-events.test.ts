@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createEventsComposable } from "../utils/wallet-sdk-composables";
+import {
+  createEventsComposable,
+  createPaymentsComposable,
+} from "../utils/wallet-sdk-composables";
 import type { WalletSdkComposableDeps } from "../utils/wallet-sdk-composables";
 import type { WalletSDK } from "../utils/wallet-sdk-types";
 import { useAllEvents } from "../composables/useAllEvents";
@@ -165,5 +168,59 @@ describe("useEvents list pagination over N3Index", () => {
 
     expect(all).toHaveLength(53);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("usePayments fixed-8 amount handling", () => {
+  function makePaymentWallet() {
+    return {
+      address: { value: "NPaymentSender" },
+      connect: vi.fn(async () => undefined),
+      getContractAddress: vi.fn(async () => CONTRACT),
+      invokeContract: vi.fn(async () => ({ txid: "0xpay" })),
+    } as unknown as WalletSDK;
+  }
+
+  it("converts decimal GAS amounts exactly to fixed-8 base units", async () => {
+    const wallet = makePaymentWallet();
+    const payments = createPaymentsComposable(APP_ID, {
+      ...makeDeps(),
+      useWallet: () => wallet,
+    });
+
+    await expect(payments.payGAS("1.25", "memo")).resolves.toMatchObject({
+      txid: "0xpay",
+    });
+
+    expect(wallet.invokeContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        operation: "transfer",
+        args: expect.arrayContaining([
+          { type: "Integer", value: "125000000" },
+        ]),
+      }),
+    );
+  });
+
+  it("rejects malformed or sub-fixed8 GAS amounts before opening the wallet", async () => {
+    const wallet = makePaymentWallet();
+    const payments = createPaymentsComposable(APP_ID, {
+      ...makeDeps(),
+      useWallet: () => wallet,
+    });
+
+    await expect(payments.payGAS("1abc", "memo")).rejects.toThrow(
+      /Invalid amount/,
+    );
+    await expect(payments.payGAS("1.000000001", "memo")).rejects.toThrow(
+      /Invalid amount/,
+    );
+    await expect(payments.payGAS("0.000000004", "memo")).rejects.toThrow(
+      /Invalid amount/,
+    );
+
+    expect(wallet.connect).not.toHaveBeenCalled();
+    expect(wallet.invokeContract).not.toHaveBeenCalled();
   });
 });

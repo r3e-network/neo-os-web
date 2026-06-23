@@ -1,0 +1,137 @@
+{
+  "generatedAt": "2026-06-01T19:39:31.477Z",
+  "target": "Event Ticket Pass embedded layout after profile height fix",
+  "passed": true,
+  "results": [
+    {
+      "scenario": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://127.0.0.1:3027/miniapps/event-ticket-pass?network=testnet",
+      "iframe": {
+        "src": "/miniapps/event-ticket-pass/index.html?network=testnet&source=embed",
+        "className": "block h-[3300px] sm:h-[2300px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 18,
+          "y": 131,
+          "width": 1052,
+          "height": 1800
+        }
+      },
+      "frameMetrics": {
+        "url": "http://127.0.0.1:3027/miniapps/event-ticket-pass/index.html?network=testnet&source=embed",
+        "title": "Event Ticket Pass",
+        "bodyTextLength": 1083,
+        "bodyScrollHeight": 1800,
+        "documentScrollHeight": 1800,
+        "innerHeight": 1800,
+        "hasCreateEvent": true,
+        "hasIssueTicket": true,
+        "hasLookup": true,
+        "hasLatestRequest": true,
+        "hasLatestResult": true,
+        "buttons": [
+          "Connect Wallet",
+          "Create Event",
+          "Refresh",
+          "Issue",
+          "Lookup",
+          "Check-in",
+          "Refresh"
+        ],
+        "loadingTextVisible": false
+      },
+      "hostMetrics": {
+        "bodyTextLength": 1724,
+        "hasEventTicketPass": false,
+        "hasWalletRequired": true,
+        "hasActivityDetails": true,
+        "activityY": 1957,
+        "pageScrollHeight": 2962,
+        "pageInnerHeight": 1000,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "keyTextsPresent": true,
+        "noErrorOverlay": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/event-ticket-pass-layout-after/desktop-after.png"
+    },
+    {
+      "scenario": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:3027/miniapps/event-ticket-pass?network=testnet",
+      "iframe": {
+        "src": "/miniapps/event-ticket-pass/index.html?network=testnet&source=embed",
+        "className": "block h-[3300px] sm:h-[2300px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 14,
+          "y": 123,
+          "width": 362,
+          "height": 3300
+        }
+      },
+      "frameMetrics": {
+        "url": "http://127.0.0.1:3027/miniapps/event-ticket-pass/index.html?network=testnet&source=embed",
+        "title": "Event Ticket Pass",
+        "bodyTextLength": 1083,
+        "bodyScrollHeight": 3300,
+        "documentScrollHeight": 3300,
+        "innerHeight": 3300,
+        "hasCreateEvent": true,
+        "hasIssueTicket": true,
+        "hasLookup": true,
+        "hasLatestRequest": true,
+        "hasLatestResult": true,
+        "buttons": [
+          "Connect Wallet",
+          "Create Event",
+          "Refresh",
+          "Issue",
+          "Lookup",
+          "Check-in",
+          "Refresh"
+        ],
+        "loadingTextVisible": false
+      },
+      "hostMetrics": {
+        "bodyTextLength": 1267,
+        "hasEventTicketPass": false,
+        "hasWalletRequired": false,
+        "hasActivityDetails": true,
+        "activityY": 3449,
+        "pageScrollHeight": 5023,
+        "pageInnerHeight": 844,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "keyTextsPresent": true,
+        "noErrorOverlay": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/event-ticket-pass-layout-after/mobile-after.png"
+    }
+  ]
+}

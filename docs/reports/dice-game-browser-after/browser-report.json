@@ -1,0 +1,82 @@
+{
+  "url": "http://127.0.0.1:3103/miniapps/dice-game/index.html?network=testnet&app_id=miniapp-dice-game",
+  "timestamp": "2026-06-01T15:23:28.735Z",
+  "walletCallCount": 2,
+  "walletCalls": [
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "operation": "transfer",
+          "args": [
+            {
+              "type": "Hash160",
+              "value": "0x1111111111111111111111111111111111111111"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+            },
+            {
+              "type": "Integer",
+              "value": "50000000"
+            },
+            {
+              "type": "String",
+              "value": "miniapp-dice-game:stake"
+            }
+          ]
+        }
+      ],
+      "txid": "0xfeed000000000000000000000000000000000000000000000000000000000001",
+      "at": "2026-06-01T15:23:23.027Z"
+    },
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+          "operation": "placeDiceBet",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-dice-game"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x1111111111111111111111111111111111111111"
+            },
+            {
+              "type": "Integer",
+              "value": "2"
+            },
+            {
+              "type": "Integer",
+              "value": "50000000"
+            }
+          ]
+        }
+      ],
+      "txid": "0xdice000000000000000000000000000000000000000000000000000000000002",
+      "at": "2026-06-01T15:23:27.029Z"
+    }
+  ],
+  "assertions": {
+    "transferInvoked": true,
+    "rollInvoked": true,
+    "transferMemo": "miniapp-dice-game:stake",
+    "transferAmountFixed8": "50000000",
+    "chosenFace": "2",
+    "rollAmountFixed8": "50000000",
+    "historyVisible": true,
+    "statusVisible": true,
+    "consoleWarningOrErrorCount": 0,
+    "requestFailureCount": 0,
+    "httpErrorCount": 0
+  },
+  "consoleMessages": [],
+  "requestFailures": [],
+  "httpErrors": [],
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/dice-game-browser-after/after-roll-testnet-mock-wallet.png"
+}

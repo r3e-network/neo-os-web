@@ -167,13 +167,19 @@ export function normalizeBridgeArgs(value: unknown): InvokeParams["args"] {
 // OS service intents encode the caller as a "SENDER" placeholder (or a zero
 // hash) since the edge function doesn't know the connected address. Resolve it
 // to the wallet address before signing so the transfer/invoke is valid.
-const SENDER_PLACEHOLDERS = new Set([
+export const SENDER_PLACEHOLDERS = new Set([
   "sender",
   "{{sender}}",
   "{sender}",
   "0x0000000000000000000000000000000000000000",
   "",
 ]);
+
+export function isSenderPlaceholder(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  return SENDER_PLACEHOLDERS.has(value.trim().toLowerCase());
+}
+
 export function resolveSenderArgs(
   params: InvokeParams,
   address: string,
@@ -184,7 +190,7 @@ export function resolveSenderArgs(
     args: params.args.map((a) =>
       String(a.type).toLowerCase() === "hash160" &&
       typeof a.value === "string" &&
-      SENDER_PLACEHOLDERS.has(a.value.trim().toLowerCase())
+      isSenderPlaceholder(a.value)
         ? { ...a, value: address }
         : a,
     ),

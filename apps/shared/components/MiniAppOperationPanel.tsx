@@ -19,6 +19,7 @@ import type {
 } from "@shared/types/miniapp-manifest";
 import type { Observable } from "../react/context";
 import type { MiniAppLaunchContext } from "../utils/launch-params";
+import { parsePositiveFixed8 } from "../utils/format";
 import "./MiniAppOperationPanel.scss";
 
 // ============================================================================
@@ -121,7 +122,7 @@ export function MiniAppOperationPanel({
 }: MiniAppOperationPanelProps) {
   const initialFormData = useMemo(
     () => initFormData(operations, launchContext?.params),
-    [launchContext?.signature, operations],
+    [launchContext?.params, operations],
   );
   const [formData, setFormData] =
     useState<Record<string, Record<string, unknown>>>(initialFormData);
@@ -165,17 +166,6 @@ export function MiniAppOperationPanel({
       );
     }
   }, [activeOperationKey, operationGroups.primary, operations]);
-
-  // --------------------------------------------------------------------------
-  // Field Accessors
-  // --------------------------------------------------------------------------
-
-  const getFieldValue = useCallback(
-    (opKey: string, fieldKey: string): unknown => {
-      return formDataRef.current[opKey]?.[fieldKey] ?? "";
-    },
-    [],
-  );
 
   const publishFieldPreview = useCallback(
     (opKey: string, fieldKey: string, value: unknown) => {
@@ -325,6 +315,20 @@ export function MiniAppOperationPanel({
       // Numeric range validation
       if (field.type === "amount" || field.type === "number") {
         const num = Number(value);
+        if (
+          scaleAmounts &&
+          field.type === "amount" &&
+          value !== "" &&
+          value != null &&
+          !parsePositiveFixed8(String(value))
+        ) {
+          errorMsg = t("fieldInvalidFormat");
+          setFormErrors((prev) => ({
+            ...prev,
+            [opKey]: { ...(prev[opKey] ?? {}), [field.key]: errorMsg },
+          }));
+          return false;
+        }
         if (value !== "" && !isNaN(num)) {
           if (
             field.validation?.min !== undefined &&
@@ -380,7 +384,7 @@ export function MiniAppOperationPanel({
 
       return true;
     },
-    [t],
+    [scaleAmounts, t],
   );
 
   const isFormValid = useCallback(
@@ -433,7 +437,7 @@ export function MiniAppOperationPanel({
       try {
         const data = { ...(formDataRef.current[op.key] ?? {}) };
 
-        // Auto-scale amount fields to Fixed8 (1e8)
+        // Auto-scale amount fields to Fixed8 (1e8) without floating-point math.
         if (scaleAmounts && op.fields) {
           for (const field of op.fields) {
             if (
@@ -441,10 +445,18 @@ export function MiniAppOperationPanel({
               data[field.key] !== "" &&
               data[field.key] != null
             ) {
-              const num = Number(data[field.key]);
-              if (!isNaN(num)) {
-                data[field.key] = Math.round(num * 1e8);
+              const fixed8 = parsePositiveFixed8(String(data[field.key]));
+              if (!fixed8) {
+                setFormErrors((prev) => ({
+                  ...prev,
+                  [op.key]: {
+                    ...(prev[op.key] ?? {}),
+                    [field.key]: t("fieldInvalidFormat"),
+                  },
+                }));
+                return;
               }
+              data[field.key] = fixed8;
             }
           }
         }
@@ -458,7 +470,7 @@ export function MiniAppOperationPanel({
         });
       }
     },
-    [onAction, scaleAmounts, submittingOps, validateOperation],
+    [onAction, scaleAmounts, submittingOps, t, validateOperation],
   );
 
   // --------------------------------------------------------------------------
@@ -569,11 +581,13 @@ export function MiniAppOperationPanel({
     switch (field.type) {
       case "amount":
         return renderInput(opKey, field, {
-          type: "number",
+          type: "text",
           label,
           placeholder: field.placeholder ?? "0.00",
           min: field.validation?.min?.toString(),
           max: field.validation?.max?.toString(),
+          inputMode: "decimal",
+          pattern: "[0-9]*[.]?[0-9]*",
           suffix: "GAS",
           error,
           value,
@@ -667,6 +681,8 @@ export function MiniAppOperationPanel({
       max?: string;
       suffix?: string;
       suffixIcon?: string;
+      inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+      pattern?: string;
       error?: string;
       value: unknown;
     },
@@ -689,6 +705,8 @@ export function MiniAppOperationPanel({
             required={field.required}
             min={config.min}
             max={config.max}
+            inputMode={config.inputMode}
+            pattern={config.pattern}
             aria-label={config.label || field.key}
             aria-labelledby={config.label ? `${inputId}-label` : undefined}
             aria-describedby={config.error ? `${inputId}-error` : undefined}

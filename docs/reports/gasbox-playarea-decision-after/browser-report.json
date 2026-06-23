@@ -1,0 +1,162 @@
+{
+  "checkedAt": "2026-06-02T01:53:07.719Z",
+  "url": "http://127.0.0.1:4227/miniapps/gasbox/index.html?operation=prepareMiniAppOperation&machineId=gasbox-alpha",
+  "screenshots": [
+    "desktop-ready.png",
+    "desktop-after-pull.png",
+    "mobile-ready.png"
+  ],
+  "desktopMetrics": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "bodyClientWidth": 1440
+  },
+  "desktopAfterMetrics": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "bodyClientWidth": 1440
+  },
+  "mobileMetrics": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "bodyScrollWidth": 390,
+    "bodyClientWidth": 390
+  },
+  "endpoints": [
+    "os-game-status",
+    "os-storage-get",
+    "os-storage-get",
+    "os-game-status",
+    "os-storage-get",
+    "os-storage-get",
+    "os-payment-deposit",
+    "os-game-bet",
+    "os-badge-award",
+    "os-game-status",
+    "os-storage-get",
+    "os-storage-get",
+    "os-game-status",
+    "os-storage-get",
+    "os-storage-get"
+  ],
+  "calls": [
+    {
+      "endpoint": "os-game-status",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "poolId": "machines"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletHash"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletAddress"
+      }
+    },
+    {
+      "endpoint": "os-game-status",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "poolId": "machines"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletHash"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletAddress"
+      }
+    },
+    {
+      "endpoint": "os-payment-deposit",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "amount": "0.5",
+        "memo": "play:gasbox-alpha"
+      }
+    },
+    {
+      "endpoint": "os-game-bet",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "poolId": "play",
+        "amount": "gasbox-alpha"
+      }
+    },
+    {
+      "endpoint": "os-badge-award",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "badgeId": "first-play",
+        "user": ""
+      }
+    },
+    {
+      "endpoint": "os-game-status",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "poolId": "machines"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletHash"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletAddress"
+      }
+    },
+    {
+      "endpoint": "os-game-status",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "poolId": "machines"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletHash"
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-gasbox",
+        "key": "walletAddress"
+      }
+    }
+  ],
+  "assertions": [
+    "Selected machine loaded from frontend launch path without success-toast overlap",
+    "Pull decision panel rendered with ready state",
+    "Refresh Machines, Open Studio, and Pull buttons were clicked from the frontend",
+    "Pull path reached os-payment-deposit and os-game-bet service boundaries",
+    "Pull result dialog rendered after the frontend action",
+    "Desktop and mobile layouts had no horizontal overflow, raw OS boundary errors, undefined, or NaN text"
+  ]
+}

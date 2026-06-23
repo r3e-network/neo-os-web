@@ -52,6 +52,10 @@ const AUTOMATION_EDGE_ENDPOINTS = new Set([
   "automation-trigger-resume",
   "automation-trigger-executions",
 ]);
+const AUTH_EDGE_ENDPOINTS = new Set([
+  "auth-wallet",
+  "auth-wallet-nonce",
+]);
 
 function parseAllowlist(raw: string): {
   allowAll: boolean;
@@ -73,7 +77,9 @@ function isMiniAppEdgeEndpointAllowed(endpoint: string): boolean {
   );
   if (allowAll) return true;
   if (entries.size > 0) return entries.has(endpoint);
-  return endpoint.startsWith("os-") || AUTOMATION_EDGE_ENDPOINTS.has(endpoint);
+  return endpoint.startsWith("os-") ||
+    AUTOMATION_EDGE_ENDPOINTS.has(endpoint) ||
+    AUTH_EDGE_ENDPOINTS.has(endpoint);
 }
 
 function hasCallerCredential(req: NextApiRequest): boolean {

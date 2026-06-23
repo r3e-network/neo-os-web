@@ -1,0 +1,58 @@
+{
+  "hostUrl": "http://127.0.0.1:3000/miniapps/miniapp-aa-permissions-lab?network=testnet",
+  "directUrl": "http://127.0.0.1:3000/miniapps/aa-permissions-lab/index.html?network=testnet&source=embed&accountIdHash=0x1111111111111111111111111111111111111111&verifierHash=0x7147f9a508594a7656a25f45d0a7a7dede7c227f&verifierParamsHex=112233&hookHash=0x0000000000000000000000000000000000000000",
+  "iframeSrc": "/miniapps/aa-permissions-lab/index.html?network=testnet&source=embed&operation=prepareMiniAppOperation&accountIdHash=0x1111111111111111111111111111111111111111&verifierHash=0x7147f9a508594a7656a25f45d0a7a7dede7c227f&verifierParamsHex=112233&hookHash=0x0000000000000000000000000000000000000000",
+  "hostEmbeddedValues": {
+    "accountIdHash": "0x1111111111111111111111111111111111111111",
+    "verifierHash": "0x7147f9a508594a7656a25f45d0a7a7dede7c227f",
+    "verifierParamsHex": "112233",
+    "hookHash": "0x0000000000000000000000000000000000000000"
+  },
+  "directValues": {
+    "accountIdHash": "0x1111111111111111111111111111111111111111",
+    "verifierHash": "0x7147f9a508594a7656a25f45d0a7a7dede7c227f",
+    "verifierParamsHex": "112233",
+    "hookHash": "0x0000000000000000000000000000000000000000"
+  },
+  "overflow": {
+    "hostDefault": 0,
+    "hostAfterAction": 0,
+    "embeddedFrame": 0,
+    "directEmbedded": 0,
+    "mobileHost": 0,
+    "mobileHostSettled": 0
+  },
+  "buttonExercise": {
+    "clickedRefreshState": true,
+    "clickedUpdateVerifier": true,
+    "statusMentionsWalletOrFailure": true
+  },
+  "errors": [],
+  "pageErrors": [],
+  "networkFailures": [
+    {
+      "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/auth/profile",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/auth/profile",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "screenshots": [
+    "docs/reports/aa-permissions-lab-host-after.png",
+    "docs/reports/aa-permissions-lab-host-clicked-after.png",
+    "docs/reports/aa-permissions-lab-host-actions-after.png",
+    "docs/reports/aa-permissions-lab-embedded-direct-after.png",
+    "docs/reports/aa-permissions-lab-mobile-after.png",
+    "docs/reports/aa-permissions-lab-mobile-settled-after.png"
+  ]
+}

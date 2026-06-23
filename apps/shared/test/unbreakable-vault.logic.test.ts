@@ -205,6 +205,37 @@ describe("useVaultCreator.increaseBounty", () => {
     await expect(creator.increaseBounty("5", "0")).rejects.toThrow();
     expect(invokes.some((c) => c.operation === "increaseBounty")).toBe(false);
   });
+
+  it("rejects over-precision top-up amounts before prompting the wallet", async () => {
+    const { creator, invokes, chain } = setup([vault({ id: "5", status: "active" })]);
+    await expect(creator.increaseBounty("5", "1.000000001")).rejects.toThrow(
+      "increaseBountyInvalidAmount",
+    );
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(invokes.some((c) => c.operation === "increaseBounty")).toBe(false);
+  });
+});
+
+describe("useVaultCreator.createVault", () => {
+  it("rejects over-precision bounty amounts before prompting the wallet", async () => {
+    const { creator, invokes, chain } = setup([]);
+    await expect(
+      creator.createVault(
+        {
+          bounty: "1.000000001",
+          title: "Puzzle",
+          description: "",
+          difficulty: 1,
+          secret: "secret",
+          secretHash: "",
+        },
+        vi.fn(),
+        vi.fn(async () => undefined),
+      ),
+    ).rejects.toThrow("minBountyNote");
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(invokes.some((c) => c.operation === "createVault")).toBe(false);
+  });
 });
 
 describe("useVaultCreator.loadMyVaults (deep creator scan)", () => {

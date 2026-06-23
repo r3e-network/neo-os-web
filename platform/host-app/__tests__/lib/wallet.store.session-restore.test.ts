@@ -27,6 +27,7 @@ function resetStore() {
   useWalletStore.setState({
     connected: false,
     address: "",
+    accountHash: "",
     publicKey: "",
     network: null,
     provider: null,
@@ -51,8 +52,10 @@ describe("wallet store session restore", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.history.replaceState({}, "", "/?network=testnet");
     provider.getAccounts.mockReset();
     provider.authenticate.mockReset();
+    provider.network = 894710606;
     localStorage.clear();
     installProvider(provider);
     resetStore();
@@ -60,12 +63,14 @@ describe("wallet store session restore", () => {
 
   afterEach(() => {
     useWalletStore.getState().disconnect();
+    jest.useRealTimers();
   });
 
   it("persists the session identity (provider, address, network) but never the connected flag", () => {
     useWalletStore.setState({
       connected: true,
       address: "NPersistedAddress",
+      accountHash: "0xpersistedhash",
       publicKey: "03abc",
       network: "testnet",
       provider: "onegate",
@@ -75,6 +80,7 @@ describe("wallet store session restore", () => {
     const persisted = readPersisted();
     expect(persisted.provider).toBe("onegate");
     expect(persisted.address).toBe("NPersistedAddress");
+    expect(persisted.accountHash).toBe("0xpersistedhash");
     expect(persisted.publicKey).toBe("03abc");
     expect(persisted.network).toBe("testnet");
     expect(persisted).not.toHaveProperty("connected");
@@ -113,6 +119,7 @@ describe("wallet store session restore", () => {
     const state = useWalletStore.getState();
     expect(state.connected).toBe(true);
     expect(state.address).toBe("NRestoredAddress");
+    expect(state.accountHash).toBe("0xrestored");
     expect(state.network).toBe("testnet");
     expect(state.restorePending).toBe(false);
     expect(state.loading).toBe(false);
@@ -153,6 +160,29 @@ describe("wallet store session restore", () => {
     expect(provider.authenticate).not.toHaveBeenCalled();
   });
 
+  it("does not silently restore a persisted wallet on the wrong page network", async () => {
+    provider.network = 860833102;
+    provider.getAccounts.mockResolvedValue([
+      { hash: "0xrestored", address: "NRestoredAddress", isDefault: true },
+    ]);
+
+    useWalletStore.setState({
+      provider: "nep21",
+      address: "NRestoredAddress",
+      network: "testnet",
+    });
+
+    await useWalletStore.getState().restoreSession();
+
+    const state = useWalletStore.getState();
+    expect(state.connected).toBe(false);
+    expect(state.restorePending).toBe(true);
+    expect(state.address).toBe("NRestoredAddress");
+    expect(state.error).toMatch(/targets Neo N3 Testnet/);
+    expect(provider.getBalance).not.toHaveBeenCalled();
+    expect(provider.authenticate).not.toHaveBeenCalled();
+  });
+
   it("rejects an explicit reconnect failure without promoting a stale saved address", async () => {
     provider.getAccounts.mockRejectedValue(new Error("requires auth"));
     provider.authenticate.mockRejectedValue(new Error("User rejected"));
@@ -175,6 +205,22 @@ describe("wallet store session restore", () => {
     expect(state.address).toBe("NPendingAddress");
     expect(state.publicKey).toBe("03persisted");
     expect(state.provider).toBe("nep21");
+  });
+
+  it("times out an explicit wallet connection that never answers", async () => {
+    jest.useFakeTimers();
+    provider.getAccounts.mockReturnValue(new Promise(() => undefined));
+
+    const pending = useWalletStore.getState().connect("nep21");
+    const expectation = expect(pending).rejects.toThrow(/did not respond/i);
+
+    await jest.advanceTimersByTimeAsync(12_000);
+    await expectation;
+
+    const state = useWalletStore.getState();
+    expect(state.connected).toBe(false);
+    expect(state.loading).toBe(false);
+    expect(state.error).toMatch(/unlock.*site access/i);
   });
 
   it("does nothing without a persisted session identity", async () => {

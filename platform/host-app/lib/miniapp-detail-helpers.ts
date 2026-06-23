@@ -350,8 +350,10 @@ export function parseScaledDecimal(
   }
   const negative = value.startsWith("-");
   const raw = negative ? value.slice(1) : value;
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw)) {
+    throw new Error(`${label} must be numeric.`);
+  }
   const [wholeRaw, fractionRaw = ""] = raw.split(".");
-  if (!wholeRaw && !fractionRaw) throw new Error(`${label} must be numeric.`);
   if (fractionRaw.length > scale) {
     throw new Error(`${label} supports at most ${scale} decimal places.`);
   }

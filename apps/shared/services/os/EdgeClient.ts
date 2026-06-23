@@ -49,6 +49,37 @@ function normalizeArgs(value: unknown): ContractArg[] {
     }));
 }
 
+const SENDER_PLACEHOLDERS = new Set([
+  "sender",
+  "{{sender}}",
+  "{sender}",
+  "0x0000000000000000000000000000000000000000",
+  "",
+]);
+
+function isSenderPlaceholder(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  return SENDER_PLACEHOLDERS.has(value.trim().toLowerCase());
+}
+
+function resolveSenderArg(arg: ContractArg, walletAddress: string): ContractArg {
+  if (
+    String(arg.type).toLowerCase() === "hash160" &&
+    isSenderPlaceholder(arg.value)
+  ) {
+    return { ...arg, value: walletAddress };
+  }
+  if (String(arg.type).toLowerCase() === "array" && Array.isArray(arg.value)) {
+    return {
+      ...arg,
+      value: normalizeArgs(arg.value).map((entry) =>
+        resolveSenderArg(entry, walletAddress),
+      ),
+    };
+  }
+  return arg;
+}
+
 function resolveInvocationIntent(value: unknown): InvocationIntent | null {
   if (!isRecord(value)) return null;
   const container = isRecord(value.invocation) ? value.invocation : value;
@@ -81,10 +112,7 @@ function withSender(
   return {
     scriptHash: intent.scriptHash,
     operation: intent.operation,
-    args: intent.args.map((arg) => ({
-      ...arg,
-      value: arg.value === "SENDER" ? walletAddress : arg.value,
-    })),
+    args: intent.args.map((arg) => resolveSenderArg(arg, walletAddress)),
     signers:
       intent.signers && intent.signers.length > 0
         ? intent.signers

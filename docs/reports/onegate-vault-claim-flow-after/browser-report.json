@@ -1,0 +1,96 @@
+{
+  "url": "http://127.0.0.1:3040/miniapps/gas-lucky-pool?network=testnet",
+  "walletAddress": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+  "before": {
+    "statusReady": true,
+    "submitDisabled": false,
+    "claimVisible": true,
+    "poolVisible": true,
+    "buttonTitle": null
+  },
+  "after": {
+    "statusReady": false,
+    "successVisible": true,
+    "claimValueAfterSubmit": "",
+    "poolValueAfterSubmit": "pool-001"
+  },
+  "claimRequests": [
+    {
+      "url": "http://127.0.0.1:3040/api/onegate-vault/claim",
+      "method": "POST",
+      "body": {
+        "claimKey": "ogv_playwright_user_key",
+        "address": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+        "network": "testnet",
+        "poolId": "pool-001",
+        "oneGateAppId": "23",
+        "appId": "miniapp-gas-lucky-pool"
+      }
+    }
+  ],
+  "desktopLayout": {
+    "viewport": {
+      "width": 1440,
+      "height": 980
+    },
+    "bodyOverflowX": false,
+    "bodyScrollWidth": 1440,
+    "docScrollWidth": 1440,
+    "visibleTextInputs": [
+      {
+        "label": "Search",
+        "value": "",
+        "width": 280
+      },
+      {
+        "label": "Claim key",
+        "value": "",
+        "width": 266
+      },
+      {
+        "label": "Pool ID",
+        "value": "pool-001",
+        "width": 266
+      }
+    ],
+    "overflowing": []
+  },
+  "mobile": {
+    "url": "http://127.0.0.1:3040/miniapps/gas-lucky-pool?network=testnet&key=ogv_mobile_alias_key&pool=pool-mobile&operation=claimOneGateVault",
+    "state": {
+      "claimValue": "ogv_mobile_alias_key",
+      "poolValue": "pool-mobile",
+      "submitDisabled": false,
+      "rewardReady": true
+    },
+    "layout": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "bodyOverflowX": false,
+      "bodyScrollWidth": 390,
+      "docScrollWidth": 390,
+      "visibleTextInputs": [
+        {
+          "label": "Claim key",
+          "value": "ogv_mobile_alias_key",
+          "width": 340
+        },
+        {
+          "label": "Pool ID",
+          "value": "pool-mobile",
+          "width": 340
+        }
+      ],
+      "overflowing": []
+    },
+    "errors": []
+  },
+  "errors": [],
+  "screenshots": [
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/onegate-vault-claim-flow-after/desktop-before-submit.png",
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/onegate-vault-claim-flow-after/desktop-after-submit.png",
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/onegate-vault-claim-flow-after/mobile-action-sheet.png"
+  ]
+}

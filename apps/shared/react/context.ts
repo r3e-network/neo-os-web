@@ -102,9 +102,45 @@ export function withValueCompat<T>(obs: Observable<T>): RefCompatObservable<T> {
  * Change notification is poll-based: the MiniAppRoot's state subscription
  * mechanism re-reads .get() on each render cycle.
  */
-export function refToObservable<T>(vueRef: { value: T }): Observable<T> {
+type RefLike<T> = {
+  value: T;
+  subscribe?: (listener: () => void) => () => void;
+};
+
+function isObservable<T>(value: Observable<T> | RefLike<T>): value is Observable<T> {
+  return (
+    typeof (value as Observable<T>).get === "function" &&
+    typeof (value as Observable<T>).set === "function" &&
+    typeof (value as Observable<T>).subscribe === "function"
+  );
+}
+
+export function refToObservable<T>(vueRef: Observable<T> | RefLike<T>): Observable<T> {
+  if (isObservable(vueRef)) return vueRef;
+
   const listeners = new Set<() => void>();
   let lastValue = vueRef.value;
+  let sourceUnsubscribe: (() => void) | null = null;
+
+  const notifyIfChanged = () => {
+    const nextValue = vueRef.value;
+    if (Object.is(lastValue, nextValue)) return;
+    lastValue = nextValue;
+    listeners.forEach((fn) => fn());
+  };
+
+  const subscribeToSource = () => {
+    if (sourceUnsubscribe || typeof vueRef.subscribe !== "function") return;
+    lastValue = vueRef.value;
+    sourceUnsubscribe = vueRef.subscribe(notifyIfChanged);
+  };
+
+  const unsubscribeFromSourceIfIdle = () => {
+    if (listeners.size > 0 || !sourceUnsubscribe) return;
+    sourceUnsubscribe();
+    sourceUnsubscribe = null;
+    lastValue = vueRef.value;
+  };
 
   return {
     get(): T {
@@ -112,15 +148,14 @@ export function refToObservable<T>(vueRef: { value: T }): Observable<T> {
     },
     set(value: T) {
       vueRef.value = value;
-      if (!Object.is(lastValue, value)) {
-        lastValue = value;
-        listeners.forEach((fn) => fn());
-      }
+      notifyIfChanged();
     },
     subscribe(listener: () => void) {
       listeners.add(listener);
+      subscribeToSource();
       return () => {
         listeners.delete(listener);
+        unsubscribeFromSourceIfIdle();
       };
     },
   };

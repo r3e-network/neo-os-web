@@ -309,21 +309,39 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   );
 
   // ── Formatted display values ─────────────────────────────────────────
-  const totalBurnedDisplay = createDerived(() => `${formatNumber(totalBurned.get(), 2)} ${t("tokenGas")}`, []);
-  const userBurnedDisplay = createDerived(() => `${formatNumber(userBurned.get(), 2)} ${t("tokenGas")}`, []);
-  const rewardPoolDisplay = createDerived(() => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`, []);
-  const formattedRank = createDerived(() => rank.get() > 0 ? `#${rank.get()}` : "--", []);
-  const leaderboardSize = createDerived(() => leaderboard.get().length, []);
+  const totalBurnedDisplay = createDerived(
+    () => `${formatNumber(totalBurned.get(), 2)} ${t("tokenGas")}`,
+    [totalBurned],
+  );
+  const userBurnedDisplay = createDerived(
+    () => `${formatNumber(userBurned.get(), 2)} ${t("tokenGas")}`,
+    [userBurned],
+  );
+  const rewardPoolDisplay = createDerived(
+    () => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`,
+    [rewardPool],
+  );
+  const formattedRank = createDerived(
+    () => rank.get() > 0 ? `#${rank.get()}` : "--",
+    [rank],
+  );
+  const leaderboardSize = createDerived(() => leaderboard.get().length, [leaderboard]);
 
   /**
    * The prize for the current season — the WHOLE reward pool, paid to the top
    * burner at settle. This replaces the bogus 0.1x estimate: the prize is the
    * pool, not a fraction of the player's own burn.
    */
-  const prizePoolDisplay = createDerived(() => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`, []);
+  const prizePoolDisplay = createDerived(
+    () => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`,
+    [rewardPool],
+  );
 
   /** The current leader's burned total, formatted for display. */
-  const topBurnedDisplay = createDerived(() => `${formatNumber(topBurnedGas.get(), 2)} ${t("tokenGas")}`, []);
+  const topBurnedDisplay = createDerived(
+    () => `${formatNumber(topBurnedGas.get(), 2)} ${t("tokenGas")}`,
+    [topBurnedGas],
+  );
 
   /** Short, display-friendly leader address ("--" when no leader yet). */
   const leaderLabel = createDerived(() => {
@@ -348,10 +366,10 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     const amount = parseFloat(burnAmount.get());
     const projected = userBurned.get() + (Number.isFinite(amount) ? Math.max(0, amount) : 0);
     return `${formatNumber(projected, 2)} ${t("tokenGas")}`;
-  }, []);
+  }, [burnAmount, userBurned]);
 
   /** Top 10 entries for the leaderboard preview. */
-  const leaderboardPreview = createDerived(() => leaderboard.get().slice(0, 10), []);
+  const leaderboardPreview = createDerived(() => leaderboard.get().slice(0, 10), [leaderboard]);
 
   // ── Data Loading (direct chain reads) ──────────────────────────────
 

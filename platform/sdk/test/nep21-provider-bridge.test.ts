@@ -46,7 +46,7 @@ function createEmbeddedWindow(options: { referrer?: string } = {}) {
     addEventListener: (type: string, listener: (event: FakeMessageEvent) => void) => {
       if (type === "message") listeners.add(listener);
     },
-    removeEventListener: (type: string, listener: (event: FakeMessageEvent) => void) => {
+    removeEventListener: (_type: string, listener: (event: FakeMessageEvent) => void) => {
       listeners.delete(listener);
     },
     dispatchEvent: () => true,
@@ -91,6 +91,26 @@ describe("host wallet bridge response gating", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("prefers the host bridge over directly injected wallet providers inside embeds", () => {
+    const { win } = createEmbeddedWindow();
+    const directProvider = {
+      name: "NeoLine",
+      dapiVersion: "1.0.0",
+      compatibility: ["NEP-21"],
+      getAccounts: vi.fn(async () => [
+        { hash: "0xdirect", address: "NDirect", isDefault: true },
+      ]),
+    };
+    win.NEP21Provider = directProvider;
+
+    const provider = readImmediateNep21Provider({
+      targetWindow: win as unknown as Window,
+    });
+
+    expect(provider?.name).toBe("Yiwu Host Wallet");
+    expect(provider).not.toBe(directProvider);
   });
 
   it("posts requests with a crypto-random id pinned to the host origin", async () => {
@@ -312,5 +332,196 @@ describe("host wallet bridge protocol negotiation", () => {
     });
 
     await expectation;
+  });
+});
+
+describe("legacy NeoLine N3 provider compatibility", () => {
+  beforeEach(() => {
+    resetNep21ProviderCacheForTests();
+  });
+
+  it("wraps window.NEOLineN3 as a NEP-21-compatible provider", async () => {
+    const legacyApi = {
+      getNetworks: vi.fn(async () => ({ defaultNetwork: "TestNet" })),
+      getAccount: vi.fn(async () => ({ address: "NLegacy", label: "NeoLine" })),
+      AddressToScriptHash: vi.fn(async () => ({
+        scriptHash: "3333333333333333333333333333333333333333",
+      })),
+      getBalance: vi.fn(async () => ({
+        balances: [
+          {
+            contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            amount: "7.5",
+          },
+        ],
+      })),
+      invoke: vi.fn(async () => ({ txid: "0xlegacy" })),
+    };
+    const win = {
+      location: { search: "", href: `${HOST_ORIGIN}/app` },
+      document: { referrer: "" },
+      parent: null as unknown,
+      NEOLineN3: { Init: vi.fn(() => legacyApi) },
+    } as unknown as Nep21Window;
+    (win as { parent: unknown }).parent = win;
+
+    const provider = readImmediateNep21Provider({
+      targetWindow: win as unknown as Window,
+      preference: "neoline",
+    });
+
+    expect(provider?.name).toBe("NeoLine Legacy N3");
+    await expect(provider?.getAccounts()).resolves.toEqual([
+      {
+        hash: "0x3333333333333333333333333333333333333333",
+        address: "NLegacy",
+        label: "NeoLine",
+        isDefault: true,
+      },
+    ]);
+    await expect(
+      provider?.getBalance?.("0xd2a4cff31913016155e38e474a2c06d08be276cf", "NLegacy"),
+    ).resolves.toBe("7.5");
+    await expect(
+      provider?.getBalance?.(
+        "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "0x3333333333333333333333333333333333333333",
+      ),
+    ).resolves.toBe("7.5");
+    expect(legacyApi.getBalance).toHaveBeenLastCalledWith({
+      params: [
+        {
+          address: "NLegacy",
+          contracts: ["d2a4cff31913016155e38e474a2c06d08be276cf"],
+        },
+      ],
+    });
+    await expect(
+      provider?.invoke?.(
+        [
+          {
+            hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            operation: "claimReward",
+            args: [
+              {
+                type: "Hash160",
+                value: "3333333333333333333333333333333333333333",
+              },
+            ],
+          },
+        ],
+        [
+          {
+            account: "0x3333333333333333333333333333333333333333",
+            scopes: "CalledByEntry",
+          },
+        ],
+      ),
+    ).resolves.toEqual({ txid: "0xlegacy" });
+
+    expect(legacyApi.invoke).toHaveBeenCalledWith({
+      scriptHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "claimReward",
+      args: [
+        {
+          type: "Hash160",
+          value: "0x3333333333333333333333333333333333333333",
+        },
+      ],
+      signers: [
+        {
+          account: "3333333333333333333333333333333333333333",
+          scopes: 1,
+        },
+      ],
+      suggestedSystemFee: undefined,
+    });
+  });
+
+  it("uses window.NEOLine common methods for legacy account and network reads", async () => {
+    const legacyN3 = {
+      invokeMultiple: vi.fn(async () => ({ txid: "0xlegacy-batch" })),
+    };
+    const legacyCommon = {
+      getNetworks: vi.fn(async () => ({ defaultNetwork: "MainNet" })),
+      getAccount: vi.fn(async () => ({
+        address: "NCommonNeoLine",
+        label: "Common",
+      })),
+      AddressToScriptHash: vi.fn(async () => ({
+        scriptHash: "4444444444444444444444444444444444444444",
+      })),
+    };
+    const win = {
+      location: { search: "", href: `${HOST_ORIGIN}/app` },
+      document: { referrer: "" },
+      parent: null as unknown,
+      NEOLine: { Init: vi.fn(() => legacyCommon) },
+      NEOLineN3: { Init: vi.fn(() => legacyN3) },
+    } as unknown as Nep21Window;
+    (win as { parent: unknown }).parent = win;
+
+    const provider = readImmediateNep21Provider({
+      targetWindow: win as unknown as Window,
+      preference: "neoline",
+    });
+
+    await expect(provider?.getAccounts()).resolves.toEqual([
+      {
+        hash: "0x4444444444444444444444444444444444444444",
+        address: "NCommonNeoLine",
+        label: "Common",
+        isDefault: true,
+      },
+    ]);
+    await expect(provider?.getNetwork?.()).resolves.toBe(860833102);
+    await expect(
+      provider?.invoke?.(
+        [
+          {
+            hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            operation: "vote",
+            args: [],
+          },
+          {
+            hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            operation: "auditTrail",
+            args: [],
+          },
+        ],
+        [
+          {
+            account: "0x4444444444444444444444444444444444444444",
+            scopes: "CustomContracts, CustomGroups",
+          },
+        ],
+      ),
+    ).resolves.toEqual({ txid: "0xlegacy-batch" });
+
+    expect(legacyCommon.getNetworks).toHaveBeenCalled();
+    expect(legacyCommon.getAccount).toHaveBeenCalled();
+    expect(legacyN3.invokeMultiple).toHaveBeenCalledWith({
+      invokeArgs: [
+        {
+          scriptHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "vote",
+          args: [],
+          abortOnFail: undefined,
+        },
+        {
+          scriptHash: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          operation: "auditTrail",
+          args: [],
+          abortOnFail: undefined,
+        },
+      ],
+      signers: [
+        {
+          account: "4444444444444444444444444444444444444444",
+          scopes: 48,
+        },
+      ],
+      suggestedSystemFee: undefined,
+    });
   });
 });

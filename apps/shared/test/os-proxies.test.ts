@@ -191,6 +191,17 @@ describe("EdgeClient", () => {
         method: "transfer",
         params: [
           { type: "Hash160", value: "SENDER" },
+          {
+            type: "Array",
+            value: [
+              { type: "Hash160", value: "{{sender}}" },
+              {
+                type: "Hash160",
+                value: "0x0000000000000000000000000000000000000000",
+              },
+              { type: "String", value: "SENDER" },
+            ],
+          },
           { type: "Hash160", value: "0xcontract" },
           { type: "Integer", value: "100000" },
         ],
@@ -209,6 +220,14 @@ describe("EdgeClient", () => {
         operation: "transfer",
         args: [
           { type: "Hash160", value: "NAlreadyConnected" },
+          {
+            type: "Array",
+            value: [
+              { type: "Hash160", value: "NAlreadyConnected" },
+              { type: "Hash160", value: "NAlreadyConnected" },
+              { type: "String", value: "SENDER" },
+            ],
+          },
           { type: "Hash160", value: "0xcontract" },
           { type: "Integer", value: "100000" },
         ],

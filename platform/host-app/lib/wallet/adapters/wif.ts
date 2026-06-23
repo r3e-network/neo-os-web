@@ -6,7 +6,7 @@
  */
 
 import type * as NeoSdk from "@r3e/neo-js-sdk/browser";
-import { getRpcNetwork } from "@/lib/rpc-helpers";
+import { getActiveRpcNetwork as getRpcNetwork } from "@/lib/rpc-helpers";
 import { logger } from "@/lib/logger";
 import type { NeoNetwork } from "@/lib/neo-network";
 import {
@@ -61,12 +61,14 @@ type RpcSigner = {
   account: string;
   scopes: string;
   allowedcontracts?: string[];
+  allowedgroups?: string[];
 };
 
 type TxSigner = {
   account: string;
   scopes: number;
   allowedcontracts?: string[];
+  allowedgroups?: string[];
 };
 
 type NormalizedInvocation = {
@@ -286,7 +288,44 @@ function toContractParamJson(
     } as ContractParamInput;
   }
 
+  if (arg.type.toLowerCase() === "array" && Array.isArray(arg.value)) {
+    return {
+      type: arg.type,
+      value: arg.value.map((entry) =>
+        entry &&
+        typeof entry === "object" &&
+        "type" in entry &&
+        "value" in entry
+          ? toContractParamJson(sdk, entry as { type: string; value: unknown })
+          : entry,
+      ),
+    } as ContractParamInput;
+  }
+
   return { type: arg.type, value: arg.value } as ContractParamInput;
+}
+
+function parseTransferAmount(amount: string | number, decimals: number): string {
+  const raw = String(amount ?? "").trim();
+  const safeDecimals =
+    Number.isInteger(decimals) && decimals >= 0 && decimals <= 18 ? decimals : 8;
+  if (safeDecimals === 0) {
+    if (!/^[1-9]\d*$/.test(raw)) {
+      throw new Error("Transfer amount must be a positive whole number");
+    }
+    return raw;
+  }
+  const match = raw.match(/^(\d+)(?:\.(\d+))?$/);
+  if (!match || (match[2]?.length ?? 0) > safeDecimals) {
+    throw new Error(`Transfer amount must be positive with at most ${safeDecimals} decimals`);
+  }
+  const intPart = match[1] ?? "0";
+  const frac = `${match[2] ?? ""}${"0".repeat(safeDecimals)}`.slice(0, safeDecimals);
+  const value = BigInt(intPart) * 10n ** BigInt(safeDecimals) + BigInt(frac || "0");
+  if (value <= 0n) {
+    throw new Error("Transfer amount must be greater than zero");
+  }
+  return value.toString();
 }
 
 async function normalizeInvocation(
@@ -315,15 +354,18 @@ async function normalizeInvocation(
     const accountHash = await accountToScriptHash(sdk, signer.account);
     const scopes = Number(signer.scopes);
     const allowedcontracts = signer.allowedContracts?.map(normalizeHash160);
+    const allowedgroups = signer.allowedGroups?.filter(Boolean);
     txSigners.push({
       account: accountHash,
       scopes,
       ...(allowedcontracts?.length ? { allowedcontracts } : {}),
+      ...(allowedgroups?.length ? { allowedgroups } : {}),
     });
     rpcSigners.push({
       account: accountHash,
       scopes: scopeName(scopes),
       ...(allowedcontracts?.length ? { allowedcontracts } : {}),
+      ...(allowedgroups?.length ? { allowedgroups } : {}),
     });
   }
 
@@ -669,7 +711,7 @@ export class WifAdapter implements WalletAdapter {
   // NEP-17 transfer for the embedded-dApp bridge `send` path (e.g. OS check-in /
   // payment intents). Builds a transfer invocation and reuses invoke()'s
   // sign+relay pipeline; signers default to this account + CalledByEntry.
-  async send(asset: string, amount: string, to: string, from?: string): Promise<TransactionResult> {
+  async send(asset: string, amount: string | number, to: string, from?: string): Promise<TransactionResult> {
     if (!this.account) {
       throw new WalletConnectionError("Developer key wallet is not connected");
     }
@@ -696,9 +738,7 @@ export class WifAdapter implements WalletAdapter {
         // fall back to 8 decimals
       }
     }
-    const [intPart, fracRaw = ""] = String(amount ?? "0").trim().split(".");
-    const frac = `${fracRaw}${"0".repeat(decimals)}`.slice(0, decimals);
-    const raw = (BigInt(intPart || "0") * 10n ** BigInt(decimals) + BigInt(frac || "0")).toString();
+    const raw = parseTransferAmount(amount, decimals);
     return this.invoke({
       scriptHash: assetHash,
       operation: "transfer",

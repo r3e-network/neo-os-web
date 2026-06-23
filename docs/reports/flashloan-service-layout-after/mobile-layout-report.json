@@ -1,0 +1,41 @@
+{
+  "bodyLength": 689,
+  "scrollWidth": 390,
+  "clientWidth": 390,
+  "hasHorizontalOverflow": false,
+  "overlay": false,
+  "buttons": [
+    {
+      "text": "1 GAS",
+      "disabled": false,
+      "busy": null
+    },
+    {
+      "text": "10 GAS",
+      "disabled": false,
+      "busy": null
+    },
+    {
+      "text": "100 GAS",
+      "disabled": false,
+      "busy": null
+    },
+    {
+      "text": "Connect Wallet",
+      "disabled": false,
+      "busy": null
+    },
+    {
+      "text": "Connect and Sign",
+      "disabled": false,
+      "busy": null
+    },
+    {
+      "text": "Check Status",
+      "disabled": true,
+      "busy": null
+    }
+  ],
+  "amountPrefilled": true,
+  "callbackPrefilled": true
+}

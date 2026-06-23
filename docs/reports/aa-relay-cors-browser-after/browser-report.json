@@ -1,0 +1,14 @@
+{
+  "url": "http://127.0.0.1:3021/miniapps/aa-relay-console?network=testnet",
+  "iframeUrl": "http://127.0.0.1:3021/miniapps/aa-relay-console/index.html?network=testnet&source=embed",
+  "defaultPayloadUsesTestnetCore": true,
+  "relayResponse": {
+    "url": "http://127.0.0.1:3021/api/aa/relay",
+    "status": 500,
+    "allowOrigin": "null",
+    "allowCredentials": "true"
+  },
+  "noCorsConsoleErrors": true,
+  "visibleFailureIsRelayConfigNotCors": true,
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-relay-cors-browser-after/aa-relay-testnet-submit-desktop.png"
+}

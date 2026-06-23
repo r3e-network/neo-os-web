@@ -1,0 +1,73 @@
+{
+  "url": "http://127.0.0.1:3026/miniapps/recovery-guardian?network=testnet",
+  "checkedAt": "2026-06-01T19:28:21.807Z",
+  "change": "Recovery Guardian profiled dApp iframe uses app-specific desktop/mobile heights so the full business workspace scrolls with the page instead of being clipped before Activity and details.",
+  "results": [
+    {
+      "name": "desktop-after",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "iframeBox": {
+        "x": 18,
+        "y": 131,
+        "width": 1052,
+        "height": 1800
+      },
+      "iframeClass": "block h-[3400px] sm:h-[2400px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+      "statusBoardStartsAfterIframe": true,
+      "iframeCoversEmbeddedContent": true,
+      "statusBox": {
+        "x": 32,
+        "y": 1957,
+        "width": 664.734375,
+        "height": 20
+      },
+      "loadingStillVisible": false,
+      "embeddedMetrics": {
+        "innerHeight": 1800,
+        "bodyScrollHeight": 1800,
+        "documentScrollHeight": 1800,
+        "hasWorkspaceLinks": true,
+        "hasFinalize": true
+      },
+      "pageErrors": [],
+      "unexpectedConsoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/recovery-guardian-layout-after/desktop-after.png"
+    },
+    {
+      "name": "mobile-after",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "iframeBox": {
+        "x": 14,
+        "y": 123,
+        "width": 362,
+        "height": 3400
+      },
+      "iframeClass": "block h-[3400px] sm:h-[2400px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+      "statusBoardStartsAfterIframe": true,
+      "iframeCoversEmbeddedContent": true,
+      "statusBox": {
+        "x": 28,
+        "y": 3549,
+        "width": 210.453125,
+        "height": 20
+      },
+      "loadingStillVisible": false,
+      "embeddedMetrics": {
+        "innerHeight": 3400,
+        "bodyScrollHeight": 3400,
+        "documentScrollHeight": 3400,
+        "hasWorkspaceLinks": true,
+        "hasFinalize": true
+      },
+      "pageErrors": [],
+      "unexpectedConsoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/recovery-guardian-layout-after/mobile-after.png"
+    }
+  ]
+}

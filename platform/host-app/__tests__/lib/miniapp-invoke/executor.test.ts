@@ -26,6 +26,7 @@ function executeParams(
     operation: { method: "doThing", name: "Do Thing" } as never,
     values: {},
     walletAddress: WALLET,
+    walletNetwork: "testnet",
     targetNetwork: "testnet",
     resolvedRuntime: null,
     directContractHash: DIRECT_HASH,
@@ -139,6 +140,39 @@ describe("executeInvokeRecipe", () => {
     await expect(
       executeInvokeRecipe(recipe, executeParams()),
     ).rejects.toThrow(WALLET_ADAPTER_UNAVAILABLE_ERROR);
+  });
+
+  it("fails before touching the wallet adapter when the wallet network is unverified", async () => {
+    const recipe: InvokeRecipe = {
+      notConfiguredError: "not configured",
+      buildPlan: ({ targetHash }) => ({
+        invocation: { scriptHash: targetHash, operation: "ping", args: [] },
+        successMessage: (txid) => txid,
+      }),
+    };
+
+    await expect(
+      executeInvokeRecipe(recipe, executeParams({ walletNetwork: null })),
+    ).rejects.toThrow(/Wallet network is not verified/);
+    expect(getWalletAdapter).not.toHaveBeenCalled();
+  });
+
+  it("fails before touching the wallet adapter when wallet and page networks differ", async () => {
+    const recipe: InvokeRecipe = {
+      notConfiguredError: "not configured",
+      buildPlan: ({ targetHash }) => ({
+        invocation: { scriptHash: targetHash, operation: "ping", args: [] },
+        successMessage: (txid) => txid,
+      }),
+    };
+
+    await expect(
+      executeInvokeRecipe(
+        recipe,
+        executeParams({ walletNetwork: "mainnet", targetNetwork: "testnet" }),
+      ),
+    ).rejects.toThrow(/Wallet is on Neo N3 Mainnet but this page targets Neo N3 Testnet/);
+    expect(getWalletAdapter).not.toHaveBeenCalled();
   });
 
   it("submits deposit-then-act plans through invokeMultiple with shared signers", async () => {

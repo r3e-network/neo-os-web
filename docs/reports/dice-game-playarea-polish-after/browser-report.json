@@ -1,0 +1,68 @@
+{
+  "baseUrl": "http://127.0.0.1:4221/miniapps/dice-game/index.html?source=embed&network=testnet&face=2&amount=0.50",
+  "desktop": {
+    "initial": {
+      "stake": "0.50",
+      "activeFaceText": "2",
+      "payoutVisible": true,
+      "netVisible": true
+    },
+    "preset": {
+      "stake": "1.00",
+      "activeFaceText": "4",
+      "payoutVisible": true,
+      "netVisible": true
+    },
+    "invalid": {
+      "buttonDisabled": true,
+      "invalidMessageVisible": true
+    },
+    "valid": {
+      "buttonEnabled": true,
+      "payoutVisible": true,
+      "netVisible": true,
+      "routeVisible": true,
+      "riskVisible": true
+    },
+    "afterSubmit": {
+      "statusText": "Ready\nPayout: 4.28 GAS",
+      "stillNoCrash": true
+    },
+    "overflow": 0,
+    "offscreenControls": []
+  },
+  "mobile": {
+    "initial": {
+      "stake": "0.50",
+      "activeFaceText": "2",
+      "payoutVisible": true,
+      "netVisible": true
+    },
+    "preset": {
+      "stake": "1.00",
+      "activeFaceText": "4",
+      "payoutVisible": true,
+      "netVisible": true
+    },
+    "invalid": {
+      "buttonDisabled": true,
+      "invalidMessageVisible": true
+    },
+    "valid": {
+      "buttonEnabled": true,
+      "payoutVisible": true,
+      "netVisible": true,
+      "routeVisible": true,
+      "riskVisible": true
+    },
+    "afterSubmit": {
+      "statusText": "Ready\nPayout: 4.28 GAS",
+      "stillNoCrash": true
+    },
+    "overflow": 0,
+    "offscreenControls": []
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": []
+}

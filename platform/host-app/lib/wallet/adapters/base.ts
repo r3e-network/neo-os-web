@@ -9,6 +9,8 @@ export type NeoWalletNetwork = NeoNetwork;
 
 export interface WalletAccount {
   address: string;
+  /** Neo N3 account script hash (Hash160) when the wallet exposes it. */
+  accountHash?: string;
   publicKey: string;
   label?: string;
   network?: NeoWalletNetwork | null;
@@ -39,6 +41,7 @@ export interface InvokeParams {
     account: string;
     scopes: number;
     allowedContracts?: string[];
+    allowedGroups?: string[];
   }>;
 }
 
@@ -80,6 +83,14 @@ export interface WalletAdapter {
   invokeMultiple?(
     params: InvokeParams[],
     signers?: InvokeParams["signers"],
+  ): Promise<TransactionResult>;
+
+  /** Send a native or NEP asset transfer when the wallet exposes a direct transfer lane */
+  send?(
+    asset: string,
+    amount: string | number,
+    to: string,
+    from?: string,
   ): Promise<TransactionResult>;
 
   /** Subscribe to wallet account changes when supported by the provider */

@@ -1,0 +1,301 @@
+{
+  "generatedAt": "2026-06-01T20:41:45.424Z",
+  "app": "miniapp-milestone-escrow",
+  "selector": "[data-testid=\"profiled-dapp-frame-miniapp-milestone-escrow\"]",
+  "results": [
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://localhost:3031/miniapps/miniapp-milestone-escrow",
+      "host": {
+        "hasNextOverlay": false,
+        "frameClass": "block h-[2600px] sm:h-[2200px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameRect": {
+          "top": 0,
+          "left": 18,
+          "width": 1052,
+          "height": 1800
+        },
+        "pageScrollHeight": 2734,
+        "pageScrollWidth": 1440,
+        "viewportWidth": 1440
+      },
+      "iframeBox": {
+        "x": 18,
+        "y": 0,
+        "width": 1052,
+        "height": 1800
+      },
+      "iframeTooShortAfterMaxRows": false,
+      "clickAttempts": [
+        {
+          "attempt": 1,
+          "countBefore": 2,
+          "disabled": false,
+          "countAfter": 3
+        },
+        {
+          "attempt": 2,
+          "countBefore": 3,
+          "disabled": false,
+          "countAfter": 4
+        },
+        {
+          "attempt": 3,
+          "countBefore": 4,
+          "disabled": false,
+          "countAfter": 5
+        },
+        {
+          "attempt": 4,
+          "countBefore": 5,
+          "disabled": false,
+          "countAfter": 6
+        },
+        {
+          "attempt": 5,
+          "countBefore": 6,
+          "disabled": false,
+          "countAfter": 7
+        },
+        {
+          "attempt": 6,
+          "countBefore": 7,
+          "disabled": false,
+          "countAfter": 8
+        },
+        {
+          "attempt": 7,
+          "countBefore": 8,
+          "disabled": false,
+          "countAfter": 9
+        },
+        {
+          "attempt": 8,
+          "countBefore": 9,
+          "disabled": false,
+          "countAfter": 10
+        },
+        {
+          "attempt": 9,
+          "countBefore": 10,
+          "disabled": false,
+          "countAfter": 11
+        },
+        {
+          "attempt": 10,
+          "countBefore": 11,
+          "disabled": false,
+          "countAfter": 12
+        },
+        {
+          "attempt": 11,
+          "countBefore": 12,
+          "disabled": true
+        }
+      ],
+      "frameState": {
+        "textLength": 1054,
+        "textSample": "ESCROWS\nMilestone Escrow\n\nApprove milestones and release funds in stages\n\nMILESTONES\n0%\nM1\nM2\nM3\nM4\n0\nACTIVE\n0\nCOMPLETED\n0\nCREATED BY YOU\n0\nFOR YOU\nReady\nCreate Escrow\n0.6 GAS\nEscrow name\nBeneficiary address\nAsset\nGAS\nNEO\nNotes (optional)\nMilestones\n12/12\nAdd milestone\n1\nMilestone name\nMilestone amount\nGAS\nRemove\n2\nMilestone name\nMilestone amount\nGAS\nRemove\n3\nMilestone name\nMilestone amount\nGAS\nRemove\n4\nMilestone name\nMilestone amount\nGAS\nRemove\n5\nMilestone name\nMilestone amount\nGAS\nRemove\n6\nMilestone name\nMilestone amount\nGAS\nRemove\n7\nMilestone name\nMilestone amount\nGAS\nRemove\n8\nMilestone name\nMilestone amount\nGAS\nRemove\n9\nMilestone name\nMilestone amount\nGAS\nRemove\n10\nMilestone name\nMilestone amount\nGAS\nRemove\n11\nMilestone name\nMilestone amount\nGAS\nRemove\n12\nMilestone name\nMilestone amount\nGAS\nRemove\nConnect wallet\nWallet not connected\n\nConnect a wallet to create escrows, approve milestones, and release staged payments.\n\nConnect wallet\nRequest and result evidence\nLATEST REQUEST\nNo request submitted yet\nLATEST RESULT\nResponse appears here",
+        "rowCount": 12,
+        "countLabelVisible": true,
+        "addDisabled": true,
+        "bodyScrollHeight": 1800,
+        "docScrollHeight": 1800,
+        "viewportHeight": 1800,
+        "viewportWidth": 1052,
+        "hasHorizontalScroll": false,
+        "rowsBox": {
+          "clientHeight": 520,
+          "scrollHeight": 914,
+          "maxHeight": "520px",
+          "overflowY": "auto",
+          "rect": {
+            "top": 675.59375,
+            "left": 46,
+            "width": 960,
+            "height": 520
+          }
+        },
+        "rowOverflowers": [],
+        "createVisible": true,
+        "walletNoticeVisible": true,
+        "evidenceVisible": true,
+        "latestRequestVisible": true,
+        "latestResultVisible": true
+      },
+      "consoleMessages": [],
+      "failedRequests": [
+        {
+          "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "unexpectedFailedRequests": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-layout-after/desktop-1440x1000.png"
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://localhost:3031/miniapps/miniapp-milestone-escrow",
+      "host": {
+        "hasNextOverlay": false,
+        "frameClass": "block h-[2600px] sm:h-[2200px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameRect": {
+          "top": -712,
+          "left": 14,
+          "width": 362,
+          "height": 2600
+        },
+        "pageScrollHeight": 4049,
+        "pageScrollWidth": 390,
+        "viewportWidth": 390
+      },
+      "iframeBox": {
+        "x": 14,
+        "y": -712,
+        "width": 362,
+        "height": 2600
+      },
+      "iframeTooShortAfterMaxRows": false,
+      "clickAttempts": [
+        {
+          "attempt": 1,
+          "countBefore": 2,
+          "disabled": false,
+          "countAfter": 3
+        },
+        {
+          "attempt": 2,
+          "countBefore": 3,
+          "disabled": false,
+          "countAfter": 4
+        },
+        {
+          "attempt": 3,
+          "countBefore": 4,
+          "disabled": false,
+          "countAfter": 5
+        },
+        {
+          "attempt": 4,
+          "countBefore": 5,
+          "disabled": false,
+          "countAfter": 6
+        },
+        {
+          "attempt": 5,
+          "countBefore": 6,
+          "disabled": false,
+          "countAfter": 7
+        },
+        {
+          "attempt": 6,
+          "countBefore": 7,
+          "disabled": false,
+          "countAfter": 8
+        },
+        {
+          "attempt": 7,
+          "countBefore": 8,
+          "disabled": false,
+          "countAfter": 9
+        },
+        {
+          "attempt": 8,
+          "countBefore": 9,
+          "disabled": false,
+          "countAfter": 10
+        },
+        {
+          "attempt": 9,
+          "countBefore": 10,
+          "disabled": false,
+          "countAfter": 11
+        },
+        {
+          "attempt": 10,
+          "countBefore": 11,
+          "disabled": false,
+          "countAfter": 12
+        },
+        {
+          "attempt": 11,
+          "countBefore": 12,
+          "disabled": true
+        }
+      ],
+      "frameState": {
+        "textLength": 1054,
+        "textSample": "ESCROWS\nMilestone Escrow\n\nApprove milestones and release funds in stages\n\nMILESTONES\n0%\nM1\nM2\nM3\nM4\n0\nACTIVE\n0\nCOMPLETED\n0\nCREATED BY YOU\n0\nFOR YOU\nReady\nCreate Escrow\n0.6 GAS\nEscrow name\nBeneficiary address\nAsset\nGAS\nNEO\nNotes (optional)\nMilestones\n12/12\nAdd milestone\n1\nMilestone name\nMilestone amount\nGAS\nRemove\n2\nMilestone name\nMilestone amount\nGAS\nRemove\n3\nMilestone name\nMilestone amount\nGAS\nRemove\n4\nMilestone name\nMilestone amount\nGAS\nRemove\n5\nMilestone name\nMilestone amount\nGAS\nRemove\n6\nMilestone name\nMilestone amount\nGAS\nRemove\n7\nMilestone name\nMilestone amount\nGAS\nRemove\n8\nMilestone name\nMilestone amount\nGAS\nRemove\n9\nMilestone name\nMilestone amount\nGAS\nRemove\n10\nMilestone name\nMilestone amount\nGAS\nRemove\n11\nMilestone name\nMilestone amount\nGAS\nRemove\n12\nMilestone name\nMilestone amount\nGAS\nRemove\nConnect wallet\nWallet not connected\n\nConnect a wallet to create escrows, approve milestones, and release staged payments.\n\nConnect wallet\nRequest and result evidence\nLATEST REQUEST\nNo request submitted yet\nLATEST RESULT\nResponse appears here",
+        "rowCount": 12,
+        "countLabelVisible": true,
+        "addDisabled": true,
+        "bodyScrollHeight": 2600,
+        "docScrollHeight": 2600,
+        "viewportHeight": 2600,
+        "viewportWidth": 362,
+        "hasHorizontalScroll": false,
+        "rowsBox": {
+          "clientHeight": 700,
+          "scrollHeight": 2018,
+          "maxHeight": "700px",
+          "overflowY": "auto",
+          "rect": {
+            "top": 1159.984375,
+            "left": 40,
+            "width": 282,
+            "height": 700
+          }
+        },
+        "rowOverflowers": [],
+        "createVisible": true,
+        "walletNoticeVisible": true,
+        "evidenceVisible": true,
+        "latestRequestVisible": true,
+        "latestResultVisible": true
+      },
+      "consoleMessages": [],
+      "failedRequests": [
+        {
+          "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "unexpectedFailedRequests": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-layout-after/mobile-390x844.png"
+    }
+  ]
+}

@@ -21,7 +21,13 @@ import { createObservable } from "@shared/react/context";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
-import { formatAddress, formatGas, fromFixed8, toFixed8, toSafeNumber } from "@shared/utils/format";
+import {
+  formatAddress,
+  formatGas,
+  fromFixed8,
+  parsePositiveFixed8,
+  toSafeNumber,
+} from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 
 const APP_ID = "miniapp-flashloan";
@@ -133,9 +139,12 @@ export function useFlashloanCore({
   const fixed8ToDecimal = (value: unknown) => fromFixed8(String(value ?? "0"));
 
   const estimateFeeFixed8 = (amount: string) => {
-    const raw = BigInt(toFixed8(amount) || "0");
+    const raw = BigInt(parsePositiveFixed8(amount) ?? "0");
     return ((raw * BigInt(FLASH_FEE_BPS)) / 10_000n).toString();
   };
+
+  const parseGasAmountFixed8 = (amount: string): string | null =>
+    parsePositiveFixed8(amount);
 
   const formatTimestamp = (value: unknown) => {
     const ts = toNumber(value);
@@ -212,10 +221,11 @@ export function useFlashloanCore({
     callbackContract: string;
     callbackMethod: string;
   }): string | null => {
-    const amountNum = parseFloat(data.amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
+    const amountFixed8 = parseGasAmountFixed8(data.amount);
+    if (!amountFixed8) {
       return t("invalidLoanAmount");
     }
+    const amountNum = fromFixed8(amountFixed8);
     const { minLoan, maxLoan } = contractStats.get();
     if (amountNum < minLoan) {
       return t("loanAmountBelowMin", { min: minLoan.toLocaleString() });
@@ -236,8 +246,7 @@ export function useFlashloanCore({
   };
 
   const validateLiquidityAmount = (amount: string): string | null => {
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
+    if (!parseGasAmountFixed8(amount)) {
       return t("invalidLiquidityAmount");
     }
     return null;
@@ -411,7 +420,8 @@ export function useFlashloanCore({
     try {
       const borrower = await chainService.ensureWallet();
       const callbackContract = normalizeHash160Input(data.callbackContract);
-      const amountFixed8 = toFixed8(data.amount);
+      const amountFixed8 = parseGasAmountFixed8(data.amount);
+      if (!amountFixed8) throw new Error(t("invalidLoanAmount"));
       const feeFixed8 = estimateFeeFixed8(data.amount);
       address.set(borrower);
 
@@ -467,7 +477,8 @@ export function useFlashloanCore({
     try {
       const provider = await chainService.ensureWallet();
       address.set(provider);
-      const amountFixed8 = toFixed8(amount);
+      const amountFixed8 = parseGasAmountFixed8(amount);
+      if (!amountFixed8) throw new Error(t("invalidLiquidityAmount"));
 
       let result: TxResult;
       if (isMainnet) {
@@ -521,7 +532,8 @@ export function useFlashloanCore({
     try {
       const provider = await chainService.ensureWallet();
       address.set(provider);
-      const amountFixed8 = toFixed8(amount);
+      const amountFixed8 = parseGasAmountFixed8(amount);
+      if (!amountFixed8) throw new Error(t("invalidLiquidityAmount"));
 
       const result: TxResult = await chainService.invoke(
         "withdraw",

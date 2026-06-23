@@ -118,6 +118,21 @@ describe("useFlashloanCore contract flow (deployed ABI)", () => {
     expect(flashloan.lastRequest.get()?.txid).toBe("0xflashrequest");
   });
 
+  it("rejects malformed loan amounts before wallet submission", async () => {
+    const { flashloan, chain, invoke } = setup();
+
+    await expect(
+      flashloan.requestLoan({
+        amount: "1abc",
+        callbackContract: CALLBACK,
+        callbackMethod: "onFlashLoan",
+      }),
+    ).rejects.toThrow("Invalid loan amount");
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
   it("loads pool, totals, constants (fee + cooldown), and recent loans from getPlatformStats", async () => {
     const { flashloan, read } = setup();
 
@@ -237,6 +252,17 @@ describe("useFlashloanCore contract flow (deployed ABI)", () => {
     );
   });
 
+  it("rejects over-precision liquidity deposits before wallet submission", async () => {
+    const { flashloan, chain, invokeWithPayment } = setup({ network: "testnet" });
+
+    await expect(
+      flashloan.provideLiquidity("5.000000001"),
+    ).rejects.toThrow("Enter a valid GAS amount");
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(invokeWithPayment).not.toHaveBeenCalled();
+  });
+
   it("requires a receipt id for liquidity deposits on mainnet", async () => {
     const { flashloan, invoke } = setup({ network: "mainnet" });
 
@@ -270,6 +296,17 @@ describe("useFlashloanCore contract flow (deployed ABI)", () => {
       ],
       { waitForEvent: "LiquidityWithdrawn", waitTimeoutMs: 30000 },
     );
+  });
+
+  it("rejects malformed liquidity withdrawals before wallet submission", async () => {
+    const { flashloan, chain, invoke } = setup();
+
+    await expect(flashloan.withdrawLiquidity("2abc")).rejects.toThrow(
+      "Enter a valid GAS amount",
+    );
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("loads the connected provider's liquidity stats", async () => {

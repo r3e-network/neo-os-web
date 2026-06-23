@@ -1,0 +1,62 @@
+{
+  "standaloneUrl": "http://localhost:3036/miniapps/flashloan/index.html?network=testnet&operation=requestLoan&amount=1&callbackContract=0x1111111111111111111111111111111111111111",
+  "initial": {
+    "title": true,
+    "method": true,
+    "amount": "1|0x1111111111111111111111111111111111111111|",
+    "bodyLength": 793,
+    "overlay": false
+  },
+  "invokeCount": 1,
+  "firstInvoke": {
+    "invocations": [
+      {
+        "hash": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
+        "operation": "requestFlashLoan",
+        "args": [
+          {
+            "type": "String",
+            "value": "miniapp-flashloan"
+          },
+          {
+            "type": "Hash160",
+            "value": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "type": "Integer",
+            "value": "100000000"
+          },
+          {
+            "type": "Hash160",
+            "value": "0x1111111111111111111111111111111111111111"
+          },
+          {
+            "type": "String",
+            "value": "onFlashLoan"
+          }
+        ]
+      }
+    ]
+  },
+  "readOperations": [
+    "getFlashLoanStats",
+    "getFlashLoan",
+    "getFlashLoan"
+  ],
+  "consoleMessages": [],
+  "consoleErrors": [],
+  "hasOverlay": false,
+  "buttons": [
+    "1 GAS",
+    "10 GAS",
+    "100 GAS",
+    "Sign requestFlashLoan",
+    "Check Status"
+  ],
+  "hasTx": true,
+  "screenshots": [
+    "standalone-loaded.png",
+    "standalone-connected.png",
+    "standalone-submitted.png"
+  ]
+}

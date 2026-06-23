@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-06-01T22:08:55.033Z",
+  "results": [
+    {
+      "name": "standalone",
+      "url": "http://localhost:3036/miniapps/private-transfer/index.html?network=testnet&source=browser&v=layout2",
+      "pageHasContent": true,
+      "errorOverlayCount": 0,
+      "buttonDisabledAfterValidInput": false,
+      "recipientInputWidth": 618,
+      "panelWidth": 664,
+      "hasWideRecipientField": true,
+      "hasValidationPreview": true,
+      "hasSafeErrorOrStored": true,
+      "rawLeakDetected": false,
+      "consoleRawLeakDetected": false,
+      "status": "MORPHEUS CONFIDENTIAL COMPUTE\nMorpheus confidential storage is temporarily unavailable. Your transfer details remain local.\n\nNothing was sent on-chain. Fix the inputs or try again when the Morpheus service is available.",
+      "previewText": "RECIPIENT\nNR3E4D8N...ih32\nAMOUNT\n1 GAS\nMEMO\nIncluded",
+      "consoleMessages": [
+        "warning: [private-transfer] seal failed during store stage"
+      ],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/private-transfer-service-layout-after/standalone-private-transfer.png"
+    },
+    {
+      "name": "host-detail",
+      "url": "http://localhost:3036/miniapps/miniapp-private-transfer?network=testnet&operation=sealPrivateTransfer&recipient=NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32&amount=1&asset=GAS&memo=browser-validation&v=layout2",
+      "pageHasContent": true,
+      "errorOverlayCount": 0,
+      "hasNativeDesk": true,
+      "hasActionParams": true,
+      "hasSafeErrorOrStored": true,
+      "rawLeakDetected": false,
+      "consoleRawLeakDetected": false,
+      "consoleMessages": [
+        "warning: [private-transfer] seal failed during store stage",
+        "warning: [private-transfer] seal failed during store stage"
+      ],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/private-transfer-service-layout-after/host-private-transfer.png"
+    }
+  ],
+  "passed": true
+}

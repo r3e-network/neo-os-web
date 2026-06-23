@@ -22,8 +22,8 @@ const SIGNER_SCOPE_MAP: Record<string, number> = {
 
 export function normalizeOperationName(operation: string): string {
   const raw = String(operation || "").trim();
-  if (!raw) return raw;
-  return raw.charAt(0).toLowerCase() + raw.slice(1);
+  if (!raw) throw new Error("Contract operation name is required.");
+  return raw;
 }
 
 function normalizeSignerScope(scope: string | number): number {
@@ -127,7 +127,7 @@ export function mapDapiArgs(
   currentAddress?: string | null,
 ): ContractArg[] | undefined {
   if (!args?.length) return args;
-  return args.map((arg) => {
+  const mapArg = (arg: ContractArg): ContractArg => {
     if (
       accountHash &&
       currentAddress &&
@@ -136,13 +136,27 @@ export function mapDapiArgs(
     ) {
       return { ...arg, value: accountHash };
     }
+    if (String(arg.type).toLowerCase() === "array" && Array.isArray(arg.value)) {
+      return {
+        ...arg,
+        value: arg.value.map((entry) =>
+          entry &&
+          typeof entry === "object" &&
+          "type" in entry &&
+          "value" in entry
+            ? mapArg(entry as ContractArg)
+            : entry,
+        ),
+      };
+    }
     return arg;
-  });
+  };
+  return args.map(mapArg);
 }
 
 export function resolveNetworkFromMagic(network?: number): NeoNetwork | null {
-  if (network === MAINNET_MAGIC) return "mainnet";
-  if (network === TESTNET_MAGIC) return "testnet";
+  if (network === MAINNET_MAGIC || network === 3) return "mainnet";
+  if (network === TESTNET_MAGIC || network === 6) return "testnet";
   return null;
 }
 
@@ -152,9 +166,23 @@ export function resolveNetworkFromChainId(
   const raw = String(chainIdValue ?? "")
     .trim()
     .toLowerCase();
-  if (raw === "mainnet" || raw === "neo-n3-mainnet" || raw.includes("mainnet"))
+  if (
+    raw === "3" ||
+    raw === String(MAINNET_MAGIC) ||
+    raw === "main" ||
+    raw === "mainnet" ||
+    raw === "neo-n3-mainnet" ||
+    raw.includes("mainnet")
+  )
     return "mainnet";
-  if (raw === "testnet" || raw === "neo-n3-testnet" || raw.includes("testnet"))
+  if (
+    raw === "6" ||
+    raw === String(TESTNET_MAGIC) ||
+    raw === "test" ||
+    raw === "testnet" ||
+    raw === "neo-n3-testnet" ||
+    raw.includes("testnet")
+  )
     return "testnet";
   return null;
 }
@@ -165,6 +193,7 @@ export function resolveNetworkFromUnknown(value: unknown): NeoNetwork | null {
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
     return (
+      resolveNetworkFromUnknown(record.defaultNetwork) ||
       resolveNetworkFromUnknown(record.network) ||
       resolveNetworkFromUnknown(record.chainId) ||
       resolveNetworkFromUnknown(record.id)

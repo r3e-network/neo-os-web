@@ -2,10 +2,9 @@
  * NeoLine Wallet Adapter for Neo N3.
  *
  * NeoLine is integrated through the standard NEP-21 dAPI provider surface.
- * The legacy NEOLineN3 API is intentionally not treated as installed here:
- * wallet actions in the platform must use the same NEP-21 invocation,
- * signer, network, and account mapping path as OneGate and generic dAPI
- * providers.
+ * When the browser only injects legacy `window.NEOLineN3`, the shared
+ * provider detector wraps it as a NEP-21-compatible provider so the platform
+ * still uses the same invocation, signer, network, and account mapping path.
  */
 
 import {
@@ -57,6 +56,14 @@ export class NeoLineAdapter implements WalletAdapter {
     return this.nep21.getNetwork();
   }
 
+  onAccountChanged(listener: () => void | Promise<void>): () => void {
+    return this.nep21.onAccountChanged(listener);
+  }
+
+  onNetworkChanged(listener: () => void | Promise<void>): () => void {
+    return this.nep21.onNetworkChanged(listener);
+  }
+
   async getBalance(address: string): Promise<WalletBalance> {
     if (!this.nep21.isInstalled()) {
       throw new WalletNotInstalledError("NeoLine NEP-21 dAPI");
@@ -86,5 +93,17 @@ export class NeoLineAdapter implements WalletAdapter {
       throw new WalletNotInstalledError("NeoLine NEP-21 dAPI");
     }
     return this.nep21.invokeMultiple(params, signers);
+  }
+
+  async send(
+    asset: string,
+    amount: string | number,
+    to: string,
+    from?: string,
+  ): Promise<TransactionResult> {
+    if (!this.nep21.isInstalled()) {
+      throw new WalletNotInstalledError("NeoLine NEP-21 dAPI");
+    }
+    return this.nep21.send(asset, amount, to, from);
   }
 }

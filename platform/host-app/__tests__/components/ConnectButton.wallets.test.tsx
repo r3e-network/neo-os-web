@@ -101,6 +101,21 @@ describe("ConnectButton wallet choices", () => {
     expect(screen.getByText("2.5 GAS")).toBeInTheDocument();
   });
 
+  it("does not render a wallet chip from a stale wallet-only auth address", () => {
+    mockAuth({
+      authenticated: false,
+      walletAddress: "NStaleWalletAddressAfterNetworkMismatch",
+      walletType: "external",
+    });
+
+    render(<ConnectButton />);
+
+    expect(screen.queryByTestId("wallet-chip")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /log in \/ sign up/i }),
+    ).toBeInTheDocument();
+  });
+
   it("localizes the login and wallet picker modal in Chinese", async () => {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, "zh");
     const user = userEvent.setup();

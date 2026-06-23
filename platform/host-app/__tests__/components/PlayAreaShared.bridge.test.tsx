@@ -5,6 +5,7 @@ import "@testing-library/jest-dom";
 import {
   HOST_WALLET_BRIDGE_ERROR,
   HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+  HOST_WALLET_BRIDGE_STATE,
   useEmbeddedWalletBridge,
   type EmbeddedWalletBridgeErrorDetail,
 } from "../../components/playarea/PlayAreaShared";
@@ -12,6 +13,7 @@ import {
 const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
 const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
 const WALLET_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const WALLET_ACCOUNT_HASH = "0x1234567890abcdef1234567890abcdef12345678";
 const TARGET_CONTRACT = "0x442162de9c0d0e30b09590b125c2b1f7e8fa5e3b";
 // The production sandbox value from EmbeddedDappSurface (audit fix C-4: no
 // allow-same-origin), which gives the miniapp document an opaque origin so its
@@ -22,25 +24,52 @@ const PRODUCTION_SANDBOX =
 const mockWalletState: {
   connected: boolean;
   address: string;
+  accountHash: string;
   publicKey: string;
   network: "mainnet" | "testnet" | null;
 } = {
   connected: true,
   address: WALLET_ADDRESS,
+  accountHash: WALLET_ACCOUNT_HASH,
   publicKey: "02abcdef",
   network: "testnet",
 };
+const mockWalletListeners = new Set<
+  (
+    state: typeof mockWalletState,
+    previousState: typeof mockWalletState,
+  ) => void
+>();
 
 const mockAdapter = {
   invoke: jest.fn(),
   invokeMultiple: jest.fn(),
   getBalance: jest.fn(),
+  getNetwork: jest.fn(),
   signMessage: jest.fn(),
   send: jest.fn(),
 };
 
 jest.mock("@/lib/wallet/store", () => ({
-  useWalletStore: { getState: () => mockWalletState },
+  useWalletStore: {
+    getState: () => mockWalletState,
+    setState: (next: Partial<typeof mockWalletState>) => {
+      const previous = { ...mockWalletState };
+      Object.assign(mockWalletState, next);
+      mockWalletListeners.forEach((listener) =>
+        listener(mockWalletState, previous),
+      );
+    },
+    subscribe: (
+      listener: (
+        state: typeof mockWalletState,
+        previousState: typeof mockWalletState,
+      ) => void,
+    ) => {
+      mockWalletListeners.add(listener);
+      return () => mockWalletListeners.delete(listener);
+    },
+  },
   getWalletAdapter: () => mockAdapter,
 }));
 
@@ -112,11 +141,20 @@ async function flushBridgeHandlers() {
 }
 
 async function lastReply(postSpy: jest.SpyInstance) {
-  await waitFor(() => expect(postSpy).toHaveBeenCalled());
-  const call = postSpy.mock.calls[postSpy.mock.calls.length - 1] as [
-    Record<string, unknown>,
-    string,
-  ];
+  await waitFor(() =>
+    expect(
+      postSpy.mock.calls.some(
+        ([message]) =>
+          (message as Record<string, unknown>)?.type ===
+          HOST_WALLET_BRIDGE_RESPONSE,
+      ),
+    ).toBe(true),
+  );
+  const call = [...postSpy.mock.calls].reverse().find(
+    ([message]) =>
+      (message as Record<string, unknown>)?.type ===
+      HOST_WALLET_BRIDGE_RESPONSE,
+  ) as [Record<string, unknown>, string];
   return { message: call[0], targetOrigin: call[1] };
 }
 
@@ -126,9 +164,13 @@ describe("useEmbeddedWalletBridge origin gating", () => {
   beforeEach(() => {
     mockWalletState.connected = true;
     mockWalletState.address = WALLET_ADDRESS;
+    mockWalletState.accountHash = WALLET_ACCOUNT_HASH;
     mockWalletState.network = "testnet";
+    mockWalletListeners.clear();
+    mockAdapter.getNetwork.mockReset().mockResolvedValue("testnet");
     mockAdapter.invoke.mockReset().mockResolvedValue({ txid: "0xfeed" });
     mockAdapter.send.mockReset().mockResolvedValue({ txid: "0xsent" });
+    mockAdapter.signMessage.mockReset().mockResolvedValue({ signature: "0xsig" });
     confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
   });
 
@@ -156,13 +198,52 @@ describe("useEmbeddedWalletBridge origin gating", () => {
       ok: true,
     });
     expect(message.result).toEqual([
-      expect.objectContaining({ address: WALLET_ADDRESS }),
+      expect.objectContaining({
+        hash: WALLET_ACCOUNT_HASH,
+        accountHash: WALLET_ACCOUNT_HASH,
+        address: WALLET_ADDRESS,
+      }),
     ]);
+  });
+
+  it("pushes wallet state changes to the embedded frame immediately", async () => {
+    const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+    await flushBridgeHandlers();
+    postSpy.mockClear();
+
+    const nextAccountHash = "0x2222222222222222222222222222222222222222";
+    mockWalletState.publicKey = "03changed";
+    jest.requireMock("@/lib/wallet/store").useWalletStore.setState({
+      connected: true,
+      address: "NChangedWallet",
+      accountHash: nextAccountHash,
+      network: "testnet",
+    });
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledTimes(1));
+    const call = postSpy.mock.calls[0] as [Record<string, unknown>, string];
+    expect(call[1]).toBe("*");
+    expect(call[0]).toMatchObject({
+      type: HOST_WALLET_BRIDGE_STATE,
+      appId: "miniapp-demo",
+      protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+      state: {
+        connected: true,
+        address: "NChangedWallet",
+        accountHash: nextAccountHash,
+        network: 894710606,
+        networkName: "testnet",
+        networkVerified: true,
+      },
+    });
   });
 
   it("drops messages whose source is not the embedded frame window", async () => {
     const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     render(<BridgeHarness frame={frame} />);
+    await flushBridgeHandlers();
+    postSpy.mockClear();
 
     dispatchBridgeMessage({
       origin: "null",
@@ -177,6 +258,8 @@ describe("useEmbeddedWalletBridge origin gating", () => {
   it("drops origin 'null' when the frame is not sandboxed", async () => {
     const { frame, frameWindow, postSpy } = createBridgeFrame(null);
     render(<BridgeHarness frame={frame} />);
+    await flushBridgeHandlers();
+    postSpy.mockClear();
 
     dispatchBridgeMessage({
       origin: "null",
@@ -193,6 +276,8 @@ describe("useEmbeddedWalletBridge origin gating", () => {
       "allow-scripts allow-same-origin",
     );
     render(<BridgeHarness frame={frame} />);
+    await flushBridgeHandlers();
+    postSpy.mockClear();
 
     dispatchBridgeMessage({
       origin: "null",
@@ -222,6 +307,8 @@ describe("useEmbeddedWalletBridge origin gating", () => {
   it("drops a foreign origin on a non-sandboxed frame", async () => {
     const { frame, frameWindow, postSpy } = createBridgeFrame(null);
     render(<BridgeHarness frame={frame} />);
+    await flushBridgeHandlers();
+    postSpy.mockClear();
 
     dispatchBridgeMessage({
       origin: "https://evil.example",
@@ -318,6 +405,7 @@ describe("useEmbeddedWalletBridge origin gating", () => {
   it("validates the wallet network BEFORE prompting for confirmation (unverified)", async () => {
     const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
     render(<BridgeHarness frame={frame} />);
 
     dispatchBridgeMessage({
@@ -370,6 +458,7 @@ describe("useEmbeddedWalletBridge origin gating", () => {
   it("refuses invoke when the wallet network is unverified", async () => {
     const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
     render(<BridgeHarness frame={frame} />);
 
     dispatchBridgeMessage({
@@ -393,6 +482,7 @@ describe("useEmbeddedWalletBridge origin gating", () => {
   it("refuses send when the wallet network is unverified", async () => {
     const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
     render(<BridgeHarness frame={frame} />);
 
     dispatchBridgeMessage({
@@ -411,6 +501,49 @@ describe("useEmbeddedWalletBridge origin gating", () => {
       /unverified/,
     );
     expect(mockAdapter.send).not.toHaveBeenCalled();
+  });
+
+  it("refuses signMessage when the wallet network is unverified before prompting", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("signMessage", { message: "authorize session" }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /unverified/,
+    );
+    expect(mockAdapter.signMessage).not.toHaveBeenCalled();
+  });
+
+  it("fresh-checks the wallet network before prompting for signMessage", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    mockWalletState.network = "testnet";
+    mockAdapter.getNetwork.mockResolvedValue("mainnet");
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("signMessage", { message: "authorize session" }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /targets testnet/,
+    );
+    expect(mockAdapter.signMessage).not.toHaveBeenCalled();
+    expect(mockWalletState.network).toBe("mainnet");
   });
 
   it("still serves getAccounts when the wallet network is unverified", async () => {

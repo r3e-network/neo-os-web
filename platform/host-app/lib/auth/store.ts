@@ -27,8 +27,8 @@ interface AuthActions {
 type AuthStore = AuthState & AuthActions;
 
 class WalletAuthUnavailableError extends Error {
-  constructor() {
-    super("Wallet authentication service is not configured.");
+  constructor(message = "Wallet authentication service is not configured.") {
+    super(message);
     this.name = "WalletAuthUnavailableError";
   }
 }
@@ -48,6 +48,34 @@ function getWalletAuthHeaders(): HeadersInit {
     : {};
 }
 
+function asAuthUnavailable(err: unknown, fallback: string): WalletAuthUnavailableError {
+  if (err instanceof WalletAuthUnavailableError) return err;
+  const message = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+  return new WalletAuthUnavailableError(message || fallback);
+}
+
+async function requestWalletAuthJson<T>(
+  path: string,
+  init: RequestInit,
+  failureMessage: string,
+): Promise<T> {
+  const edgeBaseUrl = getAuthEdgeBaseUrl();
+  if (!edgeBaseUrl) {
+    throw new WalletAuthUnavailableError();
+  }
+  const endpoint = `/api/edge/${encodeURIComponent(path)}`;
+
+  try {
+    const resp = await fetch(endpoint, init);
+    if (!resp.ok) {
+      throw new WalletAuthUnavailableError(`${failureMessage} (status=${resp.status})`);
+    }
+    return (await resp.json()) as T;
+  } catch (err: unknown) {
+    throw asAuthUnavailable(err, failureMessage);
+  }
+}
+
 async function authenticateWalletSession(address: string, publicKey: string) {
   const edgeBaseUrl = getAuthEdgeBaseUrl();
   if (!edgeBaseUrl) {
@@ -55,34 +83,37 @@ async function authenticateWalletSession(address: string, publicKey: string) {
   }
   const authHeaders = getWalletAuthHeaders();
 
-  const nonceResp = await fetch(`${edgeBaseUrl}/auth-wallet-nonce`, {
-    method: "POST",
-    headers: { ...authHeaders, "Content-Type": "application/json" },
-    body: JSON.stringify({ address }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!nonceResp.ok) throw new Error(`loginWallet: failed to get nonce (status=${nonceResp.status})`);
-  const { nonce, message } = await nonceResp.json();
+  const { nonce, message } = await requestWalletAuthJson<{ nonce: string; message: string }>(
+    "auth-wallet-nonce",
+    {
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ address }),
+      signal: AbortSignal.timeout(10000),
+    },
+    "loginWallet: failed to get nonce",
+  );
 
   const adapter = getWalletAdapter();
   if (!adapter) throw new Error("loginWallet: no wallet adapter available");
   const signResult = await adapter.signMessage(message);
 
-  const authResp = await fetch(`${edgeBaseUrl}/auth-wallet`, {
-    method: "POST",
-    headers: { ...authHeaders, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      address,
-      public_key: publicKey || signResult.publicKey,
-      signature: signResult.data,
-      message,
-      nonce,
-    }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!authResp.ok) throw new Error(`loginWallet: authentication failed (status=${authResp.status})`);
-
-  return authResp.json() as Promise<{ access_token: string; user: { id: string } }>;
+  return requestWalletAuthJson<{ access_token: string; user: { id: string } }>(
+    "auth-wallet",
+    {
+      method: "POST",
+      headers: { ...authHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        address,
+        public_key: publicKey || signResult.publicKey,
+        signature: signResult.data,
+        message,
+        nonce,
+      }),
+      signal: AbortSignal.timeout(10000),
+    },
+    "loginWallet: authentication failed",
+  );
 }
 
 function toWalletLoginError(err: unknown): string {
@@ -99,6 +130,13 @@ function toWalletLoginError(err: unknown): string {
   }
   if (lower.includes("timeout")) {
     return "Connection timed out. Please check your wallet is unlocked and try again.";
+  }
+  if (
+    lower.includes("wallet is on") ||
+    lower.includes("wallet network is not verified") ||
+    lower.includes("switch wallet network")
+  ) {
+    return raw;
   }
   return "Could not connect wallet. Please try again or use a different wallet.";
 }

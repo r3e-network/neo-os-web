@@ -36,6 +36,7 @@ describe("OneGateAdapter", () => {
         account: "0xonegatehash",
       }),
       invoke: jest.fn().mockResolvedValue({ txid: "0xonegatetx" }),
+      send: jest.fn().mockResolvedValue({ txid: "0xonegatesend" }),
     };
     (window as unknown as { OneGate?: unknown }).OneGate = legacyApi;
     (window as unknown as { OneGateDapiProvider?: unknown }).OneGateDapiProvider =
@@ -75,13 +76,16 @@ describe("OneGateAdapter", () => {
     ], [{ account: "NOneGateAddress", scopes: 1 }])).resolves.toEqual({
       txid: "0xonegatetx",
     });
+    await expect(
+      adapter.send("GAS", "100000000", "NRecipientAddress"),
+    ).resolves.toEqual({ txid: "0xonegatesend" });
 
     expect(legacyApi.getAccount).not.toHaveBeenCalled();
     expect(legacyApi.invoke).not.toHaveBeenCalled();
     expect(nep21Provider.invoke).toHaveBeenCalledWith(
       [{
         hash: "0xcontract",
-        operation: "claimReward",
+        operation: "ClaimReward",
         args: [{ type: "Hash160", value: "0xonegatehash" }],
       }],
       [{ account: "0xonegatehash", scopes: "CalledByEntry" }],
@@ -90,16 +94,69 @@ describe("OneGateAdapter", () => {
       [
         {
           hash: "0xcontract",
-          operation: "claimReward",
+          operation: "ClaimReward",
           args: [{ type: "Hash160", value: "0xonegatehash" }],
         },
         {
           hash: "0xanchor",
-          operation: "registerAnchor",
+          operation: "RegisterAnchor",
           args: [{ type: "String", value: "anchor-1" }],
         },
       ],
       [{ account: "0xonegatehash", scopes: "CalledByEntry" }],
+    );
+    expect(nep21Provider.send).toHaveBeenCalledWith(
+      "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      "0xonegatehash",
+      "NRecipientAddress",
+      "100000000",
+    );
+  });
+
+  it("delegates account and network events from the NEP-21 provider", async () => {
+    const listeners = new Map<string, () => void>();
+    const nep21Provider = {
+      name: "OneGate",
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xonegatehash", address: "NOneGateAddress", isDefault: true },
+      ]),
+      invoke: jest.fn(),
+      on: jest.fn((eventName: string, listener: () => void) => {
+        listeners.set(eventName, listener);
+      }),
+      removeListener: jest.fn(),
+    };
+    (window as unknown as { OneGateDapiProvider?: unknown }).OneGateDapiProvider =
+      nep21Provider;
+
+    const adapter = new OneGateAdapter();
+    await adapter.connect();
+
+    const accountListener = jest.fn();
+    const networkListener = jest.fn();
+    const unsubscribeAccount = adapter.onAccountChanged(accountListener);
+    const unsubscribeNetwork = adapter.onNetworkChanged(networkListener);
+
+    listeners.get("accountchanged")?.();
+    listeners.get("networkchanged")?.();
+
+    expect(accountListener).toHaveBeenCalledTimes(1);
+    expect(networkListener).toHaveBeenCalledTimes(1);
+
+    unsubscribeAccount();
+    unsubscribeNetwork();
+    expect(nep21Provider.removeListener).toHaveBeenCalledWith(
+      "accountchanged",
+      expect.any(Function),
+    );
+    expect(nep21Provider.removeListener).toHaveBeenCalledWith(
+      "accountschanged",
+      expect.any(Function),
+    );
+    expect(nep21Provider.removeListener).toHaveBeenCalledWith(
+      "networkchanged",
+      expect.any(Function),
     );
   });
 

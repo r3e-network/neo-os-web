@@ -1,0 +1,73 @@
+{
+  "hostUrl": "http://localhost:3036/miniapps/miniapp-flashloan?network=testnet&operation=requestLoan&amount=1&callbackContract=0x1111111111111111111111111111111111111111",
+  "hostHasConsoleTitle": true,
+  "hostHasActionConsole": true,
+  "hostHasRealMethod": true,
+  "hostHasCallbackField": true,
+  "hostHasOldRouteBuilder": false,
+  "hostRequestActionVisible": true,
+  "hostRequestActionDisabledUntilWallet": true,
+  "actionButtons": [
+    {
+      "text": "EN",
+      "disabled": false
+    },
+    {
+      "text": "Log In / Sign UpLog In",
+      "disabled": false
+    },
+    {
+      "text": "Refresh",
+      "disabled": false
+    },
+    {
+      "text": "Overview",
+      "disabled": false
+    },
+    {
+      "text": "Reviews",
+      "disabled": false
+    },
+    {
+      "text": "Forum",
+      "disabled": false
+    },
+    {
+      "text": "News",
+      "disabled": false
+    },
+    {
+      "text": "Request Flash Loan",
+      "disabled": false
+    },
+    {
+      "text": "Lookup Loan",
+      "disabled": false
+    },
+    {
+      "text": "Request Flash Loan",
+      "disabled": true
+    },
+    {
+      "text": "Action ConsoleRequest Flash LoanOpen",
+      "disabled": false
+    }
+  ],
+  "frameUrl": "http://localhost:3036/miniapps/flashloan/index.html?network=testnet&source=embed&operation=requestLoan&amount=1&callbackContract=0x1111111111111111111111111111111111111111",
+  "framePrefilledAmount": true,
+  "framePrefilledCallback": true,
+  "frameHasMethod": true,
+  "frameButtons": [
+    "1 GAS",
+    "10 GAS",
+    "100 GAS",
+    "Connect Wallet",
+    "Connect and Sign",
+    "Check Status"
+  ],
+  "frameOverlay": false,
+  "consoleErrors": [],
+  "screenshots": [
+    "host-loaded.png"
+  ]
+}
