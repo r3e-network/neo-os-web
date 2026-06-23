@@ -701,38 +701,209 @@
   box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
 }
 
-.neo-swap-amount-shell {
+.neo-swap-flow-amount-panel {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 9px;
+  grid-template-columns: minmax(180px, 1fr) minmax(136px, 0.42fr) auto;
+  gap: 10px;
+  align-items: stretch;
   min-width: 0;
   flex: 1 1 auto;
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 24%, rgba(22, 199, 132, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(234, 242, 255, 0.6));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 12px 26px rgba(31, 48, 42, 0.07);
 }
 
-.neo-swap-amount-input .neo-input__wrapper {
-  min-height: 48px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+.neo-swap-flow-amount-panel::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.56), transparent);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
 }
 
-.neo-swap-amount-input .neo-input__field {
-  height: 48px;
-  padding: 0;
-  color: var(--ns-ink);
-  font-size: 1.7rem;
+.neo-swap-flow-amount-panel.is-armed::before,
+.neo-swap-flow-amount-panel.is-quoted::before {
+  animation: neo-swap-flow-panel-scan 4.2s ease-in-out infinite;
+}
+
+.neo-swap-flow-amount-panel.is-quoted {
+  border-color: rgba(22, 199, 132, 0.26);
+  background:
+    radial-gradient(circle at 12% 24%, rgba(22, 199, 132, 0.16), transparent 34%),
+    radial-gradient(circle at 80% 0%, rgba(217, 165, 47, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(228, 248, 240, 0.68));
+}
+
+.neo-swap-flow-amount-field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(18, 33, 28, 0.07);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+}
+
+.neo-swap-flow-amount-field__label {
+  color: var(--ns-muted);
+  font-size: 10.5px;
   font-weight: 850;
-  line-height: 1;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 
-.neo-swap-amount-input .neo-input__field::placeholder {
-  color: #a3ada7;
-  font-size: 1rem;
-  font-weight: 650;
+.neo-swap-flow-amount-field__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+}
+
+.neo-swap-flow-amount-field input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ns-ink);
+  font: inherit;
+  font-size: 1.66rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  outline: none;
+}
+
+.neo-swap-flow-amount-field input::placeholder {
+  color: #8b9a92;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.neo-swap-flow-amount-field input:focus-visible {
+  box-shadow: 0 2px 0 var(--ns-brand);
+}
+
+.neo-swap-flow-amount-field__asset {
+  align-self: center;
+  padding: 5px 8px;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 999px;
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-deep);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.neo-swap-flow-rail {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 70px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(33, 118, 255, 0.12);
+  border-radius: 15px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(234, 242, 255, 0.72)),
+    rgba(255, 255, 255, 0.72);
+}
+
+.neo-swap-flow-rail__track {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 7px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(22, 199, 132, 0.18), rgba(33, 118, 255, 0.24), rgba(217, 165, 47, 0.22)),
+    rgba(255, 255, 255, 0.82);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 8px 18px rgba(31, 48, 42, 0.06);
+  transform: translateY(-50%);
+}
+
+.neo-swap-flow-token {
+  position: absolute;
+  left: 18px;
+  top: calc(50% - 17px);
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  opacity: 0;
+  transform: translateX(-28px) scale(0.84);
+}
+
+.neo-swap-flow-token .neo-swap-token-icon {
+  width: 34px;
+  height: 34px;
+  box-shadow:
+    0 10px 18px rgba(31, 48, 42, 0.13),
+    0 0 0 2px rgba(255, 255, 255, 0.74);
+}
+
+.neo-swap-flow-token--2 {
+  animation-delay: 420ms;
+}
+
+.neo-swap-flow-token--3 {
+  animation-delay: 840ms;
+}
+
+.neo-swap-flow-token--4 {
+  animation-delay: 1260ms;
+}
+
+.neo-swap-flow-amount-panel.is-armed .neo-swap-flow-token,
+.neo-swap-flow-amount-panel.is-quoted .neo-swap-flow-token {
+  animation: neo-swap-flow-token-route 3.2s ease-in-out infinite;
+}
+
+.neo-swap-flow-amount-panel.is-armed .neo-swap-flow-token--2,
+.neo-swap-flow-amount-panel.is-quoted .neo-swap-flow-token--2 {
+  animation-delay: 420ms;
+}
+
+.neo-swap-flow-amount-panel.is-armed .neo-swap-flow-token--3,
+.neo-swap-flow-amount-panel.is-quoted .neo-swap-flow-token--3 {
+  animation-delay: 840ms;
+}
+
+.neo-swap-flow-amount-panel.is-armed .neo-swap-flow-token--4,
+.neo-swap-flow-amount-panel.is-quoted .neo-swap-flow-token--4 {
+  animation-delay: 1260ms;
+}
+
+.neo-swap-flow-amount-panel.is-quoted .neo-swap-flow-rail__track {
+  animation: neo-swap-flow-rail-live 1.9s linear infinite;
+}
+
+.neo-swap-flow-max-button {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  white-space: nowrap;
 }
 
 .neo-swap-play-area .neo-input__field:focus-visible,
@@ -1281,6 +1452,85 @@
   }
 }
 
+@keyframes neo-swap-flow-panel-scan {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  72% {
+    opacity: 0.64;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes neo-swap-flow-token-route {
+  0% {
+    left: 18px;
+    opacity: 0;
+    transform: translateY(0) scale(0.84);
+  }
+
+  16% {
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    left: calc(100% - 52px);
+    opacity: 0;
+    transform: translateY(0) scale(1.06);
+  }
+}
+
+@keyframes neo-swap-flow-token-route-mobile {
+  0% {
+    top: 12px;
+    opacity: 0;
+    transform: scale(0.84);
+  }
+
+  16% {
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateX(3px) scale(1.02);
+  }
+
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    top: calc(100% - 46px);
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes neo-swap-flow-rail-live {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 120px 0;
+  }
+}
+
 @media (max-width: 980px) {
   .neo-swap-main-grid {
     grid-template-columns: 1fr;
@@ -1334,6 +1584,14 @@
     grid-template-columns: 1fr;
   }
 
+  .neo-swap-flow-amount-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-swap-flow-rail {
+    min-height: 82px;
+  }
+
   .neo-swap-slippage__controls {
     justify-content: flex-start;
   }
@@ -1348,8 +1606,7 @@
   }
 
   .neo-swap-balance-line,
-  .neo-swap-receive-amount,
-  .neo-swap-amount-input .neo-input__field {
+  .neo-swap-receive-amount {
     text-align: left;
   }
 
@@ -1359,8 +1616,8 @@
     justify-content: center;
   }
 
-  .neo-swap-amount-shell {
-    grid-template-columns: 1fr auto;
+  .neo-swap-flow-amount-field input {
+    font-size: 1.48rem;
   }
 
   .neo-swap-token-option {
@@ -1370,6 +1627,26 @@
   .neo-swap-token-option small {
     grid-column: 2;
     text-align: left;
+  }
+
+  .neo-swap-flow-rail__track {
+    top: 12px;
+    bottom: 12px;
+    left: 50%;
+    right: auto;
+    width: 7px;
+    height: auto;
+    transform: translateX(-50%);
+  }
+
+  .neo-swap-flow-token {
+    left: calc(50% - 17px);
+    top: 12px;
+  }
+
+  .neo-swap-flow-amount-panel.is-armed .neo-swap-flow-token,
+  .neo-swap-flow-amount-panel.is-quoted .neo-swap-flow-token {
+    animation-name: neo-swap-flow-token-route-mobile;
   }
 }
 
@@ -1400,6 +1677,9 @@
   .neo-swap-token-orb--to,
   .neo-swap-liquidity-lane__pulse,
   .neo-swap-play-area--loading .neo-swap-liquidity-lane__rate,
+  .neo-swap-flow-amount-panel::before,
+  .neo-swap-flow-rail__track,
+  .neo-swap-flow-token,
   .neo-swap-token-button,
   .neo-swap-token-option,
   .neo-swap-chip {
