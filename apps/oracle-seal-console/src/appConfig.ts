@@ -316,6 +316,22 @@ const appMessages = {
     en: "JSON source, checksum only.",
     zh: "JSON 来源，仅生成校验值。",
   },
+  sealPayloadChamberLabel: {
+    en: "Payload chamber",
+    zh: "载荷舱",
+  },
+  sealPayloadChamberTitle: {
+    en: "JSON payload chamber",
+    zh: "JSON 载荷舱",
+  },
+  sealPayloadStateReady: {
+    en: "Valid JSON",
+    zh: "JSON 有效",
+  },
+  sealPayloadStateInvalid: {
+    en: "Needs repair",
+    zh: "需要修复",
+  },
   payloadReadyHint: {
     en: "JSON is valid; only its checksum enters the result payload.",
     zh: "JSON 有效；结果 payload 只包含它的校验值。",

@@ -82,8 +82,9 @@ export default function PlayArea({
   );
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [copied, setCopied] = useState(false);
-  const [actionPreview, setActionPreview] =
-    useState<SealActionPreview | null>(null);
+  const [actionPreview, setActionPreview] = useState<SealActionPreview | null>(
+    null,
+  );
   const actionPreviewTimeout = useRef<number | null>(null);
   const copiedTimeout = useRef<number | null>(null);
   const [initialDigest] = useState(() =>
@@ -125,6 +126,9 @@ export default function PlayArea({
   const payloadDigest = String(draftResult.payload.payloadDigest ?? "");
   const recipientValue = values.recipient ?? "";
   const payloadValue = values.payload ?? "";
+  const payloadStateLabel = payloadValid
+    ? t("sealPayloadStateReady")
+    : t("sealPayloadStateInvalid");
   const recipientLabel = recipientValue.trim() || t("digestPlaceholder");
   const isBuilding = actionPreview === "build";
   const isCopying = actionPreview === "copy";
@@ -487,26 +491,61 @@ export default function PlayArea({
                     <strong>{t("sealPayloadCopy")}</strong>
                   </span>
                 </div>
-                <NeoInput
-                  type="textarea"
-                  label={t("payload")}
-                  value={payloadValue}
-                  placeholder={t("payloadPlaceholder")}
-                  hint={payloadValid ? t("payloadReadyHint") : ""}
-                  error={payloadValid ? "" : t("payloadInvalidHint")}
-                  onChange={(value) => updateValue("payload", value)}
-                />
-                <div className="seal-digest-strip">
-                  <span>
-                    <small>{t("payloadDigest")}</small>
-                    <strong>{payloadDigest}</strong>
-                  </span>
-                  <span>
-                    <small>{t("sealPayloadSize")}</small>
-                    <strong>
-                      {t("sealPayloadChars", { count: payloadValue.length })}
-                    </strong>
-                  </span>
+                <div
+                  className={`seal-payload-chamber${
+                    payloadValid
+                      ? " seal-payload-chamber--ready"
+                      : " seal-payload-chamber--invalid"
+                  }`}
+                  role="group"
+                  aria-label={t("sealPayloadChamberLabel")}
+                >
+                  <div className="seal-payload-chamber__toolbar">
+                    <span className="seal-payload-chamber__title">
+                      <FileJson2 size={15} aria-hidden="true" />
+                      {t("sealPayloadChamberTitle")}
+                    </span>
+                    <span
+                      className={`seal-payload-chamber__state${
+                        payloadValid
+                          ? " seal-payload-chamber__state--ready"
+                          : " seal-payload-chamber__state--invalid"
+                      }`}
+                    >
+                      {payloadValid ? (
+                        <Check size={14} aria-hidden="true" />
+                      ) : (
+                        <AlertTriangle size={14} aria-hidden="true" />
+                      )}
+                      {payloadStateLabel}
+                    </span>
+                  </div>
+                  <NeoInput
+                    className="seal-payload-input"
+                    type="textarea"
+                    label={t("payload")}
+                    value={payloadValue}
+                    placeholder={t("payloadPlaceholder")}
+                    hint={payloadValid ? t("payloadReadyHint") : ""}
+                    error={payloadValid ? "" : t("payloadInvalidHint")}
+                    onChange={(value) => updateValue("payload", value)}
+                  />
+                  <div className="seal-digest-strip">
+                    <span>
+                      <small>{t("payloadDigest")}</small>
+                      <strong>{payloadDigest}</strong>
+                    </span>
+                    <span>
+                      <small>{t("sealPayloadSize")}</small>
+                      <strong>
+                        {t("sealPayloadChars", { count: payloadValue.length })}
+                      </strong>
+                    </span>
+                    <span>
+                      <small>{t("protectionLabel")}</small>
+                      <strong>{t("sealReferenceOnly")}</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
