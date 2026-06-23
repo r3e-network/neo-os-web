@@ -187,6 +187,57 @@ describe("Unbreakable Vault PlayArea", () => {
     });
   });
 
+  it("seals the vault immediately on create and locks repeat submits", async () => {
+    let finishCreate: (() => void) | undefined;
+    const createPromise = new Promise<void>((resolve) => {
+      finishCreate = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "createVault" ? createPromise : Promise.resolve(),
+    );
+
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.change(screen.getByLabelText("Vault Title"), {
+      target: { value: "Crack me" },
+    });
+    fireEvent.change(screen.getByLabelText("Bounty"), {
+      target: { value: "1" },
+    });
+    fireEvent.change(screen.getByLabelText("Vault Secret"), {
+      target: { value: "open sesame" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm Secret"), {
+      target: { value: "open sesame" },
+    });
+
+    const createButton = screen.getByRole("button", {
+      name: "Create Vault (bounty + hash)",
+    });
+    fireEvent.click(createButton);
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith(
+        "createVault",
+        expect.objectContaining({
+          bounty: "1",
+          title: "Crack me",
+          secret: "open sesame",
+        }),
+      );
+      expect(container.querySelector(".vault-play-area")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".vault-command-shell")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".vault-play-area--creating")).toBeTruthy();
+      expect(container.querySelector(".vault-system-stage--creating")).toBeTruthy();
+      expect(container.querySelector(".vault-blueprint__lock.is-creating")).toBeTruthy();
+    });
+
+    expect(createButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(createButton);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    finishCreate?.();
+  });
+
   it("renders difficulty as challenge cards instead of a native select", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
@@ -243,6 +294,148 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(container.querySelector(".vault-break-stage--attempt")).toBeTruthy();
     expect(container.querySelector(".vault-break-stage__reticle")).toBeTruthy();
     expect(container.querySelectorAll(".vault-break-stage__route .is-active").length).toBe(3);
+  });
+
+  it("scans a loaded vault immediately and prevents duplicate load dispatches", async () => {
+    let finishLoad: (() => void) | undefined;
+    const loadPromise = new Promise<void>((resolve) => {
+      finishLoad = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "loadVault" ? loadPromise : Promise.resolve(),
+    );
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ vaultIdInput: "7" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const loadButton = screen.getByRole("button", { name: "Load Vault" });
+    fireEvent.click(loadButton);
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("loadVault", "7");
+      expect(container.querySelector(".vault-play-area")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".vault-break-stage--loading")).toBeTruthy();
+      expect(container.querySelector(".vault-id-scanner.is-loading")).toBeTruthy();
+      expect(container.querySelector(".vault-target-card--busy")).toBeTruthy();
+    });
+
+    expect(loadButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(loadButton);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    finishLoad?.();
+  });
+
+  it("turns break, bounty top-up, and reclaim into immediate vault action motion", async () => {
+    let finishAttempt: (() => void) | undefined;
+    const attemptPromise = new Promise<void>((resolve) => {
+      finishAttempt = resolve;
+    });
+    const attemptDispatch = vi.fn((name: string) =>
+      name === "attemptBreak" ? attemptPromise : Promise.resolve(),
+    );
+    const attemptView = render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: activeVault,
+          attemptSecret: "cat",
+          canAttempt: true,
+        })}
+        dispatch={attemptDispatch}
+      />,
+    );
+
+    const attemptButton = screen.getByRole("button", { name: "Attempt Break" });
+    fireEvent.click(attemptButton);
+
+    await waitFor(() => {
+      expect(attemptDispatch).toHaveBeenCalledWith("attemptBreak");
+      expect(attemptView.container.querySelector(".vault-play-area--attempting")).toBeTruthy();
+      expect(attemptView.container.querySelector(".vault-break-stage--breaking")).toBeTruthy();
+      expect(attemptView.container.querySelector(".vault-target-card--busy.vault-target-card--attempting")).toBeTruthy();
+      expect(attemptView.container.querySelector(".vault-secret-attempt.is-breaking")).toBeTruthy();
+    });
+    expect(attemptButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(attemptButton);
+    expect(attemptDispatch).toHaveBeenCalledTimes(1);
+    finishAttempt?.();
+    attemptView.unmount();
+
+    let finishTopUp: (() => void) | undefined;
+    const topUpPromise = new Promise<void>((resolve) => {
+      finishTopUp = resolve;
+    });
+    const topUpDispatch = vi.fn((name: string) =>
+      name === "increaseBounty" ? topUpPromise : Promise.resolve(),
+    );
+    const topUpView = render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: activeVault,
+        })}
+        dispatch={topUpDispatch}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Increase Bounty (GAS)"), {
+      target: { value: "2.5" },
+    });
+    const topUpButton = screen.getByRole("button", { name: "Add Bounty" });
+    fireEvent.click(topUpButton);
+
+    await waitFor(() => {
+      expect(topUpDispatch).toHaveBeenCalledWith("increaseBounty", "7", "2.5");
+      expect(topUpView.container.querySelector(".vault-play-area--funding")).toBeTruthy();
+      expect(topUpView.container.querySelector(".vault-break-stage--funding")).toBeTruthy();
+      expect(topUpView.container.querySelector(".vault-target-card--busy.vault-target-card--funding")).toBeTruthy();
+      expect(topUpView.container.querySelector(".vault-topup--busy")).toBeTruthy();
+    });
+    expect(topUpButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(topUpButton);
+    expect(topUpDispatch).toHaveBeenCalledTimes(1);
+    finishTopUp?.();
+    topUpView.unmount();
+
+    let finishReclaim: (() => void) | undefined;
+    const reclaimPromise = new Promise<void>((resolve) => {
+      finishReclaim = resolve;
+    });
+    const reclaimDispatch = vi.fn((name: string) =>
+      name === "settleVault" ? reclaimPromise : Promise.resolve(),
+    );
+    const reclaimView = render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: claimableVault,
+          canReclaim: true,
+        })}
+        dispatch={reclaimDispatch}
+      />,
+    );
+
+    const reclaimButton = screen.getByRole("button", { name: "Reclaim Vault" });
+    fireEvent.click(reclaimButton);
+
+    await waitFor(() => {
+      expect(reclaimDispatch).toHaveBeenCalledWith("settleVault");
+      expect(reclaimView.container.querySelector(".vault-play-area--reclaiming")).toBeTruthy();
+      expect(reclaimView.container.querySelector(".vault-break-stage--reclaiming")).toBeTruthy();
+      expect(reclaimView.container.querySelector(".vault-target-card--busy.vault-target-card--reclaiming")).toBeTruthy();
+    });
+    expect(reclaimButton.getAttribute("aria-busy")).toBe("true");
+    fireEvent.click(reclaimButton);
+    expect(reclaimDispatch).toHaveBeenCalledTimes(1);
+    finishReclaim?.();
   });
 
   it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
@@ -466,6 +659,10 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(css).toContain("@keyframes vault-secret-ready-pulse");
     expect(css).toContain("@keyframes vault-break-scan");
     expect(css).toContain("@keyframes vault-break-reticle");
+    expect(css).toContain("@keyframes vault-secret-break-force");
+    expect(css).toContain("@keyframes vault-secret-break-charge");
+    expect(css).toContain("@keyframes vault-target-action-sweep");
+    expect(css).toContain("@keyframes vault-target-action-pulse");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".vault-system-stage__token");
     expect(css).toContain(".vault-system-stage__difficulty");
@@ -474,7 +671,11 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(css).toContain(".vault-secret-panel--ready");
     expect(css).toContain(".vault-id-scanner");
     expect(css).toContain(".vault-secret-attempt");
+    expect(css).toContain(".vault-secret-attempt.is-breaking");
     expect(css).toContain(".vault-break-stage__scan");
+    expect(css).toContain(".vault-break-stage--breaking");
+    expect(css).toContain(".vault-target-card--busy");
+    expect(css).toContain(".vault-topup--busy");
     expect(css).toContain("animation: none");
   });
 });
