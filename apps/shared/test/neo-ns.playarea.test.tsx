@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -84,7 +86,7 @@ function domain(overrides: Partial<Domain> = {}): Domain {
 
 describe("Neo NS PlayArea", () => {
   it("renders the registration row with cost when a name is available", () => {
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState({
@@ -95,6 +97,7 @@ describe("Neo NS PlayArea", () => {
       />,
     );
 
+    expect(container.querySelector(".neo-ns-play-area--available")).toBeTruthy();
     expect(document.querySelector(".nns-result-card--available")).toBeTruthy();
     const resultAction = document.querySelector(".nns-result-action");
     expect(resultAction?.textContent).toContain("Cost");
@@ -105,7 +108,7 @@ describe("Neo NS PlayArea", () => {
   });
 
   it("shows the resolved owner (not just a Taken pill) for a taken name", () => {
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={baseState({
@@ -115,6 +118,7 @@ describe("Neo NS PlayArea", () => {
       />,
     );
 
+    expect(container.querySelector(".neo-ns-play-area--taken")).toBeTruthy();
     expect(document.querySelector(".nns-result-card--taken")).toBeTruthy();
     // The owner address is surfaced to the user.
     const ownerRow = document.querySelector(".nns-owner-line");
@@ -127,12 +131,32 @@ describe("Neo NS PlayArea", () => {
 
   it("dispatches searchDomain on Search click", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
+    const { container } = render(
       <PlayArea t={t} state={baseState({ searchQuery: "alice" })} dispatch={dispatch} />,
     );
 
+    expect(container.querySelector(".neo-ns-play-area--query-ready")).toBeTruthy();
+    expect(container.querySelector(".nns-search-button--ready")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("searchDomain"));
+  });
+
+  it("keeps the registry search motion and reduced-motion fallback covered", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../neo-ns/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes nns-hero-drift");
+    expect(styles).toContain("@keyframes nns-registry-scan");
+    expect(styles).toContain("@keyframes nns-registry-badge-ready");
+    expect(styles).toContain("@keyframes nns-primary-ready");
+    expect(styles).toContain("@keyframes nns-result-reveal");
+    expect(styles).toContain("@keyframes nns-route-pulse");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nns-hero__stage img[\s\S]*animation:\s*none/,
+    );
   });
 
   it("shows the current target record in the manage panel when set", () => {
