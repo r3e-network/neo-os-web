@@ -21,6 +21,7 @@ interface WagerControlsProps {
   /** Whether the player has prepaid credit to recover. */
   hasCredit?: boolean;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  onFlipStart?: () => void;
 }
 
 export default function WagerControls({
@@ -35,8 +36,11 @@ export default function WagerControls({
   credit,
   hasCredit,
   dispatch,
+  onFlipStart,
 }: WagerControlsProps) {
   const handleFlip = async () => {
+    if (!canBet || isFlipping) return;
+    onFlipStart?.();
     await dispatch("placeBet");
   };
   const handleWithdraw = async () => {
