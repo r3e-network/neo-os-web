@@ -418,6 +418,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div
             className={`convert-pipeline convert-pipeline--${pipelineState}`}
             aria-label={t("flowStageTitle")}
+            aria-busy={isLoading || undefined}
+            data-state={pipelineState}
           >
             <figure className="convert-pipeline__media">
               <img
@@ -426,7 +428,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 loading="lazy"
                 decoding="async"
               />
-              <figcaption>
+              <div className="convert-pipeline__route" aria-hidden="true">
+                <span className="convert-pipeline__route-line" />
+                <span className="convert-pipeline__route-node convert-pipeline__route-node--input" />
+                <span className="convert-pipeline__route-node convert-pipeline__route-node--derive" />
+                <span className="convert-pipeline__route-node convert-pipeline__route-node--output" />
+                <span className="convert-pipeline__route-packet" />
+              </div>
+              <figcaption role="status" aria-live="polite">
                 <span>{t("flowStageEyebrow")}</span>
                 <strong>{statusLabel || t("flowStageResting")}</strong>
               </figcaption>
