@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Check, Link2, Shield, Wallet } from "lucide-react";
-import { useWalletStore } from "@/lib/wallet/store";
+import {
+  selectConnectedWalletAddress,
+  useWalletStore,
+} from "@/lib/wallet/store";
 import { oauthProviders, useOAuthStore } from "@/lib/oauth/store";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
@@ -24,7 +27,7 @@ import { useI18n } from "@/lib/i18n/react";
 
 export default function AccountPage() {
   const { t } = useI18n();
-  const { address } = useWalletStore();
+  const address = useWalletStore(selectConnectedWalletAddress);
   const { accounts, loading, linkAccount, unlinkAccount } = useOAuthStore();
   const [addressCopied, setAddressCopied] = useState(false);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

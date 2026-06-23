@@ -12,6 +12,8 @@ jest.mock("../../components/features/gamification", () => ({
 }));
 
 jest.mock("../../lib/wallet/store", () => ({
+  selectConnectedWalletAddress: (state: { connected: boolean; address: string }) =>
+    state.connected && state.address ? state.address : "",
   useWalletStore: jest.fn(),
 }));
 
@@ -21,7 +23,9 @@ const { useWalletStore } = jest.requireMock("../../lib/wallet/store") as {
 
 describe("LeaderboardPageClient", () => {
   it("passes the connected wallet address to the leaderboard widget", () => {
-    useWalletStore.mockReturnValue({ address: "Nf8TestWalletAddress" });
+    useWalletStore.mockImplementation((selector: (state: unknown) => unknown) =>
+      selector({ connected: true, address: "Nf8TestWalletAddress" }),
+    );
 
     render(<LeaderboardPageClient />);
 
@@ -32,7 +36,26 @@ describe("LeaderboardPageClient", () => {
   });
 
   it("renders safely when no wallet is connected", () => {
-    useWalletStore.mockReturnValue({ address: "" });
+    useWalletStore.mockImplementation((selector: (state: unknown) => unknown) =>
+      selector({ connected: false, address: "" }),
+    );
+
+    render(<LeaderboardPageClient />);
+
+    expect(screen.getByTestId("leaderboard")).toHaveAttribute(
+      "data-wallet",
+      "",
+    );
+  });
+
+  it("does not pass a saved restore-pending address as the active wallet", () => {
+    useWalletStore.mockImplementation((selector: (state: unknown) => unknown) =>
+      selector({
+        connected: false,
+        address: "NRestorePendingWalletAddress",
+        restorePending: true,
+      }),
+    );
 
     render(<LeaderboardPageClient />);
 

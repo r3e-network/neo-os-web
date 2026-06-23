@@ -9,6 +9,7 @@ import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { useAuthStore } from "@/lib/auth/store";
+import { useWalletAuthSessionGuard } from "@/hooks/useWalletAuthSessionGuard";
 import { useWalletRouteNetworkGuard } from "@/hooks/useWalletRouteNetworkGuard";
 import "@/styles/globals.css";
 
@@ -61,6 +62,7 @@ function MonitoringInit() {
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   useWalletRouteNetworkGuard(router.asPath);
+  useWalletAuthSessionGuard();
 
   return (
     <div className="font-sans">
