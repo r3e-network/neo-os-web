@@ -221,12 +221,22 @@ describe("On-Chain Tarot PlayArea", () => {
     expect(styles).toContain("@keyframes tarot-oracle-card-deal");
     expect(styles).toContain("@keyframes tarot-awaiting-card-breathe");
     expect(styles).toContain("@keyframes tarot-card-back-glint");
+    expect(styles).toContain("@keyframes tarot-card-reveal-burst");
+    expect(styles).toContain("@keyframes tarot-card-reveal-sheen");
+    expect(styles).toContain("@keyframes tarot-card-face-flash");
+    expect(styles).toContain("@keyframes tarot-spread-complete-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-play-area--intent-pulse \.tarot-intention-board/,
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-oracle-lane__step\.is-ready \.tarot-oracle-lane__card/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-card-slot--revealed::before[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-card-slot--revealed \.tarot-card-front::after[\s\S]*animation:\s*none/,
     );
     expect(styles).toMatch(
       /@media \(max-width: 1080px\)[\s\S]*\.tarot-spread-panel[\s\S]*order:\s*1/,
