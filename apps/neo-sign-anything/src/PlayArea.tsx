@@ -26,7 +26,9 @@ interface PlayAreaProps {
 }
 
 function shortValue(value: string): string {
-  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
+  return value.length > 18
+    ? `${value.slice(0, 10)}...${value.slice(-6)}`
+    : value;
 }
 
 function messageByteLength(value: string): number {
@@ -54,7 +56,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canSubmit = message.trim().length > 0 && messageBytes <= 1024;
   const canBroadcast = canSubmit;
   const actionBusy = isSigning || isBroadcasting;
-  const signaturePreview = signature ? shortValue(signature) : t("noSignatureYet");
+  const signaturePreview = signature
+    ? shortValue(signature)
+    : t("noSignatureYet");
   const txHashPreview = txHash
     ? shortValue(txHash)
     : txPending
@@ -62,11 +66,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : t("noBroadcastYet");
   const trimmedMessage = message.trim();
   const isDigestMessage = /^sha256:[0-9a-f]{64}$/i.test(trimmedMessage);
-  const messageKind = isDigestMessage ? t("messageTypeDigest") : t("messageTypePlain");
-  const previewTitle = trimmedMessage ? messageKind : t("messagePreviewEmptyTitle");
+  const messageKind = isDigestMessage
+    ? t("messageTypeDigest")
+    : t("messageTypePlain");
+  const previewTitle = trimmedMessage
+    ? messageKind
+    : t("messagePreviewEmptyTitle");
   const previewStatus = canSubmit ? t("ready") : t("awaitingSignature");
   const byteUsage = Math.min(100, Math.round((messageBytes / 1024) * 100));
   const isOverLimit = messageBytes > 1024;
+  const routeStageState = isSigning
+    ? "signing"
+    : isBroadcasting
+      ? "broadcasting"
+      : txHash
+        ? "broadcasted"
+        : signature
+          ? "signed"
+          : canSubmit
+            ? "ready"
+            : "empty";
+  const routeStageTitle =
+    routeStageState === "signing"
+      ? t("signRouteStageSigning")
+      : routeStageState === "broadcasting"
+        ? t("signRouteStageBroadcasting")
+        : routeStageState === "broadcasted"
+          ? t("signRouteStageBroadcasted")
+          : routeStageState === "signed"
+            ? t("signRouteStageSigned")
+            : routeStageState === "ready"
+              ? t("signRouteStageReady")
+              : t("signRouteStageEmpty");
+  const routeStageHint =
+    routeStageState === "signing"
+      ? t("signRouteStageSigningHint")
+      : routeStageState === "broadcasting"
+        ? t("signRouteStageBroadcastingHint")
+        : routeStageState === "broadcasted"
+          ? t("signRouteStageBroadcastedHint")
+          : routeStageState === "signed"
+            ? t("signRouteStageSignedHint")
+            : routeStageState === "ready"
+              ? t("signRouteStageReadyHint")
+              : t("signRouteStageEmptyHint");
   const playAreaClassName = [
     "sign-play-area",
     canSubmit ? "sign-play-area--ready" : "",
@@ -137,7 +180,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <FileSignature size={24} />
                 </span>
                 <div className="sign-hero-copy">
-                  <span className="sign-hero-eyebrow">{t("signHeroKicker")}</span>
+                  <span className="sign-hero-eyebrow">
+                    {t("signHeroKicker")}
+                  </span>
                   <h2>{t("signHeroTitle")}</h2>
                   <p>{t("signHeroSubtitle")}</p>
                 </div>
@@ -164,8 +209,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           <details className="sign-flow-disclosure">
             <summary>
-              <span className="sign-flow-disclosure__label">{t("signFlowTitle")}</span>
-              <ChevronDown className="sign-flow-disclosure__chevron" size={18} aria-hidden="true" />
+              <span className="sign-flow-disclosure__label">
+                {t("signFlowTitle")}
+              </span>
+              <ChevronDown
+                className="sign-flow-disclosure__chevron"
+                size={18}
+                aria-hidden="true"
+              />
             </summary>
             <div className="sign-flow-strip">
               <div>
@@ -195,7 +246,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </strong>
               </div>
               <div className="sign-composer-shell">
-                <div className="sign-template-rail" aria-label={t("messageTemplateLabel")}>
+                <div
+                  className="sign-template-rail"
+                  aria-label={t("messageTemplateLabel")}
+                >
                   {messageTemplates.map(({ key, label, body, Icon }) => (
                     <button
                       key={key}
@@ -207,16 +261,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </button>
                   ))}
                 </div>
-                <div className={documentPreviewClassName} aria-label={t("messagePreviewLabel")}>
+                <div
+                  className={documentPreviewClassName}
+                  aria-label={t("messagePreviewLabel")}
+                >
                   <div className="sign-document-preview__paper">
                     <div className="sign-document-preview__toolbar">
-                      <span className="sign-document-preview__type">{previewTitle}</span>
+                      <span className="sign-document-preview__type">
+                        {previewTitle}
+                      </span>
                       <span className={canSubmit ? "is-ready" : ""}>
                         <ShieldCheck size={14} aria-hidden="true" />
                         {previewStatus}
                       </span>
                     </div>
-                    <span className="sign-document-preview__seal" aria-hidden="true">
+                    <span
+                      className="sign-document-preview__seal"
+                      aria-hidden="true"
+                    >
                       <ShieldCheck size={25} />
                     </span>
                     <label className="sign-message-field sign-message-field--paper">
@@ -228,7 +290,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         value={message}
                         placeholder={t("messagePlaceholder")}
                         rows={7}
-                        onChange={(event) => dispatch("setMessage", event.currentTarget.value)}
+                        onChange={(event) =>
+                          dispatch("setMessage", event.currentTarget.value)
+                        }
                       />
                     </label>
                   </div>
@@ -241,7 +305,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </span>
                     <span>
                       <small>{t("walletAddress")}</small>
-                      <strong>{address ? shortValue(address) : t("disconnected")}</strong>
+                      <strong>
+                        {address ? shortValue(address) : t("disconnected")}
+                      </strong>
                     </span>
                     <span>
                       <small>{t("walletPrompt")}</small>
@@ -249,6 +315,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </span>
                   </div>
                 </div>
+                <section
+                  className={`sign-route-stage sign-route-stage--${routeStageState}`}
+                  aria-label={t("signRouteStageLabel")}
+                  aria-live="polite"
+                  aria-busy={actionBusy || undefined}
+                >
+                  <div className="sign-route-stage__copy">
+                    <small>{t("signRouteStageLabel")}</small>
+                    <strong>{routeStageTitle}</strong>
+                    <span>{routeStageHint}</span>
+                  </div>
+                  <div className="sign-route-stage__rail" aria-hidden="true">
+                    <span className="sign-route-stage__node sign-route-stage__node--message">
+                      <FileText size={17} />
+                    </span>
+                    <span className="sign-route-stage__track sign-route-stage__track--wallet">
+                      <span className="sign-route-stage__packet">
+                        <FileSignature size={15} />
+                      </span>
+                    </span>
+                    <span className="sign-route-stage__node sign-route-stage__node--wallet">
+                      <WalletCards size={17} />
+                    </span>
+                    <span className="sign-route-stage__track sign-route-stage__track--proof">
+                      <span className="sign-route-stage__packet sign-route-stage__packet--proof">
+                        <BadgeCheck size={15} />
+                      </span>
+                    </span>
+                    <span className="sign-route-stage__node sign-route-stage__node--proof">
+                      <ShieldCheck size={17} />
+                    </span>
+                  </div>
+                  <div className="sign-route-stage__labels" aria-hidden="true">
+                    <span>{t("signRouteStageMessage")}</span>
+                    <span>{t("signRouteStageWallet")}</span>
+                    <span>{t("signRouteStageProof")}</span>
+                  </div>
+                </section>
                 <div
                   className={`sign-byte-meter${isOverLimit ? " is-over" : ""}`}
                   role="progressbar"
@@ -314,18 +418,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className={resultPanelClassName}>
               <div className="sign-section-heading">
                 <span>{t("resultPanelTitle")}</span>
-                <strong>{signature || txHash ? t("ready") : t("awaitingSignature")}</strong>
+                <strong>
+                  {signature || txHash ? t("ready") : t("awaitingSignature")}
+                </strong>
               </div>
               {!signature && !txHash && (
                 <div className="sign-result-placeholder">
-                  <span className="sign-result-placeholder__icon" aria-hidden="true">
+                  <span
+                    className="sign-result-placeholder__icon"
+                    aria-hidden="true"
+                  >
                     <BadgeCheck size={26} />
                   </span>
                   <p>{t("proofEmptyHint")}</p>
                 </div>
               )}
               <div className="sign-result-stack">
-                <div className={`sign-result-box${signature ? "" : " is-empty"}`}>
+                <div
+                  className={`sign-result-box${signature ? "" : " is-empty"}`}
+                >
                   <span>{t("signatureResult")}</span>
                   <strong>{signaturePreview}</strong>
                   {publicKey && (
@@ -353,7 +464,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </button>
                   </div>
                   {signature && (
-                    <span className="sign-result-meta">{t("verifyBundleHint")}</span>
+                    <span className="sign-result-meta">
+                      {t("verifyBundleHint")}
+                    </span>
                   )}
                 </div>
                 <div className={`sign-result-box${txHash ? "" : " is-empty"}`}>
@@ -425,7 +538,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <details className="sign-details">
               <summary>
                 <span>{t("broadcastPanelTitle")}</span>
-                <ChevronDown className="sign-details__chevron" size={18} aria-hidden="true" />
+                <ChevronDown
+                  className="sign-details__chevron"
+                  size={18}
+                  aria-hidden="true"
+                />
               </summary>
               <div className="sign-details__body">
                 <p>{t("broadcastPanelCopy")}</p>
