@@ -840,6 +840,79 @@ $burn-amber: var(--ns-warning, #f5a623);
   animation-delay: 720ms;
 }
 
+.burn-league-ember-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.burn-league-ember-burst__spark {
+  position: absolute;
+  left: 50%;
+  bottom: 124px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: radial-gradient(circle, #fff8df 0%, $burn-amber 52%, rgba(22, 199, 132, 0) 74%);
+  box-shadow:
+    0 0 10px rgba(245, 166, 35, 0.36),
+    0 0 16px rgba(22, 199, 132, 0.14);
+  opacity: 0;
+  transform: translate(-50%, 0) scale(0.62);
+  animation: burn-league-ember-burst-flight 780ms
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
+}
+
+.burn-league-ember-burst__spark--1 {
+  --ember-x: -82px;
+  --ember-y: -68px;
+  animation-delay: 0ms;
+}
+
+.burn-league-ember-burst__spark--2 {
+  --ember-x: -52px;
+  --ember-y: -94px;
+  animation-delay: 38ms;
+}
+
+.burn-league-ember-burst__spark--3 {
+  --ember-x: -18px;
+  --ember-y: -74px;
+  animation-delay: 76ms;
+}
+
+.burn-league-ember-burst__spark--4 {
+  --ember-x: 18px;
+  --ember-y: -102px;
+  animation-delay: 114ms;
+}
+
+.burn-league-ember-burst__spark--5 {
+  --ember-x: 48px;
+  --ember-y: -72px;
+  animation-delay: 152ms;
+}
+
+.burn-league-ember-burst__spark--6 {
+  --ember-x: 82px;
+  --ember-y: -92px;
+  animation-delay: 190ms;
+}
+
+.burn-league-ember-burst__spark--7 {
+  --ember-x: -108px;
+  --ember-y: -40px;
+  animation-delay: 96ms;
+}
+
+.burn-league-ember-burst__spark--8 {
+  --ember-x: 108px;
+  --ember-y: -46px;
+  animation-delay: 136ms;
+}
+
 .burn-league-burn-trail {
   position: relative;
   display: grid;
@@ -1794,6 +1867,24 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
+@keyframes burn-league-ember-burst-flight {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.62);
+  }
+  18% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 0.86;
+    transform: translate(calc(-50% + var(--ember-x)), var(--ember-y)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--ember-x)), calc(var(--ember-y) - 18px)) scale(0.28);
+  }
+}
+
 @keyframes burn-league-trail-flame {
   0%,
   100% {
@@ -2020,6 +2111,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   .burn-league-stake-stage::after,
   .burn-league-stake-stage__image,
   .burn-league-fuel-meter__fill,
+  .burn-league-ember-burst__spark,
   .burn-league-burn-trail__flame,
   .burn-league-fuel-chamber,
   .burn-league-fuel-chamber::after,
