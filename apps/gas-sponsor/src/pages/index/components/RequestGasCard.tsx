@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { AlertCircle, Fuel, Gauge } from "lucide-react";
 import { NeoButton } from "@shared/components-react";
 
@@ -33,6 +34,16 @@ export default function RequestGasCard({
   const formatBalance = (val: string | number) =>
     parseFloat(String(val)).toFixed(4);
   const selectedAmount = Number.parseFloat(requestAmount || "0");
+  const maxAmount = Number.parseFloat(maxRequestAmount || "0");
+  const pumpFillPercent =
+    Number.isFinite(selectedAmount) && Number.isFinite(maxAmount) && maxAmount > 0
+      ? Math.max(0, Math.min(100, (selectedAmount / maxAmount) * 100))
+      : 0;
+  const requestState = isRequesting
+    ? "requesting"
+    : isConnected && isEligible && remainingQuota > 0
+      ? "armed"
+      : "idle";
 
   // When the sponsorship API is unconfigured or down, do not present a "balance
   // exceeds threshold" / enabled request that throws — state it honestly.
@@ -67,9 +78,15 @@ export default function RequestGasCard({
   }
 
   return (
-    <div className="request-form">
+    <div className={`request-form request-form--${requestState}`}>
       <div className="request-console">
-        <div className="request-console__screen">
+        <div
+          className="request-console__screen"
+          style={
+            { "--pump-fill": `${pumpFillPercent}%` } as CSSProperties &
+              Record<"--pump-fill", string>
+          }
+        >
           <span className="pump-label">
             <Fuel size={15} aria-hidden="true" />
             {t("requestAmount")}
@@ -77,6 +94,14 @@ export default function RequestGasCard({
           <div className="pump-amount-row">
             <span className="pump-amount">{requestAmount || "0.00"}</span>
             <span className="pump-unit">{t("tokenGas")}</span>
+          </div>
+          <div className="pump-meter" aria-hidden="true">
+            <span className="pump-meter__track">
+              <span className="pump-meter__fill" />
+            </span>
+            <span className="pump-meter__drop pump-meter__drop--one" />
+            <span className="pump-meter__drop pump-meter__drop--two" />
+            <span className="pump-meter__drop pump-meter__drop--three" />
           </div>
           <div className="pump-limits">
             <span className="limit-text">
