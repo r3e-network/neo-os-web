@@ -353,6 +353,21 @@ const appMessages = {
     studioFlowPrizesHint: { en: "Weights become odds", zh: "权重生成概率" },
     studioFlowPublish: { en: "Publish on-chain", zh: "链上发布" },
     studioFlowPublishHint: { en: "Fund and activate", zh: "注资并激活" },
+    studioLaunchPadLabel: { en: "Launch pad", zh: "发布台" },
+    studioLaunchReadyTitle: { en: "Machine ready for wallet publish", zh: "机器已准备好提交钱包" },
+    studioLaunchDraftTitle: { en: "Finish loading the cabinet", zh: "继续装填这台机器" },
+    studioLaunchNeedsMachine: {
+        en: "Name the machine first so players know what they are pulling.",
+        zh: "先命名机器，让玩家知道自己正在抽取什么。",
+    },
+    studioLaunchNeedsPrize: {
+        en: "Add at least one named prize capsule with weight before publishing.",
+        zh: "发布前请至少装入一个已命名、带权重的奖品胶囊。",
+    },
+    studioLaunchReadyCopy: {
+        en: "The cabinet has a name and a prize capsule. Review the odds, then publish on-chain.",
+        zh: "机台已命名并装入奖品胶囊。核对概率后即可链上发布。",
+    },
     studioOddsRailTitle: { en: "Capsule odds rail", zh: "胶囊概率轨道" },
     studioOddsRailHint: {
         en: "Preview what players will see before the wallet confirmation.",

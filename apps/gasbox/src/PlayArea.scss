@@ -3437,6 +3437,42 @@
   }
 }
 
+@keyframes gasbox-studio-launch-scan {
+  0%, 58% {
+    opacity: 0;
+    transform: translateX(-42%);
+  }
+  72% {
+    opacity: 0.58;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(42%);
+  }
+}
+
+@keyframes gasbox-studio-launch-ready {
+  0%, 100% {
+    filter: saturate(1.02) brightness(1);
+    transform: scale(1.08) translateY(0);
+  }
+  50% {
+    filter: saturate(1.08) brightness(1.03);
+    transform: scale(1.12) translateY(-2px);
+  }
+}
+
+@keyframes gasbox-studio-launch-signal {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(22, 199, 132, 0);
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.1);
+  }
+}
+
 // Creator earnings panel (Withdraw Revenue) — visible only to the creator.
 .gasbox-creator-revenue {
   display: flex;
@@ -3643,6 +3679,152 @@
   }
 }
 
+.gasbox-studio-launch-pad {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(18, 114, 75, 0.12);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, rgba(255, 251, 239, 0.96), rgba(241, 250, 245, 0.96)),
+    var(--ns-surface, #ffffff);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64),
+    0 14px 30px rgba(32, 78, 52, 0.08);
+}
+
+.gasbox-studio-launch-pad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 13% 20%, rgba(22, 199, 132, 0.12), transparent 28%),
+    linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.44) 46%, transparent 68%);
+  opacity: 0.56;
+  transform: translateX(-42%);
+  animation: gasbox-studio-launch-scan 6.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.gasbox-studio-launch-pad.is-ready {
+  border-color: rgba(22, 199, 132, 0.28);
+  background:
+    linear-gradient(135deg, rgba(235, 255, 246, 0.96), rgba(255, 248, 228, 0.94)),
+    var(--ns-surface, #ffffff);
+}
+
+.gasbox-studio-launch-pad > * {
+  position: relative;
+  z-index: 1;
+}
+
+.gasbox-studio-launch-pad__machine {
+  display: block;
+  width: 112px;
+  height: 90px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--ns-radius-md, 16px);
+  background: #f5fbf5;
+  box-shadow:
+    0 14px 26px rgba(20, 32, 21, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+}
+
+.gasbox-studio-launch-pad__machine img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 44%;
+  transform: scale(1.08);
+}
+
+.gasbox-studio-launch-pad.is-ready .gasbox-studio-launch-pad__machine img {
+  animation: gasbox-studio-launch-ready 4.8s ease-in-out infinite;
+}
+
+.gasbox-studio-launch-pad__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gasbox-studio-launch-pad__copy > span {
+  color: var(--ns-brand-deep, #0b5e3e);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.gasbox-studio-launch-pad__copy strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.gasbox-studio-launch-pad__copy p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.gasbox-studio-launch-pad__signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.gasbox-studio-launch-pad__signals span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid rgba(18, 114, 75, 0.1);
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.gasbox-studio-launch-pad__signals span.is-ready {
+  border-color: rgba(22, 199, 132, 0.24);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-deep, #0b5e3e);
+  animation: gasbox-studio-launch-signal 2.6s ease-in-out infinite;
+}
+
+.gasbox-studio-launch-pad__signals svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.gasbox-studio-launch-pad .neo-btn {
+  justify-self: end;
+  min-width: 188px;
+}
+
 .gasbox-studio-error {
   margin: 0;
   padding: 10px 12px;
@@ -3720,6 +3902,17 @@
     justify-items: stretch;
     min-width: 0;
   }
+
+  .gasbox-studio-launch-pad {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .gasbox-studio-launch-pad .neo-btn {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 460px) {
@@ -3771,6 +3964,15 @@
   .gasbox-capsule-dial input {
     min-height: 42px;
   }
+
+  .gasbox-studio-launch-pad {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-studio-launch-pad__machine {
+    width: 100%;
+    height: 132px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3783,7 +3985,10 @@
   .gasbox-asset-choice.is-selected .gasbox-asset-choice__icon,
   .gasbox-studio-item__asset,
   .gasbox-studio-item__asset::after,
-  .gasbox-studio-item__capsule {
+  .gasbox-studio-item__capsule,
+  .gasbox-studio-launch-pad::before,
+  .gasbox-studio-launch-pad__machine img,
+  .gasbox-studio-launch-pad__signals span.is-ready {
     animation: none;
   }
 }
