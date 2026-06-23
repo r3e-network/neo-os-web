@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -23,6 +25,8 @@ function t(key: string) {
     copyRecoveryLink: "Copy Recovery Link",
     currentVerifier: "Verifier",
     guardianCommandTitle: "Guardian Preflight",
+    guardianCommandStageEyebrow: "Account scan",
+    guardianCommandStageLabel: "Guardian account scan route",
     guardianDraftLabel: "Draft Account",
     guardianFlowCredential: "Share credential",
     guardianFlowCredentialDesc: "Share recovery credentials.",
@@ -38,8 +42,41 @@ function t(key: string) {
     guardianMetricOwner: "New Owner",
     guardianMetricsLabel: "Summary",
     guardianPrepareTitle: "Prepare Recovery",
+    guardianPassDraft: "Complete fields",
+    guardianPassExpiry: "Expiry",
+    guardianPassExpiryInvalid: "Invalid",
+    guardianPassExpiryMissing: "Invalid",
+    guardianPassExpiryReady: "Ready",
+    guardianPassLocked: "Read state first",
+    guardianPassOwner: "Owner",
+    guardianPassOwnerMissing: "Missing",
+    guardianPassOwnerReady: "Ready",
+    guardianPassReady: "Links ready",
+    guardianPassTitle: "Recovery pass",
+    guardianPassVerifier: "Verifier",
+    guardianPassVerifierAuto: "Auto",
+    guardianPassVerifierCustom: "Custom",
+    guardianPassVerifierInvalid: "Invalid",
     guardianRiskCopy: "Links stay disabled until valid.",
     guardianRiskTitle: "Guardrails",
+    guardianRouteAccount: "Account",
+    guardianRouteAccountNeeded: "Needed",
+    guardianRouteAccountReady: "Valid",
+    guardianRouteHandoff: "Handoff",
+    guardianRouteLinksLocked: "Locked",
+    guardianRouteLinksReady: "Ready",
+    guardianRouteState: "State",
+    guardianRouteStateReading: "Reading",
+    guardianRouteStateReady: "Loaded",
+    guardianRouteStateWaiting: "Waiting",
+    guardianStageArmed: "Ready to read guardian state",
+    guardianStageArmedHint: "The account locator is valid.",
+    guardianStageIdle: "Choose an account to inspect",
+    guardianStageIdleHint: "Paste a Neo address or Hash160.",
+    guardianStageQuerying: "Reading guardian boundary",
+    guardianStageQueryingHint: "Fetching recovery boundary.",
+    guardianStageReady: "State loaded, prepare handoff",
+    guardianStageReadyHint: "Review the account state.",
     guardianStateLabel: "Runtime",
     guardianStateTitle: "Recovery state",
     latestState: "Latest State",
@@ -63,6 +100,7 @@ function t(key: string) {
     openRecoveryPreview: "Open Recovery Preview",
     queryBlocked: "Enter a valid account.",
     queryState: "Query State",
+    queryingState: "Querying state...",
     recoveryExpiry: "Expiry minutes",
     recoveryExpiryHint: "5 to 1440.",
     recoveryExpiryPlaceholder: "30",
@@ -84,7 +122,9 @@ function t(key: string) {
 const VALID_ACCOUNT = "0x1111111111111111111111111111111111111111";
 const VALID_OWNER = "0x2222222222222222222222222222222222222222";
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     hasPayload: false,
     isLoading: false,
@@ -126,7 +166,18 @@ const LINK_BUTTONS = [
 
 describe("Recovery Guardian PlayArea", () => {
   it("keeps all recovery link buttons disabled until account, owner, expiry, and optional verifier are valid", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
+    );
+
+    expect(
+      container.querySelector(".guardian-command-stage--idle"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".guardian-recovery-pass--locked"),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Guardian account scan route")).toBeTruthy();
+    expect(screen.getByLabelText("Recovery pass")).toBeTruthy();
 
     for (const name of LINK_BUTTONS) {
       expect(
@@ -207,6 +258,53 @@ describe("Recovery Guardian PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("queryGuardianState");
   });
 
+  it("keeps account scan visibly active while querying instead of hiding the button text", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ accountAddress: VALID_ACCOUNT, isQuerying: true })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(
+      container.querySelector(".guardian-command-stage--querying"),
+    ).toBeTruthy();
+    expect(container.querySelector(".guardian-query-spinner")).toBeTruthy();
+    expect(
+      container.querySelector(".guardian-query-button--querying"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Querying state..." }),
+    ).toBeTruthy();
+    expect(screen.getByText("Reading guardian boundary")).toBeTruthy();
+    expect(screen.getByText("Reading")).toBeTruthy();
+  });
+
+  it("surfaces a recovery pass as ready once the required handoff fields are valid", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          hasPayload: true,
+          accountAddress: VALID_ACCOUNT,
+          recoveryNewOwner: VALID_OWNER,
+          recoveryExpiryMinutes: "30",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(
+      container.querySelector(".guardian-command-stage--ready"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".guardian-recovery-pass--ready"),
+    ).toBeTruthy();
+    expect(screen.getByText("Links ready")).toBeTruthy();
+    expect(screen.getAllByText("Ready").length).toBeGreaterThanOrEqual(3);
+  });
+
   it("renders the recovery state grid only after a payload is loaded", () => {
     render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
     expect(screen.getByText("No recovery state loaded yet.")).toBeTruthy();
@@ -269,6 +367,24 @@ describe("Recovery Guardian PlayArea", () => {
         dispatch={vi.fn()}
       />,
     );
-    expect(screen.getByText("Override differs from bound verifier")).toBeTruthy();
+    expect(
+      screen.getByText("Override differs from bound verifier"),
+    ).toBeTruthy();
+  });
+
+  it("keeps the guardian route animated and reduced-motion safe", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../recovery-guardian/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes guardian-stage-scan");
+    expect(styles).toContain("@keyframes guardian-packet-route");
+    expect(styles).toContain("@keyframes guardian-query-spin");
+    expect(styles).toContain("@keyframes guardian-pass-scan");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.guardian-query-spinner[\s\S]*animation:\s*none/,
+    );
   });
 });
