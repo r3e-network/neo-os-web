@@ -41,3 +41,10 @@ export function isValidNeoAddress(value: string): boolean {
   const expected = sha256(sha256(payload)).subarray(0, 4);
   return checksum.equals(expected);
 }
+
+export function neoAddressToScriptHash(value: string): string {
+  if (!isValidNeoAddress(value)) return "";
+  const decoded = decodeBase58(value);
+  const scriptHash = Buffer.from(decoded.subarray(1, 21)).reverse();
+  return `0x${scriptHash.toString("hex")}`;
+}

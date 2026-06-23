@@ -1,0 +1,223 @@
+{
+  "generatedAt": "2026-06-01T20:58:07.073Z",
+  "direct": [
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "baseUrl": "http://127.0.0.1:3033",
+      "submit": false,
+      "url": "http://127.0.0.1:3033/miniapps/neo-pay-shared-example/index.html?network=testnet&source=embed&v=1780347487105",
+      "enabledBeforeClick": true,
+      "state": {
+        "textLength": 555,
+        "textSample": "STREAMS\nNeoPay\n\nScheduled releases for payrolls, subscriptions, and allowances\n\n0\nTOTAL STREAMS\n0\nACTIVE\n0\nCREATED BY YOU\n0\nYOU'RE BENEFICIARY\nStream index unavailable\nThe payment stream index is not available in this environment yet. You can still prepare a new stream; created and incoming stream lists will refresh once the OS vesting service is configured.\nCreate Stream\nRecipient Address\nAmount\nGAS\nDuration\ndays\nTOKEN\nGAS\nNEO\nbNEO\nCreate Stream\nYour Created Streams (0)\nYou haven't created any streams yet\nStreams You Receive (0)\nNo incoming streams",
+        "hasRawError": false,
+        "hasServiceNotice": true,
+        "hasActionBoundaryNotice": false,
+        "createVisible": true,
+        "emptyCreatedVisible": true,
+        "emptyIncomingVisible": true,
+        "bodyScrollHeight": 1204,
+        "viewportHeight": 1000,
+        "hasHorizontalScroll": false
+      },
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "failedRequests": [],
+      "badResponses": [
+        {
+          "url": "http://127.0.0.1:3033/api/edge/os-vesting-list",
+          "status": 501
+        },
+        {
+          "url": "http://127.0.0.1:3033/api/edge/os-vesting-list",
+          "status": 501
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-static-direct.png"
+    },
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "baseUrl": "http://localhost:3032",
+      "submit": true,
+      "url": "http://localhost:3032/miniapps/neo-pay-shared-example/index.html?network=testnet&source=embed&v=1780347490430",
+      "enabledBeforeClick": true,
+      "state": {
+        "textLength": 289,
+        "textSample": "STREAMS\nNeoPay\n\nScheduled releases for payrolls, subscriptions, and allowances\n\n0\nTOTAL STREAMS\n0\nACTIVE\n0\nCREATED BY YOU\n0\nYOU'RE BENEFICIARY\nCreate Stream\nRecipient Address\nAmount\nGAS\nDuration\ndays\nTOKEN\nGAS\nNEO\nbNEO\nYour Created Streams (0)\nLoading...\nStreams You Receive (0)\nLoading...",
+        "hasRawError": false,
+        "hasServiceNotice": false,
+        "hasActionBoundaryNotice": false,
+        "createVisible": true,
+        "emptyCreatedVisible": false,
+        "emptyIncomingVisible": false,
+        "bodyScrollHeight": 1036,
+        "viewportHeight": 1000,
+        "hasHorizontalScroll": false
+      },
+      "consoleMessages": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-host-direct.png"
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "baseUrl": "http://127.0.0.1:3033",
+      "submit": false,
+      "url": "http://127.0.0.1:3033/miniapps/neo-pay-shared-example/index.html?network=testnet&source=embed&v=1780347498725",
+      "enabledBeforeClick": true,
+      "state": {
+        "textLength": 555,
+        "textSample": "STREAMS\nNeoPay\n\nScheduled releases for payrolls, subscriptions, and allowances\n\n0\nTOTAL STREAMS\n0\nACTIVE\n0\nCREATED BY YOU\n0\nYOU'RE BENEFICIARY\nStream index unavailable\nThe payment stream index is not available in this environment yet. You can still prepare a new stream; created and incoming stream lists will refresh once the OS vesting service is configured.\nCreate Stream\nRecipient Address\nAmount\nGAS\nDuration\ndays\nTOKEN\nGAS\nNEO\nbNEO\nCreate Stream\nYour Created Streams (0)\nYou haven't created any streams yet\nStreams You Receive (0)\nNo incoming streams",
+        "hasRawError": false,
+        "hasServiceNotice": true,
+        "hasActionBoundaryNotice": false,
+        "createVisible": true,
+        "emptyCreatedVisible": true,
+        "emptyIncomingVisible": true,
+        "bodyScrollHeight": 1360,
+        "viewportHeight": 844,
+        "hasHorizontalScroll": false
+      },
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "failedRequests": [],
+      "badResponses": [
+        {
+          "url": "http://127.0.0.1:3033/api/edge/os-vesting-list",
+          "status": 501
+        },
+        {
+          "url": "http://127.0.0.1:3033/api/edge/os-vesting-list",
+          "status": 501
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-static-direct.png"
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "baseUrl": "http://localhost:3032",
+      "submit": true,
+      "url": "http://localhost:3032/miniapps/neo-pay-shared-example/index.html?network=testnet&source=embed&v=1780347501757",
+      "enabledBeforeClick": true,
+      "state": {
+        "textLength": 289,
+        "textSample": "STREAMS\nNeoPay\n\nScheduled releases for payrolls, subscriptions, and allowances\n\n0\nTOTAL STREAMS\n0\nACTIVE\n0\nCREATED BY YOU\n0\nYOU'RE BENEFICIARY\nCreate Stream\nRecipient Address\nAmount\nGAS\nDuration\ndays\nTOKEN\nGAS\nNEO\nbNEO\nYour Created Streams (0)\nLoading...\nStreams You Receive (0)\nLoading...",
+        "hasRawError": false,
+        "hasServiceNotice": false,
+        "hasActionBoundaryNotice": false,
+        "createVisible": true,
+        "emptyCreatedVisible": false,
+        "emptyIncomingVisible": false,
+        "bodyScrollHeight": 1136,
+        "viewportHeight": 844,
+        "hasHorizontalScroll": false
+      },
+      "consoleMessages": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-host-direct.png"
+    }
+  ],
+  "hostDetail": [
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://localhost:3032/miniapps/miniapp-neo-pay-shared-example",
+      "host": {
+        "hasNextOverlay": false,
+        "frameClass": "block h-[1500px] sm:h-[1300px] lg:h-[1200px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameRect": {
+          "top": 0,
+          "left": 18,
+          "width": 1052,
+          "height": 1200
+        },
+        "pageScrollWidth": 1440,
+        "viewportWidth": 1440
+      },
+      "frameState": {
+        "textLength": 337,
+        "hasRawError": false,
+        "bodyScrollHeight": 1200,
+        "viewportHeight": 1200,
+        "hasHorizontalScroll": false,
+        "createVisible": true,
+        "emptyCreatedVisible": true,
+        "emptyIncomingVisible": true
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/desktop-1440x1000-host-detail.png"
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://localhost:3032/miniapps/miniapp-neo-pay-shared-example",
+      "host": {
+        "hasNextOverlay": false,
+        "frameClass": "block h-[1500px] sm:h-[1300px] lg:h-[1200px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameRect": {
+          "top": 123,
+          "left": 14,
+          "width": 362,
+          "height": 1500
+        },
+        "pageScrollWidth": 390,
+        "viewportWidth": 390
+      },
+      "frameState": {
+        "textLength": 337,
+        "hasRawError": false,
+        "bodyScrollHeight": 1500,
+        "viewportHeight": 1500,
+        "hasHorizontalScroll": false,
+        "createVisible": true,
+        "emptyCreatedVisible": true,
+        "emptyIncomingVisible": true
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-pay-shared-example-service-after/mobile-390x844-host-detail.png"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "url": "http://localhost:3102/miniapps/custom-anchor/index.html?network=testnet&v=1780326239568",
+  "walletCallCount": 3,
+  "operations": [
+    {
+      "operation": "transfer",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x407c24a382011c16be1597699cd6460f54e49"
+        },
+        {
+          "type": "Hash160",
+          "value": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0"
+        },
+        {
+          "type": "Integer",
+          "value": "2"
+        },
+        {
+          "type": "String",
+          "value": "stake:custom-anchor:dao:round1"
+        }
+      ]
+    },
+    {
+      "operation": "withdraw",
+      "args": [
+        {
+          "type": "String",
+          "value": "custom-anchor:dao:round1"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x407c24a382011c16be1597699cd6460f54e49"
+        },
+        {
+          "type": "Integer",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "operation": "claimRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "custom-anchor:dao:round1"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x407c24a382011c16be1597699cd6460f54e49"
+        }
+      ]
+    }
+  ],
+  "readCallCount": 5,
+  "hasStakeMemo": true,
+  "hasLastTxid": true,
+  "hasActionPanel": true,
+  "hasPolishedHero": true,
+  "consoleErrors": [],
+  "failedRequests": [],
+  "badResponses": [],
+  "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/custom-anchor-browser-after/after-stake-redeem-claim-testnet-mock-wallet.png"
+}

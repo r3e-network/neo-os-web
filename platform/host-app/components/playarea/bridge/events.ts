@@ -1,5 +1,6 @@
 export const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
 export const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
+export const HOST_WALLET_BRIDGE_STATE = "neo-miniapp-wallet-bridge:state";
 export const HOST_WALLET_BRIDGE_RESULT =
   "neo-miniapp-wallet-bridge:result";
 // Host-side notice lane for rejected/failed sensitive bridge requests. The

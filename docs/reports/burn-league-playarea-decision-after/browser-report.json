@@ -1,0 +1,136 @@
+{
+  "baseUrl": "http://127.0.0.1:4224/miniapps/burn-league/index.html?source=embed&network=testnet&amount=5",
+  "mockedPostRequests": [
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-game-status"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-leaderboard-get"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-game-bet"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-badge-update-stat"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-badge-award"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-leaderboard-submit"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-game-status"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4224/api/edge/os-leaderboard-get"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-game-status"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-leaderboard-get"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-game-bet"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-badge-update-stat"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-badge-award"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-leaderboard-submit"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-game-status"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4224/api/edge/os-leaderboard-get"
+    }
+  ],
+  "desktop": {
+    "initial": {
+      "amount": "5",
+      "rangeVisible": true,
+      "projectedRankVisible": true,
+      "reviewVisible": true,
+      "dataPendingVisible": false
+    },
+    "preset": {
+      "amount": "25",
+      "presetActive": true
+    },
+    "reset": {
+      "amount": "1",
+      "oneGasActive": true
+    },
+    "invalid": {
+      "errorVisible": true,
+      "burnDisabled": true
+    },
+    "valid": {
+      "burnEnabled": true,
+      "projectedTotalVisible": true,
+      "rewardModelVisible": true
+    },
+    "afterSubmit": {
+      "stillNoCrash": true,
+      "noticeText": "Burn entry submitted. Refreshing the leaderboard state."
+    },
+    "overflow": 0,
+    "offscreenControls": []
+  },
+  "mobile": {
+    "initial": {
+      "amount": "5",
+      "rangeVisible": true,
+      "projectedRankVisible": true,
+      "reviewVisible": true,
+      "dataPendingVisible": false
+    },
+    "preset": {
+      "amount": "25",
+      "presetActive": true
+    },
+    "reset": {
+      "amount": "1",
+      "oneGasActive": true
+    },
+    "invalid": {
+      "errorVisible": true,
+      "burnDisabled": true
+    },
+    "valid": {
+      "burnEnabled": true,
+      "projectedTotalVisible": true,
+      "rewardModelVisible": true
+    },
+    "afterSubmit": {
+      "stillNoCrash": true,
+      "noticeText": "Burn entry submitted. Refreshing the leaderboard state."
+    },
+    "overflow": 0,
+    "offscreenControls": []
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": []
+}

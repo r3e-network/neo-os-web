@@ -1,0 +1,250 @@
+{
+  "generatedAt": "2026-06-01T21:37:44.039Z",
+  "urls": {
+    "staticDirect": "http://127.0.0.1:3037/miniapps/burn-league/index.html?network=testnet&source=embed&amount=5&v=1780349788175",
+    "hostDirect": "http://localhost:3036/miniapps/burn-league/index.html?network=testnet&source=embed&amount=5&v=1780349788175",
+    "hostDetail": "http://localhost:3036/miniapps/miniapp-burn-league?network=testnet&amount=5&v=1780349859272"
+  },
+  "summary": {
+    "total": 6,
+    "rawErrorResults": [],
+    "overflowResults": [],
+    "clippedIframes": [],
+    "missingPreview": [],
+    "missingSubmitControl": [],
+    "missingActionFeedbackAfterClick": []
+  },
+  "results": [
+    {
+      "label": "staticDirect",
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:3037/miniapps/burn-league/index.html?network=testnet&source=embed&amount=5&v=1780349788175",
+      "actions": {
+        "presetVisible": true,
+        "amountInputVisible": true,
+        "amountValue": "5",
+        "burnVisible": true,
+        "burnDisabledBeforeClick": false,
+        "submitControlPresent": true
+      },
+      "textSample": "Burn submission services are not configured in this environment yet.\nBurn League\n\nBurn tokens, earn rewards\n\n0.00 GAS\nTotal Burned\n0.00 GAS\nYour Burns\n0.00 GAS\nReward Pool\nBurn league data unavailable\nLive burn stats are not available in this environment yet. You can still prepare the burn entry, but ranking refresh waits for the league service.\n#\n--\nYour Rank\nof 0 players\nEst. Reward\n0.50 GAS\nBurn Tokens\nAmount\nGAS\n1 GAS\n5 GAS\n10 GAS\nEntry amount\n5 GAS\nProjected total\n5.00 GAS\nEst. Reward\n0.50 GAS\n\nBurn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.\n\nBurn submission services are not configured in this environment yet.\nBurn Now\nLeaderboard\nNo leaderboard entries yet\nSubmitted burns will appear here with rank and burned GAS once the league service indexes them.",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasImpactPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1000,
+      "bodyClientHeight": 1000,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-game-status"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-leaderboard-get"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-game-bet"
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/staticDirect-desktop.png"
+    },
+    {
+      "label": "hostDirect",
+      "viewport": "desktop",
+      "url": "http://localhost:3036/miniapps/burn-league/index.html?network=testnet&source=embed&amount=5&v=1780349788175",
+      "actions": {
+        "presetVisible": true,
+        "amountInputVisible": true,
+        "amountValue": "5",
+        "burnVisible": true,
+        "burnDisabledBeforeClick": false,
+        "submitControlPresent": true
+      },
+      "textSample": "Burn League\n\nBurn tokens, earn rewards\n\n0.00 GAS\nTotal Burned\n0.00 GAS\nYour Burns\n0.00 GAS\nReward Pool\n#\n--\nYour Rank\nof 0 players\nEst. Reward\n0.50 GAS\nBurn Tokens\nAmount\nGAS\n1 GAS\n5 GAS\n10 GAS\nEntry amount\n5 GAS\nProjected total\n5.00 GAS\nEst. Reward\n0.50 GAS\n\nBurn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.\n\nPreparing a 5.00 GAS burn wallet confirmation. Keep this window open while the platform asks for approval.\nLeaderboard\nNo leaderboard entries yet\nSubmitted burns will appear here with rank and burned GAS once the league service indexes them.",
+      "hasRawError": false,
+      "hasServiceNotice": false,
+      "hasImpactPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1000,
+      "bodyClientHeight": 1000,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDirect-desktop.png"
+    },
+    {
+      "label": "hostDetail",
+      "viewport": "desktop",
+      "url": "http://localhost:3036/miniapps/miniapp-burn-league?network=testnet&amount=5&v=1780349859272",
+      "actions": {
+        "presetVisible": true,
+        "amountInputVisible": true,
+        "amountValue": "5",
+        "burnVisible": true,
+        "burnDisabledBeforeClick": false,
+        "submitControlPresent": true
+      },
+      "outer": {
+        "className": "block h-[1500px] sm:h-[1300px] lg:h-[1100px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameHeight": 1100,
+        "frameWidth": 1052
+      },
+      "inner": {
+        "textSample": "Open this MiniApp from the platform workspace to confirm the burn wallet intent.\nBurn League\n\nBurn tokens, earn rewards\n\n0.00 GAS\nTotal Burned\n0.00 GAS\nYour Burns\n0.00 GAS\nReward Pool\n#\n--\nYour Rank\nof 0 players\nEst. Reward\n0.50 GAS\nBurn Tokens\nAmount\nGAS\n1 GAS\n5 GAS\n10 GAS\nEntry amount\n5 GAS\nProjected total\n5.00 GAS\nEst. Reward\n0.50 GAS\n\nBurn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.\n\nOpen this MiniApp from the platform workspace to confirm the burn wallet intent.\nBurn Now\nLeaderboard\nNo leaderboard entries yet\nSubmitted burns will appear here with rank and burned GAS once the league service indexes them.",
+        "hasRawError": false,
+        "hasImpactPreview": true,
+        "hasActionFeedback": true,
+        "submitControlPresent": true,
+        "bodyScrollHeight": 1100,
+        "bodyClientHeight": 1100,
+        "horizontalOverflow": 0
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDetail-desktop.png"
+    },
+    {
+      "label": "staticDirect",
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:3037/miniapps/burn-league/index.html?network=testnet&source=embed&amount=5&v=1780349788175",
+      "actions": {
+        "presetVisible": true,
+        "amountInputVisible": true,
+        "amountValue": "5",
+        "burnVisible": true,
+        "burnDisabledBeforeClick": false,
+        "submitControlPresent": true
+      },
+      "textSample": "Burn submission services are not configured in this environment yet.\nBurn League\n\nBurn tokens, earn rewards\n\n0.00 GAS\nTotal Burned\n0.00 GAS\nYour Burns\n0.00 GAS\nReward Pool\nBurn league data unavailable\nLive burn stats are not available in this environment yet. You can still prepare the burn entry, but ranking refresh waits for the league service.\n#\n--\nYour Rank\nof 0 players\nEst. Reward\n0.50 GAS\nBurn Tokens\nAmount\nGAS\n1 GAS\n5 GAS\n10 GAS\nEntry amount\n5 GAS\nProjected total\n5.00 GAS\nEst. Reward\n0.50 GAS\n\nBurn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.\n\nBurn submission services are not configured in this environment yet.\nBurn Now\nLeaderboard\nNo leaderboard entries yet\nSubmitted burns will appear here with rank and burned GAS once the league service indexes them.",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasImpactPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1325,
+      "bodyClientHeight": 844,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-game-status"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-leaderboard-get"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-game-bet"
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/staticDirect-mobile.png"
+    },
+    {
+      "label": "hostDirect",
+      "viewport": "mobile",
+      "url": "http://localhost:3036/miniapps/burn-league/index.html?network=testnet&source=embed&amount=5&v=1780349788175",
+      "actions": {
+        "presetVisible": true,
+        "amountInputVisible": true,
+        "amountValue": "5",
+        "burnVisible": true,
+        "burnDisabledBeforeClick": false,
+        "submitControlPresent": true
+      },
+      "textSample": "Burn League\n\nBurn tokens, earn rewards\n\n0.00 GAS\nTotal Burned\n0.00 GAS\nYour Burns\n0.00 GAS\nReward Pool\n#\n--\nYour Rank\nof 0 players\nEst. Reward\n0.50 GAS\nBurn Tokens\nAmount\nGAS\n1 GAS\n5 GAS\n10 GAS\nEntry amount\n5 GAS\nProjected total\n5.00 GAS\nEst. Reward\n0.50 GAS\n\nBurn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.\n\nPreparing a 5.00 GAS burn wallet confirmation. Keep this window open while the platform asks for approval.\nLeaderboard\nNo leaderboard entries yet\nSubmitted burns will appear here with rank and burned GAS once the league service indexes them.",
+      "hasRawError": false,
+      "hasServiceNotice": false,
+      "hasImpactPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1223,
+      "bodyClientHeight": 844,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDirect-mobile.png"
+    },
+    {
+      "label": "hostDetail",
+      "viewport": "mobile",
+      "url": "http://localhost:3036/miniapps/miniapp-burn-league?network=testnet&amount=5&v=1780349788175",
+      "actions": {
+        "presetVisible": true,
+        "amountInputVisible": true,
+        "amountValue": "5",
+        "burnVisible": true,
+        "burnDisabledBeforeClick": false,
+        "submitControlPresent": true
+      },
+      "outer": {
+        "className": "block h-[1500px] sm:h-[1300px] lg:h-[1100px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameHeight": 1500,
+        "frameWidth": 362
+      },
+      "inner": {
+        "actions": {
+          "presetVisible": true,
+          "amountInputVisible": true,
+          "amountValue": "5",
+          "burnVisible": true,
+          "burnDisabledBeforeClick": false,
+          "submitControlPresent": true
+        },
+        "textSample": "Open this MiniApp from the platform workspace to confirm the burn wallet intent.\nBurn League\n\nBurn tokens, earn rewards\n\n0.00 GAS\nTotal Burned\n0.00 GAS\nYour Burns\n0.00 GAS\nReward Pool\n#\n--\nYour Rank\nof 0 players\nEst. Reward\n0.50 GAS\nBurn Tokens\nAmount\nGAS\n1 GAS\n5 GAS\n10 GAS\nEntry amount\n5 GAS\nProjected total\n5.00 GAS\nEst. Reward\n0.50 GAS\n\nBurn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.\n\nOpen this MiniApp from the platform workspace to confirm the burn wallet intent.\nBurn Now\nLeaderboard\nNo leaderboard entries yet\nSubmitted burns will appear here with rank and burned GAS once the league service indexes them.",
+        "hasRawError": false,
+        "hasServiceNotice": false,
+        "hasImpactPreview": true,
+        "hasActionFeedback": true,
+        "submitControlPresent": true,
+        "horizontalOverflow": 0,
+        "bodyScrollHeight": 1500,
+        "bodyClientHeight": 1500
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/burn-league-service-layout-after/hostDetail-mobile.png"
+    }
+  ]
+}

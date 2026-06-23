@@ -14,6 +14,7 @@ describe("/api/edge/[endpoint]", () => {
   const originalPublicEdgeUrl = process.env.NEXT_PUBLIC_EDGE_URL;
   const originalAllowlist = process.env.MINIAPP_EDGE_ALLOWLIST;
   const originalTargetNetwork = process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK;
+  const originalSupabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const originalFetch = global.fetch;
 
   afterEach(() => {
@@ -21,6 +22,7 @@ describe("/api/edge/[endpoint]", () => {
     restoreEnv("NEXT_PUBLIC_EDGE_URL", originalPublicEdgeUrl);
     restoreEnv("MINIAPP_EDGE_ALLOWLIST", originalAllowlist);
     restoreEnv("NEXT_PUBLIC_NEO_TARGET_NETWORK", originalTargetNetwork);
+    restoreEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", originalSupabaseAnonKey);
     global.fetch = originalFetch;
     jest.resetModules();
     jest.clearAllMocks();
@@ -95,6 +97,58 @@ describe("/api/edge/[endpoint]", () => {
         method: "POST",
       }),
     );
+  });
+
+  it("proxies wallet auth endpoints through the same-origin edge route by default", async () => {
+    process.env.EDGE_BASE_URL = "https://edge.example/functions/v1";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    const upstreamBody = Buffer.from(
+      JSON.stringify({ nonce: "nonce-1", message: "sign me" }),
+    );
+    const fetchMock = jest.fn().mockResolvedValue(
+      {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) =>
+            cb("application/json", "content-type"),
+        },
+        arrayBuffer: async () =>
+          upstreamBody.buffer.slice(
+            upstreamBody.byteOffset,
+            upstreamBody.byteOffset + upstreamBody.byteLength,
+          ),
+      },
+    );
+    global.fetch = fetchMock as typeof fetch;
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      query: { endpoint: "auth-wallet-nonce" },
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer anon-key",
+      },
+    });
+    const requestBody = Buffer.from(JSON.stringify({ address: "NUserAddress" }));
+    process.nextTick(() => {
+      req.emit("data", requestBody);
+      req.emit("end");
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://edge.example/functions/v1/auth-wallet-nonce",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    const forwardedHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
+    expect(forwardedHeaders.get("apikey")).toBe("anon-key");
+    expect(forwardedHeaders.get("Authorization")).toBe("Bearer anon-key");
   });
 
   it("uses NEXT_PUBLIC_EDGE_URL when EDGE_BASE_URL is not set", async () => {

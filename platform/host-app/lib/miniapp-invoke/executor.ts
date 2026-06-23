@@ -1,6 +1,9 @@
 import type { OperationEntry } from "../../components/types";
 import type { ResolvedMiniAppRuntime } from "../miniapp-runtime";
-import type { NeoNetwork } from "../neo-network";
+import {
+  assertWalletNetworkMatchesTarget,
+  type NeoNetwork,
+} from "../neo-network";
 import { getWalletAdapter } from "../wallet/store";
 
 export const WALLET_ADAPTER_UNAVAILABLE_ERROR =
@@ -53,6 +56,7 @@ export type ExecuteInvokeRecipeParams = {
   operation: OperationEntry;
   values: Record<string, string>;
   walletAddress: string;
+  walletNetwork: NeoNetwork | null;
   targetNetwork: NeoNetwork;
   resolvedRuntime: ResolvedMiniAppRuntime | null;
   directContractHash: string | null;
@@ -95,6 +99,8 @@ export async function executeInvokeRecipe(
   if (invocations.length === 0) {
     throw new Error("Operation did not produce a transaction to submit.");
   }
+
+  assertWalletNetworkMatchesTarget(params.walletNetwork, params.targetNetwork);
 
   const adapter = getWalletAdapter();
   if (!adapter) {

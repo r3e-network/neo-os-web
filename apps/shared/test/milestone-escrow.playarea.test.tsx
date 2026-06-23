@@ -216,6 +216,17 @@ describe("Milestone Escrow PlayArea", () => {
     );
   });
 
+  it("keeps GAS preview totals exact for large 8-decimal amounts", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Milestone 1"), {
+      target: { value: "1000000000.00000001" },
+    });
+
+    expect(screen.getAllByText("1000000000.00000001 GAS").length).toBeGreaterThan(0);
+  });
+
   it("removes an added milestone and keeps the remaining amounts", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
@@ -298,6 +309,21 @@ describe("Milestone Escrow PlayArea", () => {
         milestones: [{ amount: "5" }],
       }),
     );
+  });
+
+  it("blocks fractional NEO before dispatch because NEO is indivisible", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.click(screen.getByRole("radio", { name: "NEO" }));
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
+
+    const submit = screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    fireEvent.click(submit);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("keeps the form open and intact when createEscrow fails (dispatch resolves false)", async () => {

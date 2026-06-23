@@ -1,0 +1,52 @@
+{
+  "url": "http://127.0.0.1:4179/miniapps/oracle-compute-lab/index.html?network=testnet",
+  "passed": true,
+  "checks": [
+    {
+      "name": "sealed preview uses compute request kind",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"sealed\",\n  \"inputDigest\": \"0x59aa6b13\",\n  \"inputLength\": 38,\n  \"digest\": \"0x157a9681\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"inputPreview\": \"[sealed input redacted]\",\n  \"inputVisibility\": \"redacted\",\n  \"sealedInputRequired\": true\n}"
+    },
+    {
+      "name": "sealed preview includes digest",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"sealed\",\n  \"inputDigest\": \"0x59aa6b13\",\n  \"inputLength\": 38,\n  \"digest\": \"0x157a9681\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"inputPreview\": \"[sealed input redacted]\",\n  \"inputVisibility\": \"redacted\",\n  \"sealedInputRequired\": true\n}"
+    },
+    {
+      "name": "sealed preview redacts raw input",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"sealed\",\n  \"inputDigest\": \"0x59aa6b13\",\n  \"inputLength\": 38,\n  \"digest\": \"0x157a9681\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"inputPreview\": \"[sealed input redacted]\",\n  \"inputVisibility\": \"redacted\",\n  \"sealedInputRequired\": true\n}"
+    },
+    {
+      "name": "sealed preview states redacted input",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"sealed\",\n  \"inputDigest\": \"0x59aa6b13\",\n  \"inputLength\": 38,\n  \"digest\": \"0x157a9681\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"inputPreview\": \"[sealed input redacted]\",\n  \"inputVisibility\": \"redacted\",\n  \"sealedInputRequired\": true\n}"
+    },
+    {
+      "name": "copy action writes sealed payload",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"sealed\",\n  \"inputDigest\": \"0x59aa6b13\",\n  \"inputLength\": 38,\n  \"digest\": \"0x157a9681\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"inputPreview\": \"[sealed input redacted]\",\n  \"inputVisibility\": \"redacted\",\n  \"sealedInputRequired\": true\n}"
+    },
+    {
+      "name": "copy action does not leak sealed input",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"sealed\",\n  \"inputDigest\": \"0x59aa6b13\",\n  \"inputLength\": 38,\n  \"digest\": \"0x157a9681\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"inputPreview\": \"[sealed input redacted]\",\n  \"inputVisibility\": \"redacted\",\n  \"sealedInputRequired\": true\n}"
+    },
+    {
+      "name": "public preview marks privacy public",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"public\",\n  \"inputDigest\": \"0xb337c0b9\",\n  \"inputLength\": 24,\n  \"digest\": \"0x338aaac1\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"input\": \"{\\\"sample\\\":\\\"public-data\\\"}\",\n  \"inputVisibility\": \"public\"\n}"
+    },
+    {
+      "name": "public preview includes explicitly public input",
+      "passed": true,
+      "detail": "{\n  \"kind\": \"oracle.compute.request\",\n  \"workflow\": \"risk-score\",\n  \"privacy\": \"public\",\n  \"inputDigest\": \"0xb337c0b9\",\n  \"inputLength\": 24,\n  \"digest\": \"0x338aaac1\",\n  \"execution\": \"preview_only\",\n  \"dispatchReady\": false,\n  \"input\": \"{\\\"sample\\\":\\\"public-data\\\"}\",\n  \"inputVisibility\": \"public\"\n}"
+    }
+  ],
+  "consoleErrors": [],
+  "screenshots": [
+    "docs/reports/oracle-compute-lab-browser-after/sealed-preview-desktop.png",
+    "docs/reports/oracle-compute-lab-browser-after/public-preview-desktop.png",
+    "docs/reports/oracle-compute-lab-browser-after/public-preview-mobile.png"
+  ]
+}

@@ -1,4 +1,5 @@
 import { getWalletAdapter, useWalletStore } from "@/lib/wallet/store";
+import type { NeoWalletNetwork } from "@/lib/wallet/adapters";
 
 import type { BridgeInvocation, SendCapableWalletAdapter } from "./types";
 import {
@@ -9,6 +10,7 @@ import {
   bridgeNetworkMagic,
   describeSensitiveBridgeOperation,
   isBridgeRecord,
+  isSenderPlaceholder,
   normalizeBridgeSigners,
   resolveSenderArgs,
 } from "./normalizers";
@@ -38,6 +40,67 @@ export function requireBridgeWallet(
     );
   }
   return { walletState, adapter };
+}
+
+function bridgeMethodRequiresVerifiedNetwork(method: string): boolean {
+  return (
+    method === "getBalance" ||
+    method === "signMessage" ||
+    method === "invoke" ||
+    method === "send"
+  );
+}
+
+async function readFreshWalletNetwork(
+  adapter: ReturnType<typeof getWalletAdapter>,
+): Promise<NeoWalletNetwork | null | undefined> {
+  if (!adapter?.getNetwork) return undefined;
+  try {
+    return await adapter.getNetwork();
+  } catch (_e: unknown) {
+    return null;
+  }
+}
+
+export async function requireFreshBridgeWallet(
+  targetNetwork: "mainnet" | "testnet",
+  options: { requireVerifiedNetwork?: boolean } = {},
+) {
+  const { walletState, adapter } = requireBridgeWallet(targetNetwork, {
+    requireVerifiedNetwork: false,
+  });
+  const freshNetwork = await readFreshWalletNetwork(adapter);
+  const effectiveNetwork =
+    freshNetwork === undefined ? walletState.network : freshNetwork;
+  if (freshNetwork !== undefined && freshNetwork !== walletState.network) {
+    useWalletStore.setState({ network: freshNetwork });
+  }
+  if (options.requireVerifiedNetwork && !effectiveNetwork) {
+    throw new Error(
+      "Wallet network is unverified — reconnect the wallet before submitting embedded dApp actions.",
+    );
+  }
+  if (effectiveNetwork && effectiveNetwork !== targetNetwork) {
+    throw new Error(
+      `Wallet is on ${effectiveNetwork} but this embedded dApp targets ${targetNetwork}.`,
+    );
+  }
+  return {
+    walletState: {
+      ...walletState,
+      network: effectiveNetwork,
+    },
+    adapter,
+  };
+}
+
+export async function preflightEmbeddedWalletBridgeRequest(
+  method: string,
+  targetNetwork: "mainnet" | "testnet",
+): Promise<void> {
+  await requireFreshBridgeWallet(targetNetwork, {
+    requireVerifiedNetwork: bridgeMethodRequiresVerifiedNetwork(method),
+  });
 }
 
 async function invokeBridgeRead(
@@ -94,6 +157,22 @@ export function confirmSensitiveBridgeOperation(
   );
 }
 
+function senderKey(value: string): string {
+  const raw = value.trim().toLowerCase();
+  return raw.startsWith("0x") ? raw.slice(2) : raw;
+}
+
+function isConnectedWalletSender(
+  requested: string,
+  walletState: { address: string; accountHash?: string },
+): boolean {
+  if (!requested) return true;
+  const requestedKey = senderKey(requested);
+  return [walletState.address, walletState.accountHash || ""]
+    .filter(Boolean)
+    .some((value) => senderKey(value) === requestedKey);
+}
+
 export async function handleEmbeddedWalletBridgeRequest(
   method: string,
   payload: unknown,
@@ -109,13 +188,15 @@ export async function handleEmbeddedWalletBridgeRequest(
     return invokeBridgeRead(invocation, targetNetwork);
   }
 
-  const { walletState, adapter } = requireBridgeWallet(targetNetwork, {
-    requireVerifiedNetwork: method === "invoke" || method === "send",
+  const { walletState, adapter } = await requireFreshBridgeWallet(targetNetwork, {
+    requireVerifiedNetwork: bridgeMethodRequiresVerifiedNetwork(method),
   });
   if (method === "getAccounts") {
+    const hash = walletState.accountHash || walletState.address;
     return [
       {
-        hash: walletState.address,
+        hash,
+        accountHash: walletState.accountHash || undefined,
         address: walletState.address,
         label: "Host wallet",
         isDefault: true,
@@ -134,6 +215,7 @@ export async function handleEmbeddedWalletBridgeRequest(
         : null,
       networkVerified: Boolean(verifiedNetwork),
       address: walletState.address,
+      accountHash: walletState.accountHash || undefined,
       pubkey: walletState.publicKey || undefined,
     };
   }
@@ -177,7 +259,15 @@ export async function handleEmbeddedWalletBridgeRequest(
     const asset = asBridgeString(payload.asset);
     const amount = asBridgeString(payload.amount);
     const to = asBridgeString(payload.to);
-    const from = asBridgeString(payload.from) || undefined;
+    const requestedFrom = asBridgeString(payload.from);
+    const from = isSenderPlaceholder(requestedFrom)
+      ? walletState.accountHash || walletState.address
+      : requestedFrom || undefined;
+    if (from && !isConnectedWalletSender(from, walletState)) {
+      throw new Error(
+        "Embedded dApp transfer sender does not match the connected wallet.",
+      );
+    }
     if (!asset || !amount || !to) {
       throw new Error("Embedded dApp transfer request is incomplete.");
     }

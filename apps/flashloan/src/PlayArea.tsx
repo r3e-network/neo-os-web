@@ -26,7 +26,7 @@ import {
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import { formatGas, toFixed8 } from "@shared/utils/format";
+import { formatGas, parsePositiveFixed8 } from "@shared/utils/format";
 import { getLaunchParam } from "@shared/utils/launch-params";
 import "./PlayArea.scss";
 
@@ -83,7 +83,7 @@ interface LastRequest {
 
 function estimateFee(amount: string, bps: number) {
   try {
-    const raw = BigInt(toFixed8(amount) || "0");
+    const raw = BigInt(parsePositiveFixed8(amount) ?? "0");
     return formatGas((raw * BigInt(bps)) / 10_000n);
   } catch {
     return "0";
@@ -92,7 +92,7 @@ function estimateFee(amount: string, bps: number) {
 
 function estimateRepayment(amount: string, bps: number) {
   try {
-    const raw = BigInt(toFixed8(amount) || "0");
+    const raw = BigInt(parsePositiveFixed8(amount) ?? "0");
     const fee = (raw * BigInt(bps)) / 10_000n;
     return formatGas(raw + fee);
   } catch {
@@ -503,11 +503,12 @@ export default function PlayArea({
 
             <div className="flashloan-control-panel">
               <NeoInput
-                type="number"
+                type="text"
                 value={loanAmount}
                 placeholder={t("amountPlaceholder")}
                 label={t("loanAmount")}
-                min={0}
+                inputMode="decimal"
+                pattern="[0-9]*[.]?[0-9]*"
                 onChange={setLoanAmount}
               />
             </div>
@@ -737,11 +738,12 @@ export default function PlayArea({
 
             <div className="flashloan-liquidity-form">
               <NeoInput
-                type="number"
+                type="text"
                 value={liquidityAmount}
                 placeholder={t("liquidityAmountPlaceholder")}
                 label={t("liquidityAmount")}
-                min={0}
+                inputMode="decimal"
+                pattern="[0-9]*[.]?[0-9]*"
                 onChange={setLiquidityAmount}
               />
               {isMainnet && (

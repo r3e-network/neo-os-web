@@ -1,5 +1,4 @@
 import { createObservable, createDerived, refToObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -53,7 +52,10 @@ export function useQuadraticRounds() {
   const status = refToObservable(sm.status);
   const { setStatus } = sm;
 
-  const selectedRound = createDerived(() => rounds.get().find((round) => round.id === selectedRoundId.get()) || null, []);
+  const selectedRound = createDerived(
+    () => rounds.get().find((round) => round.id === selectedRoundId.get()) || null,
+    [rounds, selectedRoundId],
+  );
 
   // Round.creator arrives as a display-order 0x script hash (parseRound
   // normalizes it via parseHash160); ownerMatchesAddress converts the connected
@@ -62,18 +64,18 @@ export function useQuadraticRounds() {
   const isSelectedRoundCreator = createDerived(() => {
     const round = selectedRound.get();
     return Boolean(round && ownerMatchesAddress(round.creator, address.get()));
-  }, []);
+  }, [selectedRound, address]);
 
   const isAdmin = createDerived(() => {
     const admin = adminHash.get();
     return Boolean(admin && ownerMatchesAddress(admin, address.get()));
-  }, []);
+  }, [adminHash, address]);
 
   const canManageSelectedRound = createDerived(() => {
     const round = selectedRound.get();
     if (!round || !isSelectedRoundCreator.get()) return false;
     return !round.cancelled && !round.finalized;
-  }, []);
+  }, [selectedRound, isSelectedRoundCreator]);
 
   // FinalizeRound is restricted to the platform admin (or gateway) on-chain, not
   // the round creator — gate the button on admin identity so it never lands an
@@ -82,7 +84,7 @@ export function useQuadraticRounds() {
     const round = selectedRound.get();
     if (!round || !isAdmin.get()) return false;
     return !round.cancelled && !round.finalized;
-  }, []);
+  }, [selectedRound, isAdmin]);
 
   // CancelRound is creator-only AND requires the round to be pre-start with zero
   // contributions (the deployed contract asserts both).
@@ -92,7 +94,7 @@ export function useQuadraticRounds() {
     if (round.cancelled || round.finalized) return false;
     if (round.totalContributed !== 0n) return false;
     return round.startTime === 0 || Date.now() < round.startTime;
-  }, []);
+  }, [selectedRound, isSelectedRoundCreator]);
 
   const canClaimUnused = createDerived(() => {
     const round = selectedRound.get();

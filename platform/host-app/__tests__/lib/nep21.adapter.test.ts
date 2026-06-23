@@ -2,6 +2,7 @@ import { Nep21Adapter } from "@/lib/wallet/adapters/nep21";
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+const TESTNET_MAGIC = 894710606;
 
 function installProvider(provider: unknown) {
   (window as unknown as { Neo?: { DapiProvider?: unknown } }).Neo = {
@@ -12,6 +13,7 @@ function installProvider(provider: unknown) {
 describe("Nep21Adapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    window.history.replaceState({}, "", "/");
     delete (window as unknown as { NEP21Provider?: unknown }).NEP21Provider;
     delete (window as unknown as { NEP21Providers?: unknown }).NEP21Providers;
     delete (window as unknown as { Neo?: unknown }).Neo;
@@ -35,6 +37,7 @@ describe("Nep21Adapter", () => {
         account: "0xuserhash",
       }),
       invoke: jest.fn().mockResolvedValue({ txid: "0xtx" }),
+      send: jest.fn().mockResolvedValue({ hash: "0xsend" }),
     };
     installProvider(provider);
 
@@ -43,6 +46,7 @@ describe("Nep21Adapter", () => {
     expect(adapter.isInstalled()).toBe(true);
     await expect(adapter.connect()).resolves.toEqual({
       address: "NUserAddress",
+      accountHash: "0xuserhash",
       publicKey: "",
       label: "Main",
       network: "testnet",
@@ -64,14 +68,215 @@ describe("Nep21Adapter", () => {
       args: [{ type: "Hash160", value: "NUserAddress" }],
       signers: [{ account: "NUserAddress", scopes: 1 }],
     })).resolves.toEqual({ txid: "0xtx" });
+    await expect(
+      adapter.send("GAS", "100000000", "NRecipientAddress"),
+    ).resolves.toEqual({ txid: "0xsend" });
 
     expect(provider.getBalance).toHaveBeenNthCalledWith(1, NEO_CONTRACT, "0xuserhash");
     expect(provider.getBalance).toHaveBeenNthCalledWith(2, GAS_CONTRACT, "0xuserhash");
     expect(provider.signMessage).toHaveBeenCalledWith("aGVsbG8=", "0xuserhash");
     expect(provider.invoke).toHaveBeenCalledWith(
-      [{ hash: "0xcontract", operation: "transfer", args: [{ type: "Hash160", value: "0xuserhash" }] }],
+      [{ hash: "0xcontract", operation: "Transfer", args: [{ type: "Hash160", value: "0xuserhash" }] }],
       [{ account: "0xuserhash", scopes: "CalledByEntry" }],
     );
+    expect(provider.send).toHaveBeenCalledWith(
+      GAS_CONTRACT,
+      "0xuserhash",
+      "NRecipientAddress",
+      "100000000",
+    );
+  });
+
+  it("falls back to a transfer invoke when the provider has no direct send lane", async () => {
+    const provider = {
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xuserhash", address: "NUserAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xtransfer" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+    await adapter.connect();
+
+    await expect(
+      adapter.send("NEO", "1", "NRecipientAddress"),
+    ).resolves.toEqual({ txid: "0xtransfer" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: NEO_CONTRACT,
+          operation: "transfer",
+          args: [
+            { type: "Hash160", value: "0xuserhash" },
+            { type: "Hash160", value: "NRecipientAddress" },
+            { type: "Integer", value: "1" },
+            { type: "Any", value: null },
+          ],
+        },
+      ],
+      [{ account: "0xuserhash", scopes: "CalledByEntry" }],
+    );
+  });
+
+  it("converts fallback GAS sends to base units and rejects invalid NEO fractions", async () => {
+    const provider = {
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xuserhash", address: "NUserAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xtransfer" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+    await adapter.connect();
+
+    await expect(
+      adapter.send("GAS", "1.25", "NRecipientAddress"),
+    ).resolves.toEqual({ txid: "0xtransfer" });
+
+    expect(provider.invoke).toHaveBeenLastCalledWith(
+      [
+        {
+          hash: GAS_CONTRACT,
+          operation: "transfer",
+          args: [
+            { type: "Hash160", value: "0xuserhash" },
+            { type: "Hash160", value: "NRecipientAddress" },
+            { type: "Integer", value: "125000000" },
+            { type: "Any", value: null },
+          ],
+        },
+      ],
+      [{ account: "0xuserhash", scopes: "CalledByEntry" }],
+    );
+
+    provider.invoke.mockClear();
+    await expect(
+      adapter.send("NEO", "1.5", "NRecipientAddress"),
+    ).rejects.toThrow(/positive whole number/);
+    expect(provider.invoke).not.toHaveBeenCalled();
+  });
+
+  it("accepts accountHash-only account objects from compatible wallets", async () => {
+    const provider = {
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { accountHash: "0xaccounthashonly", address: "NAccountHashOnly", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xhashonly" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NAccountHashOnly",
+      accountHash: "0xaccounthashonly",
+    });
+    await expect(adapter.invoke({
+      scriptHash: "0xcontract",
+      operation: "claim",
+      args: [{ type: "Hash160", value: "NAccountHashOnly" }],
+      signers: [{ account: "NAccountHashOnly", scopes: 1 }],
+    })).resolves.toEqual({ txid: "0xhashonly" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: "0xcontract",
+          operation: "claim",
+          args: [{ type: "Hash160", value: "0xaccounthashonly" }],
+        },
+      ],
+      [{ account: "0xaccounthashonly", scopes: "CalledByEntry" }],
+    );
+  });
+
+  it("prefers getNetwork over a stale provider.network property on connect", async () => {
+    const provider = {
+      network: 860833102,
+      getNetwork: jest.fn().mockResolvedValue(894710606),
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xuserhash", address: "NUserAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xtx" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NUserAddress",
+      network: "testnet",
+    });
+    expect(provider.getNetwork).toHaveBeenCalled();
+  });
+
+  it("requests authentication only for the active page network", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = {
+      network: 860833102,
+      supportedNetworks: [860833102, TESTNET_MAGIC],
+      getNetwork: jest.fn().mockResolvedValue(TESTNET_MAGIC),
+      getAccounts: jest.fn().mockResolvedValue([]),
+      authenticate: jest.fn().mockResolvedValue({
+        address: "NAuthenticatedAddress",
+        hash: "0xauthenticated",
+        network: TESTNET_MAGIC,
+        pubkey: "03auth",
+      }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NAuthenticatedAddress",
+      accountHash: "0xauthenticated",
+      network: "testnet",
+    });
+    expect(provider.authenticate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        networks: [TESTNET_MAGIC],
+        domain: "localhost",
+      }),
+    );
+  });
+
+  it("rediscovers the injected provider after disconnect", async () => {
+    const firstProvider = {
+      dapiVersion: "1.0.0",
+      network: TESTNET_MAGIC,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xfirst", address: "NFirstAddress", isDefault: true },
+      ]),
+    };
+    const secondProvider = {
+      dapiVersion: "1.0.0",
+      network: TESTNET_MAGIC,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xsecond", address: "NSecondAddress", isDefault: true },
+      ]),
+    };
+
+    installProvider(firstProvider);
+    const adapter = new Nep21Adapter();
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NFirstAddress",
+    });
+
+    await adapter.disconnect();
+    installProvider(secondProvider);
+
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NSecondAddress",
+      accountHash: "0xsecond",
+    });
+    expect(secondProvider.getAccounts).toHaveBeenCalled();
   });
 
   it("submits multiple invocations atomically through the NEP-21 provider", async () => {
@@ -109,7 +314,81 @@ describe("Nep21Adapter", () => {
     );
   });
 
+  it("maps composite numeric signer scopes without recursive overflow", async () => {
+    const provider = {
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xuserhash", address: "NUserAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xscopes" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+    await adapter.connect();
+
+    await expect(adapter.invoke({
+      scriptHash: "0xcontract",
+      operation: "claim",
+      args: [],
+      signers: [{ account: "NUserAddress", scopes: 48 }],
+    })).resolves.toEqual({ txid: "0xscopes" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [{ hash: "0xcontract", operation: "claim", args: [] }],
+      [{ account: "0xuserhash", scopes: "CustomContracts, CustomGroups" }],
+    );
+  });
+
+  it("normalizes nested connected account Hash160 arguments", async () => {
+    const provider = {
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xuserhash", address: "NUserAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xnested" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+    await adapter.connect();
+
+    await expect(adapter.invoke({
+      scriptHash: "0xaa",
+      operation: "nestedClaim",
+      args: [
+        {
+          type: "Array",
+          value: [
+            { type: "String", value: "miniapp" },
+            { type: "Hash160", value: "NUserAddress" },
+          ],
+        },
+      ],
+    })).resolves.toEqual({ txid: "0xnested" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: "0xaa",
+          operation: "nestedClaim",
+          args: [
+            {
+              type: "Array",
+              value: [
+                { type: "String", value: "miniapp" },
+                { type: "Hash160", value: "0xuserhash" },
+              ],
+            },
+          ],
+        },
+      ],
+      undefined,
+    );
+  });
+
   it("falls back to authenticate when accounts are unavailable", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
     const provider = {
       supportedNetworks: [894710606],
       getAccounts: jest.fn().mockRejectedValue(new Error("locked")),
@@ -187,6 +466,7 @@ describe("Nep21Adapter", () => {
     expect(adapter.isInstalled()).toBe(true);
     await expect(adapter.connect()).resolves.toMatchObject({
       address: "NOneGateAddress",
+      accountHash: "0xonegatehash",
       network: "testnet",
     });
     await expect(adapter.invoke({
@@ -231,6 +511,7 @@ describe("Nep21Adapter", () => {
     expect(adapter.isInstalled()).toBe(true);
     await expect(adapter.connect()).resolves.toMatchObject({
       address: "NProviderAddress",
+      accountHash: "0xproviderhash",
       network: "testnet",
     });
   });
@@ -255,6 +536,7 @@ describe("Nep21Adapter", () => {
     expect(adapter.isInstalled()).toBe(true);
     await expect(adapter.connect()).resolves.toMatchObject({
       address: "NRegistryAddress",
+      accountHash: "0xregistryhash",
       network: "testnet",
     });
   });
@@ -275,6 +557,7 @@ describe("Nep21Adapter", () => {
 
     await expect(connected).resolves.toEqual({
       address: "NEventAddress",
+      accountHash: "0xeventhash",
       publicKey: "",
       label: undefined,
       network: null,

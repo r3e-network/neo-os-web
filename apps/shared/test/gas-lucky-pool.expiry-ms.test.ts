@@ -65,6 +65,33 @@ describe("OneGate Vault range pool expiry uses milliseconds", () => {
     );
   });
 
+  it("rejects over-precision create amounts before wallet submission", async () => {
+    const chain = {
+      ensureWallet: vi.fn().mockResolvedValue(OWNER),
+      invokeWithPayment: vi.fn(),
+      readArray: vi.fn().mockResolvedValue([]),
+      listEvents: vi.fn().mockResolvedValue([]),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch(""),
+      t,
+    });
+
+    await expect(
+      pool.createPool({
+        totalAmount: "10.000000001",
+        minClaim: "1",
+        maxClaim: "5",
+        maxClaims: "5",
+        expiryHours: "24",
+      }),
+    ).rejects.toThrow("invalidTotal");
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+  });
+
   it("rounds fractional-hour expiry to whole milliseconds", async () => {
     const chain = {
       ensureWallet: vi.fn().mockResolvedValue(OWNER),

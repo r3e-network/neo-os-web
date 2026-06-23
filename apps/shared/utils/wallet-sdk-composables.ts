@@ -9,6 +9,7 @@ import {
 } from "../constants/rpc";
 import { MiniAppError } from "./errorHandling";
 import { fetchWithTimeout } from "./fetch-timeout";
+import { parsePositiveFixed8 } from "./format";
 import type {
   ContractEvent,
   EventsListParams,
@@ -224,11 +225,8 @@ export function createPaymentsComposable(
     targetContractHash = "",
     scopedAppId = appId || "miniapp",
   ): Promise<PaymentResult> => {
-    const parsedAmount = parseFloat(amount);
-    // A payment must be a positive number — reject NaN, 0, and negatives before
-    // scaling so a malformed/empty amount cannot reach the wallet as a 0-value
-    // or negative transfer.
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    const amountFixed8 = parsePositiveFixed8(amount);
+    if (!amountFixed8) {
       throw new MiniAppError(
         "Invalid amount",
         errorCodes.PAYMENT_INVALID_AMOUNT,
@@ -238,7 +236,6 @@ export function createPaymentsComposable(
         errorCodes.PAYMENT_INVALID_AMOUNT,
       );
     }
-    const amountFixed8 = Math.round(parsedAmount * 1e8).toString();
     if (!wallet.address.value) {
       await wallet.connect();
     }

@@ -1,0 +1,247 @@
+{
+  "generatedAt": "2026-06-01T20:48:06.914Z",
+  "app": "miniapp-milestone-escrow",
+  "mode": "direct-dapp-after-useRef-plus-host-frame",
+  "direct": [
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://localhost:3031/miniapps/milestone-escrow/index.html?network=mainnet&source=embed&v=1780346870782",
+      "clickAttempts": [
+        {
+          "attempt": 1,
+          "countBefore": 2,
+          "disabled": false,
+          "countAfter": 3
+        },
+        {
+          "attempt": 2,
+          "countBefore": 3,
+          "disabled": false,
+          "countAfter": 4
+        },
+        {
+          "attempt": 3,
+          "countBefore": 4,
+          "disabled": false,
+          "countAfter": 5
+        },
+        {
+          "attempt": 4,
+          "countBefore": 5,
+          "disabled": false,
+          "countAfter": 6
+        },
+        {
+          "attempt": 5,
+          "countBefore": 6,
+          "disabled": false,
+          "countAfter": 7
+        },
+        {
+          "attempt": 6,
+          "countBefore": 7,
+          "disabled": false,
+          "countAfter": 8
+        },
+        {
+          "attempt": 7,
+          "countBefore": 8,
+          "disabled": false,
+          "countAfter": 9
+        },
+        {
+          "attempt": 8,
+          "countBefore": 9,
+          "disabled": false,
+          "countAfter": 10
+        },
+        {
+          "attempt": 9,
+          "countBefore": 10,
+          "disabled": false,
+          "countAfter": 11
+        },
+        {
+          "attempt": 10,
+          "countBefore": 11,
+          "disabled": false,
+          "countAfter": 12
+        },
+        {
+          "attempt": 11,
+          "countBefore": 12,
+          "disabled": true
+        }
+      ],
+      "state": {
+        "textLength": 1054,
+        "rowCount": 12,
+        "countLabelVisible": true,
+        "addDisabled": true,
+        "bodyScrollHeight": 1677,
+        "viewportHeight": 1000,
+        "viewportWidth": 1440,
+        "hasHorizontalScroll": false,
+        "rowsBox": {
+          "clientHeight": 520,
+          "scrollHeight": 914,
+          "maxHeight": "520px",
+          "overflowY": "auto"
+        },
+        "rowOverflowers": 0,
+        "createVisible": true,
+        "evidenceVisible": true,
+        "latestRequestVisible": true,
+        "latestResultVisible": true
+      },
+      "consoleMessages": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-layout-after/desktop-1440x1000-direct-dapp.png"
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://localhost:3031/miniapps/milestone-escrow/index.html?network=mainnet&source=embed&v=1780346878719",
+      "clickAttempts": [
+        {
+          "attempt": 1,
+          "countBefore": 2,
+          "disabled": false,
+          "countAfter": 3
+        },
+        {
+          "attempt": 2,
+          "countBefore": 3,
+          "disabled": false,
+          "countAfter": 4
+        },
+        {
+          "attempt": 3,
+          "countBefore": 4,
+          "disabled": false,
+          "countAfter": 5
+        },
+        {
+          "attempt": 4,
+          "countBefore": 5,
+          "disabled": false,
+          "countAfter": 6
+        },
+        {
+          "attempt": 5,
+          "countBefore": 6,
+          "disabled": false,
+          "countAfter": 7
+        },
+        {
+          "attempt": 6,
+          "countBefore": 7,
+          "disabled": false,
+          "countAfter": 8
+        },
+        {
+          "attempt": 7,
+          "countBefore": 8,
+          "disabled": false,
+          "countAfter": 9
+        },
+        {
+          "attempt": 8,
+          "countBefore": 9,
+          "disabled": false,
+          "countAfter": 10
+        },
+        {
+          "attempt": 9,
+          "countBefore": 10,
+          "disabled": false,
+          "countAfter": 11
+        },
+        {
+          "attempt": 10,
+          "countBefore": 11,
+          "disabled": false,
+          "countAfter": 12
+        },
+        {
+          "attempt": 11,
+          "countBefore": 12,
+          "disabled": true
+        }
+      ],
+      "state": {
+        "textLength": 1054,
+        "rowCount": 12,
+        "countLabelVisible": true,
+        "addDisabled": true,
+        "bodyScrollHeight": 2405,
+        "viewportHeight": 844,
+        "viewportWidth": 390,
+        "hasHorizontalScroll": false,
+        "rowsBox": {
+          "clientHeight": 700,
+          "scrollHeight": 2018,
+          "maxHeight": "700px",
+          "overflowY": "auto"
+        },
+        "rowOverflowers": 0,
+        "createVisible": true,
+        "evidenceVisible": true,
+        "latestRequestVisible": true,
+        "latestResultVisible": true
+      },
+      "consoleMessages": [],
+      "failedRequests": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-layout-after/mobile-390x844-direct-dapp.png"
+    }
+  ],
+  "hostFrames": [
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "host": {
+        "hasNextOverlay": false,
+        "frameClass": "block h-[2600px] sm:h-[2200px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-0",
+        "frameRect": {
+          "top": 0,
+          "left": 0,
+          "width": 0,
+          "height": 0
+        },
+        "pageScrollWidth": 0,
+        "viewportWidth": 1440
+      }
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "host": {
+        "hasNextOverlay": false,
+        "frameClass": "block h-[2600px] sm:h-[2200px] lg:h-[1800px] w-full border-0 bg-white transition-opacity duration-300 opacity-0",
+        "frameRect": {
+          "top": 0,
+          "left": 0,
+          "width": 0,
+          "height": 0
+        },
+        "pageScrollWidth": 0,
+        "viewportWidth": 390
+      }
+    }
+  ]
+}

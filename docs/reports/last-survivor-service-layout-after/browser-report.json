@@ -1,0 +1,252 @@
+{
+  "generatedAt": "2026-06-01T21:09:34.596Z",
+  "urls": {
+    "staticDirect": "http://127.0.0.1:3035/miniapps/last-survivor/index.html?network=testnet&source=embed&v=1780348151186",
+    "hostDirect": "http://localhost:3034/miniapps/last-survivor/index.html?network=testnet&source=embed&v=1780348151186",
+    "hostDetail": "http://localhost:3034/miniapps/miniapp-last-survivor?network=testnet&v=1780348151186"
+  },
+  "summary": {
+    "total": 6,
+    "rawErrorResults": [],
+    "overflowResults": [],
+    "clippedIframes": []
+  },
+  "results": [
+    {
+      "label": "staticDirect",
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:3035/miniapps/last-survivor/index.html?network=testnet&source=embed&v=1780348151186",
+      "actions": {
+        "buyVisible": true,
+        "buyDisabledBeforeClick": true
+      },
+      "title": "LastSurvivor",
+      "textSample": "ROUND\n#0\nSTATUS\nRollover ready\nTOTAL POT\n0.00 GAS\nRound state unavailable\nThe countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.\nRefresh Round\n00:00:00\nTIME UNTIL EVENT\nTOTAL POT\n⛽\n0.00\nGAS\nSAFE\nCRITICAL\nCRITICAL\nSAFE\nWARN\nHIGH\nCRIT\n•\nYOUR KEYS\n0\n•\nTOTAL KEYS\n1\n•\nSHARE\n0.0%\nRollover ready\nRefresh the game state before buying keys.\nRefresh Round\nBUY KEYS\n−\n3\nKEYS\n&plus;\n1\n3\n5\n10\nESTIMATED COST\n⛽0.10 GAS\nRefresh the round state before submitting a key purchase.\nBuy Keys\nHOW IT WORKS\n1\nBuy keys\nEach purchase adds GAS to the prize pool and extends the live countdown.\n2\nTimer pressure increases\nLater bids add less time, so the ending gets more tense as the pool grows.\n3\nLast buyer",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasBuyKeys": true,
+      "hasRefreshRound": true,
+      "buyButtons": [
+        {
+          "text": "Buy Keys",
+          "disabled": true
+        }
+      ],
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1527,
+      "bodyClientHeight": 1000,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3035/api/edge/os-game-status"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3035/api/edge/os-leaderboard-get"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3035/api/edge/os-storage-list"
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/last-survivor-service-layout-after/staticDirect-desktop.png"
+    },
+    {
+      "label": "hostDirect",
+      "viewport": "desktop",
+      "url": "http://localhost:3034/miniapps/last-survivor/index.html?network=testnet&source=embed&v=1780348151186",
+      "actions": {
+        "buyVisible": true,
+        "buyDisabledBeforeClick": true
+      },
+      "title": "LastSurvivor",
+      "textSample": "ROUND\n#0\nSTATUS\nRollover ready\nTOTAL POT\n0.00 GAS\nRound state unavailable\nThe countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.\nRefresh Round\n00:00:00\nTIME UNTIL EVENT\nTOTAL POT\n⛽\n0.00\nGAS\nSAFE\nCRITICAL\nCRITICAL\nSAFE\nWARN\nHIGH\nCRIT\n•\nYOUR KEYS\n0\n•\nTOTAL KEYS\n1\n•\nSHARE\n0.0%\nRollover ready\nRefresh the game state before buying keys.\nRefresh Round\nBUY KEYS\n−\n3\nKEYS\n&plus;\n1\n3\n5\n10\nESTIMATED COST\n⛽0.10 GAS\nRefresh the round state before submitting a key purchase.\nBuy Keys\nHOW IT WORKS\n1\nBuy keys\nEach purchase adds GAS to the prize pool and extends the live countdown.\n2\nTimer pressure increases\nLater bids add less time, so the ending gets more tense as the pool grows.\n3\nLast buyer",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasBuyKeys": true,
+      "hasRefreshRound": true,
+      "buyButtons": [
+        {
+          "text": "Buy Keys",
+          "disabled": true
+        }
+      ],
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1527,
+      "bodyClientHeight": 1000,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/last-survivor-service-layout-after/hostDirect-desktop.png"
+    },
+    {
+      "label": "hostDetail",
+      "viewport": "desktop",
+      "url": "http://localhost:3034/miniapps/miniapp-last-survivor?network=testnet&v=1780348151186",
+      "actions": {
+        "buyVisible": true,
+        "buyDisabledBeforeClick": true
+      },
+      "outer": {
+        "className": "block h-[2100px] sm:h-[1800px] lg:h-[1640px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameHeight": 1640,
+        "frameWidth": 1052
+      },
+      "inner": {
+        "title": "LastSurvivor",
+        "textSample": "ROUND\n#0\nSTATUS\nRollover ready\nTOTAL POT\n0.00 GAS\nRound state unavailable\nThe countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.\nRefresh Round\n00:00:00\nTIME UNTIL EVENT\nTOTAL POT\n⛽\n0.00\nGAS\nSAFE\nCRITICAL\nCRITICAL\nSAFE\nWARN\nHIGH\nCRIT\n•\nYOUR KEYS\n0\n•\nTOTAL KEYS\n1\n•\nSHARE\n0.0%\nRollover ready\nRefresh the game state before buying keys.\nRefresh Round\nBUY KEYS\n−\n3\nKEYS\n&plus;\n1\n3\n5\n10\nESTIMATED COST\n⛽0.10 GAS\nRefresh the round state before submitting a key purchase.\nBuy Keys\nHOW IT WORKS\n1\nBuy keys\nEach purchase adds GAS to the prize pool and extends the live countdown.\n2\nTimer pressure increases\nLater bids add less time, so the ending gets more tense as the pool grows.\n3\nLast buyer wins\nWhen the timer reaches zero, the last buyer receives the settled prize pool after platform fee",
+        "hasRawError": false,
+        "hasServiceNotice": true,
+        "hasBuyKeys": true,
+        "hasRefreshRound": true,
+        "horizontalOverflow": 0,
+        "bodyScrollHeight": 1640,
+        "bodyClientHeight": 1640,
+        "buyButtons": [
+          {
+            "text": "Buy Keys",
+            "disabled": true
+          }
+        ]
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/last-survivor-service-layout-after/hostDetail-desktop.png"
+    },
+    {
+      "label": "staticDirect",
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:3035/miniapps/last-survivor/index.html?network=testnet&source=embed&v=1780348151186",
+      "actions": {
+        "buyVisible": true,
+        "buyDisabledBeforeClick": true
+      },
+      "title": "LastSurvivor",
+      "textSample": "ROUND\n#0\nSTATUS\nRollover ready\nTOTAL POT\n0.00 GAS\nRound state unavailable\nThe countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.\nRefresh Round\n00:00:00\nTIME UNTIL EVENT\nTOTAL POT\n⛽\n0.00\nGAS\nSAFE\nCRITICAL\nCRITICAL\nSAFE\nWARN\nHIGH\nCRIT\n•\nYOUR KEYS\n0\n•\nTOTAL KEYS\n1\n•\nSHARE\n0.0%\nRollover ready\nRefresh the game state before buying keys.\nRefresh Round\nBUY KEYS\n−\n3\nKEYS\n&plus;\n1\n3\n5\n10\nESTIMATED COST\n⛽0.10 GAS\nRefresh the round state before submitting a key purchase.\nBuy Keys\nHOW IT WORKS\n1\nBuy keys\nEach purchase adds GAS to the prize pool and extends the live countdown.\n2\nTimer pressure increases\nLater bids add less time, so the ending gets more tense as the pool grows.\n3\nLast buyer",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasBuyKeys": true,
+      "hasRefreshRound": true,
+      "buyButtons": [
+        {
+          "text": "Buy Keys",
+          "disabled": true
+        }
+      ],
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1913,
+      "bodyClientHeight": 844,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3035/api/edge/os-game-status"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3035/api/edge/os-storage-list"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3035/api/edge/os-leaderboard-get"
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/last-survivor-service-layout-after/staticDirect-mobile.png"
+    },
+    {
+      "label": "hostDirect",
+      "viewport": "mobile",
+      "url": "http://localhost:3034/miniapps/last-survivor/index.html?network=testnet&source=embed&v=1780348151186",
+      "actions": {
+        "buyVisible": true,
+        "buyDisabledBeforeClick": true
+      },
+      "title": "LastSurvivor",
+      "textSample": "ROUND\n#0\nSTATUS\nRollover ready\nTOTAL POT\n0.00 GAS\nRound state unavailable\nThe countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.\nRefresh Round\n00:00:00\nTIME UNTIL EVENT\nTOTAL POT\n⛽\n0.00\nGAS\nSAFE\nCRITICAL\nCRITICAL\nSAFE\nWARN\nHIGH\nCRIT\n•\nYOUR KEYS\n0\n•\nTOTAL KEYS\n1\n•\nSHARE\n0.0%\nRollover ready\nRefresh the game state before buying keys.\nRefresh Round\nBUY KEYS\n−\n3\nKEYS\n&plus;\n1\n3\n5\n10\nESTIMATED COST\n⛽0.10 GAS\nRefresh the round state before submitting a key purchase.\nBuy Keys\nHOW IT WORKS\n1\nBuy keys\nEach purchase adds GAS to the prize pool and extends the live countdown.\n2\nTimer pressure increases\nLater bids add less time, so the ending gets more tense as the pool grows.\n3\nLast buyer",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasBuyKeys": true,
+      "hasRefreshRound": true,
+      "buyButtons": [
+        {
+          "text": "Buy Keys",
+          "disabled": true
+        }
+      ],
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1913,
+      "bodyClientHeight": 844,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/last-survivor-service-layout-after/hostDirect-mobile.png"
+    },
+    {
+      "label": "hostDetail",
+      "viewport": "mobile",
+      "url": "http://localhost:3034/miniapps/miniapp-last-survivor?network=testnet&v=1780348151186",
+      "actions": {
+        "buyVisible": true,
+        "buyDisabledBeforeClick": true
+      },
+      "outer": {
+        "className": "block h-[2100px] sm:h-[1800px] lg:h-[1640px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameHeight": 2100,
+        "frameWidth": 362
+      },
+      "inner": {
+        "title": "LastSurvivor",
+        "textSample": "ROUND\n#0\nSTATUS\nRollover ready\nTOTAL POT\n0.00 GAS\nRound state unavailable\nThe countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.\nRefresh Round\n00:00:00\nTIME UNTIL EVENT\nTOTAL POT\n⛽\n0.00\nGAS\nSAFE\nCRITICAL\nCRITICAL\nSAFE\nWARN\nHIGH\nCRIT\n•\nYOUR KEYS\n0\n•\nTOTAL KEYS\n1\n•\nSHARE\n0.0%\nRollover ready\nRefresh the game state before buying keys.\nRefresh Round\nBUY KEYS\n−\n3\nKEYS\n&plus;\n1\n3\n5\n10\nESTIMATED COST\n⛽0.10 GAS\nRefresh the round state before submitting a key purchase.\nBuy Keys\nHOW IT WORKS\n1\nBuy keys\nEach purchase adds GAS to the prize pool and extends the live countdown.\n2\nTimer pressure increases\nLater bids add less time, so the ending gets more tense as the pool grows.\n3\nLast buyer wins\nWhen the timer reaches zero, the last buyer receives the settled prize pool after platform fee",
+        "hasRawError": false,
+        "hasServiceNotice": true,
+        "hasBuyKeys": true,
+        "hasRefreshRound": true,
+        "horizontalOverflow": 0,
+        "bodyScrollHeight": 2100,
+        "bodyClientHeight": 2100,
+        "buyButtons": [
+          {
+            "text": "Buy Keys",
+            "disabled": true
+          }
+        ]
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/last-survivor-service-layout-after/hostDetail-mobile.png"
+    }
+  ]
+}

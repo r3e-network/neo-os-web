@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:4199/miniapps/wallet-health/index.html",
+  "clipboardHasReport": true,
+  "clipboardHasChecklist": true,
+  "suggestedFilename": "wallet-health-report.txt",
+  "consoleErrors": [],
+  "requestFailures": [],
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/wallet-health-report-actions-after/host-public-desktop-report-actions.png"
+}

@@ -1,4 +1,4 @@
-import { isValidNeoAddress } from "@/lib/neo-address";
+import { isValidNeoAddress, neoAddressToScriptHash } from "@/lib/neo-address";
 
 describe("isValidNeoAddress", () => {
   it("accepts a valid Neo N3 address", () => {
@@ -31,5 +31,15 @@ describe("isValidNeoAddress", () => {
   it("rejects addresses with invalid base58 characters", () => {
     // 0, O, I, l are not in Base58
     expect(isValidNeoAddress("N0ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")).toBe(false);
+  });
+
+  it("converts a valid Neo N3 address to a little-endian script hash", () => {
+    expect(neoAddressToScriptHash("NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs")).toMatch(
+      /^0x[0-9a-f]{40}$/,
+    );
+  });
+
+  it("does not derive a script hash from invalid N-prefix strings", () => {
+    expect(neoAddressToScriptHash("NAuthAddress")).toBe("");
   });
 });

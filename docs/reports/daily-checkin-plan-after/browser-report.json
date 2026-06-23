@@ -1,0 +1,86 @@
+{
+  "checkedAt": "2026-06-02T02:45:40.138Z",
+  "url": "http://127.0.0.1:4230/miniapps/daily-checkin/index.html?network=testnet",
+  "screenshots": [
+    "desktop-ready.png",
+    "desktop-after-claim.png",
+    "mobile-ready.png"
+  ],
+  "desktopMetrics": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "bodyClientWidth": 1440
+  },
+  "mobileMetrics": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "bodyScrollWidth": 390,
+    "bodyClientWidth": 390
+  },
+  "endpoints": [
+    "os-checkin-streak",
+    "os-checkin-streak",
+    "os-checkin-checkin",
+    "os-checkin-streak",
+    "os-checkin-claim",
+    "os-checkin-streak",
+    "os-checkin-streak"
+  ],
+  "calls": [
+    {
+      "endpoint": "os-checkin-streak",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    },
+    {
+      "endpoint": "os-checkin-streak",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    },
+    {
+      "endpoint": "os-checkin-checkin",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    },
+    {
+      "endpoint": "os-checkin-streak",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    },
+    {
+      "endpoint": "os-checkin-claim",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    },
+    {
+      "endpoint": "os-checkin-streak",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    },
+    {
+      "endpoint": "os-checkin-streak",
+      "body": {
+        "appId": "miniapp-dailycheckin"
+      }
+    }
+  ],
+  "assertions": [
+    "Today plan panel rendered ready state and day-7 reward impact",
+    "Refresh Status reached os-checkin-streak and settled the UI status",
+    "Check In Now reached os-checkin-checkin and updated UI to secured day-7 state",
+    "After claim no longer shows the pre-check-in milestone prompt",
+    "Claim Rewards reached os-checkin-claim and rendered Reward claimed evidence",
+    "Desktop layout has no horizontal overflow",
+    "Mobile layout has no horizontal overflow",
+    "Desktop and mobile text have no raw OS errors, undefined, or NaN",
+    "Browser produced no console or page errors"
+  ],
+  "consoleErrors": []
+}

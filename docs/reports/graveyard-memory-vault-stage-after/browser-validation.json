@@ -1,0 +1,128 @@
+[
+  {
+    "name": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "initial": {
+      "url": "http://127.0.0.1:4332/",
+      "title": "Graveyard",
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "hasHorizontalOverflow": false,
+      "heroImg": {
+        "src": "memory-vault-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810
+      },
+      "stageImg": {
+        "src": "memory-vault-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810,
+        "animationName": "grave-banner-drift",
+        "animationDuration": "17s"
+      },
+      "sealImg": {
+        "src": "memory-vault-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810
+      },
+      "consolePresent": true,
+      "consoleHeight": 324,
+      "tabs": [
+        {
+          "text": "撰写记忆从私密文字本地生成哈希",
+          "selected": "true",
+          "width": 315,
+          "height": 76
+        },
+        {
+          "text": "已有哈希使用已有加密目标",
+          "selected": "false",
+          "width": 315,
+          "height": 76
+        }
+      ],
+      "className": "graveyard-play-area graveyard-play-area--idle",
+      "primaryText": "检查埋葬"
+    },
+    "afterClick": {
+      "className": "graveyard-play-area graveyard-play-area--confirming",
+      "stageClassName": "grave-ritual-stage grave-ritual-stage--confirming",
+      "pulseVisible": true,
+      "confirmVisible": true,
+      "primaryText": "撰写记忆从私密文字本地生成哈希 | 已有哈希使用已有加密目标 | 清空哈希 | 秘密 | 遗憾 | 愿望 | 告白 | 其他 | 取消 | 上链埋葬",
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "hasHorizontalOverflow": false
+    },
+    "consoleMessages": [],
+    "pageErrors": [],
+    "failedRequests": [],
+    "badResponses": []
+  },
+  {
+    "name": "mobile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "initial": {
+      "url": "http://127.0.0.1:4332/",
+      "title": "Graveyard",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "hasHorizontalOverflow": false,
+      "heroImg": {
+        "src": "memory-vault-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810
+      },
+      "stageImg": {
+        "src": "memory-vault-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810,
+        "animationName": "grave-banner-drift",
+        "animationDuration": "17s"
+      },
+      "sealImg": {
+        "src": "memory-vault-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810
+      },
+      "consolePresent": true,
+      "consoleHeight": 340,
+      "tabs": [
+        {
+          "text": "撰写记忆从私密文字本地生成哈希",
+          "selected": "true",
+          "width": 157,
+          "height": 76
+        },
+        {
+          "text": "已有哈希使用已有加密目标",
+          "selected": "false",
+          "width": 157,
+          "height": 76
+        }
+      ],
+      "className": "graveyard-play-area graveyard-play-area--idle",
+      "primaryText": "检查埋葬"
+    },
+    "afterClick": {
+      "className": "graveyard-play-area graveyard-play-area--confirming",
+      "stageClassName": "grave-ritual-stage grave-ritual-stage--confirming",
+      "pulseVisible": true,
+      "confirmVisible": true,
+      "primaryText": "撰写记忆从私密文字本地生成哈希 | 已有哈希使用已有加密目标 | 清空哈希 | 秘密 | 遗憾 | 愿望 | 告白 | 其他 | 取消 | 上链埋葬",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "hasHorizontalOverflow": false
+    },
+    "consoleMessages": [],
+    "pageErrors": [],
+    "failedRequests": [],
+    "badResponses": []
+  }
+]

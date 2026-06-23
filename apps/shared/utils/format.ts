@@ -95,6 +95,39 @@ export function toFixedDecimals(value: string | number, decimals: number): strin
 }
 
 /**
+ * Strictly parse a positive human-readable amount to fixed decimal base units.
+ * Unlike toFixedDecimals(), this rejects malformed input and over-precision
+ * instead of truncating. Use this for transaction amounts.
+ */
+export function parsePositiveFixedDecimals(
+  value: string | number,
+  decimals: number,
+): string | null {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 80) return null;
+  const raw =
+    typeof value === "number"
+      ? Number.isFinite(value)
+        ? value.toString()
+        : ""
+      : String(value ?? "").trim();
+  if (!/^\d+(?:\.\d+)?$/.test(raw)) return null;
+  const [whole = "0", fractionRaw = ""] = raw.split(".");
+  if (fractionRaw.length > decimals) return null;
+  try {
+    const units =
+      BigInt(whole || "0") * 10n ** BigInt(decimals) +
+      BigInt((fractionRaw || "").padEnd(decimals, "0") || "0");
+    return units > 0n ? units.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parsePositiveFixed8(value: string | number): string | null {
+  return parsePositiveFixedDecimals(value, 8);
+}
+
+/**
  * Convert human-readable value to Fixed8 format string (multiply by 1e8)
  * Used for blockchain transaction arguments
  */

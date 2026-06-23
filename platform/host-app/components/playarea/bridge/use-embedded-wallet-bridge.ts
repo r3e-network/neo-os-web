@@ -1,11 +1,18 @@
 import React, { useEffect } from "react";
 
+import { useWalletStore } from "@/lib/wallet/store";
+
 import type {
   BridgeRecord,
   BridgeRequest,
   EmbeddedWalletBridgeErrorDetail,
 } from "./types";
-import { asBridgeString, buildEmbeddedWalletBridgeResultDetail, isBridgeRecord } from "./normalizers";
+import {
+  asBridgeString,
+  bridgeNetworkMagic,
+  buildEmbeddedWalletBridgeResultDetail,
+  isBridgeRecord,
+} from "./normalizers";
 import {
   HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS,
   HOST_WALLET_BRIDGE_ERROR,
@@ -13,13 +20,14 @@ import {
   HOST_WALLET_BRIDGE_REQUEST,
   HOST_WALLET_BRIDGE_RESPONSE,
   HOST_WALLET_BRIDGE_RESULT,
+  HOST_WALLET_BRIDGE_STATE,
   isCompatibleBridgeProtocolVersion,
 } from "./events";
 import {
   SENSITIVE_BRIDGE_METHODS,
   confirmSensitiveBridgeOperation,
   handleEmbeddedWalletBridgeRequest,
-  requireBridgeWallet,
+  preflightEmbeddedWalletBridgeRequest,
 } from "./request-handler";
 
 // Coerce the declared protocol version from the wire envelope. A missing field
@@ -50,33 +58,87 @@ export function useEmbeddedWalletBridge({
   network: "mainnet" | "testnet";
 }) {
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
+    const resolveFrameTarget = () => {
       const frame = iframeRef.current;
       const frameWindow = frame?.contentWindow;
-      // Identity check: the message must originate from this exact embedded frame's window.
-      if (!frameWindow || event.source !== frameWindow) return;
+      if (!frame || !frameWindow) return null;
 
       // Audit fix (origin hardening): additionally allowlist the sender origin against the
       // frame's own src origin. Miniapps are first-party (served same-origin), so a legitimate
       // message's origin equals the frame origin — except when the frame is sandboxed without
       // allow-same-origin (audit fix C-4): such documents carry an opaque origin and their
-      // messages arrive with origin "null". In that case the window-identity check above
-      // remains the security boundary and only the literal "null" origin is accepted.
+      // messages arrive with origin "null". In that case the window-identity check remains the
+      // security boundary and only the literal "null" origin is accepted.
       let expectedOrigin = window.location.origin;
       try {
-        expectedOrigin = new URL(frame!.src, window.location.href).origin;
+        expectedOrigin = new URL(frame.src, window.location.href).origin;
       } catch {
         expectedOrigin = window.location.origin;
       }
-      const sandboxTokens = frame!.getAttribute("sandbox");
+      const sandboxTokens = frame.getAttribute("sandbox");
       const frameHasOpaqueOrigin =
         sandboxTokens !== null &&
         !sandboxTokens
           .split(/\s+/)
           .some((token) => token.toLowerCase() === "allow-same-origin");
-      if (frameHasOpaqueOrigin) {
+
+      return { frame, frameWindow, expectedOrigin, frameHasOpaqueOrigin };
+    };
+
+    const postToFrame = (message: BridgeRecord) => {
+      const target = resolveFrameTarget();
+      if (!target) return;
+      target.frameWindow.postMessage(
+        message,
+        target.frameHasOpaqueOrigin ? "*" : target.expectedOrigin,
+      );
+    };
+
+    const publishWalletState = (state: ReturnType<typeof useWalletStore.getState>) => {
+      postToFrame({
+        type: HOST_WALLET_BRIDGE_STATE,
+        appId,
+        protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+        state: {
+          connected: Boolean(state.connected && state.address),
+          address: state.connected ? state.address : "",
+          accountHash: state.connected ? state.accountHash : "",
+          network: state.network ? bridgeNetworkMagic(state.network) : null,
+          networkName: state.network,
+          networkVerified: Boolean(state.network),
+        },
+      });
+    };
+
+    publishWalletState(useWalletStore.getState());
+    const frame = iframeRef.current;
+    const publishCurrentWalletState = () =>
+      publishWalletState(useWalletStore.getState());
+    frame?.addEventListener("load", publishCurrentWalletState);
+
+    const unsubscribeWalletState = useWalletStore.subscribe(
+      (state, previousState) => {
+        if (
+          state.connected === previousState.connected &&
+          state.address === previousState.address &&
+          state.accountHash === previousState.accountHash &&
+          state.network === previousState.network
+        ) {
+          return;
+        }
+        publishWalletState(state);
+      },
+    );
+
+    const onMessage = (event: MessageEvent) => {
+      const target = resolveFrameTarget();
+      const frameWindow = target?.frameWindow;
+      // Identity check: the message must originate from this exact embedded frame's window.
+      if (!frameWindow || event.source !== frameWindow) return;
+
+      if (target.frameHasOpaqueOrigin) {
         if (event.origin !== "null") return;
-      } else if (event.origin !== expectedOrigin) {
+      } else if (event.origin !== target.expectedOrigin) {
         return;
       }
 
@@ -101,7 +163,7 @@ export function useEmbeddedWalletBridge({
             protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
             ...response,
           },
-          frameHasOpaqueOrigin ? "*" : expectedOrigin,
+          target.frameHasOpaqueOrigin ? "*" : target.expectedOrigin,
         );
       };
 
@@ -142,64 +204,70 @@ export function useEmbeddedWalletBridge({
         );
       };
 
+      const executeRequest = () =>
+        handleEmbeddedWalletBridgeRequest(method, data.payload, network)
+          .then((result) => {
+            const detail = buildEmbeddedWalletBridgeResultDetail({
+              appId,
+              network,
+              requestMethod: method,
+              payload: data.payload,
+              result,
+            });
+            if (detail.txid) {
+              window.dispatchEvent(
+                new CustomEvent(HOST_WALLET_BRIDGE_RESULT, { detail }),
+              );
+            }
+            reply({ ok: true, result });
+          })
+          .catch((error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            // Only sensitive (signing / fund-moving) failures get the host-side
+            // notice; read failures stay scoped to the miniapp's own UI.
+            if (SENSITIVE_BRIDGE_METHODS.has(method)) {
+              dispatchBridgeError(message, false);
+            }
+            reply({ ok: false, error: { message } });
+          });
+
       // Audit fix (confirmation hardening): require explicit user approval before any signing
       // or fund-moving wallet operation requested by the embedded miniapp.
       if (SENSITIVE_BRIDGE_METHODS.has(method)) {
-        // Validate the wallet/network BEFORE prompting — a disconnected or
-        // wrong-network wallet should error immediately instead of asking the
-        // user to approve a request that can never succeed. `invoke`/`send`
-        // additionally require a verified (non-null) wallet network.
-        try {
-          requireBridgeWallet(network, {
-            requireVerifiedNetwork: method === "invoke" || method === "send",
+        // Validate the wallet/network BEFORE prompting — including a fresh
+        // adapter.getNetwork() read — so a disconnected, wrong-network, or
+        // stale-cache wallet errors immediately instead of asking the user to
+        // approve a request that can never safely proceed.
+        void preflightEmbeddedWalletBridgeRequest(method, network)
+          .then(() => {
+            if (!confirmSensitiveBridgeOperation(appId, method, data.payload)) {
+              dispatchBridgeError("User rejected the request.", true);
+              reply({
+                ok: false,
+                error: { message: "User rejected the request." },
+              });
+              return;
+            }
+            void executeRequest();
+          })
+          .catch((error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            dispatchBridgeError(message, false);
+            reply({ ok: false, error: { message } });
           });
-        } catch (error: unknown) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          dispatchBridgeError(message, false);
-          reply({ ok: false, error: { message } });
-          return;
-        }
-
-        if (!confirmSensitiveBridgeOperation(appId, method, data.payload)) {
-          dispatchBridgeError("User rejected the request.", true);
-          reply({
-            ok: false,
-            error: { message: "User rejected the request." },
-          });
-          return;
-        }
+        return;
       }
 
-      void handleEmbeddedWalletBridgeRequest(method, data.payload, network)
-        .then((result) => {
-          const detail = buildEmbeddedWalletBridgeResultDetail({
-            appId,
-            network,
-            requestMethod: method,
-            payload: data.payload,
-            result,
-          });
-          if (detail.txid) {
-            window.dispatchEvent(
-              new CustomEvent(HOST_WALLET_BRIDGE_RESULT, { detail }),
-            );
-          }
-          reply({ ok: true, result });
-        })
-        .catch((error: unknown) => {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          // Only sensitive (signing / fund-moving) failures get the host-side
-          // notice; read failures stay scoped to the miniapp's own UI.
-          if (SENSITIVE_BRIDGE_METHODS.has(method)) {
-            dispatchBridgeError(message, false);
-          }
-          reply({ ok: false, error: { message } });
-        });
+      void executeRequest();
     };
 
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return () => {
+      unsubscribeWalletState();
+      frame?.removeEventListener("load", publishCurrentWalletState);
+      window.removeEventListener("message", onMessage);
+    };
   }, [appId, iframeRef, network]);
 }

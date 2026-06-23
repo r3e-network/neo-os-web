@@ -305,8 +305,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
                 <NeoInput
                   value={donateAmount}
-                  type="number"
-                  min={0}
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.]?[0-9]*"
                   label={t("donateAmount")}
                   placeholder={t("donateAmountPlaceholder")}
                   suffix={t("tokenGas")}
@@ -353,8 +354,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   />
                   <NeoInput
                     value={sendAmount}
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.]?[0-9]*"
                     label={t("sendAmount")}
                     placeholder={t("sendAmountPlaceholder")}
                     suffix={t("tokenGas")}

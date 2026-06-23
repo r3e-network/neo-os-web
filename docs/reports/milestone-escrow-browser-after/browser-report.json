@@ -1,0 +1,184 @@
+{
+  "url": "http://localhost:3101/miniapps/milestone-escrow/index.html?network=testnet&v=1780322320459",
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-browser-after/after-cancel-testnet-mock-wallet.png",
+  "consoleErrors": [],
+  "failedRequests": [],
+  "badResponses": [],
+  "textLength": 1396,
+  "buttons": [
+    "Add milestone",
+    "Remove",
+    "Remove",
+    "Create Escrow",
+    "Refresh"
+  ],
+  "walletInvocations": [
+    {
+      "txid": "0xmockmilestone01",
+      "invocations": [
+        {
+          "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "operation": "transfer",
+          "args": [
+            {
+              "type": "Hash160",
+              "value": "0x1234567890abcdef1234567890abcdef12345678"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x4b882e94ed766807c4fd728768f972e13008ad52"
+            },
+            {
+              "type": "Integer",
+              "value": "10000000"
+            },
+            {
+              "type": "String",
+              "value": "escrow:create:Website delivery escrow"
+            }
+          ]
+        }
+      ],
+      "signers": [
+        {
+          "account": "0x1234567890abcdef1234567890abcdef12345678",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    },
+    {
+      "txid": "0xmockmilestone02",
+      "invocations": [
+        {
+          "hash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+          "operation": "createEscrow",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-milestone-escrow"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x1234567890abcdef1234567890abcdef12345678"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x1234567890abcdef1234567890abcdef12345678"
+            },
+            {
+              "type": "Integer",
+              "value": "10000000"
+            },
+            {
+              "type": "Integer",
+              "value": "2"
+            }
+          ]
+        }
+      ],
+      "signers": [
+        {
+          "account": "0x1234567890abcdef1234567890abcdef12345678",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    },
+    {
+      "txid": "0xmockmilestone03",
+      "invocations": [
+        {
+          "hash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+          "operation": "completeMilestone",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-milestone-escrow"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x1234567890abcdef1234567890abcdef12345678"
+            },
+            {
+              "type": "String",
+              "value": "0xmockmilestone02"
+            },
+            {
+              "type": "Integer",
+              "value": "0"
+            }
+          ]
+        }
+      ],
+      "signers": [
+        {
+          "account": "0x1234567890abcdef1234567890abcdef12345678",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    },
+    {
+      "txid": "0xmockmilestone04",
+      "invocations": [
+        {
+          "hash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+          "operation": "claimMilestone",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-milestone-escrow"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x1234567890abcdef1234567890abcdef12345678"
+            },
+            {
+              "type": "String",
+              "value": "0xmockmilestone02"
+            },
+            {
+              "type": "Integer",
+              "value": "0"
+            }
+          ]
+        }
+      ],
+      "signers": [
+        {
+          "account": "0x1234567890abcdef1234567890abcdef12345678",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    },
+    {
+      "txid": "0xmockmilestone05",
+      "invocations": [
+        {
+          "hash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+          "operation": "refundEscrow",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-milestone-escrow"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x1234567890abcdef1234567890abcdef12345678"
+            },
+            {
+              "type": "String",
+              "value": "0xmockmilestone02"
+            }
+          ]
+        }
+      ],
+      "signers": [
+        {
+          "account": "0x1234567890abcdef1234567890abcdef12345678",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    }
+  ],
+  "hasOverlay": false,
+  "evidence": true
+}

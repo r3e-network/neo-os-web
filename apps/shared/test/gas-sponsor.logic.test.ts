@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import type { BalanceService } from "../services/BalanceService";
 import { EventBus } from "../services/EventBus";
-import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 // Shared mutable handle so each test can drive the SDK's eligibility result and
 // error independently (the composable reads gasSponsorSDK.eligibilityError).
@@ -37,7 +36,6 @@ vi.mock("@shared/utils/wallet-sdk", () => ({
 import { useGasSponsorApp } from "../../gas-sponsor/src/composables/useGasSponsor";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 
 function t(key: string) {
   return key;
@@ -69,21 +67,17 @@ function makeBalance(gas: number) {
 }
 
 describe("gas-sponsor base-unit scaling", () => {
-  it("converts donate amounts with the shared float-free toFixed8 (truncates beyond 8 decimals)", async () => {
+  it("rejects over-precision donate amounts before touching the wallet", async () => {
     const chain = makeChain();
     const app = useGasSponsorApp({ chain, balance: makeBalance(10), eventBus: new EventBus(), t });
 
     app.chainGasBalance.set(10);
-    // 9 decimal places: float math (parseFloat * 1e8 + round) yields
-    // 400000001 — MORE base units than the user typed. The shared
-    // string-parsing toFixed8 truncates to exactly 8 decimals.
     app.donateAmount.set("4.000000005");
-    await app.handleDonate();
 
-    const [op, args, options] = chain.invoke.mock.calls[0];
-    expect(op).toBe("transfer");
-    expect(options).toEqual({ scriptHash: GAS_HASH });
-    expect(args[2]).toEqual({ type: "Integer", value: "400000000" });
+    await expect(app.handleDonate()).rejects.toThrow("invalidAmount");
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invoke).not.toHaveBeenCalled();
   });
 
   it("preserves precision float math loses on large send amounts", async () => {

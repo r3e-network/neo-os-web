@@ -192,15 +192,16 @@ export function useVaultBreaker({
   const isClaiming = createObservable(false);
 
   const canAttempt = createDerived(() => {
-    const st = vaultDetails.get()?.status;
+    const vault = vaultDetails.get();
+    const st = vault?.status;
     return Boolean(
       vaultIdInput.get() &&
       attemptSecret.get().trim() &&
-      vaultDetails.get() &&
-      String(vaultDetails.get()?.id) === String(vaultIdInput.get()) &&
+      vault &&
+      String(vault.id) === String(vaultIdInput.get()) &&
       st === "active",
     );
-  }, []);
+  }, [vaultIdInput, attemptSecret, vaultDetails]);
 
   /**
    * The current wallet may reclaim the escrowed bounty when the loaded vault has

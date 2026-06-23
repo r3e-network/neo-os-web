@@ -36,7 +36,7 @@ import { createObservable } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
-import { toFixed8 } from "@shared/utils/format";
+import { parsePositiveFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import {
   CREATE_MEMO,
@@ -127,6 +127,12 @@ function toMyVault(detail: ChainVaultDetails): MyVault {
   };
 }
 
+function parseBountyFixed8(value: string, minimumFixed8: bigint): string | null {
+  const fixed8 = parsePositiveFixed8(value);
+  if (!fixed8) return null;
+  return BigInt(fixed8) >= minimumFixed8 ? fixed8 : null;
+}
+
 // ============================================================================
 // Composable
 // ============================================================================
@@ -187,13 +193,8 @@ export function useVaultCreator({
     if (isCreating.get()) return;
     isCreating.set(true);
     try {
-      const amount = Number.parseFloat(form.bounty);
-      if (!Number.isFinite(amount) || amount < 1) {
-        // Disclose the undisclosed minimum instead of a generic "Create failed".
-        throw new Error(t("minBountyNote"));
-      }
-      const bountyFixed8 = toFixed8(form.bounty);
-      if (bountyFixed8 === "0") {
+      const bountyFixed8 = parseBountyFixed8(form.bounty, 100_000_000n);
+      if (!bountyFixed8) {
         throw new Error(t("minBountyNote"));
       }
       const difficulty = Number(form.difficulty);
@@ -261,12 +262,8 @@ export function useVaultCreator({
     if (isCreating.get()) return { vaultId, amountGas: "0" };
     const id = String(vaultId ?? "").trim();
     if (!/^[1-9]\d*$/.test(id)) throw new Error(t("increaseBountyInvalidId"));
-    const amount = Number.parseFloat(amountGas);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error(t("increaseBountyInvalidAmount"));
-    }
-    const amountFixed8 = toFixed8(amountGas);
-    if (amountFixed8 === "0") throw new Error(t("increaseBountyInvalidAmount"));
+    const amountFixed8 = parseBountyFixed8(amountGas, 1n);
+    if (!amountFixed8) throw new Error(t("increaseBountyInvalidAmount"));
 
     isCreating.set(true);
     try {

@@ -11,6 +11,7 @@ export type {
 export {
   HOST_WALLET_BRIDGE_REQUEST,
   HOST_WALLET_BRIDGE_RESPONSE,
+  HOST_WALLET_BRIDGE_STATE,
   HOST_WALLET_BRIDGE_RESULT,
   HOST_WALLET_BRIDGE_ERROR,
   HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
@@ -30,6 +31,7 @@ export {
   stringArray,
   normalizeBridgeSigners,
   invocationContractHash,
+  isSenderPlaceholder,
   firstBridgeInvocation,
   bridgeResultTxId,
   bridgeInvocationMemo,
@@ -47,6 +49,8 @@ export {
 export {
   SENSITIVE_BRIDGE_METHODS,
   requireBridgeWallet,
+  requireFreshBridgeWallet,
+  preflightEmbeddedWalletBridgeRequest,
   confirmSensitiveBridgeOperation,
   handleEmbeddedWalletBridgeRequest,
 } from "./request-handler";

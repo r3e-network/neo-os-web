@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-05-31T22:15:49.342Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "skipped": true,
+  "skipReason": "missing_wif",
+  "message": "FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required to run live flagship flows.",
+  "results": {
+    "dailyCheckin": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "lastSurvivor": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "gasBox": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "fogPlay": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "redEnvelope": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "profitAnchor": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "trustAnchor": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "selfLoan": {
+      "skipped": true,
+      "reason": "missing_wif"
+    },
+    "neoPay": {
+      "skipped": true,
+      "reason": "missing_wif"
+    }
+  }
+}

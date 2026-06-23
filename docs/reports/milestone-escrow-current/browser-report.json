@@ -1,0 +1,347 @@
+{
+  "generatedAt": "2026-06-01T20:35:49.472Z",
+  "app": "miniapp-milestone-escrow",
+  "selector": "[data-testid=\"profiled-dapp-frame-miniapp-milestone-escrow\"]",
+  "results": [
+    {
+      "name": "desktop-1440x1000",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "url": "http://localhost:3031/miniapps/miniapp-milestone-escrow",
+      "host": {
+        "bodyTextLength": 1582,
+        "hasNextOverlay": false,
+        "frameRect": {
+          "top": 131,
+          "left": 18,
+          "width": 1052,
+          "height": 828
+        },
+        "pageScrollHeight": 1762,
+        "pageScrollWidth": 1440,
+        "viewportWidth": 1440
+      },
+      "iframeBox": {
+        "x": 18,
+        "y": 131,
+        "width": 1052,
+        "height": 828
+      },
+      "iframeTooShortBeforeAdd": true,
+      "iframeTooShortAfterAdd": true,
+      "beforeAdd": {
+        "textLength": 595,
+        "bodyText": "ESCROWS\nMilestone Escrow\n\nApprove milestones and release funds in stages\n\nMILESTONES\n0%\nM1\nM2\nM3\nM4\n0\nACTIVE\n0\nCOMPLETED\n0\nCREATED BY YOU\n0\nFOR YOU\nReady\nCreate Escrow\n0.1 GAS\nEscrow name\nBeneficiary address\nAsset\nGAS\nNEO\nNotes (optional)\nMilestones\nAdd milestone\n1\nMilestone name\nMilestone amount\nGAS\nRemove\n2\nMilestone name\nMilestone amount\nGAS\nRemove\nConnect wallet\nWallet not connected\n\nConnect a wallet to create escrows, approve milestones, and release staged payments.\n\nConnect wallet\nRequest and result evidence\nLATEST REQUEST\nNo request submitted yet\nLATEST RESULT\nResponse appears here",
+        "buttons": [
+          "Add milestone",
+          "Remove",
+          "Remove",
+          "Connect wallet",
+          "Connect wallet"
+        ],
+        "inputs": [
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "Website delivery escrow",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+            "label": ""
+          },
+          {
+            "tag": "select",
+            "type": "",
+            "value": "GAS",
+            "label": ""
+          },
+          {
+            "tag": "textarea",
+            "type": "",
+            "value": "Design accepted, frontend shipped, final testnet smoke complete.",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "Design approval",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "0.05",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "Frontend delivery",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "0.05",
+            "label": ""
+          }
+        ],
+        "bodyScrollHeight": 1301,
+        "docScrollHeight": 1301,
+        "viewportHeight": 828,
+        "viewportWidth": 1052,
+        "overflowers": [],
+        "createVisible": true,
+        "evidenceVisible": false,
+        "latestRequestVisible": true,
+        "latestResultVisible": true,
+        "hasHorizontalScroll": false
+      },
+      "afterAdd": {
+        "rowCount": 4,
+        "rows": [
+          {
+            "width": 960,
+            "scrollWidth": 960,
+            "clientWidth": 960,
+            "left": 46,
+            "right": 1006,
+            "buttonText": "Remove",
+            "buttonRight": 1006,
+            "buttonLeft": 929.25
+          },
+          {
+            "width": 960,
+            "scrollWidth": 960,
+            "clientWidth": 960,
+            "left": 46,
+            "right": 1006,
+            "buttonText": "Remove",
+            "buttonRight": 1006,
+            "buttonLeft": 929.25
+          },
+          {
+            "width": 960,
+            "scrollWidth": 960,
+            "clientWidth": 960,
+            "left": 46,
+            "right": 1006,
+            "buttonText": "Remove",
+            "buttonRight": 1006,
+            "buttonLeft": 929.25
+          },
+          {
+            "width": 960,
+            "scrollWidth": 960,
+            "clientWidth": 960,
+            "left": 46,
+            "right": 1006,
+            "buttonText": "Remove",
+            "buttonRight": 1006,
+            "buttonLeft": 929.25
+          }
+        ],
+        "bodyScrollHeight": 1455,
+        "docScrollHeight": 1455,
+        "hasHorizontalScroll": false,
+        "overflowers": []
+      },
+      "consoleMessages": [],
+      "failedRequests": [
+        {
+          "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-current/desktop-1440x1000.png"
+    },
+    {
+      "name": "mobile-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://localhost:3031/miniapps/miniapp-milestone-escrow",
+      "host": {
+        "bodyTextLength": 1091,
+        "hasNextOverlay": false,
+        "frameRect": {
+          "top": 123,
+          "left": 14,
+          "width": 362,
+          "height": 672
+        },
+        "pageScrollHeight": 2121,
+        "pageScrollWidth": 390,
+        "viewportWidth": 390
+      },
+      "iframeBox": {
+        "x": 14,
+        "y": 123,
+        "width": 362,
+        "height": 672
+      },
+      "iframeTooShortBeforeAdd": true,
+      "iframeTooShortAfterAdd": true,
+      "beforeAdd": {
+        "textLength": 595,
+        "bodyText": "ESCROWS\nMilestone Escrow\n\nApprove milestones and release funds in stages\n\nMILESTONES\n0%\nM1\nM2\nM3\nM4\n0\nACTIVE\n0\nCOMPLETED\n0\nCREATED BY YOU\n0\nFOR YOU\nReady\nCreate Escrow\n0.1 GAS\nEscrow name\nBeneficiary address\nAsset\nGAS\nNEO\nNotes (optional)\nMilestones\nAdd milestone\n1\nMilestone name\nMilestone amount\nGAS\nRemove\n2\nMilestone name\nMilestone amount\nGAS\nRemove\nConnect wallet\nWallet not connected\n\nConnect a wallet to create escrows, approve milestones, and release staged payments.\n\nConnect wallet\nRequest and result evidence\nLATEST REQUEST\nNo request submitted yet\nLATEST RESULT\nResponse appears here",
+        "buttons": [
+          "Add milestone",
+          "Remove",
+          "Remove",
+          "Connect wallet",
+          "Connect wallet"
+        ],
+        "inputs": [
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "Website delivery escrow",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+            "label": ""
+          },
+          {
+            "tag": "select",
+            "type": "",
+            "value": "GAS",
+            "label": ""
+          },
+          {
+            "tag": "textarea",
+            "type": "",
+            "value": "Design accepted, frontend shipped, final testnet smoke complete.",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "Design approval",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "0.05",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "Frontend delivery",
+            "label": ""
+          },
+          {
+            "tag": "input",
+            "type": "text",
+            "value": "0.05",
+            "label": ""
+          }
+        ],
+        "bodyScrollHeight": 2006,
+        "docScrollHeight": 2006,
+        "viewportHeight": 672,
+        "viewportWidth": 362,
+        "overflowers": [],
+        "createVisible": true,
+        "evidenceVisible": false,
+        "latestRequestVisible": true,
+        "latestResultVisible": true,
+        "hasHorizontalScroll": false
+      },
+      "afterAdd": {
+        "rowCount": 4,
+        "rows": [
+          {
+            "width": 282,
+            "scrollWidth": 282,
+            "clientWidth": 282,
+            "left": 40,
+            "right": 322,
+            "buttonText": "Remove",
+            "buttonRight": 154.734375,
+            "buttonLeft": 78
+          },
+          {
+            "width": 282,
+            "scrollWidth": 282,
+            "clientWidth": 282,
+            "left": 40,
+            "right": 322,
+            "buttonText": "Remove",
+            "buttonRight": 154.734375,
+            "buttonLeft": 78
+          },
+          {
+            "width": 282,
+            "scrollWidth": 282,
+            "clientWidth": 282,
+            "left": 40,
+            "right": 322,
+            "buttonText": "Remove",
+            "buttonRight": 154.734375,
+            "buttonLeft": 78
+          },
+          {
+            "width": 282,
+            "scrollWidth": 282,
+            "clientWidth": 282,
+            "left": 40,
+            "right": 322,
+            "buttonText": "Remove",
+            "buttonRight": 154.734375,
+            "buttonLeft": 78
+          }
+        ],
+        "bodyScrollHeight": 2344,
+        "docScrollHeight": 2344,
+        "hasHorizontalScroll": false,
+        "overflowers": []
+      },
+      "consoleMessages": [],
+      "failedRequests": [
+        {
+          "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://localhost:3031/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/milestone-escrow-current/mobile-390x844.png"
+    }
+  ]
+}

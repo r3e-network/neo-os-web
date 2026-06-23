@@ -1,0 +1,56 @@
+{
+  "url": "http://127.0.0.1:3015/miniapps/oracle-seal-console?network=testnet",
+  "finalUrl": "http://127.0.0.1:3015/miniapp-detail/oracle-seal-console?network=testnet&operation=sealOracleRequest&endpoint_ref=sensitive%3A71f1db20-7a14-4218-b8ef-ab1871fe2617&_op=1780336637024",
+  "passed": true,
+  "checks": [
+    {
+      "name": "address bar does not contain plaintext secret",
+      "passed": true,
+      "detail": "http://127.0.0.1:3015/miniapp-detail/oracle-seal-console?network=testnet&operation=sealOracleRequest&endpoint_ref=sensitive%3A71f1db20-7a14-4218-b8ef-ab1871fe2617&_op=1780336637024"
+    },
+    {
+      "name": "address bar uses a sensitive ref",
+      "passed": true,
+      "detail": "http://127.0.0.1:3015/miniapp-detail/oracle-seal-console?network=testnet&operation=sealOracleRequest&endpoint_ref=sensitive%3A71f1db20-7a14-4218-b8ef-ab1871fe2617&_op=1780336637024"
+    },
+    {
+      "name": "sensitive input is cleared after submit",
+      "passed": true,
+      "detail": "input="
+    },
+    {
+      "name": "OneGate launch URL does not contain plaintext secret",
+      "passed": true,
+      "detail": "https://neomini.app/miniapps/oracle-seal-console/index.html?source=onegate&appId=miniapp-oracle-seal-console&endpoint_ref=sensitive%3A71f1db20-7a14-4218-b8ef-ab1871fe2617&operation=sealOracleRequest&network=testnet"
+    },
+    {
+      "name": "visible page text does not contain plaintext secret",
+      "passed": true,
+      "detail": "Skip to main contentSkip to contentYiwu MiniAppsMiniAppsDocsDeveloperNotificationsAll caught up!You have no new notifications.ENLog In / Sign UpLog InOracle Seal ConsoleutilityBetaMiniAppSeal ConsoleBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.Oracle Seal ConsoleOracle request stateThis playarea verifies the request package, privacy mode, and result envelope.Payload digestSealed payload stays hidden; only the local digest is show"
+    },
+    {
+      "name": "DOM HTML does not contain plaintext secret after submit",
+      "passed": true,
+      "detail": "<html lang=\"en\" style=\"color-scheme: light; --ds-background: #F8FAFC; --ds-foreground: #1F2937; --ds-card: rgba(255, 255, 255, 1); --ds-cardForeground: #1F2937; --ds-primary: #16C784; --ds-primaryForeground: #020617; --ds-secondary: #7B61FF; --ds-secondaryForeground: #F8FAFC; --ds-muted: #F3F4F6; --ds-mutedForeground: #6B7280; --ds-accent: #E5E7EB; --ds-accentForeground: #1F2937; --ds-destructive: #EA3943; --ds-destructiveForeground: #F8FAFC; --ds-border: #E5E7EB; --ds-input: #D1D5DB; --ds-ring:"
+    },
+    {
+      "name": "result verifier does not contain plaintext secret",
+      "passed": true,
+      "detail": "{\n  \"status\": \"sealed_inline\",\n  \"mode\": \"seal\",\n  \"encryption\": \"X25519-HKDF-SHA256-AES-256-GCM\",\n  \"encrypted_payload\": \"eyJ2IjoyLCJhbGciOiJYMjU1MTktSEtERi1TSEEyNTYtQUVTLTI1Ni1HQ00iLCJlcGsiOiJSY25PS2doZnYyUWRSS3V3eE80T3BoZUFnUGVxYUdzZjdWWHpIQVVEOGx3PSIsIml2IjoiSWVVc1ljOUlkeVdQVG1payIsImN0IjoiMFdrKy85dit5NmVIQTlWdHdMaFhlMDUwL3VORTdHdkE1QUFiME1zRllVTzJmMGRoZnNDYWpYaWdWOTk4UVR3WjJLNmp2eW5EdXpQQ3RrcStZZFZ2cCtaN3BveG53dTBPdnZ0SXBLSURYMXdpbk5ocUxCZFhwcWZLQkEyME9qMENMLzY3WmVuM3pSekdDazd2TFJkRXVieEVwWTQ1QWVPTGE3UnUvZlpCNmZVYWV2d1B2ampkajVXczdLdmpNQTdQVHhoOEQ2ZUpmT2JJMWhJcVkyeXZnTzFTTDRvZ2JYZ3N0OVlkZUNlWWt4eGF0TzBrKzI3YnlsQTlOYkg2QlRTdW01TGJSb3NpOEtQYXZrd3FFQlVNZlV1L1hZbXNUS3BiVUp5cys1WDhHZz09IiwidGFnIjoiU05xazlyNFlBMjF2T3VEWEpkc0FWZz09In0=\",\n  \"store_status\": \"Morpheus store unavailable; encrypted payload kept inline.\",\n  \"public_key_contract\": \"0x4b882e94ed766807c4fd728768f972e13008ad52\"\n}"
+    },
+    {
+      "name": "result verifier reached seal flow",
+      "passed": true,
+      "detail": "{\n  \"status\": \"sealed_inline\",\n  \"mode\": \"seal\",\n  \"encryption\": \"X25519-HKDF-SHA256-AES-256-GCM\",\n  \"encrypted_payload\": \"eyJ2IjoyLCJhbGciOiJYMjU1MTktSEtERi1TSEEyNTYtQUVTLTI1Ni1HQ00iLCJlcGsiOiJSY25PS2doZnYyUWRSS3V3eE80T3BoZUFnUGVxYUdzZjdWWHpIQVVEOGx3PSIsIml2IjoiSWVVc1ljOUlkeVdQVG1payIsImN0IjoiMFdrKy85dit5NmVIQTlWdHdMaFhlMDUwL3VORTdHdkE1QUFiME1zRllVTzJmMGRoZnNDYWpYaWdWOTk4UVR3WjJLNmp2eW5EdXpQQ3RrcStZZFZ2cCtaN3BveG53dTBPdnZ0SXBLSURYMXdpbk5ocUxCZFhwcWZLQkEyME9qMENMLzY3WmVuM3pSekdDazd2TFJkRXVieEVwWTQ1QWVPTGE3UnUvZlpCNmZVYWV2d1B2ampkajVXczdLdmpNQTdQVHhoOEQ2ZUpmT2JJMWhJcVkyeXZnTzFTTDRvZ2JYZ3N0OVlkZUNlWWt4eGF0TzBrKzI3YnlsQTlOYkg2QlRTdW01TGJSb3NpOEtQYXZrd3FFQlVNZlV1L1hZbXNUS3BiVUp5cys1WDhHZz09IiwidGFnIjoiU05xazlyNFlBMjF2T3VEWEpkc0FWZz09In0=\",\n  \"store_status\": \"Morpheus store unavailable; encrypted payload kept inline.\",\n  \"public_key_contract\": \"0x4b882e94ed766807c4fd728768f972e13008ad52\"\n}"
+    }
+  ],
+  "consoleErrors": [],
+  "failedResponses": [],
+  "oneGateHref": "https://neomini.app/miniapps/oracle-seal-console/index.html?source=onegate&appId=miniapp-oracle-seal-console&endpoint_ref=sensitive%3A71f1db20-7a14-4218-b8ef-ab1871fe2617&operation=sealOracleRequest&network=testnet",
+  "resultText": "{\n  \"status\": \"sealed_inline\",\n  \"mode\": \"seal\",\n  \"encryption\": \"X25519-HKDF-SHA256-AES-256-GCM\",\n  \"encrypted_payload\": \"eyJ2IjoyLCJhbGciOiJYMjU1MTktSEtERi1TSEEyNTYtQUVTLTI1Ni1HQ00iLCJlcGsiOiJSY25PS2doZnYyUWRSS3V3eE80T3BoZUFnUGVxYUdzZjdWWHpIQVVEOGx3PSIsIml2IjoiSWVVc1ljOUlkeVdQVG1payIsImN0IjoiMFdrKy85dit5NmVIQTlWdHdMaFhlMDUwL3VORTdHdkE1QUFiME1zRllVTzJmMGRoZnNDYWpYaWdWOTk4UVR3WjJLNmp2eW5EdXpQQ3RrcStZZFZ2cCtaN3BveG53dTBPdnZ0SXBLSURYMXdpbk5ocUxCZFhwcWZLQkEyME9qMENMLzY3WmVuM3pSekdDazd2TFJkRXVieEVwWTQ1QWVPTGE3UnUvZlpCNmZVYWV2d1B2ampkajVXczdLdmpNQTdQVHhoOEQ2ZUpmT2JJMWhJcVkyeXZnTzFTTDRvZ2JYZ3N0OVlkZUNlWWt4eGF0TzBrKzI3YnlsQTlOYkg2QlRTdW01TGJSb3NpOEtQYXZrd3FFQlVNZlV1L1hZbXNUS3BiVUp5cys1WDhHZz09IiwidGFnIjoiU05xazlyNFlBMjF2T3VEWEpkc0FWZz09In0=\",\n  \"store_status\": \"Morpheus store unavailable; encrypted payload kept inline.\",\n  \"public_key_contract\": \"0x4b882e94ed766807c4fd728768f972e13008ad52\"\n}",
+  "screenshots": [
+    "docs/reports/oracle-seal-sensitive-transport-after/before-submit.png",
+    "docs/reports/oracle-seal-sensitive-transport-after/after-submit-desktop.png",
+    "docs/reports/oracle-seal-sensitive-transport-after/after-submit-mobile.png"
+  ]
+}

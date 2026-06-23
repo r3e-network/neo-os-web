@@ -1,0 +1,379 @@
+{
+  "checkedAt": "2026-06-02T03:21:11.377Z",
+  "url": "http://127.0.0.1:4231/miniapps/profitanchor/index.html?network=testnet&app_id=miniapp-profitanchor",
+  "screenshots": [
+    "desktop-ready.png",
+    "desktop-after-actions.png",
+    "mobile-ready.png"
+  ],
+  "walletCalls": [
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          "operation": "transfer",
+          "args": [
+            {
+              "type": "Hash160",
+              "value": "0x2222222222222222222222222222222222222222"
+            },
+            {
+              "type": "Hash160",
+              "value": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0"
+            },
+            {
+              "type": "Integer",
+              "value": 2
+            },
+            {
+              "type": "String",
+              "value": "stake:miniapp-profitanchor"
+            }
+          ]
+        }
+      ],
+      "txid": "0xstake0000000000000000000000000000000000000000000000000000001",
+      "at": "2026-06-02T03:21:07.041Z"
+    },
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+          "operation": "withdraw",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-profitanchor"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x2222222222222222222222222222222222222222"
+            },
+            {
+              "type": "Integer",
+              "value": 2
+            }
+          ]
+        }
+      ],
+      "txid": "0xredeem000000000000000000000000000000000000000000000000000002",
+      "at": "2026-06-02T03:21:07.172Z"
+    },
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+          "operation": "claimRewards",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-profitanchor"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x2222222222222222222222222222222222222222"
+            }
+          ]
+        }
+      ],
+      "txid": "0xclaim0000000000000000000000000000000000000000000000000000003",
+      "at": "2026-06-02T03:21:07.222Z"
+    }
+  ],
+  "readCalls": [
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ],
+      "at": "2026-06-02T03:21:04.383Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.083Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.083Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.083Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.083Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.187Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.187Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.187Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.187Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.237Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.237Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.237Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.237Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.273Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.273Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.273Z"
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ],
+      "at": "2026-06-02T03:21:07.273Z"
+    }
+  ],
+  "eventQueries": [
+    {
+      "eventName": "AnchorStakeChanged",
+      "txid": "0xstake0000000000000000000000000000000000000000000000000000001",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xab079b4f9a0a2471d136392e25eb8e99898dcad0/events?event_name=AnchorStakeChanged&limit=1&tx_hash=0xstake0000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "eventName": "AnchorStakeChanged",
+      "txid": "0xredeem000000000000000000000000000000000000000000000000000002",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xab079b4f9a0a2471d136392e25eb8e99898dcad0/events?event_name=AnchorStakeChanged&limit=1&tx_hash=0xredeem000000000000000000000000000000000000000000000000000002"
+    },
+    {
+      "eventName": "AnchorRewardsClaimed",
+      "txid": "0xclaim0000000000000000000000000000000000000000000000000000003",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xab079b4f9a0a2471d136392e25eb8e99898dcad0/events?event_name=AnchorRewardsClaimed&limit=1&tx_hash=0xclaim0000000000000000000000000000000000000000000000000000003"
+    }
+  ],
+  "desktopMetrics": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "bodyClientWidth": 1440
+  },
+  "mobileMetrics": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "bodyScrollWidth": 390,
+    "bodyClientWidth": 390
+  },
+  "assertions": [
+    "Preflight panel rendered amount, stake memo, route, and initial no-claim state",
+    "Stake clicked through wallet transfer",
+    "Stake transfer uses NEO asset hash",
+    "Stake transfer uses entered whole NEO amount",
+    "Stake transfer keeps ProfitAnchor memo",
+    "Redeem clicked through PlatformAnchor withdraw",
+    "Redeem targets PlatformAnchor",
+    "Redeem passes ProfitAnchor app id",
+    "Redeem uses entered whole NEO amount",
+    "Claim clicked through PlatformAnchor claimRewards",
+    "Claim targets PlatformAnchor",
+    "Refresh/load reads anchor stats",
+    "Connected wallet reads user stake",
+    "Connected wallet reads pending rewards",
+    "Stake/redeem waited for AnchorStakeChanged event",
+    "Claim waited for AnchorRewardsClaimed event",
+    "Desktop layout has no horizontal overflow",
+    "Mobile layout has no horizontal overflow",
+    "UI text has no raw wallet errors, undefined, or NaN",
+    "Browser console produced no warnings or errors",
+    "Browser had no request failures",
+    "Browser had no HTTP errors"
+  ],
+  "consoleMessages": [],
+  "requestFailures": [],
+  "httpErrors": []
+}

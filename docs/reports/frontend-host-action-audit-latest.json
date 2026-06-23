@@ -1,0 +1,3319 @@
+{
+  "generatedAt": "2026-05-31T17:29:07.083Z",
+  "summary": {
+    "checked": 60,
+    "loadErrors": [],
+    "consoleIssueApps": [
+      {
+        "slug": "unbreakable-vault",
+        "consoleErrors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Access to fetch at 'http://127.0.0.1:3000/_next/static/development/_devMiddlewareManifest.json' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "Failed to load resource: net::ERR_FAILED",
+          "Access to fetch at 'http://127.0.0.1:3000/_next/static/development/_devPagesManifest.json' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "Failed to load resource: net::ERR_FAILED",
+          "Access to fetch at 'http://127.0.0.1:3000/api/auth/profile' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "Failed to load resource: net::ERR_FAILED",
+          "Access to fetch at 'http://127.0.0.1:3000/api/auth/profile' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "Failed to load resource: net::ERR_FAILED"
+        ],
+        "pageErrors": [
+          "Invariant: attempted to hard navigate to the same URL /miniapps/unbreakablevault/index.html?network=testnet&source=embed http://127.0.0.1:3000/miniapps/unbreakablevault/index.html?network=testnet&source=embed",
+          "Invariant: attempted to hard navigate to the same URL /miniapps/unbreakablevault/index.html?network=testnet&source=embed http://127.0.0.1:3000/miniapps/unbreakablevault/index.html?network=testnet&source=embed"
+        ]
+      }
+    ],
+    "badResponseApps": [
+      {
+        "slug": "unbreakable-vault",
+        "badResponses": [
+          {
+            "status": 404,
+            "url": "http://127.0.0.1:3000/miniapps/unbreakablevault/index.html?network=testnet&source=embed"
+          }
+        ]
+      }
+    ],
+    "overflowApps": [],
+    "noActionCandidate": [],
+    "actionCandidateApps": 60,
+    "clickedApps": 60,
+    "walletIntentApps": [],
+    "clickErrors": [
+      {
+        "slug": "aa-market-hub",
+        "clicks": [
+          {
+            "text": "Create listing",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create listing' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-"
+          }
+        ]
+      },
+      {
+        "slug": "asset-factory",
+        "clicks": [
+          {
+            "text": "Prepare NEP-17 launch",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Prepare NEP-17 launch' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none p"
+          }
+        ]
+      },
+      {
+        "slug": "burn-league",
+        "clicks": [
+          {
+            "text": "Submit burn entry",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Submit burn entry' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 "
+          }
+        ]
+      },
+      {
+        "slug": "council-governance",
+        "clicks": [
+          {
+            "text": "Create Proposal",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create Proposal' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-vis"
+          }
+        ]
+      },
+      {
+        "slug": "custom-anchor",
+        "clicks": [
+          {
+            "text": "Stake NEO",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Stake NEO' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 foc"
+          }
+        ]
+      },
+      {
+        "slug": "daily-checkin",
+        "clicks": [
+          {
+            "text": "Check In",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Check In' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ri"
+          }
+        ]
+      },
+      {
+        "slug": "dev-tipping",
+        "clicks": [
+          {
+            "text": "Send tip",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Send tip' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 text"
+          }
+        ]
+      },
+      {
+        "slug": "dice-game",
+        "clicks": [
+          {
+            "text": "Fund Stake",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund Stake' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:"
+          }
+        ]
+      },
+      {
+        "slug": "event-ticket-pass",
+        "clicks": [
+          {
+            "text": "Create Event",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create Event' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visibl"
+          }
+        ]
+      },
+      {
+        "slug": "fogplay",
+        "clicks": [
+          {
+            "text": "Fund Wager",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund Wager' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:"
+          }
+        ]
+      },
+      {
+        "slug": "gas-sponsor",
+        "clicks": [
+          {
+            "text": "Create Pool",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create Pool' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible"
+          }
+        ]
+      },
+      {
+        "slug": "gasbox",
+        "clicks": [
+          {
+            "text": "Draw Capsule",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Draw Capsule' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+          }
+        ]
+      },
+      {
+        "slug": "last-survivor",
+        "clicks": [
+          {
+            "text": "Fund Keys",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund Keys' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:r"
+          }
+        ]
+      },
+      {
+        "slug": "milestone-escrow",
+        "clicks": [
+          {
+            "text": "Fund escrow",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund escrow' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 t"
+          }
+        ]
+      },
+      {
+        "slug": "miniapp-factory",
+        "clicks": [
+          {
+            "text": "Prepare MiniApp launch",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Prepare MiniApp launch' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none "
+          }
+        ]
+      },
+      {
+        "slug": "neo-convert",
+        "clicks": [
+          {
+            "text": "Convert value",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Convert value' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3"
+          }
+        ]
+      },
+      {
+        "slug": "neo-multisig",
+        "clicks": [
+          {
+            "text": "Create multisig request",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create multisig request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none"
+          }
+        ]
+      },
+      {
+        "slug": "neo-ns",
+        "clicks": [
+          {
+            "text": "Register domain",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Register domain' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py"
+          }
+        ]
+      },
+      {
+        "slug": "neo-pay",
+        "clicks": [
+          {
+            "text": "Claim Stream",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Claim Stream' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visibl"
+          }
+        ]
+      },
+      {
+        "slug": "neo-pay-shared-example",
+        "clicks": [
+          {
+            "text": "https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=onegate&appId=miniapp-neo-pay-shared-example&network=testnet",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=onegate&appId=miniapp-neo-pay-shared-example&network=testnet' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <a target=\"_blank\" rel=\"noopener noreferrer\" data-testid=\"onegate-launch-url\" href=\"https"
+          }
+        ]
+      },
+      {
+        "slug": "neo-sign-anything",
+        "clicks": [
+          {
+            "text": "Sign message",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Sign message' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+          }
+        ]
+      },
+      {
+        "slug": "neo-swap",
+        "clicks": [
+          {
+            "text": "Preview swap route",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Preview swap route' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4"
+          }
+        ]
+      },
+      {
+        "slug": "neo-x-bridge",
+        "clicks": [
+          {
+            "text": "Send Message",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Send Message' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-no"
+          }
+        ]
+      },
+      {
+        "slug": "on-chain-tarot",
+        "clicks": [
+          {
+            "text": "Flip Reading",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Flip Reading' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 "
+          }
+        ]
+      },
+      {
+        "slug": "oracle-compute-lab",
+        "clicks": [
+          {
+            "text": "Seal Compute Input",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal Compute Input' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4"
+          }
+        ]
+      },
+      {
+        "slug": "oracle-http-console",
+        "clicks": [
+          {
+            "text": "Build Request",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Build Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3"
+          }
+        ]
+      },
+      {
+        "slug": "oracle-neodid-console",
+        "clicks": [
+          {
+            "text": "Seal DID Request",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal DID Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 p"
+          }
+        ]
+      },
+      {
+        "slug": "oracle-price-console",
+        "clicks": [
+          {
+            "text": "Build Feed Request",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Build Feed Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4"
+          }
+        ]
+      },
+      {
+        "slug": "oracle-seal-console",
+        "clicks": [
+          {
+            "text": "Seal Payload",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal Payload' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+          }
+        ]
+      },
+      {
+        "slug": "oracle-vrf-console",
+        "clicks": [
+          {
+            "text": "Build VRF Request",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Build VRF Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 "
+          }
+        ]
+      },
+      {
+        "slug": "private-transfer",
+        "clicks": [
+          {
+            "text": "Seal Transfer",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal Transfer' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3"
+          }
+        ]
+      },
+      {
+        "slug": "profitanchor",
+        "clicks": [
+          {
+            "text": "Stake NEO",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Stake NEO' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:r"
+          }
+        ]
+      },
+      {
+        "slug": "profitanchor-admin",
+        "clicks": [
+          {
+            "text": "Update Vote Target",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Update Vote Target' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outl"
+          }
+        ]
+      },
+      {
+        "slug": "recovery-guardian",
+        "clicks": [
+          {
+            "text": "Request Recovery Ticket",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Request Recovery Ticket' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visi"
+          }
+        ]
+      },
+      {
+        "slug": "red-envelope",
+        "clicks": [
+          {
+            "text": "Send",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Send' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button role=\"tab\" type=\"button\" id=\"tab-send\" tabindex=\"-1\" aria-selected=\"false\" aria-controls=\"tabpanel-send\" class=\"cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold ring-1 transition-colo"
+          }
+        ]
+      },
+      {
+        "slug": "self-loan",
+        "clicks": [
+          {
+            "text": "Sync Anchor Vote",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Sync Anchor Vote' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:rin"
+          }
+        ]
+      },
+      {
+        "slug": "soulbound-certificate",
+        "clicks": [
+          {
+            "text": "Verify Holder",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Verify Holder' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2"
+          }
+        ]
+      },
+      {
+        "slug": "time-capsule",
+        "clicks": [
+          {
+            "text": "Seal capsule",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal capsule' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+          }
+        ]
+      },
+      {
+        "slug": "trustanchor",
+        "clicks": [
+          {
+            "text": "Stake NEO",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Stake NEO' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:r"
+          }
+        ]
+      },
+      {
+        "slug": "trustanchor-admin",
+        "clicks": [
+          {
+            "text": "Update Vote Target",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Update Vote Target' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outl"
+          }
+        ]
+      },
+      {
+        "slug": "unbreakable-vault",
+        "clicks": [
+          {
+            "text": "Verify Proof",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Verify Proof' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 "
+          }
+        ]
+      },
+      {
+        "slug": "wallet-health",
+        "clicks": [
+          {
+            "text": "Run health check",
+            "ok": false,
+            "walletDelta": 0,
+            "bodySample": "",
+            "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Run health check' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 p"
+          }
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "slug": "aa-account-lab",
+      "appId": "miniapp-aa-account-lab",
+      "name": "AA Account Lab",
+      "url": "http://127.0.0.1:3000/miniapps/aa-account-lab?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Account Lab\nUtility\nBeta\nCONTRACT\nAA account registration lab\n\nPreview registration intent, predicted account id, and owner binding before wallet submission.\n\nAA Account Lab\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\n",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1545,
+      "walletEvents": []
+    },
+    {
+      "slug": "aa-market-hub",
+      "appId": "miniapp-aa-market-hub",
+      "name": "AA Market Hub",
+      "url": "http://127.0.0.1:3000/miniapps/aa-market-hub?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Create listing",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Market Hub\nUtility\nBeta\nCONTRACT\nAA escrow market desk\n\nCreate a listing, lock settlement terms, and track counterparty approval for AA-powered marketplace deals.\n\nAA Market Hub\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp do",
+          "error": null
+        },
+        {
+          "text": "Create listing",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create listing' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1552,
+      "walletEvents": []
+    },
+    {
+      "slug": "aa-permissions-lab",
+      "appId": "miniapp-aa-permissions-lab",
+      "name": "AA Permissions Lab",
+      "url": "http://127.0.0.1:3000/miniapps/aa-permissions-lab?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Permissions Lab\nUtility\nBeta\nCONTRACT\nAA permission binding console\n\nInspect verifier and hook bindings, then prepare permission updates with clear before and after state.\n\nAA Permissions Lab\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat t",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1563,
+      "walletEvents": []
+    },
+    {
+      "slug": "aa-relay-console",
+      "appId": "miniapp-aa-relay-console",
+      "name": "AA Relay Console",
+      "url": "http://127.0.0.1:3000/miniapps/aa-relay-console?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Relay Console\nUtility\nBeta\nCONTRACT\nRelay payload console\n\nBuild relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.\n\nAA Relay Console\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACCOUNT ABSTRACTION\nBETA\nUTILITY\nNeo N3 Testne",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1871,
+      "walletEvents": []
+    },
+    {
+      "slug": "aa-session-key-lab",
+      "appId": "miniapp-aa-session-key-lab",
+      "name": "AA Session Key Lab",
+      "url": "http://127.0.0.1:3000/miniapps/aa-session-key-lab?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Session Key Lab\nUtility\nBeta\nCONTRACT\nSession key policy lab\n\nConfigure a scoped session key with limits, expiry, and sponsor readiness for AA flows.\n\nAA Session Key Lab\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACCOUNT ABSTRACTION\nBETA\nUTILITY\nNeo N3 Testnet\nWhat thi",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1868,
+      "walletEvents": []
+    },
+    {
+      "slug": "asset-factory",
+      "appId": "miniapp-asset-factory",
+      "name": "Asset Factory",
+      "url": "http://127.0.0.1:3000/miniapps/asset-factory?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Prepare NEP-17 launch",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAsset Factory\nUtility\nBeta\nMINIAPP\nNEP-17 asset factory\n\nPrepare a token launch from audited on-chain templates; only safe template parameters are customized at publish time.\n\nAsset Factory\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this M",
+          "error": null
+        },
+        {
+          "text": "Prepare NEP-17 launch",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Prepare NEP-17 launch' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none p"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1549,
+      "walletEvents": []
+    },
+    {
+      "slug": "automation-copilot",
+      "appId": "miniapp-automation-copilot",
+      "name": "Automation Copilot",
+      "url": "http://127.0.0.1:3000/miniapps/automation-copilot?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAutomation Copilot\nData\nBeta\nMINIAPP\nAutomation runbook cockpit\n\nCompose price alerts, AA recipes, private oracle jobs, and datafeed runbooks from one operator surface.\n\nAutomation Copilot\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nDATA\nNeo N3 Testnet\nWhat this MiniA",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1879,
+      "walletEvents": []
+    },
+    {
+      "slug": "breakup-contract",
+      "appId": "miniapp-breakupcontract",
+      "name": "Breakup Contract",
+      "url": "http://127.0.0.1:3000/miniapps/breakup-contract?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nBreakup Contract\nSocial\nBeta\nCONTRACT\nAgreement split workspace\n\nDraft a breakup agreement, split shared assets fairly, and keep the settlement path legible.\n\nBreakup Contract\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nCr",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1538,
+      "walletEvents": []
+    },
+    {
+      "slug": "burn-league",
+      "appId": "miniapp-burn-league",
+      "name": "Burn League",
+      "url": "http://127.0.0.1:3000/miniapps/burn-league?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Submit burn entry",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "https://neomini.app/miniapps/burn-league/index.html?source=onegate&appId=miniapp-burn-league&network=testnet",
+          "href": "https://neomini.app/miniapps/burn-league/index.html?source=onegate&appId=miniapp-burn-league&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nBurn League\nGaming\nBeta\nCONTRACT\nBurn league arena\n\nEnter a burn challenge, preview leaderboard impact, and submit the burn transaction intentionally.\n\nBurn League\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nCompete in tok",
+          "error": null
+        },
+        {
+          "text": "Submit burn entry",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Submit burn entry' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1497,
+      "walletEvents": []
+    },
+    {
+      "slug": "council-governance",
+      "appId": "miniapp-council-governance",
+      "name": "Council Governance",
+      "url": "http://127.0.0.1:3000/miniapps/council-governance?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 22,
+          "text": "Create Proposal",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 23,
+          "text": "Vote For",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 24,
+          "text": "Vote Against",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nCouncil Governance\nGovernance\nBeta\nCONTRACT\nCouncil proposal workspace\n\nRead live proposals from the governance contract, then create, vote for, vote against, finalize, or revoke through real wallet-signed operations.\n\nCouncil Governance\n\nTOTAL PROPOSALS\n\n13\n\nACTIVE\n\n0\n\nFINALIZED\n\n13\n\nQUORUM TARGET\n\n11/21 council\n\nProposal queue\n\nActive and finalized Neo Community governance proposals. Tap a row to inspect status, proposer, timing, and vo",
+          "error": null
+        },
+        {
+          "text": "Create Proposal",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create Proposal' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-vis"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2645,
+      "walletEvents": []
+    },
+    {
+      "slug": "custom-anchor",
+      "appId": "miniapp-custom-anchor",
+      "name": "Custom Anchor",
+      "url": "http://127.0.0.1:3000/miniapps/custom-anchor?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Stake NEO",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Claim Rewards",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 20,
+          "text": "Update Vote Target",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nCustom Anchor\nGovernance\nBeta\nCONTRACT\nCustom Anchor\n\nCreate your own 21-agent NEO voting anchor. Users only need the Anchor App ID to stake, redeem, and claim.\n\nCustom Anchor\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nCUSTOM ANCHOR\nBETA\nGOVERNANCE\nNeo N3 Testnet\nWhat this MiniApp does\n\nCreate your own NEO staking anchor ",
+          "error": null
+        },
+        {
+          "text": "Stake NEO",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Stake NEO' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 foc"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2294,
+      "walletEvents": []
+    },
+    {
+      "slug": "daily-checkin",
+      "appId": "miniapp-dailycheckin",
+      "name": "Daily Check-in",
+      "url": "http://127.0.0.1:3000/miniapps/daily-checkin?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Check In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Claim Rewards",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nDaily Check-in\nGaming\nOnline\nFLAGSHIP\nCONTRACT\nDaily streak board\n\nOne daily check-in keeps the streak alive. The seventh day unlocks the bigger reward.\n\nDaily Check-in\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nCheck in every day to earn GAS rewards with streak bonuses",
+          "error": null
+        },
+        {
+          "text": "Check In",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Check In' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ri"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1589,
+      "walletEvents": []
+    },
+    {
+      "slug": "dev-tipping",
+      "appId": "miniapp-dev-tipping",
+      "name": "Developer Tipping",
+      "url": "http://127.0.0.1:3000/miniapps/dev-tipping?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Send tip",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nDeveloper Tipping\nSocial\nBeta\nCONTRACT\nDeveloper tip jar\n\nSend an appreciation tip with a message and clear wallet preview before payment.\n\nDeveloper Tipping\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nTip and appreciate d",
+          "error": null
+        },
+        {
+          "text": "Send tip",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Send tip' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 text"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1579,
+      "walletEvents": []
+    },
+    {
+      "slug": "dice-game",
+      "appId": "miniapp-dice-game",
+      "name": "Dice Game",
+      "url": "http://127.0.0.1:3000/miniapps/dice-game?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Fund Stake",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Roll",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nDice Game\nGaming\nBeta\nCONTRACT\nDice roll table\n\nPick one face, fund the wager, and let Morpheus VRF resolve the roll on-chain.\n\nDice Game\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nMorpheus VRF dice roll with app-scoped GAS credit and on-chain settlement.\n\nAPP ID:\nminiapp",
+          "error": null
+        },
+        {
+          "text": "Fund Stake",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund Stake' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1526,
+      "walletEvents": []
+    },
+    {
+      "slug": "event-ticket-pass",
+      "appId": "miniapp-event-ticket-pass",
+      "name": "Event Ticket",
+      "url": "http://127.0.0.1:3000/miniapps/event-ticket-pass?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Create Event",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Check In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Issue Ticket",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nEvent Ticket\nSocial\nBeta\nCONTRACT\nTicket issuer and check-in\n\nIssue NEP-11 event passes, preview QR check-in, and track used versus active tickets.\n\nEvent Ticket\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nIssue NEP-11 eve",
+          "error": null
+        },
+        {
+          "text": "Create Event",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create Event' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visibl"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1730,
+      "walletEvents": []
+    },
+    {
+      "slug": "explorer",
+      "appId": "miniapp-explorer",
+      "name": "Block Explorer",
+      "url": "http://127.0.0.1:3000/miniapps/explorer?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nBlock Explorer\nUtility\nBeta\nMINIAPP\nLive explorer console\n\nQuery Neo N3 blocks, transactions, addresses, and contracts through live RPC/indexer endpoints. Missing indexer data is shown as unavailable, never synthesized.\n\nBlock Explorer\nAdditional metrics\nRaw app counters and diagnostic readings.\n4 ITEMS\nSearch state\n\nEnter the query and network, then inspect live chain results.\n\nSelected network\nMainnet and testnet requests are isolated\nt",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2232,
+      "walletEvents": []
+    },
+    {
+      "slug": "flashloan",
+      "appId": "miniapp-flashloan",
+      "name": "Flash Loan",
+      "url": "http://127.0.0.1:3000/miniapps/flashloan?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nFlash Loan\nDefi\nBeta\nCONTRACT\nFlash loan route builder\n\nBuild a single-transaction loan route with borrow, execute, repay, and profit checks visible.\n\nFlash Loan\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nDEFI\nNeo N3 Testnet\nWhat this MiniApp does\n\nExecute instant un",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1503,
+      "walletEvents": []
+    },
+    {
+      "slug": "fogplay",
+      "appId": "miniapp-fogplay",
+      "name": "FogPlay",
+      "url": "http://127.0.0.1:3000/miniapps/fogplay?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Fund Wager",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Flip",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nFogPlay\nGaming\nOnline\nFLAGSHIP\nCONTRACT\nCoin flip table\n\nChoose heads or tails, size the bet, and submit when the payout preview looks right.\n\nFogPlay\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nFast oracle-backed coin flips with on-chain settlement and direct GAS wageri",
+          "error": null
+        },
+        {
+          "text": "Fund Wager",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund Wager' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1580,
+      "walletEvents": []
+    },
+    {
+      "slug": "forever-album",
+      "appId": "miniapp-forever-album",
+      "name": "Forever Album",
+      "url": "http://127.0.0.1:3000/miniapps/forever-album?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nForever Album\nSocial\nBeta\nMINIAPP\nForever Album photo vault\n\nUpload image files, optionally encrypt them locally, sign the storage write, and reopen the wallet-scoped gallery from the same dApp.\n\nForever Album\nNew window\nAlbum workflow\n\nThe user path is explicit: choose images, write them, then inspect the saved gallery.\n\nUpload photos\nChoose image files in the embedded dApp uploader.\n5 max\nPER TX\nEncrypt locally\nAES-GCM password encrypti",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1801,
+      "walletEvents": []
+    },
+    {
+      "slug": "gas-lucky-pool",
+      "appId": "miniapp-gas-lucky-pool",
+      "name": "OneGate Vault",
+      "url": "http://127.0.0.1:3000/miniapps/gas-lucky-pool?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOneGate Vault\nSocial\nBeta\nMINIAPP\nOneGate Vault\n\nScan with OneGate, claim once, and receive a random GAS reward directly in your wallet.\n\nOneGate Vault\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nClaim a server-backed 1-50 GAS random reward by scanning a OneGate QR code wi",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1488,
+      "walletEvents": []
+    },
+    {
+      "slug": "gas-sponsor",
+      "appId": "miniapp-gas-sponsor",
+      "name": "Gas Sponsor",
+      "url": "http://127.0.0.1:3000/miniapps/gas-sponsor?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Create Pool",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Claim Sponsorship",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Withdraw Pool",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nGas Sponsor\nUtility\nBeta\nCONTRACT\nGas sponsor policy desk\n\nDefine who receives sponsored GAS, cap the budget, and make onboarding rules transparent.\n\nGas Sponsor\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nGAS SPONSORSHIP\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n",
+          "error": null
+        },
+        {
+          "text": "Create Pool",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create Pool' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2154,
+      "walletEvents": []
+    },
+    {
+      "slug": "gasbox",
+      "appId": "miniapp-gasbox",
+      "name": "GASBOX",
+      "url": "http://127.0.0.1:3000/miniapps/gasbox?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Draw Capsule",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nGASBOX\nGaming\nOnline\nFLAGSHIP\nCONTRACT\nGASBox gacha machine\n\nPick a machine, inspect its capsule pool, and prepare a draw before sending the on-chain play operation.\n\nGASBOX\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nUltra-low-cost GAS spins for chances to win NEO, rare",
+          "error": null
+        },
+        {
+          "text": "Draw Capsule",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Draw Capsule' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1634,
+      "walletEvents": []
+    },
+    {
+      "slug": "gov-merc",
+      "appId": "miniapp-gov-merc",
+      "name": "Gov Merc",
+      "url": "http://127.0.0.1:3000/miniapps/gov-merc?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nGov Merc\nGovernance\nBeta\nCONTRACT\nGovernance delegation market\n\nList, compare, and delegate voting power through transparent governance offers.\n\nGov Merc\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nGOVERNANCE\nNeo N3 Testnet\nWhat this MiniApp does\n\nMarketplace for gove",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1587,
+      "walletEvents": []
+    },
+    {
+      "slug": "graveyard",
+      "appId": "miniapp-graveyard",
+      "name": "Graveyard",
+      "url": "http://127.0.0.1:3000/miniapps/graveyard?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nGraveyard\nUtility\nBeta\nCONTRACT\nEncrypted memory burial\n\nSeal a memory, set a forgetting price, and keep the privacy envelope explicit.\n\nGraveyard\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nPaid on-chain memory burial wi",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1601,
+      "walletEvents": []
+    },
+    {
+      "slug": "last-survivor",
+      "appId": "miniapp-last-survivor",
+      "name": "LastSurvivor",
+      "url": "http://127.0.0.1:3000/miniapps/last-survivor?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Fund Keys",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Buy Keys",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nLastSurvivor\nGaming\nOnline\nFLAGSHIP\nCONTRACT\nCountdown auction arena\n\nBuy keys, extend the timer, and become the current leader before the round settles on-chain.\n\nLastSurvivor\nNext round is ready to start\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nPrize pool grows with",
+          "error": null
+        },
+        {
+          "text": "Fund Keys",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund Keys' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:r"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1761,
+      "walletEvents": []
+    },
+    {
+      "slug": "memorial-shrine",
+      "appId": "miniapp-memorial-shrine",
+      "name": "Memorial Shrine",
+      "url": "http://127.0.0.1:3000/miniapps/memorial-shrine?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nMemorial Shrine\nSocial\nBeta\nCONTRACT\nMemorial tribute wall\n\nCompose a permanent tribute with message, donation state, and on-chain memorial proof.\n\nMemorial Shrine\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nCreate eternal",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1563,
+      "walletEvents": []
+    },
+    {
+      "slug": "milestone-escrow",
+      "appId": "miniapp-milestone-escrow",
+      "name": "Milestone Escrow",
+      "url": "http://127.0.0.1:3000/miniapps/milestone-escrow?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Fund escrow",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nMilestone Escrow\nDefi\nBeta\nCONTRACT\nMilestone escrow board\n\nLock project funds, approve completed milestones, and release payments step by step.\n\nMilestone Escrow\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nDEFI\nNeo N3 Testnet\nWhat this MiniApp does\n\nLock funds and re",
+          "error": null
+        },
+        {
+          "text": "Fund escrow",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Fund escrow' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 t"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1493,
+      "walletEvents": []
+    },
+    {
+      "slug": "miniapp-factory",
+      "appId": "miniapp-miniapp-factory",
+      "name": "MiniApp Factory",
+      "url": "http://127.0.0.1:3000/miniapps/miniapp-factory?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Prepare MiniApp launch",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nMiniApp Factory\nUtility\nBeta\nMINIAPP\nMiniApp factory\n\nAssemble a platform MiniApp from approved modules, launch metadata, OneGate parameters, and template-bound contracts.\n\nMiniApp Factory\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this Mi",
+          "error": null
+        },
+        {
+          "text": "Prepare MiniApp launch",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Prepare MiniApp launch' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1555,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-convert",
+      "appId": "miniapp-neo-convert",
+      "name": "Neo Convert",
+      "url": "http://127.0.0.1:3000/miniapps/neo-convert?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Convert value",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "https://neomini.app/miniapps/neo-convert/index.html?source=onegate&appId=miniapp-neo-convert&network=testnet",
+          "href": "https://neomini.app/miniapps/neo-convert/index.html?source=onegate&appId=miniapp-neo-convert&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Convert\nUtility\nBeta\nMINIAPP\nNeo conversion workbench\n\nConvert addresses, script hashes, and key formats locally before using them in a wallet operation.\n\nNeo Convert\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nConver",
+          "error": null
+        },
+        {
+          "text": "Convert value",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Convert value' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1605,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-multisig",
+      "appId": "miniapp-neo-multisig",
+      "name": "Neo Multisig",
+      "url": "http://127.0.0.1:3000/miniapps/neo-multisig?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Create multisig request",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Multisig\nUtility\nBeta\nMINIAPP\nMultisig signing room\n\nCreate a multisig request, collect signatures, and keep threshold progress visible.\n\nNeo Multisig\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nCreate multisig transf",
+          "error": null
+        },
+        {
+          "text": "Create multisig request",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Create multisig request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1619,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-ns",
+      "appId": "miniapp-neo-ns",
+      "name": "Neo Name Service",
+      "url": "http://127.0.0.1:3000/miniapps/neo-ns?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Register domain",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Name Service\nUtility\nBeta\nCONTRACT\n.neo domain desk\n\nSearch, register, and manage human-readable Neo names from a focused registration surface.\n\nNeo Name Service\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nRegister an",
+          "error": null
+        },
+        {
+          "text": "Register domain",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Register domain' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1496,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-pay",
+      "appId": "miniapp-neo-pay",
+      "name": "NeoPay",
+      "url": "http://127.0.0.1:3000/miniapps/neo-pay?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Claim Stream",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 20,
+          "text": "https://neomini.app/miniapps/neo-pay/index.html?source=onegate&appId=miniapp-neo-pay&network=testnet",
+          "href": "https://neomini.app/miniapps/neo-pay/index.html?source=onegate&appId=miniapp-neo-pay&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeoPay\nDefi\nOnline\nFLAGSHIP\nCONTRACT\nPayment stream builder\n\nCompose a payroll, grant, or escrow stream with release cadence and beneficiary before submitting.\n\nNeoPay\nPayment stream\n\nAmount, cadence, and unlock horizon are visible before the stream is created.\n\nTotal amount\nFunds streamed over time\n12.0 GAS\nTOTAL\nRelease rate\nLinear release cadence\n1 GAS/day\nRATE\nDuration\nCalculated from amount and rate\n12 days\nLENGTH\nActive streams\nCurr",
+          "error": null
+        },
+        {
+          "text": "Claim Stream",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Claim Stream' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visibl"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1946,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-pay-shared-example",
+      "appId": "miniapp-neo-pay-shared-example",
+      "name": "NeoPay Shared Runtime",
+      "url": "http://127.0.0.1:3000/miniapps/neo-pay-shared-example?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=onegate&appId=miniapp-neo-pay-shared-example&network=testnet",
+          "href": "https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=onegate&appId=miniapp-neo-pay-shared-example&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeoPay Shared Runtime\nDefi\nBeta\nMINIAPP\nShared payment stream builder\n\nDemonstrate the shared-mode NeoPay recipe with funding vault and stream vesting modules.\n\nNeoPay Shared Runtime\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nDEFI\nNeo N3 Testnet\nWhat this MiniApp doe",
+          "error": null
+        },
+        {
+          "text": "https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=onegate&appId=miniapp-neo-pay-shared-example&network=testnet",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=onegate&appId=miniapp-neo-pay-shared-example&network=testnet' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <a target=\"_blank\" rel=\"noopener noreferrer\" data-testid=\"onegate-launch-url\" href=\"https"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2232,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-sign-anything",
+      "appId": "miniapp-neo-sign-anything",
+      "name": "Neo Sign Anything",
+      "url": "http://127.0.0.1:3000/miniapps/neo-sign-anything?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Sign message",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "https://neomini.app/miniapps/neo-sign-anything/index.html?source=onegate&appId=miniapp-neo-sign-anything&network=testnet",
+          "href": "https://neomini.app/miniapps/neo-sign-anything/index.html?source=onegate&appId=miniapp-neo-sign-anything&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Sign Anything\nUtility\nBeta\nMINIAPP\nMessage signing desk\n\nPrepare a message, preview the digest, and request a wallet signature with clear verification output.\n\nNeo Sign Anything\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp d",
+          "error": null
+        },
+        {
+          "text": "Sign message",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Sign message' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1616,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-swap",
+      "appId": "miniapp-neo-swap",
+      "name": "Neo Swap",
+      "url": "http://127.0.0.1:3000/miniapps/neo-swap?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Preview swap route",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "https://neomini.app/miniapps/neo-swap/index.html?source=onegate&appId=miniapp-neo-swap&network=testnet",
+          "href": "https://neomini.app/miniapps/neo-swap/index.html?source=onegate&appId=miniapp-neo-swap&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Swap\nDefi\nBeta\nMINIAPP\nNeo swap quote desk\n\nBuild a token swap preview with route, slippage, and settlement state before wallet submission.\n\nNeo Swap\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nDEFI\nNeo N3 Testnet\nWhat this MiniApp does\n\nPreview NEO and GAS conver",
+          "error": null
+        },
+        {
+          "text": "Preview swap route",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Preview swap route' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1512,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-treasury",
+      "appId": "miniapp-neo-treasury",
+      "name": "Neo Treasury",
+      "url": "http://127.0.0.1:3000/miniapps/neo-treasury?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Treasury\nUtility\nBeta\nMINIAPP\nTreasury balance monitor\n\nTrack foundation and ecosystem fund balances with asset rows and balance change context.\n\nNeo Treasury\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nTrack Neo Foun",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1582,
+      "walletEvents": []
+    },
+    {
+      "slug": "neo-x-bridge",
+      "appId": "miniapp-neo-x-bridge",
+      "name": "Neo X Bridge",
+      "url": "http://127.0.0.1:3000/miniapps/neo-x-bridge?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Send Message",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo X Bridge\nDefi\nBeta\nMINIAPP\nNeo X bridge control console\n\nOperate asset bridge, Message Bridge, and operation status tracking without leaving the platform shell.\n\nNeo X Bridge\nBridge route\n\nBridge inputs define the route; the playarea summarizes current status and tracking.\n\nAsset bridge\nDirection selected for this operation\nNeo N3 -> Neo X\nROUTE\nTarget contract\nMessage Bridge target\nnot set\nHASH\nMessage\nPayload pending\nwaiting\nPAYLOAD",
+          "error": null
+        },
+        {
+          "text": "Send Message",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Send Message' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-no"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2088,
+      "walletEvents": []
+    },
+    {
+      "slug": "neodid-passport",
+      "appId": "miniapp-neodid-passport",
+      "name": "NeoDID Passport",
+      "url": "http://127.0.0.1:3000/miniapps/neodid-passport?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeoDID Passport\nUtility\nBeta\nMINIAPP\nNeoDID passport composer\n\nCompose portable credential previews and prepare verification payloads for identity flows.\n\nNeoDID Passport\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nCompos",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1505,
+      "walletEvents": []
+    },
+    {
+      "slug": "nft-factory",
+      "appId": "miniapp-nft-factory",
+      "name": "NFT Factory",
+      "url": "http://127.0.0.1:3000/miniapps/nft-factory?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNFT Factory\nUtility\nBeta\nMINIAPP\nNEP-11 collection factory\n\nConfigure collection metadata, mint rules, and royalty policy while keeping the audited template fixed.\n\nNFT Factory\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\n",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1550,
+      "walletEvents": []
+    },
+    {
+      "slug": "on-chain-tarot",
+      "appId": "miniapp-onchaintarot",
+      "name": "On-chain Tarot",
+      "url": "http://127.0.0.1:3000/miniapps/on-chain-tarot?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Flip Reading",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 21,
+          "text": "Draw Reading",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOn-chain Tarot\nGaming\nBeta\nCONTRACT\nDraw, flip, read\n\nThe first screen is the reading table: draw three cards, flip them, and request the on-chain reading.\n\nOn-chain Tarot\n\nPAST\n\nSIGNAL\n\nPATH\n\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nOn-Chain Tarot - Neo MiniApp\n\nAPP ID:\nminiapp-o",
+          "error": null
+        },
+        {
+          "text": "Flip Reading",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Flip Reading' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1564,
+      "walletEvents": []
+    },
+    {
+      "slug": "oracle-compute-lab",
+      "appId": "miniapp-oracle-compute-lab",
+      "name": "Oracle Compute Lab",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-compute-lab?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Seal Compute Input",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOracle Compute Lab\nUtility\nBeta\nMINIAPP\nPrivate Compute Lab\n\nBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.\n\nOracle Compute Lab\nOracle request state\n\nThis playarea verifies the request package, privacy mode, and result envelope.\n\nEndpoint\nhttps://oracle.meshmini.app/testnet/health\nhttps://...health\nINPUT\nPrivacy\nMorpheus public key required\nsealed\nMODE\nVerification\nCallback",
+          "error": null
+        },
+        {
+          "text": "Seal Compute Input",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal Compute Input' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1931,
+      "walletEvents": []
+    },
+    {
+      "slug": "oracle-http-console",
+      "appId": "miniapp-oracle-http-console",
+      "name": "Oracle HTTP Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-http-console?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Build Request",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOracle HTTP Console\nUtility\nBeta\nMINIAPP\nHTTP Oracle Console\n\nBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.\n\nOracle HTTP Console\nOracle request state\n\nThis playarea verifies the request package, privacy mode, and result envelope.\n\nEndpoint\nhttps://oracle.meshmini.app/testnet/health\nhttps://...health\nINPUT\nPrivacy\nPlain oracle request\noptional\nMODE\nVerification\nCallback and",
+          "error": null
+        },
+        {
+          "text": "Build Request",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Build Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1831,
+      "walletEvents": []
+    },
+    {
+      "slug": "oracle-neodid-console",
+      "appId": "miniapp-oracle-neodid-console",
+      "name": "Oracle NeoDID Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-neodid-console?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Seal DID Request",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOracle NeoDID Console\nUtility\nBeta\nMINIAPP\nNeoDID Oracle Console\n\nBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.\n\nOracle NeoDID Console\nOracle request state\n\nThis playarea verifies the request package, privacy mode, and result envelope.\n\nEndpoint\nhttps://oracle.meshmini.app/testnet/health\nhttps://...health\nINPUT\nPrivacy\nMorpheus public key required\nsealed\nMODE\nVerification\n",
+          "error": null
+        },
+        {
+          "text": "Seal DID Request",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal DID Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 p"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1917,
+      "walletEvents": []
+    },
+    {
+      "slug": "oracle-price-console",
+      "appId": "miniapp-oracle-price-console",
+      "name": "Oracle Price Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-price-console?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Build Feed Request",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOracle Price Console\nUtility\nBeta\nMINIAPP\nPrice Oracle Console\n\nBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.\n\nOracle Price Console\nOracle request state\n\nThis playarea verifies the request package, privacy mode, and result envelope.\n\nFeed symbol\nMorpheus live price feed\nNEO-USD\nINPUT\nPrivacy\nPlain oracle request\noptional\nMODE\nVerification\nCallback and result envelope remai",
+          "error": null
+        },
+        {
+          "text": "Build Feed Request",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Build Feed Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1807,
+      "walletEvents": []
+    },
+    {
+      "slug": "oracle-seal-console",
+      "appId": "miniapp-oracle-seal-console",
+      "name": "Oracle Seal Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-seal-console?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Seal Payload",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "https://neomini.app/miniapps/oracle-seal-console/index.html?source=onegate&appId=miniapp-oracle-seal-console&network=testnet",
+          "href": "https://neomini.app/miniapps/oracle-seal-console/index.html?source=onegate&appId=miniapp-oracle-seal-console&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOracle Seal Console\nUtility\nBeta\nMINIAPP\nSeal Console\n\nBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.\n\nOracle Seal Console\nOracle request state\n\nThis playarea verifies the request package, privacy mode, and result envelope.\n\nEndpoint\nhttps://oracle.meshmini.app/testnet/health\nhttps://...health\nINPUT\nPrivacy\nMorpheus public key required\nsealed\nMODE\nVerification\nCallback and ",
+          "error": null
+        },
+        {
+          "text": "Seal Payload",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal Payload' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1901,
+      "walletEvents": []
+    },
+    {
+      "slug": "oracle-vrf-console",
+      "appId": "miniapp-oracle-vrf-console",
+      "name": "Oracle VRF Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-vrf-console?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Build VRF Request",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nOracle VRF Console\nUtility\nBeta\nMINIAPP\nVRF Request Console\n\nBuild a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.\n\nOracle VRF Console\nOracle request state\n\nThis playarea verifies the request package, privacy mode, and result envelope.\n\nEndpoint\nhttps://oracle.meshmini.app/testnet/health\nhttps://...health\nINPUT\nPrivacy\nPlain oracle request\noptional\nMODE\nVerification\nCallback and r",
+          "error": null
+        },
+        {
+          "text": "Build VRF Request",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Build VRF Request' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1828,
+      "walletEvents": []
+    },
+    {
+      "slug": "private-transfer",
+      "appId": "miniapp-private-transfer",
+      "name": "Confidential Transfer",
+      "url": "http://127.0.0.1:3000/miniapps/private-transfer?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Seal Transfer",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 20,
+          "text": "https://neomini.app/miniapps/private-transfer/index.html?source=onegate&appId=miniapp-private-transfer&network=testnet",
+          "href": "https://neomini.app/miniapps/private-transfer/index.html?source=onegate&appId=miniapp-private-transfer&network=testnet",
+          "tag": "a",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nConfidential Transfer\nDefi\nBeta\nMINIAPP\nConfidential transfer desk\n\nA zERC20-style private transfer workflow without on-chain zk curve assumptions: seal transfer details locally, let Morpheus confidential compute validate them inside the TEE, then return a signed settlement intent.\n\nConfidential Transfer\nPrivate transfer intent\n\nRecipient, asset, amount, and memo are sealed locally for Morpheus confidential compute before submission.\n\nRec",
+          "error": null
+        },
+        {
+          "text": "Seal Transfer",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal Transfer' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2500,
+      "walletEvents": []
+    },
+    {
+      "slug": "profitanchor",
+      "appId": "miniapp-profitanchor",
+      "name": "ProfitAnchor",
+      "url": "http://127.0.0.1:3000/miniapps/profitanchor?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Stake NEO",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Claim Rewards",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nProfitAnchor\nDefi\nOnline\nFLAGSHIP\nCONTRACT\nProfitAnchor\n\nStake NEO, redeem your stake, and claim GAS rewards. Operator routing is handled separately in ProfitAnchor Admin.\n\nProfitAnchor\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nDEFI\nNeo N3 Testnet\nWhat this MiniApp does\n\nUser-facing ProfitAnchor staking app: stake",
+          "error": null
+        },
+        {
+          "text": "Stake NEO",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Stake NEO' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:r"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1955,
+      "walletEvents": []
+    },
+    {
+      "slug": "profitanchor-admin",
+      "appId": "miniapp-profitanchor-admin",
+      "name": "ProfitAnchor Admin",
+      "url": "http://127.0.0.1:3000/miniapps/profitanchor-admin?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Update Vote Target",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Sync Vote",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nProfitAnchor Admin\nUtility\nBeta\nCONTRACT\nProfitAnchor Admin\n\nAdmin-only manual routing: move NEO between the 21 AA agents, update vote target, then sync vote.\n\nProfitAnchor Admin\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nPROFITANCHOR ADMIN\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nOperator-only console for Prof",
+          "error": null
+        },
+        {
+          "text": "Update Vote Target",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Update Vote Target' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outl"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2100,
+      "walletEvents": []
+    },
+    {
+      "slug": "quadratic-funding",
+      "appId": "miniapp-quadratic-funding",
+      "name": "Quadratic Funding",
+      "url": "http://127.0.0.1:3000/miniapps/quadratic-funding?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nQuadratic Funding\nDefi\nBeta\nCONTRACT\nQuadratic funding round\n\nCreate grant allocations, preview matching pool impact, and keep donor count visible.\n\nQuadratic Funding\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nGRANT BOARD\nBETA\nDEFI\nNeo N3 Testnet\nWhat this MiniApp does\n\nR",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1792,
+      "walletEvents": []
+    },
+    {
+      "slug": "recovery-guardian",
+      "appId": "miniapp-recovery-guardian",
+      "name": "Recovery Guardian",
+      "url": "http://127.0.0.1:3000/miniapps/recovery-guardian?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Request Recovery Ticket",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nRecovery Guardian\nUtility\nBeta\nCONTRACT\nRecovery guardian console\n\nReview AA guardian policy, recovery ticket state, timelock, and final execution readiness.\n\nRecovery Guardian\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\n",
+          "error": null
+        },
+        {
+          "text": "Request Recovery Ticket",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Request Recovery Ticket' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visi"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1957,
+      "walletEvents": []
+    },
+    {
+      "slug": "red-envelope",
+      "appId": "miniapp-redenvelope",
+      "name": "Red Envelope",
+      "url": "http://127.0.0.1:3000/miniapps/red-envelope?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 15,
+          "text": "Send",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Create",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nRed Envelope\nSocial\nOnline\nFLAGSHIP\nCONTRACT\nOpen red envelope\n\nRecipients should see one clear job first: open the shared envelope and claim once. Sending and active lists stay secondary.\n\nRed Envelope\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nClaim-first GAS red enve",
+          "error": null
+        },
+        {
+          "text": "Send",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Send' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button role=\"tab\" type=\"button\" id=\"tab-send\" tabindex=\"-1\" aria-selected=\"false\" aria-controls=\"tabpanel-send\" class=\"cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold ring-1 transition-colo"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2102,
+      "walletEvents": []
+    },
+    {
+      "slug": "self-loan",
+      "appId": "miniapp-self-loan",
+      "name": "SelfLoan",
+      "url": "http://127.0.0.1:3000/miniapps/self-loan?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Sync Anchor Vote",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nSelfLoan\nDefi\nOnline\nFLAGSHIP\nCONTRACT\nSelf-repaying loan panel\n\nLock NEO, draw GAS, and route future yield toward repayment without liquidation.\n\nSelfLoan\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nDEFI\nNeo N3 Testnet\nWhat this MiniApp does\n\nLock NEO to borrow GAS against future staking rewards. Collateral can fol",
+          "error": null
+        },
+        {
+          "text": "Sync Anchor Vote",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Sync Anchor Vote' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:rin"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1870,
+      "walletEvents": []
+    },
+    {
+      "slug": "soulbound-certificate",
+      "appId": "miniapp-soulbound-certificate",
+      "name": "Soulbound Certificate",
+      "url": "http://127.0.0.1:3000/miniapps/soulbound-certificate?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Verify Holder",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nSoulbound Certificate\nSocial\nBeta\nCONTRACT\nCertificate issuer\n\nIssue non-transferable NEP-11 certificates with recipient, claim, and metadata preview.\n\nSoulbound Certificate\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nIssu",
+          "error": null
+        },
+        {
+          "text": "Verify Holder",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Verify Holder' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1781,
+      "walletEvents": []
+    },
+    {
+      "slug": "time-capsule",
+      "appId": "miniapp-time-capsule",
+      "name": "Time Capsule",
+      "url": "http://127.0.0.1:3000/miniapps/time-capsule?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Seal capsule",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nTime Capsule\nSocial\nBeta\nCONTRACT\nTime capsule locker\n\nSeal a message hash until a future unlock date with clear public proof and retrieval state.\n\nTime Capsule\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nSOCIAL\nNeo N3 Testnet\nWhat this MiniApp does\n\nSeal message hash",
+          "error": null
+        },
+        {
+          "text": "Seal capsule",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Seal capsule' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 "
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1601,
+      "walletEvents": []
+    },
+    {
+      "slug": "timestamp-proof",
+      "appId": "miniapp-timestamp-proof",
+      "name": "Timestamp Proof",
+      "url": "http://127.0.0.1:3000/miniapps/timestamp-proof?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nTimestamp Proof\nUtility\nBeta\nMINIAPP\nTimestamp proof journal\n\nHash local content, anchor the digest, and keep proof lookup straightforward.\n\nTimestamp Proof\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nHash local content, ",
+          "error": null
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1494,
+      "walletEvents": []
+    },
+    {
+      "slug": "trustanchor",
+      "appId": "miniapp-trustanchor",
+      "name": "TrustAnchor",
+      "url": "http://127.0.0.1:3000/miniapps/trustanchor?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Stake NEO",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 19,
+          "text": "Claim Rewards",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nTrustAnchor\nGovernance\nOnline\nFLAGSHIP\nCONTRACT\nTrustAnchor\n\nStake NEO, redeem your stake, and claim GAS rewards. Operator routing is handled separately in TrustAnchor Admin.\n\nTrustAnchor\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nGOVERNANCE\nNeo N3 Testnet\nWhat this MiniApp does\n\nUser-facing TrustAnchor staking app",
+          "error": null
+        },
+        {
+          "text": "Stake NEO",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Stake NEO' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:r"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1953,
+      "walletEvents": []
+    },
+    {
+      "slug": "trustanchor-admin",
+      "appId": "miniapp-trustanchor-admin",
+      "name": "TrustAnchor Admin",
+      "url": "http://127.0.0.1:3000/miniapps/trustanchor-admin?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Update Vote Target",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 18,
+          "text": "Sync Vote",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nTrustAnchor Admin\nUtility\nBeta\nCONTRACT\nTrustAnchor Admin\n\nAdmin-only manual routing: move NEO between the 21 AA agents, update vote target, then sync vote.\n\nTrustAnchor Admin\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nTRUSTANCHOR ADMIN\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nOperator-only console for TrustAnc",
+          "error": null
+        },
+        {
+          "text": "Update Vote Target",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Update Vote Target' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outl"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 2091,
+      "walletEvents": []
+    },
+    {
+      "slug": "unbreakable-vault",
+      "appId": "miniapp-unbreakablevault",
+      "name": "Unbreakable Vault",
+      "url": "http://127.0.0.1:3000/miniapps/unbreakable-vault?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 16,
+          "text": "Verify Proof",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nUnbreakable Vault\nUtility\nBeta\nMINIAPP\nHash bounty vault\n\nCreate a bounty vault, lock secret hash conditions, and expose the claim path clearly.\n\nUnbreakable Vault\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nCreate a boun",
+          "error": null
+        },
+        {
+          "text": "Verify Proof",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Verify Proof' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 "
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Access to fetch at 'http://127.0.0.1:3000/_next/static/development/_devMiddlewareManifest.json' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+        "Failed to load resource: net::ERR_FAILED",
+        "Access to fetch at 'http://127.0.0.1:3000/_next/static/development/_devPagesManifest.json' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+        "Failed to load resource: net::ERR_FAILED",
+        "Access to fetch at 'http://127.0.0.1:3000/api/auth/profile' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+        "Failed to load resource: net::ERR_FAILED",
+        "Access to fetch at 'http://127.0.0.1:3000/api/auth/profile' from origin 'null' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "pageErrors": [
+        "Invariant: attempted to hard navigate to the same URL /miniapps/unbreakablevault/index.html?network=testnet&source=embed http://127.0.0.1:3000/miniapps/unbreakablevault/index.html?network=testnet&source=embed",
+        "Invariant: attempted to hard navigate to the same URL /miniapps/unbreakablevault/index.html?network=testnet&source=embed http://127.0.0.1:3000/miniapps/unbreakablevault/index.html?network=testnet&source=embed"
+      ],
+      "badResponses": [
+        {
+          "status": 404,
+          "url": "http://127.0.0.1:3000/miniapps/unbreakablevault/index.html?network=testnet&source=embed"
+        }
+      ],
+      "overflowX": 0,
+      "bodyChars": 1746,
+      "walletEvents": []
+    },
+    {
+      "slug": "wallet-health",
+      "appId": "miniapp-wallet-health",
+      "name": "Wallet Health",
+      "url": "http://127.0.0.1:3000/miniapps/wallet-health?network=testnet",
+      "load": "ok",
+      "buttons": [
+        {
+          "index": 8,
+          "text": "Log In / Sign UpLog In",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        },
+        {
+          "index": 17,
+          "text": "Run health check",
+          "href": "",
+          "tag": "button",
+          "visible": true,
+          "disabled": false
+        }
+      ],
+      "clicks": [
+        {
+          "text": "Log In / Sign UpLog In",
+          "ok": true,
+          "walletDelta": 0,
+          "bodySample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nWallet Health\nUtility\nBeta\nMINIAPP\nWallet safety checkup\n\nRun a wallet readiness checklist covering balance, permissions, suspicious approvals, and backup posture.\n\nWallet Health\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does",
+          "error": null
+        },
+        {
+          "text": "Run health check",
+          "ok": false,
+          "walletDelta": 0,
+          "bodySample": "",
+          "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button, [role=\"button\"], a[href]').filter({ hasText: 'Run health check' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-disabled=\"false\" data-testid=\"operation-submit-button\" class=\"inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 p"
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "bodyChars": 1539,
+      "walletEvents": []
+    }
+  ]
+}

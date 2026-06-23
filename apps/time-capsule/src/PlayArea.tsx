@@ -670,10 +670,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               aria-label={t("capsuleBoardTitle")}
             >
               <picture className="capsule-game-token" aria-hidden="true">
-                <source srcSet="./logo.avif" type="image/avif" />
-                <source srcSet="./logo.webp" type="image/webp" />
                 <img
-                  src="./logo.jpg"
+                  src="./time-capsule-token.png"
                   alt=""
                   loading="eager"
                   decoding="sync"

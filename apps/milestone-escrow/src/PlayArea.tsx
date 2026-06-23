@@ -9,6 +9,10 @@ import { useState, type CSSProperties } from "react";
 import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import {
+  amountToBaseUnits,
+  GAS_DECIMALS_MULTIPLIER,
+} from "@shared/utils/amounts";
 import MilestoneHero from "./components/MilestoneHero";
 import EscrowBody from "./components/EscrowBody";
 import EscrowExplainer from "./components/EscrowExplainer";
@@ -18,6 +22,16 @@ interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+}
+
+function formatBaseUnits(amount: bigint, asset: "NEO" | "GAS"): string {
+  if (asset === "NEO") return amount.toString();
+  const whole = amount / GAS_DECIMALS_MULTIPLIER;
+  const fraction = (amount % GAS_DECIMALS_MULTIPLIER)
+    .toString()
+    .padStart(8, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -95,27 +109,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     );
   };
 
-  // Running total in human units (display only). Parsing here is forgiving;
-  // the composable performs the authoritative base-unit conversion/validation.
-  const parseAmount = (raw: string): number => {
-    const n = Number(String(raw ?? "").trim());
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  };
-  const totalAmount = milestoneAmounts.reduce((sum, amt) => sum + parseAmount(amt), 0);
-  const totalDisplay = asset === "NEO"
-    ? String(Math.trunc(totalAmount))
-    : totalAmount.toFixed(8).replace(/\.?0+$/, "") || "0";
+  const parseAmount = (raw: string): bigint =>
+    amountToBaseUnits(String(raw ?? "").trim(), asset);
+  const totalAmount = milestoneAmounts.reduce(
+    (sum, amt) => sum + parseAmount(amt),
+    0n,
+  );
+  const totalDisplay = formatBaseUnits(totalAmount, asset);
   const previewBeneficiary = beneficiary.trim() || t("beneficiaryPlaceholder");
   const previewMilestones = milestoneAmounts.map((amount, index) => {
     const trimmed = amount.trim();
+    const baseUnits = parseAmount(trimmed);
     return {
       label: t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`,
-      amount: parseAmount(trimmed) > 0 ? `${trimmed} ${asset}` : `-- ${asset}`,
+      amount:
+        baseUnits > 0n ? `${formatBaseUnits(baseUnits, asset)} ${asset}` : `-- ${asset}`,
     };
   });
   const visiblePreviewMilestones = previewMilestones.slice(0, 5);
   const fundedGateCount = visiblePreviewMilestones.filter((_, index) =>
-    parseAmount(milestoneAmounts[index] ?? "") > 0,
+    parseAmount(milestoneAmounts[index] ?? "") > 0n,
   ).length;
   const routeProgressPercent = visiblePreviewMilestones.length === 0
     ? 0
@@ -129,7 +142,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // The composable still re-validates address/amount/minimums authoritatively.
   const hasBeneficiary = beneficiary.trim().length > 0;
   const allAmountsPositive =
-    milestoneAmounts.length > 0 && milestoneAmounts.every((amt) => parseAmount(amt) > 0);
+    milestoneAmounts.length > 0 && milestoneAmounts.every((amt) => parseAmount(amt) > 0n);
   const canSubmit = hasBeneficiary && allAmountsPositive && !isCreating;
 
   const handleCreate = async () => {
@@ -248,7 +261,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                           {visiblePreviewMilestones.map((milestone, index) => (
                             <span
                               key={`${milestone.label}-${index}`}
-                              className={`create-plan-preview__gate${parseAmount(milestoneAmounts[index] ?? "") > 0 ? " is-funded" : ""}`}
+                              className={`create-plan-preview__gate${parseAmount(milestoneAmounts[index] ?? "") > 0n ? " is-funded" : ""}`}
                             />
                           ))}
                         </div>

@@ -89,9 +89,6 @@ const BASE_KEY_PRICE = 10000000n;
 /** +0.1% of base per key already sold. Mirrors COMMON_DIFF (10 bps). */
 const KEY_PRICE_INCREMENT_BPS = 10n;
 
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
-
 /** Memo the contract requires on the buy-funding transfer. */
 const BUY_MEMO = "miniapp-lastsurvivor:buy";
 
@@ -255,10 +252,19 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   const updateNow = () => { now.set(Date.now()); };
 
   // ── Formatted display values ──────────────────────────────────────
-  const lastBuyerLabel = createDerived(() => lastBuyer.get() ? formatAddress(lastBuyer.get() ?? "") : t("notAvailable"), []);
-  const formattedRound = createDerived(() => `#${roundId.get()}`, []);
-  const totalPotDisplay = createDerived(() => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`, []);
-  const roundStatusDisplay = createDerived(() => isRoundActive.get() ? t("activeRound") : t("inactiveRound"), []);
+  const lastBuyerLabel = createDerived(
+    () => lastBuyer.get() ? formatAddress(lastBuyer.get() ?? "") : t("notAvailable"),
+    [lastBuyer],
+  );
+  const formattedRound = createDerived(() => `#${roundId.get()}`, [roundId]);
+  const totalPotDisplay = createDerived(
+    () => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`,
+    [totalPot],
+  );
+  const roundStatusDisplay = createDerived(
+    () => isRoundActive.get() ? t("activeRound") : t("inactiveRound"),
+    [isRoundActive],
+  );
 
   // Round-total keys as a plain number for binding (the raw value is a bigint
   // tracked in `totalKeysInRound`, used by the cost formula). This is the
