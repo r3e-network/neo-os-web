@@ -2,6 +2,7 @@
  * PlayArea.tsx — React version of Time Capsule PlayArea.
  */
 
+import type { CSSProperties } from "react";
 import {
   BellRing,
   CalendarClock,
@@ -14,6 +15,8 @@ import {
   Hourglass,
   Landmark,
   LockKeyhole,
+  Minus,
+  Plus,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -95,6 +98,97 @@ const CATEGORY_LABEL_KEYS: Record<number, string> = {
   5: "categorySecret",
 };
 
+interface TimeLockDialProps {
+  label: string;
+  value: string;
+  daysShort: string;
+  fill: string;
+  unlockPreview: string;
+  invalidHint: string;
+  decreaseLabel: string;
+  increaseLabel: string;
+  onChange: (value: string) => void;
+}
+
+function clampDays(value: number): number {
+  return Math.min(3650, Math.max(1, value));
+}
+
+function TimeLockDial({
+  label,
+  value,
+  daysShort,
+  fill,
+  unlockPreview,
+  invalidHint,
+  decreaseLabel,
+  increaseLabel,
+  onChange,
+}: TimeLockDialProps) {
+  const numericValue = Number(value);
+  const isValid = Number.isFinite(numericValue) && numericValue >= 1 && numericValue <= 3650;
+  const displayValue = isValid ? String(Math.round(numericValue)) : value;
+
+  const nudge = (direction: 1 | -1) => {
+    const base = Number.isFinite(numericValue) ? numericValue : 30;
+    onChange(String(clampDays(Math.round(base + direction))));
+  };
+
+  return (
+    <div
+      className={`capsule-time-lock-dial${isValid ? " is-valid" : ""}`}
+      style={{ "--capsule-time-fill": fill } as CSSProperties}
+    >
+      <div className="capsule-time-lock-dial__face" aria-hidden="true">
+        <span className="capsule-time-lock-dial__ring" />
+        <span className="capsule-time-lock-dial__core">
+          <Hourglass size={20} />
+        </span>
+      </div>
+      <div className="capsule-time-lock-dial__console">
+        <div className="capsule-time-lock-dial__head">
+          <span>{label}</span>
+          <strong>{isValid ? unlockPreview : invalidHint}</strong>
+        </div>
+        <div className="capsule-time-lock-dial__control">
+          <button
+            type="button"
+            aria-label={decreaseLabel}
+            disabled={isValid && numericValue <= 1}
+            onClick={() => nudge(-1)}
+          >
+            <Minus size={14} />
+          </button>
+          <label>
+            <input
+              aria-label={label}
+              type="number"
+              min={1}
+              max={3650}
+              step={1}
+              inputMode="numeric"
+              value={displayValue}
+              onChange={(event) => onChange(event.target.value)}
+            />
+            <span>{daysShort}</span>
+          </label>
+          <button
+            type="button"
+            aria-label={increaseLabel}
+            disabled={isValid && numericValue >= 3650}
+            onClick={() => nudge(1)}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+        <div className="capsule-time-lock-dial__track" aria-hidden="true">
+          <span />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, bool, val } = useStateBindings(state);
 
@@ -143,6 +237,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasMessageDraft = Boolean((newCapsule.title ?? "").trim() || contentPreview);
   const hasValidLockDuration =
     Number.isFinite(dayCount) && dayCount >= 1 && dayCount <= 3650;
+  const timeLockProgress = Number.isFinite(dayCount)
+    ? `${Math.max(6, Math.min(100, (Math.log10(dayCount + 1) / Math.log10(3651)) * 100))}%`
+    : "6%";
 
   const updateForm = (patch: Partial<CapsuleFormState>) => {
     if (state.newCapsule) {
@@ -273,13 +370,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
               </div>
               <div className="capsule-duration-row">
-                <NeoInput
-                  type="number"
+                <TimeLockDial
                   label={t("unlockIn")}
-                  placeholder={t("daysPlaceholder")}
-                  min={1}
-                  max={3650}
                   value={newCapsule.days ?? "30"}
+                  daysShort={t("daysShort")}
+                  fill={timeLockProgress}
+                  unlockPreview={unlockPreview}
+                  invalidHint={t("unlockDateHelper")}
+                  decreaseLabel={t("decreaseLockDuration")}
+                  increaseLabel={t("increaseLockDuration")}
                   onChange={(v) => updateForm({ days: v })}
                 />
                 <div
