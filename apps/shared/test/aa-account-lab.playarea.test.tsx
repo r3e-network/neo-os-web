@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   cleanup,
   fireEvent,
@@ -29,10 +31,17 @@ function t(key: string) {
     network: "Network",
     defaultVerifier: "Default Verifier",
     accountMetricAccount: "Account Shell",
+    accountStageEyebrow: "AA shell assembly",
+    accountStageIdle: "Connect, inspect, then assemble the account shell",
+    accountStageReady: "Account shell ready for registration",
+    accountStageInspecting: "Reading AA Core account state...",
+    accountStageRegistering: "Registering AA account shell...",
+    accountStageConnecting: "Connecting wallet identity...",
+    accountStageCopy: "Verifier, backup owner, and escape window assemble into the deterministic AccountId accepted by AA Core.",
     accountInspectorTitle: "Account Readiness",
     accountId: "AccountId Hash",
-    accountIdHint: "Use a hash, public key, or deterministic seed text.",
-    accountIdPlaceholder: "20-byte hash, pubkey, or seed text",
+    accountIdHint: "Use the registered 20-byte AccountId hash, or a public key that can be normalized to one.",
+    accountIdPlaceholder: "20-byte AccountId hash or public key",
     inspectBlocked: "Enter an account id before reading AA Core state.",
     inspect: "Inspect Account",
     connectWallet: "Connect Wallet",
@@ -127,6 +136,10 @@ describe("AA Account Lab PlayArea launch flow", () => {
       />,
     );
 
+    expect(document.querySelector(".account-flow-stage")).toBeTruthy();
+    expect(screen.getByText("Account shell ready for registration")).toBeTruthy();
+    expect(document.querySelector('.account-flow-stage__media[src="./account-control-center.jpg"]')).toBeTruthy();
+
     // Inspect card keeps the single editable AccountId input prefilled from the
     // launch param; the register card derives its id from parameters instead.
     expect(
@@ -155,6 +168,9 @@ describe("AA Account Lab PlayArea launch flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Register Account" }));
 
+    expect(document.querySelector(".account-flow-stage--registering")).toBeTruthy();
+    expect(screen.getByText("Registering AA account shell...")).toBeTruthy();
+
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith(
         "register",
@@ -165,6 +181,44 @@ describe("AA Account Lab PlayArea launch flow", () => {
         BACKUP_OWNER,
         "604800",
       );
+    });
+  });
+
+  it("previews inspect and wallet connect as AA account workflow actions", async () => {
+    let finishInspect: (() => void) | undefined;
+    const dispatch = vi.fn((name: string) => {
+      if (name === "inspect") {
+        return new Promise<void>((resolve) => {
+          finishInspect = resolve;
+        });
+      }
+      return Promise.resolve();
+    });
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState()}
+        dispatch={dispatch}
+        launchContext={launch(
+          "https://neomini.app/miniapps/aa-account-lab?accountIdInput=neo-aa-001",
+        )}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Inspect Account" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("inspect", "neo-aa-001");
+      expect(container.querySelector(".account-flow-stage--inspecting")).toBeTruthy();
+      expect(screen.getByText("Reading AA Core account state...")).toBeTruthy();
+    });
+    finishInspect?.();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("connect");
+      expect(container.querySelector(".account-flow-stage--connecting")).toBeTruthy();
+      expect(screen.getByText("Connecting wallet identity...")).toBeTruthy();
     });
   });
 
@@ -234,5 +288,26 @@ describe("AA Account Lab PlayArea launch flow", () => {
     expect(
       screen.getByText(/This account already has a verifier registered/i),
     ).toBeTruthy();
+  });
+
+  it("keeps AA account shell motion and reduced-motion fallback covered", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../aa-account-lab/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes aa-account-packet-route");
+    expect(styles).toContain("@keyframes aa-account-route-scan");
+    expect(styles).toContain("@keyframes aa-account-shell-ready");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.account-flow-stage--registering \.account-flow-stage__packet[\s\S]*animation:\s*aa-account-packet-route/,
+    );
+    expect(styles).toMatch(
+      /\.account-flow-stage--inspecting \.account-flow-stage__route::after[\s\S]*animation:\s*aa-account-route-scan/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.account-flow-stage__packet[\s\S]*animation:\s*none/,
+    );
   });
 });
