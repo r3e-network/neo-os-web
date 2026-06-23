@@ -66,6 +66,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   );
   const catalogPairs = pairs.filter((symbol) => !featuredPairs.includes(symbol));
   const boardState = isRequesting ? "loading" : priceLoaded ? freshness : "idle";
+  const routeState = errorMsg ? "warn" : boardState;
+  const routeNodes = [
+    {
+      key: "source",
+      icon: <DatabaseZap size={18} aria-hidden="true" />,
+      label: t("priceRouteSource"),
+      value: sourceLabel || t("priceRouteSourceFallback"),
+    },
+    {
+      key: "freshness",
+      icon: <Activity size={18} aria-hidden="true" />,
+      label: t("priceRouteFreshness"),
+      value: isRequesting
+        ? t("priceRouteReading")
+        : priceLoaded
+          ? freshnessLabel
+          : t("priceRouteQueued"),
+    },
+    {
+      key: "feed",
+      icon: <Check size={18} aria-hidden="true" />,
+      label: t("priceRouteFeed"),
+      value: datafeedShort || t("priceRouteFeedPending"),
+    },
+  ];
 
   return (
     <div className="price-play-area">
@@ -187,6 +212,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </section>
 
+        <section
+          className={`price-oracle-route price-oracle-route--${routeState}`}
+          aria-label={t("priceRouteTitle")}
+          aria-busy={isRequesting || undefined}
+        >
+          <div className="price-oracle-route__head">
+            <div>
+              <span>{t("priceRouteEyebrow")}</span>
+              <strong>{t("priceRouteTitle")}</strong>
+            </div>
+            <small>{t("priceRouteHint")}</small>
+          </div>
+          <div className="price-oracle-route__path">
+            <span className="price-oracle-route__packet" aria-hidden="true" />
+            {routeNodes.map((node) => (
+              <div
+                key={node.key}
+                className={`price-oracle-node price-oracle-node--${node.key}`}
+              >
+                <span className="price-oracle-node__icon">{node.icon}</span>
+                <span className="price-oracle-node__copy">
+                  <small>{node.label}</small>
+                  <strong>{node.value}</strong>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="price-action-panel" aria-label={t("priceActionTitle")}>
           <div className="price-action-panel__head">
             <span className="price-action-panel__icon" aria-hidden="true">
@@ -247,13 +301,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="price-query-actions">
             <NeoButton
               variant="primary"
-              loading={isRequesting}
               disabled={!canFetchPrice || isRequesting}
-              aria-label={t("fetchPair", { pair: displayPair })}
+              aria-label={t(isRequesting ? "readingPair" : "fetchPair", {
+                pair: displayPair,
+              })}
               onClick={() => dispatch("fetchPrice")}
             >
-              <RefreshCw size={16} aria-hidden="true" />
-              {t("fetchPair", { pair: displayPair })}
+              {isRequesting ? (
+                <span className="price-query-spinner" aria-hidden="true" />
+              ) : (
+                <RefreshCw size={16} aria-hidden="true" />
+              )}
+              {t(isRequesting ? "readingPair" : "fetchPair", { pair: displayPair })}
             </NeoButton>
           </div>
 
