@@ -25,8 +25,12 @@ const ASSET_PATTERN =
   /(<picture\b|<img\b|from\s+["'][^"']+\.(?:png|jpe?g|webp|avif|svg)["']|url\(["']?[^)]+\.(?:png|jpe?g|webp|avif|svg))/i;
 const PLAY_SURFACE_PATTERN =
   /(arena|stage|machine|table|plaza|workbench|lane|route|deck)/i;
+const ACTION_STATE_PATTERN =
+  /(aria-busy|(?:is-|--)(?:rolling|tossing|opening|sending|sealing|creating|launching|claiming|pulling|drawing|dealing|flipping|revealing|burning|settling|checking|funding|refunding|withdrawing|busy|active))/i;
 const INTERACTION_MOTION_PATTERN =
   /(?:is-|--)(rolling|tossing|opening|sending|sealing|creating|launching|claiming|pulling|drawing|dealing|flipping|flipped|burning|settling|won|lost|ready|active|complete|claimable)[\s\S]{0,900}animation\s*:/i;
+const RESULT_STATE_PATTERN =
+  /(result|outcome|winner|won|lost|claimed|claimSucceeded|lastSuccessType|reward|payout|complete|revealed|history|receipt|settled|claimStatus)/i;
 
 function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
@@ -104,6 +108,10 @@ describe("game miniapp experience audit", () => {
         `${app.name}: the core flow needs a staged play surface instead of raw form controls`,
       ).toMatch(PLAY_SURFACE_PATTERN);
       expect(
+        source,
+        `${app.name}: games need a visible live-action state when the user commits an action`,
+      ).toMatch(ACTION_STATE_PATTERN);
+      expect(
         keyframeCount,
         `${app.name}: games need explicit keyframe motion for the core interaction`,
       ).toBeGreaterThanOrEqual(3);
@@ -115,6 +123,10 @@ describe("game miniapp experience audit", () => {
         source,
         `${app.name}: motion must be tied to the core play action, not only ambient decoration`,
       ).toMatch(INTERACTION_MOTION_PATTERN);
+      expect(
+        source,
+        `${app.name}: games need a resolved outcome/receipt/history state after the action`,
+      ).toMatch(RESULT_STATE_PATTERN);
       expect(
         source,
         `${app.name}: motion-heavy game UI must honor reduced-motion users`,
