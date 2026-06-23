@@ -112,6 +112,12 @@ function t(key: string, params?: Record<string, string | number>) {
     studioFlowPrizesHint: "Weights become odds",
     studioFlowPublish: "Publish on-chain",
     studioFlowPublishHint: "Fund and activate",
+    studioLaunchPadLabel: "Launch pad",
+    studioLaunchReadyTitle: "Machine ready for wallet publish",
+    studioLaunchDraftTitle: "Finish loading the cabinet",
+    studioLaunchNeedsMachine: "Name the machine first so players know what they are pulling.",
+    studioLaunchNeedsPrize: "Add at least one named prize capsule with weight before publishing.",
+    studioLaunchReadyCopy: "The cabinet has a name and a prize capsule. Review the odds, then publish on-chain.",
     studioOddsRailTitle: "Capsule odds rail",
     studioOddsRailHint: "Preview what players will see before the wallet confirmation.",
     rarityCommon: "COMMON",
@@ -122,6 +128,11 @@ function t(key: string, params?: Record<string, string | number>) {
     createMachineAction: "Create Machine",
     studioCloseAction: "Close Studio",
     itemNamePlaceholder: "Item Name",
+    machineNameLabel: "Machine Name",
+    machineNamePlaceholder: "e.g. Cyber Dragon Box",
+    pricePerPlayLabel: "Price per Play (GAS)",
+    pricePlaceholder: "1.0",
+    backToMarket: "Back to Market",
     prizeAssetLabel: "Prize Asset",
     prizeAssetGasHint: "Decimal payouts for flexible prize amounts",
     prizeAssetNeoHint: "Whole-token prizes for simple fixed rewards",
@@ -392,6 +403,14 @@ describe("GasBox PlayArea", () => {
     expect(container.querySelector(".gasbox-studio-machine-preview__lights")).not.toBeNull();
     expect(container.querySelector(".gasbox-studio-odds-rail")).not.toBeNull();
     expect(container.querySelectorAll(".gasbox-studio-odds-token").length).toBe(1);
+    expect(container.querySelector(".gasbox-studio-launch-pad")).not.toBeNull();
+    expect(container.querySelector(".gasbox-studio-launch-pad.is-ready")).toBeNull();
+    expect(screen.getByText("Finish loading the cabinet")).toBeTruthy();
+    expect(screen.getByText("Name the machine first so players know what they are pulling.")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Create Machine" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
     expect(container.querySelector(".gasbox-capsule-editor")).not.toBeNull();
     expect(container.querySelector(".gasbox-studio-item__asset")).not.toBeNull();
     expect(container.querySelector('.gasbox-studio-item__asset source[srcset="logo.avif"]')).not.toBeNull();
@@ -400,8 +419,56 @@ describe("GasBox PlayArea", () => {
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
     expect(screen.getByText("Capsule odds rail")).toBeTruthy();
-    expect(screen.getByText("Shape cabinet")).toBeTruthy();
+    expect(screen.getAllByText("Shape cabinet").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Tier")).toBeTruthy();
+  });
+
+  it("locks Studio publish until the cabinet and capsule are loaded, then preserves the publish payload", async () => {
+    const dispatch = vi.fn(async (name: string) => name === "publishMachine");
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ studioOpen: true })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const publish = screen.getByRole("button", {
+      name: "Create Machine",
+    }) as HTMLButtonElement;
+    expect(publish.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Machine Name"), {
+      target: { value: "Sunrise Capsule" },
+    });
+    expect(publish.disabled).toBe(true);
+    expect(screen.getByText("Add at least one named prize capsule with weight before publishing.")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Item Name"), {
+      target: { value: "Golden Ticket" },
+    });
+
+    expect(container.querySelector(".gasbox-studio-launch-pad.is-ready")).not.toBeNull();
+    expect(screen.getByText("Machine ready for wallet publish")).toBeTruthy();
+    expect(publish.disabled).toBe(false);
+
+    fireEvent.click(publish);
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("publishMachine", {
+        name: "Sunrise Capsule",
+        price: "0",
+        prizeAsset: "GAS",
+        items: [
+          {
+            name: "Golden Ticket",
+            weight: "50",
+            amount: "0.1",
+          },
+        ],
+      });
+    });
   });
 
   it("lets creators choose the prize asset with card radios and updates prize units", () => {
@@ -500,6 +567,8 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain("@keyframes gasbox-studio-token-glow");
     expect(css).toContain("@keyframes gasbox-studio-capsule-roll");
     expect(css).toContain("@keyframes gasbox-studio-item-scan");
+    expect(css).toContain("@keyframes gasbox-studio-launch-ready");
+    expect(css).toContain(".gasbox-studio-launch-pad");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".gasbox-result-theater__capsule");
     expect(css).toContain(".gasbox-studio-odds-token__capsule");

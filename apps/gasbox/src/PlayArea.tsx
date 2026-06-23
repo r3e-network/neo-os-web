@@ -421,11 +421,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         : t("studioAmountUnset"),
     };
   });
+  const studioHasMachineName = machineName.trim().length > 0;
+  const studioHasPublishablePrize = studioPrizePreview.some(
+    ({ item, itemWeight }) => item.name.trim().length > 0 && itemWeight > 0,
+  );
   const studioReadyToPublish =
-    machineName.trim().length > 0 &&
-    studioPrizePreview.some(
-      ({ item, itemWeight }) => item.name.trim().length > 0 && itemWeight > 0,
-    );
+    studioHasMachineName && studioHasPublishablePrize;
+  const studioLaunchCopy = !studioHasMachineName
+    ? t("studioLaunchNeedsMachine")
+    : !studioHasPublishablePrize
+      ? t("studioLaunchNeedsPrize")
+      : t("studioLaunchReadyCopy");
 
   const resetStudioForm = () => {
     setMachineName("");
@@ -1033,16 +1039,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p className="gasbox-studio-error" role="alert">{studioError}</p>
           )}
 
-          <NeoButton
-            variant="primary"
-            size="lg"
-            block
-            loading={isCreating}
-            disabled={isCreating}
-            onClick={handlePublishMachine}
+          <div
+            className={`gasbox-studio-launch-pad${studioReadyToPublish ? " is-ready" : ""}`}
+            aria-label={t("studioLaunchPadLabel")}
           >
-            {isCreating ? t("publishing") : t("createMachineAction")}
-          </NeoButton>
+            <picture className="gasbox-studio-launch-pad__machine" aria-hidden="true">
+              <source srcSet="logo.avif" type="image/avif" />
+              <source srcSet="logo.webp" type="image/webp" />
+              <img src="logo.jpg" alt="" loading="eager" decoding="sync" />
+            </picture>
+            <div className="gasbox-studio-launch-pad__copy">
+              <span>{t("studioLaunchPadLabel")}</span>
+              <strong>
+                {studioReadyToPublish
+                  ? t("studioLaunchReadyTitle")
+                  : t("studioLaunchDraftTitle")}
+              </strong>
+              <p>{studioLaunchCopy}</p>
+              <div className="gasbox-studio-launch-pad__signals">
+                <span className={studioHasMachineName ? "is-ready" : ""}>
+                  <Bot aria-hidden="true" />
+                  {t("studioFlowMachine")}
+                </span>
+                <span className={studioHasPublishablePrize ? "is-ready" : ""}>
+                  <Gift aria-hidden="true" />
+                  {t("studioFlowPrizes")}
+                </span>
+                <span className={studioReadyToPublish ? "is-ready" : ""}>
+                  <ShieldCheck aria-hidden="true" />
+                  {t("studioFlowPublish")}
+                </span>
+              </div>
+            </div>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              loading={isCreating}
+              disabled={isCreating || !studioReadyToPublish}
+              onClick={handlePublishMachine}
+            >
+              {isCreating ? t("publishing") : t("createMachineAction")}
+            </NeoButton>
+          </div>
         </NeoCard>
       )}
 
