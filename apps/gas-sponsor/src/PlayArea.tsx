@@ -61,6 +61,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canSend = bool("canSend");
   const tankLevelDisplay = str("tankLevelDisplay", "0%");
   const poolAddress = str("poolAddress");
+  const refillState = !serviceAvailable
+    ? "offline"
+    : !isConnected
+      ? "wallet"
+      : !isEligible || remainingQuota <= 0
+        ? "blocked"
+        : isRequesting
+          ? "requesting"
+          : "ready";
 
   // Track "touched" from real user interaction — never infer it from a
   // pre-filled default value (which would open the form already showing an
@@ -123,7 +132,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      <section className="gas-command-deck" aria-label={t("requestGas")}>
+      <section
+        className={`gas-command-deck gas-command-deck--${refillState}`}
+        aria-label={t("requestGas")}
+      >
+        <div className="gas-refill-pipeline" aria-hidden="true">
+          <span className="gas-refill-pipeline__track" />
+          <span className="gas-refill-pipeline__packet gas-refill-pipeline__packet--one" />
+          <span className="gas-refill-pipeline__packet gas-refill-pipeline__packet--two" />
+          <span className="gas-refill-pipeline__packet gas-refill-pipeline__packet--three" />
+        </div>
         <div className="gas-tank-panel">
           <GasTank
             fuelLevelPercent={fuelLevelPercent}
