@@ -1,10 +1,21 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../neo-multisig/src/PlayArea";
-import type { RequestView, VaultView } from "../../neo-multisig/src/utils/vault";
+import type {
+  RequestView,
+  VaultView,
+} from "../../neo-multisig/src/utils/vault";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -52,7 +63,8 @@ function t(key: string, params?: Record<string, string | number>) {
       "Amount exceeds the vault balance ({balance} {asset} available).",
     multisigInvalidSignerAddress: "Each signer must be a valid Neo N3 address.",
     multisigMemoDetails: "Signer note / memo",
-    multisigNeedSigners: "Add at least two signer addresses before creating a vault.",
+    multisigNeedSigners:
+      "Add at least two signer addresses before creating a vault.",
     multisigNetworkValue: "Neo N3",
     multisigNeoAssetHint: "Whole-token custody",
     multisigProposeCopy: "Create a spend request from the vault.",
@@ -78,7 +90,8 @@ function t(key: string, params?: Record<string, string | number>) {
     multisigStepCreate: "Step 1",
     multisigStepDeposit: "Step 2",
     multisigStepPropose: "Step 3",
-    multisigThresholdBlocked: "Threshold cannot be greater than the number of signers.",
+    multisigThresholdBlocked:
+      "Threshold cannot be greater than the number of signers.",
     multisigTooManySigners: "A vault supports at most 16 signer addresses.",
     multisigUnfundedNotice:
       "Auto-cancelled at threshold: the vault was underfunded (needed {required} {asset}, held {available}). Deposit again, then propose a new request.",
@@ -178,13 +191,33 @@ describe("Neo Multisig PlayArea", () => {
 
     render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
 
-    // Below the 2-signer minimum, creation is blocked.
+    expect(document.querySelector(".multisig-route-stage--draft")).toBeTruthy();
     expect(
-      screen.getByText("Add at least two signer addresses before creating a vault."),
+      document.querySelector(
+        '.multisig-route-stage__image[src="./multisig-vault-stage.jpg"]',
+      ),
     ).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Create Vault" }) as HTMLButtonElement)
-        .disabled,
+      document.querySelector(
+        '.multisig-route-stage__proposal img[src="./multisig-proposal-card.jpg"]',
+      ),
+    ).toBeTruthy();
+    expect(
+      document.querySelectorAll(".multisig-route-stage__node"),
+    ).toHaveLength(4);
+
+    // Below the 2-signer minimum, creation is blocked.
+    expect(
+      screen.getByText(
+        "Add at least two signer addresses before creating a vault.",
+      ),
+    ).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Create Vault",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
 
     const signerFields = screen.getAllByLabelText(/Signer Address/);
@@ -217,8 +250,11 @@ describe("Neo Multisig PlayArea", () => {
       screen.getByText("Each signer must be a valid Neo N3 address."),
     ).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Create Vault" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: "Create Vault",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 
@@ -228,7 +264,10 @@ describe("Neo Multisig PlayArea", () => {
     render(
       <PlayArea
         t={t}
-        state={baseState({ activeVault: vault({ neoBalance: 3 }), vaultCount: 1 })}
+        state={baseState({
+          activeVault: vault({ neoBalance: 3 }),
+          vaultCount: 1,
+        })}
         dispatch={dispatch}
       />,
     );
@@ -238,12 +277,14 @@ describe("Neo Multisig PlayArea", () => {
     expect(
       document.querySelector(".multisig-signer-panel")?.textContent,
     ).toContain("1");
+    expect(
+      document.querySelector(".multisig-route-stage--funding"),
+    ).toBeTruthy();
 
     // Deposit
-    fireEvent.change(
-      screen.getAllByLabelText("Amount")[0],
-      { target: { value: "2" } },
-    );
+    fireEvent.change(screen.getAllByLabelText("Amount")[0], {
+      target: { value: "2" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("deposit", {
@@ -298,13 +339,14 @@ describe("Neo Multisig PlayArea", () => {
     });
 
     expect(
-      screen.getByText(
-        "Amount exceeds the vault balance (1 GAS available).",
-      ),
+      screen.getByText("Amount exceeds the vault balance (1 GAS available)."),
     ).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Propose Spend" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: "Propose Spend",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
 
     // Lowering the amount within balance clears the block and re-enables propose.
@@ -312,13 +354,14 @@ describe("Neo Multisig PlayArea", () => {
       target: { value: "0.5" },
     });
     expect(
-      screen.queryByText(
-        "Amount exceeds the vault balance (1 GAS available).",
-      ),
+      screen.queryByText("Amount exceeds the vault balance (1 GAS available)."),
     ).toBeNull();
     expect(
-      (screen.getByRole("button", { name: "Propose Spend" }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole("button", {
+          name: "Propose Spend",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(false);
   });
 
@@ -352,6 +395,9 @@ describe("Neo Multisig PlayArea", () => {
     expect(
       document.querySelector(".multisig-request-details")?.textContent,
     ).toContain("1 / 2");
+    expect(
+      document.querySelector(".multisig-route-stage--approving"),
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() =>
@@ -471,5 +517,17 @@ describe("Neo Multisig PlayArea", () => {
     );
 
     expect(screen.queryByText(/Auto-cancelled at threshold/)).toBeNull();
+  });
+
+  it("keeps the route stage animated with a reduced-motion fallback", () => {
+    const stylesheet = readFileSync(
+      resolve(process.cwd(), "../neo-multisig/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(stylesheet).toContain("@keyframes multisig-route-packet");
+    expect(stylesheet).toContain("@keyframes multisig-proposal-card-float");
+    expect(stylesheet).toContain(".multisig-route-stage__packet");
+    expect(stylesheet).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
