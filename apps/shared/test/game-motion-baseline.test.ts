@@ -44,12 +44,12 @@ describe("Game miniapp motion baseline", () => {
         : [];
       const checks = [
         {
-          ok: (playAreaScss.match(/@keyframes/g) ?? []).length >= 3,
-          reason: "needs at least three named keyframe sequences",
+          ok: (playAreaScss.match(/@keyframes/g) ?? []).length >= 8,
+          reason: "needs at least eight named keyframe sequences",
         },
         {
-          ok: /animation:/.test(playAreaScss),
-          reason: "needs active animation rules",
+          ok: (playAreaScss.match(/animation:/g) ?? []).length >= 8,
+          reason: "needs at least eight active animation rules",
         },
         {
           ok: /prefers-reduced-motion:\s*reduce/.test(playAreaScss),
