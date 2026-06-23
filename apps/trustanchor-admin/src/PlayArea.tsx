@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { TrustAnchorStats } from "../../trustanchor/src/hooks/useTrustAnchor";
@@ -162,62 +163,62 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { label: t("trackedNeo"), value: totalNeoDisplay },
     { label: t("reserve"), value: reserveDisplay },
   ];
+  const heroRouteSteps = [
+    { label: t("moveNeo"), ready: canMove },
+    { label: t("setCandidate"), ready: canUpdateCandidate },
+    { label: t("syncVote"), ready: canSyncVote },
+  ];
 
   return (
     <div className="anchor-admin-playarea anchor-admin-playarea--trust">
       <div className="anchor-admin-shell">
         <main className="anchor-admin-main">
-          <section className="anchor-admin-hero">
-            <div className="anchor-admin-hero-top">
-              <span className="anchor-admin-hero-badge">
-                {/* Gradient-tile shield badge: adopts sibling profitanchor-admin's
-                    filled CategoryIcon convention (rounded green gradient tile +
-                    white glyph) while keeping TrustAnchor's distinct shield mark. */}
-                <svg
-                  width="40"
-                  height="40"
-                  viewBox="0 0 48 48"
-                  fill="none"
-                  role="img"
-                  aria-label={t("appName")}
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <title>{t("appName")}</title>
-                  <defs>
-                    <linearGradient id="ta-admin-badge" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#4BE2A6" />
-                      <stop offset="1" stopColor="#16C784" />
-                    </linearGradient>
-                    <radialGradient id="ta-admin-sheen" cx="0.3" cy="0.22" r="0.7">
-                      <stop stopColor="#FFFFFF" stopOpacity="0.45" />
-                      <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
-                    </radialGradient>
-                  </defs>
-                  <rect x="4" y="4" width="40" height="40" rx="13" fill="url(#ta-admin-badge)" />
-                  <rect x="4" y="4" width="40" height="40" rx="13" fill="url(#ta-admin-sheen)" />
-                  <rect x="4.75" y="4.75" width="38.5" height="38.5" rx="12.25" stroke="#FFFFFF" strokeOpacity="0.25" strokeWidth="1.5" />
-                  <path d="M24 13l8 3.4v5.6c0 4.8-3.3 8.6-8 10.3-4.7-1.7-8-5.5-8-10.3V16.4L24 13Z" fill="#FFFFFF" fillOpacity="0.18" />
-                  <path d="M24 13l8 3.4v5.6c0 4.8-3.3 8.6-8 10.3-4.7-1.7-8-5.5-8-10.3V16.4L24 13Z" stroke="#FFFFFF" strokeWidth="2.4" strokeLinejoin="round" fill="none" />
-                  <path d="M20.5 23.5l2.6 2.6 4.8-5.2" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-              </span>
-              <div className="anchor-admin-hero-copy">
-                <span className="anchor-admin-kicker">{t("appName")}</span>
-                <h2>{t("adminHeroTitle")}</h2>
-                <p>{t("adminHeroSubtitle")}</p>
-              </div>
-            </div>
-            <div className="anchor-admin-hero-stats">
-              {routeItems.map((item) => (
-                <div key={item.label} className="anchor-admin-hero-stat">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
+          <section className="anchor-admin-hero anchor-admin-hero--staged">
+            <div className="anchor-admin-hero-panel">
+              <div className="anchor-admin-hero-top">
+                <span className="anchor-admin-hero-badge">
+                  <CategoryIcon name="governance" size={40} title={t("appName")} />
+                </span>
+                <div className="anchor-admin-hero-copy">
+                  <span className="anchor-admin-kicker">{t("appName")}</span>
+                  <h2>{t("adminHeroTitle")}</h2>
+                  <p>{t("adminHeroSubtitle")}</p>
                 </div>
-              ))}
+              </div>
+              <div className="anchor-admin-hero-stats">
+                {routeItems.map((item) => (
+                  <div key={item.label} className="anchor-admin-hero-stat">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+              {!agentsLive && (
+                <p className="anchor-admin-hero-caption">{t("statsAwaitConnect")}</p>
+              )}
             </div>
-            {!agentsLive && (
-              <p className="anchor-admin-hero-caption">{t("statsAwaitConnect")}</p>
-            )}
+
+            <figure className="anchor-admin-route-stage" aria-label={t("routeMapTitle")}>
+              <picture aria-hidden="true">
+                <source srcSet="./banner.avif" type="image/avif" />
+                <source srcSet="./banner.webp" type="image/webp" />
+                <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
+              </picture>
+              <figcaption>
+                <span>{t("routeMapTitle")}</span>
+                <strong>{selectedAgent}</strong>
+                <small>{totalNeoDisplay} · {reserveDisplay}</small>
+              </figcaption>
+              <ol className="anchor-admin-route-steps">
+                {heroRouteSteps.map((step, index) => (
+                  <li key={step.label} className={step.ready ? "is-ready" : undefined}>
+                    <span>{index + 1}</span>
+                    <strong>{step.label}</strong>
+                  </li>
+                ))}
+              </ol>
+              <div className="anchor-admin-route-beam" aria-hidden="true" />
+            </figure>
           </section>
 
           {isDenied && (
