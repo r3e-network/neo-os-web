@@ -64,8 +64,10 @@ function t(key: string, params?: Record<string, string | number>) {
     safetyPanelCopy: "Claims and creates go through guarded OS services.",
     safetyPanelTitle: "Transaction safety",
     sendRedEnvelope: "Send Red Envelope",
+    sendingRedEnvelope: "Sending packets...",
     shareReadyTitle: "OneGate share-ready",
     totalGas: "Total GAS",
+    opening: "Opening...",
     ...Object.fromEntries(
       Object.entries(params ?? {}).map(([paramKey, paramValue]) => [
         paramKey,
@@ -154,7 +156,12 @@ describe("Red Envelope PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Claim now" }));
     expect(container.querySelector(".redenv-envelope-preview--opening")).toBeTruthy();
+    expect(container.querySelector(".redenv-action-burst.is-opening")).toBeTruthy();
+    expect(container.querySelectorAll(".redenv-action-burst__spark").length).toBe(4);
+    expect(container.querySelector(".redenv-ticket-route--opening")).toBeTruthy();
     expect(container.querySelector(".redenv-open-button")?.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector(".redenv-submit-status")?.textContent).toBe("Opening...");
+    expect(screen.getByRole("button", { name: "Opening..." })).toBeTruthy();
 
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("claimEnvelope", {
@@ -193,6 +200,7 @@ describe("Red Envelope PlayArea", () => {
     expect(container.querySelectorAll(".redenv-gift-machine__reel").length).toBe(3);
     expect(container.querySelector(".redenv-gift-machine--ready")).toBeNull();
     expect(container.querySelector(".redenv-send-button")).toBeTruthy();
+    expect(container.querySelectorAll(".redenv-gift-machine__launch-trail img").length).toBe(5);
     expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
     expect(document.querySelectorAll(".redenv-machine-dial").length).toBe(3);
     expect(document.querySelector(".redenv-envelope-dials .neo-input")).toBeNull();
@@ -220,7 +228,10 @@ describe("Red Envelope PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Send Red Envelope" }));
     expect(container.querySelector(".redenv-gift-machine--sending")).toBeTruthy();
+    expect(container.querySelector(".redenv-action-burst.is-sending")).toBeTruthy();
     expect(container.querySelector(".redenv-send-button")?.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector(".redenv-submit-status")?.textContent).toBe("Sending packets...");
+    expect(screen.getByRole("button", { name: "Sending packets..." })).toBeTruthy();
 
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("createEnvelope", {
@@ -260,10 +271,23 @@ describe("Red Envelope PlayArea", () => {
 
     expect(styles).toMatch(/@keyframes redenv-machine-sweep/);
     expect(styles).toMatch(/@keyframes redenv-machine-seal-send/);
+    expect(styles).toMatch(/@keyframes redenv-machine-launch-packet/);
+    expect(styles).toMatch(/@keyframes redenv-action-burst/);
+    expect(styles).toMatch(/@keyframes redenv-action-send-burst/);
+    expect(styles).toMatch(/@keyframes redenv-packet-open/);
+    expect(styles).toMatch(/@keyframes redenv-route-step/);
+    expect(styles).toMatch(/@keyframes redenv-status-pulse/);
     expect(styles).toMatch(/@keyframes redenv-machine-packet-ready/);
     expect(styles).toMatch(/@keyframes redenv-dial-glow/);
     expect(styles).toMatch(/\.redenv-gift-machine--sending \.redenv-gift-machine__chute span\s*\{[\s\S]*animation-name:\s*redenv-machine-packet-send/);
+    expect(styles).toMatch(/\.redenv-gift-machine--sending \.redenv-gift-machine__launch-trail span\s*\{[\s\S]*animation:\s*redenv-machine-launch-packet/);
+    expect(styles).toMatch(/\.redenv-envelope-preview--opening \.redenv-envelope-preview__packet\s*\{[\s\S]*animation-name:\s*redenv-packet-open/);
+    expect(styles).toMatch(/\.redenv-ticket-route--opening \.redenv-ticket-route__step\s*\{[\s\S]*animation:\s*redenv-route-step/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-gift-machine__chute span/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-gift-machine__launch-trail span/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-action-burst__spark/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-action-status/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-submit-status/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-machine-dial__track span/);
   });
 });

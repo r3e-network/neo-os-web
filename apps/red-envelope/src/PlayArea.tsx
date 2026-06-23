@@ -329,6 +329,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
   const claimIsOpening = Boolean(openingId) || claimActionPreview;
   const createIsSending = isLoading || createActionPreview;
+  const claimPreviewIsOpening = activeTab === "claim" && claimIsOpening;
+  const createPreviewIsSending = activeTab === "create" && createIsSending;
+  const previewActionStatus = claimPreviewIsOpening
+    ? t("opening")
+    : createPreviewIsSending
+      ? t("sendingRedEnvelope")
+      : "";
 
   const claimSelectedEnvelope = () => {
     if (!selectedEnvelopeId.trim() || claimIsOpening) return;
@@ -488,7 +495,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               className={[
                 "redenv-envelope-preview",
                 `redenv-envelope-preview--${activeTab}`,
-                claimIsOpening && "redenv-envelope-preview--opening",
+                claimPreviewIsOpening && "redenv-envelope-preview--opening",
                 luckyMessage && "redenv-envelope-preview--lucky",
               ]
                 .filter(Boolean)
@@ -508,6 +515,31 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   ))}
                 </div>
               </div>
+              <div
+                className={[
+                  "redenv-action-burst",
+                  claimPreviewIsOpening && "is-opening",
+                  createPreviewIsSending && "is-sending",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-hidden="true"
+              >
+                {[
+                  { key: "one", Icon: PackageOpen },
+                  { key: "two", Icon: Coins },
+                  { key: "three", Icon: Sparkles },
+                  { key: "four", Icon: Coins },
+                ].map(({ key, Icon }, index) => (
+                  <span
+                    key={key}
+                    className={`redenv-action-burst__spark redenv-action-burst__spark--${key}`}
+                    style={{ "--packet-index": index } as CSSProperties}
+                  >
+                    <Icon size={16} />
+                  </span>
+                ))}
+              </div>
               <div className="redenv-envelope-preview__seal" aria-hidden="true">
                 <Gift size={20} />
               </div>
@@ -524,6 +556,11 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                     {previewPacketLabel}
                   </small>
                 </div>
+                {previewActionStatus && (
+                  <em className="redenv-action-status" role="status">
+                    {previewActionStatus}
+                  </em>
+                )}
               </div>
             </section>
 
@@ -544,10 +581,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                           : t("claimTicketEmptyDesc")}
                     </small>
                   </div>
-                  <div className="redenv-ticket-route" aria-label={t("claimFlowTitle")}>
-                    <span>{t("claimRouteOne")}</span>
-                    <span>{t("claimRouteTwo")}</span>
-                    <span>{t("claimRouteThree")}</span>
+                  <div
+                    className={`redenv-ticket-route${claimIsOpening ? " redenv-ticket-route--opening" : ""}`}
+                    aria-label={t("claimFlowTitle")}
+                  >
+                    <span className="redenv-ticket-route__step">{t("claimRouteOne")}</span>
+                    <span className="redenv-ticket-route__step">{t("claimRouteTwo")}</span>
+                    <span className="redenv-ticket-route__step">{t("claimRouteThree")}</span>
                   </div>
                 </section>
                 {targetEnvelope && (
@@ -579,15 +619,21 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                     ? t("claimOperationDesc")
                     : t("claimNeedIdDesc")}
                 </p>
+                {claimIsOpening && (
+                  <p className="redenv-submit-status" aria-live="polite">
+                    {t("opening")}
+                  </p>
+                )}
                 <NeoButton
                   variant="primary"
                   className="redenv-open-button"
+                  aria-label={claimIsOpening ? t("opening") : t("claimNow")}
                   loading={claimIsOpening}
                   disabled={isLoading || claimIsOpening || !selectedEnvelopeId.trim()}
                   onClick={claimSelectedEnvelope}
                 >
                   <PackageOpen size={16} />
-                  {t("claimNow")}
+                  {claimIsOpening ? t("opening") : t("claimNow")}
                 </NeoButton>
               </div>
             ) : (
@@ -622,6 +668,16 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                             key={index}
                             style={{ "--packet-index": index } as CSSProperties}
                           />
+                        ))}
+                      </div>
+                      <div className="redenv-gift-machine__launch-trail" aria-hidden="true">
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <span
+                            key={index}
+                            style={{ "--packet-index": index } as CSSProperties}
+                          >
+                            <img src="./red-envelope-claim-card.jpg" alt="" />
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -754,15 +810,21 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 ) : (
                   <p className="redenv-helper">{t("createReadyDesc")}</p>
                 )}
+                {createIsSending && (
+                  <p className="redenv-submit-status" aria-live="polite">
+                    {t("sendingRedEnvelope")}
+                  </p>
+                )}
                 <NeoButton
                   variant="primary"
                   className="redenv-send-button"
+                  aria-label={createIsSending ? t("sendingRedEnvelope") : t("sendRedEnvelope")}
                   loading={createIsSending}
                   disabled={createIsSending || !canCreateEnvelope}
                   onClick={createEnvelope}
                 >
                   <Send size={16} />
-                  {t("sendRedEnvelope")}
+                  {createIsSending ? t("sendingRedEnvelope") : t("sendRedEnvelope")}
                 </NeoButton>
 
                 {/* Post-create share affordance — the OneGate-QR distribution
