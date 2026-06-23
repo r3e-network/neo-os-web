@@ -153,6 +153,33 @@ export default function WagerControls({
           </span>
         </div>
 
+        <div className="wager-fog-field" aria-hidden="true">
+          <span className="wager-fog-field__mist wager-fog-field__mist--one" />
+          <span className="wager-fog-field__mist wager-fog-field__mist--two" />
+          <span className="wager-fog-field__orbit" />
+          <span className="wager-fog-field__coin wager-fog-field__coin--selected">
+            <img
+              src={selectedCoinArt}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          </span>
+          <span className="wager-fog-field__coin wager-fog-field__coin--shadow">
+            <img
+              src={sideArt[choice === "heads" ? "tails" : "heads"]}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          </span>
+          <span className="wager-fog-field__spark wager-fog-field__spark--one" />
+          <span className="wager-fog-field__spark wager-fog-field__spark--two" />
+          <span className="wager-fog-field__spark wager-fog-field__spark--three" />
+        </div>
+
         <div className="panel-step panel-step--choice">
           <span className="step-label">{`${t("heads")} / ${t("tails")}`}</span>
           <div className="choice-grid">
