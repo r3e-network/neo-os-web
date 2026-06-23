@@ -104,6 +104,36 @@ describe("Dice Game PlayArea", () => {
     });
   });
 
+  it("turns a roll click into immediate dice motion instead of a static submit", async () => {
+    let resolveRoll: (() => void) | undefined;
+    const dispatch = vi.fn((name: string) => {
+      if (name === "placeDiceBet") {
+        return new Promise<void>((resolve) => {
+          resolveRoll = resolve;
+        });
+      }
+      return Promise.resolve();
+    });
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll with VRF" }));
+
+    expect(dispatch).toHaveBeenCalledWith("placeDiceBet", {
+      chosenNumber: "6",
+      amount: "0.1",
+    });
+    await waitFor(() => {
+      expect(container.querySelector(".dice-game-form")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".dice-stage")?.getAttribute("data-state")).toBe("rolling");
+      expect(container.querySelector(".dice-stage__visual--rolling")).toBeTruthy();
+      expect(container.querySelectorAll(".dice-stage__trail-die").length).toBe(3);
+      expect(container.querySelector(".dice-roll-button--rolling")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".dice-play-loop.is-ready.is-rolling")).toBeTruthy();
+    });
+
+    resolveRoll?.();
+  });
+
   it("blocks out-of-range stakes before dispatch", async () => {
     const dispatch = vi.fn(async () => undefined);
 
