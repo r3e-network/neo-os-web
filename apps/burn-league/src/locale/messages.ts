@@ -100,6 +100,7 @@ const appMessages = {
     zh: "未完成的燃烧所剩的 GAS。下次燃烧会复用，也可立即提取。",
   },
   withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
+  withdrawingCredit: { en: "Withdrawing...", zh: "提取中..." },
   creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
   noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
   settleBeforeBurn: {
