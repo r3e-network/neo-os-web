@@ -1,0 +1,210 @@
+{
+  "url": "http://127.0.0.1:3026/miniapps/recovery-guardian?network=testnet",
+  "checkedAt": "2026-06-01T19:18:02.913Z",
+  "pageErrors": [],
+  "consoleErrors": [],
+  "controls": [
+    {
+      "tag": "INPUT",
+      "type": "search",
+      "id": "navbar-search",
+      "name": "q",
+      "aria": "Search",
+      "text": "Search",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": "Notifications",
+      "text": "",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": "Switch Language",
+      "text": "EN",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": "Log In / Sign Up",
+      "text": "Log In / Sign Up",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": "Toggle navigation menu",
+      "text": "",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": "Go back",
+      "text": "",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": null,
+      "text": "Refresh",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "tab-overview",
+      "name": null,
+      "aria": null,
+      "text": "Overview",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "tab-reviews",
+      "name": null,
+      "aria": null,
+      "text": "Reviews",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "tab-forum",
+      "name": null,
+      "aria": null,
+      "text": "Forum",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "tab-news",
+      "name": null,
+      "aria": null,
+      "text": "News",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "tab-secrets",
+      "name": null,
+      "aria": null,
+      "text": "Secrets",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": null,
+      "text": "Request Recovery Ticket",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": null,
+      "text": "",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": null,
+      "text": "",
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "operation-panel-r2-accountid",
+      "name": null,
+      "aria": null,
+      "text": "0x... or N...",
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "operation-panel-r2-newowner",
+      "name": null,
+      "aria": null,
+      "text": "$wallet",
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "id": "operation-panel-r2-expiryminutes",
+      "name": null,
+      "aria": null,
+      "text": "30",
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "operation-panel-r2-provider",
+      "name": null,
+      "aria": null,
+      "text": "web3auth",
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "operation-panel-r2-encryptedparams",
+      "name": null,
+      "aria": null,
+      "text": "{}",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": null,
+      "text": "Request Recovery Ticket",
+      "disabled": true
+    },
+    {
+      "tag": "BUTTON",
+      "type": "button",
+      "id": "",
+      "name": null,
+      "aria": null,
+      "text": "Action ConsoleRequest Recovery TicketOpen",
+      "disabled": false
+    }
+  ],
+  "textSample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nRecovery Guardian\nUtility\nBeta\nCONTRACT\nRecovery guardian console\n\nReview AA guardian policy, recovery ticket state, timelock, and final execution readiness.\n\nRecovery Guardian\nNew window\n\nLoading Recovery Guardian\n\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nOperator surface for AA guardian policy, recovery ticket flow, timelock review, and final recovery execution.\n\nAPP ID:\nminiapp-recovery-guardian\nRUNTIME:\nIntegrated dApp runtime\nCONTRACT:\n0x198b3a9cec9bccc2110d19bd929b10374a9d034d\nDOMAIN:\nNot configured for this network\n\nEvents, notifications, and actions on this page are scoped to Neo N3 Testnet. Testnet and mainnet records are queried separately.\n\nActivity and notices\nLive\nNo verified activity yet.\nNOTICES\nNo notices published for this MiniApp.\nOverview\nReviews\nForum\nNews\nSecrets\nPermissions\nConfidential\nOracle\nCompute\nAa\n\nACTION CONSOLE\n\nRecovery Guardian Operations\nWallet Required\n\nRead SocialRecoveryVerifier state and submit recovery wallet transactions from the connected wallet.\n\nRequest Recovery Ticket\nADVANCED / OPERATOR\n\nAsk the SocialRecoveryVerifier to create a Morpheus NeoDID recovery ticket for this AA account.\n\nAA account ID or address\nEdit\nNew owner\nTicket expiry minutes\nProvider\nEncrypted params\nConnect wallet before sending transactions.\nRequest Recovery Ticket\nOneGate QR\n\nNeo N3 Testnet\n\nminiapp-recovery-guardian\n\nOpen link\nConnect wallet from the top navigation to submit on-chain transactions.\n\nTarget: Neo N3 Testnet\n\nWallet: Not verified\n\nTechnical details",
+  "screenshots": {
+    "loaded": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/recovery-guardian-current/loaded.png"
+  }
+}

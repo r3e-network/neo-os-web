@@ -1,0 +1,281 @@
+{
+  "url": "http://127.0.0.1:61867/miniapps/soulbound-certificate/index.html?network=testnet",
+  "passed": true,
+  "missingOps": [],
+  "missingReads": [],
+  "invocations": [
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "createTemplate",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "String",
+          "value": "Neo Course Completion"
+        },
+        {
+          "type": "String",
+          "value": "Neo Academy"
+        },
+        {
+          "type": "String",
+          "value": "Course"
+        },
+        {
+          "type": "Integer",
+          "value": "1000"
+        },
+        {
+          "type": "String",
+          "value": "Issued to graduates who completed the Neo builder track."
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "issueCertificate",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Integer",
+          "value": "7"
+        },
+        {
+          "type": "String",
+          "value": "Alex Chen"
+        },
+        {
+          "type": "String",
+          "value": "Advanced track"
+        },
+        {
+          "type": "String",
+          "value": "Cohort 1"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "setTemplateActive",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Integer",
+          "value": "7"
+        },
+        {
+          "type": "Boolean",
+          "value": false
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "revokeCertificate",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "ByteArray",
+          "value": "0x0700000000000001"
+        }
+      ]
+    }
+  ],
+  "calls": [
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getIssuerTemplates",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Integer",
+          "value": "0"
+        },
+        {
+          "type": "Integer",
+          "value": "20"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getTemplateDetails",
+      "args": [
+        {
+          "type": "Integer",
+          "value": "7"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getIssuerTemplates",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Integer",
+          "value": "0"
+        },
+        {
+          "type": "Integer",
+          "value": "20"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getTemplateDetails",
+      "args": [
+        {
+          "type": "Integer",
+          "value": "7"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getCertificateDetails",
+      "args": [
+        {
+          "type": "ByteArray",
+          "value": "0x0700000000000001"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getIssuerTemplates",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Integer",
+          "value": "0"
+        },
+        {
+          "type": "Integer",
+          "value": "20"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getTemplateDetails",
+      "args": [
+        {
+          "type": "Integer",
+          "value": "7"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getIssuerTemplates",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Integer",
+          "value": "0"
+        },
+        {
+          "type": "Integer",
+          "value": "20"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getTemplateDetails",
+      "args": [
+        {
+          "type": "Integer",
+          "value": "7"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getCertificateDetails",
+      "args": [
+        {
+          "type": "ByteArray",
+          "value": "0x0700000000000001"
+        }
+      ]
+    },
+    {
+      "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "operation": "getCertificateDetails",
+      "args": [
+        {
+          "type": "ByteArray",
+          "value": "0x0700000000000001"
+        }
+      ]
+    }
+  ],
+  "eventRequests": [
+    {
+      "eventName": "TemplateCreated",
+      "txHash": "0x63726561746554656d706c6174653a3100000000000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b/events?event_name=TemplateCreated&limit=1&tx_hash=0x63726561746554656d706c6174653a3100000000000000000000000000000000"
+    },
+    {
+      "eventName": "CertificateIssued",
+      "txHash": "0x697373756543657274696669636174653a320000000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b/events?event_name=CertificateIssued&limit=1&tx_hash=0x697373756543657274696669636174653a320000000000000000000000000000"
+    },
+    {
+      "eventName": "TemplateUpdated",
+      "txHash": "0x73657454656d706c6174654163746976653a3300000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b/events?event_name=TemplateUpdated&limit=1&tx_hash=0x73657454656d706c6174654163746976653a3300000000000000000000000000"
+    },
+    {
+      "eventName": "CertificateRevoked",
+      "txHash": "0x7265766f6b6543657274696669636174653a3400000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b/events?event_name=CertificateRevoked&limit=1&tx_hash=0x7265766f6b6543657274696669636174653a3400000000000000000000000000"
+    }
+  ],
+  "consoleMessages": [],
+  "blockingConsole": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "stepErrors": [],
+  "textGuards": {
+    "rawI18nKeysAbsent": true,
+    "legacyFakeModalAbsent": true,
+    "contractConfigured": true,
+    "noOsStorageErrorVisible": true,
+    "connectedTemplateVisible": true,
+    "verifiedCertificateVisible": true,
+    "revokeStatusVisible": true
+  },
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/soulbound-certificate-browser-after/soulbound-certificate-browser-after.png"
+}

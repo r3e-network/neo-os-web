@@ -1,0 +1,63 @@
+{
+  "standalone": {
+    "recipient": "NtestRecipient111111111111111111111111111",
+    "amount": "1.25",
+    "duration": "7",
+    "notes": "Payroll cycle",
+    "hasBneo": 0,
+    "gasClass": "neopay-token-option neopay-token-option--active",
+    "rawOsErrors": 0
+  },
+  "dialogs": [
+    {
+      "type": "confirm",
+      "message": "Create this shared-runtime payment stream on-chain?"
+    }
+  ],
+  "calls": [
+    {
+      "hash": "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+      "operation": "createStream",
+      "args": [
+        {
+          "type": "String",
+          "value": "neopay:testnet:default"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+        },
+        {
+          "type": "Hash160",
+          "value": "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+        },
+        {
+          "type": "Integer",
+          "value": "2000000000"
+        },
+        {
+          "type": "Integer",
+          "value": "150000000"
+        },
+        {
+          "type": "Integer",
+          "value": "2592000"
+        },
+        {
+          "type": "String",
+          "value": "Monthly payroll stream"
+        },
+        {
+          "type": "String",
+          "value": "Optional context"
+        }
+      ]
+    }
+  ],
+  "mobileOverflow": false,
+  "errors": []
+}

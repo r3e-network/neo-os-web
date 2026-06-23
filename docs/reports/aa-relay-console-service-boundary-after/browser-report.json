@@ -1,0 +1,28 @@
+{
+  "url": "http://127.0.0.1:3025/miniapps/aa-relay-console?network=testnet",
+  "checkedAt": "2026-06-01T19:14:24.935Z",
+  "action": "Filled AA Address in host Action Console and clicked Check Sponsorship.",
+  "aaAddress": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+  "expectedBoundary": "Sponsor Edge Function is not allowlisted in this local testnet environment, so the API returns HTTP 403.",
+  "friendlyMessage": "Sponsorship service is not enabled in this environment. Configure the AA sponsorship backend before checking sponsorship.",
+  "friendlyMessageVisible": true,
+  "friendlyMessageCount": 1,
+  "rawFunctionNotAllowedVisible": false,
+  "apiResponses": [
+    {
+      "url": "http://127.0.0.1:3025/api/rpc/gas-sponsor-check?aaAddress=NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu&dappId=miniapp-aa-relay-console&network=testnet",
+      "status": 403,
+      "body": "{\"error\":{\"code\":\"FORBIDDEN\",\"message\":\"function not allowed\"}}"
+    }
+  ],
+  "pageErrors": [],
+  "unexpectedConsoleErrors": [],
+  "expectedConsoleNoise": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+  ],
+  "textSample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Relay Console\nUtility\nBeta\nCONTRACT\nRelay payload console\n\nBuild relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.\n\nAA Relay Console\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACCOUNT ABSTRACTION\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nPrepare and validate sponsored account-abstraction relay packages before submission.\n\nAPP ID:\nminiapp-aa-relay-console\nRUNTIME:\nIntegrated dApp runtime\nCONTRACT:\n0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2\nDOMAIN:\nNot configured for this network\n\nEvents, notifications, and actions on this page are scoped to Neo N3 Testnet. Testnet and mainnet records are queried separately.\n\nActivity and notices\nLive\nNo verified activity yet.\nNOTICES\nNo notices published for this MiniApp.\nOverview\nReviews\n\nAA Relay Console keeps relay package preparation, sponsor checks, and smart wallet context in one guarded workspace.\n\nRuntime\nMainnet domain\ncore.smartwallet.neo\nMode\nRelay package preparation\nTransactions\nWallet guarded\nPermissions\nAa\n\nACTION CONSOLE\n\nAA Relay Console\nAPI Ready\n\nCheck sponsor coverage, request paymaster support, then submit a relay-ready AA payload.\n\nCheck Sponsorship\nRequest Sponsorship\nSubmit Relay Payload\n\nCheck whether this AA address is eligible for the selected paymaster scope.\n\nAA Address\nPaymaster dApp ID\nCheck Sponsorship\nOneGate QR\n\nNeo N3 Testnet\n\nminiapp-aa-relay-console\n\nOpen link\nThis action is handled by the platform API for Neo N3 Testnet. It checks sponsorship or submits the relay payload without opening a browser wallet prompt.\nSponsorship service is not enabled in this environment. Configure the AA sponsorship backend before checking sponsorship.\nTechnical details",
+  "screenshots": {
+    "loaded": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-relay-console-service-boundary-after/loaded.png",
+    "afterCheckSponsorship": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-relay-console-service-boundary-after/after-check-sponsorship.png"
+  }
+}

@@ -1,0 +1,271 @@
+{
+  "url": "http://127.0.0.1:3105/miniapps/gas-lucky-pool/index.html?network=testnet",
+  "passed": true,
+  "missingOps": [],
+  "missingReads": [],
+  "memoValues": [
+    "gas-lucky-pool:create:4",
+    "gas-lucky-pool:fund:42"
+  ],
+  "apiCalls": [
+    {
+      "endpoint": "claim",
+      "body": {
+        "claimKey": "ogv_browser_claim_001",
+        "address": "NQaLTWsHMK9Pz8BZf38dDkvN9tc8Lrk6jz",
+        "network": "testnet",
+        "appId": "miniapp-gas-lucky-pool"
+      }
+    }
+  ],
+  "invocations": [
+    {
+      "operation": "transfer",
+      "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        },
+        {
+          "type": "Hash160",
+          "value": "0xfa1b7240fead2a63999c02defa3aec5eb274a919"
+        },
+        {
+          "type": "Integer",
+          "value": "1200000000"
+        },
+        {
+          "type": "String",
+          "value": "gas-lucky-pool:create:4"
+        }
+      ]
+    },
+    {
+      "operation": "createRangeGasPool",
+      "hash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        },
+        {
+          "type": "Integer",
+          "value": "1200000000"
+        },
+        {
+          "type": "Integer",
+          "value": "100000000"
+        },
+        {
+          "type": "Integer",
+          "value": "500000000"
+        },
+        {
+          "type": "Integer",
+          "value": "4"
+        },
+        {
+          "type": "Integer",
+          "value": "86400"
+        }
+      ]
+    },
+    {
+      "operation": "transfer",
+      "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        },
+        {
+          "type": "Hash160",
+          "value": "0xfa1b7240fead2a63999c02defa3aec5eb274a919"
+        },
+        {
+          "type": "Integer",
+          "value": "250000000"
+        },
+        {
+          "type": "String",
+          "value": "gas-lucky-pool:fund:42"
+        }
+      ]
+    },
+    {
+      "operation": "fundRangeGasPool",
+      "hash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Integer",
+          "value": "42"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        },
+        {
+          "type": "Integer",
+          "value": "250000000"
+        }
+      ]
+    },
+    {
+      "operation": "refundRangeGasPool",
+      "hash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Integer",
+          "value": "42"
+        }
+      ]
+    },
+    {
+      "operation": "withdrawGasCredit",
+      "hash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        },
+        {
+          "type": "Integer",
+          "value": "150000000"
+        }
+      ]
+    }
+  ],
+  "calls": [
+    {
+      "operation": "getRangeGasPool",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Integer",
+          "value": "42"
+        }
+      ]
+    },
+    {
+      "operation": "getRangeGasPool",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Integer",
+          "value": "42"
+        }
+      ]
+    },
+    {
+      "operation": "getRangeGasPool",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Integer",
+          "value": "42"
+        }
+      ]
+    },
+    {
+      "operation": "getRangeGasPool",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-gas-lucky-pool"
+        },
+        {
+          "type": "Integer",
+          "value": "42"
+        }
+      ]
+    },
+    {
+      "operation": "getDirectGasCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        }
+      ]
+    },
+    {
+      "operation": "getDirectGasCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x00112233445566778899aabbccddeeff00112233"
+        }
+      ]
+    }
+  ],
+  "eventRequests": [
+    {
+      "eventName": "RangeGasPoolCreated",
+      "txHash": "",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=RangeGasPoolCreated&limit=10"
+    },
+    {
+      "eventName": "RangeGasPoolClaimed",
+      "txHash": "",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=RangeGasPoolClaimed&limit=12"
+    },
+    {
+      "eventName": "RangeGasPoolCreated",
+      "txHash": "0x63726561746552616e6765476173506f6f6c3a32000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=RangeGasPoolCreated&limit=1&tx_hash=0x63726561746552616e6765476173506f6f6c3a32000000000000000000000000"
+    },
+    {
+      "eventName": "RangeGasPoolCreated",
+      "txHash": "",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=RangeGasPoolCreated&limit=10"
+    },
+    {
+      "eventName": "RangeGasPoolFunded",
+      "txHash": "0x66756e6452616e6765476173506f6f6c3a340000000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=RangeGasPoolFunded&limit=1&tx_hash=0x66756e6452616e6765476173506f6f6c3a340000000000000000000000000000"
+    },
+    {
+      "eventName": "RangeGasPoolRefunded",
+      "txHash": "0x726566756e6452616e6765476173506f6f6c3a35000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=RangeGasPoolRefunded&limit=1&tx_hash=0x726566756e6452616e6765476173506f6f6c3a35000000000000000000000000"
+    },
+    {
+      "eventName": "GasCreditWithdrawn",
+      "txHash": "0x77697468647261774761734372656469743a3600000000000000000000000000",
+      "url": "https://api.n3index.dev/indexer/v1/networks/testnet/contracts/0xfa1b7240fead2a63999c02defa3aec5eb274a919/events?event_name=GasCreditWithdrawn&limit=1&tx_hash=0x77697468647261774761734372656469743a3600000000000000000000000000"
+    }
+  ],
+  "consoleMessages": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "textGuards": {
+    "rawI18nKeysAbsent": true,
+    "legacyPoolCopyAbsent": true,
+    "wrongLoadingCopyAbsent": true,
+    "contractConfigured": true,
+    "regularWorkspaceStayedVisibleAfterClaim": true
+  },
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/gas-lucky-pool-browser-after/gas-lucky-pool-browser-after.png"
+}

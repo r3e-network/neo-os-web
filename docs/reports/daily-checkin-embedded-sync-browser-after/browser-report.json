@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-06-01T18:57:44.377Z",
+  "pageUrl": "http://127.0.0.1:3023/miniapps/daily-checkin?network=testnet",
+  "appId": "miniapp-dailycheckin",
+  "network": "testnet",
+  "injectedBridgeResultTxid": "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4",
+  "before": {
+    "hasSyncedLabel": false,
+    "hasDuplicateSubmitGuard": false
+  },
+  "after": {
+    "hasSyncedLabel": true,
+    "hasDuplicateSubmitGuard": true,
+    "hasEmbeddedSubmittedFeedback": true,
+    "submitButtons": [
+      {
+        "text": "Check In",
+        "disabled": true,
+        "title": "Already submitted from the embedded workspace: 0x4b53a363...f0c7c7c4. Refresh after confirmation before submitting again."
+      }
+    ]
+  },
+  "pageErrors": [],
+  "consoleMessages": [],
+  "screenshots": {
+    "before": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/daily-checkin-embedded-sync-browser-after/before-sync.png",
+    "after": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/daily-checkin-embedded-sync-browser-after/after-sync.png"
+  }
+}

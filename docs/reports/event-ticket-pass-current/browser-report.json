@@ -1,0 +1,226 @@
+{
+  "url": "http://127.0.0.1:3027/miniapps/event-ticket-pass?network=testnet",
+  "checkedAt": "2026-06-01T19:31:42.480Z",
+  "results": [
+    {
+      "name": "desktop-current",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "iframeBox": null,
+      "iframeClass": null,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "loadingVisible": false,
+      "embedded": {
+        "textSample": "EVENT PASS\nEvent Ticket Pass\n\nOn-chain tickets with organizer check-in\n\nEvents\n0\nTickets\n0\nActive\n0\nCreate event\nIssue attendee ticket\nLookup and check in\nWallet\nWallet not connected\nService Status\nTickets loaded\nConnect Wallet\nCreate\nCreate Event\nEvent name\nVenue\nStart time\nEnd time\nMax tickets\nNotes (optional)\nCreate Event\nYour Events\nNo events yet\nRefresh\nCreate an event to open the organizer workflow: issue attendee tickets, pause sales, and check people in at the door.\nIssue Ticket\nSelect an event first\nEvent name\nSelect an event first\nRecipient address\nSeat / Zone\nMemo (optional)\nIssue\nCheck-in\nLookup\nTicket Token ID\nScan or paste a ticket token id to verify seat, owner, and usage before marking it used.\nLookup\nCheck-in\nMy Tickets\nNo tickets yet\nRefresh\nIssued attendee tickets appear here with token id, seat, and check-in state.\nLatest Request\nNo action submitted yet\nCreate an event, issue a ticket, or check in a token to inspect the exact OS service request.\nLatest Result\nNo action submitted yet\nThe latest OS service response or wallet intent will appear here.",
+        "hasCreate": true,
+        "hasIssue": true,
+        "hasCheckin": true,
+        "hasEvidence": true,
+        "bodyScrollHeight": 1747,
+        "innerHeight": 828,
+        "buttons": [
+          {
+            "text": "Connect Wallet",
+            "disabled": false
+          },
+          {
+            "text": "Create Event",
+            "disabled": false
+          },
+          {
+            "text": "Refresh",
+            "disabled": false
+          },
+          {
+            "text": "Issue",
+            "disabled": true
+          },
+          {
+            "text": "Lookup",
+            "disabled": true
+          },
+          {
+            "text": "Check-in",
+            "disabled": true
+          },
+          {
+            "text": "Refresh",
+            "disabled": false
+          }
+        ],
+        "inputs": [
+          {
+            "tag": "INPUT",
+            "label": "Neo Builder Summit",
+            "value": "Neo Builder Summit"
+          },
+          {
+            "tag": "INPUT",
+            "label": "Shanghai Expo Center",
+            "value": "Neo Community Hall"
+          },
+          {
+            "tag": "INPUT",
+            "label": "2025-06-20 09:00",
+            "value": "2026-06-20 09:00"
+          },
+          {
+            "tag": "INPUT",
+            "label": "2025-06-20 18:00",
+            "value": "2026-06-20 18:00"
+          },
+          {
+            "tag": "INPUT",
+            "label": "500",
+            "value": "120"
+          },
+          {
+            "tag": "TEXTAREA",
+            "label": "VIP access, badges, or extra info",
+            "value": "Workshop pass, badge pickup, and live check-in."
+          },
+          {
+            "tag": "SELECT",
+            "label": "",
+            "value": ""
+          },
+          {
+            "tag": "INPUT",
+            "label": "Neo N3 address",
+            "value": ""
+          },
+          {
+            "tag": "INPUT",
+            "label": "A-12",
+            "value": "General"
+          },
+          {
+            "tag": "INPUT",
+            "label": "Backstage pass",
+            "value": "Standard admission"
+          },
+          {
+            "tag": "INPUT",
+            "label": "Enter token ID from QR",
+            "value": ""
+          }
+        ],
+        "status": []
+      },
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/event-ticket-pass-current/desktop-current.png"
+    },
+    {
+      "name": "mobile-current",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "iframeBox": null,
+      "iframeClass": null,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "loadingVisible": false,
+      "embedded": {
+        "textSample": "EVENT PASS\nEvent Ticket Pass\n\nOn-chain tickets with organizer check-in\n\nEvents\n0\nTickets\n0\nActive\n0\nCreate event\nIssue attendee ticket\nLookup and check in\nWallet\nWallet not connected\nService Status\nTickets loaded\nConnect Wallet\nCreate\nCreate Event\nEvent name\nVenue\nStart time\nEnd time\nMax tickets\nNotes (optional)\nCreate Event\nYour Events\nNo events yet\nRefresh\nCreate an event to open the organizer workflow: issue attendee tickets, pause sales, and check people in at the door.\nIssue Ticket\nSelect an event first\nEvent name\nSelect an event first\nRecipient address\nSeat / Zone\nMemo (optional)\nIssue\nCheck-in\nLookup\nTicket Token ID\nScan or paste a ticket token id to verify seat, owner, and usage before marking it used.\nLookup\nCheck-in\nMy Tickets\nNo tickets yet\nRefresh\nIssued attendee tickets appear here with token id, seat, and check-in state.\nLatest Request\nNo action submitted yet\nCreate an event, issue a ticket, or check in a token to inspect the exact OS service request.\nLatest Result\nNo action submitted yet\nThe latest OS service response or wallet intent will appear here.",
+        "hasCreate": true,
+        "hasIssue": true,
+        "hasCheckin": true,
+        "hasEvidence": true,
+        "bodyScrollHeight": 3240,
+        "innerHeight": 672,
+        "buttons": [
+          {
+            "text": "Connect Wallet",
+            "disabled": false
+          },
+          {
+            "text": "Create Event",
+            "disabled": false
+          },
+          {
+            "text": "Refresh",
+            "disabled": false
+          },
+          {
+            "text": "Issue",
+            "disabled": true
+          },
+          {
+            "text": "Lookup",
+            "disabled": true
+          },
+          {
+            "text": "Check-in",
+            "disabled": true
+          },
+          {
+            "text": "Refresh",
+            "disabled": false
+          }
+        ],
+        "inputs": [
+          {
+            "tag": "INPUT",
+            "label": "Neo Builder Summit",
+            "value": "Neo Builder Summit"
+          },
+          {
+            "tag": "INPUT",
+            "label": "Shanghai Expo Center",
+            "value": "Neo Community Hall"
+          },
+          {
+            "tag": "INPUT",
+            "label": "2025-06-20 09:00",
+            "value": "2026-06-20 09:00"
+          },
+          {
+            "tag": "INPUT",
+            "label": "2025-06-20 18:00",
+            "value": "2026-06-20 18:00"
+          },
+          {
+            "tag": "INPUT",
+            "label": "500",
+            "value": "120"
+          },
+          {
+            "tag": "TEXTAREA",
+            "label": "VIP access, badges, or extra info",
+            "value": "Workshop pass, badge pickup, and live check-in."
+          },
+          {
+            "tag": "SELECT",
+            "label": "",
+            "value": ""
+          },
+          {
+            "tag": "INPUT",
+            "label": "Neo N3 address",
+            "value": ""
+          },
+          {
+            "tag": "INPUT",
+            "label": "A-12",
+            "value": "General"
+          },
+          {
+            "tag": "INPUT",
+            "label": "Backstage pass",
+            "value": "Standard admission"
+          },
+          {
+            "tag": "INPUT",
+            "label": "Enter token ID from QR",
+            "value": ""
+          }
+        ],
+        "status": []
+      },
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/event-ticket-pass-current/mobile-current.png"
+    }
+  ]
+}

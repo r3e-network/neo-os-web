@@ -1147,4 +1147,25 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastFundAmount.get()).toBe(250000000n);
     expect(pool.lastTxid.get()).toBe("0xfund");
   });
+
+  it("rejects over-precision top-ups before wallet submission", async () => {
+    const chain = {
+      ensureWallet: vi.fn().mockResolvedValue(OWNER),
+      invokeWithPayment: vi.fn(),
+      readArray: vi.fn().mockResolvedValue([]),
+      listEvents: vi.fn().mockResolvedValue([]),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch("42"),
+      t,
+    });
+
+    await expect(
+      pool.topUpPool({ poolId: "42", amount: "2.000000001" }),
+    ).rejects.toThrow("invalidTopUpAmount");
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+  });
 });

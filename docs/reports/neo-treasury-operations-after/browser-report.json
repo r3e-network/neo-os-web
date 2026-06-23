@@ -1,0 +1,160 @@
+{
+  "baseUrl": "http://localhost:3038",
+  "account": {
+    "hash": "0x407c24a382011c16be1597699cd6460f54e49c2",
+    "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+    "label": "Mock Treasury Operator",
+    "isDefault": true
+  },
+  "errors": [],
+  "consoleErrors": [],
+  "standalone": {
+    "url": "http://localhost:3038/miniapps/neo-treasury/index.html?network=testnet&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops",
+    "title": "Neo Treasury",
+    "textSample": "Transfer submitted\nN\nFoundation wallet transparency\nNeo Treasury\n\nNeo Treasury tracks public Neo Foundation and ecosystem wallet balances, then lets operators prepare connected-wallet treasury disbursements.\n\nTotal USD\nLive data pending\nNEO\n--\nGAS\n--\nN\nLive balance status\nReading public chain data\n\nPublic balances load independently from connected-wallet payout actions.\n\nConnected wallet\nDisbursement console\n\nSubmit a real NEP-17 transfer from the connected wallet while keeping watched foundation wallets strictly observational.\n\nWallet\nNTmHjwi...5m8TyX\nNetwork\nNeo N3 Testnet\nStatus\nTransfer submitted\nAsset\nGAS\nNEO\nAmount\nGAS\nRecipient\nMemo\n0.1 GAS\n1 GAS\n5 GAS\nAsset\nGAS\nAmount\n0.1\nRecipient\nNZeAarn...3GhqDv\nWallet connected\nSign Disbursement\nLast tx\n0xtreasury...00000001\n\n0.1 GAS -> 0x94611...9e9496\n\nPolicy boundary\nTreasury control path\n\nThe console separates public balance oversight from wallet-authorized payout execution.\n\n01\nReview public balances\n02\nPrepare payout intent\n03\nSign and verify txid\nDa Hongfei\n22 addresses\nNEO\nLive data pending\nGAS\nLive data pending\nTotal USD\nLive data pending\nErik Zhang\n22 addresses\nNEO\nLive data pending\nGAS\nLive data pending\nTotal USD\nLive data pe",
+    "viewport": {
+      "width": 1280,
+      "height": 920
+    },
+    "scroll": {
+      "width": 1280,
+      "height": 1583
+    },
+    "hasHorizontalOverflow": false,
+    "buttons": [
+      "0.1 GAS",
+      "1 GAS",
+      "5 GAS",
+      "Wallet connected",
+      "Sign Disbursement",
+      "Refresh Data"
+    ],
+    "amountValue": "0.1",
+    "recipientValue": "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv",
+    "memoValue": "ops",
+    "invokes": [
+      {
+        "invocations": [
+          {
+            "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "operation": "transfer",
+            "args": [
+              {
+                "type": "Hash160",
+                "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+              },
+              {
+                "type": "Hash160",
+                "value": "0x94611499d5b3f1501569ecae0ac6e782d49e9496"
+              },
+              {
+                "type": "Integer",
+                "value": "10000000"
+              },
+              {
+                "type": "String",
+                "value": "ops"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "hasSubmittedTx": true
+  },
+  "mobile": {
+    "url": "http://localhost:3038/miniapps/neo-treasury/index.html?network=testnet&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv",
+    "title": "Neo Treasury",
+    "textSample": "N\nFoundation wallet transparency\nNeo Treasury\n\nNeo Treasury tracks public Neo Foundation and ecosystem wallet balances, then lets operators prepare connected-wallet treasury disbursements.\n\nTotal USD\nLive data pending\nNEO\n--\nGAS\n--\nN\nLive balance status\nReading public chain data\n\nPublic balances load independently from connected-wallet payout actions.\n\nConnected wallet\nDisbursement console\n\nSubmit a real NEP-17 transfer from the connected wallet while keeping watched foundation wallets strictly observational.\n\nWallet\nWallet required\nNetwork\nNeo N3 Testnet\nStatus\nDraft ready\nAsset\nGAS\nNEO\nAmount\nGAS\nRecipient\nMemo\n0.1 GAS\n1 GAS\n5 GAS\nAsset\nGAS\nAmount\n0.1\nRecipient\nNZeAarn...3GhqDv\nConnect Wallet\nSign Disbursement\nPolicy boundary\nTreasury control path\n\nThe console separates public balance oversight from wallet-authorized payout execution.\n\n01\nReview public balances\n02\nPrepare payout intent\n03\nSign and verify txid\nDa Hongfei\n22 addresses\nNEO\nLive data pending\nGAS\nLive data pending\nTotal USD\nLive data pending\nErik Zhang\n22 addresses\nNEO\nLive data pending\nGAS\nLive data pending\nTotal USD\nLive data pending\n01\nFetch live chain balances\n02\nView treasury balance\n03\nSign a controlled payout\nT",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "scroll": {
+      "width": 390,
+      "height": 3000
+    },
+    "hasHorizontalOverflow": false,
+    "buttons": [
+      "0.1 GAS",
+      "1 GAS",
+      "5 GAS",
+      "Connect Wallet",
+      "Sign Disbursement",
+      "Refresh Data"
+    ]
+  },
+  "host": {
+    "url": "http://localhost:3038/miniapp-detail/miniapp-neo-treasury?network=testnet&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops&_op=1780356094268",
+    "title": "Neo Treasury - Yiwu MiniApps",
+    "textSample": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nNeo Treasury\nUtility\nBeta\nMINIAPP\nTreasury operations console\n\nTrack public treasury balances, prepare NEO/GAS payouts, and submit connected-wallet transfers with txid proof.\n\nNeo Treasury\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nTrack public Neo treasury balances and submit controlled connected-wallet NEO/GAS disbursements.\n\nAPP ID:\nminiapp-neo-treasury\nRUNTIME:\nIntegrated dApp runtime\nCONTRACT:\nShared / frontend runtime\nDOMAIN:\nNot configured for this network\n\nEvents, notifications, and actions on this page are scoped to Neo N3 Testnet. Testnet and mainnet records are queried separately.\n\nActivity and notices\nLive\nNo verified activity yet.\nNOTICES\nNo notices published for this MiniApp.\nOverview\nReviews\nForum\nNews\nPermissions\n\nACTION CONSOLE\n\nTreasury Operations\nWorkspace Preview\n\nReview public balances, t",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "scroll": {
+      "width": 1440,
+      "height": 1744
+    },
+    "hasHorizontalOverflow": false,
+    "buttons": [
+      "EN",
+      "Log In / Sign UpLog In",
+      "Refresh",
+      "Overview",
+      "Reviews",
+      "Forum",
+      "News",
+      "Sign Disbursement",
+      "Refresh Treasury",
+      "0.1GAS",
+      "1GAS",
+      "5GAS",
+      "Sign Disbursement",
+      "Action ConsoleSign DisbursementOpen"
+    ],
+    "frameValues": {
+      "url": "http://localhost:3038/miniapps/neo-treasury/index.html?network=testnet&source=embed&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops",
+      "amount": "0.1",
+      "recipient": "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv",
+      "memo": "ops",
+      "buttons": [
+        "0.1 GAS",
+        "1 GAS",
+        "5 GAS",
+        "Connect Wallet",
+        "Sign Disbursement",
+        "Refresh Data"
+      ]
+    },
+    "frameInvokes": [
+      {
+        "invocations": [
+          {
+            "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "operation": "transfer",
+            "args": [
+              {
+                "type": "Hash160",
+                "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+              },
+              {
+                "type": "Hash160",
+                "value": "0x94611499d5b3f1501569ecae0ac6e782d49e9496"
+              },
+              {
+                "type": "Integer",
+                "value": "10000000"
+              },
+              {
+                "type": "String",
+                "value": "ops"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "feedbackApplied": false
+  }
+}

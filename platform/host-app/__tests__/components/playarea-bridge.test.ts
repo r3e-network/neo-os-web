@@ -21,16 +21,19 @@ import {
 } from "../../components/playarea/bridge";
 
 const WALLET_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const WALLET_ACCOUNT_HASH = "0x1234567890abcdef1234567890abcdef12345678";
 const TARGET_CONTRACT = "0x442162de9c0d0e30b09590b125c2b1f7e8fa5e3b";
 
 const mockWalletState: {
   connected: boolean;
   address: string;
+  accountHash: string;
   publicKey: string;
   network: "mainnet" | "testnet" | null;
 } = {
   connected: true,
   address: WALLET_ADDRESS,
+  accountHash: WALLET_ACCOUNT_HASH,
   publicKey: "02abcdef",
   network: "testnet",
 };
@@ -39,24 +42,31 @@ const mockAdapter = {
   invoke: jest.fn(),
   invokeMultiple: jest.fn(),
   getBalance: jest.fn(),
+  getNetwork: jest.fn(),
   signMessage: jest.fn(),
   send: jest.fn(),
 };
 
 jest.mock("@/lib/wallet/store", () => ({
-  useWalletStore: { getState: () => mockWalletState },
+  useWalletStore: {
+    getState: () => mockWalletState,
+    setState: (next: Partial<typeof mockWalletState>) =>
+      Object.assign(mockWalletState, next),
+  },
   getWalletAdapter: () => mockAdapter,
 }));
 
 beforeEach(() => {
   mockWalletState.connected = true;
   mockWalletState.address = WALLET_ADDRESS;
+  mockWalletState.accountHash = WALLET_ACCOUNT_HASH;
   mockWalletState.network = "testnet";
   mockAdapter.invoke.mockReset().mockResolvedValue({ txid: "0xfeed" });
   mockAdapter.invokeMultiple.mockReset().mockResolvedValue({ txid: "0xbatch" });
   mockAdapter.getBalance
     .mockReset()
     .mockResolvedValue({ neo: "5", gas: "12.5" });
+  mockAdapter.getNetwork.mockReset().mockResolvedValue("testnet");
   mockAdapter.signMessage
     .mockReset()
     .mockResolvedValue({ signature: "0xsig" });
@@ -234,14 +244,63 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
       "testnet",
     );
     expect(result).toEqual([
-      expect.objectContaining({ address: WALLET_ADDRESS, isDefault: true }),
+      expect.objectContaining({
+        hash: WALLET_ACCOUNT_HASH,
+        accountHash: WALLET_ACCOUNT_HASH,
+        address: WALLET_ADDRESS,
+        isDefault: true,
+      }),
     ]);
+  });
+
+  it("fails closed for signMessage when the wallet network is unverified", async () => {
+    mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
+
+    await expect(
+      handleEmbeddedWalletBridgeRequest(
+        "signMessage",
+        { message: "authorize session" },
+        "testnet",
+      ),
+    ).rejects.toThrow(/unverified/);
+    expect(mockAdapter.signMessage).not.toHaveBeenCalled();
+  });
+
+  it("fails closed for getBalance when the wallet network is unverified", async () => {
+    mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
+
+    await expect(
+      handleEmbeddedWalletBridgeRequest(
+        "getBalance",
+        { asset: "GAS" },
+        "testnet",
+      ),
+    ).rejects.toThrow(/unverified/);
+    expect(mockAdapter.getBalance).not.toHaveBeenCalled();
+  });
+
+  it("fresh-checks the wallet network before signing", async () => {
+    mockWalletState.network = "testnet";
+    mockAdapter.getNetwork.mockResolvedValue("mainnet");
+
+    await expect(
+      handleEmbeddedWalletBridgeRequest(
+        "signMessage",
+        { message: "authorize session" },
+        "testnet",
+      ),
+    ).rejects.toThrow(/targets testnet/);
+    expect(mockAdapter.signMessage).not.toHaveBeenCalled();
+    expect(mockWalletState.network).toBe("mainnet");
   });
 
   it("returns the wallet's verified network magic for authenticate", async () => {
     // Wallet is verified on mainnet — even though the bridge target below is
     // also mainnet, the response must reflect the wallet's own network.
     mockWalletState.network = "mainnet";
+    mockAdapter.getNetwork.mockResolvedValue("mainnet");
     const result = (await handleEmbeddedWalletBridgeRequest(
       "authenticate",
       undefined,
@@ -254,6 +313,7 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
 
   it("flags authenticate as unverified when the wallet network is null", async () => {
     mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
     const result = (await handleEmbeddedWalletBridgeRequest(
       "authenticate",
       undefined,
@@ -303,6 +363,7 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
 
   it("fails closed for invoke when the wallet network is unverified", async () => {
     mockWalletState.network = null;
+    mockAdapter.getNetwork.mockResolvedValue(null);
     await expect(
       handleEmbeddedWalletBridgeRequest(
         "invoke",
@@ -407,7 +468,7 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
   it("dispatches send through a send-capable adapter", async () => {
     const result = await handleEmbeddedWalletBridgeRequest(
       "send",
-      { asset: "GAS", amount: "1", to: WALLET_ADDRESS },
+      { asset: "GAS", amount: "1", to: WALLET_ADDRESS, from: "{{sender}}" },
       "testnet",
     );
     expect(result).toEqual({ txid: "0xsent" });
@@ -415,8 +476,24 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
       "GAS",
       "1",
       WALLET_ADDRESS,
-      undefined,
+      WALLET_ACCOUNT_HASH,
     );
+  });
+
+  it("rejects embedded send requests whose sender is not the connected wallet", async () => {
+    await expect(
+      handleEmbeddedWalletBridgeRequest(
+        "send",
+        {
+          asset: "GAS",
+          amount: "1",
+          to: WALLET_ADDRESS,
+          from: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+        "testnet",
+      ),
+    ).rejects.toThrow(/sender does not match/);
+    expect(mockAdapter.send).not.toHaveBeenCalled();
   });
 });
 

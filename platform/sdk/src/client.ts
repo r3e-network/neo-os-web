@@ -68,6 +68,7 @@ interface NeoLineN3Instance {
     address?: string;
     account?: { address?: string };
   }>;
+  getNetworks?: () => Promise<unknown>;
   signMessage?: (params: { message: string }) => Promise<SignedMessage>;
   invoke: (params: NeoLineInvokeParams) => Promise<unknown>;
 }
@@ -158,6 +159,158 @@ function getAuthenticationDomain(): string {
   return window.location.hostname || window.location.host || "localhost";
 }
 
+function getActiveAppNetworkMagic(): number {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = String(
+        new URLSearchParams(window.location.search).get("network") || "",
+      )
+        .trim()
+        .toLowerCase();
+      if (
+        raw === String(TESTNET_MAGIC) ||
+        raw === "6" ||
+        raw.includes("testnet") ||
+        raw === "test"
+      ) {
+        return TESTNET_MAGIC;
+      }
+      if (
+        raw === String(MAINNET_MAGIC) ||
+        raw === "3" ||
+        raw.includes("mainnet") ||
+        raw === "main"
+      ) {
+        return MAINNET_MAGIC;
+      }
+    } catch {
+      // Fall through to the production default.
+    }
+  }
+  return MAINNET_MAGIC;
+}
+
+function networkMagicLabel(value: number | undefined): string {
+  if (value === MAINNET_MAGIC) return "Neo N3 Mainnet";
+  if (value === TESTNET_MAGIC) return "Neo N3 Testnet";
+  return "an unverified Neo N3 network";
+}
+
+function getDapiAccountAddress(
+  account: Partial<DapiAccount> | Record<string, unknown> | null | undefined,
+  fallback = "",
+): string {
+  if (!account || typeof account !== "object") return fallback;
+  const record = account as Record<string, unknown>;
+  return String(record.address ?? record.Address ?? fallback).trim();
+}
+
+function getDapiAccountHash(
+  account: Partial<DapiAccount> | Record<string, unknown> | null | undefined,
+): string {
+  if (!account || typeof account !== "object") return "";
+  const record = account as Record<string, unknown>;
+  return String(
+    record.accountHash ??
+      record.hash ??
+      record.scriptHash ??
+      record.Hash ??
+      record.ScriptHash ??
+      "",
+  ).trim();
+}
+
+function normalizeDapiNetworkMagic(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    if (value === MAINNET_MAGIC || value === 3) return MAINNET_MAGIC;
+    if (value === TESTNET_MAGIC || value === 6) return TESTNET_MAGIC;
+    return undefined;
+  }
+  if (typeof value === "string") {
+    const raw = value.trim().toLowerCase();
+    if (
+      raw === String(MAINNET_MAGIC) ||
+      raw === "3" ||
+      raw === "main" ||
+      raw === "mainnet" ||
+      raw === "neo-n3-mainnet"
+    ) {
+      return MAINNET_MAGIC;
+    }
+    if (
+      raw === String(TESTNET_MAGIC) ||
+      raw === "6" ||
+      raw === "test" ||
+      raw === "testnet" ||
+      raw === "neo-n3-testnet"
+    ) {
+      return TESTNET_MAGIC;
+    }
+    return undefined;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return (
+      normalizeDapiNetworkMagic(record.defaultNetwork) ||
+      normalizeDapiNetworkMagic(record.network) ||
+      normalizeDapiNetworkMagic(record.chainId) ||
+      normalizeDapiNetworkMagic(record.id)
+    );
+  }
+  return undefined;
+}
+
+async function readDapiNetworkMagic(
+  provider: NeoDapiProvider,
+): Promise<number | undefined> {
+  if (typeof provider.getNetwork === "function") {
+    try {
+      return normalizeDapiNetworkMagic(await provider.getNetwork()) ??
+        normalizeDapiNetworkMagic(provider.network);
+    } catch {
+      return normalizeDapiNetworkMagic(provider.network);
+    }
+  }
+  return normalizeDapiNetworkMagic(provider.network);
+}
+
+async function readNeoLineNetworkMagic(
+  instance: NeoLineN3Instance,
+): Promise<number | undefined> {
+  if (typeof instance.getNetworks !== "function") return undefined;
+  try {
+    return normalizeDapiNetworkMagic(await instance.getNetworks());
+  } catch {
+    return undefined;
+  }
+}
+
+function assertWalletNetworkMatchesActiveApp(
+  walletNetwork: number | undefined,
+): void {
+  const target = getActiveAppNetworkMagic();
+  if (!walletNetwork) {
+    throw new Error(
+      `Wallet network is not verified. Reconnect your wallet on ${networkMagicLabel(target)} before submitting.`,
+    );
+  }
+  if (walletNetwork !== target) {
+    throw new Error(
+      `Wallet is on ${networkMagicLabel(walletNetwork)} but this DApp targets ${networkMagicLabel(target)}. Switch wallet network before submitting.`,
+    );
+  }
+}
+
+async function assertNeoWalletMatchesActiveApp(
+  context: NeoInvocationWalletContext,
+): Promise<void> {
+  const network =
+    context.kind === "nep21"
+      ? await readDapiNetworkMagic(context.provider)
+      : await readNeoLineNetworkMagic(context.instance);
+  assertWalletNetworkMatchesActiveApp(network);
+}
+
 export function buildDapiAuthenticationPayload(
   networks: number[],
 ): NeoDapiAuthenticationPayload {
@@ -196,12 +349,13 @@ async function getNeoDapiContext(
 
   const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
   if (account) {
-    const address = String(account.address ?? account.hash ?? "").trim();
+    const accountHash = getDapiAccountHash(account);
+    const address = getDapiAccountAddress(account, accountHash);
     if (address) {
       return {
         kind: "nep21",
         address,
-        accountHash: String(account.hash ?? "").trim() || undefined,
+        accountHash: accountHash || undefined,
         provider,
       };
     }
@@ -210,15 +364,17 @@ async function getNeoDapiContext(
   if (!allowAuthenticate || !provider.authenticate) return null;
 
   const authenticated = await provider.authenticate(
-    buildDapiAuthenticationPayload(
-      provider.supportedNetworks?.length
-        ? provider.supportedNetworks
-        : [MAINNET_MAGIC, TESTNET_MAGIC],
-    ),
+    buildDapiAuthenticationPayload([getActiveAppNetworkMagic()]),
   );
-  const address = String(authenticated.address ?? "").trim();
+  const accountHash = getDapiAccountHash(authenticated);
+  const address = getDapiAccountAddress(authenticated, accountHash);
   if (!address) return null;
-  return { kind: "nep21", address, provider };
+  return {
+    kind: "nep21",
+    address,
+    accountHash: accountHash || undefined,
+    provider,
+  };
 }
 
 async function getNeoLineContext(): Promise<Extract<
@@ -303,7 +459,7 @@ async function getWalletProviderInfo(): Promise<WalletProviderInfo> {
     return {
       kind: "nep21",
       name: context.provider.name || "NEP-21 dAPI",
-      network: context.provider.network,
+      network: await readDapiNetworkMagic(context.provider),
       address: context.address,
       accountHash: context.accountHash,
     };
@@ -320,6 +476,7 @@ async function signInjectedWalletMessage(
   if (context.kind === "nep21") {
     if (!context.provider.signMessage)
       throw new Error("NEP-21 wallet does not support signMessage");
+    await assertNeoWalletMatchesActiveApp(context);
     const signed = await context.provider.signMessage(
       encodeBase64Utf8(message),
       context.accountHash ?? context.address,
@@ -342,6 +499,7 @@ async function signInjectedWalletMessage(
     };
   }
   if (context.kind === "neoline" && context.instance.signMessage) {
+    await assertNeoWalletMatchesActiveApp(context);
     // NeoLine returns the signed payload directly; it does not echo back the
     // plaintext message, so the message/signature pairing is unverified here.
     const signed = await context.instance.signMessage({ message });
@@ -357,10 +515,16 @@ function resolveInvocationParams(
   userAddress: string,
 ): InvocationIntent["params"] {
   return params.map((param) => {
-    if (param.type === "Hash160" && param.value === "SENDER") {
+    if (
+      String(param.type).toLowerCase() === "hash160" &&
+      isSenderPlaceholder(param.value)
+    ) {
       return { type: "Hash160", value: userAddress };
     }
-    if (param.type === "Array" && Array.isArray(param.value)) {
+    if (
+      String(param.type).toLowerCase() === "array" &&
+      Array.isArray(param.value)
+    ) {
       return {
         type: "Array",
         value: resolveInvocationParams(param.value, userAddress),
@@ -368,6 +532,19 @@ function resolveInvocationParams(
     }
     return param;
   });
+}
+
+const SENDER_PLACEHOLDERS = new Set([
+  "sender",
+  "{{sender}}",
+  "{sender}",
+  "0x0000000000000000000000000000000000000000",
+  "",
+]);
+
+function isSenderPlaceholder(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  return SENDER_PLACEHOLDERS.has(value.trim().toLowerCase());
 }
 
 // Neo script hashes are 20-byte values: a 0x-prefixed 40-hex string. A base58
@@ -414,6 +591,7 @@ async function invokeDirectInvocation(
   invocation: InvocationIntent,
 ): Promise<unknown> {
   const context = await getInjectedNeoInvocationContext();
+  await assertNeoWalletMatchesActiveApp(context);
 
   const scriptHash = String(invocation.contract_hash ?? "").trim();
   const operation = String(invocation.method ?? "").trim();

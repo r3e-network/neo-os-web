@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createDerived, createObservable } from "@shared/react/context";
+import {
+  createDerived,
+  createObservable,
+  refToObservable,
+  withValueCompat,
+} from "@shared/react/context";
 
 describe("react context observables", () => {
   it("allows derived values without explicit dependencies", () => {
@@ -26,5 +31,36 @@ describe("react context observables", () => {
     expect(derived.get()).toBe(3);
 
     unsubscribe();
+  });
+
+  it("forwards notifications from wrapped ref-compatible observables", () => {
+    const source = withValueCompat(createObservable<string | null>(null));
+    const wrapped = refToObservable(source);
+    const snapshots: Array<string | null> = [];
+    const listener = vi.fn(() => {
+      snapshots.push(wrapped.get());
+    });
+
+    const unsubscribe = wrapped.subscribe(listener);
+
+    source.value = "NHostWallet";
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(wrapped.get()).toBe("NHostWallet");
+
+    source.set("NSecondHostWallet");
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(snapshots).toEqual(["NHostWallet", "NSecondHostWallet"]);
+
+    unsubscribe();
+    source.value = null;
+
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(wrapped.get()).toBe(null);
+  });
+
+  it("passes through native observables", () => {
+    const source = createObservable("ready");
+
+    expect(refToObservable(source)).toBe(source);
   });
 });

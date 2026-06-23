@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-06-01T15:39:45.591Z",
+  "reports": [
+    {
+      "app": "profitanchor",
+      "report": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/profitanchor-browser-report.json",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/profitanchor-after-stake-redeem-claim.png",
+      "assertions": {
+        "transferInvoked": true,
+        "withdrawInvoked": true,
+        "claimInvoked": true,
+        "transferMemo": "stake:miniapp-profitanchor",
+        "transferAmount": 2,
+        "withdrawAppId": "miniapp-profitanchor",
+        "withdrawAmount": 2,
+        "claimAppId": "miniapp-profitanchor",
+        "historyShowsStake": true,
+        "historyShowsRedeem": true,
+        "historyShowsClaim": true,
+        "consoleWarningOrErrorCount": 0,
+        "requestFailureCount": 0,
+        "httpErrorCount": 0
+      }
+    },
+    {
+      "app": "trustanchor",
+      "report": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/trustanchor-browser-report.json",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/trustanchor-after-stake-redeem-claim.png",
+      "assertions": {
+        "transferInvoked": true,
+        "withdrawInvoked": true,
+        "claimInvoked": true,
+        "transferMemo": "stake:miniapp-trustanchor",
+        "transferAmount": 2,
+        "withdrawAppId": "miniapp-trustanchor",
+        "withdrawAmount": 2,
+        "claimAppId": "miniapp-trustanchor",
+        "historyShowsStake": true,
+        "historyShowsRedeem": true,
+        "historyShowsClaim": true,
+        "consoleWarningOrErrorCount": 0,
+        "requestFailureCount": 0,
+        "httpErrorCount": 0
+      }
+    }
+  ]
+}

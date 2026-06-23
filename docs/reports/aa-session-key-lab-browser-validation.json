@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-05-31T23:27:11.646Z",
+  "hostUrl": "http://127.0.0.1:3000/miniapps/miniapp-aa-session-key-lab?network=testnet",
+  "directUrl": "http://127.0.0.1:3000/miniapps/aa-session-key-lab/index.html?network=testnet&source=embed&accountSeed=neo-aa-001&sessionPublicKey=021111111111111111111111111111111111111111111111111111111111111111&targetContract=0xaba84da240a55410d284a656fc8dae044e6ec1a5&allowedMethod=claimRewards&expiresAt=1780277221&dappId=miniapp-aa-session-key-lab&sponsorAmount=0.2",
+  "iframeSrc": "/miniapps/aa-session-key-lab/index.html?network=testnet&source=embed&operation=prepareMiniAppOperation&accountSeed=neo-aa-001&targetContract=0xaba84da240a55410d284a656fc8dae044e6ec1a5&allowedMethod=claimRewards&expiresAt=1780273622&dappId=miniapp-aa-session-key-lab&sponsorAmount=0.1",
+  "hostEmbeddedValuesBeforeGenerate": {
+    "accountSeed": "neo-aa-001",
+    "sessionPublicKey": "",
+    "targetContract": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+    "allowedMethod": "claimRewards",
+    "expiresAt": "1780273622",
+    "dappId": "miniapp-aa-session-key-lab",
+    "sponsorAmount": "0.1"
+  },
+  "hostEmbeddedValuesAfterGenerate": {
+    "accountSeed": "neo-aa-001",
+    "sessionPublicKey": "03a64d3f106301cad0a12d4bb32892ee74161271e4c14046229ff63b0f0b751ec2",
+    "targetContract": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+    "allowedMethod": "claimRewards",
+    "expiresAt": "1780273622",
+    "dappId": "miniapp-aa-session-key-lab",
+    "sponsorAmount": "0.1"
+  },
+  "directValues": {
+    "accountSeed": "neo-aa-001",
+    "sessionPublicKey": "021111111111111111111111111111111111111111111111111111111111111111",
+    "targetContract": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+    "allowedMethod": "claimRewards",
+    "expiresAt": "1780277221",
+    "dappId": "miniapp-aa-session-key-lab",
+    "sponsorAmount": "0.2"
+  },
+  "overflow": {
+    "hostDefault": 0,
+    "hostAfterAction": 0,
+    "embeddedFrame": 0,
+    "directEmbedded": 0,
+    "mobileHost": 0
+  },
+  "buttonExercise": {
+    "clickedCheckSponsor": true,
+    "clickedRequestSponsor": true,
+    "clickedConfigureSessionKey": true,
+    "generatedKey": true,
+    "privateKeyCopyVisible": true,
+    "rawPrivateKeyVisible": false,
+    "statusMentionsWalletOrServiceBoundary": true
+  },
+  "errors": [],
+  "pageErrors": [],
+  "networkFailures": [],
+  "benignAbortedRequests": [
+    "GET https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap net::ERR_ABORTED",
+    "GET https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap net::ERR_ABORTED",
+    "GET http://127.0.0.1:3000/api/auth/profile net::ERR_ABORTED",
+    "GET http://127.0.0.1:3000/api/auth/profile net::ERR_ABORTED",
+    "[mobile] GET https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap net::ERR_ABORTED",
+    "[mobile] GET https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap net::ERR_ABORTED",
+    "[mobile] GET http://127.0.0.1:3000/api/auth/profile net::ERR_ABORTED",
+    "[mobile] GET http://127.0.0.1:3000/api/auth/profile net::ERR_ABORTED"
+  ],
+  "screenshots": [
+    "docs/reports/aa-session-key-lab-host-after.png",
+    "docs/reports/aa-session-key-lab-host-clicked-after.png",
+    "docs/reports/aa-session-key-lab-host-actions-after.png",
+    "docs/reports/aa-session-key-lab-embedded-direct-after.png",
+    "docs/reports/aa-session-key-lab-mobile-after.png"
+  ]
+}

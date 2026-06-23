@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-06-01T00:00:34.682Z",
+  "url": "http://127.0.0.1:3000/miniapps/unbreakable-vault?network=testnet",
+  "submitState": {
+    "text": "Create Vault",
+    "disabled": false,
+    "ariaDisabled": "false",
+    "title": null
+  },
+  "hashErrorVisible": false,
+  "txSubmittedVisible": true,
+  "invokes": [
+    {
+      "invocations": [
+        {
+          "hash": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+          "operation": "createVault",
+          "args": []
+        }
+      ],
+      "signers": [
+        {
+          "account": "0x51115f338edc5e0320a3d5c76fc17add0ae60408",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    }
+  ],
+  "expectedHash": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+  "errors": [],
+  "pageErrors": [],
+  "badResponses": [],
+  "screenshots": [
+    "docs/reports/unbreakable-vault-contract-hash-before-click.png",
+    "docs/reports/unbreakable-vault-contract-hash-after-click.png"
+  ]
+}

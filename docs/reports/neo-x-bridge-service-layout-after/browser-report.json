@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-06-01T22:35:45.372Z",
+  "baseUrl": "http://localhost:3036",
+  "status": "passed",
+  "notes": [
+    "Input elements are excluded from overflow checks because long addresses are intentionally scrollable inside the field.",
+    "Navigation-aborted /api/auth/profile polls are recorded as ignoredRequests, not functional failures."
+  ],
+  "results": [
+    {
+      "label": "standalone-desktop-clickthrough",
+      "url": "http://localhost:3036/miniapps/neo-x-bridge/index.html?network=testnet&source=browser",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-x-bridge-service-layout-after/standalone-desktop.png",
+      "health": {
+        "overlay": null,
+        "textLength": 2298,
+        "overflow": []
+      },
+      "events": {
+        "console": [],
+        "pageErrors": [],
+        "failedRequests": [],
+        "ignoredRequests": []
+      },
+      "assertions": {
+        "assetIntent": true,
+        "messageIntent": true,
+        "trackingRefresh": true,
+        "trackSummarySynced": true
+      }
+    },
+    {
+      "label": "standalone-mobile-clickthrough",
+      "url": "http://localhost:3036/miniapps/neo-x-bridge/index.html?network=testnet&source=browser-mobile",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-x-bridge-service-layout-after/standalone-mobile.png",
+      "health": {
+        "overlay": null,
+        "textLength": 2521,
+        "overflow": []
+      },
+      "events": {
+        "console": [],
+        "pageErrors": [],
+        "failedRequests": [],
+        "ignoredRequests": []
+      },
+      "assertions": {
+        "assetIntent": true,
+        "mobileViewport": "390x844"
+      }
+    },
+    {
+      "label": "host-asset-launch-params",
+      "url": "http://localhost:3036/miniapps/miniapp-neo-x-bridge?network=testnet&operation=bridgeAsset&direction=n3-to-neox&amount=1&recipient=0x1111111111111111111111111111111111111111",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-x-bridge-service-layout-after/host-asset.png",
+      "health": {
+        "overlay": null,
+        "textLength": 2956,
+        "overflow": []
+      },
+      "events": {
+        "console": [],
+        "pageErrors": [],
+        "failedRequests": [],
+        "ignoredRequests": [
+          {
+            "url": "http://localhost:3036/api/auth/profile",
+            "failure": "net::ERR_ABORTED",
+            "reason": "navigation aborted an optional auth profile poll"
+          },
+          {
+            "url": "http://localhost:3036/api/auth/profile",
+            "failure": "net::ERR_ABORTED",
+            "reason": "navigation aborted an optional auth profile poll"
+          }
+        ]
+      },
+      "assertions": {
+        "generatedAssetHandoff": true
+      }
+    },
+    {
+      "label": "host-message-launch-params",
+      "url": "http://localhost:3036/miniapps/miniapp-neo-x-bridge?network=testnet&operation=bridgeMessage&direction=Neo%20X%20-%3E%20Neo%20N3&targetContract=0x2222222222222222222222222222222222222222&message=%7B%22event%22%3A%22settled%22%2C%22source%22%3A%22browser%22%7D",
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/neo-x-bridge-service-layout-after/host-message.png",
+      "health": {
+        "overlay": null,
+        "textLength": 3009,
+        "overflow": []
+      },
+      "events": {
+        "console": [],
+        "pageErrors": [],
+        "failedRequests": [],
+        "ignoredRequests": [
+          {
+            "url": "http://localhost:3036/api/auth/profile",
+            "failure": "net::ERR_ABORTED",
+            "reason": "navigation aborted an optional auth profile poll"
+          },
+          {
+            "url": "http://localhost:3036/api/auth/profile",
+            "failure": "net::ERR_ABORTED",
+            "reason": "navigation aborted an optional auth profile poll"
+          }
+        ]
+      },
+      "assertions": {
+        "generatedMessageIntent": true,
+        "displayDirectionAlias": "Neo X -> Neo N3"
+      }
+    }
+  ]
+}

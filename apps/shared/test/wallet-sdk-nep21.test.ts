@@ -59,6 +59,12 @@ function createNep21Provider(overrides: Record<string, unknown> = {}) {
   };
 }
 
+async function flushMicrotasks(turns = 5) {
+  for (let i = 0; i < turns; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 describe("wallet-sdk NEP-21 support", () => {
   beforeEach(() => {
     __resetWalletForTests();
@@ -80,6 +86,28 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(wallet.chainId?.value).toBe("neo-n3-testnet");
   });
 
+  it("normalizes object and legacy numeric wallet network identifiers", async () => {
+    window.history.replaceState({}, "", "/?network=mainnet");
+    const provider = createNep21Provider({
+      network: TESTNET_MAGIC,
+      getNetwork: vi.fn(async () => ({ defaultNetwork: "MainNet" })),
+    });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(wallet.chainType.value).toBe("neo-n3-mainnet");
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claim",
+        args: [],
+        signers: [{ account: "0x1111111111111111111111111111111111111111", scopes: 1 }],
+      }),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
+  });
+
   it("detects OneGate's injected NEP-21 provider before requesting wallet events", async () => {
     const provider = createNep21Provider({ name: "OneGate" });
     window.OneGateDapiProvider = provider;
@@ -90,6 +118,54 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(provider.getAccounts).toHaveBeenCalledTimes(1);
     expect(wallet.address.value).toBe("NTestAddress");
     expect(wallet.chainType.value).toBe("neo-n3-testnet");
+  });
+
+  it("accepts accountHash-only account objects from compatible wallets", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({
+      getAccounts: vi.fn(async () => [
+        {
+          accountHash: "0x1111111111111111111111111111111111111111",
+          address: "NAccountHashOnly",
+          isDefault: true,
+        },
+      ]),
+    });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(wallet.address.value).toBe("NAccountHashOnly");
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claim",
+        args: [{ type: "Hash160", value: "NAccountHashOnly" }],
+        signers: [{ account: "NAccountHashOnly", scopes: 1 }],
+      }),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "claim",
+          args: [
+            {
+              type: "Hash160",
+              value: "0x1111111111111111111111111111111111111111",
+            },
+          ],
+        },
+      ],
+      [
+        {
+          account: "0x1111111111111111111111111111111111111111",
+          scopes: "CalledByEntry",
+        },
+      ],
+    );
   });
 
   it("authenticates with a OneGate-native compatible challenge when accounts are gated", async () => {
@@ -124,6 +200,55 @@ describe("wallet-sdk NEP-21 support", () => {
     );
     expect(wallet.address.value).toBe("NAuthenticated");
     expect(wallet.chainType.value).toBe("neo-n3-mainnet");
+  });
+
+  it("requests authentication only for the active app network", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const authenticate = vi.fn(async () => ({
+      address: "NAuthenticated",
+      network: TESTNET_MAGIC,
+    }));
+    const provider = createNep21Provider({
+      name: "OneGate",
+      supportedNetworks: [MAINNET_MAGIC, TESTNET_MAGIC],
+      getAccounts: vi.fn(async () => []),
+      authenticate,
+    });
+    window.OneGateDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    const payload = authenticate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(payload.networks).toEqual([TESTNET_MAGIC]);
+    expect(payload.Networks).toEqual([TESTNET_MAGIC]);
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+  });
+
+  it("normalizes object-shaped authenticated wallet networks", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({
+      name: "OneGate",
+      getAccounts: vi.fn(async () => []),
+      authenticate: vi.fn(async () => ({
+        address: "NAuthenticated",
+        network: { defaultNetwork: "TestNet" },
+      })),
+    });
+    window.OneGateDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(wallet.address.value).toBe("NAuthenticated");
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claim",
+        args: [],
+      }),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
   });
 
   it("connects through the governance-style NEP21Provider global", async () => {
@@ -172,7 +297,8 @@ describe("wallet-sdk NEP-21 support", () => {
         data.method === "getAccounts"
           ? [
               {
-                hash: "0x1111111111111111111111111111111111111111",
+                hash: "NHostWallet",
+                accountHash: "0x1111111111111111111111111111111111111111",
                 address: "NHostWallet",
                 isDefault: true,
               },
@@ -212,7 +338,7 @@ describe("wallet-sdk NEP-21 support", () => {
         invocations: [
           {
             hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            operation: "storePhoto",
+            operation: "StorePhoto",
             args: [
               {
                 type: "Hash160",
@@ -229,6 +355,155 @@ describe("wallet-sdk NEP-21 support", () => {
         ],
       });
     } finally {
+      window.removeEventListener("message", onBridgeMessage);
+    }
+  });
+
+  it("updates embedded wallet observables when the host pushes wallet state changes", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/miniapps/wallet-health/index.html?network=testnet&source=embed",
+    );
+    let hostConnected = true;
+    let hostAddress = "NHostWallet";
+    let hostAccountHash = "0x1111111111111111111111111111111111111111";
+    const bridgeRequests: Array<Record<string, any>> = [];
+    const onBridgeMessage = (event: MessageEvent) => {
+      const data = event.data as Record<string, any>;
+      if (data?.type !== "neo-miniapp-wallet-bridge:request") return;
+      bridgeRequests.push(data);
+      if (!hostConnected) {
+        window.postMessage(
+          {
+            type: "neo-miniapp-wallet-bridge:response",
+            id: data.id,
+            ok: false,
+            error: { message: "Host wallet disconnected." },
+          },
+          "*",
+        );
+        return;
+      }
+      window.postMessage(
+        {
+          type: "neo-miniapp-wallet-bridge:response",
+          id: data.id,
+          ok: true,
+          result:
+            data.method === "getAccounts"
+              ? [
+                  {
+                    hash: hostAccountHash,
+                    accountHash: hostAccountHash,
+                    address: hostAddress,
+                    isDefault: true,
+                  },
+                ]
+              : {
+                  network: TESTNET_MAGIC,
+                  networkVerified: true,
+                  address: hostAddress,
+                  accountHash: hostAccountHash,
+                },
+        },
+        "*",
+      );
+    };
+    window.addEventListener("message", onBridgeMessage);
+    let unsubscribeAddress: (() => void) | undefined;
+    let unsubscribeChain: (() => void) | undefined;
+
+    try {
+      const wallet = useWallet();
+      const seenAddresses: Array<string | null> = [];
+      const seenChains: string[] = [];
+      unsubscribeAddress = wallet.address.subscribe(() =>
+        seenAddresses.push(wallet.address.value),
+      );
+      unsubscribeChain = wallet.chainId?.subscribe(() =>
+        seenChains.push(wallet.chainId?.value ?? ""),
+      );
+
+      expect(wallet.address.value).toBeNull();
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: window.location.origin,
+          source: window,
+          data: {
+            type: "neo-miniapp-wallet-bridge:state",
+            protocolVersion: 1,
+            state: {
+              connected: true,
+              address: hostAddress,
+              accountHash: hostAccountHash,
+              network: TESTNET_MAGIC,
+              networkName: "testnet",
+              networkVerified: true,
+            },
+          },
+        }),
+      );
+      await vi.waitFor(() =>
+        expect(wallet.address.value).toBe("NHostWallet"),
+      );
+      expect(wallet.chainId?.value).toBe("neo-n3-testnet");
+
+      hostAddress = "NSecondHostWallet";
+      hostAccountHash = "0x2222222222222222222222222222222222222222";
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: window.location.origin,
+          source: window,
+          data: {
+            type: "neo-miniapp-wallet-bridge:state",
+            protocolVersion: 1,
+            state: {
+              connected: true,
+              address: hostAddress,
+              accountHash: hostAccountHash,
+              network: TESTNET_MAGIC,
+              networkName: "testnet",
+              networkVerified: true,
+            },
+          },
+        }),
+      );
+      await vi.waitFor(() =>
+        expect(wallet.address.value).toBe("NSecondHostWallet"),
+      );
+      expect(wallet.chainId?.value).toBe("neo-n3-testnet");
+
+      hostConnected = false;
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: window.location.origin,
+          source: window,
+          data: {
+            type: "neo-miniapp-wallet-bridge:state",
+            protocolVersion: 1,
+            state: {
+              connected: false,
+              address: "",
+              accountHash: "",
+              network: null,
+              networkName: null,
+              networkVerified: false,
+            },
+          },
+        }),
+      );
+      await vi.waitFor(() => expect(wallet.address.value).toBeNull());
+      expect(wallet.chainId?.value).toBe("neo-n3");
+      expect(seenAddresses).toContain("NSecondHostWallet");
+      expect(seenAddresses).toContain(null);
+      expect(seenChains).toContain("neo-n3");
+      expect(
+        bridgeRequests.filter((entry) => entry.method === "getAccounts"),
+      ).toHaveLength(3);
+    } finally {
+      unsubscribeAddress?.();
+      unsubscribeChain?.();
       window.removeEventListener("message", onBridgeMessage);
     }
   });
@@ -283,7 +558,7 @@ describe("wallet-sdk NEP-21 support", () => {
       expect(bridgeRequests[0]?.payload).toMatchObject({
         invocation: {
           hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          operation: "getStats",
+          operation: "GetStats",
           args: [],
         },
       });
@@ -335,7 +610,7 @@ describe("wallet-sdk NEP-21 support", () => {
       [
         {
           hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          operation: "transfer",
+          operation: "Transfer",
           args: [{ type: "Hash160", value: "0x01" }],
         },
       ],
@@ -361,7 +636,7 @@ describe("wallet-sdk NEP-21 support", () => {
     ).resolves.toMatchObject({ state: "HALT" });
     expect(provider.call).toHaveBeenCalledWith({
       hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      operation: "balanceOf",
+      operation: "BalanceOf",
       args: [
         {
           type: "Hash160",
@@ -381,7 +656,7 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(provider.getAccounts).not.toHaveBeenCalled();
     expect(provider.call).toHaveBeenLastCalledWith({
       hash: "0xcccccccccccccccccccccccccccccccccccccccc",
-      operation: "totalSupply",
+      operation: "TotalSupply",
       args: [],
     });
 
@@ -438,6 +713,41 @@ describe("wallet-sdk NEP-21 support", () => {
     });
   });
 
+  it("blocks message signing when the wallet network is unverified", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({
+      network: undefined,
+      getNetwork: vi.fn(async () => {
+        throw new Error("wallet network unavailable");
+      }),
+    });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(wallet.signMessage?.("hello")).rejects.toMatchObject({
+      code: "WALLET_NETWORK_UNVERIFIED",
+    });
+    expect(provider.signMessage).not.toHaveBeenCalled();
+  });
+
+  it("blocks message signing when the wallet network differs from the DApp target", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({
+      network: MAINNET_MAGIC,
+    });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(wallet.signMessage?.("hello")).rejects.toMatchObject({
+      code: "WALLET_NETWORK_MISMATCH",
+    });
+    expect(provider.signMessage).not.toHaveBeenCalled();
+  });
+
   it("normalizes the connected account Hash160 argument for OneGate transaction construction", async () => {
     window.history.replaceState({}, "", "/?network=testnet");
     const provider = createNep21Provider({ name: "OneGate" });
@@ -483,6 +793,109 @@ describe("wallet-sdk NEP-21 support", () => {
     );
   });
 
+  it("normalizes nested connected account Hash160 arguments", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({ name: "OneGate" });
+    window.OneGateDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "batchClaim",
+        args: [
+          {
+            type: "Array",
+            value: [
+              { type: "String", value: "miniapp" },
+              { type: "Hash160", value: "NTestAddress" },
+            ],
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "batchClaim",
+          args: [
+            {
+              type: "Array",
+              value: [
+                { type: "String", value: "miniapp" },
+                {
+                  type: "Hash160",
+                  value: "0x1111111111111111111111111111111111111111",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      undefined,
+    );
+  });
+
+  it("uses the account hash for send fallback transfer invokes", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({ send: undefined });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(
+      wallet.send?.(
+        "GAS",
+        "1.25",
+        "0x2222222222222222222222222222222222222222",
+      ),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          operation: "transfer",
+          args: [
+            {
+              type: "Hash160",
+              value: "0x1111111111111111111111111111111111111111",
+            },
+            {
+              type: "Hash160",
+              value: "0x2222222222222222222222222222222222222222",
+            },
+            { type: "Integer", value: "125000000" },
+            { type: "Any", value: null },
+          ],
+        },
+      ],
+      [
+        {
+          account: "0x1111111111111111111111111111111111111111",
+          scopes: "CalledByEntry",
+        },
+      ],
+    );
+
+    provider.invoke.mockClear();
+    await expect(
+      wallet.send?.(
+        "NEO",
+        "1.5",
+        "0x2222222222222222222222222222222222222222",
+      ),
+    ).rejects.toMatchObject({
+      code: "WALLET_INVALID_TRANSFER_AMOUNT",
+    });
+    expect(provider.invoke).not.toHaveBeenCalled();
+  });
+
   it("confirms OS-binder invocation intents before submitting through the wallet", async () => {
     window.history.replaceState({}, "", "/?network=testnet");
     const provider = createNep21Provider();
@@ -522,7 +935,7 @@ describe("wallet-sdk NEP-21 support", () => {
       [
         {
           hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          operation: "registerAnchor",
+          operation: "RegisterAnchor",
           args: [
             {
               type: "Hash160",
@@ -575,6 +988,36 @@ describe("wallet-sdk NEP-21 support", () => {
       }),
     ).rejects.toThrow(/targets Neo N3 Mainnet/i);
     expect(provider.invoke).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when provider.getNetwork explicitly cannot verify the wallet network", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({
+      network: TESTNET_MAGIC,
+      getNetwork: vi.fn(async () => null),
+    });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(wallet.chainType.value).toBe("neo-n3");
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "Transfer",
+        args: [],
+      }),
+    ).rejects.toThrow(/network is not verified/i);
+    expect(provider.invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects empty batch invokes before requesting a wallet provider", async () => {
+    const wallet = useWallet();
+
+    await expect(
+      wallet.invokeMultiple?.({ invokeArgs: [] }),
+    ).rejects.toThrow(/No contract invocations/);
   });
 
   it("accepts the standard Neo.DapiProvider.ready event", async () => {
@@ -648,18 +1091,23 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(wallet.address.value).toBe("NInitialAddress");
 
     accountChangedListener?.();
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushMicrotasks();
     expect(wallet.address.value).toBe("NChangedAddress");
   });
 
-  it("rejects the legacy NeoLine API when NEP-21 is not injected", async () => {
+  it("supports the legacy NEOLineN3 provider when NEP-21 is not injected", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
     const neoLine = {
+      getNetworks: vi.fn(async () => ({ defaultNetwork: "TestNet" })),
       getAccount: vi.fn(async () => ({ address: "NNeoLineAddress" })),
+      AddressToScriptHash: vi.fn(async () => ({
+        scriptHash: "2222222222222222222222222222222222222222",
+      })),
       invoke: vi.fn(async () => ({ txid: "0xneoline" })),
       invokeRead: vi.fn(async () => ({ state: "HALT", stack: [] })),
+      send: vi.fn(async () => ({ txid: "0xneolinesend" })),
       getBalance: vi.fn(async () => ({
-        GAS: [
+        balances: [
           {
             amount: "12",
             contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
@@ -667,11 +1115,79 @@ describe("wallet-sdk NEP-21 support", () => {
         ],
       })),
     };
-    (window as typeof window & { neo3Dapi?: unknown }).neo3Dapi = neoLine;
+    (window as typeof window & { NEOLineN3?: unknown }).NEOLineN3 = {
+      Init: vi.fn(() => neoLine),
+    };
 
     const wallet = useWallet();
-    await expect(wallet.connect()).rejects.toThrow(/NEP-21 dAPI wallet/i);
-    expect(neoLine.getAccount).not.toHaveBeenCalled();
+    await wallet.connect();
+    expect(wallet.address.value).toBe("NNeoLineAddress");
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+
+    await expect(wallet.getBalance("GAS")).resolves.toBe("12");
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claimReward",
+        args: [{ type: "Hash160", value: "NNeoLineAddress" }],
+        signers: [{ account: "NNeoLineAddress", scopes: 1 }],
+      }),
+    ).resolves.toMatchObject({ txid: "0xneoline" });
+    await expect(
+      wallet.send?.("GAS", "100000000", "NRecipientAddress"),
+    ).resolves.toMatchObject({ txid: "0xneolinesend" });
+
+    expect(neoLine.invoke).toHaveBeenCalledWith({
+      scriptHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "claimReward",
+      args: [
+        {
+          type: "Hash160",
+          value: "0x2222222222222222222222222222222222222222",
+        },
+      ],
+      signers: [
+        { account: "2222222222222222222222222222222222222222", scopes: 1 },
+      ],
+      suggestedSystemFee: undefined,
+    });
+    expect(neoLine.send).toHaveBeenCalledWith({
+      asset: "d2a4cff31913016155e38e474a2c06d08be276cf",
+      fromAddress: "NNeoLineAddress",
+      toAddress: "NRecipientAddress",
+      amount: "100000000",
+      data: undefined,
+    });
+  });
+
+  it("re-reads the legacy NeoLine network before writes and rejects mid-session mismatches", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    let legacyNetwork = "TestNet";
+    const neoLine = {
+      getNetworks: vi.fn(async () => ({ defaultNetwork: legacyNetwork })),
+      getAccount: vi.fn(async () => ({ address: "NNeoLineAddress" })),
+      AddressToScriptHash: vi.fn(async () => ({
+        scriptHash: "2222222222222222222222222222222222222222",
+      })),
+      invoke: vi.fn(async () => ({ txid: "0xneoline" })),
+    };
+    (window as typeof window & { NEOLineN3?: unknown }).NEOLineN3 = {
+      Init: vi.fn(() => neoLine),
+    };
+
+    const wallet = useWallet();
+    await wallet.connect();
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+
+    legacyNetwork = "MainNet";
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claimReward",
+        args: [{ type: "Hash160", value: "NNeoLineAddress" }],
+      }),
+    ).rejects.toThrow(/targets Neo N3 Testnet/i);
+    expect(wallet.chainType.value).toBe("neo-n3-mainnet");
     expect(neoLine.invoke).not.toHaveBeenCalled();
   });
 

@@ -1,4 +1,9 @@
-import { useId, type ChangeEvent, type FocusEvent } from "react";
+import {
+  useId,
+  type ChangeEvent,
+  type FocusEvent,
+  type HTMLAttributes,
+} from "react";
 import "./NeoInput.scss";
 
 export interface NeoInputProps {
@@ -14,6 +19,8 @@ export interface NeoInputProps {
   min?: number;
   max?: number;
   step?: number | string;
+  inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
   /** Accessibility label for screen readers -- use when no visible label is provided */
   "aria-label"?: string;
   className?: string;
@@ -35,6 +42,8 @@ export function NeoInput({
   min,
   max,
   step,
+  inputMode,
+  pattern,
   "aria-label": ariaLabel,
   className,
   onChange,
@@ -100,6 +109,8 @@ export function NeoInput({
             min={min}
             max={max}
             step={step}
+            inputMode={inputMode}
+            pattern={pattern}
             className="neo-input__field"
           />
         )}

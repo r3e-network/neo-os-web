@@ -1,0 +1,273 @@
+{
+  "app": "profitanchor",
+  "appId": "miniapp-profitanchor",
+  "url": "http://127.0.0.1:3104/miniapps/profitanchor/index.html?network=testnet&app_id=miniapp-profitanchor",
+  "timestamp": "2026-06-01T15:39:41.265Z",
+  "walletCallCount": 3,
+  "walletCalls": [
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+          "operation": "transfer",
+          "args": [
+            {
+              "type": "Hash160",
+              "value": "0x2222222222222222222222222222222222222222"
+            },
+            {
+              "type": "Hash160",
+              "value": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0"
+            },
+            {
+              "type": "Integer",
+              "value": 2
+            },
+            {
+              "type": "String",
+              "value": "stake:miniapp-profitanchor"
+            }
+          ]
+        }
+      ],
+      "txid": "0xstake00000000000000000000000000000000000000000000000000000000001",
+      "at": "2026-06-01T15:39:39.977Z"
+    },
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+          "operation": "withdraw",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-profitanchor"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x2222222222222222222222222222222222222222"
+            },
+            {
+              "type": "Integer",
+              "value": 2
+            }
+          ]
+        }
+      ],
+      "txid": "0xredeem00000000000000000000000000000000000000000000000000000000002",
+      "at": "2026-06-01T15:39:40.110Z"
+    },
+    {
+      "type": "invoke",
+      "invocations": [
+        {
+          "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+          "operation": "claimRewards",
+          "args": [
+            {
+              "type": "String",
+              "value": "miniapp-profitanchor"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x2222222222222222222222222222222222222222"
+            }
+          ]
+        }
+      ],
+      "txid": "0xclaim00000000000000000000000000000000000000000000000000000000003",
+      "at": "2026-06-01T15:39:40.176Z"
+    }
+  ],
+  "readCallCount": 13,
+  "readCalls": [
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getUserStake",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getPendingRewards",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        },
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getCredit",
+      "args": [
+        {
+          "type": "Hash160",
+          "value": "0x2222222222222222222222222222222222222222"
+        },
+        {
+          "type": "String",
+          "value": "NEO"
+        }
+      ]
+    },
+    {
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "operation": "getAnchorStats",
+      "args": [
+        {
+          "type": "String",
+          "value": "miniapp-profitanchor"
+        }
+      ]
+    }
+  ],
+  "assertions": {
+    "transferInvoked": true,
+    "withdrawInvoked": true,
+    "claimInvoked": true,
+    "transferMemo": "stake:miniapp-profitanchor",
+    "transferAmount": 2,
+    "withdrawAppId": "miniapp-profitanchor",
+    "withdrawAmount": 2,
+    "claimAppId": "miniapp-profitanchor",
+    "historyShowsStake": true,
+    "historyShowsRedeem": true,
+    "historyShowsClaim": true,
+    "consoleWarningOrErrorCount": 0,
+    "requestFailureCount": 0,
+    "httpErrorCount": 0
+  },
+  "consoleMessages": [],
+  "requestFailures": [],
+  "httpErrors": [],
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-user-browser-after/profitanchor-after-stake-redeem-claim.png"
+}

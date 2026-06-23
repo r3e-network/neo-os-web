@@ -4,7 +4,7 @@ import {
   formatGas,
   formatHash,
   fromFixed8,
-  toFixed8,
+  parsePositiveFixed8,
 } from "@shared/utils/format";
 import { getLaunchParam } from "@shared/utils/launch-params";
 import {
@@ -260,15 +260,20 @@ export function useGasLuckyPool({
     }
   }
 
+  function parseGasAmountFixed8(value: unknown): bigint | null {
+    const fixed8 = parsePositiveFixed8(String(value ?? "0"));
+    return fixed8 ? BigInt(fixed8) : null;
+  }
+
   function validateCreateForm(form: CreatePoolForm) {
-    const total = asBigInt(toFixed8(form.totalAmount || "0"));
-    const min = asBigInt(toFixed8(form.minClaim || "0"));
-    const max = asBigInt(toFixed8(form.maxClaim || "0"));
+    const total = parseGasAmountFixed8(form.totalAmount);
+    const min = parseGasAmountFixed8(form.minClaim);
+    const max = parseGasAmountFixed8(form.maxClaim);
     const maxClaims = Math.floor(Number(form.maxClaims || 0));
     const expiryHours = Number(form.expiryHours || 0);
 
-    if (total < ONE_GAS_FIXED8) throw new Error(t("invalidTotal"));
-    if (min < ONE_GAS_FIXED8 || max > MAX_VAULT_REWARD_FIXED8 || min > max)
+    if (!total || total < ONE_GAS_FIXED8) throw new Error(t("invalidTotal"));
+    if (!min || !max || min < ONE_GAS_FIXED8 || max > MAX_VAULT_REWARD_FIXED8 || min > max)
       throw new Error(t("invalidRange"));
     if (!Number.isFinite(maxClaims) || maxClaims < 1 || maxClaims > 100)
       throw new Error(t("invalidClaimSlots"));
@@ -837,8 +842,8 @@ export function useGasLuckyPool({
   async function topUpPool(form: TopUpPoolForm = {}) {
     const id = normalizePoolId(form.poolId ?? currentPoolId.get());
     if (!id) throw new Error(t("poolIdRequired"));
-    const amount = asBigInt(toFixed8(form.amount || "0"));
-    if (amount <= 0n) throw new Error(t("invalidTopUpAmount"));
+    const amount = parseGasAmountFixed8(form.amount);
+    if (!amount || amount <= 0n) throw new Error(t("invalidTopUpAmount"));
     if (isFunding.get()) return null;
     isFunding.set(true);
     lastError.set("");

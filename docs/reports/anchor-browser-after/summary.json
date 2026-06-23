@@ -1,0 +1,241 @@
+[
+  {
+    "slug": "trustanchor",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useTrustAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1747.71875,
+      "headings": [
+        "Stake. Redeem. Claim.",
+        "Stake routing workspace",
+        "How routing is protected"
+      ],
+      "buttons": []
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-desktop.png"
+  },
+  {
+    "slug": "profitanchor",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useProfitAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions.",
+      "warning: [LiveContractView] fetchAppActivity failed for miniapp-profitanchor TimeoutError: signal timed out"
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1695.109375,
+      "headings": [
+        "Stake. Redeem. Claim.",
+        "Stake routing workspace",
+        "How routing is protected"
+      ],
+      "buttons": []
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-desktop.png"
+  },
+  {
+    "slug": "trustanchor-admin",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useTrustAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1428.703125,
+      "headings": [
+        "Move. Target. Vote."
+      ],
+      "buttons": [
+        "Submit move",
+        "Update candidate",
+        "Sync vote"
+      ]
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-admin-desktop.png"
+  },
+  {
+    "slug": "profitanchor-admin",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useProfitAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 1433.125,
+      "headings": [
+        "Move. Target. Vote."
+      ],
+      "buttons": [
+        "Submit move",
+        "Update candidate",
+        "Sync vote"
+      ]
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-admin-desktop.png"
+  },
+  {
+    "slug": "custom-anchor",
+    "viewport": "desktop",
+    "actionError": null,
+    "pageConsole": [
+      "error: [miniapp-custom-anchor] loadData error: Error: Connect wallet from the top navigation before submitting embedded dApp actions.\n    at l (http://127.0.0.1:3023/miniapps/custom-anchor/assets/platform-sdk-CTWTXCdG.js:1:29624)"
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 978,
+      "scrollWidth": 978,
+      "rootHeight": 828.9375,
+      "headings": [
+        "Ready for",
+        "Anchor routing workspace",
+        "Routing details"
+      ],
+      "buttons": []
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/custom-anchor-desktop.png"
+  },
+  {
+    "slug": "trustanchor",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useTrustAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 2403.6875,
+      "headings": [
+        "Stake. Redeem. Claim.",
+        "Stake routing workspace",
+        "How routing is protected"
+      ],
+      "buttons": []
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-mobile.png"
+  },
+  {
+    "slug": "profitanchor",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useProfitAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 2331.90625,
+      "headings": [
+        "Stake. Redeem. Claim.",
+        "Stake routing workspace",
+        "How routing is protected"
+      ],
+      "buttons": []
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-mobile.png"
+  },
+  {
+    "slug": "trustanchor-admin",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useTrustAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 2436.71875,
+      "headings": [
+        "Move. Target. Vote."
+      ],
+      "buttons": [
+        "Submit move",
+        "Update candidate",
+        "Sync vote"
+      ]
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/trustanchor-admin-mobile.png"
+  },
+  {
+    "slug": "profitanchor-admin",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [
+      "warning: [useProfitAnchor] loadStats failed: Connect wallet from the top navigation before submitting embedded dApp actions."
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 2888.96875,
+      "headings": [
+        "Move. Target. Vote."
+      ],
+      "buttons": [
+        "Submit move",
+        "Update candidate",
+        "Sync vote"
+      ]
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/profitanchor-admin-mobile.png"
+  },
+  {
+    "slug": "custom-anchor",
+    "viewport": "mobile",
+    "actionError": null,
+    "pageConsole": [
+      "error: [miniapp-custom-anchor] loadData error: Error: Connect wallet from the top navigation before submitting embedded dApp actions.\n    at l (http://127.0.0.1:3023/miniapps/custom-anchor/assets/platform-sdk-CTWTXCdG.js:1:29624)"
+    ],
+    "pageErrors": [],
+    "horizontalOverflow": false,
+    "iframeHorizontalOverflow": false,
+    "iframeLayout": {
+      "innerWidth": 362,
+      "scrollWidth": 362,
+      "rootHeight": 1651.203125,
+      "headings": [
+        "Ready for",
+        "Anchor routing workspace",
+        "Routing details"
+      ],
+      "buttons": []
+    },
+    "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/anchor-browser-after/custom-anchor-mobile.png"
+  }
+]

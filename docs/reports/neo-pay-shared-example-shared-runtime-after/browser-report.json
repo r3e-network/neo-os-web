@@ -1,0 +1,122 @@
+{
+  "baseUrl": "http://127.0.0.1:4217/miniapps/neo-pay-shared-example/index.html",
+  "mockedPostRequests": [
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4217/api/edge/os-payment-deposit"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-create"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4217/api/edge/os-payment-deposit"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-create"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    },
+    {
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:4217/api/edge/os-vesting-list"
+    }
+  ],
+  "desktop": {
+    "before": {
+      "title": "Ops stipend",
+      "recipient": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+      "amount": "1.4",
+      "duration": "7",
+      "notes": "Weekly release",
+      "createEnabled": true
+    },
+    "preset": {
+      "title": "Governance vesting stream",
+      "amount": "1",
+      "duration": "90",
+      "token": "NEO",
+      "notes": "Governance vesting release"
+    },
+    "cleared": {
+      "title": "",
+      "recipient": "",
+      "amount": "",
+      "duration": "",
+      "buttonDisabled": true
+    },
+    "afterClick": {
+      "createEnabled": true,
+      "readyTextVisible": true,
+      "previewTotalVisible": true,
+      "previewRateVisible": true,
+      "routeVisible": true
+    },
+    "overflow": 0,
+    "textOverlapCandidates": []
+  },
+  "mobile": {
+    "before": {
+      "title": "Ops stipend",
+      "recipient": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+      "amount": "1.4",
+      "duration": "7",
+      "notes": "Weekly release",
+      "createEnabled": true
+    },
+    "preset": {
+      "title": "Governance vesting stream",
+      "amount": "1",
+      "duration": "90",
+      "token": "NEO",
+      "notes": "Governance vesting release"
+    },
+    "cleared": {
+      "title": "",
+      "recipient": "",
+      "amount": "",
+      "duration": "",
+      "buttonDisabled": true
+    },
+    "afterClick": {
+      "createEnabled": true,
+      "readyTextVisible": true,
+      "previewTotalVisible": true,
+      "previewRateVisible": true,
+      "routeVisible": true
+    },
+    "overflow": 0,
+    "textOverlapCandidates": []
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": []
+}

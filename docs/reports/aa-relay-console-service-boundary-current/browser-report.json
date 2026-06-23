@@ -1,0 +1,230 @@
+{
+  "generatedAt": "2026-06-01T19:03:42.033Z",
+  "url": "http://127.0.0.1:3024/miniapps/aa-relay-console?network=testnet",
+  "initial": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Relay Console\nUtility\nBeta\nCONTRACT\nRelay payload console\n\nBuild relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.\n\nAA Relay Console\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACCOUNT ABSTRACTION\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nPrepare and validate sponsored account-abstraction relay packages before submission.\n\nAPP ID:\nminiapp-aa-relay-console\nRUNTIME:\nIntegrated dApp runtime\nCONTRACT:\n0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2\nDOMAIN:\nNot configured for this network\n\nEvents, notifications, and actions on this page are scoped to Neo N3 Testnet. Testnet and mainnet records are queried separately.\n\nActivity and notices\nLive\nNo verified activity yet.\nNOTICES\nNo notices published for this MiniApp.\nOverview\nReviews\n\nAA Relay Console keeps relay package preparation, sponsor checks, and smart wallet context in one guarded workspace.\n\nRuntime\nMainnet domain\ncore.smartwallet.neo\nMode\nRelay package preparation\nTransactions\nWallet guarded\nPermissions\nAa\n\nACTION CONSOLE\n\nAA Relay Console\nAPI Ready\n\nCheck sponsor coverage, request paymaster support, then submit a relay-ready AA payload.\n\nCheck Sponsorship\nRequest Sponsorship\nSubmit Relay Payload\n\nCheck whether this AA address is eligible for the selected paymaster scope.\n\nAA Address\nPaymaster dApp ID\nCheck Sponsorship\nOneGate QR\n\nNeo N3 Testnet\n\nminiapp-aa-relay-console\n\nOpen link\nThis action is handled by the platform API for Neo N3 Testnet. It checks sponsorship or submits the relay payload without opening a browser wallet prompt.\nTechnical details",
+  "buttons": [
+    {
+      "i": 0,
+      "text": "",
+      "aria": "Notifications",
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 1,
+      "text": "EN",
+      "aria": "Switch Language",
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 2,
+      "text": "Log In / Sign UpLog In",
+      "aria": "Log In / Sign Up",
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 3,
+      "text": "",
+      "aria": "Toggle navigation menu",
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 4,
+      "text": "",
+      "aria": "Go back",
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 5,
+      "text": "Refresh",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 6,
+      "text": "Overview",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 7,
+      "text": "Reviews",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 8,
+      "text": "Check Sponsorship",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 9,
+      "text": "Request Sponsorship",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 10,
+      "text": "Submit Relay Payload",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": null
+    },
+    {
+      "i": 11,
+      "text": "Check Sponsorship",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": "operation-submit-button"
+    },
+    {
+      "i": 12,
+      "text": "Action ConsoleCheck SponsorshipOpen",
+      "aria": null,
+      "disabled": false,
+      "title": null,
+      "testid": "mobile-action-open"
+    }
+  ],
+  "inputs": [
+    {
+      "i": 0,
+      "tag": "INPUT",
+      "type": "search",
+      "label": "Search",
+      "placeholder": "Search",
+      "valueLen": 0
+    },
+    {
+      "i": 1,
+      "tag": "INPUT",
+      "type": "text",
+      "label": null,
+      "placeholder": "Enter aa address",
+      "valueLen": 0
+    },
+    {
+      "i": 2,
+      "tag": "INPUT",
+      "type": "text",
+      "label": null,
+      "placeholder": "Enter paymaster dapp id",
+      "valueLen": 24
+    }
+  ],
+  "afterHostSubmit": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nLog In / Sign Up\nAA Relay Console\nUtility\nBeta\nCONTRACT\nRelay payload console\n\nBuild relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.\n\nAA Relay Console\nNew window\nActivity and details\nWorkflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.\nSECONDARY\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACCOUNT ABSTRACTION\nBETA\nUTILITY\nNeo N3 Testnet\nWhat this MiniApp does\n\nPrepare and validate sponsored account-abstraction relay packages before submission.\n\nAPP ID:\nminiapp-aa-relay-console\nRUNTIME:\nIntegrated dApp runtime\nCONTRACT:\n0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2\nDOMAIN:\nNot configured for this network\n\nEvents, notifications, and actions on this page are scoped to Neo N3 Testnet. Testnet and mainnet records are queried separately.\n\nActivity and notices\nLive\nNo verified activity yet.\nNOTICES\nNo notices published for this MiniApp.\nOverview\nReviews\n\nAA Relay Console keeps relay package preparation, sponsor checks, and smart wallet context in one guarded workspace.\n\nRuntime\nMainnet domain\ncore.smartwallet.neo\nMode\nRelay package preparation\nTransactions\nWallet guarded\nPermissions\nAa\n\nACTION CONSOLE\n\nAA Relay Console\nAPI Ready\n\nCheck sponsor coverage, request paymaster support, then submit a relay-ready AA payload.\n\nCheck Sponsorship\nRequest Sponsorship\nSubmit Relay Payload\n\nSubmit a relay-ready AA payload through the platform relay proxy.\n\nAA Address\nPaymaster dApp ID\nRelay Payload JSON\nSubmit Relay Payload\nOneGate QR\n\nNeo N3 Testnet\n\nminiapp-aa-relay-console\n\nOpen link\nThis action is handled by the platform API for Neo N3 Testnet. It checks sponsorship or submits the relay payload without opening a browser wallet prompt.\nTechnical details",
+  "frameText": "Sponsored relay desk for AA payloads\n\nCheck sponsorship, request paymaster support, and submit relay-ready payloads from one guarded operator surface.\n\nNetwork\ntestnet\nRelay Endpoint\n/api/aa/relay\nPaymaster\nunset\nSponsor Preflight\nAA Core\n0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2\nAA Address\nRequired before sponsorship checks or relay submission.\n\nEnter an AA address before checking or requesting sponsorship.\n\nCheck Sponsorship\nRequest Sponsorship\n01\nCheck sponsorship\n\nResolve whether the AA account can use paymaster coverage.\n\n02\nRequest paymaster\n\nAsk for sponsorship only after the target AA account is known.\n\n03\nSubmit relay\n\nSend validated JSON payloads through the shared relay endpoint.\n\nRelay Runtime\nSponsorship state\nN/A\nAA\nN/A\nPaymaster\nunset\nSponsor\n{}\nRelay\n{}\nPM\nSubmission guardrails\n\nThe console keeps dapp id optional, but blocks empty AA addresses and invalid JSON before a relayed write.\n\nRelay Payload\nDraft AA\nN/A\n\nEnter an AA address and keep the payload JSON valid before submitting.\n\nPaymaster Dapp ID\nOptional paymaster scope used by the relayer policy.\nSponsor Amount\nGAS amount requested from the paymaster for this AA scope.\nRelay Payload JSON\nMust be valid JSON before Submit Relay Payload is enabled.\nSubmit Relay Payload",
+  "frameButtons": [
+    {
+      "i": 0,
+      "text": "Check Sponsorship",
+      "disabled": true,
+      "aria": "Check Sponsorship"
+    },
+    {
+      "i": 1,
+      "text": "Request Sponsorship",
+      "disabled": true,
+      "aria": "Request Sponsorship"
+    },
+    {
+      "i": 2,
+      "text": "Submit Relay Payload",
+      "disabled": true,
+      "aria": "Submit Relay Payload"
+    }
+  ],
+  "apiCalls": [
+    {
+      "url": "http://127.0.0.1:3024/api/activity/events?app_id=miniapp-aa-relay-console&network=testnet&limit=50",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "events": [],
+        "total": 0
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3024/api/activity/transactions?app_id=miniapp-aa-relay-console&network=testnet&limit=50",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "transactions": [],
+        "total": 0,
+        "network": "testnet"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3024/api/auth/profile",
+      "status": 204,
+      "ok": true,
+      "body": null
+    },
+    {
+      "url": "http://127.0.0.1:3024/api/activity/events?app_id=miniapp-aa-relay-console&network=testnet&limit=50",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "events": [],
+        "total": 0
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3024/api/activity/transactions?app_id=miniapp-aa-relay-console&network=testnet&limit=50",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "transactions": [],
+        "total": 0,
+        "network": "testnet"
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3024/api/activity/events?app_id=miniapp-aa-relay-console&network=testnet&limit=50",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "events": [],
+        "total": 0
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3024/api/activity/transactions?app_id=miniapp-aa-relay-console&network=testnet&limit=50",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "transactions": [],
+        "total": 0,
+        "network": "testnet"
+      }
+    }
+  ],
+  "consoleMessages": [],
+  "pageErrors": [],
+  "screenshots": {
+    "loaded": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-relay-console-service-boundary-current/loaded.png",
+    "afterHostSubmit": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/aa-relay-console-service-boundary-current/after-host-submit.png"
+  }
+}

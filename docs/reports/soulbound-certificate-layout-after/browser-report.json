@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-06-01T20:16:45.037Z",
+  "target": "Soulbound Certificate embedded issuer/verifier layout after profile height fix",
+  "passed": true,
+  "results": [
+    {
+      "scenario": "desktop",
+      "url": "http://127.0.0.1:3029/miniapps/soulbound-certificate?network=testnet",
+      "iframe": {
+        "src": "/miniapps/soulbound-certificate/index.html?network=testnet&source=embed",
+        "className": "block h-[3000px] sm:h-[2200px] lg:h-[1600px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 18,
+          "y": 131,
+          "width": 1052,
+          "height": 1600
+        }
+      },
+      "frameMetrics": {
+        "bodyScrollHeight": 1600,
+        "documentScrollHeight": 1600,
+        "innerHeight": 1600,
+        "textLength": 974,
+        "hasCreateTemplate": true,
+        "hasIssueCertificate": true,
+        "hasVerify": true,
+        "hasMyCertificates": true,
+        "buttons": [
+          "Connect Wallet",
+          "Create Template",
+          "Issue",
+          "Refresh",
+          "Connect Wallet",
+          "Lookup",
+          "Revoke"
+        ],
+        "sections": [
+          "Soulbound Certificate"
+        ]
+      },
+      "hostMetrics": {
+        "pageHeight": 2738,
+        "activityY": 1757,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "issuerWorkflowVisible": true,
+        "verifierWorkflowVisible": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true,
+        "noErrorOverlay": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/soulbound-certificate-layout-after/desktop-after.png"
+    },
+    {
+      "scenario": "mobile",
+      "url": "http://127.0.0.1:3029/miniapps/soulbound-certificate?network=testnet",
+      "iframe": {
+        "src": "/miniapps/soulbound-certificate/index.html?network=testnet&source=embed",
+        "className": "block h-[3000px] sm:h-[2200px] lg:h-[1600px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 14,
+          "y": 123,
+          "width": 362,
+          "height": 3000
+        }
+      },
+      "frameMetrics": {
+        "bodyScrollHeight": 3000,
+        "documentScrollHeight": 3000,
+        "innerHeight": 3000,
+        "textLength": 974,
+        "hasCreateTemplate": true,
+        "hasIssueCertificate": true,
+        "hasVerify": true,
+        "hasMyCertificates": true,
+        "buttons": [
+          "Connect Wallet",
+          "Create Template",
+          "Issue",
+          "Refresh",
+          "Connect Wallet",
+          "Lookup",
+          "Revoke"
+        ],
+        "sections": [
+          "Soulbound Certificate"
+        ]
+      },
+      "hostMetrics": {
+        "pageHeight": 4695,
+        "activityY": 3149,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "issuerWorkflowVisible": true,
+        "verifierWorkflowVisible": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true,
+        "noErrorOverlay": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/soulbound-certificate-layout-after/mobile-after.png"
+    }
+  ]
+}

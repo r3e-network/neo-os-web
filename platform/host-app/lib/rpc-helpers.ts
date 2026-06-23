@@ -38,6 +38,29 @@ export function getRpcNetwork(): NeoNetwork {
   return getTargetNetwork();
 }
 
+function getNetworkFromBrowserUrl(): NeoNetwork | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = new URL(window.location.href).searchParams
+      .get("network")
+      ?.trim()
+      .toLowerCase();
+    if (raw === "main" || raw === "mainnet" || raw === "neo-n3-mainnet") {
+      return "mainnet";
+    }
+    if (raw === "test" || raw === "testnet" || raw === "neo-n3-testnet") {
+      return "testnet";
+    }
+  } catch (_e: unknown) {
+    return null;
+  }
+  return null;
+}
+
+export function getActiveRpcNetwork(): NeoNetwork {
+  return getNetworkFromBrowserUrl() ?? getTargetNetwork();
+}
+
 // Apps with their own deployed smart contracts (atomic GAS handling) resolve
 // straight from the shared, drift-guarded registry (generated from each app's
 // neo-manifest.json) via the shared resolver. Sourcing from the same resolver

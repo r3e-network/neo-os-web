@@ -1,0 +1,274 @@
+{
+  "generatedAt": "2026-06-01T18:41:16.022Z",
+  "pageUrl": "http://127.0.0.1:3022/miniapps/daily-checkin?network=testnet",
+  "appId": "miniapp-dailycheckin",
+  "network": "testnet",
+  "walletAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "route": "/miniapps/daily-checkin?network=testnet",
+  "operation": "Embedded Daily Check-in -> OS checkin intent -> host wallet bridge -> WIF wallet relay",
+  "walletConnected": true,
+  "txid": "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4",
+  "sendRawResult": {
+    "method": "sendrawtransaction",
+    "status": 200,
+    "ok": true,
+    "summary": {
+      "id": 1,
+      "jsonrpc": "2.0",
+      "result": {
+        "hash": "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4"
+      }
+    }
+  },
+  "txLookup": {
+    "source": "https://testnet1.neo.coz.io:443",
+    "method": "getrawtransaction",
+    "status": 200,
+    "confirmed": true,
+    "hash": "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4",
+    "vmstate": "HALT",
+    "confirmations": 20,
+    "blockhash": "0x90bd4e1b91912604787b07a6181d3f015004977322ad8232a6452ebf5618d502",
+    "blocktime": 1780339276510,
+    "sender": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+    "sysfee": "1468937",
+    "netfee": "38324",
+    "validuntilblock": 16529669,
+    "signerCount": 1,
+    "witnessCount": 1
+  },
+  "rpcCalls": [
+    {
+      "method": "isPaused",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "296457",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "isPaused",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "296457",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "getPlatformStats",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "460949",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "getPlatformStats",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "460949",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "invokefunction",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "67611",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "invokefunction",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "67611",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "getblockcount",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "resultType": "number"
+      }
+    },
+    {
+      "method": "getversion",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "network": 894710606
+      }
+    },
+    {
+      "method": "invokefunction",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "state": "HALT",
+        "exception": null,
+        "gasconsumed": "1468937",
+        "stackCount": 1
+      }
+    },
+    {
+      "method": "calculatenetworkfee",
+      "status": 200,
+      "ok": true,
+      "summary": {}
+    },
+    {
+      "method": "sendrawtransaction",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "id": 1,
+        "jsonrpc": "2.0",
+        "result": {
+          "hash": "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4"
+        }
+      }
+    }
+  ],
+  "edgeCalls": [
+    {
+      "url": "http://127.0.0.1:3022/api/edge/os-checkin-streak",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "ok": true,
+        "data": {
+          "currentStreak": 0,
+          "highestStreak": 0,
+          "totalCheckins": 0,
+          "lastCheckinTime": 0,
+          "unclaimedRewards": "0",
+          "totalClaimed": "0"
+        },
+        "meta": {
+          "state": "wallet_required"
+        }
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3022/api/edge/os-checkin-checkin",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "ok": true,
+        "data": {
+          "intent": "checkin",
+          "invocation": {
+            "contract_hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "method": "transfer",
+            "params": [
+              {
+                "type": "Hash160",
+                "value": "SENDER"
+              },
+              {
+                "type": "Hash160",
+                "value": "0xaba84da240a55410d284a656fc8dae044e6ec1a5"
+              },
+              {
+                "type": "Integer",
+                "value": "100000"
+              },
+              {
+                "type": "String",
+                "value": "miniapp-dailycheckin:checkin"
+              }
+            ]
+          }
+        },
+        "meta": {
+          "state": "local_wallet_intent"
+        }
+      }
+    },
+    {
+      "url": "http://127.0.0.1:3022/api/edge/os-checkin-streak",
+      "status": 200,
+      "ok": true,
+      "body": {
+        "ok": true,
+        "data": {
+          "currentStreak": 0,
+          "highestStreak": 0,
+          "totalCheckins": 0,
+          "lastCheckinTime": 0,
+          "unclaimedRewards": "0",
+          "totalClaimed": "0"
+        },
+        "meta": {
+          "state": "wallet_required"
+        }
+      }
+    }
+  ],
+  "failedRequests": [
+    {
+      "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3022/api/auth/profile",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "consoleMessages": [
+    "error: Failed to load resource: the server responded with a status of 400 (Bad Request)"
+  ],
+  "pageErrors": [],
+  "finalFrameText": "Check-in successful!\n1\nDAILY CHECK-IN\n1 Day Streak\nEarn GAS by checking in daily\nChecked in today!\nBest: 1 Days\n1/7 DAYS\n6 days to reward\n✓\nD1\n○\nD2\n○\nD3\n○\nD4\n○\nD5\n○\nD6\n○\nD7\n18:41:15\nUTC\n05:18:45\nNEXT CHECK-IN\nCheck-in recorded\nNEXT REWARD\nDay 7\n+1 GAS\nCHECK-IN FEE\n0.001 GAS\nWait for Next\nClaim Rewards (0 GAS)\nRefresh Status\nYOUR STATS\n1\nTOTAL CHECK-INS\n1 Days\nCURRENT STREAK\n1 Days\nHIGHEST STREAK\nYOUR REWARDS\n0\nUNCLAIMED\n0\nTOTAL CLAIMED\nMILESTONES\n◉\nDay 7\n+1 GAS\n(1 total)\n◉\nDay 14\n+2 GAS\n(3 total)\nGLOBAL STATS\n1\nTOTAL CHECK-INS\n1\nTOTAL USERS\n0\nTOTAL REWARDED\nRECENT CHECK-INS\n2026-06-01 18:41:14\n1 Day Streak\n0 GAS\nREQUEST AND RESULT EVIDENCE\nLATEST REQUEST\n{\n  \"action\": \"doCheckIn\",\n  \"status\": \"pending\",\n  \"summary\": \"Submitting check-in\",\n  \"at\": \"2026-06-01T18:41:12.689Z\",\n  \"payload\": {\n    \"nextStreak\": 1,\n    \"checkInFee\": \"0.001\"\n  }\n}\nLATEST RESULT\n{\n  \"action\": \"doCheckIn\",\n  \"status\": \"success\",\n  \"summary\": \"Check-in recorded\",\n  \"at\": \"2026-06-01T18:41:14.615Z\",\n  \"result\": {\n    \"txid\": \"0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4\",\n    \"result\": {\n      \"intent\": \"checkin\",\n      \"txid\": \"0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4\",\n      \"contract\": \"0xd2a4cff31913016155e38e474a2c06d08be276cf\",\n      \"operation\": \"transfer\"\n    },\n    \"currentStreak\": 1\n  },\n  \"txid\": \"0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4\"\n}",
+  "finalHostText": "Skip to main content\nSkip to content\nYiwu MiniApps\nMiniApps\nDocs\nDeveloper\nNotifications\n\nAll caught up!\n\nYou have no new notifications.\n\nEN\nNR3E4D...ih32\nDEVELOPER KEY\nDaily Check-in\nGaming\nOnline\nFLAGSHIP\nCONTRACT\nDaily streak board\n\nOne daily check-in keeps the streak alive. The seventh day unlocks the bigger reward.\n\nDaily Check-in\nNew window\nActivity and details\nRecent events, raw readings, and diagnostic context are available when needed.\nLive state\nTESTNET\nRefresh\nTECHNICAL CHAIN DETAILS\nACTIVE\nGAMING\nNeo N3 Testnet\nWhat this MiniApp does\n\nCheck in every day to earn GAS rewards with streak bonuses. 7-day streak earns 1 GAS, 14-day streak earns 2 GAS, plus loyalty NFT badges.\n\nAPP ID:\nminiapp-dailycheckin\nRUNTIME:\nIntegrated dApp runtime\nCONTRACT:\n0xaba84da240a55410d284a656fc8dae044e6ec1a5\nDOMAIN:\nNot configured for this network\n\nEvents, notifications, and actions on this page are scoped to Neo N3 Testnet. Testnet and mainnet records are queried separately.\n\nActivity and notices\nLive\nNo verified activity yet.\nNOTICES\nNo notices published for this MiniApp.\nOverview\nReviews\nForum\nNews\nPermissions\nPayments\nDocumentation\nView Documentation\n\nACTION CONSOLE\n\nDaily Check-in\nWallet Ready\n\nOne tap per UTC day to maintain your streak.\n\nCheck In\nClaim Rewards\nCheck In\nOneGate QR\n\nNeo N3 Testnet\n\nminiapp-dailycheckin\n\nOpen link\nNR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32\n\nTarget: Neo N3 Testnet\n\nWallet: Neo N3 Testnet\n\nTechnical details",
+  "screenshots": {
+    "connected": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/daily-checkin-real-wif-browser-after/connected.png",
+    "intentConfirmation": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/daily-checkin-real-wif-browser-after/intent-confirmation.png",
+    "afterSubmit": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/daily-checkin-real-wif-browser-after/after-submit.png"
+  },
+  "hostApiTxLookupAttempt": {
+    "status": 400,
+    "body": {
+      "error": "RPC method not allowed"
+    }
+  },
+  "browserValidation": {
+    "noPageErrors": true,
+    "noCorsFailures": true,
+    "expectedHostApiLookup400": true,
+    "nonBlockingAbortedRequests": 3
+  },
+  "notes": [
+    "WIF was used only in browser memory by the direct developer wallet form and is not stored in this report.",
+    "The host /api/rpc/neo whitelist intentionally rejects getrawtransaction; external public RPC was used for post-submit confirmation.",
+    "Font/profile request aborts happened during browser teardown and did not affect check-in submission or UI success state."
+  ]
+}

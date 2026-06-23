@@ -1,0 +1,113 @@
+{
+  "checkedAt": "2026-06-02T02:15:01.411Z",
+  "url": "http://127.0.0.1:4229/miniapps/graveyard/index.html",
+  "screenshots": [
+    "desktop-ready.png",
+    "desktop-after-forget.png",
+    "mobile-ready.png"
+  ],
+  "desktopMetrics": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "bodyScrollWidth": 1440,
+    "bodyClientWidth": 1440
+  },
+  "mobileMetrics": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "bodyScrollWidth": 390,
+    "bodyClientWidth": 390
+  },
+  "endpoints": [
+    "os-storage-get",
+    "os-storage-list",
+    "os-nft-burn",
+    "os-badge-award",
+    "os-storage-get",
+    "os-storage-list",
+    "os-storage-set",
+    "os-storage-get",
+    "os-storage-list"
+  ],
+  "calls": [
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "key": "stats"
+      }
+    },
+    {
+      "endpoint": "os-storage-list",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "prefix": "history:",
+        "limit": 20
+      }
+    },
+    {
+      "endpoint": "os-nft-burn",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "tokenId": "0x1234567890abcdef1234567890abcdef12345678"
+      }
+    },
+    {
+      "endpoint": "os-badge-award",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "badgeId": "memory-buried",
+        "user": ""
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "key": "stats"
+      }
+    },
+    {
+      "endpoint": "os-storage-list",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "prefix": "history:",
+        "limit": 20
+      }
+    },
+    {
+      "endpoint": "os-storage-set",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "key": "forget:memory-1",
+        "value": {
+          "memoryId": "memory-1",
+          "action": "forget"
+        }
+      }
+    },
+    {
+      "endpoint": "os-storage-get",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "key": "stats"
+      }
+    },
+    {
+      "endpoint": "os-storage-list",
+      "body": {
+        "appId": "miniapp-graveyard",
+        "prefix": "history:",
+        "limit": 20
+      }
+    }
+  ],
+  "assertions": [
+    "Short content hash rendered validation copy and disabled Review burial",
+    "Valid content hash rendered the burial review panel and enabled confirmation",
+    "Review burial opened the confirmation state and Bury on-chain reached os-nft-burn",
+    "Refresh Records reached os-storage-list",
+    "Forget reached os-storage-set and updated a history record to Forgotten",
+    "Desktop and mobile layouts had no horizontal overflow, raw OS boundary errors, undefined, or NaN text"
+  ]
+}

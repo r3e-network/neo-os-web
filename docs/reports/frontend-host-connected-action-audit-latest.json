@@ -1,0 +1,5222 @@
+{
+  "generatedAt": "2026-05-31T17:41:28.255Z",
+  "summary": {
+    "checked": 60,
+    "phases": {
+      "clicked": 58,
+      "no-submit": 1,
+      "submit-disabled": 1
+    },
+    "invokeApps": [
+      {
+        "slug": "daily-checkin",
+        "submit": "Check In",
+        "invokes": [
+          {
+            "hash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+            "operation": "checkIn",
+            "args": [
+              {
+                "type": "Hash160",
+                "value": "0x51115f338edc5e0320a3d5c76fc17add0ae60408"
+              }
+            ]
+          }
+        ],
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ]
+      },
+      {
+        "slug": "event-ticket-pass",
+        "submit": "Create Event",
+        "invokes": [
+          {
+            "hash": "0x90bad472146aab97de71498e8d736c3124e7c82b",
+            "operation": "createEvent",
+            "args": []
+          }
+        ],
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ]
+      },
+      {
+        "slug": "recovery-guardian",
+        "submit": "Open Guardian Setup",
+        "invokes": [
+          {
+            "hash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
+            "operation": "openGuardianSetup",
+            "args": []
+          }
+        ],
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ]
+      },
+      {
+        "slug": "unbreakable-vault",
+        "submit": "Create Vault",
+        "invokes": [
+          {
+            "hash": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+            "operation": "createVault",
+            "args": []
+          }
+        ],
+        "feedback": [
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ],
+        "targetedEvidence": "docs/reports/unbreakable-vault-contract-hash-validation.json"
+      }
+    ],
+    "signOnlyApps": [
+      {
+        "slug": "aa-account-lab",
+        "submit": "Prepare account registration",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "aa-market-hub",
+        "submit": "Create listing",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "aa-permissions-lab",
+        "submit": "Prepare permission update",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "aa-relay-console",
+        "submit": "Build relay package",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "aa-session-key-lab",
+        "submit": "Activate session key",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "asset-factory",
+        "submit": "Prepare NEP-17 launch",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "automation-copilot",
+        "submit": "Price Alert",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Pair is required."
+        ]
+      },
+      {
+        "slug": "breakup-contract",
+        "submit": "Prepare agreement",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "burn-league",
+        "submit": "Submit burn entry",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "council-governance",
+        "submit": "Create Proposal",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Title is required."
+        ]
+      },
+      {
+        "slug": "custom-anchor",
+        "submit": "Register Anchor",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Anchor slug is required."
+        ]
+      },
+      {
+        "slug": "dev-tipping",
+        "submit": "Send tip",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Developer Tipping is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "dice-game",
+        "submit": "Fund Stake",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Stake credit is required."
+        ]
+      },
+      {
+        "slug": "explorer",
+        "submit": "Search Chain",
+        "feedback": [
+          "Query Neo N3 blocks, transactions, addresses, and contracts through live RPC/indexer endpoints. Missing indexer data is shown as unavailable, never synthesized.",
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Search query is required.",
+          "Block Explorer is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "flashloan",
+        "submit": "Prepare flash route",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "fogplay",
+        "submit": "Fund Wager",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "GAS credit is required."
+        ]
+      },
+      {
+        "slug": "forever-album",
+        "feedback": [
+          "The OS storage intent is submitted by the wallet.",
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "gas-lucky-pool",
+        "submit": "Claim Reward",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "OneGate QR required"
+        ]
+      },
+      {
+        "slug": "gas-sponsor",
+        "submit": "Create Pool",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Total Budget (GAS fractions) is required."
+        ]
+      },
+      {
+        "slug": "gasbox",
+        "submit": "Draw Capsule",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "gov-merc",
+        "submit": "Delegate voting power",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Gov Merc is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "graveyard",
+        "submit": "Bury record",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Graveyard is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "last-survivor",
+        "submit": "Fund Keys",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "GAS credit is required."
+        ]
+      },
+      {
+        "slug": "memorial-shrine",
+        "submit": "Anchor tribute",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "milestone-escrow",
+        "submit": "Fund escrow",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "miniapp-factory",
+        "submit": "Prepare MiniApp launch",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "neo-convert",
+        "submit": "Convert value",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Neo Convert is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-multisig",
+        "submit": "Create multisig request",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Neo Multisig is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-ns",
+        "submit": "Register domain",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "neo-pay",
+        "submit": "Claim Stream",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Stream ID is required."
+        ]
+      },
+      {
+        "slug": "neo-pay-shared-example",
+        "submit": "Create Stream",
+        "feedback": [
+          "Not configured for this network",
+          "neopay:testnet:default",
+          "Wallet Ready",
+          "Beneficiary Address is required."
+        ]
+      },
+      {
+        "slug": "neo-sign-anything",
+        "submit": "Sign message",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Neo Sign Anything is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-swap",
+        "submit": "Preview swap route",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "neo-treasury",
+        "submit": "Refresh treasury",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Neo Treasury is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-x-bridge",
+        "submit": "Bridge Asset",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Amount is required."
+        ]
+      },
+      {
+        "slug": "neodid-passport",
+        "submit": "Prepare credential proof",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "nft-factory",
+        "submit": "Prepare NEP-11 collection",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "on-chain-tarot",
+        "submit": "Draw Reading",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "oracle-compute-lab",
+        "submit": "Seal Compute Input",
+        "feedback": [
+          "Morpheus public key required",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Workflow input is required."
+        ]
+      },
+      {
+        "slug": "oracle-http-console",
+        "submit": "Build Request",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Endpoint is required."
+        ]
+      },
+      {
+        "slug": "oracle-neodid-console",
+        "submit": "Seal DID Request",
+        "feedback": [
+          "Morpheus public key required",
+          "Not configured for this network",
+          "Wallet Ready",
+          "DID subject is required."
+        ]
+      },
+      {
+        "slug": "oracle-price-console",
+        "submit": "Build Feed Request",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "oracle-seal-console",
+        "submit": "Seal Payload",
+        "feedback": [
+          "Morpheus public key required",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Payload is required."
+        ]
+      },
+      {
+        "slug": "oracle-vrf-console",
+        "submit": "Build VRF Request",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "private-transfer",
+        "submit": "Seal Transfer",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Recipient is required."
+        ]
+      },
+      {
+        "slug": "profitanchor",
+        "submit": "Stake NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "NEO amount is required."
+        ]
+      },
+      {
+        "slug": "profitanchor-admin",
+        "submit": "Move NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "From agent is required."
+        ]
+      },
+      {
+        "slug": "quadratic-funding",
+        "submit": "Fund Project",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Contribution is required."
+        ]
+      },
+      {
+        "slug": "red-envelope",
+        "submit": "Claim",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Envelope ID is required."
+        ]
+      },
+      {
+        "slug": "self-loan",
+        "submit": "Repay Loan",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Loan ID is required."
+        ]
+      },
+      {
+        "slug": "soulbound-certificate",
+        "submit": "Issue Certificate",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Recipient is required."
+        ]
+      },
+      {
+        "slug": "time-capsule",
+        "submit": "Seal capsule",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Time Capsule is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "timestamp-proof",
+        "submit": "Anchor timestamp",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "trustanchor",
+        "submit": "Stake NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "NEO amount is required."
+        ]
+      },
+      {
+        "slug": "trustanchor-admin",
+        "submit": "Move NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "From agent is required."
+        ]
+      },
+      {
+        "slug": "wallet-health",
+        "submit": "Run health check",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      }
+    ],
+    "disabledApps": [
+      {
+        "slug": "gas-lucky-pool",
+        "submit": {
+          "text": "Claim Reward",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Open this reward from a OneGate QR code."
+        },
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "OneGate QR required"
+        ]
+      }
+    ],
+    "clickErrors": [],
+    "pageErrorApps": [],
+    "badResponseApps": [],
+    "overflowApps": [],
+    "errorFeedbackApps": [
+      {
+        "slug": "aa-account-lab",
+        "submit": "Prepare account registration",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "aa-market-hub",
+        "submit": "Create listing",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "aa-permissions-lab",
+        "submit": "Prepare permission update",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "aa-relay-console",
+        "submit": "Build relay package",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "aa-session-key-lab",
+        "submit": "Activate session key",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "asset-factory",
+        "submit": "Prepare NEP-17 launch",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "automation-copilot",
+        "submit": "Price Alert",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Pair is required."
+        ]
+      },
+      {
+        "slug": "breakup-contract",
+        "submit": "Prepare agreement",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "burn-league",
+        "submit": "Submit burn entry",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "council-governance",
+        "submit": "Create Proposal",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Title is required."
+        ]
+      },
+      {
+        "slug": "custom-anchor",
+        "submit": "Register Anchor",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Anchor slug is required."
+        ]
+      },
+      {
+        "slug": "daily-checkin",
+        "submit": "Check In",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ]
+      },
+      {
+        "slug": "dev-tipping",
+        "submit": "Send tip",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Developer Tipping is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "dice-game",
+        "submit": "Fund Stake",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Stake credit is required."
+        ]
+      },
+      {
+        "slug": "event-ticket-pass",
+        "submit": "Create Event",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ]
+      },
+      {
+        "slug": "explorer",
+        "submit": "Search Chain",
+        "feedback": [
+          "Query Neo N3 blocks, transactions, addresses, and contracts through live RPC/indexer endpoints. Missing indexer data is shown as unavailable, never synthesized.",
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Search query is required.",
+          "Block Explorer is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "flashloan",
+        "submit": "Prepare flash route",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "fogplay",
+        "submit": "Fund Wager",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "GAS credit is required."
+        ]
+      },
+      {
+        "slug": "forever-album",
+        "feedback": [
+          "The OS storage intent is submitted by the wallet.",
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "gas-lucky-pool",
+        "submit": "Claim Reward",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "OneGate QR required"
+        ]
+      },
+      {
+        "slug": "gas-sponsor",
+        "submit": "Create Pool",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Total Budget (GAS fractions) is required."
+        ]
+      },
+      {
+        "slug": "gasbox",
+        "submit": "Draw Capsule",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "gov-merc",
+        "submit": "Delegate voting power",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Gov Merc is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "graveyard",
+        "submit": "Bury record",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Graveyard is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "last-survivor",
+        "submit": "Fund Keys",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "GAS credit is required."
+        ]
+      },
+      {
+        "slug": "memorial-shrine",
+        "submit": "Anchor tribute",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "milestone-escrow",
+        "submit": "Fund escrow",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "miniapp-factory",
+        "submit": "Prepare MiniApp launch",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "neo-convert",
+        "submit": "Convert value",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Neo Convert is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-multisig",
+        "submit": "Create multisig request",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Neo Multisig is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-ns",
+        "submit": "Register domain",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "neo-pay",
+        "submit": "Claim Stream",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Stream ID is required."
+        ]
+      },
+      {
+        "slug": "neo-pay-shared-example",
+        "submit": "Create Stream",
+        "feedback": [
+          "Not configured for this network",
+          "neopay:testnet:default",
+          "Wallet Ready",
+          "Beneficiary Address is required."
+        ]
+      },
+      {
+        "slug": "neo-sign-anything",
+        "submit": "Sign message",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Neo Sign Anything is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-swap",
+        "submit": "Preview swap route",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "neo-treasury",
+        "submit": "Refresh treasury",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied",
+          "Neo Treasury is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "neo-x-bridge",
+        "submit": "Bridge Asset",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Amount is required."
+        ]
+      },
+      {
+        "slug": "neodid-passport",
+        "submit": "Prepare credential proof",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "nft-factory",
+        "submit": "Prepare NEP-11 collection",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "on-chain-tarot",
+        "submit": "Draw Reading",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "oracle-compute-lab",
+        "submit": "Seal Compute Input",
+        "feedback": [
+          "Morpheus public key required",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Workflow input is required."
+        ]
+      },
+      {
+        "slug": "oracle-http-console",
+        "submit": "Build Request",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Endpoint is required."
+        ]
+      },
+      {
+        "slug": "oracle-neodid-console",
+        "submit": "Seal DID Request",
+        "feedback": [
+          "Morpheus public key required",
+          "Not configured for this network",
+          "Wallet Ready",
+          "DID subject is required."
+        ]
+      },
+      {
+        "slug": "oracle-price-console",
+        "submit": "Build Feed Request",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "oracle-seal-console",
+        "submit": "Seal Payload",
+        "feedback": [
+          "Morpheus public key required",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Payload is required."
+        ]
+      },
+      {
+        "slug": "oracle-vrf-console",
+        "submit": "Build VRF Request",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      },
+      {
+        "slug": "private-transfer",
+        "submit": "Seal Transfer",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Recipient is required."
+        ]
+      },
+      {
+        "slug": "profitanchor",
+        "submit": "Stake NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "NEO amount is required."
+        ]
+      },
+      {
+        "slug": "profitanchor-admin",
+        "submit": "Move NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "From agent is required."
+        ]
+      },
+      {
+        "slug": "quadratic-funding",
+        "submit": "Fund Project",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Contribution is required."
+        ]
+      },
+      {
+        "slug": "recovery-guardian",
+        "submit": "Open Guardian Setup",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+        ]
+      },
+      {
+        "slug": "red-envelope",
+        "submit": "Claim",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Envelope ID is required."
+        ]
+      },
+      {
+        "slug": "self-loan",
+        "submit": "Repay Loan",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Loan ID is required."
+        ]
+      },
+      {
+        "slug": "soulbound-certificate",
+        "submit": "Issue Certificate",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Recipient is required."
+        ]
+      },
+      {
+        "slug": "time-capsule",
+        "submit": "Seal capsule",
+        "feedback": [
+          "Not deployed on Neo N3 Testnet",
+          "Not configured for this network",
+          "Wallet Ready",
+          "Time Capsule is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+        ]
+      },
+      {
+        "slug": "timestamp-proof",
+        "submit": "Anchor timestamp",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready"
+        ]
+      },
+      {
+        "slug": "trustanchor",
+        "submit": "Stake NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "NEO amount is required."
+        ]
+      },
+      {
+        "slug": "trustanchor-admin",
+        "submit": "Move NEO",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "From agent is required."
+        ]
+      },
+      {
+        "slug": "wallet-health",
+        "submit": "Run health check",
+        "feedback": [
+          "Not configured for this network",
+          "Wallet Ready",
+          "Launch parameters applied"
+        ]
+      }
+    ]
+  },
+  "results": [
+    {
+      "slug": "aa-account-lab",
+      "appId": "miniapp-aa-account-lab",
+      "name": "AA Account Lab",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare account registration",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248960534
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248960534
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248960534
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248960553
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-market-hub",
+      "appId": "miniapp-aa-market-hub",
+      "name": "AA Market Hub",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create listing",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248963878
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248963878
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248963878
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248963902
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-permissions-lab",
+      "appId": "miniapp-aa-permissions-lab",
+      "name": "AA Permissions Lab",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare permission update",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248967875
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248967875
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248967875
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248967899
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-relay-console",
+      "appId": "miniapp-aa-relay-console",
+      "name": "AA Relay Console",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Build relay package",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248973023
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248973023
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248973023
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248973048
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-session-key-lab",
+      "appId": "miniapp-aa-session-key-lab",
+      "name": "AA Session Key Lab",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Activate session key",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248977292
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248977292
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248977292
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248977299
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "asset-factory",
+      "appId": "miniapp-asset-factory",
+      "name": "Asset Factory",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare NEP-17 launch",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248982925
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248982925
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248982925
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248982949
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "automation-copilot",
+      "appId": "miniapp-automation-copilot",
+      "name": "Automation Copilot",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Price Alert",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Pair is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248986431
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248986431
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248986431
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248986457
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "breakup-contract",
+      "appId": "miniapp-breakupcontract",
+      "name": "Breakup Contract",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare agreement",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248989926
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248989926
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248989926
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248989951
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "burn-league",
+      "appId": "miniapp-burn-league",
+      "name": "Burn League",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Submit burn entry",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780248993414
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248993414
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248993414
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780248993421
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "council-governance",
+      "appId": "miniapp-council-governance",
+      "name": "Council Governance",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create Proposal",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Title is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249010619
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249010619
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249010619
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249010645
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "custom-anchor",
+      "appId": "miniapp-custom-anchor",
+      "name": "Custom Anchor",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Register Anchor",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Anchor slug is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249014418
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249014418
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249014418
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249014445
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "daily-checkin",
+      "appId": "miniapp-dailycheckin",
+      "name": "Daily Check-in",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Check In",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249019138
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249019138
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249019138
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249019164
+        },
+        {
+          "type": "invoke",
+          "payload": {
+            "invocations": [
+              {
+                "hash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+                "operation": "checkIn",
+                "args": [
+                  {
+                    "type": "Hash160",
+                    "value": "0x51115f338edc5e0320a3d5c76fc17add0ae60408"
+                  }
+                ]
+              }
+            ],
+            "signers": [
+              {
+                "account": "0x1111111111111111111111111111111111111111",
+                "scopes": "CalledByEntry"
+              }
+            ]
+          },
+          "at": 1780249019788
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "dev-tipping",
+      "appId": "miniapp-dev-tipping",
+      "name": "Developer Tipping",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Send tip",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied",
+        "Developer Tipping is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249023281
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249023281
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249023281
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249023306
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "dice-game",
+      "appId": "miniapp-dice-game",
+      "name": "Dice Game",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Fund Stake",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Stake credit is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249026907
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249026907
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249026907
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249026929
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "event-ticket-pass",
+      "appId": "miniapp-event-ticket-pass",
+      "name": "Event Ticket",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create Event",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249030419
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249030419
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249030419
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249030443
+        },
+        {
+          "type": "invoke",
+          "payload": {
+            "invocations": [
+              {
+                "hash": "0x90bad472146aab97de71498e8d736c3124e7c82b",
+                "operation": "createEvent",
+                "args": []
+              }
+            ],
+            "signers": [
+              {
+                "account": "0x1111111111111111111111111111111111111111",
+                "scopes": "CalledByEntry"
+              }
+            ]
+          },
+          "at": 1780249031052
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "explorer",
+      "appId": "miniapp-explorer",
+      "name": "Block Explorer",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Search Chain",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Query Neo N3 blocks, transactions, addresses, and contracts through live RPC/indexer endpoints. Missing indexer data is shown as unavailable, never synthesized.",
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Search query is required.",
+        "Block Explorer is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249039788
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249039788
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249039788
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249039810
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "flashloan",
+      "appId": "miniapp-flashloan",
+      "name": "Flash Loan",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare flash route",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249043785
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249043785
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249043785
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249043810
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "fogplay",
+      "appId": "miniapp-fogplay",
+      "name": "FogPlay",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Fund Wager",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "GAS credit is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249049145
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249049145
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249049145
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249049171
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "forever-album",
+      "appId": "miniapp-forever-album",
+      "name": "Forever Album",
+      "ok": false,
+      "phase": "no-submit",
+      "submitState": {
+        "error": "locator.evaluate: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('operation-submit-button').first()\u001b[22m\n"
+      },
+      "clickError": null,
+      "feedback": [
+        "The OS storage intent is submitted by the wallet.",
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249053335
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249053335
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249053335
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249053361
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "gas-lucky-pool",
+      "appId": "miniapp-gas-lucky-pool",
+      "name": "OneGate Vault",
+      "ok": false,
+      "phase": "submit-disabled",
+      "submitState": {
+        "text": "Claim Reward",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Open this reward from a OneGate QR code."
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "OneGate QR required"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249087696
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249087696
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249087696
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249087720
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "gas-sponsor",
+      "appId": "miniapp-gas-sponsor",
+      "name": "Gas Sponsor",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create Pool",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Total Budget (GAS fractions) is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249091008
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249091008
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249091008
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249091032
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "gasbox",
+      "appId": "miniapp-gasbox",
+      "name": "GASBOX",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Draw Capsule",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249099363
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249099363
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249099363
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249099389
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "gov-merc",
+      "appId": "miniapp-gov-merc",
+      "name": "Gov Merc",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Delegate voting power",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied",
+        "Gov Merc is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249103015
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249103015
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249103015
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249103022
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "graveyard",
+      "appId": "miniapp-graveyard",
+      "name": "Graveyard",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Bury record",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied",
+        "Graveyard is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249106799
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249106799
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249106799
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249106824
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "last-survivor",
+      "appId": "miniapp-last-survivor",
+      "name": "LastSurvivor",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Fund Keys",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "GAS credit is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249113116
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249113116
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249113116
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249113142
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "memorial-shrine",
+      "appId": "miniapp-memorial-shrine",
+      "name": "Memorial Shrine",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Anchor tribute",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249117444
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249117444
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249117444
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249117468
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "milestone-escrow",
+      "appId": "miniapp-milestone-escrow",
+      "name": "Milestone Escrow",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Fund escrow",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249120945
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249120945
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249120945
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249120970
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "miniapp-factory",
+      "appId": "miniapp-miniapp-factory",
+      "name": "MiniApp Factory",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare MiniApp launch",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249125157
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249125157
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249125157
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249125164
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-convert",
+      "appId": "miniapp-neo-convert",
+      "name": "Neo Convert",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Convert value",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied",
+        "Neo Convert is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249128627
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249128627
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249128627
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249128653
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-multisig",
+      "appId": "miniapp-neo-multisig",
+      "name": "Neo Multisig",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create multisig request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied",
+        "Neo Multisig is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249132060
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249132060
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249132060
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249132083
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-ns",
+      "appId": "miniapp-neo-ns",
+      "name": "Neo Name Service",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Register domain",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249135996
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249135996
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249135996
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249136022
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-pay",
+      "appId": "miniapp-neo-pay",
+      "name": "NeoPay",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Claim Stream",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Stream ID is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249143032
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249143032
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249143032
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249143056
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-pay-shared-example",
+      "appId": "miniapp-neo-pay-shared-example",
+      "name": "NeoPay Shared Runtime",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create Stream",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "neopay:testnet:default",
+        "Wallet Ready",
+        "Beneficiary Address is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249146730
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249146730
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249146730
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249146739
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-sign-anything",
+      "appId": "miniapp-neo-sign-anything",
+      "name": "Neo Sign Anything",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Sign message",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Neo Sign Anything is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249150294
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249150294
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249150295
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249150320
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-swap",
+      "appId": "miniapp-neo-swap",
+      "name": "Neo Swap",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Preview swap route",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249155780
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249155780
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249155780
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249155807
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-treasury",
+      "appId": "miniapp-neo-treasury",
+      "name": "Neo Treasury",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Refresh treasury",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied",
+        "Neo Treasury is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249179823
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249179823
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249179823
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249179848
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-x-bridge",
+      "appId": "miniapp-neo-x-bridge",
+      "name": "Neo X Bridge",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Bridge Asset",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Amount is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249182799
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249182799
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249182799
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249182823
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "neodid-passport",
+      "appId": "miniapp-neodid-passport",
+      "name": "NeoDID Passport",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare credential proof",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249186210
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249186210
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249186210
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249186236
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "nft-factory",
+      "appId": "miniapp-nft-factory",
+      "name": "NFT Factory",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Prepare NEP-11 collection",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249190217
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249190217
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249190217
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249190241
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "on-chain-tarot",
+      "appId": "miniapp-onchaintarot",
+      "name": "On-chain Tarot",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Draw Reading",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249193201
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249193201
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249193201
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249193223
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-compute-lab",
+      "appId": "miniapp-oracle-compute-lab",
+      "name": "Oracle Compute Lab",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Seal Compute Input",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Morpheus public key required",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Workflow input is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249196182
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249196182
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249196182
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249196207
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-http-console",
+      "appId": "miniapp-oracle-http-console",
+      "name": "Oracle HTTP Console",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Build Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Endpoint is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249199148
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249199148
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249199148
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249199171
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-neodid-console",
+      "appId": "miniapp-oracle-neodid-console",
+      "name": "Oracle NeoDID Console",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Seal DID Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Morpheus public key required",
+        "Not configured for this network",
+        "Wallet Ready",
+        "DID subject is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249202089
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249202089
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249202089
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249202114
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-price-console",
+      "appId": "miniapp-oracle-price-console",
+      "name": "Oracle Price Console",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Build Feed Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249205043
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249205043
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249205043
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249205068
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-seal-console",
+      "appId": "miniapp-oracle-seal-console",
+      "name": "Oracle Seal Console",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Seal Payload",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Morpheus public key required",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Payload is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249208037
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249208037
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249208037
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249208057
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-vrf-console",
+      "appId": "miniapp-oracle-vrf-console",
+      "name": "Oracle VRF Console",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Build VRF Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249211026
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249211026
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249211026
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249211051
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "private-transfer",
+      "appId": "miniapp-private-transfer",
+      "name": "Confidential Transfer",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Seal Transfer",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Recipient is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249213978
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249213978
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249213978
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249214002
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "profitanchor",
+      "appId": "miniapp-profitanchor",
+      "name": "ProfitAnchor",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Stake NEO",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "NEO amount is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249219014
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249219014
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249219014
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249219039
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "profitanchor-admin",
+      "appId": "miniapp-profitanchor-admin",
+      "name": "ProfitAnchor Admin",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Move NEO",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "From agent is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249227208
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249227208
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249227208
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249227233
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "quadratic-funding",
+      "appId": "miniapp-quadratic-funding",
+      "name": "Quadratic Funding",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Fund Project",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Contribution is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249230929
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249230929
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249230929
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249230954
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "recovery-guardian",
+      "appId": "miniapp-recovery-guardian",
+      "name": "Recovery Guardian",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Open Guardian Setup",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249234441
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249234441
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249234441
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249234466
+        },
+        {
+          "type": "invoke",
+          "payload": {
+            "invocations": [
+              {
+                "hash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
+                "operation": "openGuardianSetup",
+                "args": []
+              }
+            ],
+            "signers": [
+              {
+                "account": "0x1111111111111111111111111111111111111111",
+                "scopes": "CalledByEntry"
+              }
+            ]
+          },
+          "at": 1780249235078
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "red-envelope",
+      "appId": "miniapp-redenvelope",
+      "name": "Red Envelope",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Claim",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Envelope ID is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249248342
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249248342
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249248342
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249248348
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "self-loan",
+      "appId": "miniapp-self-loan",
+      "name": "SelfLoan",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Repay Loan",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Loan ID is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249256858
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249256858
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249256858
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249256865
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "soulbound-certificate",
+      "appId": "miniapp-soulbound-certificate",
+      "name": "Soulbound Certificate",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Issue Certificate",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Recipient is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249260493
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249260493
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249260493
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249260520
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "time-capsule",
+      "appId": "miniapp-time-capsule",
+      "name": "Time Capsule",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Seal capsule",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not deployed on Neo N3 Testnet",
+        "Not configured for this network",
+        "Wallet Ready",
+        "Time Capsule is not deployed or enabled on Neo N3 Testnet. Switch to a supported network before submitting transactions."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249263943
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249263943
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249263943
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249263967
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "timestamp-proof",
+      "appId": "miniapp-timestamp-proof",
+      "name": "Timestamp Proof",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Anchor timestamp",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249267966
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249267966
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249267966
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249267974
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "trustanchor",
+      "appId": "miniapp-trustanchor",
+      "name": "TrustAnchor",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Stake NEO",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "NEO amount is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249273123
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249273123
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249273123
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249273130
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "trustanchor-admin",
+      "appId": "miniapp-trustanchor-admin",
+      "name": "TrustAnchor Admin",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Move NEO",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "From agent is required."
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249279673
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249279673
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249279673
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249279698
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    },
+    {
+      "slug": "unbreakable-vault",
+      "appId": "miniapp-unbreakablevault",
+      "name": "Unbreakable Vault",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Create Vault",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Wallet Ready",
+        "Transaction submitted: 0xabababababababababababababababababababababababababababababababab"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249283172
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249283172
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249283172
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249283198
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "invokes": [
+        {
+          "hash": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+          "operation": "createVault",
+          "args": []
+        }
+      ],
+      "targetedEvidence": "docs/reports/unbreakable-vault-contract-hash-validation.json"
+    },
+    {
+      "slug": "wallet-health",
+      "appId": "miniapp-wallet-health",
+      "name": "Wallet Health",
+      "ok": true,
+      "phase": "clicked",
+      "submitState": {
+        "text": "Run health check",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "clickError": null,
+      "feedback": [
+        "Not configured for this network",
+        "Wallet Ready",
+        "Launch parameters applied"
+      ],
+      "walletEvents": [
+        {
+          "type": "getAccounts",
+          "payload": {},
+          "at": 1780249286655
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249286655
+        },
+        {
+          "type": "getBalance",
+          "payload": {
+            "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249286655
+        },
+        {
+          "type": "signMessage",
+          "payload": {
+            "message": "RnJvbnRlbmQgYXVkaXQgbG9naW4=",
+            "account": "0x1111111111111111111111111111111111111111"
+          },
+          "at": 1780249286680
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        },
+        {
+          "status": 401,
+          "url": "http://127.0.0.1:3000/api/notifications/events?wallet=NMockFrontendAudit1111111111111111111&limit=10"
+        }
+      ],
+      "overflowX": 0
+    }
+  ],
+  "targetedRefreshAt": "2026-06-01T00:00:34.682Z",
+  "targetedRefreshes": [
+    {
+      "slug": "unbreakable-vault",
+      "refreshedAt": "2026-06-01T00:00:34.682Z",
+      "evidence": "docs/reports/unbreakable-vault-contract-hash-validation.json",
+      "result": "clicked",
+      "submit": "Create Vault",
+      "invoke": {
+        "hash": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+        "operation": "createVault",
+        "args": []
+      },
+      "hashErrorVisible": false,
+      "txSubmittedVisible": true
+    }
+  ]
+}

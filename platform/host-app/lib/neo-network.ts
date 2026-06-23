@@ -9,17 +9,27 @@ export function isNeoNetwork(value: unknown): value is NeoNetwork {
 
 export function normalizeNeoNetwork(value: unknown): NeoNetwork | null {
   if (typeof value === "number") {
-    if (value === MAINNET_MAGIC) return "mainnet";
-    if (value === TESTNET_MAGIC) return "testnet";
+    if (value === MAINNET_MAGIC || value === 3) return "mainnet";
+    if (value === TESTNET_MAGIC || value === 6) return "testnet";
     return null;
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return (
+      normalizeNeoNetwork(record.defaultNetwork) ||
+      normalizeNeoNetwork(record.network) ||
+      normalizeNeoNetwork(record.chainId) ||
+      normalizeNeoNetwork(record.id)
+    );
   }
 
   const raw = String(value ?? "").trim().toLowerCase();
   if (!raw) return null;
-  if (raw === String(MAINNET_MAGIC)) return "mainnet";
-  if (raw === String(TESTNET_MAGIC)) return "testnet";
-  if (raw === "mainnet" || raw === "neo-n3-mainnet") return "mainnet";
-  if (raw === "testnet" || raw === "neo-n3-testnet") return "testnet";
+  if (raw === String(MAINNET_MAGIC) || raw === "3") return "mainnet";
+  if (raw === String(TESTNET_MAGIC) || raw === "6") return "testnet";
+  if (raw === "main" || raw === "mainnet" || raw === "neo-n3-mainnet") return "mainnet";
+  if (raw === "test" || raw === "testnet" || raw === "neo-n3-testnet") return "testnet";
   return null;
 }
 

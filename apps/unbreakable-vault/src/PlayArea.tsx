@@ -20,6 +20,7 @@ import { EmptyStateArt } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { StatusType } from "@shared/composables/useStatusMessage";
+import { parsePositiveFixed8 } from "@shared/utils/format";
 import VaultHero from "./components/VaultHero";
 import VaultConfirmation from "./components/VaultConfirmation";
 import "./PlayArea.scss";
@@ -96,6 +97,12 @@ function netPayoutGas(bountyBase: unknown): string {
   return baseUnitsToGas(net);
 }
 
+function parseUiGasFixed8(value: string, minimumFixed8 = 1n): string | null {
+  const fixed8 = parsePositiveFixed8(value);
+  if (!fixed8) return null;
+  return BigInt(fixed8) >= minimumFixed8 ? fixed8 : null;
+}
+
 export default function PlayArea({
   t,
   state,
@@ -133,15 +140,15 @@ export default function PlayArea({
   const actionPreviewTimeout = useRef<number | null>(null);
 
   const isMainnet = launchContext?.network === "mainnet";
-  const bountyValue = Number.parseFloat(bounty);
+  const bountyFixed8 = parseUiGasFixed8(bounty, 100_000_000n);
+  const topUpFixed8 = parseUiGasFixed8(topUpAmount, 1n);
   // A mistyped secret locks the bounty until expiry — block submit on mismatch.
   const secretMismatch =
     secret.trim() !== "" &&
     confirmSecret.trim() !== "" &&
     secret !== confirmSecret;
   const canSubmitCreate =
-    Number.isFinite(bountyValue) &&
-    bountyValue >= 1 &&
+    bountyFixed8 !== null &&
     Number(vaultDifficulty) >= 1 &&
     Number(vaultDifficulty) <= 3 &&
     bounty.trim() !== "" &&
@@ -157,7 +164,7 @@ export default function PlayArea({
   const createHintKey =
     title.trim() === ""
       ? "createNeedTitle"
-      : !(Number.isFinite(bountyValue) && bountyValue >= 1)
+      : bountyFixed8 === null
         ? "createNeedBounty"
         : secret.trim() === "" || confirmSecret.trim() === "" || secretMismatch
           ? "createNeedSecret"
@@ -311,9 +318,8 @@ export default function PlayArea({
   const selectedDifficultyLabel = t(selectedDifficulty.labelKey);
   const SelectedDifficultyIcon = selectedDifficulty.icon;
   const blueprintTitle = title.trim() || t("blueprintUntitled");
-  const blueprintBounty =
-    Number.isFinite(bountyValue) && bountyValue > 0 ? bounty : "0";
-  const bountyReady = Number.isFinite(bountyValue) && bountyValue >= 1;
+  const blueprintBounty = bountyFixed8 !== null ? bounty : "0";
+  const bountyReady = bountyFixed8 !== null;
   const secretReady =
     secret.trim() !== "" && confirmSecret.trim() !== "" && !secretMismatch;
   const createStageState = isCreateBusy
@@ -578,9 +584,10 @@ export default function PlayArea({
                     <NeoInput
                       className="vault-bounty-input"
                       label={t("bountyLabel")}
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.]?[0-9]*"
                       placeholder={t("bountyPlaceholder")}
-                      min={1}
                       hint={t("minBountyNote")}
                       value={bounty}
                       onChange={setBounty}
@@ -985,8 +992,9 @@ export default function PlayArea({
                   >
                     <NeoInput
                       label={t("increaseBountyLabel")}
-                      type="number"
-                      min={0}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.]?[0-9]*"
                       placeholder={t("increaseBountyPlaceholder")}
                       value={topUpAmount}
                       onChange={setTopUpAmount}
@@ -995,7 +1003,7 @@ export default function PlayArea({
                       variant="secondary"
                       size="sm"
                       loading={isTopUpBusy}
-                      disabled={!topUpAmount.trim() || isTopUpBusy || isLoadBusy}
+                      disabled={topUpFixed8 === null || isTopUpBusy || isLoadBusy}
                       aria-label={t("increaseBounty")}
                       onClick={handleIncreaseBounty}
                     >

@@ -11,6 +11,7 @@ import type { MiniAppSDKConfig } from "../src/types";
 const PENDING_INVOCATION_TTL_MS = 10 * 60 * 1000;
 const PENDING_INVOCATION_MAX_ENTRIES = 64;
 const MAINNET_MAGIC = 860833102;
+const TESTNET_MAGIC = 894710606;
 const ACCOUNT_HASH = "0x1111111111111111111111111111111111111111";
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
@@ -25,6 +26,7 @@ function createWalletWindow() {
     name: "Test NEP-21 connector",
     dapiVersion: "1.0.0",
     compatibility: ["NEP-21"],
+    network: MAINNET_MAGIC,
     getAccounts: vi.fn(async () => [
       { hash: ACCOUNT_HASH, address: "NTestAddress", isDefault: true },
     ]),
@@ -127,6 +129,30 @@ describe("createMiniAppSDK", () => {
   });
 
   describe("resolveInvocationParams via wallet.invokeInvocation", () => {
+    it("rejects direct invokes before signing when the wallet network differs from the active app network", async () => {
+      const wallet = createWalletWindow();
+      wallet.win.location = {
+        search: "?network=testnet",
+        href: "http://localhost/?network=testnet",
+        host: "localhost",
+      };
+      wallet.provider.network = MAINNET_MAGIC;
+      vi.stubGlobal("window", wallet.win);
+
+      const sdk = createMiniAppSDK(cfg);
+      await expect(
+        sdk.wallet.invokeInvocation!({
+          contract_hash: GAS_HASH,
+          method: "transfer",
+          params: [
+            { type: "Hash160", value: "SENDER" },
+            { type: "Integer", value: "1" },
+          ],
+        }),
+      ).rejects.toThrow(/targets Neo N3 Testnet/i);
+      expect(wallet.invoke).not.toHaveBeenCalled();
+    });
+
     it("substitutes SENDER placeholders, including inside nested arrays", async () => {
       const sdk = createMiniAppSDK(cfg);
       await sdk.wallet.invokeInvocation!({
@@ -134,10 +160,15 @@ describe("createMiniAppSDK", () => {
         method: "transfer",
         params: [
           { type: "Hash160", value: "SENDER" },
+          { type: "Hash160", value: "{{sender}}" },
           {
-            type: "Array",
+            type: "array",
             value: [
-              { type: "Hash160", value: "SENDER" },
+              { type: "Hash160", value: "sender" },
+              {
+                type: "Hash160",
+                value: "0x0000000000000000000000000000000000000000",
+              },
               { type: "String", value: "SENDER" },
               {
                 type: "Hash160",
@@ -156,9 +187,11 @@ describe("createMiniAppSDK", () => {
             operation: "transfer",
             args: [
               { type: "Hash160", value: ACCOUNT_HASH },
+              { type: "Hash160", value: ACCOUNT_HASH },
               {
                 type: "Array",
                 value: [
+                  { type: "Hash160", value: ACCOUNT_HASH },
                   { type: "Hash160", value: ACCOUNT_HASH },
                   { type: "String", value: "SENDER" },
                   {
@@ -174,6 +207,177 @@ describe("createMiniAppSDK", () => {
         [{ account: ACCOUNT_HASH, scopes: "CalledByEntry" }],
       );
     });
+
+    it("rejects message signing before calling the wallet when the network differs", async () => {
+      const wallet = createWalletWindow();
+      wallet.win.location = {
+        search: "?network=testnet",
+        href: "http://localhost/?network=testnet",
+        host: "localhost",
+      };
+      wallet.provider.network = MAINNET_MAGIC;
+      const signMessage = vi.fn(async () => ({
+        publicKey: "03abc",
+        data: "signature",
+        message: "hello",
+      }));
+      wallet.provider.signMessage = signMessage;
+      vi.stubGlobal("window", wallet.win);
+
+      const sdk = createMiniAppSDK(cfg);
+      await expect(sdk.wallet.signMessage("hello")).rejects.toThrow(
+        /targets Neo N3 Testnet/i,
+      );
+      expect(signMessage).not.toHaveBeenCalled();
+    });
+
+    it("uses accountHash-only wallet accounts for signer and SENDER resolution", async () => {
+      const wallet = createWalletWindow();
+      wallet.win.location = {
+        search: "?network=testnet",
+        href: "http://localhost/?network=testnet",
+        host: "localhost",
+      };
+      wallet.provider.getAccounts = vi.fn(async () => [
+        {
+          accountHash: ACCOUNT_HASH,
+          address: "NAccountHashOnly",
+          isDefault: true,
+        },
+      ]);
+      wallet.provider.network = MAINNET_MAGIC;
+      wallet.provider.getNetwork = vi.fn(async () => ({
+        defaultNetwork: "TestNet",
+      }));
+      vi.stubGlobal("window", wallet.win);
+
+      const sdk = createMiniAppSDK(cfg);
+
+      await expect(sdk.wallet.getProviderInfo()).resolves.toMatchObject({
+        address: "NAccountHashOnly",
+        accountHash: ACCOUNT_HASH,
+        network: TESTNET_MAGIC,
+      });
+      await sdk.wallet.invokeInvocation!({
+        contract_hash: GAS_HASH,
+        method: "transfer",
+        params: [
+          { type: "Hash160", value: "SENDER" },
+          { type: "Integer", value: "1" },
+        ],
+      });
+
+      expect(wallet.invoke).toHaveBeenCalledWith(
+        [
+          {
+            hash: GAS_HASH,
+            operation: "transfer",
+            args: [
+              { type: "Hash160", value: ACCOUNT_HASH },
+              { type: "Integer", value: "1" },
+            ],
+          },
+        ],
+        [{ account: ACCOUNT_HASH, scopes: "CalledByEntry" }],
+      );
+    });
+
+    it("rejects legacy NeoLine invokes before signing when the wallet network differs", async () => {
+      const invoke = vi.fn(async () => ({ txid: "0xneoline" }));
+      const legacyApi = {
+        getAccount: vi.fn(async () => ({ address: "NNeoLineAddress" })),
+        getNetworks: vi.fn(async () => ({ defaultNetwork: "MainNet" })),
+        invoke,
+      };
+      const win = {
+        location: {
+          search: "?network=testnet",
+          href: "http://localhost/?network=testnet",
+          host: "localhost",
+        },
+        document: { referrer: "" },
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+        setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+        clearTimeout: (handle: unknown) =>
+          clearTimeout(handle as Parameters<typeof clearTimeout>[0]),
+        NEOLineN3: { Init: vi.fn(() => legacyApi) },
+      };
+      (win as Record<string, unknown>).parent = win;
+      vi.stubGlobal("window", win);
+
+      const sdk = createMiniAppSDK(cfg);
+      await expect(
+        sdk.wallet.invokeInvocation!({
+          contract_hash: GAS_HASH,
+          method: "transfer",
+          params: [{ type: "Hash160", value: "SENDER" }],
+        }),
+      ).rejects.toThrow(/targets Neo N3 Testnet/i);
+      expect(invoke).not.toHaveBeenCalled();
+    });
+
+    it("rejects legacy NeoLine message signing when the wallet network differs", async () => {
+      const signMessage = vi.fn(async () => ({
+        publicKey: "03abc",
+        data: "signature",
+      }));
+      const legacyApi = {
+        getAccount: vi.fn(async () => ({ address: "NNeoLineAddress" })),
+        getNetworks: vi.fn(async () => ({ defaultNetwork: "MainNet" })),
+        signMessage,
+        invoke: vi.fn(async () => ({ txid: "0xneoline" })),
+      };
+      const win = {
+        location: {
+          search: "?network=testnet",
+          href: "http://localhost/?network=testnet",
+          host: "localhost",
+        },
+        document: { referrer: "" },
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+        setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+        clearTimeout: (handle: unknown) =>
+          clearTimeout(handle as Parameters<typeof clearTimeout>[0]),
+        NEOLineN3: { Init: vi.fn(() => legacyApi) },
+      };
+      (win as Record<string, unknown>).parent = win;
+      vi.stubGlobal("window", win);
+
+      const sdk = createMiniAppSDK(cfg);
+      await expect(sdk.wallet.signMessage("hello")).rejects.toThrow(
+        /targets Neo N3 Testnet/i,
+      );
+      expect(signMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  it("requests NEP-21 authentication only for the active app network", async () => {
+    const wallet = createWalletWindow();
+    wallet.win.location = {
+      search: "?network=testnet",
+      href: "http://localhost/?network=testnet",
+      host: "localhost",
+    };
+    wallet.provider.supportedNetworks = [MAINNET_MAGIC, TESTNET_MAGIC];
+    wallet.provider.getAccounts = vi.fn(async () => []);
+    const authenticate = vi.fn(async () => ({
+      address: "NAuthenticated",
+      hash: ACCOUNT_HASH,
+      network: TESTNET_MAGIC,
+    }));
+    wallet.provider.authenticate = authenticate;
+    vi.stubGlobal("window", wallet.win);
+
+    const sdk = createMiniAppSDK(cfg);
+    await expect(sdk.wallet.getAddress()).resolves.toBe("NAuthenticated");
+
+    const payload = authenticate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(payload.networks).toEqual([TESTNET_MAGIC]);
+    expect(payload.Networks).toEqual([TESTNET_MAGIC]);
   });
 
   describe("pending invocation intents", () => {

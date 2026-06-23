@@ -1,0 +1,300 @@
+{
+  "generatedAt": "2026-06-01T21:51:29.793Z",
+  "urls": {
+    "staticDirect": "http://127.0.0.1:3037/miniapps/breakup-contract/index.html?network=testnet&source=embed&v=1780350667846",
+    "hostDirect": "http://localhost:3036/miniapps/breakup-contract/index.html?network=testnet&source=embed&v=1780350667846",
+    "hostDetail": "http://localhost:3036/miniapps/miniapp-breakupcontract?network=testnet&v=1780350667846"
+  },
+  "summary": {
+    "total": 6,
+    "rawErrorResults": [],
+    "overflowResults": [],
+    "clippedIframes": [],
+    "missingBusinessPreview": [],
+    "missingSubmitControl": [],
+    "missingActionFeedbackAfterClick": [],
+    "missingFilledFormBeforeClick": []
+  },
+  "results": [
+    {
+      "label": "staticDirect",
+      "viewport": "desktop",
+      "url": "http://127.0.0.1:3037/miniapps/breakup-contract/index.html?network=testnet&source=embed&v=1780350667846",
+      "actions": {
+        "beforeValues": {
+          "values": [
+            "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "5",
+            "30",
+            "Browser covenant"
+          ],
+          "terms": "Browser validation terms."
+        },
+        "createVisible": true,
+        "createDisabledBeforeClick": false,
+        "clickedSubmit": true,
+        "submitControlPresent": true
+      },
+      "textSample": "Contract submission services are not configured in this environment yet.\nBreakup Contract\n\nRelationship stakes on-chain\n\n0\nACTIVE\n0\nPENDING\n0\nBROKEN\n0\nTOTAL\nContract index unavailable\nLive contract records are not available in this environment yet. You can still prepare a new agreement and review the wallet intent before signing.\nNew Contract\n\nDraft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.\n\nPartner Address\nStake\nGAS\n1 GAS\n5 GAS\n10 GAS\nDuration\nDays\n30 Days\n90 Days\n365 Days\nContract Title\nTerms\nPARTNER\n--\nSTAKE\n--\nDURATION\n90 Days\nContract submission services are not configured in this environment yet.\nCreate Contract\nContracts\nNo contracts yet\nCreated or signed relationship agreements will appear here once the contract index is available.",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasBusinessPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1117,
+      "bodyClientHeight": 1000,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-storage-list"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-escrow-create"
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/breakup-contract-service-layout-after/staticDirect-desktop.png"
+    },
+    {
+      "label": "hostDirect",
+      "viewport": "desktop",
+      "url": "http://localhost:3036/miniapps/breakup-contract/index.html?network=testnet&source=embed&v=1780350667846",
+      "actions": {
+        "beforeValues": {
+          "values": [
+            "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "5",
+            "30",
+            "Browser covenant"
+          ],
+          "terms": "Browser validation terms."
+        },
+        "createVisible": true,
+        "createDisabledBeforeClick": false,
+        "clickedSubmit": true,
+        "submitControlPresent": true
+      },
+      "textSample": "Breakup Contract\n\nRelationship stakes on-chain\n\n0\nACTIVE\n0\nPENDING\n0\nBROKEN\n0\nTOTAL\nNew Contract\n\nDraft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.\n\nPartner Address\nStake\nGAS\n1 GAS\n5 GAS\n10 GAS\nDuration\nDays\n30 Days\n90 Days\n365 Days\nContract Title\nTerms\nPARTNER\nNAAAAAAA...AAAA\nSTAKE\n5 GAS\nDURATION\n30 Days\nPreparing wallet confirmation for \"Browser covenant\" with 5 GAS stake.\nContracts",
+      "hasRawError": false,
+      "hasServiceNotice": false,
+      "hasBusinessPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1034,
+      "bodyClientHeight": 1000,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/breakup-contract-service-layout-after/hostDirect-desktop.png"
+    },
+    {
+      "label": "hostDetail",
+      "viewport": "desktop",
+      "url": "http://localhost:3036/miniapps/miniapp-breakupcontract?network=testnet&v=1780350667846",
+      "actions": {
+        "beforeValues": {
+          "values": [
+            "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "5",
+            "30",
+            "Browser covenant"
+          ],
+          "terms": "Browser validation terms."
+        },
+        "createVisible": true,
+        "createDisabledBeforeClick": false,
+        "clickedSubmit": true,
+        "submitControlPresent": true
+      },
+      "outer": {
+        "className": "block h-[1700px] sm:h-[1450px] lg:h-[1180px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameHeight": 1180,
+        "frameWidth": 1052
+      },
+      "inner": {
+        "actions": {
+          "beforeValues": {
+            "values": [
+              "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "5",
+              "30",
+              "Browser covenant"
+            ],
+            "terms": "Browser validation terms."
+          },
+          "createVisible": true,
+          "createDisabledBeforeClick": false,
+          "clickedSubmit": true,
+          "submitControlPresent": true
+        },
+        "textSample": "Open this MiniApp from the platform workspace to confirm the contract wallet intent.\nBreakup Contract\n\nRelationship stakes on-chain\n\n0\nACTIVE\n0\nPENDING\n0\nBROKEN\n0\nTOTAL\nNew Contract\n\nDraft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.\n\nPartner Address\nStake\nGAS\n1 GAS\n5 GAS\n10 GAS\nDuration\nDays\n30 Days\n90 Days\n365 Days\nContract Title\nTerms\nPARTNER\n--\nSTAKE\n--\nDURATION\n90 Days\nOpen this MiniApp from the platform workspace to confirm the contract wallet intent.\nCreate Contract\nContracts\nNo contracts yet\nCreated or signed relationship agreements will appear here once the contract index is available.",
+        "hasRawError": false,
+        "hasServiceNotice": false,
+        "hasBusinessPreview": true,
+        "hasActionFeedback": true,
+        "submitControlPresent": true,
+        "horizontalOverflow": 0,
+        "bodyScrollHeight": 1180,
+        "bodyClientHeight": 1180
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/breakup-contract-service-layout-after/hostDetail-desktop.png"
+    },
+    {
+      "label": "staticDirect",
+      "viewport": "mobile",
+      "url": "http://127.0.0.1:3037/miniapps/breakup-contract/index.html?network=testnet&source=embed&v=1780350667846",
+      "actions": {
+        "beforeValues": {
+          "values": [
+            "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "5",
+            "30",
+            "Browser covenant"
+          ],
+          "terms": "Browser validation terms."
+        },
+        "createVisible": true,
+        "createDisabledBeforeClick": false,
+        "clickedSubmit": true,
+        "submitControlPresent": true
+      },
+      "textSample": "Contract submission services are not configured in this environment yet.\nBreakup Contract\n\nRelationship stakes on-chain\n\n0\nACTIVE\n0\nPENDING\n0\nBROKEN\n0\nTOTAL\nContract index unavailable\nLive contract records are not available in this environment yet. You can still prepare a new agreement and review the wallet intent before signing.\nNew Contract\n\nDraft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.\n\nPartner Address\nStake\nGAS\n1 GAS\n5 GAS\n10 GAS\nDuration\nDays\n30 Days\n90 Days\n365 Days\nContract Title\nTerms\nPARTNER\n--\nSTAKE\n--\nDURATION\n90 Days\nContract submission services are not configured in this environment yet.\nCreate Contract\nContracts\nNo contracts yet\nCreated or signed relationship agreements will appear here once the contract index is available.",
+      "hasRawError": false,
+      "hasServiceNotice": true,
+      "hasBusinessPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1725,
+      "bodyClientHeight": 844,
+      "consoleMessages": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 501 (Unsupported method ('POST'))"
+        }
+      ],
+      "pageErrors": [],
+      "badResponses": [
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-storage-list"
+        },
+        {
+          "status": 501,
+          "url": "http://127.0.0.1:3037/api/edge/os-escrow-create"
+        }
+      ],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/breakup-contract-service-layout-after/staticDirect-mobile.png"
+    },
+    {
+      "label": "hostDirect",
+      "viewport": "mobile",
+      "url": "http://localhost:3036/miniapps/breakup-contract/index.html?network=testnet&source=embed&v=1780350667846",
+      "actions": {
+        "beforeValues": {
+          "values": [
+            "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "5",
+            "30",
+            "Browser covenant"
+          ],
+          "terms": "Browser validation terms."
+        },
+        "createVisible": true,
+        "createDisabledBeforeClick": false,
+        "clickedSubmit": true,
+        "submitControlPresent": true
+      },
+      "textSample": "Breakup Contract\n\nRelationship stakes on-chain\n\n0\nACTIVE\n0\nPENDING\n0\nBROKEN\n0\nTOTAL\nNew Contract\n\nDraft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.\n\nPartner Address\nStake\nGAS\n1 GAS\n5 GAS\n10 GAS\nDuration\nDays\n30 Days\n90 Days\n365 Days\nContract Title\nTerms\nPARTNER\nNAAAAAAA...AAAA\nSTAKE\n5 GAS\nDURATION\n30 Days\nPreparing wallet confirmation for \"Browser covenant\" with 5 GAS stake.\nContracts",
+      "hasRawError": false,
+      "hasServiceNotice": false,
+      "hasBusinessPreview": true,
+      "hasActionFeedback": true,
+      "submitControlPresent": true,
+      "horizontalOverflow": 0,
+      "bodyScrollHeight": 1463,
+      "bodyClientHeight": 844,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/breakup-contract-service-layout-after/hostDirect-mobile.png"
+    },
+    {
+      "label": "hostDetail",
+      "viewport": "mobile",
+      "url": "http://localhost:3036/miniapps/miniapp-breakupcontract?network=testnet&v=1780350667846",
+      "actions": {
+        "beforeValues": {
+          "values": [
+            "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "5",
+            "30",
+            "Browser covenant"
+          ],
+          "terms": "Browser validation terms."
+        },
+        "createVisible": true,
+        "createDisabledBeforeClick": false,
+        "clickedSubmit": true,
+        "submitControlPresent": true
+      },
+      "outer": {
+        "className": "block h-[1700px] sm:h-[1450px] lg:h-[1180px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "frameHeight": 1700,
+        "frameWidth": 362
+      },
+      "inner": {
+        "actions": {
+          "beforeValues": {
+            "values": [
+              "NAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "5",
+              "30",
+              "Browser covenant"
+            ],
+            "terms": "Browser validation terms."
+          },
+          "createVisible": true,
+          "createDisabledBeforeClick": false,
+          "clickedSubmit": true,
+          "submitControlPresent": true
+        },
+        "textSample": "Open this MiniApp from the platform workspace to confirm the contract wallet intent.\nBreakup Contract\n\nRelationship stakes on-chain\n\n0\nACTIVE\n0\nPENDING\n0\nBROKEN\n0\nTOTAL\nNew Contract\n\nDraft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.\n\nPartner Address\nStake\nGAS\n1 GAS\n5 GAS\n10 GAS\nDuration\nDays\n30 Days\n90 Days\n365 Days\nContract Title\nTerms\nPARTNER\n--\nSTAKE\n--\nDURATION\n90 Days\nOpen this MiniApp from the platform workspace to confirm the contract wallet intent.\nCreate Contract\nContracts\nNo contracts yet\nCreated or signed relationship agreements will appear here once the contract index is available.",
+        "hasRawError": false,
+        "hasServiceNotice": false,
+        "hasBusinessPreview": true,
+        "hasActionFeedback": true,
+        "submitControlPresent": true,
+        "horizontalOverflow": 0,
+        "bodyScrollHeight": 1700,
+        "bodyClientHeight": 1700
+      },
+      "iframeTooShort": false,
+      "consoleMessages": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/breakup-contract-service-layout-after/hostDetail-mobile.png"
+    }
+  ]
+}

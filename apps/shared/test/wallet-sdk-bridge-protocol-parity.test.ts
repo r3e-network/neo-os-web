@@ -13,11 +13,13 @@ import { describe, expect, it } from "vitest";
 import {
   HOST_WALLET_BRIDGE_REQUEST as HOST_REQUEST,
   HOST_WALLET_BRIDGE_RESPONSE as HOST_RESPONSE,
+  HOST_WALLET_BRIDGE_STATE as HOST_STATE,
   HOST_WALLET_BRIDGE_PROTOCOL_VERSION as HOST_VERSION,
   HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS as HOST_COMPAT,
   isCompatibleBridgeProtocolVersion as hostIsCompatible,
 } from "../../../platform/host-app/components/playarea/bridge/events";
 import {
+  HOST_WALLET_BRIDGE_STATE as SDK_STATE,
   HOST_WALLET_BRIDGE_PROTOCOL_VERSION as SDK_VERSION,
   HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS as SDK_COMPAT,
   isCompatibleBridgeProtocolVersion as sdkIsCompatible,
@@ -34,6 +36,8 @@ describe("wallet-bridge protocol parity (host <-> iframe SDK)", () => {
   it("uses identical message-type strings on both sides", () => {
     expect(HOST_REQUEST).toBe(SDK_REQUEST);
     expect(HOST_RESPONSE).toBe(SDK_RESPONSE);
+    expect(HOST_STATE).toBe(SDK_STATE);
+    expect(SDK_STATE).toBe("neo-miniapp-wallet-bridge:state");
   });
 
   it("declares the same PROTOCOL_VERSION on both sides", () => {

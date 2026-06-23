@@ -222,7 +222,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
   const wins = createObservable(0);
   const losses = createObservable(0);
   const totalWon = createObservable(0);
-  const totalGames = createDerived(() => wins.get() + losses.get(), []);
+  const totalGames = createDerived(() => wins.get() + losses.get(), [wins, losses]);
 
   // -- House bankroll + prepaid credit (base units) ---------------------------
   // freeBankroll caps the maximum payable bet (the contract refuses any bet whose
@@ -267,23 +267,25 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
   // -- Formatted display values -----------------------------------------------
   // These are consumed by the manifest stat/sidebar bindings via the state
   // object returned from defineMiniApp's setup().
-  const formattedTotalWon = createDerived(() => `${formatNum(totalWon.get())} ${t("tokenGas")}`, []);
+  const formattedTotalWon = createDerived(
+    () => `${formatNum(totalWon.get())} ${t("tokenGas")}`,
+    [totalWon],
+  );
 
   const canBet = createDerived(() => {
-    const n = parseFloat(betAmount.get());
+    const amount = betAmount.get();
+    const amountBase = toBaseUnits(amount);
+    if (amountBase <= 0n || validateBetAmount(amount)) return false;
     return (
-      n >= MIN_BET &&
-      n <= MAX_BET &&
       // The house must be able to back the 2x payout — gate the button on the
       // live payable cap so an over-cap bet is disabled rather than enabled then
       // rejected at pre-flight. (maxPayableBet is MAX_BET until bankroll loads.)
-      n <= maxPayableBet.get() &&
-      !validationError.get() &&
+      fromFixed8(amountBase) <= maxPayableBet.get() &&
       !isFlipping.get() &&
       // A bet cannot be committed while a prior bet is still awaiting its reveal.
       pendingBet.get() === null
     );
-  }, []);
+  }, [betAmount, maxPayableBet, isFlipping, pendingBet]);
 
   // -- Validation -------------------------------------------------------------
 

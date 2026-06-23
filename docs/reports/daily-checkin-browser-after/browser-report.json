@@ -1,0 +1,22 @@
+{
+  "url": "http://localhost:3101/miniapps/daily-checkin/index.html?network=testnet&v=1780324711074",
+  "walletCallCount": 8,
+  "walletOperations": [
+    "transfer",
+    "transfer",
+    "transfer",
+    "transfer",
+    "transfer",
+    "transfer",
+    "transfer",
+    "claimRewards"
+  ],
+  "finalButtonState": "Wait for Next",
+  "statusBadgeWidth": 105.61322021484375,
+  "hasRequestEvidence": true,
+  "hasResultEvidence": true,
+  "consoleErrors": [],
+  "failedRequests": [],
+  "badResponses": [],
+  "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/daily-checkin-browser-after/after-claim-testnet-mock-wallet.png"
+}

@@ -56,6 +56,14 @@ export class OneGateAdapter implements WalletAdapter {
     return this.nep21.getNetwork();
   }
 
+  onAccountChanged(listener: () => void | Promise<void>): () => void {
+    return this.nep21.onAccountChanged(listener);
+  }
+
+  onNetworkChanged(listener: () => void | Promise<void>): () => void {
+    return this.nep21.onNetworkChanged(listener);
+  }
+
   async getBalance(address: string): Promise<WalletBalance> {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError("OneGate NEP-21 dAPI");
@@ -85,5 +93,17 @@ export class OneGateAdapter implements WalletAdapter {
       throw new WalletNotInstalledError("OneGate NEP-21 dAPI");
     }
     return this.nep21.invokeMultiple(params, signers);
+  }
+
+  async send(
+    asset: string,
+    amount: string | number,
+    to: string,
+    from?: string,
+  ): Promise<TransactionResult> {
+    if (!this.isInstalled()) {
+      throw new WalletNotInstalledError("OneGate NEP-21 dAPI");
+    }
+    return this.nep21.send(asset, amount, to, from);
   }
 }

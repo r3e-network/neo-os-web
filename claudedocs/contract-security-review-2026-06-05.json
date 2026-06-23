@@ -1,0 +1,245 @@
+{
+  "summary": "Adversarial security + correctness review of the 4 deployed standalone Neo N3 contracts (red-envelope, last-survivor, time-capsule, tarot)",
+  "agentCount": 8,
+  "logs": [
+    "Security review: 0 critical, 0 high, 1 medium confirmed across 4 contracts"
+  ],
+  "result": {
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "byContract": {
+      "red-envelope (contracts/MiniAppRedEnvelope/MiniAppRedEnvelope.cs)": {
+        "overall": "Safe to keep live. No critical/high issue survives adversarial verification. The contract's core money path is sound: checks-effects-interactions ordering is correct (state at lines 209-215 written before the GAS transfer at line 217), the contract spends its OWN escrowed GAS as 'from' (valid in Neo, no external witness needed), payouts provably sum to the funded total (live-validated: share1+share2==total, remaining==0, no double-spend, no over-payment), maxShare>=1 makes modulo-by-zero unreachable, the RemainingAmount>=remainingPackets invariant prevents zero/negative shares, access control uses CheckWitness on every state-changing path (CreateEnvelope/Claim/Reclaim), and one-claim-per-address plus an on-chain GetRandom draw blocks abort-and-retry RNG gaming. Two findings (REE-001 'modulo by zero', REE-002 'fund-safety race') are Neo/algorithm misreads and are rejected. The only genuine hardening item is REE-003: there is no direct GAS withdrawal for prepaid credit (confirmed: no Withdraw method), but credit remains reusable by CreateEnvelope and ultimately recoverable via create->reclaim, so it is a low-severity usability/fund-friction issue rather than permanent loss — recommend adding a Withdraw(account) guarded by Runtime.CheckWitness(account) as a non-blocking improvement. RNG (REE-004) is an accepted, documented low-stakes limitation.",
+        "summary": "The MiniAppRedEnvelope contract implements on-chain red envelope distribution with atomic GAS payouts. Core design: creators deposit GAS via NEP-17 transfer (memo-tagged for credit), then create envelopes that split the total into N packets; claimers draw random shares atomically within the same transaction. The contract exhibits strong deposit-escrow architecture (funds locked before envelope creation), proper checks-effects-interactions ordering, and atomicity guarantees. However, three distinct issues surface under adversarial scrutiny: (1) the frontend's minute-level time precision mismatch with block-level contract timestamp validation exposes envelope expiry edge-case claims, (2) integer division in the random packet algorithm can produce shares of 0 base units (exploitable as a free claim), and (3) the known \"unclaimed credit stranding\" is a design choice—funds are not lost but inaccessible without refund methods, creating a financial DoS risk. All three are real; the first is the most critical for correctness.",
+        "confirmed": [
+          {
+            "id": "REE-003",
+            "severity": "low",
+            "category": "fund-safety",
+            "location": "contracts/MiniAppRedEnvelope/MiniAppRedEnvelope.cs:98-111 (OnNEP17Payment), 121-160 (CreateEnvelope)",
+            "problem": "The deposit-then-create pattern intentionally holds GAS credits indefinitely if the create transaction fails after a successful deposit. The design document (lines 37-39 in the contract comments) acknowledges this: 'Deposit-then-create: GAS sent with memo \"miniapp-redenvelope:create\" credits the sender; createEnvelope consumes that credit, so an envelope can never be created without its funds already escrowed in this contract.' However, there is no refund, reset, or withdrawal method for the creator to reclaim a credit if the createEnvelope call fails. A creator whose createEnvelope fails for any reason (e.g., invalid parameters, insufficient contract storage, network congestion at submission, or even a nondeterministic validation bug) loses access to their prepaid GAS permanently. The credit is stored in PREFIX_CREDIT (line 59) but is read-only from the frontend (CreditOf, line 258); there is no way to consume or cancel it.",
+            "attack": "A user deposits 10 GAS, then attempts createEnvelope with invalid parameters (e.g., durationSeconds = 0, which fails at line 128). The deposit succeeds, the create fails, and the 10 GAS is now locked under their account in the contract's storage. The user cannot call createEnvelope again because the second invocation would require a second deposit (they have no way to check or spend the existing credit from the frontend). They must call createEnvelope until it succeeds, or their GAS is permanently unrecoverable. If Neo's contract invocation fails due to an OOM or resource limit during serialization of the envelope (line 155), the creator's GAS is stranded. This is a financial DoS: the contract holds user funds hostage pending a successful create, with no refund path.",
+            "fix": "Implement a Withdraw(UInt160 account) method that allows the account to withdraw its entire credit balance, crediting the account's GAS wallet directly. Protect it with Runtime.CheckWitness(account) (line 124 shows the pattern). Example: BigInteger bal = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_CREDIT, (byte[])account)); if (bal > 0) { Storage.Delete(ctx, key); Contract.Call(GAS.Hash, \"transfer\", CallFlags.All, new object[] { Runtime.ExecutingScriptHash, account, bal, \"\" }); OnReclaimed(...); }. Alternatively, add a CancelDeposit(UInt160 account) view that enumerates failed-create attempts and unwinds them, or allow subsequent createEnvelope calls to reuse the credit (currently the code at line 138 will revert if credit is insufficient, but a user cannot retry with zero additional deposit). The current design is too hostile to users."
+          },
+          {
+            "id": "REE-004",
+            "severity": "low",
+            "category": "rng",
+            "location": "contracts/MiniAppRedEnvelope/MiniAppRedEnvelope.cs:196-200 (randomness generation)",
+            "problem": "The randomness source is Runtime.GetRandom() (line 196), which is the Neo consensus beacon (BFT oracle, unknown until the block is finalized). However, the mixing function at line 198 includes Runtime.Time (millisecond precision) and the claimer's address and envelopeId, which are all known at transaction submission time. The formula is `share = 1 + (entropy + mix) % maxShare`. While Runtime.GetRandom() is not predictable by an individual node before block finalization, a claimer who knows their own address, the envelopeId, and the block's Runtime.Time can check (via mempool simulation or block inspection) whether the resulting share is favorable, and retry the claim in the next block if not. This is a low-severity issue because (1) the contract is explicitly low-stakes ('NOT VRF-grade — intended for low-stakes social packets', line 29), and (2) retries cost network fees, making repeated attempts expensive. However, it is NOT zero-risk.",
+            "attack": "A sophisticated claimer writes a bot that submits a claim transaction, monitors the block when it lands, extracts Runtime.GetRandom() from the Claimed event logs, calculates the share they received, and if it is below their expectation, immediately resubmits a claim to a different envelope or waits for the next block to retry the same envelope (if the 'already claimed' check allows it, which it does not—one claim per address per envelope). So direct retry is blocked by the contract. However, a claimer can still estimate their share before sending the claim by inspecting the previous block's Runtime.Time and using that as a proxy for the next block's entropy, giving them partial predictability. The comment at line 29 acknowledges this: 'NOT VRF-grade — intended for low-stakes social packets.' So this is a known limitation, not a hidden vulnerability. The severity is low because the randomness is still hard enough that naive users cannot trivially bias outcomes.",
+            "fix": "If higher stakes are ever used, migrate to a Merkle-tree VRF (e.g., drand, or Neo's own VRF if available). For the current low-stakes use case, document the randomness limitations clearly and accept the risk. A lighter mitigation: add a claim delay or a commit-reveal scheme (claimer commits a nonce, then reveals it in a later block), but this complicates the UX and is not necessary for social packets."
+          },
+          {
+            "id": "REE-005",
+            "severity": "info",
+            "category": "base-units",
+            "location": "apps/red-envelope/src/composables/useRedEnvelope.ts:156-163 (toBaseUnits function)",
+            "problem": "The frontend's toBaseUnits function correctly converts GAS strings to base units by parsing up to 8 decimal places. However, there is a subtle edge case: if a user enters a string like '1.000000001' (9 decimal places), the regex at line 158 rejects it (max 8 digits after the dot), and the function returns 0n, which then fails the MIN_AMOUNT check. This is correct behavior, but the error message may confuse users. More critically, if the frontend ever accepts user input with >8 decimals and truncates instead of rejecting, a user could lose precision. The current code rejects, which is safe, but the truncation at line 160 (slice(0, 8)) creates a false impression that the function handles longer fractions—it does not.",
+            "attack": "Low risk: a user enters '0.123456789' GAS (9 decimals). The regex rejects it, the function returns 0n, and the create fails with 'invalidAmount'. This is correct but not ideal UX. A variant: if the regex ever changes to accept longer fractions and truncate (via slice), users' inputs are silently rounded down, losing funds. For example, '1.000000001' would become '1.00000000' (0.01 nGAS lost). This is not currently an issue because the regex is strict, but it is a maintenance risk.",
+            "fix": "Keep the current strict regex (correct). Optionally, add a comment in the regex: `// Exactly 8 or fewer decimal places (GAS divisibility)` to make it clear to future maintainers. If truncation is ever needed, add an explicit truncation with a warning log: if (fraction.length > 8) console.warn('Input precision exceeds GAS divisibility; rounding down'); paddedFraction = fraction.slice(0, 8);"
+          },
+          {
+            "id": "REE-006",
+            "severity": "info",
+            "category": "memo-validation",
+            "location": "contracts/MiniAppRedEnvelope/MiniAppRedEnvelope.cs:98-104 (OnNEP17Payment)",
+            "problem": "The contract requires the memo to be exactly 'miniapp-redenvelope:create' (line 104). This is a strict string match. However, the frontend always sends this memo correctly (line 538 in useRedEnvelope.ts). The risk is low because GAS is the only asset accepted (line 100), so a user cannot accidentally deposit a different token with a mismatched memo. However, if a user sends GAS without the memo or with a different memo, the OnNEP17Payment handler rejects it, and the transfer fails. This is correct behavior (prevents accidental overpayment), but the Neo chain's behavior is to *revert the entire transfer* if the payment handler asserts. So a user who transfers GAS without the memo loses nothing (the transfer is atomic), but they do waste network fees. This is an operational risk, not a security issue.",
+            "attack": "A user manually sends GAS to the contract using a wallet UI (e.g., Neon, O3) and forgets the memo or enters the wrong memo. The transfer fails, but the GAS is returned to their account. No funds are lost. This is correct and expected behavior for NEP-17 payment handlers. No vulnerability.",
+            "fix": "No fix required. The memo requirement is correct. Optionally, add a comment in the contract's description or in UI documentation explaining the required memo, but this is a UX issue, not a security issue."
+          }
+        ]
+      },
+      "MiniAppLastSurvivor (contracts/MiniAppLastSurvivor/MiniAppLastSurvivor.cs), deployed testnet 0xe238516951196b87406d39b2b9d35809f6d857fb": {
+        "overall": "Safe to keep live, with one fund-handling caveat worth fixing. The core contract is sound: correct checks-effects-interactions in Settle (state finalized before the asserted payout → atomic, no reentrancy), CheckWitness(player) on BuyKeys, strict OnNEP17Payment validation (GAS-only, amount>0, non-null memo, exact memo) where any mismatch reverts the transfer atomically (so wrong-memo sends bounce back, never stranded), no RNG to manipulate, BigInteger + MAX_KEYS_PER_BUY=1000 eliminating overflow, and permissionless Settle that always pays the recorded last buyer with an 'already settled' double-pay guard. The live_validate script confirms bonding-curve pricing, last-buyer tracking, and exact atomic winner payout on testnet. Of the 11 findings, 0 are critical/high once verified: the two 'high' items collapse on Neo semantics — LS-002's 'permanent GAS loss' is a revert-atomicity misread (rejected), and LS-001 is real but bounded, not theft. The one genuine, fixable issue (LS-001, adjusted to MEDIUM) is the absence of a withdrawCredit method: prepaid deposit credit can ONLY exit by buying keys, never back to the wallet, so over-deposits or price-moved-since-deposit leave self-attributed but non-withdrawable credit locked on-contract — funds are not stolen or destroyed (creditOf preserves ownership) and the frontend happy path deposits the exact cost, but the lock-in path is real. Recommend adding a withdrawCredit() (CheckWitness + transfer creditOf back + delete) as the proper remediation; LS-005 (debounce history fan-out) is a worthwhile client cleanup. Everything else is info/by-design.",
+        "summary": "Comprehensive security review of MiniAppLastSurvivor, a self-contained on-chain last-survivor pot game with rising bonding-curve key pricing, permissionless settlement, and atomic winner payout. The contract implements strong safety properties but has one known design limitation (deposit-credit-with-no-withdraw) and two actionable correctness/usability issues. No critical reentrancy, overflow, access-control, or fund-loss vulnerabilities identified; the checks-effects-interactions pattern is correctly applied. The deposit-credit model (GAS held by contract after failed buy) is safe but non-standard and creates a permanent onboarding friction point.",
+        "confirmed": [
+          {
+            "id": "LS-001",
+            "severity": "medium",
+            "category": "atomicity",
+            "location": "useLastSurvivor.ts:467–559 (buyKeys action) + MiniAppLastSurvivor.cs:112–157",
+            "problem": "Deposit-then-buy two-step atomicity: if GAS transfer succeeds but buyKeys fails, the deposit credit persists on-contract and must be manually reused — it is NOT refunded to the player's wallet. While the contract correctly stores this credit for reuse and does not lose GAS, the frontend does not surface recovery or reuse paths, and players may believe their GAS is lost.",
+            "attack": "Player A deposits 0.5 GAS (step 1 succeeds), then buyKeys fails (e.g., network latency causes timeout or round ends between read and invoke). The 0.5 GAS credit remains in the contract under player A's address; the frontend shows no affordance to review or reuse the credit. Player A perceives the GAS as lost, even though it is recoverable via a second buyKeys call with the same amount or stored for future rounds. This is not a fund-loss bug (GAS is safe, stored, reusable), but a usability failure that erodes trust.",
+            "fix": "Frontend: after a failed buyKeys (non-'settle-first' errors), display the remaining credit via creditOf() and offer a 'Retry with existing credit' button that calls buyKeys without another deposit. Alternatively, implement a manual credit-withdrawal method in the contract (creditsOf + withdrawCredit) to let players recover idle funds—this is safer for long-term UX but adds contract complexity. Short term: surface the creditOf value in the UI and clarify to the player that the deposit is held and reusable."
+          },
+          {
+            "id": "LS-003",
+            "severity": "low",
+            "category": "base-units",
+            "location": "useLastSurvivor.ts:293–299 (estimatedCostRaw/estimatedCost) + MiniAppLastSurvivor.cs:210–217 (KeyCost)",
+            "problem": "The frontend displays estimatedCost as a two-decimal-place GAS string (line 299: toFixed(2)), but the contract stores and returns keyCost as a precise BigInteger in base units (1e8 = 1 GAS). If a player buys 1000 keys, the cost is in the millions of base units, and the frontend's toFixed(2) truncates the fractional GAS (e.g., 123456789 base units = 1.23456789 GAS, displayed as '1.23'). This discrepancy means the on-screen estimate may be off by up to 0.005 GAS (5 satoshis), leading the player to underfund the deposit.",
+            "attack": "Player views estimatedCost = '1.23 GAS' (truncated from 1.23456789), deposits exactly 1.23 GAS (123000000 base units) via step 1, but the actual cost is 123456789. buyKeys fails with 'insufficient deposit credit' (133–134), and the 123000000 credit remains on-contract. Player then must deposit an additional 0.00456789 GAS, which is a poor UX. Mathematically safe (no fund loss), but causes friction and confusion. This is exacerbated at high key counts (rounding error proportional to purchase size).",
+            "fix": "Frontend: round UP (Math.ceil) instead of down when converting estimatedCostRaw to display (line 299), or display the full precision (e.g., estimatedCost.toFixed(8)). Better: display BOTH the truncated GAS and the exact base-unit cost so the player can manually adjust. Contract: no change needed; the math is precise."
+          },
+          {
+            "id": "LS-005",
+            "severity": "low",
+            "category": "dos",
+            "location": "useLastSurvivor.ts:366–421 (loadHistory function)",
+            "problem": "loadHistory() queries past rounds in parallel (Promise.all, line 380) and can query up to MAX_HISTORY_ROUNDS = 30 rounds (line 103). Each getRound call is a full RPC invocation. If the contract has 1000+ rounds and the app queries the last 30 rounds on every UI refresh, this could generate 30 RPC calls per refresh. On a slow network, this could cause a cascade of pending requests. Additionally, if a player repeatedly refreshes the UI (e.g., watching the countdown), the loadAll function calls loadHistory every time, potentially flooding the RPC node.",
+            "attack": "A malicious player or script could call loadAll() in a tight loop on their own client, generating 30 RPC requests per loop iteration. While this DoSes the player's own connection (not the contract), it could also DoS a shared RPC node if many players do this. The contract itself is not vulnerable (read-only queries do not mutate state), but the frontend's query pattern could cause network-level issues. Mitigation: RPC node operators should rate-limit clients.",
+            "fix": "Frontend: add a minimum debounce/throttle on loadAll (e.g., no more than once per 5 seconds) and cache the history for 30 seconds before re-fetching. Contract: no change needed; read-only queries are safe."
+          },
+          {
+            "id": "LS-006",
+            "severity": "info",
+            "category": "rng",
+            "location": "MiniAppLastSurvivor.cs (full contract — no RNG used)",
+            "problem": "The contract does not use Runtime.GetRandom or any source of randomness. The game is deterministic: the last buyer to call buyKeys before the countdown expires wins the pot. There is no RNG, so there is no RNG manipulation risk. However, a player with access to block producer powers (on a PoA chain or a miner on PoW) could potentially block other players' transactions to prevent them from buying keys at the optimal time, or could manipulate the block timestamp to control when the countdown expires (though this would affect the entire chain and is beyond the scope of this contract). No findings here.",
+            "attack": "n/a — defensive note: the contract's lack of RNG is a strength, not a weakness. The game is entirely determined by on-chain event ordering and wall-clock time. No off-chain oracle or random source can be manipulated.",
+            "fix": "n/a — the contract is correctly deterministic."
+          },
+          {
+            "id": "LS-007",
+            "severity": "info",
+            "category": "overflow",
+            "location": "MiniAppLastSurvivor.cs:214–215 (KeyCost formula)",
+            "problem": "The KeyCost formula computes baseCost = count * firstPrice and incrementCost = (count * (count - 1) / 2) * COMMON_DIFF. Both multiplications could overflow if count is very large (e.g., count = 2^63, a bigint near its max). However, the contract enforces MAX_KEYS_PER_BUY = 1000 (line 54), which caps count. With count ≤ 1000, totalKeys ≤ ~1e9 (assuming 1M+ rounds, each with 1000 keys), the cost is at most ~1e8 * 1e9 * 0.01 = 1e15 base units (10e6 GAS, ~100M GAS total — absurdly large but mathematically feasible). No overflow occurs because C#'s BigInteger is arbitrary-precision. No vulnerability here.",
+            "attack": "n/a — BigInteger cannot overflow.",
+            "fix": "n/a — no overflow risk due to arbitrary-precision integers."
+          },
+          {
+            "id": "LS-008",
+            "severity": "info",
+            "category": "fund-safety",
+            "location": "MiniAppLastSurvivor.cs:184–189 (Settle, conditional transfer)",
+            "problem": "In the Settle method, if pot > 0, the contract calls GAS.transfer() to pay the winner. If pot == 0 (no keys were bought), the transfer is skipped. However, this means a round with totalKeys > 0 but pot == 0 is theoretically possible if someone buys keys at zero cost (which the formula prevents: BASE_KEY_PRICE = 10_000_000, minimum cost is 10M base units for 1 key). The guard on line 184 is defensive and correct. However, the Settled flag is advanced BEFORE the transfer (line 179–180), so if the transfer fails (line 188), the assertion (line 188) will abort the entire transaction, and the settled flag is not finalized. This is correct checks-effects-interactions order (state is updated, then transfer is attempted, and the entire tx reverts if the transfer fails).",
+            "attack": "n/a — the contract correctly rolls back the settled=true update if the transfer fails, ensuring atomicity.",
+            "fix": "n/a — the checks-effects-interactions pattern is correctly applied."
+          },
+          {
+            "id": "LS-009",
+            "severity": "low",
+            "category": "access-control",
+            "location": "MiniAppLastSurvivor.cs:165–193 (Settle method, permissionless)",
+            "problem": "The Settle method does not require any specific permission or witness check (line 165: public static BigInteger Settle()). Any address can call settle() once a round has expired. This is intentional: the contract aims to be self-settling and never deadlock on an inactive winner. However, this means a griefer could call settle() repeatedly (once per block) immediately after the countdown expires, consuming gas and generating unnecessary transactions. On NEO, each call will revert with 'already settled' (line 172) after the first settle, so no actual damage occurs. But the failed calls waste network resources. This is a very minor concern on a testnet and not a true vulnerability.",
+            "attack": "A griefer calls settle() in every block after a round ends, attempting to spam the network. However, the contract correctly rejects the second and subsequent calls with 'already settled', so only the first settle() does useful work. No fund loss or state corruption occurs.",
+            "fix": "n/a — the permissionless design is intentional and safe. The 'already settled' guard is sufficient."
+          },
+          {
+            "id": "LS-010",
+            "severity": "info",
+            "category": "atomicity",
+            "location": "useLastSurvivor.ts:502–552 (buyKeys action, onChain cost read + fallback)",
+            "problem": "The frontend attempts to read currentKeyCost() from the contract before depositing (line 502–511). If this read fails, the code falls back to the local calculateKeyCostFormula() (line 501), which duplicates the contract's logic. This is a good defensive pattern, but it assumes the frontend formula is ALWAYS identical to the contract formula. If a contract upgrade ever changes the formula (unlikely, but possible in a live contract), the frontend's fallback will compute the wrong cost, leading to under- or over-funding. The current formula is locked in as constants, so a change is extremely unlikely, but the risk exists.",
+            "attack": "A hypothetical future contract upgrade changes BASE_KEY_PRICE from 10_000_000 to 20_000_000 base units. The frontend, deployed before the upgrade, still uses the old constant and computes the wrong cost. A player's deposit is insufficient, and buyKeys fails. The risk is very low because contract upgrades are rare and this code is defensive. However, the fallback assumes static formula — a dangerous assumption.",
+            "fix": "Frontend: always prefer the on-chain currentKeyCost read; remove the fallback or add an explicit fallback error state instead of silently using stale logic. Contract: no change; the formula is appropriately constant."
+          },
+          {
+            "id": "LS-011",
+            "severity": "info",
+            "category": "base-units",
+            "location": "useLastSurvivor.ts:114 (fromBaseUnits conversion)",
+            "problem": "The fromBaseUnits() helper converts base units to whole GAS by dividing by 1e8. This is correct. However, the conversion is done as Number(base) / 1e8 (line 113), which loses precision for very large values (base > 2^53, beyond JavaScript's safe integer range). For current deployed contract values (pot < 1M GAS, < 1e14 base units), this is safe. But if the contract accumulates enormous pots over time (e.g., 1e16 base units), the JavaScript conversion will lose fractional GAS due to floating-point rounding. This is a future-proofing concern, not a current bug.",
+            "attack": "Not an attack, but a precision loss risk: if pot = 1e16 base units (100M GAS), converting to Number loses the last few digits due to JavaScript's 53-bit integer limit. The displayed value becomes slightly inaccurate. This is a display bug, not a fund-loss bug.",
+            "fix": "Frontend: use BigInt arithmetic throughout and convert to a string decimal representation only for display (e.g., (pot / 1e8n).toString() or a library like Decimal.js for safe division). This avoids floating-point errors."
+          }
+        ]
+      },
+      "time-capsule (contracts/MiniAppTimeCapsule/MiniAppTimeCapsule.cs)": {
+        "overall": "SAFE TO KEEP LIVE. None of the 10 findings represents a real, reachable on-chain vulnerability against the deployed contract (0x5cc0269c37023e09e996b0fdd3edd3f48cb213cf). The two 'critical' findings (TC-001/TC-002) are misreads of Neo N3 semantics: Runtime.Time is in milliseconds, so durationSeconds*1000 is the CORRECT seconds->ms conversion — proven end-to-end by the live testnet validation script (60s lock reveals after ~60s). TC-003/TC-004/TC-005/TC-008/TC-009 are rejected as unreachable or based on incorrect premises (counter overflow needs 2^255 txs; regex already rejects 9-digit input; amount>0 guards block negatives; 'from' cannot be spoofed; loop is bounded and index is internally consistent). The contract correctly implements checks-effects-interactions (state written before every Contract.Call transfer, lines 122-123 and 193-194), guards reveal double-spend via the Revealed flag (line 189), and the live test confirms zero stranded GAS in the normal flow (contractGas==0). The only genuinely real issue is low-severity (TC-006/TC-007): unconsumed prepaid deposit credit has no explicit owner-withdraw path and a malformed fish memo self-reverts — both are owner/self-affecting only, cannot be exploited by a third party, and involve no fund loss to others or double-spend. Recommended (non-blocking) hardening: add a witness-gated Refund(owner) returning CreditOf(owner) to recover stranded credit, and pre-validate the fish memo suffix is numeric for a clearer revert message.",
+        "summary": "The time-capsule contract implements a refundable time-lock vault with generally sound architecture (deposit-then-bury atomicity, checks-effects-interactions on transfers, witness guards). However, it contains critical correctness bugs around timestamp unit handling (Neo Runtime.Time is in milliseconds, not seconds—creating massive timestamp overflow), unsafe BigInteger conversions that lose precision, and an unguarded overflow in the capsule ID counter that could cause collisions or unpredictable behavior after 2^256 buries. The frontend mirrors these bugs, directly comparing millisecond timestamps against on-chain values. Additionally, the prepaid credit system (known design) prevents users from recovering stranded GAS if bury fails after deposit—users must retry bury with the same capsule parameters to consume the credit. While not a direct theft, this should be flagged as a usability/fund-recovery issue.",
+        "confirmed": [
+          {
+            "id": "TC-006",
+            "severity": "low",
+            "category": "fund-safety",
+            "location": "apps/time-capsule/src/composables/useTimeCapsule.ts:562-604",
+            "problem": "If the Bury step fails AFTER the deposit succeeds, the prepaid credit is not recoverable without retrying Bury with the exact same parameters (durationSeconds, isPublic, category, amount). If the user changes any of these, Bury will consume the credit but create a capsule with different properties—there is no refund mechanism for stranded prepaid credits.",
+            "attack": "User deposits 0.2 GAS with memo 'miniapp-timecapsule:bury'. The OnNEP17Payment handler credits their account. User then calls Bury(owner, hash, 30*86400, true, 1, 0.2). Network congestion causes Bury to fail. User retries with different parameters: Bury(owner, hash, 60*86400, false, 2, 0.2). The contract consumes the 0.2 GAS credit and buries with different lock time and public flag. If user intended the original parameters, they now have a capsule they don't want, and the credit is consumed. No explicit refund call exists—the credit is either reused or lost.",
+            "fix": "Document this clearly in the UI and contract comments. Add a refund() method that allows the owner to retrieve unused prepaid credit: `public static BigInteger Refund(UInt160 owner) { Runtime.CheckWitness(owner); byte[] key = Helper.Concat(PREFIX_CREDIT, owner); BigInteger credit = (BigInteger)Storage.Get(ctx, key); if (credit > 0) { Storage.Delete(ctx, key); Contract.Call(GAS.Hash, 'transfer', ..., owner, credit); } return credit; }`. Alternatively, allow Bury to consume only the amount it needs and return excess credit as a future event."
+          },
+          {
+            "id": "TC-007",
+            "severity": "low",
+            "category": "memo-validation",
+            "location": "MiniAppTimeCapsule.cs:111-131",
+            "problem": "The fish memo is parsed with `StdLib.Atoi(memo.Substring(...), 10)`, which does not validate that the capsuleId is a valid string representation of an integer. If the memo is malformed (e.g., 'miniapp-timecapsule:fish:abc'), Atoi will throw an exception and the entire OnNEP17Payment call reverts, causing the fisher's GAS transfer to fail and the transaction to fault.",
+            "attack": "A user sends GAS to the contract with memo 'miniapp-timecapsule:fish:not-a-number'. OnNEP17Payment tries to parse 'not-a-number' as a BigInteger, Atoi throws, the transfer reverts. The fisher's GAS is sent back, but they've wasted network fees and tx attempts. This is more of a usability issue than a direct exploit, but it could be weaponized as a DoS if many such txs flood the network.",
+            "fix": "Wrap the Atoi call in a try-catch: `BigInteger capsuleId = 0; try { capsuleId = StdLib.Atoi(memo.Substring(FISH_MEMO_PREFIX.Length), 10); } catch { ExecutionEngine.Assert(false, \"invalid fish memo format\"); }` or validate the memo suffix is a valid numeric string before calling Atoi."
+          },
+          {
+            "id": "TC-010",
+            "severity": "info",
+            "category": "other",
+            "location": "apps/time-capsule/src/composables/useTimeCapsule.ts:391-425",
+            "problem": "The mapCapsule function silently coerces unrecognized fields to defaults. If the contract's GetCapsule returns an unexpected shape (e.g., due to contract upgrade or deserialization error), mapCapsule will map missing fields to falsy values, creating a capsule with silent data loss. For example, if `revealed` is missing, it defaults to `false`, making an already-revealed capsule appear locked on the frontend.",
+            "attack": "A contract bugfix returns GetCapsule with a new field `superseeded` instead of `revealed`. The frontend's mapCapsule receives `{id, owner, ..., superseeded: true}` with no `revealed` field. The code defaults `revealed = Boolean(undefined) = false`, so the UI shows the capsule as locked even though it's been revealed on-chain. User cannot re-reveal (contract rejects it), but UI incorrectly suggests it's still locked.",
+            "fix": "Add strict type checking and validation in mapCapsule: assert that all required fields are present before destructuring. E.g., `if (!('revealed' in v)) throw new Error('invalid capsule: missing revealed field');`. Alternatively, use a TypeScript type guard. Document the expected shape in comments."
+          }
+        ]
+      },
+      "MiniAppTarot (contracts/MiniAppTarot/MiniAppTarot.cs) — deployed testnet 0x8cd0342f2129c07b2d3de1dae51ba09e4045d331": {
+        "overall": "Safe to keep live. No critical or high-severity, on-chain-reachable vulnerability was confirmed. The two reentrancy findings (TAROT-001/009) are misreads: WithdrawRevenue already uses the correct checks-effects-interactions ordering (zeroes PREFIX_REVENUE before the GAS.transfer and asserts revenue>0 first), so a reentrant callback reads 0 and reverts — there is no drain or double-withdraw, and it self-admits as mitigated. The RNG finding (TAROT-002) is real as 'weak entropy' but has no exploitable impact: GetRandom resolves in-tx (no abort-and-retry visibility), an Assert reverts the whole tx, and no payout depends on the card values, so biasing the draw earns nothing. Fund safety is sound: revenue increments only on a real fee-consuming draw, owner withdrawal is bounded to accrued fees (cannot touch player credits), and sum of payouts can never exceed deposits — the contract is always solvent. The genuine residual issues are all low/info: (a) no refund()/withdrawCredits(), so a user who deposits and never returns leaves prepaid credit stranded (recoverable only by drawing, not withdrawable as GAS) — known, self-inflicted, ~0.1 GAS units; (b) hardcoded single-key Owner with no change/timelock (key-management risk, blast radius limited to accrued fees); (c) non-atomic deposit-then-draw is a frontend UX risk, not a chain bug. Recommended (non-blocking) hardening: add a player-callable refund/withdrawCredits to eliminate stranded credit, and a 2-step ChangeOwner. Inputs validated, loops bounded, units consistent contract↔frontend↔validator, memo strictly checked. Net: keep live; schedule the refund + owner-rotation improvements.",
+        "summary": "Security and correctness review of the Neo N3 MiniAppTarot smart contract and its frontend integration (useTarot.ts). The contract implements a prepaid draw model (0.1 GAS fee) with on-chain randomness via Runtime.GetRandom(), Fisher-Yates card shuffling, and owner-only revenue withdrawal. No oracle dependencies. Analysis covers reentrancy, access control, fund safety, randomness predictability, base units consistency, and atomicity. **KEY FINDING**: One high-severity vulnerability exists in the WithdrawRevenue function: checks-effects-interactions ordering violates the pattern by clearing revenue BEFORE the external GAS transfer completes, creating a reentrancy window. Additionally, a potential RNG bias exists if Runtime.GetRandom() can produce zero or near-zero values frequently. Fund safety model is sound—credits persist on failed draws and are reusable. Base units are consistently handled (GAS x 1e8 throughout).",
+        "confirmed": [
+          {
+            "id": "TAROT-002",
+            "severity": "info",
+            "category": "rng",
+            "location": "MiniAppTarot.cs, lines 120-131 (Draw method, Fisher-Yates shuffle)",
+            "problem": "Runtime.GetRandom() may return zero or very small values. The code takes the absolute value and adds it to (mix + d), then mods by remaining. If entropy is 0, the swap index becomes (0 + mix + d) % remaining, which is deterministic given player/time/readingId. For the first iteration (d=0, remaining=78), the formula is (mix + 0) % 78. If an observer knows the player address and block time, they can predict the swap index without waiting for GetRandom to reveal, reducing entropy.",
+            "attack": "An attacker who (a) knows the player address, (b) sees the tx in mempool with timestamp awareness, and (c) observes that GetRandom() produced 0 (very rare but possible), can predict the three card indices before the block consensus seals. Even though GetRandom is block-seeded, the entropy folding strategy is weak for corner cases. A sophisticated front-runner with block-production knowledge could bias outcomes in their favor if they arrange to draw during blocks where GetRandom is weak.",
+            "fix": "Strengthen the entropy mixing: (1) use Runtime.GetRandom() for each shuffle step without relying on predictable player+time fallback; (2) add multiple independent GetRandom calls; (3) document that results are NOT cryptographically strong (already noted as 'NOT VRF-grade'), but reinforce by XORing or hashing GetRandom with a on-chain entropy source (e.g., block height, previous block hash). Alternatively, verify that Neo N3's Runtime.GetRandom() never returns zero (check Neo SDK behavior). Current implementation is acceptable for entertainment (as documented), but the 'mix' fallback weakens the seeding."
+          },
+          {
+            "id": "TAROT-003",
+            "severity": "low",
+            "category": "fund-safety",
+            "location": "useTarot.ts, lines 267-278 (deposit logic, and MiniAppTarot.cs lines 160-161 (transfer call))",
+            "problem": "The deposit transaction (GAS transfer to contract) is separate from the draw() invocation. If the deposit completes but draw() fails (e.g., OutOfGas, or assertion failure), the GAS credit persists on-chain and is reusable. HOWEVER: the frontend correctly handles this by catching the draw error (lines 290-298 in useTarot.ts) and informing the user. BUT if the frontend crashes or the user navigates away before draw() is called, the credit is orphaned in contract storage indefinitely unless the player returns to retry. No refund mechanism exists; funds are not lost but become stuck unless the player re-engages. This is acknowledged in comments ('no refund needed'), but represents a UX risk: a careless user could abandon their prepaid balance.",
+            "attack": "A negligent user deposits 0.1 GAS via transfer (step 1), but draw() fails due to network congestion or other runtime error (step 2). The user abandons the app without retrying. The 0.1 GAS is locked in the contract under their account indefinitely, unless they return. If a user does this repeatedly across many accounts (either intentionally or by accident), GAS accumulates in the contract and becomes unreclaimable by normal means. Owner can only withdraw revenue that was actually consumed (fee accounting), not orphaned credits.",
+            "fix": "This is by design and acknowledged. However, to mitigate UX risk: (1) frontend should retry draw() automatically on failure if deposit succeeded; (2) contract could add a refund() method (withdrawCredits) allowing players to reclaim unused balance, e.g., 'refund(player) { check witness, read credit, transfer back, clear storage }'. Current design prioritizes simplicity; a refund feature would add complexity but improve user confidence."
+          },
+          {
+            "id": "TAROT-004",
+            "severity": "low",
+            "category": "base-units",
+            "location": "MiniAppTarot.cs (line 42) and useTarot.ts (line 92, and elsewhere)",
+            "problem": "DRAW_FEE is defined as 10_000_000 (0.1 GAS in base units, where 1 GAS = 1e8). The contract is correct: it reads/writes fees in base units throughout. The frontend is also correct: DRAW_FEE_FALLBACK is 10_000_000n (BigInt) and is passed to chain.invoke as an Integer (line 273). The test file confirms the expectation (line 13: DRAW_FEE = '10000000'). However, there is NO explicit documentation in the frontend code that the fee is in base units; a developer unfamiliar with Neo might assume decimal units and introduce a conversion bug. The absence of explicit unit comments in useTarot.ts could lead to future maintenance errors.",
+            "attack": "No immediate attack, but a development risk: a future maintainer might 'improve' the code by dividing by 1e8 to display user-friendly '0.1 GAS', introducing a silent precision loss or incorrect amount passed to the contract. Example: if someone rewrites fee = drawFee / 1e8 and passes that to transfer(), the contract receives 1 GAS instead of 0.1 GAS, charging 10x.",
+            "fix": "Add explicit unit comments: (1) Rename DRAW_FEE_FALLBACK to DRAW_FEE_BASE_UNITS and add a comment: 'const DRAW_FEE_BASE_UNITS = 10_000_000n; // 0.1 GAS (GAS * 1e8)'. (2) When reading drawFee(), add a comment: 'const fee = parseBigInt(raw); // already in base units (GAS * 1e8)'. (3) In the transfer call, annotate: '{ type: \"Integer\", value: fee.toString() } // fee in base units, no conversion'. These are low-risk fixes but improve future maintainability."
+          },
+          {
+            "id": "TAROT-005",
+            "severity": "low",
+            "category": "access-control",
+            "location": "MiniAppTarot.cs, line 154 (WithdrawRevenue signature and witness check)",
+            "problem": "The WithdrawRevenue method is public and relies solely on Runtime.CheckWitness(Owner) to prevent unauthorized calls. The Owner address is hardcoded at compile time (line 45). There is no multi-sig, timelock, or additional gating. If the deployer's private key is compromised, the attacker can drain all accumulated revenue in a single call. Additionally, if Owner is set incorrectly at deployment (typo in the InitialValue), no revenue can ever be withdrawn (the check will always fail).",
+            "attack": "Owner's key is stolen -> attacker calls WithdrawRevenue(theirAddr) -> all accumulated fees are transferred to the attacker. The vulnerability is not in the contract logic but in key management. However, there is no way to update Owner once deployed, so if the hardcoded address is wrong, the contract is bricked.",
+            "fix": "Consider (1) adding a ChangeOwner method with a two-step process (propose new owner, then confirm), to defend against typos; (2) implement a timelock on revenue withdrawal; (3) use a multi-sig wallet as Owner. For the current design: double-check the hardcoded Owner address before deployment. This is a procedural fix, not a code fix."
+          },
+          {
+            "id": "TAROT-006",
+            "severity": "low",
+            "category": "atomicity",
+            "location": "useTarot.ts, lines 256-278 (deposit) and lines 280-313 (draw)",
+            "problem": "The deposit (GAS transfer) and draw are two separate invocations. If the deposit lands but draw() fails (lines 290-298), the credit persists and must be reused on the next call. The frontend handles this gracefully by catching the draw error and showing 'depositPrepaidNoReading'. However, if the wallet loses connectivity after deposit but before draw, the user might not realize the deposit succeeded, and GAS will sit orphaned on the contract until the user returns and manually retries. This is not a code bug but a UX/operational risk.",
+            "attack": "User deposits 0.1 GAS, network drops before draw() executes, wallet closes. GAS is locked on-chain. User assumes the transaction failed (no visual confirmation), never retries, and loses the GAS. If this happens at scale (many users), the contract becomes a GAS sink.",
+            "fix": "Frontend: (1) After a successful deposit, persist a flag indicating 'draw is pending, please retry'; (2) on app reload, automatically poll the contract to check for stranded credits and offer one-click retry; (3) add a visual 'Pending Draw' state that persists across sessions. Contract: no changes needed; the credit model is sound. The fix is entirely in frontend UX."
+          },
+          {
+            "id": "TAROT-007",
+            "severity": "info",
+            "category": "memo-validation",
+            "location": "MiniAppTarot.cs, lines 80-85 (OnNEP17Payment)",
+            "problem": "The OnNEP17Payment handler validates the memo strictly (lines 84-85): memo must be exactly 'miniapp-tarot:draw', and data must not be null. If a user sends GAS with a different memo or no memo, the transaction reverts and no credit is recorded. This is correct and prevents accidental credits. However, there is no fallback or grace period: a user who misreads the memo instruction and sends with the wrong text will lose their GAS (it will be returned as a failed tx, but they pay network fees). This is acceptable design but worth documenting clearly in the frontend UI.",
+            "attack": "User sends 0.1 GAS to the contract with memo 'draw' (missing 'miniapp-tarot:' prefix). OnNEP17Payment fails, no credit recorded, GAS is returned. User pays network fees for a failed transaction. Not a security bug, but a user-experience risk if instructions are unclear.",
+            "fix": "Frontend: (1) Display the exact memo string prominently when prompting for deposit; (2) if possible, auto-fill the memo in the wallet UI. Contract: no changes; validation is correct."
+          },
+          {
+            "id": "TAROT-008",
+            "severity": "info",
+            "category": "dos",
+            "location": "MiniAppTarot.cs, lines 200-219 (GetPlayerReadings method)",
+            "problem": "The GetPlayerReadings method paginates player readings with a hardcoded limit of 100 (line 205). If a player has many readings, this requires multiple RPC calls to retrieve them all. However, the method itself does not have an unbounded loop—the pagination is safe. The limit of 100 per call is reasonable and prevents a single call from consuming excessive gas or returning a massive payload. No DoS vector here.",
+            "attack": "N/A — the pagination is properly bounded.",
+            "fix": "No fix needed. The design is sound. Document the 100-reading page limit in the frontend to manage user expectations."
+          }
+        ]
+      }
+    }
+  }
+}

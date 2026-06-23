@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-05-31T23:37:32.984Z",
+  "hostUrl": "http://127.0.0.1:3000/miniapps/forever-album?network=testnet",
+  "directUrl": "http://127.0.0.1:3000/miniapps/forever-album/index.html?network=testnet&source=embed&operation=prepareMiniAppOperation&privacy=encrypted",
+  "hostHasSubmit": true,
+  "launchApplied": true,
+  "initialIframeSrc": "/miniapps/forever-album/index.html?network=testnet&source=embed",
+  "clickedIframeSrc": "/miniapps/forever-album/index.html?network=testnet&source=embed&operation=prepareMiniAppOperation&privacy=encrypted",
+  "hostInitialEncrypted": false,
+  "hostAfterEncrypted": true,
+  "directEncrypted": true,
+  "overflow": {
+    "hostDefault": 0,
+    "hostAfterAction": 0,
+    "embeddedFrame": 0,
+    "directEmbedded": 0,
+    "mobileHost": 0
+  },
+  "errors": [],
+  "pageErrors": [],
+  "networkFailures": [],
+  "benignAbortedRequests": [
+    "GET http://127.0.0.1:3000/miniapps/forever-album/assets/index-BSFH9yWh.js net::ERR_ABORTED",
+    "GET http://127.0.0.1:3000/miniapps/forever-album/assets/platform-sdk-CTWTXCdG.js net::ERR_ABORTED",
+    "GET http://127.0.0.1:3000/miniapps/forever-album/assets/react-vendor-DIoVj25y.js net::ERR_ABORTED",
+    "GET https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap net::ERR_ABORTED",
+    "GET https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap net::ERR_ABORTED",
+    "GET http://127.0.0.1:3000/api/auth/profile net::ERR_ABORTED",
+    "[mobile] GET https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap net::ERR_ABORTED",
+    "[mobile] GET https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap net::ERR_ABORTED",
+    "[mobile] GET http://127.0.0.1:3000/api/auth/profile net::ERR_ABORTED"
+  ],
+  "screenshots": [
+    "docs/reports/forever-album-host-upload-before.png",
+    "docs/reports/forever-album-host-upload-action-after.png",
+    "docs/reports/forever-album-embedded-encrypted-launch-after.png",
+    "docs/reports/forever-album-mobile-upload-action-after.png"
+  ]
+}

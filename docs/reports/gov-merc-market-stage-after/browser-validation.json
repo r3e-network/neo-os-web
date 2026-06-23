@@ -1,0 +1,98 @@
+[
+  {
+    "name": "desktop",
+    "viewport": {
+      "width": 1440,
+      "height": 1100
+    },
+    "initial": {
+      "url": "http://127.0.0.1:4333/",
+      "title": "Gov Merc",
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "hasHorizontalOverflow": false,
+      "stagePresent": true,
+      "stageHeight": 216,
+      "figcaptionText": "实时影响力周期周期 #0最高竞价：0.00 GAS",
+      "figcaptionWithinStage": true,
+      "stageImg": {
+        "src": "./gov-merc-market-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810,
+        "animationName": "gov-merc-stage-drift",
+        "animationDuration": "18s"
+      },
+      "signalAnimationName": "gov-merc-stage-signal",
+      "lanes": [
+        "NEO",
+        "GAS"
+      ],
+      "visibleButtons": [
+        "连接钱包",
+        "质押 NEO",
+        "取消质押 NEO",
+        "提交竞价",
+        "结算周期",
+        "领取收益"
+      ]
+    },
+    "afterClick": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "hasHorizontalOverflow": false,
+      "stageStillPresent": true
+    },
+    "consoleMessages": [],
+    "pageErrors": [],
+    "failedRequests": [],
+    "badResponses": []
+  },
+  {
+    "name": "mobile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "initial": {
+      "url": "http://127.0.0.1:4333/",
+      "title": "Gov Merc",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "hasHorizontalOverflow": false,
+      "stagePresent": true,
+      "stageHeight": 186,
+      "figcaptionText": "实时影响力周期周期 #0最高竞价：0.00 GAS",
+      "figcaptionWithinStage": true,
+      "stageImg": {
+        "src": "./gov-merc-market-stage.jpg",
+        "naturalWidth": 1440,
+        "naturalHeight": 810,
+        "animationName": "gov-merc-stage-drift",
+        "animationDuration": "18s"
+      },
+      "signalAnimationName": "gov-merc-stage-signal",
+      "lanes": [
+        "NEO",
+        "GAS"
+      ],
+      "visibleButtons": [
+        "连接钱包",
+        "质押 NEO",
+        "取消质押 NEO",
+        "提交竞价",
+        "结算周期",
+        "领取收益"
+      ]
+    },
+    "afterClick": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "hasHorizontalOverflow": false,
+      "stageStillPresent": true
+    },
+    "consoleMessages": [],
+    "pageErrors": [],
+    "failedRequests": [],
+    "badResponses": []
+  }
+]

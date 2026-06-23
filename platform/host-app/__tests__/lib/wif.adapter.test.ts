@@ -93,6 +93,7 @@ describe("WifAdapter", () => {
     mockTransactionInstances.length = 0;
     process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK = "testnet";
     process.env.NEXT_PUBLIC_WIF_MAX_SYSTEM_FEE_GAS = "20";
+    window.history.replaceState({}, "", "/");
     global.fetch = mockFetch;
   });
 
@@ -121,6 +122,37 @@ describe("WifAdapter", () => {
       salt: "",
       message: "sign-me",
     });
+  });
+
+  it("uses the current page network before the deployment default", async () => {
+    process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK = "mainnet";
+    window.history.replaceState({}, "", "/miniapps/demo?network=testnet");
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      expect(body.network).toBe("testnet");
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "2" });
+      if (body.method === "sendrawtransaction") {
+        return rpcResponse({ hash: `0x${"b".repeat(64)}` });
+      }
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    const account = await adapter.connectWithWif("test-wif");
+    expect(account.network).toBe("testnet");
+
+    await expect(adapter.invoke({
+      scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      operation: "transfer",
+      args: [],
+    })).resolves.toMatchObject({ txid: `0x${"b".repeat(64)}` });
+
+    expect(mockTransactionSign).toHaveBeenCalledWith("test-wif", 894710606);
   });
 
   it("builds, fee-estimates, signs, and relays an invoke without sending WIF to RPC", async () => {
@@ -180,6 +212,123 @@ describe("WifAdapter", () => {
       "calculatenetworkfee",
       "sendrawtransaction",
     ]);
+  });
+
+  it("normalizes nested Neo addresses before building contract params", async () => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "2" });
+      if (body.method === "sendrawtransaction") {
+        return rpcResponse({ hash: `0x${"b".repeat(64)}` });
+      }
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    await adapter.invoke({
+      scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      operation: "nested",
+      args: [
+        {
+          type: "Array",
+          value: [
+            { type: "String", value: "miniapp" },
+            { type: "Hash160", value: "NDirectWifAddress" },
+          ],
+        },
+      ],
+      signers: [{ account: "NDirectWifAddress", scopes: 1 }],
+    });
+
+    expect(mockEmitContractCall).toHaveBeenCalledWith(
+      "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      "nested",
+      15,
+      [
+        {
+          type: "Array",
+          value: [
+            { type: "String", value: "miniapp" },
+            {
+              type: "Hash160",
+              value: "0x1234567890abcdef1234567890abcdef12345678",
+            },
+          ],
+        },
+      ],
+    );
+  });
+
+  it("preserves CustomGroups signer restrictions in preflight and signed transactions", async () => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "2" });
+      if (body.method === "sendrawtransaction") {
+        return rpcResponse({ hash: `0x${"b".repeat(64)}` });
+      }
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    await expect(adapter.invoke({
+      scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      operation: "groupLimited",
+      args: [],
+      signers: [{
+        account: "NDirectWifAddress",
+        scopes: 32,
+        allowedGroups: ["03abcdef"],
+      }],
+    })).resolves.toMatchObject({ txid: `0x${"b".repeat(64)}` });
+
+    const rpcBodies = mockFetch.mock.calls.map(([, init]) => JSON.parse(String(init.body)));
+    const preflightBody = rpcBodies.find((body) => body.method === "invokefunction");
+    expect(preflightBody.params[3]).toEqual([
+      {
+        account: "0x1234567890abcdef1234567890abcdef12345678",
+        scopes: "CustomGroups",
+        allowedgroups: ["03abcdef"],
+      },
+    ]);
+    expect(mockTransactionInstances[0].init.signers).toEqual([
+      {
+        account: "0x1234567890abcdef1234567890abcdef12345678",
+        scopes: 32,
+        allowedgroups: ["03abcdef"],
+      },
+    ]);
+  });
+
+  it("rejects invalid send amounts before building a transaction", async () => {
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    await expect(
+      adapter.send("GAS", "0.000000009", "NRecipientAddress"),
+    ).rejects.toThrow(/at most 8 decimals/);
+    await expect(
+      adapter.send("GAS", "0.00000000", "NRecipientAddress"),
+    ).rejects.toThrow(/greater than zero/);
+    await expect(
+      adapter.send("NEO", "1.5", "NRecipientAddress"),
+    ).rejects.toThrow(/positive whole number/);
+
+    expect(mockEmitContractCall).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("builds, fee-estimates, signs, and relays a batched invoke", async () => {

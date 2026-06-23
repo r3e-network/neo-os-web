@@ -23,6 +23,8 @@ import {
   normalizeNeoNetwork,
   type NeoNetwork,
 } from "@/lib/neo-network";
+import { neoAddressToScriptHash } from "@/lib/neo-address";
+import { getActiveRpcNetwork } from "@/lib/rpc-helpers";
 import {
   readImmediateNep21Provider,
   waitForNep21Provider,
@@ -35,6 +37,43 @@ import {
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+
+function normalizeAssetHash(asset: string): string {
+  const raw = String(asset || "").trim();
+  const key = raw.toLowerCase();
+  if (key === "neo") return NEO_CONTRACT;
+  if (key === "gas") return GAS_CONTRACT;
+  return raw;
+}
+
+function transferDecimalsForAsset(assetHash: string): number {
+  const normalized = assetHash.toLowerCase();
+  if (normalized === NEO_CONTRACT) return 0;
+  return 8;
+}
+
+function parseTransferAmount(amount: string | number, decimals: number): string {
+  const raw = String(amount ?? "").trim();
+  const safeDecimals =
+    Number.isInteger(decimals) && decimals >= 0 && decimals <= 18 ? decimals : 8;
+  if (safeDecimals === 0) {
+    if (!/^[1-9]\d*$/.test(raw)) {
+      throw new WalletTransactionError("Transfer amount must be a positive whole number");
+    }
+    return raw;
+  }
+  const match = raw.match(/^(\d+)(?:\.(\d+))?$/);
+  if (!match || (match[2]?.length ?? 0) > safeDecimals) {
+    throw new WalletTransactionError(`Transfer amount must be positive with at most ${safeDecimals} decimals`);
+  }
+  const intPart = match[1] ?? "0";
+  const frac = `${match[2] ?? ""}${"0".repeat(safeDecimals)}`.slice(0, safeDecimals);
+  const value = BigInt(intPart) * 10n ** BigInt(safeDecimals) + BigInt(frac || "0");
+  if (value <= 0n) {
+    throw new WalletTransactionError("Transfer amount must be greater than zero");
+  }
+  return value.toString();
+}
 
 function getImmediateProvider(preference: DapiProviderPreference = "any"): DapiProvider | null {
   return readImmediateNep21Provider({ preference }) as DapiProvider | null;
@@ -68,19 +107,98 @@ function getAuthenticationDomain(): string {
   return window.location.host || window.location.hostname || "localhost";
 }
 
+function getAuthenticationNetworks(): number[] {
+  return [
+    getActiveRpcNetwork() === "testnet" ? TESTNET_MAGIC : MAINNET_MAGIC,
+  ];
+}
+
+function forgetRememberedProvider(provider: DapiProvider | null): void {
+  if (!provider || typeof window === "undefined") return;
+  const writableWindow = window as Window & {
+    NEP21Provider?: unknown;
+    NEP21Providers?: Record<string, unknown> | unknown[];
+  };
+  if (writableWindow.NEP21Provider === provider) {
+    delete writableWindow.NEP21Provider;
+  }
+  const registry = writableWindow.NEP21Providers;
+  if (Array.isArray(registry)) {
+    writableWindow.NEP21Providers = registry.filter((entry) => entry !== provider);
+    return;
+  }
+  if (registry && typeof registry === "object") {
+    for (const [key, value] of Object.entries(registry)) {
+      if (value === provider) {
+        delete (registry as Record<string, unknown>)[key];
+      }
+    }
+  }
+}
+
 function normalizeOperationName(operation: string): string {
   const raw = String(operation || "").trim();
-  return raw ? raw.charAt(0).toLowerCase() + raw.slice(1) : raw;
+  if (!raw) {
+    throw new WalletTransactionError("Contract operation name is required");
+  }
+  return raw;
+}
+
+async function readProviderNetwork(provider: DapiProvider): Promise<NeoNetwork | null> {
+  if (typeof provider.getNetwork === "function") {
+    try {
+      return normalizeNeoNetwork(await provider.getNetwork());
+    } catch (_e: unknown) {
+      return normalizeNeoNetwork(provider.network);
+    }
+  }
+  return normalizeNeoNetwork(provider.network);
+}
+
+function getDapiAccountAddress(
+  account: Partial<DapiAccount> | Record<string, unknown> | null | undefined,
+  fallback = "",
+): string {
+  if (!account || typeof account !== "object") return fallback;
+  const record = account as Record<string, unknown>;
+  return String(record.address ?? record.Address ?? fallback).trim();
+}
+
+function getDapiAccountHash(
+  account: Partial<DapiAccount> | Record<string, unknown> | null | undefined,
+): string {
+  if (!account || typeof account !== "object") return "";
+  const record = account as Record<string, unknown>;
+  const direct = String(
+    record.accountHash ??
+      record.hash ??
+      record.scriptHash ??
+      record.Hash ??
+      record.ScriptHash ??
+      "",
+  ).trim();
+  if (direct) return direct;
+  const accountAddress = getDapiAccountAddress(account);
+  return /^N/.test(accountAddress) ? neoAddressToScriptHash(accountAddress) : "";
 }
 
 function scopeToDapi(scope: string | number): string {
-  if (typeof scope === "number") {
-    if (scope === 0) return "None";
-    if (scope === 1) return "CalledByEntry";
-    if (scope === 16) return "CustomContracts";
-    if (scope === 32) return "CustomGroups";
-    if (scope === 64) return "WitnessRules";
-    if (scope === 128) return "Global";
+  const scopeByNumber: Record<number, string> = {
+    0: "None",
+    1: "CalledByEntry",
+    16: "CustomContracts",
+    32: "CustomGroups",
+    64: "WitnessRules",
+    128: "Global",
+  };
+  if (typeof scope === "number" && Number.isFinite(scope)) {
+    if (scopeByNumber[scope]) return scopeByNumber[scope];
+    const parts = Object.entries(scopeByNumber)
+      .filter(
+        ([bit]) => Number(bit) !== 0 && (scope & Number(bit)) === Number(bit),
+      )
+      .map(([, name]) => name);
+    return parts.length ? parts.join(", ") : "CalledByEntry";
   }
   const raw = String(scope || "").trim();
   if (/^\d+$/.test(raw)) return scopeToDapi(Number(raw));
@@ -118,7 +236,7 @@ function mapDapiArgs(
   currentAddress?: string | null,
 ) {
   if (!args?.length) return args ?? [];
-  return args.map((arg) => {
+  const mapArg = (arg: { type: string; value: unknown }): { type: string; value: unknown } => {
     if (
       accountHash &&
       currentAddress &&
@@ -127,8 +245,22 @@ function mapDapiArgs(
     ) {
       return { ...arg, value: accountHash };
     }
+    if (String(arg.type).toLowerCase() === "array" && Array.isArray(arg.value)) {
+      return {
+        ...arg,
+        value: arg.value.map((entry) =>
+          entry &&
+          typeof entry === "object" &&
+          "type" in entry &&
+          "value" in entry
+            ? mapArg(entry as { type: string; value: unknown })
+            : entry,
+        ),
+      };
+    }
     return arg;
-  });
+  };
+  return args.map(mapArg);
 }
 
 function mapDapiSigners(
@@ -176,6 +308,13 @@ export class Nep21Adapter implements WalletAdapter {
     return this.provider;
   }
 
+  private resolveDapiAccount(account?: string | null): string {
+    if (account && this.accountHash && this.address && account === this.address) {
+      return this.accountHash;
+    }
+    return account ?? this.accountHash ?? this.address ?? "";
+  }
+
   async connect(): Promise<WalletAccount> {
     const provider = await this.getProvider();
     try {
@@ -187,14 +326,16 @@ export class Nep21Adapter implements WalletAdapter {
         accounts = [];
       }
       const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
-      if (account?.hash) {
-        this.accountHash = account.hash;
-        this.address = account.address || account.hash;
+      const accountHash = getDapiAccountHash(account);
+      if (account && accountHash) {
+        this.accountHash = accountHash;
+        this.address = getDapiAccountAddress(account, accountHash);
         return {
           address: this.address,
+          accountHash: this.accountHash ?? undefined,
           publicKey: "",
           label: account.label,
-          network: normalizeNeoNetwork(provider.network),
+          network: await readProviderNetwork(provider),
         };
       }
 
@@ -206,17 +347,18 @@ export class Nep21Adapter implements WalletAdapter {
         grant_type: "Signature",
         allowed_algorithms: ["ECDSA-P256"],
         domain: getAuthenticationDomain(),
-        networks: provider.supportedNetworks?.length ? provider.supportedNetworks : [MAINNET_MAGIC, TESTNET_MAGIC],
+        networks: getAuthenticationNetworks(),
         nonce: createNonce(),
         timestamp: Date.now(),
       });
       if (!authenticated.address) throw new WalletConnectionError("Connected Neo wallet authentication did not return an address");
-      this.accountHash = null;
+      this.accountHash = getDapiAccountHash(authenticated) || null;
       this.address = authenticated.address;
       return {
         address: authenticated.address,
+        accountHash: this.accountHash ?? undefined,
         publicKey: authenticated.pubkey || "",
-        network: normalizeNeoNetwork(authenticated.network ?? provider.network),
+        network: normalizeNeoNetwork(authenticated.network) ?? await readProviderNetwork(provider),
       };
     } catch (error) {
       if (error instanceof WalletConnectionError) throw error;
@@ -240,25 +382,29 @@ export class Nep21Adapter implements WalletAdapter {
       return null;
     }
     const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
-    if (!account?.hash) return null;
-    this.accountHash = account.hash;
-    this.address = account.address || account.hash;
+    const accountHash = getDapiAccountHash(account);
+    if (!account || !accountHash) return null;
+    this.accountHash = accountHash;
+    this.address = getDapiAccountAddress(account, accountHash);
     return {
       address: this.address,
+      accountHash: this.accountHash ?? undefined,
       publicKey: "",
       label: account.label,
-      network: normalizeNeoNetwork(provider.network),
+      network: await readProviderNetwork(provider),
     };
   }
 
   async disconnect(): Promise<void> {
+    forgetRememberedProvider(this.provider);
+    this.provider = null;
     this.accountHash = null;
     this.address = null;
   }
 
   async getNetwork(): Promise<NeoNetwork | null> {
     const provider = await this.getProvider();
-    return normalizeNeoNetwork(provider.network);
+    return readProviderNetwork(provider);
   }
 
   onAccountChanged(listener: () => void | Promise<void>): () => void {
@@ -323,5 +469,47 @@ export class Nep21Adapter implements WalletAdapter {
     }));
     const signerList = mapDapiSigners(signers ?? params[0]?.signers, this.accountHash, this.address);
     return normalizeTxResult(await provider.invoke(invocations, signerList));
+  }
+
+  async send(
+    asset: string,
+    amount: string | number,
+    to: string,
+    from?: string,
+  ): Promise<TransactionResult> {
+    const provider = await this.getProvider();
+    const assetHash = normalizeAssetHash(asset);
+    const sender = from || this.address || this.accountHash || "";
+    if (!sender) {
+      throw new WalletTransactionError("Connected Neo wallet account is required to send assets");
+    }
+
+    if (provider.send) {
+      return normalizeTxResult(
+        await provider.send(
+          assetHash,
+          this.resolveDapiAccount(sender),
+          to,
+          String(amount),
+        ),
+      );
+    }
+
+    if (!provider.invoke) {
+      throw new WalletTransactionError("Connected Neo wallet does not support asset transfers");
+    }
+
+    const rawAmount = parseTransferAmount(amount, transferDecimalsForAsset(assetHash));
+    return this.invoke({
+      scriptHash: assetHash,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: sender },
+        { type: "Hash160", value: to },
+        { type: "Integer", value: rawAmount },
+        { type: "Any", value: null },
+      ],
+      signers: [{ account: sender, scopes: 1 }],
+    });
   }
 }

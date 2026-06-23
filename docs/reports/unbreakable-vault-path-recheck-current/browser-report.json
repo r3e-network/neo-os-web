@@ -1,0 +1,57 @@
+{
+  "generatedAt": "2026-06-01T20:21:26.451Z",
+  "target": "Unbreakable Vault canonical embedded path recheck",
+  "passed": true,
+  "url": "http://127.0.0.1:3030/miniapps/unbreakable-vault?network=testnet",
+  "iframes": [
+    {
+      "src": "/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+      "title": "Unbreakable Vault dApp",
+      "className": "block min-h-[580px] h-[calc(100vh-172px)] w-full border-0 bg-white transition-opacity duration-300 opacity-100"
+    }
+  ],
+  "iframeBox": {
+    "x": 18,
+    "y": 131,
+    "width": 1052,
+    "height": 828
+  },
+  "frameMetrics": {
+    "url": "http://127.0.0.1:3030/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+    "textLength": 399,
+    "textSample": "Unbreakable Vault Hacker bounty vaults secured by on-chain hashes 0 Create 0 Break Create Vault Vault Title Description Bounty Difficulty Easy · 0.1 GAS Medium · 0.5 GAS Hard · 1 GAS Vault Secret Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty. Create Vault (bounty + hash) Break a Vault Vault ID Load Vault Attempt Break Recent Vaults No vaults found",
+    "bodyScrollHeight": 1021,
+    "innerHeight": 828,
+    "hasCreateVault": true,
+    "hasBreak": true,
+    "buttons": [
+      "Create Vault (bounty + hash)",
+      "Load Vault",
+      "Attempt Break"
+    ]
+  },
+  "hostMetrics": {
+    "textLength": 1704,
+    "hasUnbreakableVault": true,
+    "errorOverlay": false
+  },
+  "consoleMessages": [],
+  "unexpectedConsole": [],
+  "pageErrors": [],
+  "failedRequests": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3030/api/auth/profile",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "relevantFailures": [],
+  "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/unbreakable-vault-path-recheck-current/desktop-current.png"
+}

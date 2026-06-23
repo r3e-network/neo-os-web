@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-06-02T00:09:56.226Z",
+  "hostUrl": "http://localhost:3040/miniapps/dev-tipping?network=testnet",
+  "dappUrl": "http://localhost:3040/miniapps/dev-tipping/index.html?network=testnet&source=embed",
+  "walletHarness": {
+    "provider": "OneGate NEP-21 test harness",
+    "walletAddress": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+    "txid": "0xdevtippingbrowser",
+    "network": "testnet"
+  },
+  "hostActionConsole": {
+    "submitDisabledBefore": false,
+    "feedbackIncludesTxid": true,
+    "invokeCount": 1,
+    "firstInvoke": {
+      "invocations": [
+        {
+          "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "operation": "transfer",
+          "args": [
+            {
+              "type": "Hash160",
+              "value": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu"
+            },
+            {
+              "type": "Hash160",
+              "value": "0x389aa2c619f0cfed5b495dd8638107d20f37e086"
+            },
+            {
+              "type": "Integer",
+              "value": "5000000"
+            },
+            {
+              "type": "String",
+              "value": "miniapp-dev-tipping:tip"
+            }
+          ]
+        },
+        {
+          "hash": "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
+          "operation": "tip",
+          "args": [
+            {
+              "type": "Hash160",
+              "value": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu"
+            },
+            {
+              "type": "Integer",
+              "value": "7"
+            },
+            {
+              "type": "Integer",
+              "value": "5000000"
+            },
+            {
+              "type": "String",
+              "value": "Thanks for building"
+            },
+            {
+              "type": "String",
+              "value": "Neo supporter"
+            }
+          ]
+        }
+      ],
+      "signers": [
+        {
+          "account": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+          "scopes": "CalledByEntry"
+        }
+      ]
+    },
+    "expected": {
+      "gasTransferHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      "devTippingTestnetHash": "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
+      "amountFixed8": "5000000",
+      "devId": "7"
+    }
+  },
+  "embeddedPlayArea": {
+    "found": true,
+    "buttonEnabledAfterFields": true,
+    "emptyHint": "Enter a registered developer ID in the tip form to support them directly."
+  },
+  "standalonePlayArea": {
+    "standaloneButtonEnabled": true,
+    "standaloneHint": "Enter a registered developer ID in the tip form to support them directly."
+  },
+  "layout": {
+    "hostOverflow": {
+      "viewportOverflow": 0,
+      "offenders": []
+    },
+    "mobileOverflow": {
+      "viewportOverflow": 0,
+      "offenders": []
+    }
+  },
+  "consoleMessages": [],
+  "screenshots": [
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/dev-tipping-frontend-validation-after/host-action-console-desktop.png",
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/dev-tipping-frontend-validation-after/standalone-empty-manual-id-desktop.png",
+    "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/dev-tipping-frontend-validation-after/host-action-console-mobile.png"
+  ]
+}

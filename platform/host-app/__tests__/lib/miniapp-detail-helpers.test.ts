@@ -3,6 +3,7 @@ import {
   buildInvokeArgs,
   frontendOperationFeedback,
   isFrontendLocalOperation,
+  parseScaledDecimal,
   prepareFrontendOperationQueryValues,
   readSensitiveFrontendOperationValue,
   resolveNetworkContractHash,
@@ -110,6 +111,21 @@ describe("miniapp detail route helpers", () => {
         "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
       ),
     ).toEqual([{ type: "Integer", value: "5000000" }]);
+  });
+
+  it("rejects malformed scaled decimal strings at the shared parser boundary", () => {
+    expect(parseScaledDecimal("1.00000000", 8, "Amount")).toBe("100000000");
+    expect(parseScaledDecimal(".5", 8, "Amount")).toBe("50000000");
+    expect(parseScaledDecimal("1.", 8, "Amount")).toBe("100000000");
+    expect(() => parseScaledDecimal("1abc", 8, "Amount")).toThrow(
+      "Amount must be numeric.",
+    );
+    expect(() => parseScaledDecimal("1e2", 8, "Amount")).toThrow(
+      "Amount must be numeric.",
+    );
+    expect(() => parseScaledDecimal("1.000000001", 8, "Amount")).toThrow(
+      "Amount supports at most 8 decimal places.",
+    );
   });
 
   it("keeps sensitive frontend-local operation values out of URL query params", () => {

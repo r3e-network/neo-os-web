@@ -4,7 +4,8 @@ export type NeoDapiEventName =
   | "networkchanged";
 
 export type NeoDapiAccount = {
-  hash: string;
+  hash?: string;
+  accountHash?: string;
   address?: string;
   label?: string;
   isDefault?: boolean;
@@ -20,6 +21,9 @@ export type NeoDapiInvocation<TArg = { type: string; value: unknown }> = {
 export type NeoDapiAuthenticationResponse = {
   network?: number;
   address?: string;
+  accountHash?: string;
+  hash?: string;
+  scriptHash?: string;
   nonce?: string;
   pubkey?: string;
   signature?: string;
@@ -59,6 +63,7 @@ export interface NeoDapiProvider<
   ) => Promise<NeoDapiAuthenticationResponse>;
   call?: (invocation: NeoDapiInvocation<TArg>) => Promise<TCallResult>;
   getAccounts: () => Promise<NeoDapiAccount[]>;
+  getNetwork?: () => Promise<unknown> | unknown;
   getBalance?: (asset: string, account?: string) => Promise<unknown>;
   invoke?: (
     invocations: NeoDapiInvocation<TArg>[],
@@ -93,6 +98,8 @@ export type Nep21Window = Window & {
   NEP21Providers?: Record<string, unknown> | unknown[];
   Neo?: { DapiProvider?: unknown };
   OneGateDapiProvider?: unknown;
+  NEOLine?: unknown;
+  NEOLineN3?: unknown;
   neoDapiProvider?: unknown;
   neoDapi?: unknown;
 };
@@ -120,8 +127,15 @@ type HostBridgeResponse = {
   protocolVersion?: unknown;
 };
 
+type HostBridgeStateMessage = {
+  type?: string;
+  state?: unknown;
+  protocolVersion?: unknown;
+};
+
 const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
 const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
+export const HOST_WALLET_BRIDGE_STATE = "neo-miniapp-wallet-bridge:state";
 
 // Versioned protocol contract for the host<->iframe wallet bridge.
 //
@@ -167,7 +181,35 @@ let cachedProvider: NeoDapiProvider | null = null;
 let cachedWindow: Nep21Window | null = null;
 let cachedHostBridgeProvider: NeoDapiProvider | null = null;
 let cachedHostBridgeWindow: Nep21Window | null = null;
+let cachedHostBridgeStateCleanup: (() => void) | null = null;
+let cachedLegacyNeoLineProvider: NeoDapiProvider | null = null;
+let cachedLegacyNeoLineWindow: Nep21Window | null = null;
 let hostBridgeRequestId = 0;
+
+type LegacyNeoLineN3Account = {
+  address?: unknown;
+  label?: unknown;
+  isLedger?: unknown;
+};
+
+type LegacyNeoLineN3Api = {
+  EVENT?: Record<string, string>;
+  getProvider?: () => Promise<unknown>;
+  getNetworks?: () => Promise<unknown>;
+  getAccount?: () => Promise<LegacyNeoLineN3Account>;
+  pickAddress?: () => Promise<LegacyNeoLineN3Account>;
+  switchWalletAccount?: () => Promise<LegacyNeoLineN3Account>;
+  getPublicKey?: () => Promise<{ publicKey?: unknown; pubkey?: unknown }>;
+  AddressToScriptHash?: (payload: { address: string }) => Promise<{ scriptHash?: unknown }>;
+  getBalance?: (payload?: unknown) => Promise<unknown>;
+  invokeRead?: (payload: unknown) => Promise<unknown>;
+  invoke?: (payload: unknown) => Promise<unknown>;
+  invokeMultiple?: (payload: unknown) => Promise<unknown>;
+  send?: (payload: unknown) => Promise<unknown>;
+  signMessage?: (payload: unknown) => Promise<unknown>;
+  addEventListener?: (eventName: string, listener: () => void) => void;
+  removeEventListener?: (eventName: string, listener: () => void) => void;
+};
 
 function getTargetWindow(targetWindow?: Window): Nep21Window | null {
   if (targetWindow) return targetWindow as Nep21Window;
@@ -218,15 +260,23 @@ function registryCandidates(
 }
 
 function providerCandidates(win: Nep21Window): Candidate[] {
-  return [
+  const directCandidates: Candidate[] = [
     { provider: win.NEP21Provider },
     ...registryCandidates(win.NEP21Providers),
     { provider: win.OneGateDapiProvider },
     { provider: win.Neo?.DapiProvider },
     { provider: win.neoDapiProvider },
     { provider: win.neoDapi },
-    { provider: getHostWalletBridgeProvider(win), key: "yiwu-host" },
+    { provider: getLegacyNeoLineN3Provider(win), key: "neoline-legacy-n3" },
   ];
+  const hostBridge = getHostWalletBridgeProvider(win);
+  if (!hostBridge) return directCandidates;
+
+  // Embedded miniapps run in a sandboxed opaque origin. Browser wallet
+  // extensions can still attempt direct injection there, but many fail because
+  // storage is unavailable. Prefer the explicit host bridge in embeds so
+  // signing and network checks always run in the top-level trusted shell.
+  return [{ provider: hostBridge, key: "yiwu-host" }, ...directCandidates];
 }
 
 function providerMatchesPreference(
@@ -367,6 +417,7 @@ export function waitForNep21Provider(
       settled = true;
       clearTimeout(timeout);
       win.removeEventListener("Neo.DapiProvider.ready", onReady);
+      win.removeEventListener("NEOLine.N3.EVENT.READY", onLegacyNeoLineReady);
       if (provider) {
         resolve(provider);
       } else {
@@ -382,11 +433,19 @@ export function waitForNep21Provider(
       if (!providerMatchesPreference(win, provider, preference)) return;
       finish(provider);
     };
+    const onLegacyNeoLineReady = () => {
+      const provider = readImmediateNep21Provider({
+        preference,
+        targetWindow: win,
+      });
+      if (provider) finish(provider);
+    };
     timeout = setTimeout(
       () => finish(null, new Error("NEP-21 dAPI provider not detected.")),
       timeoutMs,
     );
     win.addEventListener("Neo.DapiProvider.ready", onReady);
+    win.addEventListener("NEOLine.N3.EVENT.READY", onLegacyNeoLineReady);
     if (options.request ?? true) requestNep21Provider(win);
   });
 }
@@ -396,6 +455,10 @@ export function resetNep21ProviderCacheForTests(): void {
   cachedWindow = null;
   cachedHostBridgeProvider = null;
   cachedHostBridgeWindow = null;
+  cachedHostBridgeStateCleanup?.();
+  cachedHostBridgeStateCleanup = null;
+  cachedLegacyNeoLineProvider = null;
+  cachedLegacyNeoLineWindow = null;
   hostBridgeRequestId = 0;
 }
 
@@ -429,6 +492,388 @@ function networkMagicFromLocation(win: Nep21Window): number {
     // Default to testnet for local embedded validation.
   }
   return TESTNET_MAGIC;
+}
+
+function normalizeScriptHashPrefix(value: unknown, options: { prefixed: boolean }): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const withoutPrefix = raw.startsWith("0x") || raw.startsWith("0X")
+    ? raw.slice(2)
+    : raw;
+  return options.prefixed ? `0x${withoutPrefix}` : withoutPrefix;
+}
+
+function normalizeLegacyNetworkMagic(value: unknown): number | null {
+  if (typeof value === "number") {
+    if (value === MAINNET_MAGIC || value === 3) return MAINNET_MAGIC;
+    if (value === TESTNET_MAGIC || value === 6) return TESTNET_MAGIC;
+  }
+  if (typeof value === "string") {
+    const raw = value.trim().toLowerCase();
+    if (!raw) return null;
+    if (raw.includes("mainnet") || raw === "main" || raw === "3") return MAINNET_MAGIC;
+    if (raw.includes("testnet") || raw === "test" || raw === "6") return TESTNET_MAGIC;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) return normalizeLegacyNetworkMagic(parsed);
+  }
+  if (isRecord(value)) {
+    return (
+      normalizeLegacyNetworkMagic(value.defaultNetwork) ||
+      normalizeLegacyNetworkMagic(value.network) ||
+      normalizeLegacyNetworkMagic(value.chainId) ||
+      normalizeLegacyNetworkMagic(value.id)
+    );
+  }
+  return null;
+}
+
+function normalizeLegacyArg(arg: unknown): unknown {
+  if (!isRecord(arg)) return arg;
+  const type = String(arg.type ?? "").toLowerCase();
+  if (type !== "hash160") return arg;
+  return {
+    ...arg,
+    value: normalizeScriptHashPrefix(arg.value, { prefixed: true }) || arg.value,
+  };
+}
+
+function normalizeLegacySigner(signer: unknown): unknown {
+  if (!isRecord(signer)) return signer;
+  return {
+    ...signer,
+    account: normalizeScriptHashPrefix(signer.account, { prefixed: false }) || signer.account,
+    scopes: normalizeLegacySignerScopes(signer.scopes),
+  };
+}
+
+const LEGACY_SIGNER_SCOPE_BY_NAME: Record<string, number> = {
+  none: 0,
+  calledbyentry: 1,
+  customcontracts: 16,
+  customgroups: 32,
+  witnessrules: 64,
+  rules: 64,
+  global: 128,
+};
+
+function normalizeLegacySignerScopes(scope: unknown): unknown {
+  if (typeof scope === "number" && Number.isFinite(scope)) return scope;
+  const raw = String(scope ?? "").trim();
+  if (!raw) return scope;
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const parts = raw
+    .split(",")
+    .map((part) => part.trim().toLowerCase().replace(/\s+/g, ""))
+    .filter(Boolean);
+  if (!parts.length) return scope;
+  let mapped = 0;
+  for (const part of parts) {
+    const value = LEGACY_SIGNER_SCOPE_BY_NAME[part];
+    if (value === undefined) return scope;
+    mapped |= value;
+  }
+  return mapped;
+}
+
+function normalizeLegacyInvocation(invocation: NeoDapiInvocation<unknown>) {
+  return {
+    scriptHash: normalizeScriptHashPrefix(invocation.hash, { prefixed: false }),
+    operation: invocation.operation,
+    args: invocation.args?.map(normalizeLegacyArg) ?? [],
+    abortOnFail: invocation.abortOnFail,
+  };
+}
+
+function findLegacyBalanceAmount(result: unknown, asset: string): string | number | null {
+  if (typeof result === "string" || typeof result === "number") return result;
+  if (!result || typeof result !== "object") return null;
+
+  const assetLower = normalizeScriptHashPrefix(asset, { prefixed: true }).toLowerCase();
+  const assetBareLower = normalizeScriptHashPrefix(asset, { prefixed: false }).toLowerCase();
+  const search = (value: unknown): string | number | null => {
+    if (typeof value === "string" || typeof value === "number") return value;
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        const match = search(entry);
+        if (match !== null) return match;
+      }
+      return null;
+    }
+    if (!isRecord(value)) return null;
+    const contract = String(value.contract ?? value.asset ?? value.hash ?? "").toLowerCase();
+    if (
+      contract === assetLower ||
+      contract === assetBareLower ||
+      normalizeScriptHashPrefix(contract, { prefixed: true }).toLowerCase() === assetLower
+    ) {
+      const amount = value.amount ?? value.balance ?? value.value;
+      if (typeof amount === "string" || typeof amount === "number") return amount;
+    }
+    for (const nested of Object.values(value)) {
+      const match = search(nested);
+      if (match !== null) return match;
+    }
+    return null;
+  };
+  return search(result);
+}
+
+function resolveLegacyNeoLineApi(candidate: unknown): LegacyNeoLineN3Api | null {
+  if (!candidate || typeof candidate !== "object") return null;
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.Init === "function") {
+    try {
+      return new (record.Init as new () => LegacyNeoLineN3Api)();
+    } catch {
+      try {
+        return (record.Init as () => LegacyNeoLineN3Api)();
+      } catch {
+        return null;
+      }
+    }
+  }
+  if (typeof (candidate as LegacyNeoLineN3Api).getAccount === "function") {
+    return candidate as LegacyNeoLineN3Api;
+  }
+  return null;
+}
+
+function resolveLegacyNeoLineN3Api(win: Nep21Window): LegacyNeoLineN3Api | null {
+  return resolveLegacyNeoLineApi(win.NEOLineN3);
+}
+
+function resolveLegacyNeoLineCommonApi(win: Nep21Window): LegacyNeoLineN3Api | null {
+  return resolveLegacyNeoLineApi(win.NEOLine);
+}
+
+async function updateLegacyNeoLineNetwork(
+  provider: NeoDapiProvider,
+  api: LegacyNeoLineN3Api,
+) {
+  if (typeof api.getNetworks !== "function") return;
+  try {
+    const magic = normalizeLegacyNetworkMagic(await api.getNetworks());
+    if (magic) provider.network = magic;
+  } catch {
+    // Network reads are best effort. The platform still fails closed on writes
+    // when a wallet network cannot be verified by the host store.
+  }
+}
+
+function getLegacyNeoLineEventName(
+  api: LegacyNeoLineN3Api,
+  event: NeoDapiEventName,
+): string {
+  const registry = api.EVENT ?? {};
+  if (event === "accountchanged" || event === "accountschanged") {
+    return (
+      registry.ACCOUNT_CHANGED ||
+      registry.ACCOUNTS_CHANGED ||
+      "accountChanged"
+    );
+  }
+  return registry.NETWORK_CHANGED || "networkChanged";
+}
+
+function getLegacyNeoLineN3Provider(win: Nep21Window): NeoDapiProvider | null {
+  if (cachedLegacyNeoLineProvider && cachedLegacyNeoLineWindow === win) {
+    return cachedLegacyNeoLineProvider;
+  }
+  const api = resolveLegacyNeoLineN3Api(win);
+  if (!api) return null;
+  const commonApi = resolveLegacyNeoLineCommonApi(win);
+  const accountApi = commonApi ?? api;
+  const networkApi = commonApi ?? api;
+  const eventApi = commonApi ?? api;
+  let legacyAccountAddress: string | null = null;
+  let legacyAccountHash: string | null = null;
+  const legacyListenerMap = new Map<
+    NeoDapiEventName,
+    Map<() => void, () => void>
+  >();
+
+  const resolveLegacyFromAddress = (value: unknown): string => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return legacyAccountAddress ?? "";
+    const rawBare = normalizeScriptHashPrefix(raw, { prefixed: false }).toLowerCase();
+    const hashBare = normalizeScriptHashPrefix(legacyAccountHash, { prefixed: false }).toLowerCase();
+    if (legacyAccountAddress && hashBare && rawBare === hashBare) {
+      return legacyAccountAddress;
+    }
+    return raw;
+  };
+
+  const provider: NeoDapiProvider<unknown> = {
+    name: "NeoLine Legacy N3",
+    dapiVersion: "1.0.0",
+    compatibility: ["NEP-21"],
+    supportedNetworks: [MAINNET_MAGIC, TESTNET_MAGIC],
+    async getAccounts() {
+      await updateLegacyNeoLineNetwork(provider, networkApi);
+      const account =
+        typeof accountApi.getAccount === "function"
+          ? await accountApi.getAccount()
+          : typeof accountApi.pickAddress === "function"
+            ? await accountApi.pickAddress()
+            : null;
+      const address = String(account?.address ?? "").trim();
+      if (!address) return [];
+      let hash = "";
+      const addressApi =
+        typeof api.AddressToScriptHash === "function" ? api : accountApi;
+      if (typeof addressApi.AddressToScriptHash === "function") {
+        try {
+          const converted = await addressApi.AddressToScriptHash({ address });
+          hash = normalizeScriptHashPrefix(converted?.scriptHash, {
+            prefixed: true,
+          });
+        } catch {
+          hash = "";
+        }
+      }
+      legacyAccountAddress = address;
+      legacyAccountHash = hash || null;
+      return [
+        {
+          hash: hash || address,
+          address,
+          label: typeof account?.label === "string" ? account.label : "NeoLine",
+          isDefault: true,
+        },
+      ];
+    },
+    async authenticate() {
+      const accounts = await provider.getAccounts();
+      const account = accounts[0];
+      const publicKey =
+        typeof accountApi.getPublicKey === "function"
+          ? await accountApi.getPublicKey().catch(() => null)
+          : null;
+      return {
+        network: provider.network,
+        address: account?.address ?? account?.hash,
+        pubkey: String(publicKey?.pubkey ?? publicKey?.publicKey ?? ""),
+      };
+    },
+    async getNetwork() {
+      await updateLegacyNeoLineNetwork(provider, networkApi);
+      return provider.network;
+    },
+    call: (invocation) => {
+      if (typeof api.invokeRead !== "function") {
+        return Promise.reject(
+          new Error("NeoLine N3 does not support read-only contract calls."),
+        );
+      }
+      return api.invokeRead(normalizeLegacyInvocation(invocation));
+    },
+    async getBalance(asset, account) {
+      if (typeof api.getBalance !== "function") return "0";
+      const payload = account
+        ? {
+            params: [
+              {
+                address: resolveLegacyFromAddress(account),
+                contracts: [normalizeScriptHashPrefix(asset, { prefixed: false })],
+              },
+            ],
+          }
+        : undefined;
+      let result: unknown;
+      try {
+        result = await api.getBalance(payload);
+      } catch (error) {
+        if (payload === undefined) throw error;
+        result = await api.getBalance();
+      }
+      return findLegacyBalanceAmount(result, asset) ?? "0";
+    },
+    invoke: (invocations, signers, suggestedSystemFee) => {
+      const normalizedInvocations = invocations.map(normalizeLegacyInvocation);
+      const normalizedSigners = signers?.map(normalizeLegacySigner);
+      if (
+        normalizedInvocations.length > 1 &&
+        typeof api.invokeMultiple === "function"
+      ) {
+        return api.invokeMultiple({
+          invokeArgs: normalizedInvocations,
+          signers: normalizedSigners,
+          suggestedSystemFee,
+        });
+      }
+      if (typeof api.invoke !== "function") {
+        return Promise.reject(
+          new Error("NeoLine N3 does not support contract invoke."),
+        );
+      }
+      return api.invoke({
+        ...normalizedInvocations[0],
+        signers: normalizedSigners,
+        suggestedSystemFee,
+      });
+    },
+    send: (asset, from, to, amount, data) => {
+      if (typeof api.send !== "function") {
+        return Promise.reject(
+          new Error("NeoLine N3 does not support asset transfers."),
+        );
+      }
+      return api.send({
+        asset: normalizeScriptHashPrefix(asset, { prefixed: false }) || asset,
+        fromAddress: resolveLegacyFromAddress(from),
+        toAddress: to,
+        amount,
+        data,
+      });
+    },
+    signMessage: async (message) => {
+      if (typeof api.signMessage !== "function") {
+        return Promise.reject(
+          new Error("NeoLine N3 does not support message signing."),
+        );
+      }
+      const result = await api.signMessage({ message });
+      if (isRecord(result)) {
+        return {
+          signature:
+            typeof result.signature === "string" ? result.signature : undefined,
+          data: typeof result.data === "string" ? result.data : undefined,
+          account:
+            typeof result.account === "string" ? result.account : undefined,
+          pubkey: typeof result.pubkey === "string" ? result.pubkey : undefined,
+          publicKey:
+            typeof result.publicKey === "string" ? result.publicKey : undefined,
+          salt: typeof result.salt === "string" ? result.salt : undefined,
+          message:
+            typeof result.message === "string" ? result.message : undefined,
+        };
+      }
+      return { data: String(result ?? "") };
+    },
+    on: (event, listener) => {
+      const wrapped = () => {
+        void (async () => {
+          if (event === "networkchanged") {
+            await updateLegacyNeoLineNetwork(provider, networkApi);
+          }
+          listener();
+        })();
+      };
+      const eventListeners = legacyListenerMap.get(event) ?? new Map();
+      eventListeners.set(listener, wrapped);
+      legacyListenerMap.set(event, eventListeners);
+      eventApi.addEventListener?.(getLegacyNeoLineEventName(eventApi, event), wrapped);
+    },
+    removeListener: (event, listener) => {
+      const eventListeners = legacyListenerMap.get(event);
+      const wrapped = eventListeners?.get(listener) ?? listener;
+      eventListeners?.delete(listener);
+      eventApi.removeEventListener?.(getLegacyNeoLineEventName(eventApi, event), wrapped);
+    },
+  };
+  cachedLegacyNeoLineProvider = provider as NeoDapiProvider;
+  cachedLegacyNeoLineWindow = win;
+  return cachedLegacyNeoLineProvider;
 }
 
 function createHostBridgeRequestId(): string {
@@ -589,18 +1034,67 @@ function getHostWalletBridgeProvider(win: Nep21Window): NeoDapiProvider | null {
   if (cachedHostBridgeProvider && cachedHostBridgeWindow === win) {
     return cachedHostBridgeProvider;
   }
+  cachedHostBridgeStateCleanup?.();
+  cachedHostBridgeStateCleanup = null;
+  const hostBridgeListeners = new Map<NeoDapiEventName, Set<() => void>>();
+  let lastHostBridgeAddress: string | null = null;
+
+  const emitHostBridgeEvent = (event: NeoDapiEventName) => {
+    hostBridgeListeners.get(event)?.forEach((listener) => listener());
+  };
+
+  const readStateAccountAddress = (state: Record<string, unknown>): string => {
+    if (state.connected === false) return "";
+    return String(state.address ?? "").trim();
+  };
+
+  const applyHostBridgeState = (
+    provider: NeoDapiProvider,
+    state: Record<string, unknown>,
+  ) => {
+    const previousNetwork = provider.network;
+    const nextNetwork = normalizeLegacyNetworkMagic(
+      state.network ?? state.networkName,
+    );
+    if (nextNetwork) {
+      provider.network = nextNetwork;
+    } else {
+      delete provider.network;
+    }
+
+    const previousAddress = lastHostBridgeAddress;
+    const nextAddress = readStateAccountAddress(state) || null;
+    lastHostBridgeAddress = nextAddress;
+
+    if (provider.network !== previousNetwork) {
+      emitHostBridgeEvent("networkchanged");
+    }
+    if (nextAddress !== previousAddress) {
+      emitHostBridgeEvent("accountchanged");
+    }
+  };
+
   const provider: NeoDapiProvider = {
     name: "Yiwu Host Wallet",
     dapiVersion: "1.0.0",
     compatibility: ["NEP-21"],
     network: networkMagicFromLocation(win),
     supportedNetworks: [MAINNET_MAGIC, TESTNET_MAGIC],
-    getAccounts: () =>
-      hostBridgeRequest<
+    getAccounts: async () => {
+      const accounts = await hostBridgeRequest<
         ReturnType<NeoDapiProvider["getAccounts"]> extends Promise<infer T>
           ? T
           : never
-      >(win, "getAccounts"),
+      >(win, "getAccounts");
+      const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
+      lastHostBridgeAddress =
+        typeof account?.address === "string" && account.address.trim()
+          ? account.address
+          : typeof account?.hash === "string" && account.hash.trim()
+            ? account.hash
+            : null;
+      return accounts;
+    },
     authenticate: (payload) => hostBridgeRequest(win, "authenticate", payload),
     call: (invocation) => hostBridgeRequest(win, "call", { invocation }),
     getBalance: (asset, account) =>
@@ -615,6 +1109,39 @@ function getHostWalletBridgeProvider(win: Nep21Window): NeoDapiProvider | null {
       hostBridgeRequest(win, "send", { asset, from, to, amount, data }),
     signMessage: (message, account) =>
       hostBridgeRequest(win, "signMessage", { message, account }),
+    on: (event, listener) => {
+      const listeners = hostBridgeListeners.get(event) ?? new Set<() => void>();
+      listeners.add(listener);
+      hostBridgeListeners.set(event, listeners);
+    },
+    removeListener: (event, listener) => {
+      hostBridgeListeners.get(event)?.delete(listener);
+    },
+  };
+  const hostWindow = win.parent;
+  const expectedOrigin = deriveHostBridgeOrigin(win);
+  const onHostBridgeState = (event: MessageEvent) => {
+    if (event.source !== hostWindow && event.source != null) return;
+    if (
+      expectedOrigin &&
+      event.origin &&
+      event.origin !== "null" &&
+      event.origin !== expectedOrigin
+    ) {
+      return;
+    }
+    const data = event.data as HostBridgeStateMessage;
+    if (!isRecord(data) || data.type !== HOST_WALLET_BRIDGE_STATE) return;
+    const stateProtocolVersion = normalizeBridgeProtocolVersion(
+      data.protocolVersion,
+    );
+    if (!isCompatibleBridgeProtocolVersion(stateProtocolVersion)) return;
+    if (!isRecord(data.state)) return;
+    applyHostBridgeState(provider, data.state);
+  };
+  win.addEventListener("message", onHostBridgeState);
+  cachedHostBridgeStateCleanup = () => {
+    win.removeEventListener("message", onHostBridgeState);
   };
   cachedHostBridgeProvider = provider;
   cachedHostBridgeWindow = win;

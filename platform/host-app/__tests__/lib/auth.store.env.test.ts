@@ -1,5 +1,6 @@
 const mockConnect = jest.fn(async () => undefined);
 const mockConnectWif = jest.fn(async () => undefined);
+const mockSignMessage = jest.fn(async () => ({ data: "signed", publicKey: "03userpub" }));
 const mockWalletState = {
   connected: true,
   address: "NUserAddress",
@@ -15,7 +16,7 @@ jest.mock("@/lib/wallet/store", () => {
       getState: () => mockWalletState,
     },
     getWalletAdapter: () => ({
-      signMessage: jest.fn(async () => ({ data: "signed", publicKey: "03userpub" })),
+      signMessage: mockSignMessage,
     }),
   };
 });
@@ -28,6 +29,7 @@ describe("auth store env access", () => {
     jest.clearAllMocks();
     mockConnect.mockResolvedValue(undefined);
     mockConnectWif.mockResolvedValue(undefined);
+    mockSignMessage.mockResolvedValue({ data: "signed", publicKey: "03userpub" });
     mockWalletState.connected = true;
     mockWalletState.address = "NUserAddress";
     mockWalletState.publicKey = "03userpub";
@@ -58,7 +60,7 @@ describe("auth store env access", () => {
 
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
-      "https://lazy.supabase.co/functions/v1/auth-wallet-nonce",
+      "/api/edge/auth-wallet-nonce",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
@@ -70,7 +72,7 @@ describe("auth store env access", () => {
     );
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
-      "https://lazy.supabase.co/functions/v1/auth-wallet",
+      "/api/edge/auth-wallet",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
@@ -105,7 +107,7 @@ describe("auth store env access", () => {
     expect(mockConnectWif).toHaveBeenCalledWith("test-wif");
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
-      "https://lazy.supabase.co/functions/v1/auth-wallet-nonce",
+      "/api/edge/auth-wallet-nonce",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
@@ -117,7 +119,7 @@ describe("auth store env access", () => {
     );
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
-      "https://lazy.supabase.co/functions/v1/auth-wallet",
+      "/api/edge/auth-wallet",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
@@ -137,6 +139,29 @@ describe("auth store env access", () => {
 
     expect(mockConnectWif).toHaveBeenCalledWith("test-wif");
     expect(mockFetch).not.toHaveBeenCalled();
+    expect(useAuthStore.getState()).toEqual(
+      expect.objectContaining({
+        authenticated: false,
+        walletAddress: "NUserAddress",
+        walletType: "external",
+        loading: false,
+        error: null,
+      }),
+    );
+    expect(sessionStorage.getItem("sb-access-token")).toBeNull();
+  });
+
+  it("keeps a successful wallet connection in wallet-only mode when edge auth is unreachable", async () => {
+    const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://lazy.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    await useAuthStore.getState().loginWallet("onegate" as never);
+
+    expect(mockConnect).toHaveBeenCalledWith("onegate");
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(useAuthStore.getState()).toEqual(
       expect.objectContaining({
         authenticated: false,
@@ -169,5 +194,29 @@ describe("auth store env access", () => {
       }),
     );
     expect(sessionStorage.getItem("sb-access-token")).toBeNull();
+  });
+
+  it("surfaces wallet network errors during wallet login", async () => {
+    const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://lazy.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ nonce: "nonce-1", message: "sign-me" }),
+    });
+    mockSignMessage.mockRejectedValueOnce(
+      new Error("Wallet is on mainnet but this app targets testnet. Switch wallet network before submitting."),
+    );
+
+    await useAuthStore.getState().loginWallet("neoline" as never);
+
+    expect(useAuthStore.getState()).toEqual(
+      expect.objectContaining({
+        authenticated: false,
+        loading: false,
+        error: expect.stringMatching(/Wallet is on mainnet.*targets testnet/),
+      }),
+    );
   });
 });

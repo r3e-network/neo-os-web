@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { STAT_PLACEHOLDER, formatStat } from "../utils/format";
+import {
+  STAT_PLACEHOLDER,
+  formatStat,
+  parsePositiveFixed8,
+  toFixed8,
+} from "../utils/format";
 
 describe("formatStat", () => {
   it("renders the em-dash placeholder when data has not loaded", () => {
@@ -32,5 +37,25 @@ describe("formatStat", () => {
 
   it("exposes the canonical em-dash placeholder constant", () => {
     expect(STAT_PLACEHOLDER).toBe("—");
+  });
+});
+
+describe("parsePositiveFixed8", () => {
+  it("parses positive Fixed8 amounts without floating point math", () => {
+    expect(parsePositiveFixed8("1")).toBe("100000000");
+    expect(parsePositiveFixed8("1.25")).toBe("125000000");
+    expect(parsePositiveFixed8("0.00000001")).toBe("1");
+  });
+
+  it("rejects malformed, zero, negative, and over-precision amounts", () => {
+    expect(parsePositiveFixed8("1abc")).toBeNull();
+    expect(parsePositiveFixed8("0")).toBeNull();
+    expect(parsePositiveFixed8("-1")).toBeNull();
+    expect(parsePositiveFixed8("1.000000001")).toBeNull();
+  });
+
+  it("keeps legacy toFixed8 truncation separate from strict parsing", () => {
+    expect(toFixed8("1.000000001")).toBe("100000000");
+    expect(parsePositiveFixed8("1.000000001")).toBeNull();
   });
 });

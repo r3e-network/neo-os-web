@@ -1,0 +1,1965 @@
+{
+  "generatedAt": "2026-05-31T22:11:36.732Z",
+  "summary": {
+    "checked": 60,
+    "ok": 60,
+    "issues": [],
+    "noSubmit": [],
+    "disabled": [
+      {
+        "slug": "automation-copilot",
+        "submit": {
+          "text": "Price Alert",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "council-governance",
+        "submit": {
+          "text": "Create Proposal",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "custom-anchor",
+        "submit": {
+          "text": "Register Anchor",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "daily-checkin",
+        "submit": {
+          "text": "Check In",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "dice-game",
+        "submit": {
+          "text": "Fund Stake",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "event-ticket-pass",
+        "submit": {
+          "text": "Create Event",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "fogplay",
+        "submit": {
+          "text": "Fund Wager",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "gas-lucky-pool",
+        "submit": {
+          "text": "Claim Reward",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Open this reward from a OneGate QR code."
+        }
+      },
+      {
+        "slug": "gas-sponsor",
+        "submit": {
+          "text": "Create Pool",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "last-survivor",
+        "submit": {
+          "text": "Fund Keys",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "neo-pay",
+        "submit": {
+          "text": "Create Stream",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "neo-pay-shared-example",
+        "submit": {
+          "text": "Create Stream",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "profitanchor",
+        "submit": {
+          "text": "Stake NEO",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "profitanchor-admin",
+        "submit": {
+          "text": "Move NEO",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "quadratic-funding",
+        "submit": {
+          "text": "Fund Project",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "recovery-guardian",
+        "submit": {
+          "text": "Open Guardian Setup",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "red-envelope",
+        "submit": {
+          "text": "Claim",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "self-loan",
+        "submit": {
+          "text": "Create Loan",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "soulbound-certificate",
+        "submit": {
+          "text": "Issue Certificate",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "trustanchor",
+        "submit": {
+          "text": "Stake NEO",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "trustanchor-admin",
+        "submit": {
+          "text": "Move NEO",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      },
+      {
+        "slug": "unbreakable-vault",
+        "submit": {
+          "text": "Create Vault",
+          "disabled": true,
+          "ariaDisabled": "true",
+          "title": "Connect wallet before sending transactions."
+        }
+      }
+    ]
+  },
+  "results": [
+    {
+      "slug": "aa-account-lab",
+      "appId": "miniapp-aa-account-lab",
+      "name": "AA Account Lab",
+      "url": "http://127.0.0.1:3000/miniapps/aa-account-lab?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare account registration",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Preview registration intent, predicted account id, and owner binding before wallet submission.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-market-hub",
+      "appId": "miniapp-aa-market-hub",
+      "name": "AA Market Hub",
+      "url": "http://127.0.0.1:3000/miniapps/aa-market-hub?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Create listing",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Account ID hash is required.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-permissions-lab",
+      "appId": "miniapp-aa-permissions-lab",
+      "name": "AA Permissions Lab",
+      "url": "http://127.0.0.1:3000/miniapps/aa-permissions-lab?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare permission update",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-relay-console",
+      "appId": "miniapp-aa-relay-console",
+      "name": "AA Relay Console",
+      "url": "http://127.0.0.1:3000/miniapps/aa-relay-console?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Build relay package",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "AA Relay Console keeps relay package preparation, sponsor checks, and smart wallet context in one guarded workspace.",
+        "core.smartwallet.neo",
+        "Wallet guarded",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Build relay package",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "aa-session-key-lab",
+      "appId": "miniapp-aa-session-key-lab",
+      "name": "AA Session Key Lab",
+      "url": "http://127.0.0.1:3000/miniapps/aa-session-key-lab?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Activate session key",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "AA Session Key Lab focuses on delegated session controls for the shared Neo smart wallet runtime.",
+        "sessionkey.smartwallet.neo",
+        "Wallet guarded",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "asset-factory",
+      "appId": "miniapp-asset-factory",
+      "name": "Asset Factory",
+      "url": "http://127.0.0.1:3000/miniapps/asset-factory?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare NEP-17 launch",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Prepare a token launch from audited on-chain templates; only safe template parameters are customized at publish time.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Create NEP-17 assets from audited on-chain templates with OneGate URL parameters.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "automation-copilot",
+      "appId": "miniapp-automation-copilot",
+      "name": "Automation Copilot",
+      "url": "http://127.0.0.1:3000/miniapps/automation-copilot?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Price Alert",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Automation Copilot"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "breakup-contract",
+      "appId": "miniapp-breakupcontract",
+      "name": "Breakup Contract",
+      "url": "http://127.0.0.1:3000/miniapps/breakup-contract?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare agreement",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "burn-league",
+      "appId": "miniapp-burn-league",
+      "name": "Burn League",
+      "url": "http://127.0.0.1:3000/miniapps/burn-league?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Submit burn entry",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Enter a burn challenge, preview leaderboard impact, and submit the burn transaction intentionally.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "council-governance",
+      "appId": "miniapp-council-governance",
+      "name": "Council Governance",
+      "url": "http://127.0.0.1:3000/miniapps/council-governance?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Proposal",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Council Governance"
+      ],
+      "consoleErrors": [
+        "Access to fetch at 'http://127.0.0.1:3000/api/rpc/neo-read' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "custom-anchor",
+      "appId": "miniapp-custom-anchor",
+      "name": "Custom Anchor",
+      "url": "http://127.0.0.1:3000/miniapps/custom-anchor?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Register Anchor",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Custom Anchor"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "daily-checkin",
+      "appId": "miniapp-dailycheckin",
+      "name": "Daily Check-in",
+      "url": "http://127.0.0.1:3000/miniapps/daily-checkin?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Check In",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Daily Check-in"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "dev-tipping",
+      "appId": "miniapp-dev-tipping",
+      "name": "Developer Tipping",
+      "url": "http://127.0.0.1:3000/miniapps/dev-tipping?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Send tip",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Send an appreciation tip with a message and clear wallet preview before payment.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "dice-game",
+      "appId": "miniapp-dice-game",
+      "name": "Dice Game",
+      "url": "http://127.0.0.1:3000/miniapps/dice-game?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Fund Stake",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Dice Game"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "event-ticket-pass",
+      "appId": "miniapp-event-ticket-pass",
+      "name": "Event Ticket",
+      "url": "http://127.0.0.1:3000/miniapps/event-ticket-pass?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Event",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Event Ticket"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "explorer",
+      "appId": "miniapp-explorer",
+      "name": "Block Explorer",
+      "url": "http://127.0.0.1:3000/miniapps/explorer?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Search Chain",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Query Neo N3 blocks, transactions, addresses, and contracts through live RPC/indexer endpoints. Missing indexer data is shown as unavailable, never synthesized.",
+        "Not configured for this network",
+        "Local Preview",
+        "Search query is required.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "flashloan",
+      "appId": "miniapp-flashloan",
+      "name": "Flash Loan",
+      "url": "http://127.0.0.1:3000/miniapps/flashloan?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare flash route",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Flash loan route builder",
+        "Build a single-transaction loan route with borrow, execute, repay, and profit checks visible.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "fogplay",
+      "appId": "miniapp-fogplay",
+      "name": "FogPlay",
+      "url": "http://127.0.0.1:3000/miniapps/fogplay?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Fund Wager",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "FogPlay"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "forever-album",
+      "appId": "miniapp-forever-album",
+      "name": "Forever Album",
+      "url": "http://127.0.0.1:3000/miniapps/forever-album?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Open upload workspace",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Local Preview",
+        "Open the embedded Forever Album uploader with the selected privacy route.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0,
+      "targetedEvidence": "docs/reports/forever-album-host-upload-validation.json"
+    },
+    {
+      "slug": "gas-lucky-pool",
+      "appId": "miniapp-gas-lucky-pool",
+      "name": "OneGate Vault",
+      "url": "http://127.0.0.1:3000/miniapps/gas-lucky-pool?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Claim Reward",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Open this reward from a OneGate QR code."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "OneGate Vault"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "gas-sponsor",
+      "appId": "miniapp-gas-sponsor",
+      "name": "Gas Sponsor",
+      "url": "http://127.0.0.1:3000/miniapps/gas-sponsor?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Pool",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Gas Sponsor"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "gasbox",
+      "appId": "miniapp-gasbox",
+      "name": "GASBOX",
+      "url": "http://127.0.0.1:3000/miniapps/gasbox?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Open Draw Console",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Not configured for this network",
+        "Local Preview",
+        "Open the embedded GasBox draw surface. Optionally preselect a machine ID, then submit the wallet draw from the dApp after reviewing odds.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "gov-merc",
+      "appId": "miniapp-gov-merc",
+      "name": "Gov Merc",
+      "url": "http://127.0.0.1:3000/miniapps/gov-merc?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Delegate voting power",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "graveyard",
+      "appId": "miniapp-graveyard",
+      "name": "Graveyard",
+      "url": "http://127.0.0.1:3000/miniapps/graveyard?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Bury record",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Seal a memory, set a forgetting price, and keep the privacy envelope explicit.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "last-survivor",
+      "appId": "miniapp-last-survivor",
+      "name": "LastSurvivor",
+      "url": "http://127.0.0.1:3000/miniapps/last-survivor?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Fund Keys",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "LastSurvivor"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "memorial-shrine",
+      "appId": "miniapp-memorial-shrine",
+      "name": "Memorial Shrine",
+      "url": "http://127.0.0.1:3000/miniapps/memorial-shrine?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Anchor tribute",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "milestone-escrow",
+      "appId": "miniapp-milestone-escrow",
+      "name": "Milestone Escrow",
+      "url": "http://127.0.0.1:3000/miniapps/milestone-escrow?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Fund escrow",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "miniapp-factory",
+      "appId": "miniapp-miniapp-factory",
+      "name": "MiniApp Factory",
+      "url": "http://127.0.0.1:3000/miniapps/miniapp-factory?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare MiniApp launch",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Assemble a platform MiniApp from approved modules, launch metadata, OneGate parameters, and template-bound contracts.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Create platform miniapps from audited on-chain templates with OneGate URL parameters.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-convert",
+      "appId": "miniapp-neo-convert",
+      "name": "Neo Convert",
+      "url": "http://127.0.0.1:3000/miniapps/neo-convert?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Convert value",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Convert addresses, script hashes, and key formats locally before using them in a wallet operation.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-multisig",
+      "appId": "miniapp-neo-multisig",
+      "name": "Neo Multisig",
+      "url": "http://127.0.0.1:3000/miniapps/neo-multisig?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Create multisig request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-ns",
+      "appId": "miniapp-neo-ns",
+      "name": "Neo Name Service",
+      "url": "http://127.0.0.1:3000/miniapps/neo-ns?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Register domain",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Register and manage human-readable .neo domain names for your wallet",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-pay",
+      "appId": "miniapp-neo-pay",
+      "name": "NeoPay",
+      "url": "http://127.0.0.1:3000/miniapps/neo-pay?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Stream",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "NeoPay"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-pay-shared-example",
+      "appId": "miniapp-neo-pay-shared-example",
+      "name": "NeoPay Shared Runtime",
+      "url": "http://127.0.0.1:3000/miniapps/neo-pay-shared-example?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Stream",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "NeoPay Shared Runtime"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-sign-anything",
+      "appId": "miniapp-neo-sign-anything",
+      "name": "Neo Sign Anything",
+      "url": "http://127.0.0.1:3000/miniapps/neo-sign-anything?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Sign message",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Prepare a message, preview the digest, and request a wallet signature with clear verification output.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-swap",
+      "appId": "miniapp-neo-swap",
+      "name": "Neo Swap",
+      "url": "http://127.0.0.1:3000/miniapps/neo-swap?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Preview swap route",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build a token swap preview with route, slippage, and settlement state before wallet submission.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Preview NEO and GAS conversions with live pricefeed quotes, slippage context, and wallet-ready settlement notes",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Preview swap route",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-treasury",
+      "appId": "miniapp-neo-treasury",
+      "name": "Neo Treasury",
+      "url": "http://127.0.0.1:3000/miniapps/neo-treasury?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Refresh treasury",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neo-x-bridge",
+      "appId": "miniapp-neo-x-bridge",
+      "name": "Neo X Bridge",
+      "url": "http://127.0.0.1:3000/miniapps/neo-x-bridge?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Bridge Asset",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Not configured for this network",
+        "Local Preview",
+        "Amount is required.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "neodid-passport",
+      "appId": "miniapp-neodid-passport",
+      "name": "NeoDID Passport",
+      "url": "http://127.0.0.1:3000/miniapps/neodid-passport?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare credential proof",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Compose portable credential previews and prepare verification payloads for identity flows.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Compose portable NeoDID credential previews for identity flows.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Credential claim",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "nft-factory",
+      "appId": "miniapp-nft-factory",
+      "name": "NFT Factory",
+      "url": "http://127.0.0.1:3000/miniapps/nft-factory?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Prepare NEP-11 collection",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Create NEP-11 collections from audited on-chain templates with OneGate URL parameters.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "on-chain-tarot",
+      "appId": "miniapp-onchaintarot",
+      "name": "On-chain Tarot",
+      "url": "http://127.0.0.1:3000/miniapps/on-chain-tarot?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Draw Reading",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Not configured for this network",
+        "Local Preview",
+        "Launch parameters applied",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-compute-lab",
+      "appId": "miniapp-oracle-compute-lab",
+      "name": "Oracle Compute Lab",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-compute-lab?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Seal Compute Input",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.",
+        "sealed",
+        "Builder",
+        "Operation ready",
+        "ready",
+        "Ready to build request package.",
+        "Build Morpheus off-chain compute requests with inspectable inputs.",
+        "Not configured for this network",
+        "Local Preview",
+        "Build or seal compute inputs and verify the confidential package.",
+        "Seal Compute Input",
+        "Workflow input is required."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-http-console",
+      "appId": "miniapp-oracle-http-console",
+      "name": "Oracle HTTP Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-http-console?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Build Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.",
+        "Builder",
+        "Operation ready",
+        "ready",
+        "Not configured for this network",
+        "Local Preview",
+        "Build an HTTP oracle request and inspect the package.",
+        "Build Request",
+        "Launch parameters applied",
+        "Source: url · Operation: buildOraclePackage · Fields: endpoint",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-neodid-console",
+      "appId": "miniapp-oracle-neodid-console",
+      "name": "Oracle NeoDID Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-neodid-console?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Seal DID Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.",
+        "sealed",
+        "Builder",
+        "Operation ready",
+        "ready",
+        "Ready to build request package.",
+        "Not configured for this network",
+        "Local Preview",
+        "Build, seal, and verify NeoDID requests.",
+        "Seal DID Request",
+        "DID subject is required.",
+        "Seal DID Request"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-price-console",
+      "appId": "miniapp-oracle-price-console",
+      "name": "Oracle Price Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-price-console?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Build Feed Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.",
+        "Builder",
+        "Operation ready",
+        "ready",
+        "Not configured for this network",
+        "Local Preview",
+        "Build Feed Request",
+        "Launch parameters applied",
+        "Source: url · Operation: buildOraclePackage · Fields: symbol",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-seal-console",
+      "appId": "miniapp-oracle-seal-console",
+      "name": "Oracle Seal Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-seal-console?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Seal Payload",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Oracle Seal Console",
+        "Seal Console",
+        "Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.",
+        "Oracle Seal Console",
+        "sealed",
+        "Builder",
+        "Operation ready",
+        "ready",
+        "Mode: seal",
+        "Ready to build request package.",
+        "Package sensitive oracle input as a sealed envelope preview.",
+        "miniapp-oracle-seal-console"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "oracle-vrf-console",
+      "appId": "miniapp-oracle-vrf-console",
+      "name": "Oracle VRF Console",
+      "url": "http://127.0.0.1:3000/miniapps/oracle-vrf-console?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Build VRF Request",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console.",
+        "Builder",
+        "Operation ready",
+        "ready",
+        "Not configured for this network",
+        "Local Preview",
+        "Build VRF Request",
+        "Launch parameters applied",
+        "Source: url · Operation: buildOraclePackage · Fields: consumer, mode, rounds, salt",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "private-transfer",
+      "appId": "miniapp-private-transfer",
+      "name": "Confidential Transfer",
+      "url": "http://127.0.0.1:3000/miniapps/private-transfer?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Seal Transfer",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "A zERC20-style private transfer workflow without on-chain zk curve assumptions: seal transfer details locally, let Morpheus confidential compute validate them inside the TEE, then return a signed settlement intent.",
+        "Recipient, asset, amount, and memo are sealed locally for Morpheus confidential compute before submission.",
+        "SEALED",
+        "Ready to seal transfer instructions locally.",
+        "Deposit asset into a public escrow or wallet-signed intent.",
+        "Wallet submits release or refund with the signed result.",
+        "Private Neo N3 transfer intents sealed locally and verified by Morpheus confidential compute instead of on-chain zk curve verification.",
+        "Not configured for this network",
+        "Local Preview",
+        "Enter transfer details and seal them locally for Morpheus confidential compute.",
+        "Build an encrypted transfer intent. Recipient, amount, and memo are sealed locally before being stored for Morpheus confidential compute.",
+        "Recipient is required."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "profitanchor",
+      "appId": "miniapp-profitanchor",
+      "name": "ProfitAnchor",
+      "url": "http://127.0.0.1:3000/miniapps/profitanchor?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Stake NEO",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "ProfitAnchor"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "profitanchor-admin",
+      "appId": "miniapp-profitanchor-admin",
+      "name": "ProfitAnchor Admin",
+      "url": "http://127.0.0.1:3000/miniapps/profitanchor-admin?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Move NEO",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "ProfitAnchor Admin"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "quadratic-funding",
+      "appId": "miniapp-quadratic-funding",
+      "name": "Quadratic Funding",
+      "url": "http://127.0.0.1:3000/miniapps/quadratic-funding?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Fund Project",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Quadratic Funding"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "recovery-guardian",
+      "appId": "miniapp-recovery-guardian",
+      "name": "Recovery Guardian",
+      "url": "http://127.0.0.1:3000/miniapps/recovery-guardian?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Open Guardian Setup",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Recovery Guardian"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "red-envelope",
+      "appId": "miniapp-redenvelope",
+      "name": "Red Envelope",
+      "url": "http://127.0.0.1:3000/miniapps/red-envelope?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Claim",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Red Envelope"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "self-loan",
+      "appId": "miniapp-self-loan",
+      "name": "SelfLoan",
+      "url": "http://127.0.0.1:3000/miniapps/self-loan?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Loan",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "SelfLoan"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "soulbound-certificate",
+      "appId": "miniapp-soulbound-certificate",
+      "name": "Soulbound Certificate",
+      "url": "http://127.0.0.1:3000/miniapps/soulbound-certificate?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Issue Certificate",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Soulbound Certificate"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "time-capsule",
+      "appId": "miniapp-time-capsule",
+      "name": "Time Capsule",
+      "url": "http://127.0.0.1:3000/miniapps/time-capsule?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Seal capsule",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Seal a message hash until a future unlock date with clear public proof and retrieval state.",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Seal message hashes until a future date with public fishing.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Seal capsule",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "timestamp-proof",
+      "appId": "miniapp-timestamp-proof",
+      "name": "Timestamp Proof",
+      "url": "http://127.0.0.1:3000/miniapps/timestamp-proof?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Anchor timestamp",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "No wallet required. Actions update the play area and use Neo N3 Testnet service context."
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "trustanchor",
+      "appId": "miniapp-trustanchor",
+      "name": "TrustAnchor",
+      "url": "http://127.0.0.1:3000/miniapps/trustanchor?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Stake NEO",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "TrustAnchor"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "trustanchor-admin",
+      "appId": "miniapp-trustanchor-admin",
+      "name": "TrustAnchor Admin",
+      "url": "http://127.0.0.1:3000/miniapps/trustanchor-admin?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Move NEO",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "TrustAnchor Admin"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "unbreakable-vault",
+      "appId": "miniapp-unbreakablevault",
+      "name": "Unbreakable Vault",
+      "url": "http://127.0.0.1:3000/miniapps/unbreakable-vault?network=testnet",
+      "ok": true,
+      "phase": "submit-disabled",
+      "submit": {
+        "text": "Create Vault",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "title": "Connect wallet before sending transactions."
+      },
+      "feedback": [
+        "Skip to main content",
+        "Skip to content",
+        "Yiwu MiniApps",
+        "MiniApps",
+        "Docs",
+        "Developer",
+        "Notifications",
+        "All caught up!",
+        "You have no new notifications.",
+        "EN",
+        "Log In / Sign Up",
+        "Unbreakable Vault"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    },
+    {
+      "slug": "wallet-health",
+      "appId": "miniapp-wallet-health",
+      "name": "Wallet Health",
+      "url": "http://127.0.0.1:3000/miniapps/wallet-health?network=testnet",
+      "ok": true,
+      "phase": "clicked",
+      "submit": {
+        "text": "Run health check",
+        "disabled": false,
+        "ariaDisabled": "false",
+        "title": null
+      },
+      "feedback": [
+        "Wallet Health",
+        "Wallet safety checkup",
+        "Run a wallet readiness checklist covering balance, permissions, suspicious approvals, and backup posture.",
+        "Wallet Health",
+        "Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface.",
+        "Run a wallet readiness checklist covering balances, permissions, suspicious approvals, and backup posture.",
+        "miniapp-wallet-health",
+        "Not configured for this network",
+        "Local Preview",
+        "Prepare the focused app parameters, then submit the wallet action.",
+        "Wallet",
+        "miniapp-wallet-health"
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "badResponses": [],
+      "overflowX": 0
+    }
+  ],
+  "targetedRefreshAt": "2026-05-31T23:38:59Z"
+}

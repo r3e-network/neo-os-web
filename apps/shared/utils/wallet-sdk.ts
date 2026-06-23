@@ -17,6 +17,7 @@ import {
   NEO_HASH,
   TESTNET_MAGIC,
 } from "../constants/rpc";
+import { addressToScriptHash } from "./neo";
 import { MiniAppError } from "./errorHandling";
 import {
   readImmediateNep21Provider,
@@ -31,7 +32,9 @@ import {
   normalizeBalanceResult,
   normalizeTxResult,
   resolveNetworkFromChainId,
+  resolveNetworkFromUnknown,
 } from "./wallet-sdk-invoke-utils";
+import { parsePositiveFixedDecimals } from "./format";
 import {
   createEventsComposable,
   createGasSponsorComposable,
@@ -85,6 +88,8 @@ const ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE =
 const ERROR_CODE_PAYMENT_INVALID_AMOUNT = "WALLET_PAYMENT_INVALID_AMOUNT";
 const ERROR_CODE_WALLET_NETWORK_UNVERIFIED = "WALLET_NETWORK_UNVERIFIED";
 const ERROR_CODE_WALLET_NETWORK_MISMATCH = "WALLET_NETWORK_MISMATCH";
+const ERROR_CODE_WALLET_INVALID_TRANSFER_AMOUNT =
+  "WALLET_INVALID_TRANSFER_AMOUNT";
 const ERROR_CODE_WALLET_CONFIRMATION_REJECTED = "WALLET_CONFIRMATION_REJECTED";
 
 const PLATFORM_API = import.meta.env?.VITE_PLATFORM_API || "";
@@ -153,6 +158,41 @@ function buildDapiAuthenticationPayload(networks: number[]) {
     Nonce: createNumericNonce(),
     Timestamp: Math.floor(timestamp / 1000),
   };
+}
+
+function isHostWalletBridgeProvider(provider: NeoDapiProvider): boolean {
+  return String(provider.name ?? "") === "Yiwu Host Wallet";
+}
+
+function getAuthenticationNetworks(): number[] {
+  return [getNetwork() === "testnet" ? TESTNET_MAGIC : MAINNET_MAGIC];
+}
+
+function getDapiAccountAddress(
+  account: Partial<NeoDapiAccount> | Record<string, unknown> | null | undefined,
+  fallback = "",
+): string {
+  if (!account || typeof account !== "object") return fallback;
+  const record = account as Record<string, unknown>;
+  return String(record.address ?? record.Address ?? fallback).trim();
+}
+
+function getDapiAccountHash(
+  account: Partial<NeoDapiAccount> | Record<string, unknown> | null | undefined,
+): string {
+  if (!account || typeof account !== "object") return "";
+  const record = account as Record<string, unknown>;
+  const direct = String(
+    record.accountHash ??
+      record.hash ??
+      record.scriptHash ??
+      record.Hash ??
+      record.ScriptHash ??
+      "",
+  ).trim();
+  if (direct) return direct;
+  const accountAddress = getDapiAccountAddress(account);
+  return /^N/.test(accountAddress) ? addressToScriptHash(accountAddress) : "";
 }
 
 function stringifyIntentValue(value: unknown): string {
@@ -489,6 +529,31 @@ async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
   }
 }
 
+function transferDecimalsForAssetHash(assetHash: string): number {
+  if (assetHash.toLowerCase() === NEO_HASH.toLowerCase()) return 0;
+  return 8;
+}
+
+function parseWalletTransferAmount(
+  amount: string | number,
+  decimals: number,
+): string {
+  const units = parsePositiveFixedDecimals(amount, decimals);
+  if (units) return units;
+  const amountRule =
+    decimals === 0
+      ? "a positive whole number"
+      : `positive with at most ${decimals} decimals`;
+  throw new MiniAppError(
+    `Invalid transfer amount. Enter ${amountRule}.`,
+    ERROR_CODE_WALLET_INVALID_TRANSFER_AMOUNT,
+    undefined,
+    { amount, decimals },
+    undefined,
+    ERROR_CODE_WALLET_INVALID_TRANSFER_AMOUNT,
+  );
+}
+
 export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   if (existingWallet) return existingWallet;
   if (walletInstance) return walletInstance;
@@ -503,6 +568,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   let activeProvider: ActiveWalletProvider | null = null;
   let dapiAccountHash: string | null = null;
   let dapiEventsAttached = false;
+  let dapiAccountRefresh: Promise<void> | null = null;
 
   const ensureWalletProvider = async (): Promise<ActiveWalletProvider> => {
     if (activeProvider) return activeProvider;
@@ -522,8 +588,23 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     return activeProvider;
   };
 
-  const updateDapiNetwork = (provider: NeoDapiProvider) => {
-    const nextChainType = chainTypeFromDapiNetwork(provider.network);
+  const updateDapiNetwork = async (provider: NeoDapiProvider) => {
+    let network: unknown = provider.network;
+    let usedExplicitNetworkRead = false;
+    if (typeof provider.getNetwork === "function") {
+      try {
+        network = await provider.getNetwork();
+        usedExplicitNetworkRead = true;
+      } catch (_e) {
+        network = provider.network;
+      }
+    }
+    const resolved = resolveNetworkFromUnknown(network);
+    const nextChainType = resolved
+      ? `neo-n3-${resolved}`
+      : usedExplicitNetworkRead
+        ? "neo-n3"
+        : chainTypeFromDapiNetwork(provider.network);
     chainType.value = nextChainType;
     chainId.value = nextChainType;
   };
@@ -554,8 +635,8 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const setDapiAccount = (account: NeoDapiAccount) => {
-    dapiAccountHash = account.hash;
-    address.value = account.address || account.hash;
+    dapiAccountHash = getDapiAccountHash(account) || null;
+    address.value = getDapiAccountAddress(account, dapiAccountHash ?? "");
   };
 
   const resolveDapiAccount = (account?: string | null): string => {
@@ -565,12 +646,13 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const connectDapi = async (provider: NeoDapiProvider) => {
-    updateDapiNetwork(provider);
+    await updateDapiNetwork(provider);
 
     try {
       const accounts = await provider.getAccounts();
       const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
-      if (account?.hash) {
+      if (account && getDapiAccountHash(account)) {
+        await updateDapiNetwork(provider);
         setDapiAccount(account);
         return;
       }
@@ -582,43 +664,60 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       throw new Error("Connected Neo wallet did not return any account.");
     }
 
-    const supportedNetworks = provider.supportedNetworks?.length
-      ? provider.supportedNetworks
-      : [MAINNET_MAGIC, TESTNET_MAGIC];
     const authenticated = await provider.authenticate(
-      buildDapiAuthenticationPayload(supportedNetworks),
+      buildDapiAuthenticationPayload(getAuthenticationNetworks()),
     );
 
-    if (authenticated.network) {
-      chainType.value = chainTypeFromDapiNetwork(authenticated.network);
-      chainId.value = chainType.value;
-    }
     if (!authenticated.address) {
       throw new Error(
         "Connected Neo wallet authentication did not return an address.",
       );
     }
-    dapiAccountHash = null;
+    const authenticatedNetwork = resolveNetworkFromUnknown(authenticated.network);
+    if (authenticatedNetwork) {
+      chainType.value = `neo-n3-${authenticatedNetwork}`;
+      chainId.value = chainType.value;
+    } else {
+      await updateDapiNetwork(provider);
+    }
+    dapiAccountHash = getDapiAccountHash(authenticated) || null;
     address.value = authenticated.address;
+  };
+
+  const attachDapiEvents = (provider: NeoDapiProvider) => {
+    if (dapiEventsAttached) return;
+    dapiEventsAttached = true;
+    const handleAccountChanged = () => {
+      if (dapiAccountRefresh) return;
+      dapiAccountRefresh = connectDapi(provider)
+        .catch(() => {
+          dapiAccountHash = null;
+          address.value = null;
+        })
+        .finally(() => {
+          dapiAccountRefresh = null;
+        });
+    };
+    provider.on?.("networkchanged", () =>
+      void updateDapiNetwork(provider),
+    );
+    provider.on?.("accountchanged", handleAccountChanged);
+    provider.on?.("accountschanged", handleAccountChanged);
   };
 
   const connect = async () => {
     const wallet = await ensureWalletProvider();
     await connectDapi(wallet.provider);
-    if (!dapiEventsAttached) {
-      dapiEventsAttached = true;
-      const handleAccountChanged = () => {
-        void connectDapi(wallet.provider).catch(() => {
-          dapiAccountHash = null;
-          address.value = null;
-        });
-      };
-      wallet.provider.on?.("networkchanged", () =>
-        updateDapiNetwork(wallet.provider),
-      );
-      wallet.provider.on?.("accountchanged", handleAccountChanged);
-      wallet.provider.on?.("accountschanged", handleAccountChanged);
-    }
+    attachDapiEvents(wallet.provider);
+  };
+
+  const attachPassiveEmbeddedHostBridge = () => {
+    if (activeProvider || dapiEventsAttached) return;
+    const immediateDapi = readImmediateDapiProvider();
+    if (!immediateDapi || !isHostWalletBridgeProvider(immediateDapi)) return;
+    activeProvider = { kind: "nep21", provider: immediateDapi };
+    attachDapiEvents(immediateDapi);
+    void updateDapiNetwork(immediateDapi);
   };
 
   const invokeContract = async (
@@ -626,7 +725,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
-    updateDapiNetwork(wallet.provider);
+    await updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     if (!wallet.provider.invoke) {
@@ -657,9 +756,19 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   const invokeMultiple = async (
     params: BatchInvokeParams,
   ): Promise<InvokeResult> => {
+    if (!params.invokeArgs?.length) {
+      throw new MiniAppError(
+        "No contract invocations to submit.",
+        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
+        undefined,
+        undefined,
+        undefined,
+        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
+      );
+    }
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
-    updateDapiNetwork(wallet.provider);
+    await updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     if (!wallet.provider.invoke) {
@@ -683,7 +792,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
   const invokeRead = async (params: InvokeParams): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
-    updateDapiNetwork(wallet.provider);
+    await updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
     if (!wallet.provider.call) {
       throw new MiniAppError(
@@ -703,7 +812,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   const getBalance = async (asset: string): Promise<string | number> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) return "0";
-    updateDapiNetwork(wallet.provider);
+    await updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     const contractHash =
@@ -725,7 +834,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
-    updateDapiNetwork(wallet.provider);
+    await updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     const contractHash =
@@ -752,21 +861,29 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       );
     }
 
+    const sender = resolveDapiAccount(from ?? address.value);
+    const rawAmount = parseWalletTransferAmount(
+      amount,
+      transferDecimalsForAssetHash(contractHash),
+    );
     return invokeContract({
       scriptHash: contractHash,
       operation: "transfer",
       args: [
-        { type: "Hash160", value: from ?? address.value },
+        { type: "Hash160", value: sender },
         { type: "Hash160", value: to },
-        { type: "Integer", value: String(amount) },
+        { type: "Integer", value: rawAmount },
         { type: "Any", value: null },
       ],
+      signers: [{ account: sender, scopes: 1 }],
     });
   };
 
   const signMessage = async (message: string) => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    await updateDapiNetwork(wallet.provider);
+    assertWalletMatchesAppNetwork();
 
     if (!wallet.provider.signMessage) {
       throw new Error("Connected Neo wallet does not support message signing.");
@@ -824,6 +941,8 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       ERROR_CODE_CONTRACT_NOT_CONFIGURED,
     );
   };
+
+  attachPassiveEmbeddedHostBridge();
 
   walletInstance = {
     address,

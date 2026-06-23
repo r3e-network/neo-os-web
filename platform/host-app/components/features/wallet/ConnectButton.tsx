@@ -223,8 +223,8 @@ export function ConnectButton() {
     );
   }
 
-  if (wallet.connected || auth.walletAddress) {
-    const address = wallet.address || auth.walletAddress;
+  if (wallet.connected && wallet.address) {
+    const address = wallet.address;
     const connectedWallet =
       wallet.provider && wallet.provider !== "wif"
         ? walletOptionsById[wallet.provider]

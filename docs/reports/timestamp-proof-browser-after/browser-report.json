@@ -1,0 +1,22 @@
+{
+  "url": "http://127.0.0.1:64371/miniapps/timestamp-proof/index.html?network=testnet",
+  "passed": true,
+  "stepErrors": [],
+  "consoleMessages": [],
+  "blockingConsole": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "textGuards": {
+    "anchorCopyAbsent": true,
+    "blockchainPromiseAbsent": true,
+    "localFlowVisible": true,
+    "proofActionsVisible": true,
+    "clipboardDigestLooksValid": true,
+    "clipboardReferenceLooksValid": true,
+    "lookupClearedAfterClear": true
+  },
+  "storedProofsAfterClear": [],
+  "copiedDigest": "41a60abc98d419fa5c6ff179faf0cb333af375553dfbec0b537575ad13e92c3c",
+  "copiedReference": "{\n  \"id\": 2,\n  \"sha256\": \"41a60abc98d419fa5c6ff179faf0cb333af375553dfbec0b537575ad13e92c3c\",\n  \"timestamp\": 1780334263625,\n  \"reference\": \"local:41a60abc98d419fa\"\n}",
+  "screenshot": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/timestamp-proof-browser-after/timestamp-proof-browser-after.png"
+}

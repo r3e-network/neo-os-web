@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-06-02T00:41:07.663Z",
+  "baseUrl": "http://localhost:3041",
+  "account": {
+    "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+    "label": "Mock Treasury Operator"
+  },
+  "validStandalone": {
+    "url": "http://localhost:3041/miniapps/neo-treasury/index.html?network=testnet&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops",
+    "hasIntentReady": true,
+    "hasFixedAmount": true,
+    "hasConnectAndSignLabel": false,
+    "hasSubmitted": true,
+    "invokes": [
+      {
+        "invocations": [
+          {
+            "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "operation": "transfer",
+            "args": [
+              {
+                "type": "Hash160",
+                "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+              },
+              {
+                "type": "Hash160",
+                "value": "0x94611499d5b3f1501569ecae0ac6e782d49e9496"
+              },
+              {
+                "type": "Integer",
+                "value": "10000000"
+              },
+              {
+                "type": "String",
+                "value": "ops"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "overflow": {
+      "viewportWidth": 1280,
+      "documentScrollWidth": 1280,
+      "bodyScrollWidth": 1280,
+      "overflowPixels": 0
+    },
+    "consoleMessages": []
+  },
+  "invalidStandalone": {
+    "url": "http://localhost:3041/miniapps/neo-treasury/index.html?network=testnet&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=bad-recipient&memo=ops",
+    "hasFixMessage": true,
+    "hasRecipientValidation": true,
+    "submitDisabled": true,
+    "invokes": [],
+    "overflow": {
+      "viewportWidth": 1280,
+      "documentScrollWidth": 1280,
+      "bodyScrollWidth": 1280,
+      "overflowPixels": 0
+    },
+    "consoleMessages": []
+  },
+  "mobileStandalone": {
+    "url": "http://localhost:3041/miniapps/neo-treasury/index.html?network=testnet&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops",
+    "hasIntentReady": true,
+    "hasFixedAmount": true,
+    "hasConnectAndSignLabel": true,
+    "overflow": {
+      "viewportWidth": 390,
+      "documentScrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "overflowPixels": 0
+    },
+    "consoleMessages": []
+  },
+  "hostEmbedded": {
+    "url": "http://localhost:3041/miniapp-detail/miniapp-neo-treasury?network=testnet&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops",
+    "frameUrl": "http://localhost:3041/miniapps/neo-treasury/index.html?network=testnet&source=embed&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops",
+    "hostOverflow": {
+      "viewportWidth": 1440,
+      "documentScrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "overflowPixels": 0
+    },
+    "frameOverflow": {
+      "viewportWidth": 1052,
+      "documentScrollWidth": 1052,
+      "bodyScrollWidth": 1052,
+      "overflowPixels": 0
+    },
+    "hasIntentReady": true,
+    "hasSubmitted": true,
+    "invokes": [
+      {
+        "invocations": [
+          {
+            "hash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            "operation": "transfer",
+            "args": [
+              {
+                "type": "Hash160",
+                "value": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56"
+              },
+              {
+                "type": "Hash160",
+                "value": "0x94611499d5b3f1501569ecae0ac6e782d49e9496"
+              },
+              {
+                "type": "Integer",
+                "value": "10000000"
+              },
+              {
+                "type": "String",
+                "value": "ops"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "consoleMessages": [
+      "info: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+      "log: [HMR] connected",
+      "log: [INFO] Performance monitoring initialized",
+      "log: [INFO] Error tracking initialized (Sentry-backed)",
+      "log: [DEBUG] [Performance] CLS: 0.002815931381413966",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/webpack.js: 6.199999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/pages/miniapp-detail/%5Bid%5D.js: 137.30000001192093ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/main.js: 181.5ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/pages/_app.js: 201.60000002384186ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/development/_buildManifest.js: 11.199999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/development/_ssgManifest.js: 15.5ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/react-refresh.js: 8.200000047683716ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/brand/yiwu-mark.svg: 10.700000047683716ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/miniapps/neo-treasury/index.html?network=testnet&source=embed&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops: 14.299999952316284ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/development/_devMiddlewareManifest.json: 1ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/miniapp-assets/neo-treasury/logo.avif: 8.599999964237213ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/brand/onegate-mark.svg: 8.900000035762787ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/_pages-dir-browser_components_features_notifications_NotificationDropdown_tsx.js: 4.800000011920929ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/_pages-dir-browser_components_features_wallet_index_ts.js: 6.199999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/_pages-dir-browser_components_PerformanceReport_tsx.js: 2.200000047683716ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/_pages-dir-browser_components_MonitoringPanel_tsx.js: 2.5ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/_pages-dir-browser_lib_monitoring_index_ts.js: 2.099999964237213ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/_next/static/chunks/_pages-dir-browser_node_modules_qrcode_lib_browser_js.js: 8.299999952316284ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/events?app_id=miniapp-neo-treasury&network=testnet&limit=50: 8.699999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/transactions?app_id=miniapp-neo-treasury&network=testnet&limit=50: 10.099999964237213ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/auth/profile: 9.699999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/events?app_id=miniapp-neo-treasury&network=testnet&limit=50: 14.199999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/transactions?app_id=miniapp-neo-treasury&network=testnet&limit=50: 19.30000001192093ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/auth/profile: 17.399999976158142ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/miniapps/neo-treasury/index.html?network=testnet&source=embed&operation=submitDisbursement&asset=GAS&amount=0.1&recipient=NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv&memo=ops: 4.199999988079071ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/transactions?app_id=miniapp-neo-treasury&network=testnet&limit=50: 6.900000035762787ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/events?app_id=miniapp-neo-treasury&network=testnet&limit=50: 10.200000047683716ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/events?app_id=miniapp-neo-treasury&network=testnet&limit=50: 16.600000023841858ms",
+      "log: [DEBUG] [Resource] http://localhost:3041/api/activity/transactions?app_id=miniapp-neo-treasury&network=testnet&limit=50: 15ms",
+      "log: [DEBUG] [Performance] LCP: 776ms",
+      "log: [DEBUG] [Performance] CLS: 0.002815931381413966",
+      "log: [DEBUG] [Performance] CLS: 0.002815931381413966"
+    ]
+  },
+  "passed": true,
+  "errorLines": []
+}

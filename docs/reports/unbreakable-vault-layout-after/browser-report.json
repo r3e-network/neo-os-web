@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-06-01T20:26:10.066Z",
+  "target": "Unbreakable Vault canonical path and embedded layout after profile height fix",
+  "passed": true,
+  "results": [
+    {
+      "scenario": "desktop",
+      "url": "http://127.0.0.1:3030/miniapps/unbreakable-vault?network=testnet",
+      "iframes": [
+        {
+          "src": "/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+          "title": "Unbreakable Vault dApp",
+          "className": "block h-[1900px] sm:h-[1400px] lg:h-[1120px] w-full border-0 bg-white transition-opacity duration-300 opacity-100"
+        }
+      ],
+      "iframe": {
+        "src": "/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+        "className": "block h-[1900px] sm:h-[1400px] lg:h-[1120px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 18,
+          "y": 131,
+          "width": 1052,
+          "height": 1120
+        }
+      },
+      "frameMetrics": {
+        "url": "http://127.0.0.1:3030/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+        "bodyScrollHeight": 1120,
+        "documentScrollHeight": 1120,
+        "innerHeight": 1120,
+        "textLength": 399,
+        "textSample": "Unbreakable Vault Hacker bounty vaults secured by on-chain hashes 0 Create 0 Break Create Vault Vault Title Description Bounty Difficulty Easy · 0.1 GAS Medium · 0.5 GAS Hard · 1 GAS Vault Secret Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty. Create Vault (bounty + hash) Break a Vault Vault ID Load Vault Attempt Break Recent Vaults No vaults found",
+        "hasCreateVault": true,
+        "hasBreakVault": true,
+        "hasRecentVaults": true,
+        "buttons": [
+          "Create Vault (bounty + hash)",
+          "Load Vault",
+          "Attempt Break"
+        ]
+      },
+      "hostMetrics": {
+        "pageHeight": 2258,
+        "activityY": 1277,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "usesCanonicalPath": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "createWorkflowVisible": true,
+        "breakWorkflowVisible": true,
+        "recentVaultsVisible": true,
+        "noRelevantFailures": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true,
+        "noErrorOverlay": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://127.0.0.1:3030/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "relevantFailures": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/unbreakable-vault-layout-after/desktop-after.png"
+    },
+    {
+      "scenario": "mobile",
+      "url": "http://127.0.0.1:3030/miniapps/unbreakable-vault?network=testnet",
+      "iframes": [
+        {
+          "src": "/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+          "title": "Unbreakable Vault dApp",
+          "className": "block h-[1900px] sm:h-[1400px] lg:h-[1120px] w-full border-0 bg-white transition-opacity duration-300 opacity-100"
+        }
+      ],
+      "iframe": {
+        "src": "/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+        "className": "block h-[1900px] sm:h-[1400px] lg:h-[1120px] w-full border-0 bg-white transition-opacity duration-300 opacity-100",
+        "box": {
+          "x": 14,
+          "y": 123,
+          "width": 362,
+          "height": 1900
+        }
+      },
+      "frameMetrics": {
+        "url": "http://127.0.0.1:3030/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+        "bodyScrollHeight": 1900,
+        "documentScrollHeight": 1900,
+        "innerHeight": 1900,
+        "textLength": 399,
+        "textSample": "Unbreakable Vault Hacker bounty vaults secured by on-chain hashes 0 Create 0 Break Create Vault Vault Title Description Bounty Difficulty Easy · 0.1 GAS Medium · 0.5 GAS Hard · 1 GAS Vault Secret Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty. Create Vault (bounty + hash) Break a Vault Vault ID Load Vault Attempt Break Recent Vaults No vaults found",
+        "hasCreateVault": true,
+        "hasBreakVault": true,
+        "hasRecentVaults": true,
+        "buttons": [
+          "Create Vault (bounty + hash)",
+          "Load Vault",
+          "Attempt Break"
+        ]
+      },
+      "hostMetrics": {
+        "pageHeight": 3577,
+        "activityY": 2049,
+        "errorOverlay": false
+      },
+      "assertions": {
+        "iframeVisible": true,
+        "usesCanonicalPath": true,
+        "hasExpectedHeightClass": true,
+        "embeddedFits": true,
+        "activityStartsAfterIframe": true,
+        "createWorkflowVisible": true,
+        "breakWorkflowVisible": true,
+        "recentVaultsVisible": true,
+        "noRelevantFailures": true,
+        "noPageErrors": true,
+        "noUnexpectedConsole": true,
+        "noErrorOverlay": true
+      },
+      "consoleMessages": [],
+      "unexpectedConsole": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "url": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "url": "http://127.0.0.1:3030/api/auth/profile",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "relevantFailures": [],
+      "screenshotPath": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/docs/reports/unbreakable-vault-layout-after/mobile-after.png"
+    }
+  ]
+}
