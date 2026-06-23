@@ -1,7 +1,13 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -15,9 +21,11 @@ function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     betAmount: "Bet amount",
     betHeader: "Bet",
-    betLockedReassure: "The commitment is already on-chain; wait for the reveal block.",
+    betLockedReassure:
+      "The commitment is already on-chain; wait for the reveal block.",
     betPlacedRevealing: "Bet placed. Revealing from the next block.",
     close: "Close",
+    commitRevealTimeline: "Commit reveal timeline",
     committing: "Committing bet",
     customBet: "Custom bet",
     docSubtitle: "Provably fair on-chain coin toss with a 2x payout",
@@ -45,6 +53,17 @@ function t(key: string, params?: Record<string, string | number>) {
     revealStalled: "Reveal stalled. Retry settlement.",
     revealingNextBlock: "Revealing next block",
     tails: "Tails",
+    timelineBlock: "Block",
+    timelineCommit: "Commit",
+    timelineListening: "Listening",
+    timelineLost: "Closed",
+    timelineNeedsRetry: "Retry",
+    timelineOnChain: "On-chain",
+    timelineReady: "Ready",
+    timelineResultReady: "Ready",
+    timelineSettle: "Settle",
+    timelineWaiting: "Waiting",
+    timelineWon: "Win paid",
     title: "FogPlay",
     tokenGas: "GAS",
     totalGames: "Games",
@@ -64,7 +83,9 @@ function t(key: string, params?: Record<string, string | number>) {
   return value;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     wins: 0,
     losses: 0,
@@ -101,9 +122,15 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("FogPlay PlayArea", () => {
   it("renders a coin-toss arena with real assets, wager runway, and first-round prompt", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
+    );
 
-    expect(container.querySelector(".premium-arena[data-state='ready']")).toBeTruthy();
+    expect(
+      container.querySelector(".premium-arena[data-state='ready']"),
+    ).toBeTruthy();
+    expect(container.querySelector(".commit-reveal-race--ready")).toBeTruthy();
+    expect(screen.getByLabelText("Commit reveal timeline")).toBeTruthy();
     expect(container.querySelector(".arena-bg__vault")).toBeTruthy();
     expect(container.querySelector(".arena-stage__pedestal")).toBeTruthy();
     expect(container.querySelector(".coin-scene--settled-heads")).toBeTruthy();
@@ -140,17 +167,31 @@ describe("FogPlay PlayArea", () => {
       }
       return Promise.resolve();
     });
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Flip Coin" }));
 
     expect(dispatch).toHaveBeenCalledWith("placeBet");
     await waitFor(() => {
-      expect(container.querySelector(".coinflip-play-area--tossing")).toBeTruthy();
+      expect(
+        container.querySelector(".coinflip-play-area--tossing"),
+      ).toBeTruthy();
       expect(container.querySelector(".premium-arena--flipping")).toBeTruthy();
+      expect(
+        container.querySelector(".commit-reveal-race--committing"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".commit-reveal-race__runner"),
+      ).toBeTruthy();
       expect(container.querySelector(".coin-scene--flipping")).toBeTruthy();
       expect(container.querySelector(".bet-section--flipping")).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Flipping..." }).getAttribute("aria-busy")).toBe("true");
+      expect(
+        screen
+          .getByRole("button", { name: "Flipping..." })
+          .getAttribute("aria-busy"),
+      ).toBe("true");
     });
 
     resolveFlip?.();
@@ -165,11 +206,21 @@ describe("FogPlay PlayArea", () => {
       />,
     );
 
-    expect(container.querySelector(".coinflip-play-area--tossing")).toBeTruthy();
+    expect(
+      container.querySelector(".coinflip-play-area--tossing"),
+    ).toBeTruthy();
     expect(container.querySelector(".premium-arena--flipping")).toBeTruthy();
+    expect(
+      container.querySelector(".commit-reveal-race--committing"),
+    ).toBeTruthy();
+    expect(
+      container.querySelectorAll(".commit-reveal-race__step.is-active"),
+    ).toHaveLength(1);
     expect(container.querySelector(".coin-scene--flipping")).toBeTruthy();
     expect(container.querySelector(".coin-flight-trail")).toBeTruthy();
-    expect(container.querySelectorAll(".coin-flight-trail span")).toHaveLength(3);
+    expect(container.querySelectorAll(".coin-flight-trail span")).toHaveLength(
+      3,
+    );
     expect(container.querySelector(".status-dot.flipping")).toBeTruthy();
     expect(container.querySelector(".bet-section--flipping")).toBeTruthy();
     expect(screen.getAllByText("Committing bet").length).toBeGreaterThan(0);
@@ -191,6 +242,10 @@ describe("FogPlay PlayArea", () => {
     );
 
     expect(container.querySelector(".premium-arena--revealing")).toBeTruthy();
+    expect(
+      container.querySelector(".commit-reveal-race--revealing"),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Retry").length).toBeGreaterThan(0);
     expect(screen.getByText("Reveal stalled. Retry settlement.")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Reveal Result" }));
@@ -226,13 +281,24 @@ describe("FogPlay PlayArea", () => {
 
     expect(dispatch).toHaveBeenCalledWith("revealResult");
     await waitFor(() => {
-      expect(container.querySelector(".coinflip-play-area--tossing")).toBeTruthy();
-      expect(container.querySelector(".coinflip-play-area--revealing")).toBeTruthy();
+      expect(
+        container.querySelector(".coinflip-play-area--tossing"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".coinflip-play-area--revealing"),
+      ).toBeTruthy();
       expect(container.querySelector(".premium-arena--revealing")).toBeTruthy();
+      expect(
+        container.querySelector(".commit-reveal-race--revealing"),
+      ).toBeTruthy();
       expect(container.querySelector(".coin-wrapper--revealing")).toBeTruthy();
-      expect(container.querySelector(".game-status-pill.revealing")).toBeTruthy();
+      expect(
+        container.querySelector(".game-status-pill.revealing"),
+      ).toBeTruthy();
       expect(container.querySelector(".coin-flight-trail")).toBeTruthy();
-      expect(screen.getAllByText("Revealing next block").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText("Revealing next block").length,
+      ).toBeGreaterThan(0);
     });
 
     resolveReveal?.();
@@ -255,6 +321,10 @@ describe("FogPlay PlayArea", () => {
     );
 
     expect(container.querySelector(".premium-arena--won")).toBeTruthy();
+    expect(
+      container.querySelector(".commit-reveal-race--settled"),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Win paid").length).toBeGreaterThan(0);
     expect(container.querySelector(".arena-stage__winner")).toBeTruthy();
     expect(container.querySelector(".coin-wrapper--won")).toBeTruthy();
     expect(screen.getAllByRole("status").length).toBeGreaterThanOrEqual(2);
@@ -281,6 +351,8 @@ describe("FogPlay PlayArea", () => {
 
     expect(styles).toContain("@keyframes coin-toss-arc");
     expect(styles).toContain("@keyframes flight-spark");
+    expect(styles).toContain("@keyframes fogplay-race-scan");
+    expect(styles).toContain("@keyframes fogplay-race-runner");
     expect(styles).toContain("@keyframes fogplay-runway-coin");
     expect(styles).toContain("@keyframes fogplay-reveal-panel-pulse");
     expect(styles).toContain("@keyframes entry-pulse");
