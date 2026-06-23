@@ -213,6 +213,35 @@ const appMessages = {
   studioStepCreate: { en: "Design pass", zh: "设计票面" },
   studioStepIssue: { en: "Issue guest pass", zh: "签发宾客通行证" },
   studioStepCheckin: { en: "Run gate check-in", zh: "执行入口核验" },
+  lifecycleEyebrow: { en: "Live pass route", zh: "实时通行证路径" },
+  lifecycleTitle: {
+    en: "From pass design to the door",
+    zh: "从票面设计到入口核验",
+  },
+  lifecycleCopy: {
+    en: "The primary workflow stays visible: design the event pass, send it to a guest wallet, then scan the token at the gate.",
+    zh: "核心流程始终可见：设计活动通行证、发送到宾客钱包，并在入口扫描 Token 完成核验。",
+  },
+  lifecycleEvent: { en: "Event pass", zh: "活动通行证" },
+  lifecycleWallet: { en: "Guest wallet", zh: "宾客钱包" },
+  lifecycleGate: { en: "Door gate", zh: "入口闸机" },
+  lifecycleDraft: {
+    en: "Design the event pass first",
+    zh: "先设计活动通行证",
+  },
+  lifecycleReady: {
+    en: "Event is ready for guest passes",
+    zh: "活动已准备签发宾客通行证",
+  },
+  lifecycleCreating: { en: "Publishing event on-chain", zh: "正在将活动发布上链" },
+  lifecycleIssuing: { en: "Minting guest pass", zh: "正在铸造宾客通行证" },
+  lifecycleLookup: { en: "Reading token at the gate", zh: "正在入口读取 Token" },
+  lifecycleChecking: { en: "Marking pass as used", zh: "正在标记通行证已使用" },
+  lifecycleTransfer: { en: "Sending pass to a new wallet", zh: "正在转赠到新钱包" },
+  lifecycleComplete: {
+    en: "Guest passes are live",
+    zh: "宾客通行证已生效",
+  },
   gateDesk: { en: "Gate Desk", zh: "入口工作台" },
   gateDeskSubtitle: {
     en: "Select the live event, issue passes, or verify a QR token without leaving this desk.",

@@ -400,6 +400,269 @@
   white-space: nowrap;
 }
 
+.ticket-lifecycle {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.38fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 8% 18%, rgba(255, 240, 232, 0.82), transparent 36%),
+    radial-gradient(circle at 92% 18%, rgba(228, 248, 240, 0.92), transparent 40%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 241, 0.88));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 16px 34px rgba(31, 48, 42, 0.08);
+}
+
+.ticket-lifecycle::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 24%,
+    rgba(255, 255, 255, 0.42) 45%,
+    transparent 66%
+  );
+  content: "";
+  opacity: 0.62;
+  pointer-events: none;
+  transform: translateX(-82%);
+}
+
+.ticket-lifecycle--creating::before,
+.ticket-lifecycle--issuing::before,
+.ticket-lifecycle--lookup::before,
+.ticket-lifecycle--checking::before,
+.ticket-lifecycle--transfer::before {
+  animation: ticket-lifecycle-sheen 4.6s ease-in-out infinite;
+}
+
+.ticket-lifecycle__copy {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ticket-lifecycle__copy span,
+.ticket-lifecycle__node span {
+  color: var(--tk-brand-deep);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.ticket-lifecycle__copy strong {
+  color: var(--tk-ink);
+  font-size: 1.48rem;
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.ticket-lifecycle__copy p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--tk-text);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.48;
+}
+
+.ticket-lifecycle__status {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: min(420px, calc(100% - 26px));
+  min-height: 32px;
+  padding: 7px 11px;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--tk-brand-deep);
+  box-shadow: var(--tk-shadow-soft);
+  backdrop-filter: blur(12px);
+}
+
+.ticket-lifecycle__status svg {
+  flex: 0 0 auto;
+  color: var(--tk-gold);
+}
+
+.ticket-lifecycle__status span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-lifecycle__board {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+  min-height: 188px;
+  align-items: center;
+  padding: 44px 10px 4px;
+}
+
+.ticket-lifecycle__rail {
+  position: absolute;
+  top: 50%;
+  right: 8%;
+  left: 8%;
+  z-index: 0;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(22, 199, 132, 0.14),
+    0 10px 18px rgba(31, 48, 42, 0.08);
+}
+
+.ticket-lifecycle__rail::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgba(244, 127, 97, 0),
+    rgba(244, 127, 97, 0.62),
+    rgba(22, 199, 132, 0.74),
+    rgba(217, 165, 47, 0.64),
+    rgba(244, 127, 97, 0)
+  );
+  content: "";
+  opacity: 0.76;
+  transform: translateX(-58%);
+  animation: ticket-lifecycle-rail 2.35s linear infinite;
+}
+
+.ticket-lifecycle__moving-pass {
+  position: absolute;
+  top: calc(50% - 28px);
+  left: 8%;
+  z-index: 3;
+  width: 48px;
+  aspect-ratio: 1 / 1.3;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 13px;
+  background: url("/pass-artwork.jpg") center / cover;
+  box-shadow:
+    0 14px 24px rgba(31, 48, 42, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+  transform: rotate(-6deg);
+}
+
+.ticket-lifecycle__moving-pass::after {
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.76);
+  border-radius: 8px;
+  content: "";
+}
+
+.ticket-lifecycle--ready .ticket-lifecycle__moving-pass,
+.ticket-lifecycle--complete .ticket-lifecycle__moving-pass {
+  animation: ticket-lifecycle-pass-ready 3.2s ease-in-out infinite;
+}
+
+.ticket-lifecycle--creating .ticket-lifecycle__moving-pass,
+.ticket-lifecycle--issuing .ticket-lifecycle__moving-pass,
+.ticket-lifecycle--lookup .ticket-lifecycle__moving-pass,
+.ticket-lifecycle--checking .ticket-lifecycle__moving-pass,
+.ticket-lifecycle--transfer .ticket-lifecycle__moving-pass {
+  animation: ticket-lifecycle-pass-route 2.25s ease-in-out infinite;
+}
+
+.ticket-lifecycle__node {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  min-height: 128px;
+  align-content: center;
+  padding: 13px;
+  border: 1px solid rgba(22, 33, 29, 0.08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 10px 22px rgba(31, 48, 42, 0.07);
+}
+
+.ticket-lifecycle__node svg {
+  color: var(--tk-brand-strong);
+}
+
+.ticket-lifecycle__art {
+  width: 54px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: var(--tk-shadow-soft);
+}
+
+.ticket-lifecycle__node strong,
+.ticket-lifecycle__node small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket-lifecycle__node strong {
+  color: var(--tk-ink);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ticket-lifecycle__node small {
+  color: var(--tk-text);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.ticket-lifecycle__node--wallet {
+  border-color: rgba(22, 199, 132, 0.18);
+}
+
+.ticket-lifecycle__node--gate {
+  border-color: rgba(217, 165, 47, 0.24);
+}
+
+.ticket-lifecycle--checking .ticket-lifecycle__node--gate,
+.ticket-lifecycle--lookup .ticket-lifecycle__node--gate,
+.ticket-lifecycle--issuing .ticket-lifecycle__node--wallet,
+.ticket-lifecycle--creating .ticket-lifecycle__node--event {
+  animation: ticket-lifecycle-node-active 1.2s ease-in-out infinite;
+}
+
 .ticket-studio__grid {
   display: grid;
   grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
@@ -1706,6 +1969,14 @@
     justify-content: flex-start;
     min-width: 0;
   }
+
+  .ticket-lifecycle {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-lifecycle__copy {
+    padding-right: 120px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1809,6 +2080,80 @@
 
   .ticket-metrics strong {
     font-size: 18px;
+  }
+
+  .ticket-lifecycle {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ticket-lifecycle__copy {
+    padding-right: 0;
+  }
+
+  .ticket-lifecycle__copy strong {
+    font-size: 1.22rem;
+  }
+
+  .ticket-lifecycle__copy p {
+    display: none;
+  }
+
+  .ticket-lifecycle__status {
+    position: relative;
+    top: auto;
+    right: auto;
+    justify-self: start;
+    max-width: 100%;
+  }
+
+  .ticket-lifecycle__board {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 10px 0 0;
+  }
+
+  .ticket-lifecycle__rail {
+    top: 24px;
+    bottom: 24px;
+    left: 30px;
+    right: auto;
+    width: 4px;
+    height: auto;
+  }
+
+  .ticket-lifecycle__rail::after {
+    background: linear-gradient(
+      180deg,
+      rgba(244, 127, 97, 0),
+      rgba(244, 127, 97, 0.62),
+      rgba(22, 199, 132, 0.74),
+      rgba(217, 165, 47, 0.64),
+      rgba(244, 127, 97, 0)
+    );
+    transform: translateY(-58%);
+    animation-name: ticket-lifecycle-rail-mobile;
+  }
+
+  .ticket-lifecycle__moving-pass {
+    top: 16px;
+    left: 10px;
+    width: 38px;
+  }
+
+  .ticket-lifecycle--ready .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle--complete .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle--creating .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle--issuing .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle--lookup .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle--checking .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle--transfer .ticket-lifecycle__moving-pass {
+    animation-name: ticket-lifecycle-pass-route-mobile;
+  }
+
+  .ticket-lifecycle__node {
+    min-height: 90px;
+    padding-left: 58px;
   }
 
   .ticket-studio__grid--has-events .ticket-gate {
@@ -1921,6 +2266,10 @@
 @media (prefers-reduced-motion: reduce) {
   .ticket-hero__image,
   .ticket-hero__mini-art,
+  .ticket-lifecycle::before,
+  .ticket-lifecycle__rail::after,
+  .ticket-lifecycle__moving-pass,
+  .ticket-lifecycle__node,
   .ticket-issue-runway::before,
   .ticket-issue-runway__rail,
   .ticket-issue-runway__ticket,
@@ -1982,6 +2331,91 @@
   78%,
   100% {
     transform: translateX(120%);
+  }
+}
+
+@keyframes ticket-lifecycle-sheen {
+  0%,
+  56% {
+    transform: translateX(-82%);
+  }
+  78%,
+  100% {
+    transform: translateX(82%);
+  }
+}
+
+@keyframes ticket-lifecycle-rail {
+  from {
+    transform: translateX(-58%);
+  }
+  to {
+    transform: translateX(58%);
+  }
+}
+
+@keyframes ticket-lifecycle-rail-mobile {
+  from {
+    transform: translateY(-58%);
+  }
+  to {
+    transform: translateY(58%);
+  }
+}
+
+@keyframes ticket-lifecycle-pass-ready {
+  0%,
+  100% {
+    transform: rotate(-6deg) scale(0.98);
+  }
+  50% {
+    transform: translateY(-4px) rotate(3deg) scale(1.04);
+  }
+}
+
+@keyframes ticket-lifecycle-pass-route {
+  0% {
+    left: 8%;
+    transform: rotate(-6deg) scale(0.96);
+  }
+  44% {
+    left: calc(50% - 24px);
+    transform: translateY(-7px) rotate(3deg) scale(1.08);
+  }
+  100% {
+    left: calc(92% - 48px);
+    transform: rotate(7deg) scale(1);
+  }
+}
+
+@keyframes ticket-lifecycle-pass-route-mobile {
+  0% {
+    top: 16px;
+    transform: rotate(-6deg) scale(0.96);
+  }
+  44% {
+    top: calc(50% - 24px);
+    transform: translateX(3px) rotate(3deg) scale(1.06);
+  }
+  100% {
+    top: calc(100% - 78px);
+    transform: rotate(7deg) scale(1);
+  }
+}
+
+@keyframes ticket-lifecycle-node-active {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+      0 10px 22px rgba(31, 48, 42, 0.07);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.86),
+      0 16px 28px rgba(22, 199, 132, 0.12);
+    transform: translateY(-2px);
   }
 }
 
