@@ -92,9 +92,31 @@ describe("Quadratic Funding PlayArea", () => {
 
     const nameInput = screen.getByLabelText("Project name") as HTMLInputElement;
     const descInput = screen.getByLabelText("Project description") as HTMLInputElement;
+    const linkInput = screen.getByLabelText("Project link") as HTMLInputElement;
+    expect(document.querySelector(".qf-project-launch-stage")).toBeTruthy();
+    expect(
+      document.querySelector('.qf-project-launch-stage__image[src="./funding-desk.jpg"]'),
+    ).toBeTruthy();
+
     fireEvent.change(nameInput, { target: { value: "My Project" } });
     fireEvent.change(descInput, { target: { value: "Does good" } });
+    fireEvent.change(linkInput, { target: { value: "https://example.com" } });
     expect(nameInput.value).toBe("My Project");
+
+    await waitFor(() => {
+      expect(document.querySelector(".qf-project-launch-stage")?.className).toContain(
+        "is-ready",
+      );
+      expect(document.querySelector(".qf-project-field--name")?.className).toContain(
+        "is-active",
+      );
+      expect(
+        document.querySelector(".qf-project-field--description")?.className,
+      ).toContain("is-active");
+      expect(document.querySelector(".qf-project-field--link")?.className).toContain(
+        "is-active",
+      );
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Register Project" }));
 
@@ -102,12 +124,13 @@ describe("Quadratic Funding PlayArea", () => {
       expect(dispatch).toHaveBeenCalledWith("registerProject", {
         name: "My Project",
         description: "Does good",
-        link: "",
+        link: "https://example.com",
       });
     });
     await waitFor(() => {
       expect((screen.getByLabelText("Project name") as HTMLInputElement).value).toBe("");
       expect((screen.getByLabelText("Project description") as HTMLInputElement).value).toBe("");
+      expect((screen.getByLabelText("Project link") as HTMLInputElement).value).toBe("");
     });
   });
 
@@ -182,11 +205,17 @@ describe("Quadratic Funding PlayArea", () => {
     );
 
     expect(styles).toContain(".qf-flow-stage");
+    expect(styles).toContain(".qf-project-launch-stage");
     expect(styles).toContain("@keyframes qf-flow-river");
     expect(styles).toContain("@keyframes qf-flow-node-ready");
+    expect(styles).toContain("@keyframes qf-project-launch-scan");
+    expect(styles).toContain("@keyframes qf-project-field-ready");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /@media \(max-width: 980px\)[\s\S]*\.qf-flow-stage__nodes[\s\S]*grid-template-columns:\s*1fr/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.qf-project-launch-stage\.is-ready::after[\s\S]*animation:\s*none/,
     );
   });
 
