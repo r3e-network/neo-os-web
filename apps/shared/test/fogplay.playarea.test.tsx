@@ -134,6 +134,12 @@ describe("FogPlay PlayArea", () => {
     expect(container.querySelector(".arena-bg__vault")).toBeTruthy();
     expect(container.querySelector(".arena-stage__pedestal")).toBeTruthy();
     expect(container.querySelector(".coin-scene--settled-heads")).toBeTruthy();
+    expect(
+      container.querySelector(".arena-choice-beacons--heads"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".arena-choice-beacon.is-selected img"),
+    ).toBeTruthy();
     expect(container.querySelector(".wager-runway")).toBeTruthy();
     expect(container.querySelectorAll(".choice-card")).toHaveLength(2);
     expect(container.querySelector(".first-round-prompt")).toBeTruthy();
@@ -377,11 +383,16 @@ describe("FogPlay PlayArea", () => {
     expect(styles).toContain("@keyframes fogplay-race-scan");
     expect(styles).toContain("@keyframes fogplay-race-runner");
     expect(styles).toContain("@keyframes fogplay-runway-coin");
+    expect(styles).toContain("@keyframes fogplay-choice-beacon-ready");
+    expect(styles).toContain("@keyframes fogplay-choice-beacon-launch");
     expect(styles).toContain("@keyframes fogplay-reveal-panel-pulse");
     expect(styles).toContain("@keyframes entry-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.coin-container\.flipping[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.arena-choice-beacon\.is-selected[\s\S]*animation:\s*none/,
     );
   });
 });

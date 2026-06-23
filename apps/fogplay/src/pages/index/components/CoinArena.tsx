@@ -4,9 +4,15 @@ import ThreeDCoin from "../../../components/ThreeDCoin";
 import vaultBgUrl from "../../../static/bg_vault.png";
 import pedestalUrl from "../../../static/holo_pedestal.png";
 import winnerUrl from "../../../static/holo_winner.png";
+import coinHeadsUrl from "../../../static/coin_heads.png";
+import coinTailsUrl from "../../../static/coin_tails.png";
 import "./CoinArena.scss";
 
 const PAYOUT_MULTIPLIER = 2;
+const COIN_ART: Record<"heads" | "tails", string> = {
+  heads: coinHeadsUrl,
+  tails: coinTailsUrl,
+};
 
 interface CoinArenaProps {
   displayOutcome: "heads" | "tails" | null;
@@ -159,6 +165,30 @@ export default function CoinArena({
             headsLabel={t("heads")}
             tailsLabel={t("tails")}
           />
+        </div>
+        <div
+          className={`arena-choice-beacons arena-choice-beacons--${choice}`}
+          aria-hidden="true"
+        >
+          {(["heads", "tails"] as const).map((side) => (
+            <span
+              key={side}
+              className={`arena-choice-beacon${side === choice ? " is-selected" : ""}`}
+            >
+              <img
+                src={COIN_ART[side]}
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+              <span>
+                <small>{t(side)}</small>
+                <strong>
+                  {side === choice ? payoutPreview : t("oddsChip")}
+                </strong>
+              </span>
+            </span>
+          ))}
         </div>
         <div className="status-box">
           <div className={`game-status-pill${revealing ? " revealing" : ""}`}>
