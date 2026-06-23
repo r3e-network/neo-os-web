@@ -153,6 +153,8 @@ describe("Red Envelope PlayArea", () => {
     expect((screen.getByLabelText("Envelope ID") as HTMLInputElement).value).toBe("pool-alpha");
 
     fireEvent.click(screen.getByRole("button", { name: "Claim now" }));
+    expect(container.querySelector(".redenv-envelope-preview--opening")).toBeTruthy();
+    expect(container.querySelector(".redenv-open-button")?.getAttribute("aria-busy")).toBe("true");
 
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("claimEnvelope", {
@@ -217,6 +219,8 @@ describe("Red Envelope PlayArea", () => {
     expect((screen.getByLabelText("Expiry hours") as HTMLInputElement).value).toBe("11");
 
     fireEvent.click(screen.getByRole("button", { name: "Send Red Envelope" }));
+    expect(container.querySelector(".redenv-gift-machine--sending")).toBeTruthy();
+    expect(container.querySelector(".redenv-send-button")?.getAttribute("aria-busy")).toBe("true");
 
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("createEnvelope", {

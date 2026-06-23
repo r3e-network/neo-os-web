@@ -5,7 +5,7 @@
  * who arrives from OneGate QR sees the one job they came to do.
  */
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -207,6 +207,10 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     count: "8",
     expiryHours: "24",
   });
+  const [claimActionPreview, setClaimActionPreview] = useState(false);
+  const [createActionPreview, setCreateActionPreview] = useState(false);
+  const claimPreviewTimeout = useRef<number | null>(null);
+  const createPreviewTimeout = useRef<number | null>(null);
 
   useEffect(() => {
     if (launchedEnvelopeId) setSelectedEnvelopeId(launchedEnvelopeId);
@@ -215,6 +219,40 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   useEffect(() => {
     setCreateForm(launchedCreateForm);
   }, [launchedCreateForm]);
+
+  useEffect(
+    () => () => {
+      if (claimPreviewTimeout.current !== null) {
+        window.clearTimeout(claimPreviewTimeout.current);
+      }
+      if (createPreviewTimeout.current !== null) {
+        window.clearTimeout(createPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startClaimActionPreview = () => {
+    if (claimPreviewTimeout.current !== null) {
+      window.clearTimeout(claimPreviewTimeout.current);
+    }
+    setClaimActionPreview(true);
+    claimPreviewTimeout.current = window.setTimeout(() => {
+      setClaimActionPreview(false);
+      claimPreviewTimeout.current = null;
+    }, 1200);
+  };
+
+  const startCreateActionPreview = () => {
+    if (createPreviewTimeout.current !== null) {
+      window.clearTimeout(createPreviewTimeout.current);
+    }
+    setCreateActionPreview(true);
+    createPreviewTimeout.current = window.setTimeout(() => {
+      setCreateActionPreview(false);
+      createPreviewTimeout.current = null;
+    }, 1100);
+  };
 
   const activeEnvelopes = envelopes.filter((env) => {
     if (env.active === false) return false;
@@ -289,12 +327,22 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     setCreateForm((current) => ({ ...current, [key]: value }));
   };
 
-  const claimSelectedEnvelope = () =>
-    dispatch("claimEnvelope", {
+  const claimIsOpening = Boolean(openingId) || claimActionPreview;
+  const createIsSending = isLoading || createActionPreview;
+
+  const claimSelectedEnvelope = () => {
+    if (!selectedEnvelopeId.trim() || claimIsOpening) return;
+    startClaimActionPreview();
+    void dispatch("claimEnvelope", {
       envelopeId: selectedEnvelopeId.trim(),
     });
+  };
 
-  const createEnvelope = () => dispatch("createEnvelope", createForm);
+  const createEnvelope = () => {
+    if (!canCreateEnvelope || createIsSending) return;
+    startCreateActionPreview();
+    void dispatch("createEnvelope", createForm);
+  };
 
   const hasActivity = activeEnvelopes.length > 0 || recentClaims.length > 0;
   const hasHeroStats = activeEnvelopes.length > 0 || claimCount > 0 || claimableGas > 0;
@@ -440,7 +488,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               className={[
                 "redenv-envelope-preview",
                 `redenv-envelope-preview--${activeTab}`,
-                openingId && "redenv-envelope-preview--opening",
+                claimIsOpening && "redenv-envelope-preview--opening",
                 luckyMessage && "redenv-envelope-preview--lucky",
               ]
                 .filter(Boolean)
@@ -534,8 +582,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 <NeoButton
                   variant="primary"
                   className="redenv-open-button"
-                  loading={Boolean(openingId)}
-                  disabled={isLoading || !selectedEnvelopeId.trim()}
+                  loading={claimIsOpening}
+                  disabled={isLoading || claimIsOpening || !selectedEnvelopeId.trim()}
                   onClick={claimSelectedEnvelope}
                 >
                   <PackageOpen size={16} />
@@ -553,7 +601,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                     className={[
                       "redenv-gift-machine",
                       canCreateEnvelope ? "redenv-gift-machine--ready" : "",
-                      isLoading ? "redenv-gift-machine--sending" : "",
+                      createIsSending ? "redenv-gift-machine--sending" : "",
                     ].filter(Boolean).join(" ")}
                     style={createMachineStyle}
                     aria-label={t("giftMachineTitle")}
@@ -709,8 +757,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 <NeoButton
                   variant="primary"
                   className="redenv-send-button"
-                  loading={isLoading}
-                  disabled={isLoading || !canCreateEnvelope}
+                  loading={createIsSending}
+                  disabled={createIsSending || !canCreateEnvelope}
                   onClick={createEnvelope}
                 >
                   <Send size={16} />
