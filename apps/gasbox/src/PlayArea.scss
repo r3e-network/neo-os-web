@@ -6,8 +6,7 @@
   grid-auto-rows: max-content;
   gap: 20px;
   padding: 24px 16px 32px;
-  background:
-    linear-gradient(180deg, #fffaf0 0%, #f4fbf5 46%, #eef6ff 100%);
+  background: linear-gradient(180deg, #fffaf0 0%, #f4fbf5 46%, #eef6ff 100%);
   color: var(--ns-text, #2a2d3d);
 }
 
@@ -58,8 +57,11 @@
   padding: 28px;
   border-radius: var(--ns-radius-lg, 20px);
   border: 1px solid rgba(18, 114, 75, 0.12);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(234, 249, 240, 0.94) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(234, 249, 240, 0.94) 100%
+  );
   box-shadow: 0 20px 50px rgba(32, 78, 52, 0.11);
 }
 
@@ -284,8 +286,11 @@
   padding: 28px;
   border-radius: var(--ns-radius-md, 16px);
   border: 1px solid rgba(18, 114, 75, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 253, 247, 0.98) 0%, rgba(241, 250, 245, 0.98) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 253, 247, 0.98) 0%,
+    rgba(241, 250, 245, 0.98) 100%
+  );
   text-align: left;
 }
 
@@ -357,8 +362,16 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 38%, rgba(255, 253, 245, 0.74) 100%),
-    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.62), transparent 34%);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 38%,
+      rgba(255, 253, 245, 0.74) 100%
+    ),
+    radial-gradient(
+      circle at 18% 12%,
+      rgba(255, 255, 255, 0.62),
+      transparent 34%
+    );
   pointer-events: none;
 }
 
@@ -375,8 +388,10 @@
 }
 
 .gasbox-empty-stage__machine img {
-  object-fit: cover;
-  object-position: 55% center;
+  object-fit: contain;
+  object-position: center bottom;
+  padding: 12px 10px 4px;
+  filter: saturate(1.04) brightness(1.02);
 }
 
 .gasbox-empty-stage__lock {
@@ -591,7 +606,11 @@
   padding: 12px;
   border-radius: var(--ns-radius-md, 16px);
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 46%),
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0) 46%
+    ),
     linear-gradient(135deg, #eaf9f0 0%, #fff7df 100%);
   border: 1px solid rgba(18, 114, 75, 0.1);
 }
@@ -700,8 +719,10 @@
 }
 
 .gasbox-stage-art img {
-  object-fit: cover;
-  object-position: 58% center;
+  object-fit: contain;
+  object-position: center bottom;
+  padding: 12px 10px 0;
+  filter: saturate(1.04) brightness(1.02);
 }
 
 .gasbox-stage-art:not(.gasbox-stage-art--pulling) > picture img {
@@ -709,7 +730,8 @@
 }
 
 .gasbox-stage-art--pulling > picture img {
-  animation: gasbox-machine-jolt 0.72s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
+  animation: gasbox-machine-jolt 0.72s
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
 }
 
 .gasbox-stage-art__slot {
@@ -723,8 +745,16 @@
   aspect-ratio: 1;
   border-radius: var(--ns-radius-full, 9999px);
   background:
-    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.96), transparent 32%),
-    linear-gradient(145deg, rgba(255, 250, 232, 0.92), rgba(228, 248, 240, 0.86));
+    radial-gradient(
+      circle at 38% 28%,
+      rgba(255, 255, 255, 0.96),
+      transparent 32%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 250, 232, 0.92),
+      rgba(228, 248, 240, 0.86)
+    );
   border: 1px solid rgba(255, 255, 255, 0.72);
   box-shadow:
     0 18px 36px rgba(32, 78, 52, 0.2),
@@ -739,7 +769,11 @@
   border-radius: inherit;
   background:
     radial-gradient(circle, rgba(22, 199, 132, 0.28), transparent 63%),
-    radial-gradient(circle at 70% 32%, rgba(245, 166, 35, 0.24), transparent 44%);
+    radial-gradient(
+      circle at 70% 32%,
+      rgba(245, 166, 35, 0.24),
+      transparent 44%
+    );
   opacity: 0.6;
   filter: blur(2px);
 }
@@ -753,26 +787,32 @@
   width: 52%;
   aspect-ratio: 1;
   border-radius: var(--ns-radius-full, 9999px);
-  background:
-    linear-gradient(145deg, #fff7df 0 46%, #16c784 47% 100%),
-    #ffffff;
+  overflow: hidden;
+  background: #fffaf0;
   color: #0b5e3e;
   box-shadow:
     0 10px 18px rgba(18, 114, 75, 0.18),
     inset 0 2px 0 rgba(255, 255, 255, 0.72);
 }
 
-.gasbox-stage-art__slot-capsule svg {
-  width: 48%;
-  height: 48%;
+.gasbox-stage-art__slot-capsule img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  object-fit: contain;
+  object-position: center;
+  filter: saturate(1.06) brightness(1.04);
 }
 
-.gasbox-stage-art__slot.is-ready:not(.is-active) .gasbox-stage-art__slot-capsule {
+.gasbox-stage-art__slot.is-ready:not(.is-active)
+  .gasbox-stage-art__slot-capsule {
   animation: gasbox-capsule-ready 2.6s ease-in-out infinite;
 }
 
 .gasbox-stage-art__slot.is-active {
-  animation: gasbox-slot-kick 0.72s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
+  animation: gasbox-slot-kick 0.72s
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
 }
 
 .gasbox-stage-art__slot.is-active .gasbox-stage-art__slot-light {
@@ -799,16 +839,18 @@
   box-shadow:
     0 18px 30px rgba(107, 60, 2, 0.2),
     0 0 0 5px rgba(228, 248, 240, 0.34);
-  animation: gasbox-capsule-pop 1.16s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
+  animation: gasbox-capsule-pop 1.16s
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
 }
 
 .gasbox-stage-art__capsule img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 48% 74%;
-  transform: scale(1.72);
+  padding: 0;
+  object-fit: contain;
+  object-position: center;
+  filter: saturate(1.06) brightness(1.04);
 }
 
 .gasbox-stage-art__capsule--1 {
@@ -965,8 +1007,16 @@
   border: 1px solid rgba(18, 114, 75, 0.12);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    radial-gradient(circle at 16% 0%, rgba(255, 247, 223, 0.92), transparent 42%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 250, 244, 0.94));
+    radial-gradient(
+      circle at 16% 0%,
+      rgba(255, 247, 223, 0.92),
+      transparent 42%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(239, 250, 244, 0.94)
+    );
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.7),
     0 12px 24px rgba(32, 78, 52, 0.08);
@@ -1136,7 +1186,8 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.68);
 }
 
-.gasbox-prize-reel--ready:not(.gasbox-prize-reel--active) .gasbox-reel-card.is-focus {
+.gasbox-prize-reel--ready:not(.gasbox-prize-reel--active)
+  .gasbox-reel-card.is-focus {
   animation: gasbox-reel-focus-ready 2.8s ease-in-out infinite;
 }
 
@@ -1386,17 +1437,37 @@
 // epic tier hex is hardcoded here (not via the token) to stop epic collapsing
 // onto the green of the uncommon tier — decorative tier colour, intentionally
 // off the single interactive accent.
-.gasbox-rarity--common { color: var(--ns-text-2, #5b6478); }
-.gasbox-rarity--uncommon { color: var(--ns-brand-strong, #0fb174); }
-.gasbox-rarity--rare { color: var(--ns-info, #3e8cff); }
-.gasbox-rarity--epic { color: #8b5cf6; }
-.gasbox-rarity--legendary { color: var(--ns-warning, #f5a623); }
+.gasbox-rarity--common {
+  color: var(--ns-text-2, #5b6478);
+}
+.gasbox-rarity--uncommon {
+  color: var(--ns-brand-strong, #0fb174);
+}
+.gasbox-rarity--rare {
+  color: var(--ns-info, #3e8cff);
+}
+.gasbox-rarity--epic {
+  color: #8b5cf6;
+}
+.gasbox-rarity--legendary {
+  color: var(--ns-warning, #f5a623);
+}
 
-.gasbox-rarity-bar-fill.gasbox-rarity--common { background: var(--ns-text-faint, #aeb4c2); }
-.gasbox-rarity-bar-fill.gasbox-rarity--uncommon { background: var(--ns-brand, #16c784); }
-.gasbox-rarity-bar-fill.gasbox-rarity--rare { background: var(--ns-info, #3e8cff); }
-.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: #8b5cf6; }
-.gasbox-rarity-bar-fill.gasbox-rarity--legendary { background: var(--ns-warning, #f5a623); }
+.gasbox-rarity-bar-fill.gasbox-rarity--common {
+  background: var(--ns-text-faint, #aeb4c2);
+}
+.gasbox-rarity-bar-fill.gasbox-rarity--uncommon {
+  background: var(--ns-brand, #16c784);
+}
+.gasbox-rarity-bar-fill.gasbox-rarity--rare {
+  background: var(--ns-info, #3e8cff);
+}
+.gasbox-rarity-bar-fill.gasbox-rarity--epic {
+  background: #8b5cf6;
+}
+.gasbox-rarity-bar-fill.gasbox-rarity--legendary {
+  background: var(--ns-warning, #f5a623);
+}
 
 .gasbox-rarity-bar-label {
   gap: 6px;
@@ -1431,8 +1502,16 @@
   border: 1px solid rgba(18, 114, 75, 0.12);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    radial-gradient(circle at 8% 0%, rgba(255, 247, 223, 0.94), transparent 42%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 251, 245, 0.96));
+    radial-gradient(
+      circle at 8% 0%,
+      rgba(255, 247, 223, 0.94),
+      transparent 42%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(244, 251, 245, 0.96)
+    );
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.66),
     0 14px 28px rgba(32, 78, 52, 0.08);
@@ -1444,14 +1523,24 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(110deg, transparent 26%, rgba(255, 255, 255, 0.5) 48%, transparent 66%),
-    radial-gradient(circle at 86% 18%, rgba(22, 199, 132, 0.12), transparent 34%);
+    linear-gradient(
+      110deg,
+      transparent 26%,
+      rgba(255, 255, 255, 0.5) 48%,
+      transparent 66%
+    ),
+    radial-gradient(
+      circle at 86% 18%,
+      rgba(22, 199, 132, 0.12),
+      transparent 34%
+    );
   opacity: 0.72;
   transform: translateX(-58%);
 }
 
 .gasbox-control-deck--active::before {
-  animation: gasbox-control-sheen 1.08s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
+  animation: gasbox-control-sheen 1.08s
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
 }
 
 .gasbox-pull-command {
@@ -1471,7 +1560,11 @@
   border: 1px solid rgba(18, 114, 75, 0.12);
   border-radius: 18px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(235, 248, 240, 0.94)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(235, 248, 240, 0.94)
+    ),
     #ffffff;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.68),
@@ -1506,11 +1599,15 @@
   animation: gasbox-lever-light-chase 0.62s ease-in-out infinite;
 }
 
-.gasbox-cabinet-lever.is-active .gasbox-cabinet-lever__lights span:nth-child(2) {
+.gasbox-cabinet-lever.is-active
+  .gasbox-cabinet-lever__lights
+  span:nth-child(2) {
   animation-delay: 90ms;
 }
 
-.gasbox-cabinet-lever.is-active .gasbox-cabinet-lever__lights span:nth-child(3) {
+.gasbox-cabinet-lever.is-active
+  .gasbox-cabinet-lever__lights
+  span:nth-child(3) {
   animation-delay: 180ms;
 }
 
@@ -1535,9 +1632,7 @@
   width: 18px;
   height: 42px;
   border-radius: var(--ns-radius-full, 9999px);
-  background:
-    linear-gradient(180deg, #ffe7a6, #c88721 62%, #8f5a10),
-    #d99a26;
+  background: linear-gradient(180deg, #ffe7a6, #c88721 62%, #8f5a10), #d99a26;
   box-shadow:
     0 10px 18px rgba(107, 60, 2, 0.22),
     inset 0 2px 0 rgba(255, 255, 255, 0.58);
@@ -1558,7 +1653,11 @@
   border: 2px solid rgba(255, 255, 255, 0.78);
   border-radius: var(--ns-radius-full, 9999px);
   background:
-    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.96), transparent 32%),
+    radial-gradient(
+      circle at 38% 28%,
+      rgba(255, 255, 255, 0.96),
+      transparent 32%
+    ),
     linear-gradient(145deg, #16c784, #0b8f5b);
   box-shadow:
     0 11px 18px rgba(18, 114, 75, 0.18),
@@ -1566,7 +1665,8 @@
   transform: translateX(-50%);
 }
 
-.gasbox-cabinet-lever.is-ready:not(.is-active) .gasbox-cabinet-lever__handle::after {
+.gasbox-cabinet-lever.is-ready:not(.is-active)
+  .gasbox-cabinet-lever__handle::after {
   animation: gasbox-lever-ready 2.4s ease-in-out infinite;
 }
 
@@ -1583,28 +1683,49 @@
 }
 
 .gasbox-lever-container.gasbox-lever--pulled {
-  animation: gasbox-lever-pull 0.42s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  animation: gasbox-lever-pull 0.42s
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 @keyframes gasbox-control-sheen {
-  0% { transform: translateX(-58%); opacity: 0.32; }
-  45% { opacity: 0.8; }
-  100% { transform: translateX(58%); opacity: 0.24; }
+  0% {
+    transform: translateX(-58%);
+    opacity: 0.32;
+  }
+  45% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(58%);
+    opacity: 0.24;
+  }
 }
 
 @keyframes gasbox-lever-pull {
-  0% { transform: scale(1); }
-  45% { transform: scale(0.97); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes gasbox-lever-ready {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  50% { transform: translateX(-50%) scale(1.08); }
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.08);
+  }
 }
 
 @keyframes gasbox-lever-light-chase {
-  0%, 100% {
+  0%,
+  100% {
     background: rgba(22, 199, 132, 0.38);
     box-shadow:
       0 0 0 2px rgba(22, 199, 132, 0.08),
@@ -1619,7 +1740,8 @@
 }
 
 @keyframes gasbox-machine-idle {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1.01) translateY(0);
     filter: saturate(1);
   }
@@ -1630,26 +1752,56 @@
 }
 
 @keyframes gasbox-machine-jolt {
-  0%, 100% { transform: scale(1) rotate(0deg); filter: saturate(1); }
-  18% { transform: scale(1.025) rotate(-1.2deg); filter: saturate(1.08) brightness(1.03); }
-  42% { transform: scale(1.015) rotate(1deg); }
-  68% { transform: scale(1.03) rotate(-0.7deg); }
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: saturate(1);
+  }
+  18% {
+    transform: scale(1.025) rotate(-1.2deg);
+    filter: saturate(1.08) brightness(1.03);
+  }
+  42% {
+    transform: scale(1.015) rotate(1deg);
+  }
+  68% {
+    transform: scale(1.03) rotate(-0.7deg);
+  }
 }
 
 @keyframes gasbox-capsule-ready {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-4px) rotate(7deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(7deg);
+  }
 }
 
 @keyframes gasbox-slot-kick {
-  0%, 100% { transform: rotate(-6deg) scale(1); }
-  42% { transform: rotate(5deg) scale(1.06); }
-  70% { transform: rotate(-10deg) scale(0.98); }
+  0%,
+  100% {
+    transform: rotate(-6deg) scale(1);
+  }
+  42% {
+    transform: rotate(5deg) scale(1.06);
+  }
+  70% {
+    transform: rotate(-10deg) scale(0.98);
+  }
 }
 
 @keyframes gasbox-slot-light {
-  0%, 100% { opacity: 0.56; filter: blur(2px); }
-  50% { opacity: 0.95; filter: blur(0); }
+  0%,
+  100% {
+    opacity: 0.56;
+    filter: blur(2px);
+  }
+  50% {
+    opacity: 0.95;
+    filter: blur(0);
+  }
 }
 
 @keyframes gasbox-capsule-pop {
@@ -1671,12 +1823,17 @@
 }
 
 @keyframes gasbox-reel-spin {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(calc((var(--gasbox-reel-card-width) + 8px) * -3)); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc((var(--gasbox-reel-card-width) + 8px) * -3));
+  }
 }
 
 @keyframes gasbox-reel-marker-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     box-shadow:
       0 0 0 5px rgba(245, 166, 35, 0.16),
@@ -1691,8 +1848,13 @@
 }
 
 @keyframes gasbox-reel-focus-ready {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .gasbox-pull-btn {
@@ -1775,7 +1937,9 @@
 }
 
 @keyframes gasbox-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .gasbox-result-overlay {
@@ -1801,7 +1965,8 @@
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
   text-align: center;
-  animation: gasbox-result-pop 0.4s var(--ns-ease-snappy, cubic-bezier(0.34, 1.56, 0.64, 1));
+  animation: gasbox-result-pop 0.4s
+    var(--ns-ease-snappy, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
 /* The result card picks up a faint tier-tinted top border + glow so a rare/epic/
@@ -1818,8 +1983,14 @@
 }
 
 @keyframes gasbox-result-pop {
-  0% { transform: scale(0.88); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.88);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .gasbox-result-theater {
@@ -1848,9 +2019,9 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 55% center;
-  transform: scale(1.08);
+  object-fit: contain;
+  object-position: center bottom;
+  padding: 8px 10px 0;
   filter: saturate(1.06) brightness(1.03);
 }
 
@@ -1859,8 +2030,16 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 52%, rgba(255, 255, 255, 0.16), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.82));
+    radial-gradient(
+      circle at 50% 52%,
+      rgba(255, 255, 255, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02),
+      rgba(255, 255, 255, 0.82)
+    );
   pointer-events: none;
 }
 
@@ -1873,8 +2052,16 @@
   height: 52%;
   border-radius: 999px 999px 28px 28px;
   background:
-    radial-gradient(ellipse at 50% 100%, color-mix(in srgb, currentColor 42%, transparent), transparent 66%),
-    linear-gradient(180deg, color-mix(in srgb, currentColor 26%, transparent), transparent 82%);
+    radial-gradient(
+      ellipse at 50% 100%,
+      color-mix(in srgb, currentColor 42%, transparent),
+      transparent 66%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, currentColor 26%, transparent),
+      transparent 82%
+    );
   filter: blur(1px);
   opacity: 0;
   transform: translateX(-50%) scaleY(0.64);
@@ -1892,18 +2079,31 @@
   aspect-ratio: 1;
   border-radius: var(--ns-radius-full, 9999px);
   border: 2px solid rgba(255, 255, 255, 0.82);
-  background:
-    linear-gradient(145deg, #fff8e7 0 46%, currentColor 47% 100%),
-    #ffffff;
+  overflow: hidden;
+  background: #fffaf0;
   box-shadow:
     0 18px 34px color-mix(in srgb, currentColor 28%, transparent),
     inset 0 2px 0 rgba(255, 255, 255, 0.76);
   transform: translateY(54px) rotate(-18deg) scale(0.74);
   opacity: 0;
-  animation: gasbox-result-capsule-open 0.74s var(--ns-ease-snappy, cubic-bezier(0.34, 1.56, 0.64, 1)) 120ms both;
+  animation: gasbox-result-capsule-open 0.74s
+    var(--ns-ease-snappy, cubic-bezier(0.34, 1.56, 0.64, 1)) 120ms both;
+}
+
+.gasbox-result-theater__capsule img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  filter: saturate(1.05) brightness(1.04);
 }
 
 .gasbox-result-theater__gem {
+  position: relative;
+  z-index: 1;
   width: 32px;
   height: 32px;
   color: #ffffff;
@@ -2000,23 +2200,64 @@
   height: 14px;
   border-radius: 2px;
   opacity: 0;
-  animation: gasbox-confetti-fall 1.5s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+  animation: gasbox-confetti-fall 1.5s
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
 }
 
-.gasbox-confetti__bit--0 { left: 12%; background: var(--ns-brand, #16c784); animation-delay: 0s; }
-.gasbox-confetti__bit--1 { left: 24%; background: var(--ns-warning, #f5a623); animation-delay: 0.08s; }
-.gasbox-confetti__bit--2 { left: 38%; background: var(--ns-info, #3e8cff); animation-delay: 0.16s; }
-.gasbox-confetti__bit--3 { left: 50%; background: #8b5cf6; animation-delay: 0.04s; }
-.gasbox-confetti__bit--4 { left: 63%; background: var(--ns-brand-strong, #0fb174); animation-delay: 0.2s; }
-.gasbox-confetti__bit--5 { left: 77%; background: var(--ns-warning, #f5a623); animation-delay: 0.12s; }
-.gasbox-confetti__bit--6 { left: 89%; background: var(--ns-info, #3e8cff); animation-delay: 0.24s; }
+.gasbox-confetti__bit--0 {
+  left: 12%;
+  background: var(--ns-brand, #16c784);
+  animation-delay: 0s;
+}
+.gasbox-confetti__bit--1 {
+  left: 24%;
+  background: var(--ns-warning, #f5a623);
+  animation-delay: 0.08s;
+}
+.gasbox-confetti__bit--2 {
+  left: 38%;
+  background: var(--ns-info, #3e8cff);
+  animation-delay: 0.16s;
+}
+.gasbox-confetti__bit--3 {
+  left: 50%;
+  background: #8b5cf6;
+  animation-delay: 0.04s;
+}
+.gasbox-confetti__bit--4 {
+  left: 63%;
+  background: var(--ns-brand-strong, #0fb174);
+  animation-delay: 0.2s;
+}
+.gasbox-confetti__bit--5 {
+  left: 77%;
+  background: var(--ns-warning, #f5a623);
+  animation-delay: 0.12s;
+}
+.gasbox-confetti__bit--6 {
+  left: 89%;
+  background: var(--ns-info, #3e8cff);
+  animation-delay: 0.24s;
+}
 
-.gasbox-confetti__bit:nth-child(n + 8) { top: -20px; width: 7px; height: 10px; }
+.gasbox-confetti__bit:nth-child(n + 8) {
+  top: -20px;
+  width: 7px;
+  height: 10px;
+}
 
 @keyframes gasbox-confetti-fall {
-  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
-  12% { opacity: 1; }
-  100% { transform: translateY(104vh) rotate(540deg); opacity: 0; }
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(104vh) rotate(540deg);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 900px) {
@@ -2222,7 +2463,8 @@
   .gasbox-loading-spinner,
   .gasbox-prize-reel--active .gasbox-reel-marker,
   .gasbox-prize-reel--active .gasbox-reel-strip,
-  .gasbox-prize-reel--ready:not(.gasbox-prize-reel--active) .gasbox-reel-card.is-focus,
+  .gasbox-prize-reel--ready:not(.gasbox-prize-reel--active)
+    .gasbox-reel-card.is-focus,
   .gasbox-stage-art--pulling > picture img,
   .gasbox-stage-art__capsule,
   .gasbox-pull-btn--active svg,
@@ -2307,8 +2549,11 @@
   padding: 10px;
   border-radius: var(--ns-radius-md, 16px);
   border: 1px solid rgba(18, 114, 75, 0.1);
-  background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.82) 0%, rgba(255, 247, 223, 0.88) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(228, 248, 240, 0.82) 0%,
+    rgba(255, 247, 223, 0.88) 100%
+  );
 }
 
 .gasbox-studio-summary span {
@@ -2342,7 +2587,11 @@
   border-radius: var(--ns-radius-lg, 20px);
   border: 1px solid rgba(18, 114, 75, 0.1);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(244, 251, 245, 0.92)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9),
+      rgba(244, 251, 245, 0.92)
+    ),
     var(--ns-surface, #ffffff);
   list-style: none;
 }
@@ -2376,7 +2625,11 @@
 .gasbox-studio-flow li.is-ready {
   border-color: rgba(22, 199, 132, 0.24);
   background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.88), rgba(255, 255, 255, 0.76)),
+    linear-gradient(
+      135deg,
+      rgba(228, 248, 240, 0.88),
+      rgba(255, 255, 255, 0.76)
+    ),
     var(--ns-brand-soft, #e4f8f0);
 }
 
@@ -2427,7 +2680,11 @@
   border: 1px solid rgba(18, 114, 75, 0.12);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(228, 248, 240, 0.72)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(228, 248, 240, 0.72)
+    ),
     var(--ns-surface, #ffffff);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.62),
@@ -2455,8 +2712,10 @@
 }
 
 .gasbox-studio-machine-preview img {
-  object-fit: cover;
-  object-position: 58% center;
+  object-fit: contain;
+  object-position: center bottom;
+  padding: 10px 8px 0;
+  filter: saturate(1.04) brightness(1.02);
   animation: gasbox-studio-machine-breathe 6.6s ease-in-out infinite;
 }
 
@@ -2465,8 +2724,17 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.44) 42%, transparent 64%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 250, 232, 0.42));
+    linear-gradient(
+      110deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.44) 42%,
+      transparent 64%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02),
+      rgba(255, 250, 232, 0.42)
+    );
   opacity: 0.72;
   pointer-events: none;
   transform: translateX(-48%);
@@ -2604,7 +2872,11 @@
   border-radius: var(--ns-radius-lg, 20px);
   border: 1px solid rgba(18, 114, 75, 0.12);
   background:
-    linear-gradient(135deg, rgba(255, 247, 223, 0.7), rgba(244, 251, 245, 0.88)),
+    linear-gradient(
+      135deg,
+      rgba(255, 247, 223, 0.7),
+      rgba(244, 251, 245, 0.88)
+    ),
     var(--ns-surface, #ffffff);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.62),
@@ -2667,9 +2939,14 @@
   overflow: hidden;
   scroll-snap-align: start;
   border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid color-mix(in srgb, currentColor 24%, rgba(255, 255, 255, 0.68));
+  border: 1px solid
+    color-mix(in srgb, currentColor 24%, rgba(255, 255, 255, 0.68));
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.74)),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.94),
+      rgba(255, 255, 255, 0.74)
+    ),
     var(--ns-surface, #ffffff);
   box-shadow:
     0 10px 20px color-mix(in srgb, currentColor 12%, transparent),
@@ -2703,8 +2980,7 @@
   flex: 0 0 42px;
   border-radius: var(--ns-radius-full, 9999px);
   background:
-    linear-gradient(145deg, #fff8e7 0 46%, currentColor 47% 100%),
-    #ffffff;
+    linear-gradient(145deg, #fff8e7 0 46%, currentColor 47% 100%), #ffffff;
   color: currentColor;
   box-shadow:
     0 10px 18px color-mix(in srgb, currentColor 20%, transparent),
@@ -2757,8 +3033,11 @@
 }
 
 .gasbox-studio-grid--machine {
-  background:
-    linear-gradient(135deg, rgba(247, 248, 250, 0.95), rgba(255, 253, 247, 0.95));
+  background: linear-gradient(
+    135deg,
+    rgba(247, 248, 250, 0.95),
+    rgba(255, 253, 247, 0.95)
+  );
 }
 
 .gasbox-studio-cabinet {
@@ -2775,8 +3054,16 @@
   border: 1px solid rgba(18, 114, 75, 0.1);
   border-radius: var(--ns-radius-lg, 18px);
   background:
-    radial-gradient(circle at 14% 0%, rgba(255, 247, 223, 0.8), transparent 46%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(244, 251, 245, 0.96));
+    radial-gradient(
+      circle at 14% 0%,
+      rgba(255, 247, 223, 0.8),
+      transparent 46%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(244, 251, 245, 0.96)
+    );
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.64),
     0 10px 24px rgba(20, 22, 38, 0.05);
@@ -2868,7 +3155,9 @@
   color: var(--ns-text, #2a2d3d);
   font-size: 0.875rem;
   font-family: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .gasbox-field input:hover {
@@ -3027,7 +3316,11 @@
   border-radius: var(--ns-radius-lg, 18px);
   border: 1px solid rgba(18, 114, 75, 0.1);
   background:
-    radial-gradient(circle at 12% 12%, rgba(228, 248, 240, 0.72), transparent 44%),
+    radial-gradient(
+      circle at 12% 12%,
+      rgba(228, 248, 240, 0.72),
+      transparent 44%
+    ),
     #ffffff;
   box-shadow: 0 10px 24px rgba(20, 22, 38, 0.05);
 }
@@ -3061,8 +3354,17 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, 0.74) 100%),
-    linear-gradient(110deg, transparent 22%, rgba(255, 255, 255, 0.5) 48%, transparent 70%);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(255, 255, 255, 0.74) 100%
+    ),
+    linear-gradient(
+      110deg,
+      transparent 22%,
+      rgba(255, 255, 255, 0.5) 48%,
+      transparent 70%
+    );
   transform: translateX(-48%);
   animation: gasbox-studio-item-scan 5.4s ease-in-out infinite;
   pointer-events: none;
@@ -3076,9 +3378,9 @@
 }
 
 .gasbox-studio-item__machine img {
-  object-fit: cover;
-  object-position: 56% center;
-  transform: scale(1.28);
+  object-fit: contain;
+  object-position: center;
+  padding: 0;
   filter: saturate(1.06) brightness(1.02);
 }
 
@@ -3094,8 +3396,7 @@
   height: 32px;
   border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: var(--ns-radius-full, 9999px);
-  background:
-    linear-gradient(145deg, #fff8e7 0 47%, currentColor 48% 100%);
+  background: linear-gradient(145deg, #fff8e7 0 47%, currentColor 48% 100%);
   box-shadow:
     0 10px 18px color-mix(in srgb, currentColor 24%, transparent),
     inset 0 2px 0 rgba(255, 255, 255, 0.74);
@@ -3194,8 +3495,11 @@
   padding: 10px;
   border: 1px solid rgba(18, 114, 75, 0.1);
   border-radius: var(--ns-radius-md, 16px);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 252, 248, 0.94));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(246, 252, 248, 0.94)
+  );
 }
 
 .gasbox-capsule-dial-head {
@@ -3337,7 +3641,8 @@
 }
 
 @keyframes gasbox-studio-machine-breathe {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1.02) translateY(0);
     filter: saturate(1);
   }
@@ -3348,7 +3653,8 @@
 }
 
 @keyframes gasbox-studio-preview-scan {
-  0%, 54% {
+  0%,
+  54% {
     opacity: 0;
     transform: translateX(-48%);
   }
@@ -3362,7 +3668,8 @@
 }
 
 @keyframes gasbox-studio-light-chase {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.42;
     transform: scale(0.9);
   }
@@ -3384,7 +3691,8 @@
 }
 
 @keyframes gasbox-studio-token-glow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
     box-shadow:
       0 10px 20px color-mix(in srgb, currentColor 12%, transparent),
@@ -3399,7 +3707,8 @@
 }
 
 @keyframes gasbox-studio-capsule-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
   50% {
@@ -3408,7 +3717,8 @@
 }
 
 @keyframes gasbox-studio-capsule-roll {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(-1deg);
   }
   50% {
@@ -3417,7 +3727,8 @@
 }
 
 @keyframes gasbox-studio-item-scan {
-  0%, 58% {
+  0%,
+  58% {
     opacity: 0;
     transform: translateX(-48%);
   }
@@ -3431,7 +3742,8 @@
 }
 
 @keyframes gasbox-studio-asset-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
   }
   50% {
@@ -3440,7 +3752,8 @@
 }
 
 @keyframes gasbox-studio-launch-scan {
-  0%, 58% {
+  0%,
+  58% {
     opacity: 0;
     transform: translateX(-42%);
   }
@@ -3454,7 +3767,8 @@
 }
 
 @keyframes gasbox-studio-launch-ready {
-  0%, 100% {
+  0%,
+  100% {
     filter: saturate(1.02) brightness(1);
     transform: scale(1.08) translateY(0);
   }
@@ -3465,7 +3779,8 @@
 }
 
 @keyframes gasbox-studio-launch-signal {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
     box-shadow: 0 0 0 rgba(22, 199, 132, 0);
   }
@@ -3557,7 +3872,11 @@
   padding: 16px;
   border-radius: var(--ns-radius-md, 16px);
   border: 1px solid var(--ns-brand-soft-border, #c7efe0);
-  background: linear-gradient(135deg, var(--ns-surface, #ffffff) 0%, var(--ns-brand-soft, #e4f8f0) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ns-surface, #ffffff) 0%,
+    var(--ns-brand-soft, #e4f8f0) 100%
+  );
 
   &::before {
     content: "";
@@ -3565,7 +3884,13 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.7) 42%, rgba(245, 166, 35, 0.22) 50%, transparent 66%);
+    background: linear-gradient(
+      110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.7) 42%,
+      rgba(245, 166, 35, 0.22) 50%,
+      transparent 66%
+    );
     opacity: 0;
     transform: translateX(-115%);
   }
@@ -3578,8 +3903,16 @@
   &--revealing {
     border-color: rgba(245, 166, 35, 0.42);
     background:
-      radial-gradient(circle at 12% 0%, rgba(245, 166, 35, 0.18), transparent 42%),
-      linear-gradient(135deg, var(--ns-surface, #ffffff) 0%, var(--ns-brand-soft, #e4f8f0) 100%);
+      radial-gradient(
+        circle at 12% 0%,
+        rgba(245, 166, 35, 0.18),
+        transparent 42%
+      ),
+      linear-gradient(
+        135deg,
+        var(--ns-surface, #ffffff) 0%,
+        var(--ns-brand-soft, #e4f8f0) 100%
+      );
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.84),
       0 14px 32px rgba(245, 166, 35, 0.12);
@@ -3659,19 +3992,40 @@
 }
 
 @keyframes gasbox-pending-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.9); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
 }
 
 @keyframes gasbox-pending-reveal-sweep {
-  0% { opacity: 0; transform: translateX(-115%); }
-  18%, 72% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(115%); }
+  0% {
+    opacity: 0;
+    transform: translateX(-115%);
+  }
+  18%,
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(115%);
+  }
 }
 
 @keyframes gasbox-pending-reveal-pop {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
 }
 
 .gasbox-creator-controls {
@@ -3746,7 +4100,11 @@
   border: 1px solid rgba(18, 114, 75, 0.12);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    linear-gradient(135deg, rgba(255, 251, 239, 0.96), rgba(241, 250, 245, 0.96)),
+    linear-gradient(
+      135deg,
+      rgba(255, 251, 239, 0.96),
+      rgba(241, 250, 245, 0.96)
+    ),
     var(--ns-surface, #ffffff);
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.64),
@@ -3759,8 +4117,17 @@
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(circle at 13% 20%, rgba(22, 199, 132, 0.12), transparent 28%),
-    linear-gradient(105deg, transparent 18%, rgba(255, 255, 255, 0.44) 46%, transparent 68%);
+    radial-gradient(
+      circle at 13% 20%,
+      rgba(22, 199, 132, 0.12),
+      transparent 28%
+    ),
+    linear-gradient(
+      105deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.44) 46%,
+      transparent 68%
+    );
   opacity: 0.56;
   transform: translateX(-42%);
   animation: gasbox-studio-launch-scan 6.2s ease-in-out infinite;
@@ -3770,7 +4137,11 @@
 .gasbox-studio-launch-pad.is-ready {
   border-color: rgba(22, 199, 132, 0.28);
   background:
-    linear-gradient(135deg, rgba(235, 255, 246, 0.96), rgba(255, 248, 228, 0.94)),
+    linear-gradient(
+      135deg,
+      rgba(235, 255, 246, 0.96),
+      rgba(255, 248, 228, 0.94)
+    ),
     var(--ns-surface, #ffffff);
 }
 
@@ -3796,9 +4167,10 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 50% 44%;
-  transform: scale(1.08);
+  object-fit: contain;
+  object-position: center bottom;
+  padding: 4px 6px 0;
+  filter: saturate(1.04) brightness(1.02);
 }
 
 .gasbox-studio-launch-pad.is-ready .gasbox-studio-launch-pad__machine img {
