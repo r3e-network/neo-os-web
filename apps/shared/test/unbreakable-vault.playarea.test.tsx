@@ -25,7 +25,10 @@ function t(key: string) {
     titlePlaceholder: "Give your vault a name",
     descriptionLabel: "Description",
     descriptionPlaceholder: "Optional hints or lore",
+    descriptionPending: "Hint pending",
+    descriptionReady: "Public hint armed",
     bountyLabel: "Bounty",
+    bountyPresetLabel: "Bounty presets",
     difficultyLabel: "Difficulty",
     netPayoutLabel: "Net Payout",
     difficultyEasy: "Easy",
@@ -156,6 +159,12 @@ describe("Unbreakable Vault PlayArea", () => {
       target: { value: "open sesame" },
     });
     expect(container.querySelector(".vault-blueprint__lock.is-ready")).toBeTruthy();
+    expect(container.querySelector(".vault-console-stack")).toBeTruthy();
+    expect(container.querySelector(".vault-console-module--identity.is-active")).toBeTruthy();
+    expect(container.querySelector(".vault-console-module--bounty.is-active")).toBeTruthy();
+    expect(container.querySelector(".vault-console-module--lore.is-active")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-panel--ready")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-secret-panel__status .is-active").length).toBe(3);
     expect(container.querySelector(".vault-system-stage--ready")).toBeTruthy();
     expect(container.querySelector('.vault-system-stage__token img[src="./logo.jpg"]')).toBeTruthy();
     expect(container.querySelector(".vault-system-stage__difficulty")?.textContent).toContain("Medium");
@@ -185,6 +194,17 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(container.querySelector(".vault-select-chevron")).toBeNull();
     expect(screen.getAllByRole("radio")).toHaveLength(3);
     expect(screen.getByRole("radio", { name: "Easy 0.1 GAS" }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("lets bounty presets arm the vault funding console without using a select", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "5 GAS" }));
+
+    expect((screen.getByLabelText("Bounty") as HTMLInputElement).value).toBe("5");
+    expect(container.querySelector(".vault-console-module--bounty.is-active")).toBeTruthy();
+    expect(container.querySelector(".vault-bounty-presets button.is-active")?.textContent).toBe("5 GAS");
+    expect(container.querySelectorAll(".vault-bounty-presets button")).toHaveLength(3);
   });
 
   it("uses a challenge console mode switch instead of stacking both workflows", () => {
@@ -437,6 +457,9 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(css).toContain("@keyframes vault-system-token-seal");
     expect(css).toContain("@keyframes vault-system-difficulty-ready");
     expect(css).toContain("@keyframes vault-system-seal");
+    expect(css).toContain("@keyframes vault-console-module-scan");
+    expect(css).toContain("@keyframes vault-bounty-chip-ready");
+    expect(css).toContain("@keyframes vault-secret-calibrate");
     expect(css).toContain("@keyframes vault-input-scan");
     expect(css).toContain("@keyframes vault-id-beam-route");
     expect(css).toContain("@keyframes vault-secret-charge");
@@ -446,6 +469,9 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".vault-system-stage__token");
     expect(css).toContain(".vault-system-stage__difficulty");
+    expect(css).toContain(".vault-console-module");
+    expect(css).toContain(".vault-bounty-presets");
+    expect(css).toContain(".vault-secret-panel--ready");
     expect(css).toContain(".vault-id-scanner");
     expect(css).toContain(".vault-secret-attempt");
     expect(css).toContain(".vault-break-stage__scan");

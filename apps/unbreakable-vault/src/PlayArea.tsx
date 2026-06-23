@@ -6,6 +6,7 @@ import {
   Crosshair,
   Flame,
   Gauge,
+  Hash,
   KeyRound,
   LockKeyhole,
   PlusCircle,
@@ -60,6 +61,8 @@ const DIFFICULTY_OPTIONS = [
   fee: string;
   icon: LucideIcon;
 }>;
+
+const BOUNTY_PRESETS = ["1", "5", "10"] as const;
 
 /** Status enum → localized pill label key. */
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -262,6 +265,7 @@ export default function PlayArea({
   const blueprintTitle = title.trim() || t("blueprintUntitled");
   const blueprintBounty =
     Number.isFinite(bountyValue) && bountyValue > 0 ? bounty : "0";
+  const bountyReady = Number.isFinite(bountyValue) && bountyValue >= 1;
   const secretReady =
     secret.trim() !== "" && confirmSecret.trim() !== "" && !secretMismatch;
   const createStageState = isCreating
@@ -417,38 +421,103 @@ export default function PlayArea({
               </div>
             </aside>
 
-            <div className="vault-form vault-builder-form">
+            <div
+              className={[
+                "vault-form",
+                "vault-builder-form",
+                secretMismatch ? "vault-builder-form--secret-mismatch" : "",
+                secretReady ? "vault-builder-form--secret-ready" : "",
+              ].filter(Boolean).join(" ")}
+            >
               {isMainnet && (
                 <p className="vault-mainnet-note" role="note">
                   {t("mainnetVaultNote")}
                 </p>
               )}
-              <div className="vault-setup-grid">
-                <NeoInput
-                  className="vault-title-input"
-                  label={t("titleLabel")}
-                  placeholder={t("titlePlaceholder")}
-                  value={title}
-                  onChange={setTitle}
-                />
-                <NeoInput
-                  className="vault-bounty-input"
-                  label={t("bountyLabel")}
-                  type="number"
-                  placeholder={t("bountyPlaceholder")}
-                  min={1}
-                  hint={t("minBountyNote")}
-                  value={bounty}
-                  onChange={setBounty}
-                />
-                <NeoInput
-                  className="vault-description-input"
-                  label={t("descriptionLabel")}
-                  type="textarea"
-                  placeholder={t("descriptionPlaceholder")}
-                  value={description}
-                  onChange={setDescription}
-                />
+              <div className="vault-console-stack" aria-label={t("createVault")}>
+                <section
+                  className={`vault-console-module vault-console-module--identity${title.trim() ? " is-active" : ""}`}
+                >
+                  <span className="vault-console-module__icon" aria-hidden="true">
+                    <Hash size={18} />
+                  </span>
+                  <div className="vault-console-module__body">
+                    <div className="vault-console-module__head">
+                      <span>{t("titleLabel")}</span>
+                      <strong>{blueprintTitle}</strong>
+                    </div>
+                    <NeoInput
+                      className="vault-title-input"
+                      label={t("titleLabel")}
+                      placeholder={t("titlePlaceholder")}
+                      value={title}
+                      onChange={setTitle}
+                    />
+                  </div>
+                </section>
+
+                <section
+                  className={`vault-console-module vault-console-module--bounty${bountyReady ? " is-active" : ""}`}
+                >
+                  <span className="vault-console-module__icon" aria-hidden="true">
+                    <Coins size={18} />
+                  </span>
+                  <div className="vault-console-module__body">
+                    <div className="vault-console-module__head">
+                      <span>{t("bountyLabel")}</span>
+                      <strong>
+                        {blueprintBounty} {t("tokenGas")}
+                      </strong>
+                    </div>
+                    <NeoInput
+                      className="vault-bounty-input"
+                      label={t("bountyLabel")}
+                      type="number"
+                      placeholder={t("bountyPlaceholder")}
+                      min={1}
+                      hint={t("minBountyNote")}
+                      value={bounty}
+                      onChange={setBounty}
+                    />
+                    <div
+                      className="vault-bounty-presets"
+                      aria-label={t("bountyPresetLabel")}
+                    >
+                      {BOUNTY_PRESETS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          className={bounty === preset ? "is-active" : ""}
+                          onClick={() => setBounty(preset)}
+                        >
+                          {preset} {t("tokenGas")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                <section
+                  className={`vault-console-module vault-console-module--lore${description.trim() ? " is-active" : ""}`}
+                >
+                  <span className="vault-console-module__icon" aria-hidden="true">
+                    <Crosshair size={18} />
+                  </span>
+                  <div className="vault-console-module__body">
+                    <div className="vault-console-module__head">
+                      <span>{t("descriptionLabel")}</span>
+                      <strong>{description.trim() ? t("descriptionReady") : t("descriptionPending")}</strong>
+                    </div>
+                    <NeoInput
+                      className="vault-description-input"
+                      label={t("descriptionLabel")}
+                      type="textarea"
+                      placeholder={t("descriptionPlaceholder")}
+                      value={description}
+                      onChange={setDescription}
+                    />
+                  </div>
+                </section>
               </div>
               <div className="vault-difficulty-field">
                 <span>{t("difficultyLabel")}</span>
@@ -487,10 +556,21 @@ export default function PlayArea({
                   })}
                 </div>
               </div>
-              <div className="vault-secret-panel">
+              <div
+                className={[
+                  "vault-secret-panel",
+                  secretReady ? "vault-secret-panel--ready" : "",
+                  secretMismatch ? "vault-secret-panel--mismatch" : "",
+                ].filter(Boolean).join(" ")}
+              >
                 <span className="vault-secret-panel__icon" aria-hidden="true">
                   <KeyRound size={18} />
                 </span>
+                <div className="vault-secret-panel__status" aria-hidden="true">
+                  <span className={secret.trim() ? "is-active" : ""} />
+                  <span className={confirmSecret.trim() ? "is-active" : ""} />
+                  <span className={secretReady ? "is-active" : ""} />
+                </div>
                 <div className="vault-secret-panel__fields">
                   <NeoInput
                     label={t("secretLabel")}
