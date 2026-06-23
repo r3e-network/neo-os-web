@@ -141,6 +141,14 @@ describe("FogPlay PlayArea", () => {
       container.querySelector(".arena-choice-beacon.is-selected img"),
     ).toBeTruthy();
     expect(container.querySelector(".wager-runway")).toBeTruthy();
+    expect(container.querySelector(".wager-fog-field")).toBeTruthy();
+    expect(container.querySelector(".wager-fog-field__orbit")).toBeTruthy();
+    expect(container.querySelectorAll(".wager-fog-field__coin")).toHaveLength(
+      2,
+    );
+    expect(container.querySelectorAll(".wager-fog-field__spark")).toHaveLength(
+      3,
+    );
     expect(container.querySelectorAll(".choice-card")).toHaveLength(2);
     expect(container.querySelector(".first-round-prompt")).toBeTruthy();
     expect(screen.getByText("First toss is ready")).toBeTruthy();
@@ -206,6 +214,12 @@ describe("FogPlay PlayArea", () => {
       expect(
         container.querySelector(".bet-section")?.getAttribute("aria-busy"),
       ).toBe("true");
+      expect(
+        container.querySelector(".bet-section--flipping .wager-fog-field"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".wager-fog-field__coin--selected img"),
+      ).toBeTruthy();
       expect(
         screen
           .getByRole("button", { name: "Flipping..." })
@@ -386,6 +400,10 @@ describe("FogPlay PlayArea", () => {
     expect(styles).toContain("@keyframes fogplay-choice-beacon-ready");
     expect(styles).toContain("@keyframes fogplay-choice-beacon-launch");
     expect(styles).toContain("@keyframes fogplay-reveal-panel-pulse");
+    expect(styles).toContain("@keyframes fogplay-field-mist");
+    expect(styles).toContain("@keyframes fogplay-field-orbit-launch");
+    expect(styles).toContain("@keyframes fogplay-field-selected-launch");
+    expect(styles).toContain("@keyframes fogplay-field-spark");
     expect(styles).toContain("@keyframes entry-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
@@ -393,6 +411,9 @@ describe("FogPlay PlayArea", () => {
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.arena-choice-beacon\.is-selected[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.wager-fog-field__spark[\s\S]*animation:\s*none/,
     );
   });
 });
