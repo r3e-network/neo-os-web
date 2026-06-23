@@ -176,6 +176,16 @@ describe("FogPlay PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("placeBet");
     await waitFor(() => {
       expect(
+        container
+          .querySelector(".coinflip-play-area")
+          ?.getAttribute("aria-busy"),
+      ).toBe("true");
+      expect(
+        container
+          .querySelector(".coinflip-game-table")
+          ?.getAttribute("aria-busy"),
+      ).toBe("true");
+      expect(
         container.querySelector(".coinflip-play-area--tossing"),
       ).toBeTruthy();
       expect(container.querySelector(".premium-arena--flipping")).toBeTruthy();
@@ -188,6 +198,9 @@ describe("FogPlay PlayArea", () => {
       expect(container.querySelector(".coin-scene--flipping")).toBeTruthy();
       expect(container.querySelector(".bet-section--flipping")).toBeTruthy();
       expect(
+        container.querySelector(".bet-section")?.getAttribute("aria-busy"),
+      ).toBe("true");
+      expect(
         screen
           .getByRole("button", { name: "Flipping..." })
           .getAttribute("aria-busy"),
@@ -195,6 +208,16 @@ describe("FogPlay PlayArea", () => {
     });
 
     resolveFlip?.();
+  });
+
+  it("keeps wager amount entry wallet-safe instead of a browser number spinner", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    const wager = screen.getByLabelText("Bet amount") as HTMLInputElement;
+
+    expect(wager.type).toBe("text");
+    expect(wager.inputMode).toBe("decimal");
+    expect(wager.getAttribute("pattern")).toBe("[0-9]*[.]?[0-9]*");
   });
 
   it("shows visible toss motion through commit and reveal states", () => {
