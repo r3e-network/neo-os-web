@@ -33,9 +33,14 @@ function amountFromStake(stake: string): string {
 }
 
 function normalizeAmount(value: string): string {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return value.trim();
-  return numeric.toFixed(8).replace(/\.?0+$/, "");
+  const trimmed = value.trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return trimmed;
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  const normalizedWhole = whole.replace(/^0+(?=\d)/, "") || "0";
+  const normalizedFraction = fraction.replace(/0+$/, "");
+  return normalizedFraction
+    ? `${normalizedWhole}.${normalizedFraction}`
+    : normalizedWhole;
 }
 
 function isValidStake(value: string, maxStake: number): boolean {
@@ -167,11 +172,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isThrowing = (isSubmitting || throwPreview) && !isResolving;
   const isRolling = isResolving || isThrowing;
   const visibleFace = isRolling ? faceInput : showResult ? lastRoll : faceInput;
-  const stageState = isRolling
-    ? "rolling"
-    : showResult
-      ? lastOutcome
-      : "idle";
+  const stageState = isRolling ? "rolling" : showResult ? lastOutcome : "idle";
   const dieIsPreview = stageState === "idle";
   const displayFace = FACES.includes(visibleFace) ? visibleFace : faceInput;
   const currentFaceIndex = Math.max(0, FACES.indexOf(faceInput));
@@ -255,8 +256,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           onSubmit={handleSubmit}
           aria-busy={isRolling || undefined}
         >
-          <div className="dice-stage" aria-live="polite" data-state={stageState}>
-            <div className={`dice-stage__visual dice-stage__visual--${stageState}`}>
+          <div
+            className="dice-stage"
+            aria-live="polite"
+            data-state={stageState}
+          >
+            <div
+              className={`dice-stage__visual dice-stage__visual--${stageState}`}
+            >
               <picture className="dice-stage__table" aria-hidden="true">
                 <source srcSet="./dice-stage.avif" type="image/avif" />
                 <source srcSet="./dice-stage.webp" type="image/webp" />
@@ -348,7 +355,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={`dice-chain-badge${chainLabel.startsWith("Neo X") ? " dice-chain-badge--evm" : ""}`}
                     title={`${t("networkLabel")}: ${chainLabel}`}
                   >
-                    <span className="dice-chain-badge__dot" aria-hidden="true" />
+                    <span
+                      className="dice-chain-badge__dot"
+                      aria-hidden="true"
+                    />
                     {chainLabel}
                   </span>
                 )}
@@ -389,7 +399,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 >
                   {isRolling ? (
                     <>
-                      <span className="dice-result__spinner" aria-hidden="true" />
+                      <span
+                        className="dice-result__spinner"
+                        aria-hidden="true"
+                      />
                       <span className="dice-result__label">
                         {t("statusRolling")}
                       </span>
@@ -412,7 +425,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <span className="dice-result__roll">
                         {t("rolledLabel")} <strong>{lastRoll}</strong>
                       </span>
-                      <span className="dice-result__verdict">{outcomeLabel}</span>
+                      <span className="dice-result__verdict">
+                        {outcomeLabel}
+                      </span>
                     </>
                   )}
                 </div>
@@ -444,7 +459,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <Coins size={14} aria-hidden="true" />
                 <span>{houseEdgeNote}</span>
               </p>
-              <div className="dice-rule-strip" aria-label={t("diceRoundSummary")}>
+              <div
+                className="dice-rule-strip"
+                aria-label={t("diceRoundSummary")}
+              >
                 <span>{t("diceRuleCommit")}</span>
                 <span>{t("diceRuleCallback")}</span>
                 <span>{t("diceRuleRefund")}</span>
@@ -621,11 +639,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={`dice-stake-field__control${stakeIsValid ? "" : " dice-stake-field__control--invalid"}`}
                   >
                     <input
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      min={MIN_STAKE}
-                      max={effectiveMaxStake}
-                      step="0.01"
+                      pattern="[0-9]*[.]?[0-9]*"
                       value={amountInput}
                       aria-label={t("stakeAmount")}
                       aria-invalid={!stakeIsValid}

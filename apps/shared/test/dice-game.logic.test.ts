@@ -1,6 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { chainLabelOf, maxStakeOf, evmStatusToOutcome, maxPayableStakeOf } from "../../dice-game/src/dice-logic";
+import {
+  chainLabelOf,
+  maxStakeOf,
+  evmStatusToOutcome,
+  maxPayableStakeOf,
+} from "../../dice-game/src/dice-logic";
 import { createBetTracker } from "../../dice-game/src/bet-tracker";
+import {
+  fixed8ToStakeDisplay,
+  parseStakeFixed8,
+  sanitizeAmount,
+} from "../../dice-game/src/main";
 import { decodeReturnWord } from "../utils/evm-chain";
 
 describe("chainLabelOf", () => {
@@ -54,12 +64,42 @@ describe("maxPayableStakeOf", () => {
   });
 });
 
+describe("dice stake amount parsing", () => {
+  it("rejects malformed or over-precision transaction amounts", () => {
+    expect(parseStakeFixed8("1abc")).toBeNull();
+    expect(parseStakeFixed8("1.000000001")).toBeNull();
+    expect(parseStakeFixed8("0.04999999")).toBeNull();
+    expect(parseStakeFixed8("20.00000001", 20)).toBeNull();
+  });
+
+  it("keeps valid Fixed8 stake precision instead of rounding to cents", () => {
+    expect(parseStakeFixed8("0.05000001")).toBe("5000001");
+    expect(fixed8ToStakeDisplay("5000001")).toBe("0.05000001");
+    expect(sanitizeAmount("0.05000001")).toBe("0.05000001");
+  });
+});
+
 describe("bet-tracker seedSettled (reload hydration)", () => {
   it("seeds settled rows newest-first only when history is empty", () => {
     const tracker = createBetTracker();
     const seeded = tracker.seedSettled([
-      { face: "6", stake: "", result: "Won · 🎲 6", payout: "0.57 GAS", outcome: "won", rolled: "6", at: "" },
-      { face: "3", stake: "", result: "Lost", payout: "0 GAS", outcome: "lost", at: "" },
+      {
+        face: "6",
+        stake: "",
+        result: "Won · 🎲 6",
+        payout: "0.57 GAS",
+        outcome: "won",
+        rolled: "6",
+        at: "",
+      },
+      {
+        face: "3",
+        stake: "",
+        result: "Lost",
+        payout: "0 GAS",
+        outcome: "lost",
+        at: "",
+      },
     ]);
     expect(seeded).toBe(2);
     const rows = tracker.rollHistory.get();
@@ -73,9 +113,23 @@ describe("bet-tracker seedSettled (reload hydration)", () => {
 
   it("does NOT overwrite an existing in-memory history (live session wins)", () => {
     const tracker = createBetTracker();
-    tracker.beginBet({ face: "5", stake: "1 GAS", result: "Rolling", payout: "5.7 GAS", outcome: "pending", at: "" });
+    tracker.beginBet({
+      face: "5",
+      stake: "1 GAS",
+      result: "Rolling",
+      payout: "5.7 GAS",
+      outcome: "pending",
+      at: "",
+    });
     const seeded = tracker.seedSettled([
-      { face: "1", stake: "", result: "Lost", payout: "0 GAS", outcome: "lost", at: "" },
+      {
+        face: "1",
+        stake: "",
+        result: "Lost",
+        payout: "0 GAS",
+        outcome: "lost",
+        at: "",
+      },
     ]);
     expect(seeded).toBe(0);
     expect(tracker.rollHistory.get()).toHaveLength(1);

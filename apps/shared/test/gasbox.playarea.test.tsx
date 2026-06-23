@@ -1,7 +1,13 @@
 import React from "react";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -23,7 +29,8 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxChecklistActive: "Machine active",
     gasboxChecklistInventory: "Prize inventory",
     gasboxChecklistOdds: "Odds readable",
-    gasboxDecisionSubtitle: "Check cost, inventory, and odds before the wallet confirmation.",
+    gasboxDecisionSubtitle:
+      "Check cost, inventory, and odds before the wallet confirmation.",
     gasboxDecisionTitle: "Pull decision",
     gasboxEscrowSafetyDesc:
       "Prizes are escrowed before activation, odds remain inspectable, and pulls require the selected machine to be active.",
@@ -37,7 +44,8 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxHeroTitle: "Pick a capsule machine, pull on-chain, reveal the prize.",
     gasboxIntentEscrow: "Escrow checked",
     gasboxIntentReveal: "Reveal next",
-    gasboxInventoryActionRequired: "Inventory needs funding before players can pull.",
+    gasboxInventoryActionRequired:
+      "Inventory needs funding before players can pull.",
     gasboxInventoryReady: "Escrow funded and available for draws.",
     gasboxLiveStatus: "Live market status",
     gasboxMachineLive: "Live",
@@ -53,7 +61,8 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxReelHint: "Ready to spin",
     gasboxReelTitle: "Prize reel",
     gasboxCommitted: "Bet placed - revealing on the next block...",
-    gasboxPendingDesc: "The bet is committed. Reveal when the next block can settle the prize.",
+    gasboxPendingDesc:
+      "The bet is committed. Reveal when the next block can settle the prize.",
     gasboxPendingTitle: "Draw in progress",
     gasboxRevealAction: "Reveal result",
     gasboxRevealHint: "Retry safely if the reveal block is not ready yet.",
@@ -69,7 +78,8 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxPullReadyTitle: "Ready for pull",
     gasboxSelectedActions: "Selected machine operations",
     gasboxUnavailableInventory: `${params?.count ?? 0} prize entries are currently unavailable and excluded from the pull odds.`,
-    gasboxWalletIntent: "The wallet confirms the GAS pull and records the selected machine.",
+    gasboxWalletIntent:
+      "The wallet confirms the GAS pull and records the selected machine.",
     inactive: "Inactive",
     inventoryAndOdds: "Inventory & Odds",
     inventoryEmpty: "Inventory empty - deposit prizes to activate",
@@ -87,7 +97,8 @@ function t(key: string, params?: Record<string, string | number>) {
     refreshMachines: "Refresh Machines",
     revenue: "Revenue",
     selectMachine: "Select a Machine",
-    selectMachinePrompt: "Select a machine from the market to review odds and play cost.",
+    selectMachinePrompt:
+      "Select a machine from the market to review odds and play cost.",
     statusActive: "Active",
     step1: "Connect your wallet and browse machines.",
     step2: "Review odds and prize inventory before spinning.",
@@ -103,14 +114,19 @@ function t(key: string, params?: Record<string, string | number>) {
     yourPulls: "Your Pulls",
     withdrawRevenue: "Withdraw Revenue",
     gasboxCreatorEarningsTitle: "Creator earnings",
-    gasboxRevenueAvailable: "Accrued play revenue is available to withdraw to your wallet.",
+    gasboxRevenueAvailable:
+      "Accrued play revenue is available to withdraw to your wallet.",
     gasboxRevenueNone: "No withdrawable revenue yet.",
+    gasboxTopUpLabel: `Top up amount (${params?.asset ?? "GAS"})`,
+    gasboxTopUpPlaceholder: "Amount",
+    gasboxTopUpAction: "Top up pool",
     gasboxStudioPrizeCount: `${params?.count ?? 0} prize rows`,
     gasboxStudioSafety: "Funds largest prize",
     gasboxStudioSummary: "Studio setup summary",
     studioAmountUnset: "Set prize",
     derivedTierLabel: "Tier",
-    derivedTierExplain: "Rarity tiers are derived from each item's weight share.",
+    derivedTierExplain:
+      "Rarity tiers are derived from each item's weight share.",
     studioFlowLabel: "Studio build route",
     studioFlowMachine: "Shape cabinet",
     studioFlowMachineHint: "Name and price",
@@ -121,11 +137,15 @@ function t(key: string, params?: Record<string, string | number>) {
     studioLaunchPadLabel: "Launch pad",
     studioLaunchReadyTitle: "Machine ready for wallet publish",
     studioLaunchDraftTitle: "Finish loading the cabinet",
-    studioLaunchNeedsMachine: "Name the machine first so players know what they are pulling.",
-    studioLaunchNeedsPrize: "Add at least one named prize capsule with weight before publishing.",
-    studioLaunchReadyCopy: "The cabinet has a name and a prize capsule. Review the odds, then publish on-chain.",
+    studioLaunchNeedsMachine:
+      "Name the machine first so players know what they are pulling.",
+    studioLaunchNeedsPrize:
+      "Add at least one named prize capsule with weight before publishing.",
+    studioLaunchReadyCopy:
+      "The cabinet has a name and a prize capsule. Review the odds, then publish on-chain.",
     studioOddsRailTitle: "Capsule odds rail",
-    studioOddsRailHint: "Preview what players will see before the wallet confirmation.",
+    studioOddsRailHint:
+      "Preview what players will see before the wallet confirmation.",
     rarityCommon: "COMMON",
     rarityRare: "RARE",
     rarityEpic: "EPIC",
@@ -205,7 +225,11 @@ function machine(overrides: Partial<Machine> = {}): Machine {
     salePriceRaw: 0,
     inventoryReady: true,
     items: [
-      item({ name: "Legend Capsule", displayProbability: 5, rarity: "legendary" }),
+      item({
+        name: "Legend Capsule",
+        displayProbability: 5,
+        rarity: "legendary",
+      }),
       item({ name: "GAS Rebate", displayProbability: 95, rarity: "common" }),
       item({ name: "Sold Out Badge", displayProbability: 0, available: false }),
     ],
@@ -223,7 +247,9 @@ function machine(overrides: Partial<Machine> = {}): Machine {
   };
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const selectedMachine = machine();
   const values = {
     isCreating: false,
@@ -243,7 +269,10 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
   };
 
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+    Object.entries(values).map(([key, value]) => [
+      key,
+      createObservable(value),
+    ]),
   );
 }
 
@@ -266,17 +295,27 @@ describe("GasBox PlayArea", () => {
 
     expect(screen.getByText("Pull decision")).toBeTruthy();
     expect(container.querySelector(".gasbox-control-deck")).not.toBeNull();
-    expect(container.querySelector(".gasbox-cabinet-lever.is-ready")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-cabinet-lever.is-ready"),
+    ).not.toBeNull();
     expect(container.querySelector(".gasbox-prize-reel--ready")).not.toBeNull();
     expect(screen.getByText("Prize reel")).toBeTruthy();
     expect(screen.getByText("Ready to spin")).toBeTruthy();
-    expect(screen.getByText("Pick a capsule machine, pull on-chain, reveal the prize.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Pick a capsule machine, pull on-chain, reveal the prize.",
+      ),
+    ).toBeTruthy();
     expect(screen.getByText("Escrow checked")).toBeTruthy();
     expect(screen.getByText("Next-block reveal")).toBeTruthy();
     expect(screen.getByText("Ready for pull")).toBeTruthy();
-    expect(screen.getByText("Escrow funded and available for draws.")).toBeTruthy();
+    expect(
+      screen.getByText("Escrow funded and available for draws."),
+    ).toBeTruthy();
     expect(screen.getAllByText("5%").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/1 prize entries are currently unavailable/)).toBeTruthy();
+    expect(
+      screen.getByText(/1 prize entries are currently unavailable/),
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Machines" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Studio" }));
@@ -315,18 +354,42 @@ describe("GasBox PlayArea", () => {
 
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("pull", "gasbox-alpha");
-      expect(container.querySelector(".gasbox-stage-art--pulling")).not.toBeNull();
-      expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
-      expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
-      expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
-      expect(container.querySelectorAll(".gasbox-stage-art__capsule").length).toBe(3);
-      expect(container.querySelector(".gasbox-pull-stage")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".gasbox-prize-reel")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".gasbox-control-deck")?.getAttribute("aria-busy")).toBe("true");
+      expect(
+        container.querySelector(".gasbox-stage-art--pulling"),
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".gasbox-prize-reel--active"),
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".gasbox-control-deck--active"),
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".gasbox-cabinet-lever.is-active"),
+      ).not.toBeNull();
+      expect(
+        container.querySelectorAll(".gasbox-stage-art__capsule").length,
+      ).toBe(3);
+      expect(
+        container
+          .querySelector(".gasbox-pull-stage")
+          ?.getAttribute("aria-busy"),
+      ).toBe("true");
+      expect(
+        container
+          .querySelector(".gasbox-prize-reel")
+          ?.getAttribute("aria-busy"),
+      ).toBe("true");
+      expect(
+        container
+          .querySelector(".gasbox-control-deck")
+          ?.getAttribute("aria-busy"),
+      ).toBe("true");
       expect(screen.getByText("Pulling...")).toBeTruthy();
     });
 
-    const busyButton = screen.getByRole("button", { name: "Pulling..." }) as HTMLButtonElement;
+    const busyButton = screen.getByRole("button", {
+      name: "Pulling...",
+    }) as HTMLButtonElement;
     expect(busyButton.disabled).toBe(true);
     expect(busyButton.getAttribute("aria-busy")).toBe("true");
 
@@ -365,14 +428,28 @@ describe("GasBox PlayArea", () => {
 
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("reveal");
-      expect(container.querySelector(".gasbox-pending--revealing")).not.toBeNull();
-      expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
-      expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
-      expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
-      expect(screen.getByRole("button", { name: "Revealing your prize..." }).getAttribute("aria-busy")).toBe("true");
+      expect(
+        container.querySelector(".gasbox-pending--revealing"),
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".gasbox-prize-reel--active"),
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".gasbox-control-deck--active"),
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".gasbox-cabinet-lever.is-active"),
+      ).not.toBeNull();
+      expect(
+        screen
+          .getByRole("button", { name: "Revealing your prize..." })
+          .getAttribute("aria-busy"),
+      ).toBe("true");
     });
 
-    const busyButton = screen.getByRole("button", { name: "Revealing your prize..." }) as HTMLButtonElement;
+    const busyButton = screen.getByRole("button", {
+      name: "Revealing your prize...",
+    }) as HTMLButtonElement;
     expect(busyButton.disabled).toBe(true);
     fireEvent.click(busyButton);
     expect(dispatch).toHaveBeenCalledTimes(1);
@@ -401,16 +478,28 @@ describe("GasBox PlayArea", () => {
     );
 
     expect(screen.getByText("Pull unavailable")).toBeTruthy();
-    expect(container.querySelector(".gasbox-cabinet-lever.is-locked")).not.toBeNull();
-    expect(screen.getByText("This machine is inactive. Choose an active machine or open Studio to update it.")).toBeTruthy();
-    expect(screen.getAllByText("Needs action").length).toBeGreaterThanOrEqual(2);
     expect(
-      (screen.getByRole("button", { name: /Pull/ }) as HTMLButtonElement).disabled,
+      container.querySelector(".gasbox-cabinet-lever.is-locked"),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        "This machine is inactive. Choose an active machine or open Studio to update it.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getAllByText("Needs action").length).toBeGreaterThanOrEqual(
+      2,
+    );
+    expect(
+      (screen.getByRole("button", { name: /Pull/ }) as HTMLButtonElement)
+        .disabled,
     ).toBe(true);
   });
 
   it("hides the creator Withdraw Revenue control from non-creators", () => {
-    const selectedMachine = machine({ revenueRaw: 2_100_000_000, revenue: "21.00" });
+    const selectedMachine = machine({
+      revenueRaw: 2_100_000_000,
+      revenue: "21.00",
+    });
 
     render(
       <PlayArea
@@ -427,12 +516,17 @@ describe("GasBox PlayArea", () => {
     );
 
     expect(screen.queryByText("Creator earnings")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Withdraw Revenue" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Withdraw Revenue" }),
+    ).toBeNull();
   });
 
   it("shows the creator Withdraw Revenue control and dispatches withdrawRevenue with the machine id", async () => {
     const dispatch = vi.fn(async () => undefined);
-    const selectedMachine = machine({ revenueRaw: 2_100_000_000, revenue: "21.00" });
+    const selectedMachine = machine({
+      revenueRaw: 2_100_000_000,
+      revenue: "21.00",
+    });
 
     render(
       <PlayArea
@@ -450,7 +544,9 @@ describe("GasBox PlayArea", () => {
 
     expect(screen.getByText("Creator earnings")).toBeTruthy();
     expect(screen.getByText("21.00 GAS")).toBeTruthy();
-    const withdraw = screen.getByRole("button", { name: "Withdraw Revenue" }) as HTMLButtonElement;
+    const withdraw = screen.getByRole("button", {
+      name: "Withdraw Revenue",
+    }) as HTMLButtonElement;
     expect(withdraw.disabled).toBe(false);
 
     fireEvent.click(withdraw);
@@ -478,8 +574,92 @@ describe("GasBox PlayArea", () => {
     // The panel is shown to the creator, but the action is disabled with no revenue.
     expect(screen.getByText("Creator earnings")).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Withdraw Revenue" }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Withdraw Revenue",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
+  });
+
+  it("validates creator pool top-ups with asset-aware base-unit parsing before dispatch", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    const selectedMachine = machine();
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+          walletAddress: selectedMachine.creatorHash,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const topUp = screen.getByPlaceholderText("Amount") as HTMLInputElement;
+    const submit = screen.getByRole("button", {
+      name: "Top up pool",
+    }) as HTMLButtonElement;
+    expect(topUp.type).toBe("text");
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.change(topUp, { target: { value: "1e2" } });
+    expect(submit.disabled).toBe(true);
+    fireEvent.click(submit);
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "topUpPool",
+      expect.anything(),
+      expect.anything(),
+    );
+
+    fireEvent.change(topUp, { target: { value: "0.000000001" } });
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.change(topUp, { target: { value: "0.00000001" } });
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(submit);
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith(
+        "topUpPool",
+        "gasbox-alpha",
+        "0.00000001",
+      );
+    });
+  });
+
+  it("blocks fractional NEO creator pool top-ups before dispatch", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const selectedMachine = machine({ prizeAsset: "NEO" });
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+          walletAddress: selectedMachine.creatorHash,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const topUp = screen.getByPlaceholderText("Amount") as HTMLInputElement;
+    const submit = screen.getByRole("button", {
+      name: "Top up pool",
+    }) as HTMLButtonElement;
+
+    fireEvent.change(topUp, { target: { value: "1.5" } });
+    expect(submit.disabled).toBe(true);
+    fireEvent.click(submit);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(topUp, { target: { value: "2" } });
+    expect(submit.disabled).toBe(false);
   });
 
   it("replaces the dead Studio rarity selector with a weight-derived tier preview", () => {
@@ -497,26 +677,49 @@ describe("GasBox PlayArea", () => {
     expect(container.querySelector(".gasbox-studio-cabinet")).not.toBeNull();
     expect(container.querySelectorAll(".gasbox-cabinet-card").length).toBe(2);
     expect(container.querySelector(".gasbox-studio-flow")).not.toBeNull();
-    expect(container.querySelector(".gasbox-studio-machine-preview__lights")).not.toBeNull();
-    expect(container.querySelector(".gasbox-studio-odds-rail")).not.toBeNull();
-    expect(container.querySelectorAll(".gasbox-studio-odds-token").length).toBe(1);
-    expect(container.querySelector(".gasbox-studio-launch-pad")).not.toBeNull();
-    expect(container.querySelector(".gasbox-studio-launch-pad.is-ready")).toBeNull();
-    expect(screen.getByText("Finish loading the cabinet")).toBeTruthy();
-    expect(screen.getByText("Name the machine first so players know what they are pulling.")).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Create Machine" }) as HTMLButtonElement)
-        .disabled,
+      container.querySelector(".gasbox-studio-machine-preview__lights"),
+    ).not.toBeNull();
+    expect(container.querySelector(".gasbox-studio-odds-rail")).not.toBeNull();
+    expect(container.querySelectorAll(".gasbox-studio-odds-token").length).toBe(
+      1,
+    );
+    expect(container.querySelector(".gasbox-studio-launch-pad")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-studio-launch-pad.is-ready"),
+    ).toBeNull();
+    expect(screen.getByText("Finish loading the cabinet")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Name the machine first so players know what they are pulling.",
+      ),
+    ).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "Create Machine",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     expect(container.querySelector(".gasbox-capsule-editor")).not.toBeNull();
-    expect(container.querySelector(".gasbox-studio-item__asset")).not.toBeNull();
-    expect(container.querySelector('.gasbox-studio-item__asset source[srcset="logo.avif"]')).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-studio-item__asset"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-studio-item__asset source[srcset="logo.avif"]',
+      ),
+    ).not.toBeNull();
     expect(container.querySelector(".gasbox-dial-control")).not.toBeNull();
-    expect(container.querySelectorAll(".gasbox-capsule-preset-row").length).toBe(2);
+    expect(
+      container.querySelectorAll(".gasbox-capsule-preset-row").length,
+    ).toBe(2);
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
     expect(screen.getByText("Capsule odds rail")).toBeTruthy();
-    expect(screen.getAllByText("Shape cabinet").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Shape cabinet").length).toBeGreaterThanOrEqual(
+      1,
+    );
     expect(screen.getByText("Tier")).toBeTruthy();
   });
 
@@ -540,13 +743,19 @@ describe("GasBox PlayArea", () => {
       target: { value: "Sunrise Capsule" },
     });
     expect(publish.disabled).toBe(true);
-    expect(screen.getByText("Add at least one named prize capsule with weight before publishing.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Add at least one named prize capsule with weight before publishing.",
+      ),
+    ).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Item Name"), {
       target: { value: "Golden Ticket" },
     });
 
-    expect(container.querySelector(".gasbox-studio-launch-pad.is-ready")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-studio-launch-pad.is-ready"),
+    ).not.toBeNull();
     expect(screen.getByText("Machine ready for wallet publish")).toBeTruthy();
     expect(publish.disabled).toBe(false);
 
@@ -577,8 +786,12 @@ describe("GasBox PlayArea", () => {
       />,
     );
 
-    const gas = screen.getByRole("radio", { name: "GAS Decimal payouts for flexible prize amounts" });
-    const neo = screen.getByRole("radio", { name: "NEO Whole-token prizes for simple fixed rewards" });
+    const gas = screen.getByRole("radio", {
+      name: "GAS Decimal payouts for flexible prize amounts",
+    });
+    const neo = screen.getByRole("radio", {
+      name: "NEO Whole-token prizes for simple fixed rewards",
+    });
     expect(gas.getAttribute("aria-checked")).toBe("true");
     expect(neo.getAttribute("aria-checked")).toBe("false");
     expect(screen.getByText("Prize per win (GAS)")).toBeTruthy();
@@ -605,12 +818,20 @@ describe("GasBox PlayArea", () => {
       />,
     );
 
-    expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
-    expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-control-deck--active"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-cabinet-lever.is-active"),
+    ).not.toBeNull();
     expect(container.querySelector(".gasbox-pull-btn--active")).not.toBeNull();
-    expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-prize-reel--active"),
+    ).not.toBeNull();
     expect(container.querySelector(".gasbox-reel-strip")).not.toBeNull();
-    expect(container.querySelector(".gasbox-stage-art__slot.is-active")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-stage-art__slot.is-active"),
+    ).not.toBeNull();
   });
 
   it("celebrates a revealed prize with a real cabinet theater and rarity capsule", async () => {
@@ -641,10 +862,24 @@ describe("GasBox PlayArea", () => {
       expect(container.querySelector(".gasbox-result-theater")).not.toBeNull();
     });
 
-    expect(container.querySelector('.gasbox-result-theater__machine source[srcset="logo.avif"]')).not.toBeNull();
-    expect(container.querySelector('.gasbox-result-theater__machine img[src="logo.jpg"]')).not.toBeNull();
-    expect(container.querySelector(".gasbox-result-theater__capsule.gasbox-rarity--legendary")).not.toBeNull();
-    expect(container.querySelector(".gasbox-result-theater__beam")).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-result-theater__machine source[srcset="logo.avif"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-result-theater__machine img[src="logo.jpg"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        ".gasbox-result-theater__capsule.gasbox-rarity--legendary",
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-result-theater__beam"),
+    ).not.toBeNull();
     expect(container.querySelectorAll(".gasbox-confetti__bit").length).toBe(14);
     expect(screen.getByText("Congratulations!")).toBeTruthy();
   });
