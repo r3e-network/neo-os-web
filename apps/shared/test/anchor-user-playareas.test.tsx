@@ -185,6 +185,35 @@ describe("Anchor user PlayAreas", () => {
     expect(screen.getAllByText("Route selected").length).toBeGreaterThan(0);
   });
 
+  it("turns TrustAnchor wallet actions into a visible governance capital flow", async () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    const { container } = render(
+      <TrustAnchorPlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+
+    const flow = screen.getByLabelText("Stake path");
+    expect(flow).toBeTruthy();
+    expect(container.querySelector(".anchor-capital-flow.is-ready.has-claim.has-route")).toBeTruthy();
+    expect(container.querySelector('.anchor-capital-flow__token img[src="./logo.jpg"]')).toBeTruthy();
+    expect(container.querySelectorAll(".anchor-capital-flow__node").length).toBe(3);
+    expect(screen.getByText("Whole NEO")).toBeTruthy();
+    expect(screen.getByText("AA route")).toBeTruthy();
+    expect(screen.getByText("Claim plan")).toBeTruthy();
+    expect(screen.getAllByText("#4").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0.40 GAS").length).toBeGreaterThan(0);
+    expect(screen.getByText("Whole NEO amount is ready for stake or redeem.")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("NEO amount"), {
+      target: { value: "4" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Stake NEO" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("stakeNeo", { amount: "4" });
+    });
+  });
+
   it("shows an em-dash agent count for TrustAnchor when no chain stats exist", () => {
     render(
       <TrustAnchorPlayArea
@@ -200,7 +229,7 @@ describe("Anchor user PlayAreas", () => {
 
     // Low-severity fix: empty contract must not overstate "21/21" agents.
     expect(screen.getByText("—/21")).toBeTruthy();
-    expect(screen.getByText("Awaiting route")).toBeTruthy();
+    expect(screen.getAllByText("Awaiting route").length).toBeGreaterThan(0);
   });
 
   it("renders submitted anchor action history with the latest tx", () => {
@@ -241,5 +270,20 @@ describe("Anchor user PlayAreas", () => {
     expect(css).toContain("@keyframes anchor-stage-drift");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".anchor-capital-flow__token");
+  });
+
+  it("keeps TrustAnchor governance capital-flow motion accessible", () => {
+    const css = fs.readFileSync(
+      `${process.cwd()}/../trustanchor/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(css).toContain("@keyframes trustanchor-stage-drift");
+    expect(css).toContain("@keyframes trustanchor-capital-rail-flow");
+    expect(css).toContain("@keyframes trustanchor-capital-token-route");
+    expect(css).toContain("@keyframes trustanchor-capital-token-route-mobile");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain(".anchor-capital-flow__token");
+    expect(css).toContain("animation: none !important");
   });
 });
