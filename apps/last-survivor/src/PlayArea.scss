@@ -79,6 +79,15 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+.survivor-stage.survivor-play-area--settling {
+  border-color: rgba(245, 166, 35, 0.52);
+  animation: survivor-stage-settling 980ms ease-in-out infinite;
+  box-shadow:
+    0 30px 82px rgba(96, 61, 7, 0.18),
+    0 0 0 5px rgba(245, 166, 35, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
 .survivor-stage__image {
   position: absolute;
   inset: 0;
@@ -95,7 +104,13 @@
   inset: 0;
   z-index: 0;
   background:
-    linear-gradient(90deg, rgba(255, 252, 242, 0.94) 0%, rgba(255, 252, 242, 0.72) 34%, rgba(255, 252, 242, 0.18) 58%, rgba(255, 252, 242, 0.78) 100%),
+    linear-gradient(
+      90deg,
+      rgba(255, 252, 242, 0.94) 0%,
+      rgba(255, 252, 242, 0.72) 34%,
+      rgba(255, 252, 242, 0.18) 58%,
+      rgba(255, 252, 242, 0.78) 100%
+    ),
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(16, 82, 61, 0.12));
 }
 
@@ -206,7 +221,12 @@
   border: 1px solid rgba(20, 22, 38, 0.06);
   border-radius: 999px;
   background:
-    linear-gradient(90deg, rgba(11, 107, 73, 0.1), rgba(22, 199, 132, 0.2), rgba(245, 166, 35, 0.12)),
+    linear-gradient(
+      90deg,
+      rgba(11, 107, 73, 0.1),
+      rgba(22, 199, 132, 0.2),
+      rgba(245, 166, 35, 0.12)
+    ),
     rgba(248, 250, 252, 0.86);
 
   &::before,
@@ -239,7 +259,12 @@
   inset: 9px auto 9px 18px;
   width: 72px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0));
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0)
+  );
   mix-blend-mode: screen;
   opacity: 0.72;
   animation: survivor-lane-scan 2.8s linear infinite;
@@ -260,6 +285,27 @@
   width: 96px;
   opacity: 0.92;
   animation: survivor-lane-scan 1.05s linear infinite;
+}
+
+.survivor-play-area--settling .survivor-arena-lane {
+  border-color: rgba(245, 166, 35, 0.34);
+  background:
+    linear-gradient(135deg, rgba(245, 166, 35, 0.18), rgba(255, 255, 255, 0)),
+    rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 0 0 4px rgba(245, 166, 35, 0.1);
+}
+
+.survivor-play-area--settling .survivor-arena-lane__track::after {
+  background: linear-gradient(90deg, #f5a623, #16c784, #f5a623);
+  animation: survivor-lane-settle-charge 780ms ease-in-out infinite;
+}
+
+.survivor-play-area--settling .survivor-arena-lane__pulse {
+  width: 112px;
+  opacity: 0.96;
+  animation: survivor-lane-scan 920ms linear infinite;
 }
 
 .survivor-arena-lane__marker {
@@ -355,8 +401,16 @@
   border: 1px solid rgba(20, 22, 38, 0.06);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 18% 20%, rgba(245, 166, 35, 0.16), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(242, 255, 249, 0.82));
+    radial-gradient(
+      circle at 18% 20%,
+      rgba(245, 166, 35, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.86),
+      rgba(242, 255, 249, 0.82)
+    );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 14px 30px rgba(20, 64, 50, 0.08);
@@ -380,7 +434,11 @@
   border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 999px;
   background:
-    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.95), transparent 38%),
+    radial-gradient(
+      circle at 32% 24%,
+      rgba(255, 255, 255, 0.95),
+      transparent 38%
+    ),
     linear-gradient(145deg, #fff7df, #dff9ee);
   color: #0b6b49;
   opacity: 0;
@@ -508,6 +566,22 @@
   background: pm.$neo-soft;
   color: pm.$neo-strong;
   animation: survivor-key-icon-turn 780ms ease-in-out infinite;
+}
+
+.survivor-play-area--settling .survivor-seat--leader {
+  border-color: rgba(245, 166, 35, 0.42);
+  background: rgba(255, 251, 235, 0.94);
+  color: #a96700;
+  animation: survivor-seat-settle-award 820ms ease-in-out infinite;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 5px rgba(245, 166, 35, 0.12);
+}
+
+.survivor-play-area--settling .survivor-seat--leader .survivor-seat__icon {
+  background: pm.$amber-soft;
+  color: pm.$amber;
+  animation: survivor-settle-crown-turn 820ms ease-in-out infinite;
 }
 
 .survivor-seat small {
@@ -838,6 +912,17 @@
   }
 }
 
+@keyframes survivor-stage-settling {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
 @keyframes survivor-badge-breathe {
   0%,
   100% {
@@ -921,6 +1006,19 @@
   }
 }
 
+@keyframes survivor-lane-settle-charge {
+  0%,
+  100% {
+    opacity: 0.82;
+    box-shadow: 0 0 16px rgba(245, 166, 35, 0.24);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 30px rgba(245, 166, 35, 0.46);
+  }
+}
+
 @keyframes survivor-lane-scan {
   from {
     transform: translateX(-96px);
@@ -991,6 +1089,28 @@
   }
 }
 
+@keyframes survivor-seat-settle-award {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.018);
+  }
+}
+
+@keyframes survivor-settle-crown-turn {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(6deg) scale(1.08);
+  }
+}
+
 @keyframes survivor-seat-scan {
   0%,
   48% {
@@ -1020,16 +1140,22 @@
 
   62% {
     opacity: 0.92;
-    transform: translate3d(-50%, calc(var(--survivor-key-burst-y, 48px) * -0.82), 0)
-      scale(1.02)
-      rotate(7deg);
+    transform: translate3d(
+        -50%,
+        calc(var(--survivor-key-burst-y, 48px) * -0.82),
+        0
+      )
+      scale(1.02) rotate(7deg);
   }
 
   100% {
     opacity: 0;
-    transform: translate3d(-50%, calc(var(--survivor-key-burst-y, 48px) * -1), 0)
-      scale(0.66)
-      rotate(16deg);
+    transform: translate3d(
+        -50%,
+        calc(var(--survivor-key-burst-y, 48px) * -1),
+        0
+      )
+      scale(0.66) rotate(16deg);
   }
 }
 
@@ -1074,8 +1200,11 @@
   padding: 16px;
   border-radius: 18px;
   border: 1px solid rgba(20, 22, 38, 0.06);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 246, 0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(247, 251, 246, 0.92)
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
@@ -1116,10 +1245,57 @@
 }
 
 .claim-card-inner {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 8px;
   text-align: center;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.claim-card-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+.claim-card-inner.is-settling {
+  border: 1px solid rgba(245, 166, 35, 0.22);
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(245, 166, 35, 0.18),
+      transparent 48%
+    ),
+    rgba(255, 255, 255, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 16px 38px rgba(96, 61, 7, 0.12);
+}
+
+.claim-card-inner.is-settling::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.72) 42%,
+    rgba(245, 166, 35, 0.24) 50%,
+    transparent 66%
+  );
+  transform: translateX(-115%);
+  animation: survivor-claim-settle-sweep 1.08s ease-out infinite;
+}
+
+.claim-card-inner.is-settling .claim-card-trophy {
+  animation: claim-trophy-settle 760ms ease-in-out infinite;
+}
+
+.claim-card-inner.is-settling .claim-payout-amount {
+  animation: claim-payout-counting 760ms ease-in-out infinite;
 }
 
 .claim-card-trophy {
@@ -1133,7 +1309,8 @@
   line-height: 1;
   margin-bottom: 2px;
   /* One-shot pop on mount — the payout reveal lands with energy, then settles. */
-  animation: claim-trophy-pop var(--ns-t-slow, 480ms) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: claim-trophy-pop var(--ns-t-slow, 480ms)
+    cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes claim-trophy-pop {
@@ -1147,6 +1324,45 @@
   }
   100% {
     transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes claim-trophy-settle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) rotate(5deg) scale(1.06);
+  }
+}
+
+@keyframes claim-payout-counting {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes survivor-claim-settle-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-115%);
+  }
+
+  18%,
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(115%);
   }
 }
 
@@ -1207,7 +1423,11 @@
   padding: 18px;
   margin: -18px;
   border-radius: 18px;
-  background: linear-gradient(180deg, pm.$neo-soft 0%, rgba(228, 248, 240, 0) 70%);
+  background: linear-gradient(
+    180deg,
+    pm.$neo-soft 0%,
+    rgba(228, 248, 240, 0) 70%
+  );
   animation: claim-winner-glow var(--ns-t-slow, 520ms) ease-out both;
 
   .claim-card-trophy {
@@ -1235,6 +1455,7 @@
 @media (prefers-reduced-motion: reduce) {
   .survivor-stage::before,
   .survivor-stage.survivor-play-area--buying,
+  .survivor-stage.survivor-play-area--settling,
   .survivor-stage__image,
   .hero-badge,
   .status-active .status-dot,
@@ -1248,10 +1469,15 @@
   .survivor-seat.is-live::after,
   .survivor-play-area--buying .survivor-seat--player,
   .survivor-play-area--buying .survivor-seat--player .survivor-seat__icon,
+  .survivor-play-area--settling .survivor-seat--leader,
+  .survivor-play-area--settling .survivor-seat--leader .survivor-seat__icon,
   .survivor-key-burst--active span,
   .survivor-play-area--live .participation-icon,
   .claim-card-trophy,
-  .claim-card-inner.is-winner {
+  .claim-card-inner.is-winner,
+  .claim-card-inner.is-settling::before,
+  .claim-card-inner.is-settling .claim-card-trophy,
+  .claim-card-inner.is-settling .claim-payout-amount {
     animation: none;
   }
 
@@ -1306,7 +1532,8 @@
   border-right: 2px solid pm.$text-muted;
   border-bottom: 2px solid pm.$text-muted;
   transform: rotate(45deg);
-  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: transform var(--ns-t-fast, 150ms)
+    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
   flex-shrink: 0;
   margin-top: -3px;
 }
@@ -1426,7 +1653,12 @@
 
   .survivor-stage__shade {
     background:
-      linear-gradient(180deg, rgba(255, 252, 242, 0.56) 0%, rgba(255, 252, 242, 0.88) 34%, rgba(255, 252, 242, 0.96) 100%),
+      linear-gradient(
+        180deg,
+        rgba(255, 252, 242, 0.56) 0%,
+        rgba(255, 252, 242, 0.88) 34%,
+        rgba(255, 252, 242, 0.96) 100%
+      ),
       linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(16, 82, 61, 0.12));
   }
 

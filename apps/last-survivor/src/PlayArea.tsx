@@ -83,14 +83,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [localKeyCount, setLocalKeyCount] = useState("1");
   const [keyBurst, setKeyBurst] = useState(0);
   const [buyActionPreview, setBuyActionPreview] = useState(false);
+  const [settleActionPreview, setSettleActionPreview] = useState(false);
   const buyActionPreviewTimeout = useRef<number | null>(null);
+  const settleActionPreviewTimeout = useRef<number | null>(null);
   const formatNum = (n: number) => formatNumber(n, 2);
   const buyKeysIsAnimating = isBuyingKeys || buyActionPreview;
+  const settleIsAnimating = isSettling || settleActionPreview;
 
   useEffect(() => {
     return () => {
       if (buyActionPreviewTimeout.current !== null) {
         window.clearTimeout(buyActionPreviewTimeout.current);
+      }
+      if (settleActionPreviewTimeout.current !== null) {
+        window.clearTimeout(settleActionPreviewTimeout.current);
       }
     };
   }, []);
@@ -105,18 +111,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       buyActionPreviewTimeout.current = null;
     }, 1400);
   };
+  const startSettleActionPreview = () => {
+    if (settleActionPreviewTimeout.current !== null) {
+      window.clearTimeout(settleActionPreviewTimeout.current);
+    }
+    setSettleActionPreview(true);
+    settleActionPreviewTimeout.current = window.setTimeout(() => {
+      setSettleActionPreview(false);
+      settleActionPreviewTimeout.current = null;
+    }, 1500);
+  };
   // A fresh round is active on-chain but has no keys sold yet, so it reports
   // remainingTime 0 — the danger ring/meter must NOT render a pulsing red
   // CRITICAL 00:00:00 for it. Reserve the live danger styling for a round that
   // has at least one key (a real running clock); a fresh round shows the calm
   // accent + an "awaiting the first key" caption instead.
   const liveDanger = isRoundActive && roundDataAvailable && totalKeys > 0;
-  const awaitingFirstKey = isRoundActive && roundDataAvailable && totalKeys <= 0;
+  const awaitingFirstKey =
+    isRoundActive && roundDataAvailable && totalKeys <= 0;
   // Buys are only valid on a live round. An ended round (needsLifecycleSync) is
   // blocked by the contract ("round ended; settle first"), so the affordance is
   // Settle, not Buy.
-  const canBuyKeys =
-    roundDataAvailable && isRoundActive && !needsLifecycleSync;
+  const canBuyKeys = roundDataAvailable && isRoundActive && !needsLifecycleSync;
   const showBuyKeysPanel =
     isRoundActive ||
     needsLifecycleSync ||
@@ -186,12 +202,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleSettleRound = async () => {
+    if (settleIsAnimating) return;
+    startSettleActionPreview();
     await dispatch("settleRound");
   };
   const playStateClass = [
     liveDanger ? "survivor-play-area--live" : "",
     awaitingFirstKey ? "survivor-play-area--awaiting-first-key" : "",
     needsLifecycleSync ? "survivor-play-area--settlement" : "",
+    settleIsAnimating ? "survivor-play-area--settling" : "",
     viewerIsWinner ? "survivor-play-area--winner" : "",
     buyKeysIsAnimating ? "survivor-play-area--buying" : "",
     serviceNotice ? "survivor-play-area--service-notice" : "",
@@ -241,12 +260,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <Clock3 size={22} />
               </span>
               <div className="hero-heading-copy">
-                <span className="hero-eyebrow">{t("survivorStageEyebrow")}</span>
+                <span className="hero-eyebrow">
+                  {t("survivorStageEyebrow")}
+                </span>
                 <h2 className="hero-title">{t("title")}</h2>
                 <span className="hero-facts">
                   <span className="hero-fact-round">{formattedRound}</span>
-                  <span className="hero-fact-sep" aria-hidden="true">&middot;</span>
-                  <span className={`hero-fact-status status-${isRoundActive ? "active" : "ended"}`}>
+                  <span className="hero-fact-sep" aria-hidden="true">
+                    &middot;
+                  </span>
+                  <span
+                    className={`hero-fact-status status-${isRoundActive ? "active" : "ended"}`}
+                  >
                     <span className="status-dot" aria-hidden="true" />
                     {roundStatusDisplay}
                   </span>
@@ -318,7 +343,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span>
                     <small>{t("leaderMarker")}</small>
                     <strong>
-                      {lastBuyer ? formatBuyerAddress(lastBuyer) : t("awaitingFirstKey")}
+                      {lastBuyer
+                        ? formatBuyerAddress(lastBuyer)
+                        : t("awaitingFirstKey")}
                     </strong>
                   </span>
                   <span>
@@ -327,12 +354,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </span>
                   <span>
                     <small>{t("potMarker")}</small>
-                    <strong>{formatNum(totalPot)} {t("tokenGas")}</strong>
+                    <strong>
+                      {formatNum(totalPot)} {t("tokenGas")}
+                    </strong>
                   </span>
                 </div>
               </div>
 
-              <div className="survivor-seat-strip" aria-label={t("survivorSeats")}>
+              <div
+                className="survivor-seat-strip"
+                aria-label={t("survivorSeats")}
+              >
                 <div className="survivor-seat-strip__head">
                   <span>{t("survivorSeats")}</span>
                   <strong>{t("survivorSeatsHint")}</strong>
@@ -348,7 +380,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </span>
                     <small>{t("leaderMarker")}</small>
                     <strong>
-                      {lastBuyer ? formatBuyerAddress(lastBuyer) : t("survivorSeatEmpty")}
+                      {lastBuyer
+                        ? formatBuyerAddress(lastBuyer)
+                        : t("survivorSeatEmpty")}
                     </strong>
                   </span>
                   <span
@@ -407,8 +441,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <Crown size={18} />
                   </span>
                   <div className="last-buyer-info">
-                    <span className="last-buyer-label">{t("currentLeader")}</span>
-                    <span className="last-buyer-address">{formatBuyerAddress(lastBuyer)}</span>
+                    <span className="last-buyer-label">
+                      {t("currentLeader")}
+                    </span>
+                    <span className="last-buyer-address">
+                      {formatBuyerAddress(lastBuyer)}
+                    </span>
                   </div>
                   <span className="last-buyer-hint">{t("winsIfZero")}</span>
                 </div>
@@ -468,7 +506,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           (permissionless). */}
       {needsLifecycleSync && (
         <NeoCard variant="erobo" className="claim-card">
-          <div className={`claim-card-inner${viewerIsWinner ? " is-winner" : ""}`}>
+          <div
+            className={[
+              "claim-card-inner",
+              viewerIsWinner ? "is-winner" : "",
+              settleIsAnimating ? "is-settling" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             <span className="claim-card-trophy" aria-hidden="true">
               <Trophy size={26} />
             </span>
@@ -481,7 +527,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             {lastBuyer && (
               <span className="claim-winner-address" title={lastBuyer}>
-                {viewerIsWinner ? t("youWonPayout") : formatBuyerAddress(lastBuyer)}
+                {viewerIsWinner
+                  ? t("youWonPayout")
+                  : formatBuyerAddress(lastBuyer)}
               </span>
             )}
             <span className="claim-card-text">
@@ -491,12 +539,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="primary"
               size="lg"
               block
-              loading={isSettling}
-              disabled={isSettling}
+              loading={settleIsAnimating}
+              disabled={settleIsAnimating}
               onClick={handleSettleRound}
-              aria-label={t("settleRound")}
+              aria-label={
+                settleIsAnimating ? t("settlingRound") : t("settleRound")
+              }
             >
-              {isSettling ? t("settlingRound") : t("settleRound")}
+              {settleIsAnimating ? t("settlingRound") : t("settleRound")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -510,9 +560,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="survivor-recovery-card__body">
             <div className="survivor-recovery-card__copy">
               <span className="survivor-recovery-card__title">
-                {t("prepaidCreditLabel")} · {formatNum(prepaidCredit)} {t("tokenGas")}
+                {t("prepaidCreditLabel")} · {formatNum(prepaidCredit)}{" "}
+                {t("tokenGas")}
               </span>
-              <span className="survivor-recovery-card__text">{t("prepaidCreditHint")}</span>
+              <span className="survivor-recovery-card__text">
+                {t("prepaidCreditHint")}
+              </span>
             </div>
             <NeoButton
               size="sm"
