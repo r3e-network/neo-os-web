@@ -226,6 +226,8 @@ describe("Burn League PlayArea", () => {
     expect(screen.getByRole("button", { name: "5 GAS" }).className).toContain(
       "is-active",
     );
+    expect(document.querySelector(".burn-league-ember-burst--active")).toBeTruthy();
+    expect(document.querySelectorAll(".burn-league-ember-burst__spark")).toHaveLength(8);
   });
 
   it("keeps the arena amount controls wired to the burn amount", () => {
@@ -347,6 +349,7 @@ describe("Burn League PlayArea", () => {
 
     expect(styles).toContain("@keyframes burn-league-arena-drift");
     expect(styles).toContain("@keyframes burn-league-stage-heat");
+    expect(styles).toContain("@keyframes burn-league-ember-burst-flight");
     expect(styles).toContain("@keyframes burn-league-fuel-flow");
     expect(styles).toContain("@keyframes burn-league-trail-flame");
     expect(styles).toContain("@keyframes burn-league-trail-launch");
@@ -373,6 +376,9 @@ describe("Burn League PlayArea", () => {
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-trail__flame[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-ember-burst__spark[\s\S]*animation:\s*none/,
     );
   });
 });
