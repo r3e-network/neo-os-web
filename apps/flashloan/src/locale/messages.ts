@@ -143,6 +143,11 @@ const appMessages = {
     en: "Principal routed atomically through the callback",
     zh: "本金通过回调合约原子路由",
   },
+  capitalRouteTitle: { en: "Atomic capital route", zh: "原子资金路径" },
+  capitalRouteHint: {
+    en: "Follow principal, callback execution, and repayment guard before signing.",
+    zh: "签名前核对本金、回调执行和还款守卫。",
+  },
   readinessWallet: { en: "Wallet", zh: "钱包" },
   readinessWalletReady: { en: "Connected", zh: "已连接" },
   readinessWalletAction: { en: "Connect before signing", zh: "签名前连接钱包" },

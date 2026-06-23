@@ -45,6 +45,9 @@ function t(key: string, params?: Record<string, string | number>) {
     requestTicketEyebrow: "Execution ticket",
     requestTicketTitle: "Flash-loan execution ticket",
     amountTicketHint: "Principal routed atomically through the callback",
+    capitalRouteTitle: "Atomic capital route",
+    capitalRouteHint:
+      "Follow principal, callback execution, and repayment guard before signing.",
     readinessWallet: "Wallet",
     readinessWalletReady: "Connected",
     readinessWalletAction: "Connect before signing",
@@ -174,7 +177,7 @@ afterEach(() => cleanup());
 describe("Flashloan PlayArea", () => {
   it("prefills request fields from launch params and dispatches requestLoan", async () => {
     const dispatch = vi.fn(async () => undefined);
-    render(
+    const { container } = render(
       <PlayArea
         {...props({
           dispatch,
@@ -191,6 +194,14 @@ describe("Flashloan PlayArea", () => {
     expect(
       (screen.getByLabelText("Callback Contract") as HTMLInputElement).value,
     ).toBe(CALLBACK);
+    expect(screen.getByText("Atomic capital route")).toBeTruthy();
+    expect(container.querySelector(".flashloan-capital-lane--armed")).toBeTruthy();
+    expect(container.querySelectorAll(".flashloan-capital-lane__pulse")).toHaveLength(3);
+    expect(
+      container.querySelector(
+        '.flashloan-capital-lane__media img[src="./flashloan-desk.jpg"]',
+      ),
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Connect and Sign" }));
 
@@ -207,6 +218,8 @@ describe("Flashloan PlayArea", () => {
     const { container } = render(<PlayArea {...props()} />);
 
     expect(container.querySelector(".flashloan-loan-package-deck")).toBeTruthy();
+    expect(container.querySelector(".flashloan-capital-lane")).toBeTruthy();
+    expect(container.querySelector(".flashloan-capital-lane--armed")).toBeNull();
     expect(container.querySelectorAll(".flashloan-loan-package img")).toHaveLength(3);
 
     fireEvent.click(
@@ -307,6 +320,10 @@ describe("Flashloan PlayArea", () => {
     expect(styles).toContain("@keyframes flashloan-route-current");
     expect(styles).toContain("@keyframes flashloan-route-node-scan");
     expect(styles).toContain("@keyframes flashloan-package-lock");
+    expect(styles).toContain("@keyframes flashloan-capital-pulse");
+    expect(styles).toContain("@keyframes flashloan-capital-node-ready");
+    expect(styles).toContain(".flashloan-capital-lane__stage");
+    expect(styles).toContain(".flashloan-capital-lane__pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 });
