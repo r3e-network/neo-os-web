@@ -12,6 +12,7 @@ interface PlayAreaProps {
 }
 
 type ReportActionState = "idle" | "addressCopied" | "reportCopied" | "reportDownloaded" | "error";
+const WALLET_HEALTH_DIAGNOSTIC_ASSET = "wallet-health-diagnostic-station.png";
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
@@ -106,6 +107,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     reportDownloaded: t("reportDownloaded"),
     error: t("reportActionError"),
   }[reportActionState];
+  const diagnosticStageState = isConnecting
+    ? "connecting"
+    : isRefreshing
+      ? "scanning"
+      : isConnected
+        ? "ready"
+        : "idle";
+  const diagnosticStageBusy = isConnecting || isRefreshing;
+  const diagnosticStageStatus = diagnosticStageBusy
+    ? t("diagnosticStatusScanning")
+    : isConnected
+      ? t("diagnosticStatusReady")
+      : t("diagnosticStatusIdle");
+  const diagnosticSteps = [
+    {
+      key: "connection",
+      label: t("statConnection"),
+      value: connectionStatus,
+      isActive: isConnecting,
+      isDone: isConnected,
+    },
+    {
+      key: "balances",
+      label: t("sectionBalances"),
+      value: `${neoDisplay} NEO · ${gasDisplay} GAS`,
+      isActive: isRefreshing,
+      isDone: isConnected && !isRefreshing,
+    },
+    {
+      key: "checklist",
+      label: t("sectionChecklist"),
+      value: completionText,
+      isActive: false,
+      isDone: completedChecklistCount > 0,
+    },
+    {
+      key: "report",
+      label: t("diagnosticReportStep"),
+      value: reportStatusLabel,
+      isActive: reportActionState !== "idle" && reportActionState !== "error",
+      isDone: reportActionState !== "error",
+    },
+  ];
   // Copy through the shared ClipboardService (via the host action) so the
   // sandboxed-iframe execCommand fallback and the standardized toast apply;
   // the local aria-live state still reports the report-specific result.
@@ -186,6 +230,43 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="wallet-health-progress" style={completionStyle}>
               <span />
             </div>
+          </div>
+        </NeoCard>
+
+        <NeoCard
+          variant="erobo"
+          className={`wallet-health-diagnostic-stage wallet-health-diagnostic-stage--${diagnosticStageState}`}
+        >
+          <figure className="wallet-health-diagnostic-art" aria-hidden="true">
+            <img
+              src={`./${WALLET_HEALTH_DIAGNOSTIC_ASSET}`}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+            <span className="wallet-health-diagnostic-art__scan" />
+            <span className="wallet-health-diagnostic-art__pulse" />
+          </figure>
+          <div className="wallet-health-diagnostic-copy" aria-busy={diagnosticStageBusy || undefined}>
+            <div className="wallet-health-section-heading wallet-health-section-heading--compact">
+              <span>{t("diagnosticStageTitle")}</span>
+              <strong>{diagnosticStageStatus}</strong>
+            </div>
+            <p>{t("diagnosticStageCopy")}</p>
+            <ol className="wallet-health-diagnostic-steps" aria-label={t("diagnosticStageTitle")}>
+              {diagnosticSteps.map((step) => (
+                <li
+                  key={step.key}
+                  className={`${step.isDone ? "is-done" : ""}${step.isActive ? " is-active" : ""}`}
+                >
+                  <span className="wallet-health-diagnostic-steps__mark" aria-hidden="true" />
+                  <div>
+                    <strong>{step.label}</strong>
+                    <small>{step.value}</small>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </NeoCard>
 
