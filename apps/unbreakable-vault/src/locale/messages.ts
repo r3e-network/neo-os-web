@@ -25,6 +25,7 @@ const appMessages = {
   bountyLabel: { en: "Bounty", zh: "悬赏金" },
   bountyPlaceholder: { en: "Minimum 1", zh: "至少 1" },
   minBountyNote: { en: "Minimum bounty: 1 GAS", zh: "最低悬赏：1 GAS" },
+  bountyPresetLabel: { en: "Bounty presets", zh: "悬赏预设" },
   netPayoutLabel: {
     en: "You win (after 2% fee)",
     zh: "你将获得（扣除 2% 手续费后）",
@@ -48,6 +49,8 @@ const appMessages = {
     en: "Optional hints or lore",
     zh: "可选提示或背景",
   },
+  descriptionPending: { en: "Hint pending", zh: "等待提示" },
+  descriptionReady: { en: "Public hint armed", zh: "公开提示已就绪" },
   difficultyLabel: { en: "Difficulty", zh: "难度" },
   difficultyEasy: { en: "Easy", zh: "简单" },
   difficultyMedium: { en: "Medium", zh: "中等" },
