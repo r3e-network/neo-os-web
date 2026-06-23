@@ -163,6 +163,181 @@
   animation-duration: 1.25s;
 }
 
+.wager-fog-field {
+  position: relative;
+  min-height: 76px;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.13);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 22% 30%,
+      rgba(22, 199, 132, 0.18),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 76% 62%,
+      rgba(245, 166, 35, 0.15),
+      transparent 30%
+    ),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(239, 253, 246, 0.7));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.wager-fog-field::before,
+.wager-fog-field::after {
+  position: absolute;
+  inset: auto 14px 14px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(22, 199, 132, 0.52),
+    rgba(245, 166, 35, 0.36),
+    transparent
+  );
+  content: "";
+  opacity: 0.66;
+}
+
+.wager-fog-field::after {
+  inset: 14px 22px auto;
+  opacity: 0.34;
+  transform: scaleX(0.72);
+}
+
+.wager-fog-field__mist {
+  position: absolute;
+  inset: 8px auto 8px -18%;
+  width: 44%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.72),
+    transparent
+  );
+  opacity: 0.58;
+  filter: blur(7px);
+  animation: fogplay-field-mist 5.6s ease-in-out infinite;
+}
+
+.wager-fog-field__mist--two {
+  width: 56%;
+  animation-delay: -2.7s;
+  animation-duration: 6.8s;
+}
+
+.wager-fog-field__orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 154px;
+  height: 44px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 999px;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  animation: fogplay-field-orbit 4.8s ease-in-out infinite;
+}
+
+.wager-fog-field__coin {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  box-shadow:
+    0 9px 18px rgba(20, 22, 38, 0.12),
+    0 0 18px rgba(22, 199, 132, 0.18);
+  transform: translateY(-50%);
+}
+
+.wager-fog-field__coin img {
+  display: block;
+  width: 138%;
+  height: 138%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bet-section--choice-tails .wager-fog-field__coin--selected img,
+.bet-section--choice-heads .wager-fog-field__coin--shadow img {
+  width: 164%;
+  height: 164%;
+  object-position: center 43%;
+}
+
+.wager-fog-field__coin--selected {
+  left: 18%;
+  background: rgba(236, 253, 245, 0.94);
+  animation: fogplay-field-selected-coin 3.2s ease-in-out infinite;
+}
+
+.wager-fog-field__coin--shadow {
+  right: 18%;
+  opacity: 0.54;
+  background: rgba(255, 255, 255, 0.72);
+  filter: saturate(0.86);
+  animation: fogplay-field-shadow-coin 4.4s ease-in-out infinite;
+}
+
+.wager-fog-field__spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #16c784;
+  box-shadow: 0 0 18px rgba(22, 199, 132, 0.58);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  animation: fogplay-field-spark 2.9s ease-out infinite;
+}
+
+.wager-fog-field__spark--two {
+  animation-delay: 420ms;
+}
+
+.wager-fog-field__spark--three {
+  animation-delay: 840ms;
+}
+
+.bet-section--flipping .wager-fog-field {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 0 0 4px rgba(22, 199, 132, 0.08);
+}
+
+.bet-section--flipping .wager-fog-field__mist {
+  animation-duration: 1.55s;
+}
+
+.bet-section--flipping .wager-fog-field__orbit {
+  animation: fogplay-field-orbit-launch 820ms ease-in-out infinite;
+}
+
+.bet-section--flipping .wager-fog-field__coin--selected {
+  animation: fogplay-field-selected-launch 780ms ease-in-out infinite;
+}
+
+.bet-section--flipping .wager-fog-field__coin--shadow {
+  animation: fogplay-field-shadow-launch 880ms ease-in-out infinite;
+}
+
+.bet-section--flipping .wager-fog-field__spark {
+  animation-duration: 920ms;
+}
+
 .wager-table-rail__side,
 .wager-chip-stack {
   min-width: 0;
@@ -820,6 +995,113 @@
   }
 }
 
+@keyframes fogplay-field-mist {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scaleX(0.86);
+  }
+
+  20%,
+  74% {
+    opacity: 0.58;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(285%) scaleX(1.08);
+  }
+}
+
+@keyframes fogplay-field-orbit {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: translate(-50%, -50%) rotate(-6deg) scale(1);
+  }
+
+  50% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) rotate(3deg) scale(1.04);
+  }
+}
+
+@keyframes fogplay-field-orbit-launch {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) rotate(-9deg) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(9deg) scale(1.08);
+  }
+}
+
+@keyframes fogplay-field-selected-coin {
+  0%,
+  100% {
+    transform: translate3d(0, -50%, 0) rotateY(0deg) scale(1);
+  }
+
+  50% {
+    transform: translate3d(18px, -58%, 0) rotateY(180deg) scale(1.05);
+  }
+}
+
+@keyframes fogplay-field-selected-launch {
+  0%,
+  100% {
+    transform: translate3d(0, -50%, 0) rotateY(0deg) scale(1);
+  }
+
+  50% {
+    transform: translate3d(52px, -64%, 0) rotateY(220deg) scale(1.12);
+  }
+}
+
+@keyframes fogplay-field-shadow-coin {
+  0%,
+  100% {
+    transform: translate3d(0, -50%, 0) rotateY(0deg) scale(0.94);
+  }
+
+  50% {
+    transform: translate3d(-14px, -45%, 0) rotateY(-160deg) scale(0.98);
+  }
+}
+
+@keyframes fogplay-field-shadow-launch {
+  0%,
+  100% {
+    transform: translate3d(0, -50%, 0) rotateY(0deg) scale(0.94);
+  }
+
+  50% {
+    transform: translate3d(-38px, -40%, 0) rotateY(-220deg) scale(1.02);
+  }
+}
+
+@keyframes fogplay-field-spark {
+  0% {
+    opacity: 0;
+    transform: translate(-80px, -50%) scale(0.62);
+  }
+
+  22% {
+    opacity: 1;
+  }
+
+  72% {
+    opacity: 0.92;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(86px, -50%) scale(1.08);
+  }
+}
+
 @keyframes fogplay-flip-ready {
   0%,
   100% {
@@ -837,6 +1119,10 @@
   .wager-option.selected .wager-option__chip,
   .wager-chip-stack,
   .wager-runway__coin,
+  .wager-fog-field__mist,
+  .wager-fog-field__orbit,
+  .wager-fog-field__coin,
+  .wager-fog-field__spark,
   .bet-section--flipping .wager-table-rail__coin,
   .flip-btn {
     animation: none;
