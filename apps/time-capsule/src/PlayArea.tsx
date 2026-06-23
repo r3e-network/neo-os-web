@@ -2,7 +2,7 @@
  * PlayArea.tsx — React version of Time Capsule PlayArea.
  */
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   BellRing,
   CalendarClock,
@@ -89,6 +89,13 @@ const CATEGORY_OPTIONS = [
 }>;
 
 const DURATION_PRESETS = ["7", "30", "365", "1825"] as const;
+type CapsuleActionPreview =
+  | "create"
+  | "withdrawCredit"
+  | "collectTips"
+  | "loadFishCandidates"
+  | `fish:${string}`
+  | `open:${string}`;
 
 const CATEGORY_LABEL_KEYS: Record<number, string> = {
   1: "categoryPersonal",
@@ -205,6 +212,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const fishCandidates =
     val<Array<Record<string, unknown>>>("fishCandidates") ?? [];
   const isLoadingCandidates = bool("isLoadingCandidates");
+  const [actionPreview, setActionPreview] =
+    useState<CapsuleActionPreview | null>(null);
+  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const newCapsule = val<CapsuleFormState>("newCapsule", {
     title: "",
     content: "",
@@ -240,6 +252,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const timeLockProgress = Number.isFinite(dayCount)
     ? `${Math.max(6, Math.min(100, (Math.log10(dayCount + 1) / Math.log10(3651)) * 100))}%`
     : "6%";
+  const createPreview = actionPreview === "create";
+  const withdrawCreditPreview = actionPreview === "withdrawCredit";
+  const collectTipsPreview = actionPreview === "collectTips";
+  const loadFishCandidatesPreview = actionPreview === "loadFishCandidates";
+  const fishPreviewId = actionPreview?.startsWith("fish:")
+    ? actionPreview.slice("fish:".length)
+    : "";
+  const openPreviewId = actionPreview?.startsWith("open:")
+    ? actionPreview.slice("open:".length)
+    : "";
+  const hasPreviewAction = actionPreview !== null;
+  const isCreateBusy = isCreating || createPreview;
+  const isWithdrawCreditBusy = isProcessing || withdrawCreditPreview;
+  const isCollectTipsBusy = isProcessing || collectTipsPreview;
+  const isLoadFishCandidatesBusy =
+    isLoadingCandidates || loadFishCandidatesPreview;
+  const isFishBusy = isProcessing || Boolean(fishPreviewId);
+  const isOpenBusy = isProcessing || Boolean(openPreviewId);
+  const isLocalActionBusy = hasPreviewAction || isCreating || isProcessing;
 
   const updateForm = (patch: Partial<CapsuleFormState>) => {
     if (state.newCapsule) {
@@ -248,11 +279,79 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const readyStateClass = canCreate ? " is-ready" : "";
-  const sealingStateClass = isCreating ? " is-sealing" : "";
+  const sealingStateClass = isCreateBusy ? " is-sealing" : "";
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startActionPreview = (action: CapsuleActionPreview) => {
+    if (actionPreviewTimeout.current !== null) {
+      clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, 1400);
+  };
+
+  const handleCreateCapsule = async () => {
+    if (!canCreate || isBusy || isCreateBusy || isLocalActionBusy) return;
+    startActionPreview("create");
+    await dispatch("createCapsule");
+  };
+
+  const handleWithdrawCredit = async () => {
+    if (isBusy || isWithdrawCreditBusy || isLocalActionBusy) return;
+    startActionPreview("withdrawCredit");
+    await dispatch("withdrawCredit");
+  };
+
+  const handleCollectTips = async () => {
+    if (isBusy || isCollectTipsBusy || isLocalActionBusy) return;
+    startActionPreview("collectTips");
+    await dispatch("withdrawFishRevenue");
+  };
+
+  const handleLoadFishCandidates = async () => {
+    if (isBusy || isLoadFishCandidatesBusy || isLocalActionBusy) return;
+    startActionPreview("loadFishCandidates");
+    await dispatch("loadFishCandidates");
+  };
+
+  const handleFishCapsule = async (id: string) => {
+    if (isBusy || isFishBusy || isLocalActionBusy) return;
+    startActionPreview(`fish:${id}`);
+    await dispatch("fishCapsule", id);
+  };
+
+  const handleOpenCapsule = async (capsule: Record<string, unknown>) => {
+    const id = String(capsule.id);
+    if (isBusy || isOpenBusy || isLocalActionBusy) return;
+    startActionPreview(`open:${id}`);
+    await dispatch("openCapsule", capsule);
+  };
+
+  const playAreaClassName = [
+    "capsule-play-area",
+    readyStateClass.trim(),
+    sealingStateClass.trim(),
+    isFishBusy ? "is-fishing" : "",
+    isOpenBusy ? "is-opening" : "",
+    isCollectTipsBusy ? "is-collecting" : "",
+    isWithdrawCreditBusy ? "is-recovering" : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <div
-      className={`capsule-play-area${readyStateClass}${sealingStateClass}`}
+      className={playAreaClassName}
+      aria-busy={isLocalActionBusy || undefined}
     >
       <CapsuleHero
         t={t}
@@ -262,7 +361,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       />
 
       {hasCredit && (
-        <NeoCard variant="erobo" className="capsule-recovery-card">
+        <NeoCard
+          variant="erobo"
+          className={`capsule-recovery-card${isWithdrawCreditBusy ? " is-recovering" : ""}`}
+        >
           <div className="capsule-recovery-card__body">
             <div className="capsule-recovery-card__copy">
               <span className="capsule-recovery-card__title">
@@ -275,12 +377,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               size="sm"
               variant="secondary"
-              loading={isProcessing}
-              disabled={isBusy}
+              loading={isWithdrawCreditBusy}
+              disabled={isBusy || isWithdrawCreditBusy || isLocalActionBusy}
               aria-label={t("withdrawCredit")}
-              onClick={() => dispatch("withdrawCredit")}
+              onClick={handleWithdrawCredit}
             >
-              {isProcessing ? t("withdrawingCredit") : t("withdrawCredit")}
+              {isWithdrawCreditBusy ? t("withdrawingCredit") : t("withdrawCredit")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -289,6 +391,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section
         className={`capsule-seal-workbench${readyStateClass}${sealingStateClass}`}
         aria-label={t("createCapsule")}
+        aria-busy={isCreateBusy || undefined}
       >
         <header className="capsule-section-head">
           <span aria-hidden="true">
@@ -319,7 +422,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   "capsule-letter-dock",
                   hasMessageDraft ? "is-writing" : "",
                   canCreate ? "is-ready" : "",
-                  isCreating ? "is-sealing" : "",
+                  isCreateBusy ? "is-sealing" : "",
                 ].filter(Boolean).join(" ")}
                 aria-label={t("letterDockLabel")}
               >
@@ -523,12 +626,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="primary"
               size="lg"
               block
-              loading={isCreating}
-              disabled={!canCreate || isBusy}
+              loading={isCreateBusy}
+              disabled={!canCreate || isBusy || isCreateBusy || isLocalActionBusy}
               aria-label={t("createCapsuleButton")}
-              onClick={() => dispatch("createCapsule")}
+              onClick={handleCreateCapsule}
             >
-              {isCreating ? t("creatingCapsule") : t("createCapsuleButton")}
+              {isCreateBusy ? t("creatingCapsule") : t("createCapsuleButton")}
             </NeoButton>
             <span>
               <CheckCircle2 size={15} aria-hidden="true" />
@@ -539,6 +642,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <aside
             className={`capsule-preview-panel${readyStateClass}${sealingStateClass}`}
             aria-label={t("sealPreview")}
+            aria-busy={isCreateBusy || undefined}
           >
             <div className="capsule-preview-device">
               <img
@@ -561,7 +665,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 "capsule-game-board",
                 hasMessageDraft ? "is-draft" : "",
                 canCreate ? "is-ready" : "",
-                isCreating ? "is-sealing" : "",
+                isCreateBusy ? "is-sealing" : "",
               ].filter(Boolean).join(" ")}
               aria-label={t("capsuleBoardTitle")}
             >
@@ -580,9 +684,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <small>{t("capsuleBoardDraft")}</small>
                 <strong>{titlePreview}</strong>
               </span>
-              <span className={`capsule-game-slot capsule-game-slot--seal${canCreate ? " is-active" : ""}${isCreating ? " is-sealing" : ""}`}>
+              <span className={`capsule-game-slot capsule-game-slot--seal${canCreate ? " is-active" : ""}${isCreateBusy ? " is-sealing" : ""}`}>
                 <LockKeyhole size={16} aria-hidden="true" />
-                <small>{isCreating ? t("creatingCapsule") : t("capsuleBoardReadySeal")}</small>
+                <small>{isCreateBusy ? t("creatingCapsule") : t("capsuleBoardReadySeal")}</small>
                 <strong>{hasValidLockDuration ? unlockPreview : t("unlockDateHelper")}</strong>
               </span>
               <span className={`capsule-game-slot capsule-game-slot--unlock${hasValidLockDuration ? " is-active" : ""}`}>
@@ -628,12 +732,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 variant="primary"
                 size="lg"
                 block
-                loading={isCreating}
-                disabled={!canCreate || isBusy}
+                loading={isCreateBusy}
+                disabled={!canCreate || isBusy || isCreateBusy || isLocalActionBusy}
                 aria-label={t("createCapsuleButton")}
-                onClick={() => dispatch("createCapsule")}
+                onClick={handleCreateCapsule}
               >
-                {isCreating ? t("creatingCapsule") : t("createCapsuleButton")}
+                {isCreateBusy ? t("creatingCapsule") : t("createCapsuleButton")}
               </NeoButton>
             </div>
           </aside>
@@ -641,7 +745,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </section>
 
       <div className="capsule-side-panel">
-        <div className="capsule-actions">
+        <div
+          className={[
+            "capsule-actions",
+            isFishBusy ? "is-fishing" : "",
+            isCollectTipsBusy ? "is-collecting" : "",
+            isLoadFishCandidatesBusy ? "is-loading-candidates" : "",
+          ].filter(Boolean).join(" ")}
+          aria-busy={
+            isFishBusy || isCollectTipsBusy || isLoadFishCandidatesBusy || undefined
+          }
+        >
           <div className="capsule-actions-head">
             <span aria-hidden="true">
               <Gift size={18} />
@@ -667,17 +781,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
-          <div className="capsule-collect-tips">
+          <div
+            className={`capsule-collect-tips${isCollectTipsBusy ? " is-collecting" : ""}`}
+          >
             <span className="capsule-fish-note">{t("collectTipsHint")}</span>
             <NeoButton
               size="sm"
               variant="secondary"
-              loading={isProcessing}
-              disabled={isBusy}
+              loading={isCollectTipsBusy}
+              disabled={isBusy || isCollectTipsBusy || isLocalActionBusy}
               aria-label={t("collectTips")}
-              onClick={() => dispatch("withdrawFishRevenue")}
+              onClick={handleCollectTips}
             >
-              {isProcessing ? t("collectingTips") : t("collectTips")}
+              {isCollectTipsBusy ? t("collectingTips") : t("collectTips")}
             </NeoButton>
           </div>
 
@@ -688,11 +804,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </span>
               <button
                 type="button"
-                className={`capsule-fish-candidates__refresh${isLoadingCandidates ? " is-loading" : ""}`}
-                disabled={isLoadingCandidates || isBusy}
-                onClick={() => dispatch("loadFishCandidates")}
+                className={`capsule-fish-candidates__refresh${isLoadFishCandidatesBusy ? " is-loading" : ""}`}
+                disabled={isLoadFishCandidatesBusy || isBusy || isLocalActionBusy}
+                onClick={handleLoadFishCandidates}
               >
-                {isLoadingCandidates
+                {isLoadFishCandidatesBusy
                   ? t("fishCandidatesLoading")
                   : t("fishCandidatesRefresh")}
               </button>
@@ -708,6 +824,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <ul className="capsule-fish-candidates__list">
                 {fishCandidates.map((cap) => {
                   const id = String(cap.id);
+                  const isThisFishBusy =
+                    isProcessing || fishPreviewId === id;
                   const categoryKey = CATEGORY_LABEL_KEYS[Number(cap.category)];
                   const unlockTimeMs = normalizeUnlockTimeMs(
                     cap.unlockTimestamp ?? cap.unlockTime,
@@ -719,7 +837,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   return (
                     <li
                       key={id}
-                      className={`capsule-fish-candidates__item${isProcessing ? " is-fishing" : ""}`}
+                      className={`capsule-fish-candidates__item${isThisFishBusy ? " is-fishing" : ""}`}
+                      aria-busy={isThisFishBusy || undefined}
                     >
                       <div className="capsule-fish-candidates__meta">
                         <span className="capsule-id">#{id}</span>
@@ -737,10 +856,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <NeoButton
                         variant="secondary"
                         size="sm"
-                        loading={isProcessing}
-                        disabled={isBusy}
+                        loading={isThisFishBusy}
+                        disabled={isBusy || isThisFishBusy || isLocalActionBusy}
                         aria-label={t("fishTipThis")}
-                        onClick={() => dispatch("fishCapsule", id)}
+                        onClick={() => handleFishCapsule(id)}
                       >
                         {t("fishTipThis")}
                       </NeoButton>
@@ -775,12 +894,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   : isLocked
                     ? "locked"
                     : "ready";
+                const isThisOpenBusy =
+                  isProcessing || openPreviewId === String(cap.id);
                 const categoryValue = Number(cap.category);
                 const categoryKey = CATEGORY_LABEL_KEYS[categoryValue];
                 return (
                   <div
                     key={String(cap.id)}
-                    className={`capsule-item capsule-board-card capsule-board-card--${itemState} ${itemState}`}
+                    className={`capsule-item capsule-board-card capsule-board-card--${itemState} ${itemState}${isThisOpenBusy ? " is-opening" : ""}`}
+                    aria-busy={isThisOpenBusy || undefined}
                   >
                     <div className="capsule-item-header">
                       <span className={`capsule-item-state-icon capsule-item-state-icon--${itemState}`} aria-hidden="true">
@@ -822,9 +944,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <NeoButton
                           variant="secondary"
                           size="sm"
-                          loading={isProcessing}
-                          disabled={isBusy}
-                          onClick={() => dispatch("openCapsule", cap)}
+                          loading={isThisOpenBusy}
+                          disabled={isBusy || isThisOpenBusy || isLocalActionBusy}
+                          onClick={() => handleOpenCapsule(cap)}
                         >
                           {t("open")}
                         </NeoButton>
