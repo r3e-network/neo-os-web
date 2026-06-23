@@ -2,10 +2,12 @@ import { NeoButton, NeoInput } from "@shared/components-react";
 import "./MercActionCards.scss";
 
 export type AmountField = "depositAmount" | "withdrawAmount" | "bidAmount";
+export type MercActionPreview = "connect" | "deposit" | "withdraw" | "bid" | "settle" | null;
 
 interface MercActionCardsProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   isBusy: boolean;
+  actionPreview: MercActionPreview;
   depositAmount: string;
   withdrawAmount: string;
   bidAmount: string;
@@ -15,6 +17,7 @@ interface MercActionCardsProps {
   /** Minimum first bid in whole GAS (mirrors the contract's MIN_BID). */
   minBid: number;
   onAmountChange: (key: AmountField, value: string) => void;
+  onActionPreview: (action: Exclude<MercActionPreview, "connect" | "settle" | null>) => void;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
@@ -26,6 +29,7 @@ function isPositiveAmount(value: string) {
 export default function MercActionCards({
   t,
   isBusy,
+  actionPreview,
   depositAmount,
   withdrawAmount,
   bidAmount,
@@ -33,6 +37,7 @@ export default function MercActionCards({
   biddingClosed,
   minBid,
   onAmountChange,
+  onActionPreview,
   dispatch,
 }: MercActionCardsProps) {
   // Block over-withdrawals at the button so a user gets immediate feedback
@@ -40,6 +45,18 @@ export default function MercActionCards({
   const withdrawParsed = Number(withdrawAmount);
   const withdrawOverBalance =
     isPositiveAmount(withdrawAmount) && withdrawParsed > userDeposits;
+  const depositBusy = isBusy || actionPreview === "deposit";
+  const withdrawBusy = isBusy || actionPreview === "withdraw";
+  const bidBusy = isBusy || actionPreview === "bid";
+
+  const runAction = (
+    action: Exclude<MercActionPreview, "connect" | "settle" | null>,
+    name: string,
+  ) => {
+    onActionPreview(action);
+    void dispatch(name);
+  };
+
   return (
     <>
       <div className="gov-merc-action-lane gov-merc-action-lane--earn">
@@ -53,7 +70,15 @@ export default function MercActionCards({
           <strong>{userDeposits.toLocaleString()} NEO</strong>
         </div>
 
-        <div className="gov-merc-action-card gov-merc-action-card--neo gov-merc-action-card--primary">
+        <div
+          className={[
+            "gov-merc-action-card",
+            "gov-merc-action-card--neo",
+            "gov-merc-action-card--deposit",
+            "gov-merc-action-card--primary",
+            depositBusy && "is-routing",
+          ].filter(Boolean).join(" ")}
+        >
           <div>
             <div className="gov-merc-action-head">
               <span>{t("depositNeo")}</span>
@@ -72,18 +97,32 @@ export default function MercActionCards({
             />
             <NeoButton
               variant="primary"
-              loading={isBusy}
-              disabled={isBusy || !isPositiveAmount(depositAmount)}
-              onClick={() => dispatch("depositNeo")}
+              aria-label={depositBusy ? t("stakingNeo") : t("depositNeo")}
+              loading={depositBusy}
+              disabled={depositBusy || !isPositiveAmount(depositAmount)}
+              onClick={() => runAction("deposit", "depositNeo")}
             >
-              {t("depositNeo")}
+              {depositBusy ? t("stakingNeo") : t("depositNeo")}
             </NeoButton>
           </div>
+          {depositBusy ? (
+            <p className="gov-merc-action-status" aria-live="polite">
+              {t("stakingNeo")}
+            </p>
+          ) : null}
         </div>
 
         <details className="gov-merc-withdraw-drawer">
           <summary>{t("withdrawDrawerTitle")}</summary>
-          <div className="gov-merc-action-card gov-merc-action-card--neo gov-merc-action-card--secondary">
+          <div
+            className={[
+              "gov-merc-action-card",
+              "gov-merc-action-card--neo",
+              "gov-merc-action-card--withdraw",
+              "gov-merc-action-card--secondary",
+              withdrawBusy && "is-routing",
+            ].filter(Boolean).join(" ")}
+          >
             <div>
               <div className="gov-merc-action-head">
                 <span>{t("withdrawNeo")}</span>
@@ -102,13 +141,19 @@ export default function MercActionCards({
               />
               <NeoButton
                 variant="secondary"
-                loading={isBusy}
-                disabled={isBusy || !isPositiveAmount(withdrawAmount) || withdrawOverBalance}
-                onClick={() => dispatch("withdrawNeo")}
+                aria-label={withdrawBusy ? t("unstakingNeo") : t("withdrawNeo")}
+                loading={withdrawBusy}
+                disabled={withdrawBusy || !isPositiveAmount(withdrawAmount) || withdrawOverBalance}
+                onClick={() => runAction("withdraw", "withdrawNeo")}
               >
-                {t("withdrawNeo")}
+                {withdrawBusy ? t("unstakingNeo") : t("withdrawNeo")}
               </NeoButton>
             </div>
+            {withdrawBusy ? (
+              <p className="gov-merc-action-status" aria-live="polite">
+                {t("unstakingNeo")}
+              </p>
+            ) : null}
             {withdrawOverBalance ? (
               <p className="gov-merc-field-error">{t("withdrawExceeds")}</p>
             ) : null}
@@ -126,7 +171,15 @@ export default function MercActionCards({
           <span>{t("minBidLabel")}</span>
           <strong>{minBid} {t("tokenGas")}</strong>
         </div>
-        <div className="gov-merc-action-card gov-merc-action-card--gas gov-merc-action-card--primary">
+        <div
+          className={[
+            "gov-merc-action-card",
+            "gov-merc-action-card--gas",
+            "gov-merc-action-card--bid",
+            "gov-merc-action-card--primary",
+            bidBusy && "is-routing",
+          ].filter(Boolean).join(" ")}
+        >
           <div>
             <div className="gov-merc-action-head">
               <span>{t("placeBid")}</span>
@@ -145,13 +198,19 @@ export default function MercActionCards({
             />
             <NeoButton
               variant="primary"
-              loading={isBusy}
-              disabled={isBusy || biddingClosed || !isPositiveAmount(bidAmount)}
-              onClick={() => dispatch("placeBid")}
+              aria-label={bidBusy ? t("placingBid") : t("placeBid")}
+              loading={bidBusy}
+              disabled={bidBusy || biddingClosed || !isPositiveAmount(bidAmount)}
+              onClick={() => runAction("bid", "placeBid")}
             >
-              {t("placeBid")}
+              {bidBusy ? t("placingBid") : t("placeBid")}
             </NeoButton>
           </div>
+          {bidBusy ? (
+            <p className="gov-merc-action-status" aria-live="polite">
+              {t("placingBid")}
+            </p>
+          ) : null}
         </div>
         {biddingClosed ? (
           <p className="gov-merc-field-error">{t("biddingClosedHint")}</p>

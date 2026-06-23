@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NeoCard, NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { formatNum } from "@shared/utils/format";
 import MercHeroStats from "./components/MercHeroStats";
-import MercActionCards, { type AmountField } from "./components/MercActionCards";
+import MercActionCards, { type AmountField, type MercActionPreview } from "./components/MercActionCards";
 import MercBidsList from "./components/MercBidsList";
 import MercStakerPanel, { type ReclaimableBid } from "./components/MercStakerPanel";
 import { epochWindowPhase, EPOCH_DURATION_FALLBACK_MS, MIN_BID } from "./hooks/useGovMerc";
@@ -31,10 +31,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // the first bid of an epoch opens a fixed window; bids after the deadline are
   // rejected and settlement only unlocks once the deadline passes).
   const [now, setNow] = useState(() => Date.now());
+  const [actionPreview, setActionPreview] = useState<MercActionPreview>(null);
+  const actionPreviewTimeout = useRef<number | null>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        window.clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
 
   const totalPool = val<number>("totalPool", 0) ?? 0;
   const currentEpoch = val<number>("currentEpoch", 0) ?? 0;
@@ -64,6 +74,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     state[key]?.set(value);
   };
 
+  const startActionPreview = (action: Exclude<MercActionPreview, null>) => {
+    if (actionPreviewTimeout.current !== null) {
+      window.clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = window.setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, 1200);
+  };
+
   const isConnected = address.length > 0;
   const shortAddress = isConnected
     ? `${address.slice(0, 8)}...${address.slice(-6)}`
@@ -82,6 +103,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         : t("bidWindowClosed");
   // Settle is available only AFTER the bidding deadline (and with bids).
   const canSettleNow = canSettle && biddingClosed;
+  const connectBusy = isBusy || actionPreview === "connect";
+  const settleBusy = isBusy || actionPreview === "settle";
+  const stageState =
+    actionPreview === "bid"
+      ? "is-bidding"
+      : actionPreview === "settle"
+        ? "is-settling"
+        : actionPreview === "deposit" || actionPreview === "withdraw"
+          ? "is-staking"
+          : "";
 
   return (
     <div className="gov-merc-shell">
@@ -108,7 +139,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
           <div className="gov-merc-scoreboard">
-            <figure className="gov-merc-market-stage">
+            <figure
+              className={["gov-merc-market-stage", stageState]
+                .filter(Boolean)
+                .join(" ")}
+            >
               <img
                 src="./gov-merc-market-stage.jpg"
                 alt=""
@@ -129,6 +164,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="gov-merc-market-stage__lanes" aria-hidden="true">
                 <span>{t("tokenNeo")}</span>
                 <span>{t("tokenGas")}</span>
+              </div>
+              <div className="gov-merc-market-stage__action" aria-hidden="true">
+                <span>{t("tokenNeo")}</span>
+                <span>{t("tokenGas")}</span>
+                <strong>{t("marketRouting")}</strong>
               </div>
             </figure>
             <MercHeroStats
@@ -154,11 +194,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <NeoButton
                 variant="primary"
-                loading={isBusy}
-                disabled={isBusy}
-                onClick={() => dispatch("connectWallet")}
+                aria-label={connectBusy ? t("connectingWallet") : t("connectAction")}
+                loading={connectBusy}
+                disabled={connectBusy}
+                onClick={() => {
+                  startActionPreview("connect");
+                  void dispatch("connectWallet");
+                }}
               >
-                {t("connectAction")}
+                {connectBusy ? t("connectingWallet") : t("connectAction")}
               </NeoButton>
             </div>
           ) : null}
@@ -179,6 +223,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <MercActionCards
               t={t}
               isBusy={isBusy}
+              actionPreview={actionPreview}
               depositAmount={depositAmount}
               withdrawAmount={withdrawAmount}
               bidAmount={bidAmount}
@@ -186,6 +231,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               biddingClosed={biddingClosed}
               minBid={MIN_BID}
               onAmountChange={setAmountValue}
+              onActionPreview={startActionPreview}
               dispatch={dispatch}
             />
           </div>
@@ -248,12 +294,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <NeoButton
             variant="primary"
-            loading={isBusy}
-            disabled={isBusy || !canSettleNow}
-            onClick={() => dispatch("settleEpoch")}
+            aria-label={settleBusy ? t("settlingEpoch") : t("settleAction")}
+            loading={settleBusy}
+            disabled={settleBusy || !canSettleNow}
+            onClick={() => {
+              startActionPreview("settle");
+              void dispatch("settleEpoch");
+            }}
           >
-            {t("settleAction")}
+            {settleBusy ? t("settlingEpoch") : t("settleAction")}
           </NeoButton>
+          {settleBusy ? (
+            <p className="gov-merc-settle-status" aria-live="polite">
+              {t("settlingEpoch")}
+            </p>
+          ) : null}
           {!canSettle && !isBusy ? (
             <p className="gov-merc-settle-hint">{t("settleNoBidsHint")}</p>
           ) : null}
