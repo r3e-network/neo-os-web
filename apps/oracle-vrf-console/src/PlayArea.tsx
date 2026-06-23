@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import {
   NeoButton,
-  type ConsoleField,
   type ConsoleFieldOption,
   type ConsoleResult,
 } from "@shared/components-react";
@@ -52,26 +51,13 @@ function optionLabel(option: ConsoleFieldOption, t: PlayAreaProps["t"]) {
   return option.labelKey ? t(option.labelKey) : (option.label ?? option.value);
 }
 
-function displayFieldValue(
-  field: ConsoleField,
-  value: string,
-  t: PlayAreaProps["t"],
-) {
-  if (field.type === "select") {
-    const selected = (field.options ?? []).find(
-      (option) => option.value === value,
-    );
-    if (selected) return optionLabel(selected, t);
-  }
-  const text = String(value ?? "").trim();
-  return text.length > 0 ? text : t("notAvailable");
-}
-
 function roundValue(value: string) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 1;
   return Math.min(10, Math.max(1, Math.floor(parsed)));
 }
+
+type VrfActionPreview = "build" | "copy";
 
 export default function PlayArea({
   t,
@@ -85,6 +71,11 @@ export default function PlayArea({
   );
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [actionPreview, setActionPreview] =
+    useState<VrfActionPreview | null>(null);
+  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [initialDigest] = useState(() =>
     readObservable(state, "lastDigest", t("digestPlaceholder")),
   );
@@ -131,17 +122,37 @@ export default function PlayArea({
     : draftOk
       ? "draft"
       : "warn";
-  const requestSummary = consoleConfig.fields.slice(0, 4).map((field) => ({
-    key: field.key,
-    label: t(field.labelKey),
-    value: displayFieldValue(field, values[field.key] ?? "", t),
-  }));
+  const isBuilding = actionPreview === "build";
+  const isCopying = actionPreview === "copy";
+  const isLocalActionBusy = actionPreview !== null;
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  function startActionPreview(action: VrfActionPreview, duration = 1200) {
+    if (actionPreviewTimeout.current !== null) {
+      clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, duration);
+  }
 
   function updateValue(key: string, value: string) {
+    if (isBuilding) return;
     setValues((current) => ({ ...current, [key]: value }));
   }
 
   function adjustRounds(delta: number) {
+    if (isBuilding) return;
     updateValue("rounds", String(Math.min(10, Math.max(1, rounds + delta))));
   }
 
@@ -169,10 +180,13 @@ export default function PlayArea({
   }
 
   function buildPreview() {
+    if (isBuilding) return;
+    startActionPreview("build", 1200);
     applyResult(consoleConfig.buildResult(values, t));
   }
 
   function reset() {
+    if (isLocalActionBusy) return;
     setValues(initialValues(launchContext?.params));
     setResult(null);
     setObservable(state, "lastStatus", initialStatus);
@@ -181,14 +195,25 @@ export default function PlayArea({
   }
 
   async function copyPayload() {
-    if (!payloadText) return;
+    if (!payloadText || isCopying) return;
+    startActionPreview("copy", 900);
     await services.clipboard.copy(payloadText, consoleConfig.copiedKey);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
-    <div className={`vrf-play-area vrf-play-area--${proofState}`}>
+    <div
+      className={[
+        "vrf-play-area",
+        `vrf-play-area--${proofState}`,
+        isBuilding ? "vrf-play-area--rolling" : "",
+        isCopying ? "vrf-play-area--copying" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-busy={isLocalActionBusy || undefined}
+    >
       <section
         className={`vrf-hero vrf-hero--${proofState}`}
         aria-label={t("panelTitle")}
@@ -265,18 +290,6 @@ export default function PlayArea({
             </div>
           </header>
 
-          <div
-            className="vrf-summary-strip"
-            aria-label={t("consoleSelectedValues")}
-          >
-            {requestSummary.map((item) => (
-              <span key={item.key}>
-                <small>{item.label}</small>
-                <strong>{item.value}</strong>
-              </span>
-            ))}
-          </div>
-
           <section
             className="vrf-ticket-panel"
             aria-label={t("vrfTicketTitle")}
@@ -300,11 +313,12 @@ export default function PlayArea({
               </span>
             </div>
 
-            <div
-              className={`vrf-ticket-board vrf-ticket-board--${draftOk ? "ready" : "warn"}${
-                result ? " vrf-ticket-board--built" : ""
-              }`}
-            >
+              <div
+                className={`vrf-ticket-board vrf-ticket-board--${draftOk ? "ready" : "warn"}${
+                  result ? " vrf-ticket-board--built" : ""
+                }${isBuilding ? " vrf-ticket-board--rolling" : ""}`}
+                aria-busy={isBuilding || undefined}
+              >
               <div className="vrf-ticket-seed">
                 <div className="vrf-ticket-step">
                   <span aria-hidden="true">
@@ -322,6 +336,7 @@ export default function PlayArea({
                       value={consumerValue}
                       placeholder={t("consumerPlaceholder")}
                       aria-label={t("consumer")}
+                      disabled={isBuilding}
                       onChange={(event) =>
                         updateValue("consumer", event.currentTarget.value)
                       }
@@ -334,6 +349,7 @@ export default function PlayArea({
                       value={saltValue}
                       placeholder={t("saltPlaceholder")}
                       aria-label={t("salt")}
+                      disabled={isBuilding}
                       onChange={(event) =>
                         updateValue("salt", event.currentTarget.value)
                       }
@@ -357,6 +373,7 @@ export default function PlayArea({
                   <button
                     type="button"
                     aria-label={t("vrfDecreaseRounds")}
+                    disabled={isBuilding}
                     onClick={() => adjustRounds(-1)}
                   >
                     <Minus size={16} aria-hidden="true" />
@@ -369,6 +386,7 @@ export default function PlayArea({
                       min={1}
                       max={10}
                       aria-label={t("roundsLabel")}
+                      disabled={isBuilding}
                       onChange={(event) =>
                         updateValue("rounds", event.currentTarget.value)
                       }
@@ -377,6 +395,7 @@ export default function PlayArea({
                   <button
                     type="button"
                     aria-label={t("vrfIncreaseRounds")}
+                    disabled={isBuilding}
                     onClick={() => adjustRounds(1)}
                   >
                     <Plus size={16} aria-hidden="true" />
@@ -420,6 +439,7 @@ export default function PlayArea({
                         className={`vrf-mode-card${
                           selected ? " vrf-mode-card--selected" : ""
                         }`}
+                        disabled={isBuilding}
                         onClick={() => updateValue("mode", option.value)}
                       >
                         <span aria-hidden="true">
@@ -452,11 +472,35 @@ export default function PlayArea({
           </section>
 
           <div className="vrf-actions">
-            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
-              <Play size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.primaryActionKey)}</span>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              disabled={isBuilding}
+              className={isBuilding ? "is-rolling" : undefined}
+              aria-label={
+                isBuilding
+                  ? t("buildingRequest")
+                  : t(consoleConfig.primaryActionKey)
+              }
+              onClick={buildPreview}
+            >
+              {isBuilding ? (
+                <Shuffle size={18} aria-hidden="true" />
+              ) : (
+                <Play size={18} aria-hidden="true" />
+              )}
+              <span>
+                {isBuilding
+                  ? t("buildingRequest")
+                  : t(consoleConfig.primaryActionKey)}
+              </span>
             </NeoButton>
-            <NeoButton variant="ghost" size="lg" onClick={reset}>
+            <NeoButton
+              variant="ghost"
+              size="lg"
+              disabled={isLocalActionBusy}
+              onClick={reset}
+            >
               <RotateCcw size={18} aria-hidden="true" />
               <span>{t(consoleConfig.resetActionKey)}</span>
             </NeoButton>
@@ -470,14 +514,14 @@ export default function PlayArea({
                 ? "warn"
                 : "ready"
               : "empty"
-          }`}
+          }${isCopying ? " vrf-proof-card--copying" : ""}`}
           aria-live="polite"
         >
           <figure className="vrf-proof-oracle" aria-hidden="true">
             <img
               src="./oracle-workspace-stage.jpg"
               alt=""
-              loading="lazy"
+              loading="eager"
               decoding="async"
             />
           </figure>
@@ -511,14 +555,29 @@ export default function PlayArea({
                 ))}
               </div>
               <div className="vrf-payload-actions">
-                <NeoButton variant="secondary" size="sm" onClick={copyPayload}>
-                  {copied ? (
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={isCopying}
+                  className={isCopying ? "is-copying" : undefined}
+                  aria-label={
+                    isCopying
+                      ? t("copyingPayload")
+                      : t(consoleConfig.copyActionKey)
+                  }
+                  onClick={copyPayload}
+                >
+                  {isCopying ? (
+                    <Shuffle size={16} aria-hidden="true" />
+                  ) : copied ? (
                     <Check size={16} aria-hidden="true" />
                   ) : (
                     <Copy size={16} aria-hidden="true" />
                   )}
                   <span>
-                    {copied
+                    {isCopying
+                      ? t("copyingPayload")
+                      : copied
                       ? t(consoleConfig.copiedKey)
                       : t(consoleConfig.copyActionKey)}
                   </span>

@@ -1,6 +1,12 @@
 import React from "react";
 import fs from "node:fs";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -101,6 +107,46 @@ describe("Oracle VRF Console PlayArea", () => {
     expect(setStatus).not.toHaveBeenCalled();
   });
 
+  it("previews VRF rolling and payload copy actions immediately", async () => {
+    const props = makeProps();
+    const { container } = render(<PlayArea {...props} />);
+
+    const buildButton = screen.getByRole("button", {
+      name: "Build VRF Request",
+    });
+    fireEvent.click(buildButton);
+
+    await waitFor(() => {
+      const root = container.querySelector(".vrf-play-area");
+      expect(root?.className).toContain("vrf-play-area--rolling");
+      expect(root?.getAttribute("aria-busy")).toBe("true");
+      expect(
+        container.querySelector(".vrf-ticket-board--rolling")?.getAttribute(
+          "aria-busy",
+        ),
+      ).toBe("true");
+      expect(screen.getByRole("button", { name: "Rolling request..." }))
+        .toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Rolling request..." }));
+    expect(props.state.requestCount?.get?.()).toBe(1);
+
+    const copyButton = screen.getByRole("button", { name: "Copy" });
+    fireEvent.click(copyButton);
+
+    await waitFor(() => {
+      expect(
+        container.querySelector(".vrf-play-area")?.className,
+      ).toContain("vrf-play-area--copying");
+      expect(container.querySelector(".vrf-proof-card--copying")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Copying payload..." }))
+        .toBeTruthy();
+    });
+
+    expect(props.services.clipboard.copy).toHaveBeenCalledTimes(1);
+  });
+
   it("announces missing seed values as a warning", () => {
     const state = makeState();
     const setStatus = vi.fn();
@@ -135,8 +181,19 @@ describe("Oracle VRF Console PlayArea", () => {
     expect(styles).toContain("@keyframes vrf-ticket-scan");
     expect(styles).toContain("@keyframes vrf-round-pulse");
     expect(styles).toContain("@keyframes vrf-proof-ready");
+    expect(styles).toContain("@keyframes vrf-draw-stage-roll");
+    expect(styles).toContain("@keyframes vrf-round-shuffle");
+    expect(styles).toContain("@keyframes vrf-action-sweep");
+    expect(styles).toContain(".vrf-ticket-board--rolling");
+    expect(styles).toContain(".vrf-proof-card--copying");
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.vrf-proof-card--ready \.vrf-result-hero/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.vrf-ticket-board--rolling::after[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.vrf-proof-card--copying::after[\s\S]*animation:\s*none/,
     );
   });
 });

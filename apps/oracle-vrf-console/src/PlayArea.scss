@@ -451,6 +451,17 @@
   animation: vrf-ticket-scan 3.8s ease-in-out infinite;
 }
 
+.vrf-ticket-board--rolling {
+  border-color: rgba(22, 199, 132, 0.38);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.66),
+    0 16px 38px rgba(22, 199, 132, 0.12);
+}
+
+.vrf-ticket-board--rolling::after {
+  animation: vrf-ticket-scan 0.86s ease-in-out infinite;
+}
+
 .vrf-ticket-board--warn {
   border-color: rgba(245, 158, 11, 0.28);
   background:
@@ -462,6 +473,7 @@
 .vrf-ticket-seed,
 .vrf-draw-stage,
 .vrf-proof-stage {
+  position: relative;
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -470,6 +482,21 @@
   border-radius: var(--ns-radius-md, 16px);
   background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.vrf-play-area--rolling .vrf-draw-stage,
+.vrf-play-area--rolling .vrf-proof-stage {
+  animation: vrf-draw-stage-roll 760ms ease-in-out infinite;
+}
+
+.vrf-play-area--rolling .vrf-ticket-step > span {
+  animation: vrf-oracle-token-pop 620ms ease-in-out infinite;
+}
+
+.vrf-play-area--rolling .vrf-rounds-track span.is-active {
+  animation:
+    vrf-round-pulse 420ms ease-in-out infinite,
+    vrf-round-shuffle 720ms ease-in-out infinite;
 }
 
 .vrf-ticket-step {
@@ -588,6 +615,14 @@
   background: var(--ns-surface, #ffffff);
   color: #047857;
   cursor: pointer;
+}
+
+.vrf-rounds-control button:disabled,
+.vrf-mode-card:disabled,
+.vrf-seed-field input:disabled,
+.vrf-rounds-value input:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .vrf-rounds-control strong,
@@ -737,9 +772,43 @@
   align-items: center;
 }
 
+.vrf-actions .neo-btn.is-rolling svg,
+.vrf-payload-actions .neo-btn.is-copying svg {
+  animation: vrf-oracle-token-pop 620ms ease-in-out infinite;
+}
+
 .vrf-proof-card {
   position: sticky;
   top: 14px;
+  overflow: hidden;
+}
+
+.vrf-proof-card--copying {
+  border-color: rgba(22, 199, 132, 0.34);
+  box-shadow:
+    var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06)),
+    0 16px 36px rgba(22, 199, 132, 0.12);
+}
+
+.vrf-proof-card--copying::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255, 255, 255, 0.62),
+    transparent
+  );
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+  animation: vrf-action-sweep 1.06s ease-in-out infinite;
+}
+
+.vrf-proof-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .vrf-proof-oracle {
@@ -1033,6 +1102,62 @@
   }
 }
 
+@keyframes vrf-draw-stage-roll {
+  0%,
+  100% {
+    border-color: rgba(20, 22, 38, 0.07);
+    transform: translateY(0);
+  }
+
+  45% {
+    border-color: rgba(22, 199, 132, 0.34);
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes vrf-oracle-token-pop {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(22, 199, 132, 0);
+    transform: scale(1);
+  }
+
+  48% {
+    box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.09);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes vrf-round-shuffle {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+    transform: translateY(0) scaleX(1);
+  }
+
+  50% {
+    filter: hue-rotate(28deg);
+    transform: translateY(-2px) scaleX(1.08);
+  }
+}
+
+@keyframes vrf-action-sweep {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  42% {
+    opacity: 0.72;
+  }
+
+  78% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
 @keyframes vrf-empty-breathe {
   0%,
   100% {
@@ -1217,10 +1342,17 @@
   .vrf-flow span.is-ready::after,
   .vrf-ticket-board--ready::after,
   .vrf-ticket-board--built::after,
+  .vrf-ticket-board--rolling::after,
+  .vrf-play-area--rolling .vrf-draw-stage,
+  .vrf-play-area--rolling .vrf-proof-stage,
+  .vrf-play-area--rolling .vrf-ticket-step > span,
   .vrf-rounds-track span.is-active,
   .vrf-mode-card--selected,
   .vrf-proof-oracle img,
   .vrf-proof-card--ready .vrf-result-hero,
+  .vrf-proof-card--copying::after,
+  .vrf-actions .neo-btn.is-rolling svg,
+  .vrf-payload-actions .neo-btn.is-copying svg,
   .vrf-proof-card--empty .vrf-empty-state > span {
     animation: none;
   }

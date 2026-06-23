@@ -213,6 +213,8 @@ const appMessages = {
   },
   vrfStatusLabel: { en: "VRF request status", zh: "VRF 请求状态" },
   runAction: { en: "Build VRF Request", zh: "生成 VRF 请求" },
+  buildingRequest: { en: "Rolling request...", zh: "请求滚动中..." },
+  copyingPayload: { en: "Copying payload...", zh: "正在复制 payload..." },
   consumer: { en: "Consumer", zh: "消费者" },
   consumerPlaceholder: {
     en: "MiniApp contract hash or app id",
