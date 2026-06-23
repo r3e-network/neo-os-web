@@ -55,13 +55,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Game history
   const gameHistory = val<GameHistoryItem[]>("gameHistory");
   const [flipActionPreview, setFlipActionPreview] = useState(false);
+  const [revealActionPreview, setRevealActionPreview] = useState(false);
   const flipActionPreviewTimeout = useRef<number | null>(null);
+  const revealActionPreviewTimeout = useRef<number | null>(null);
   const flipIsAnimating = isFlipping || flipActionPreview;
+  const revealIsAnimating = revealing || revealActionPreview;
 
   useEffect(() => {
     return () => {
       if (flipActionPreviewTimeout.current !== null) {
         window.clearTimeout(flipActionPreviewTimeout.current);
+      }
+      if (revealActionPreviewTimeout.current !== null) {
+        window.clearTimeout(revealActionPreviewTimeout.current);
       }
     };
   }, []);
@@ -76,6 +82,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       flipActionPreviewTimeout.current = null;
     }, 1300);
   };
+  const startRevealActionPreview = () => {
+    if (revealActionPreviewTimeout.current !== null) {
+      window.clearTimeout(revealActionPreviewTimeout.current);
+    }
+    setRevealActionPreview(true);
+    revealActionPreviewTimeout.current = window.setTimeout(() => {
+      setRevealActionPreview(false);
+      revealActionPreviewTimeout.current = null;
+    }, 1300);
+  };
 
   const recentHistory = useMemo(() => (gameHistory ?? []).slice(0, 10), [gameHistory]);
   const historyCoinArt: Record<"heads" | "tails", string> = {
@@ -84,7 +100,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
   const playAreaClassName = [
     "coinflip-play-area",
-    flipIsAnimating || revealing ? "coinflip-play-area--tossing" : "",
+    flipIsAnimating || revealIsAnimating ? "coinflip-play-area--tossing" : "",
+    revealIsAnimating ? "coinflip-play-area--revealing" : "",
     hasPendingBet ? "coinflip-play-area--pending" : "",
     result ? `coinflip-play-area--${result.won ? "won" : "lost"}` : "",
     canBet ? "coinflip-play-area--ready" : "",
@@ -98,6 +115,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleReveal = async () => {
+    startRevealActionPreview();
     await dispatch("revealResult");
   };
 
@@ -158,7 +176,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <ArenaHero
             t={t}
             isFlipping={flipIsAnimating}
-            revealing={revealing}
+            revealing={revealIsAnimating}
             hasPendingBet={hasPendingBet}
             revealFailed={revealFailed}
             displayOutcome={displayOutcome}
