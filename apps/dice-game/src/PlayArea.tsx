@@ -230,6 +230,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (controlsLocked) return;
     if (!stakeIsValid) {
       setFormError(t("invalidStake"));
       return;
@@ -249,7 +250,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <section className="dice-playarea" aria-label={t("rollDice")}>
       <div className="dice-shell">
-        <form className="dice-game-form" onSubmit={handleSubmit}>
+        <form
+          className="dice-game-form"
+          onSubmit={handleSubmit}
+          aria-busy={isRolling || undefined}
+        >
           <div className="dice-stage" aria-live="polite" data-state={stageState}>
             <div className={`dice-stage__visual dice-stage__visual--${stageState}`}>
               <picture className="dice-stage__table" aria-hidden="true">
@@ -328,6 +333,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 type="submit"
                 className={`dice-roll-button${isRolling ? " dice-roll-button--rolling" : ""}`}
                 disabled={controlsLocked || !stakeIsValid}
+                aria-busy={isRolling || undefined}
               >
                 <Dices size={19} aria-hidden="true" />
                 {isRolling ? t("statusRolling") : t("rollAction")}
