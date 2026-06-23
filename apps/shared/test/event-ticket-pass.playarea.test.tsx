@@ -57,6 +57,21 @@ function t(key: string) {
     latestRequest: "Latest Request",
     latestResult: "Latest Result",
     lookup: "Lookup",
+    lifecycleChecking: "Marking pass as used",
+    lifecycleComplete: "Guest passes are live",
+    lifecycleCopy:
+      "The primary workflow stays visible: design the event pass, send it to a guest wallet, then scan the token at the gate.",
+    lifecycleCreating: "Publishing event on-chain",
+    lifecycleDraft: "Design the event pass first",
+    lifecycleEvent: "Event pass",
+    lifecycleEyebrow: "Live pass route",
+    lifecycleGate: "Door gate",
+    lifecycleIssuing: "Minting guest pass",
+    lifecycleLookup: "Reading token at the gate",
+    lifecycleReady: "Event is ready for guest passes",
+    lifecycleTitle: "From pass design to the door",
+    lifecycleTransfer: "Sending pass to a new wallet",
+    lifecycleWallet: "Guest wallet",
     maxSupply: "Max tickets",
     maxSupplyPlaceholder: "120",
     minted: "Minted",
@@ -181,6 +196,11 @@ describe("Event Ticket Pass PlayArea", () => {
 
     expect(screen.getAllByText("Create Event").length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("Event name").length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: "From pass design to the door" })).toBeTruthy();
+    expect(container.querySelector(".ticket-lifecycle--ready")).toBeTruthy();
+    expect(container.querySelector('.ticket-lifecycle__art[src="./pass-artwork.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".ticket-lifecycle__moving-pass")).toBeTruthy();
+    expect(container.querySelectorAll(".ticket-lifecycle__node")).toHaveLength(3);
     expect(container.querySelector(".ticket-issue-runway.is-ready")).toBeTruthy();
     expect(container.querySelector(".ticket-issue-runway__ticket")).toBeTruthy();
     expect(container.querySelectorAll(".ticket-issue-runway__node")).toHaveLength(3);
@@ -237,6 +257,42 @@ describe("Event Ticket Pass PlayArea", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Check-in/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Lookup$/i }));
     expect(dispatch).toHaveBeenCalledWith("lookupTicket");
+  });
+
+  it("turns issuing into an animated ticket lifecycle state", () => {
+    const event = {
+      id: "evt-1",
+      creator: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+      name: "Neo Summit",
+      venue: "Neo Hall",
+      startTime: 1781955600,
+      endTime: 1781988000,
+      maxSupply: 120n,
+      minted: 1n,
+      notes: "",
+      active: true,
+    };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          events: [event],
+          selectedEventId: "evt-1",
+          selectedEvent: event,
+          issueRecipient: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+          canIssueTicket: true,
+          isIssuing: true,
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    const lifecycle = screen.getByRole("region", {
+      name: "From pass design to the door",
+    });
+    expect(lifecycle.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector(".ticket-lifecycle--issuing")).toBeTruthy();
+    expect(screen.getAllByText("Minting guest pass").length).toBeGreaterThan(0);
   });
 
   it("surfaces copy-token-id and transfer affordances on a held ticket", () => {
@@ -327,6 +383,11 @@ describe("Event Ticket Pass PlayArea", () => {
     );
 
     expect(styles).toContain("@keyframes ticket-hero-drift");
+    expect(styles).toContain("@keyframes ticket-lifecycle-sheen");
+    expect(styles).toContain("@keyframes ticket-lifecycle-rail");
+    expect(styles).toContain("@keyframes ticket-lifecycle-pass-route");
+    expect(styles).toContain("@keyframes ticket-lifecycle-pass-route-mobile");
+    expect(styles).toContain("@keyframes ticket-lifecycle-node-active");
     expect(styles).toContain("@keyframes ticket-stage-sheen");
     expect(styles).toContain("@keyframes ticket-issue-stage-sweep");
     expect(styles).toContain("@keyframes ticket-issue-rail-flow");
@@ -334,6 +395,7 @@ describe("Event Ticket Pass PlayArea", () => {
     expect(styles).toContain("@keyframes ticket-issue-pass-route-mobile");
     expect(styles).toContain("@keyframes ticket-scan-grid");
     expect(styles).toContain("@keyframes ticket-pass-art-drift");
+    expect(styles).toContain(".ticket-lifecycle__moving-pass");
     expect(styles).toContain(".ticket-issue-runway__ticket");
     expect(styles).toContain(".ticket-create-preview--stage::after");
     expect(styles).toContain(".ticket-scan-frame::after");
@@ -346,6 +408,9 @@ describe("Event Ticket Pass PlayArea", () => {
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ticket-pass__stub[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ticket-lifecycle__moving-pass[\s\S]*animation:\s*none/,
     );
   });
 });

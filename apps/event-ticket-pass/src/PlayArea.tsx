@@ -106,6 +106,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const issuePassTitle = selectedEvent?.name || eventName || t("eventNamePlaceholder");
   const issuePassSeat = issueSeat || t("seatFallback");
   const issuePassHolder = issueRecipient ? short(issueRecipient) : t("issueRecipientPlaceholder");
+  const isLifecycleBusy =
+    isCreating || isIssuing || isLookingUp || isCheckingIn || isTransferring;
+  const lifecycleState = isCreating
+    ? "creating"
+    : isIssuing
+      ? "issuing"
+      : isCheckingIn
+        ? "checking"
+        : isLookingUp
+          ? "lookup"
+          : isTransferring
+            ? "transfer"
+            : tickets.length
+              ? "complete"
+              : events.length
+                ? "ready"
+                : "draft";
+  const lifecycleStatus =
+    lifecycleState === "creating"
+      ? t("lifecycleCreating")
+      : lifecycleState === "issuing"
+        ? t("lifecycleIssuing")
+        : lifecycleState === "checking"
+          ? t("lifecycleChecking")
+          : lifecycleState === "lookup"
+            ? t("lifecycleLookup")
+            : lifecycleState === "transfer"
+              ? t("lifecycleTransfer")
+              : lifecycleState === "complete"
+                ? t("lifecycleComplete")
+                : lifecycleState === "ready"
+                  ? t("lifecycleReady")
+                  : t("lifecycleDraft");
 
   const hasMetrics =
     eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
@@ -223,6 +256,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
         </div>
+
+        <section
+          className={`ticket-lifecycle ticket-lifecycle--${lifecycleState}`}
+          aria-label={t("lifecycleTitle")}
+          aria-busy={isLifecycleBusy || undefined}
+        >
+          <div className="ticket-lifecycle__copy">
+            <span>{t("lifecycleEyebrow")}</span>
+            <strong>{t("lifecycleTitle")}</strong>
+            <p>{t("lifecycleCopy")}</p>
+          </div>
+          <div className="ticket-lifecycle__status" role="status" aria-live="polite">
+            <Sparkles size={15} aria-hidden="true" />
+            <span>{lifecycleStatus}</span>
+          </div>
+          <div className="ticket-lifecycle__board" aria-hidden="true">
+            <span className="ticket-lifecycle__rail" />
+            <span className="ticket-lifecycle__moving-pass" />
+            <article className="ticket-lifecycle__node ticket-lifecycle__node--event">
+              <img
+                className="ticket-lifecycle__art"
+                src="./pass-artwork.jpg"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+              <span>{t("lifecycleEvent")}</span>
+              <strong>{issuePassTitle}</strong>
+              <small>{eventSchedulePreview}</small>
+            </article>
+            <article className="ticket-lifecycle__node ticket-lifecycle__node--wallet">
+              <Users size={20} />
+              <span>{t("lifecycleWallet")}</span>
+              <strong>{issuePassHolder}</strong>
+              <small>{issuePassSeat}</small>
+            </article>
+            <article className="ticket-lifecycle__node ticket-lifecycle__node--gate">
+              <ScanLine size={20} />
+              <span>{t("lifecycleGate")}</span>
+              <strong>{checkinTokenId || t("checkinTokenIdPlaceholder")}</strong>
+              <small>{lifecycleStatus}</small>
+            </article>
+          </div>
+        </section>
 
         <div
           className={`ticket-studio__grid${
