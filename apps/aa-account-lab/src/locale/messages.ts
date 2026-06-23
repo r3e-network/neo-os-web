@@ -27,12 +27,12 @@ const appMessages = {
   accountInspectorTitle: { en: "Account Readiness", zh: "账户就绪检查" },
   accountId: { en: "AccountId Hash", zh: "AccountId Hash" },
   accountIdHint: {
-    en: "Use a 20-byte hash, public key, or deterministic seed text.",
-    zh: "可输入 20 字节哈希、公钥，或可重复派生的 seed 文本。",
+    en: "Use the registered 20-byte AccountId hash, or a public key that can be normalized to one.",
+    zh: "请输入已注册的 20 字节 AccountId 哈希，或可归一化为该哈希的公钥。",
   },
   accountIdPlaceholder: {
-    en: "20-byte hash, pubkey, or seed text",
-    zh: "20 字节哈希、公钥或 seed 文本",
+    en: "20-byte AccountId hash or public key",
+    zh: "20 字节 AccountId 哈希或公钥",
   },
   accountIdSharedHint: {
     en: "Shared with the inspector above — editing either field updates both.",
@@ -86,6 +86,31 @@ const appMessages = {
     zh: "注册会在派生 id 上创建一个真实、永久的 AA 账户——而非一次性沙盒对象。它将持有资产，并永久保留你在此设置的恢复策略。",
   },
   accountFlowLabel: { en: "AA account workflow", zh: "AA 账户流程" },
+  accountStageEyebrow: { en: "AA shell assembly", zh: "AA 账户壳组装" },
+  accountStageIdle: {
+    en: "Connect, inspect, then assemble the account shell",
+    zh: "连接、查询，然后组装账户壳",
+  },
+  accountStageReady: {
+    en: "Account shell ready for registration",
+    zh: "账户壳已可注册",
+  },
+  accountStageInspecting: {
+    en: "Reading AA Core account state...",
+    zh: "正在读取 AA Core 账户状态...",
+  },
+  accountStageRegistering: {
+    en: "Registering AA account shell...",
+    zh: "正在注册 AA 账户壳...",
+  },
+  accountStageConnecting: {
+    en: "Connecting wallet identity...",
+    zh: "正在连接钱包身份...",
+  },
+  accountStageCopy: {
+    en: "Verifier, backup owner, and escape window assemble into the deterministic AccountId accepted by AA Core.",
+    zh: "Verifier、backup owner 与逃生窗口会组装为 AA Core 接受的确定性 AccountId。",
+  },
   accountFlowInspect: { en: "Read live state", zh: "读取链上状态" },
   accountFlowInspectDesc: {
     en: "Resolve the account id and load verifier, hook, and owner from AA Core.",
