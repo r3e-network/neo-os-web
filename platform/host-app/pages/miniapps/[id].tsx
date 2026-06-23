@@ -60,7 +60,10 @@ import {
   type MiniAppInvokeFeedback,
 } from "../../hooks/useMiniAppDetailInvoke";
 import { isSharedModeApp } from "../../lib/chain";
-import { useWalletStore } from "../../lib/wallet/store";
+import {
+  selectConnectedWalletAddress,
+  useWalletStore,
+} from "../../lib/wallet/store";
 import { getRpcNetwork } from "../../lib/rpc-helpers";
 import {
   getWalletNetworkGuardReason,
@@ -309,7 +312,8 @@ export default function MiniAppDetailPage({
   const [referenceOpen, setReferenceOpen] = useState(false);
 
   const walletConnected = useWalletStore((state) => state.connected);
-  const walletAddress = useWalletStore((state) => state.address);
+  const walletAddress = useWalletStore(selectConnectedWalletAddress);
+  const walletReady = walletConnected && Boolean(walletAddress);
   const walletNetwork = useWalletStore((state) => state.network);
   const refreshWalletBalance = useWalletStore((state) => state.refreshBalance);
   // A persisted session is reconnecting when restore is in flight (`loading`)
@@ -335,14 +339,14 @@ export default function MiniAppDetailPage({
   const walletNetworkLabel = walletNetwork
     ? neoNetworkLabel(walletNetwork)
     : "Not verified";
-  const networkGuardReason = walletConnected
+  const networkGuardReason = walletReady
     ? getWalletNetworkGuardReason(walletNetwork, targetNetwork)
     : null;
   const networkAvailabilityReason = appSupportsTargetNetwork
     ? null
     : `${app?.name || "This MiniApp"} is not deployed or enabled on ${targetNetworkLabel}. Switch to a supported network before submitting transactions.`;
   const networkSafetyOk =
-    walletConnected && !networkGuardReason && appSupportsTargetNetwork;
+    walletReady && !networkGuardReason && appSupportsTargetNetwork;
   const resolvedRuntime = useMemo(
     () => (app ? resolveMiniAppRuntime(app, targetNetwork) : null),
     [app, targetNetwork],
@@ -506,7 +510,7 @@ export default function MiniAppDetailPage({
     resolvedRuntime?.mode === "platform"
       ? resolvedRuntime.disabledReason
       : null;
-  const walletRequiredReason = walletConnected
+  const walletRequiredReason = walletReady
     ? null
     : "Connect wallet before sending transactions.";
   const operationDisabledReason =
@@ -741,7 +745,7 @@ export default function MiniAppDetailPage({
   // state instead.
   const actionConsoleWalletRestoring =
     actionConsoleRequiresWallet &&
-    !walletConnected &&
+    !walletReady &&
     !activeOperationSubmittedFromEmbed &&
     (walletLoading || walletRestorePending);
   const actionConsoleStatusLabel = actionConsoleUsesLocalContext
@@ -750,7 +754,7 @@ export default function MiniAppDetailPage({
       ? "API Ready"
       : activeOperationSubmittedFromEmbed
       ? "Synced"
-      : walletConnected
+      : walletReady
       ? "Wallet Ready"
       : actionConsoleWalletRestoring
       ? "Checking wallet…"
@@ -761,7 +765,7 @@ export default function MiniAppDetailPage({
       ? "border-indigo-200 bg-indigo-50 text-indigo-700"
       : activeOperationSubmittedFromEmbed
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : walletConnected
+      : walletReady
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : actionConsoleWalletRestoring
       ? "border-gray-200 bg-gray-50 text-gray-500"
@@ -772,7 +776,7 @@ export default function MiniAppDetailPage({
       ? `This action is handled by the platform API for ${targetNetworkLabel}. It checks sponsorship or submits the relay payload without opening a browser wallet prompt.`
       : activeOperationSubmittedFromEmbed && embeddedWalletResult?.txid
       ? `Embedded workspace submitted ${shortTxId(embeddedWalletResult.txid)}. Refresh after confirmation before submitting again.`
-      : walletConnected && walletAddress
+      : walletReady && walletAddress
       ? walletAddress
       : actionConsoleWalletRestoring
       ? "Reconnecting your saved wallet session…"
@@ -806,7 +810,7 @@ export default function MiniAppDetailPage({
     targetCatalogNetwork,
     targetNetwork,
     walletAddress,
-    walletConnected,
+    walletConnected: walletReady,
     walletNetwork,
   });
 

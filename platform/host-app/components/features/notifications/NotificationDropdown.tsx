@@ -57,7 +57,13 @@ export function NotificationDropdown({
   const [loading, setLoading] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
   const authenticated = useAuthStore((state) => state.authenticated);
-  const hasWalletSession = authenticated && Boolean(getWalletSessionToken());
+  const authWalletAddress = useAuthStore((state) => state.walletAddress);
+  const authWalletType = useAuthStore((state) => state.walletType);
+  const hasWalletSession =
+    authenticated &&
+    authWalletType === "external" &&
+    authWalletAddress === walletAddress &&
+    Boolean(getWalletSessionToken());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click

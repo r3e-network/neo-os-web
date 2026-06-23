@@ -73,6 +73,8 @@ jest.mock("../../hooks/useActivityFeed", () => ({
 }));
 
 jest.mock("../../lib/wallet/store", () => ({
+  selectConnectedWalletAddress: (state: { connected: boolean; address: string }) =>
+    state.connected && state.address ? state.address : "",
   useWalletStore: jest.fn((selector?: (state: any) => any) => {
     return typeof selector === "function"
       ? selector(mockWalletState)

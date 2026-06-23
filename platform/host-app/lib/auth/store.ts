@@ -20,6 +20,7 @@ interface AuthActions {
   loginWallet: (provider: WalletProvider) => Promise<void>;
   loginWif: (wif: string) => Promise<void>;
   logout: () => Promise<void>;
+  clearWalletSession: () => void;
   clearError: () => void;
   syncFromSession: (user: { sub?: string | null; email?: string | null } | null, walletAddr?: string) => void;
 }
@@ -145,6 +146,22 @@ function isWalletAuthUnavailable(err: unknown): boolean {
   return err instanceof WalletAuthUnavailableError;
 }
 
+function clearStoredWalletSessionTokens() {
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("sb-access-token");
+  }
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem("neo_miniapp_auth_jwt");
+    }
+  } catch (e) {
+    console.warn(
+      "[auth] localStorage removal failed (SSR?):",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
+
 function completeWalletOnlyLogin(set: (state: Partial<AuthStore>) => void) {
   const { connected, address } = useWalletStore.getState();
   if (!connected || !address) {
@@ -247,8 +264,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   logout: async () => {
     const { method } = get();
     useWalletStore.getState().disconnect();
-    sessionStorage.removeItem("sb-access-token");
-    try { localStorage.removeItem("neo_miniapp_auth_jwt"); } catch (e) { console.warn("[auth] localStorage removal failed (SSR?):", e instanceof Error ? e.message : String(e)); }
+    clearStoredWalletSessionTokens();
     set({
       authenticated: false,
       userId: "",
@@ -260,6 +276,21 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     if (method === "social") {
       window.location.href = "/api/auth/logout";
     }
+  },
+
+  clearWalletSession: () => {
+    clearStoredWalletSessionTokens();
+    const state = get();
+    const keepSocialSession = state.method === "social";
+    set({
+      authenticated: keepSocialSession ? state.authenticated : false,
+      userId: keepSocialSession ? state.userId : "",
+      method: keepSocialSession ? "social" : null,
+      walletAddress: "",
+      walletType: null,
+      loading: false,
+      error: null,
+    });
   },
 
   clearError: () => set({ error: null }),

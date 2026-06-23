@@ -66,6 +66,13 @@ interface WalletActions {
 
 type WalletStore = WalletState & WalletActions;
 
+export function selectConnectedWalletAddress(state: {
+  connected: boolean;
+  address: string;
+}): string {
+  return state.connected && state.address ? state.address : "";
+}
+
 /** Slow background poll so the navbar balance cannot drift for long. */
 const BALANCE_REFRESH_INTERVAL_MS = 60_000;
 /** Re-read the balance once a submitted transaction has had time to land in a block. */

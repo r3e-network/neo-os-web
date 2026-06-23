@@ -65,6 +65,25 @@ describe("AccountPage", () => {
     expect(screen.getByRole("button", { name: /copy/i })).toBeDisabled();
   });
 
+  it("does not treat a restore-pending saved wallet address as connected", () => {
+    setWalletState({
+      connected: false,
+      address: ADDRESS,
+      provider: "onegate",
+      network: "testnet",
+      restorePending: true,
+    });
+
+    render(<AccountPage />);
+
+    expect(screen.getAllByText("Not connected").length).toBeGreaterThanOrEqual(
+      2,
+    );
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("button", { name: /copy/i })).toBeDisabled();
+  });
+
   it("uses the brand product name in the page title", () => {
     render(<AccountPage />);
 
