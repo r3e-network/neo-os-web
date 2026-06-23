@@ -644,6 +644,83 @@
   z-index: 1;
 }
 
+.dice-play-loop__motion {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 12%;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.95), transparent 32%),
+    linear-gradient(145deg, #fff5c9, #16c784);
+  color: #0a8050;
+  box-shadow:
+    0 12px 22px rgba(107, 60, 2, 0.14),
+    0 0 0 4px rgba(246, 200, 106, 0.13);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.84);
+}
+
+.dice-play-loop__motion--chip {
+  animation: dice-play-loop-chip-route 4.4s var(--ns-ease-smooth, ease-in-out) infinite;
+}
+
+.dice-play-loop__motion--die {
+  width: 36px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #ffffff;
+  animation: dice-play-loop-die-route 4.4s var(--ns-ease-smooth, ease-in-out) 0.18s infinite;
+}
+
+.dice-play-loop__motion--spark {
+  color: #d08916;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 252, 230, 0.98), rgba(255, 240, 170, 0.82) 54%, rgba(22, 199, 132, 0.28));
+  animation: dice-play-loop-spark-route 4.4s var(--ns-ease-smooth, ease-in-out) 0.32s infinite;
+}
+
+.dice-play-loop.is-rolling .dice-play-loop__motion--chip {
+  animation-duration: 1.02s;
+}
+
+.dice-play-loop.is-rolling .dice-play-loop__motion--die {
+  animation-duration: 1.02s;
+}
+
+.dice-play-loop.is-rolling .dice-play-loop__motion--spark {
+  animation-duration: 1.02s;
+}
+
+.dice-play-loop--won .dice-play-loop__motion--spark,
+.dice-play-loop--lost .dice-play-loop__motion--die,
+.dice-play-loop--refunded .dice-play-loop__motion--chip {
+  opacity: 1;
+  animation: dice-play-loop-result-hold 1.45s var(--ns-ease-snappy, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+.dice-play-loop__motion svg,
+.dice-play-loop__motion-die,
+.dice-play-loop__motion-die img {
+  display: block;
+}
+
+.dice-play-loop__motion-die,
+.dice-play-loop__motion-die img {
+  width: 100%;
+  height: 100%;
+}
+
+.dice-play-loop__motion-die img {
+  object-fit: cover;
+}
+
 .dice-play-loop__node {
   display: grid;
   justify-items: center;
@@ -2258,6 +2335,82 @@
       0 16px 28px rgba(10, 128, 80, 0.16);
   }
 }
+@keyframes dice-play-loop-chip-route {
+  0%,
+  16% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.78);
+    left: 13%;
+  }
+  28%,
+  46% {
+    opacity: 0.94;
+    transform: translate(-50%, -50%) scale(1);
+    left: 29%;
+  }
+  62%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+    left: 46%;
+  }
+}
+@keyframes dice-play-loop-die-route {
+  0%,
+  22% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-18deg) scale(0.82);
+    left: 39%;
+  }
+  42%,
+  64% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) rotate(18deg) scale(1);
+    left: 52%;
+  }
+  82%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(48deg) scale(0.84);
+    left: 68%;
+  }
+}
+@keyframes dice-play-loop-spark-route {
+  0%,
+  54% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.68);
+    left: 68%;
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+    left: 82%;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.76);
+    left: 88%;
+  }
+}
+@keyframes dice-play-loop-result-hold {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+    left: 82%;
+  }
+  52% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12);
+    left: 82%;
+  }
+  100% {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) scale(1);
+    left: 82%;
+  }
+}
 @keyframes dice-roll-sheen {
   0%,
   42% {
@@ -2342,6 +2495,7 @@
   .dice-preset-chip--active,
   .dice-play-loop::after,
   .dice-play-loop__route::after,
+  .dice-play-loop__motion,
   .dice-play-loop.is-rolling .dice-play-loop__node--face,
   .dice-play-loop.is-ready .dice-play-loop__node--payout,
   .dice-roll-button::after {

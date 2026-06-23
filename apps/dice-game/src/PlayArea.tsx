@@ -491,9 +491,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
 
             <div
-              className={`dice-play-loop${stakeIsValid ? " is-ready" : ""}${isRolling ? " is-rolling" : ""}`}
+              className={`dice-play-loop dice-play-loop--${stageState}${stakeIsValid ? " is-ready" : ""}${isRolling ? " is-rolling" : ""}`}
               aria-label={t("dicePlayLoop")}
             >
+              <span
+                className="dice-play-loop__motion dice-play-loop__motion--chip"
+                aria-hidden="true"
+              >
+                <Coins size={15} />
+              </span>
+              <span
+                className="dice-play-loop__motion dice-play-loop__motion--die"
+                aria-hidden="true"
+              >
+                <DiceFaceImage
+                  face={faceInput}
+                  className="dice-play-loop__motion-die"
+                  alt=""
+                />
+              </span>
+              <span
+                className="dice-play-loop__motion dice-play-loop__motion--spark"
+                aria-hidden="true"
+              >
+                <Sparkles size={15} />
+              </span>
               <span className="dice-play-loop__node dice-play-loop__node--stake">
                 <Coins size={17} aria-hidden="true" />
                 <small>{t("stakeAmount")}</small>
