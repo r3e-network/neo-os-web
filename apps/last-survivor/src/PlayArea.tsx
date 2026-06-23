@@ -81,6 +81,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const history = val<HistoryEvent[]>("history") ?? [];
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
+  const [keyBurst, setKeyBurst] = useState(0);
   const formatNum = (n: number) => formatNumber(n, 2);
   // A fresh round is active on-chain but has no keys sold yet, so it reports
   // remainingTime 0 — the danger ring/meter must NOT render a pulsing red
@@ -140,6 +141,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     viewerAddress.toLowerCase() === lastBuyer.toLowerCase();
 
   const handleKeyCountChange = (value: string) => {
+    if (value !== localKeyCount) {
+      setKeyBurst((tick) => tick + 1);
+    }
     setLocalKeyCount(value);
     // Keep the composable's keyCount in sync so the Estimated Cost derive
     // reflects the count the user is actually editing (not the 1-key price).
@@ -345,6 +349,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       {formatNum(totalPot)} {t("tokenGas")}
                     </strong>
                   </span>
+                </div>
+                <div
+                  key={keyBurst}
+                  className={`survivor-key-burst${
+                    keyBurst > 0 ? " survivor-key-burst--active" : ""
+                  }`}
+                  aria-hidden="true"
+                >
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <span
+                      key={index}
+                      style={
+                        {
+                          "--survivor-key-burst-delay": `${index * 46}ms`,
+                          "--survivor-key-burst-x": `${18 + index * 11}%`,
+                          "--survivor-key-burst-y": `${42 + (index % 3) * 9}px`,
+                        } as CSSProperties
+                      }
+                    >
+                      <KeyRound size={13} />
+                    </span>
+                  ))}
                 </div>
               </div>
 

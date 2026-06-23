@@ -166,6 +166,8 @@ describe("LastSurvivor PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Increase" }));
     expect(container.querySelector(".key-count-value")?.textContent).toBe("2");
+    expect(container.querySelector(".survivor-key-burst--active")).toBeTruthy();
+    expect(container.querySelectorAll(".survivor-key-burst span")).toHaveLength(6);
     expect(container.querySelector(".survivor-play-area--live")).toBeTruthy();
     expect(container.querySelector(".survivor-stage.survivor-play-area--live")).toBeTruthy();
     const lane = container.querySelector(".survivor-arena-lane") as HTMLElement;
@@ -312,9 +314,13 @@ describe("LastSurvivor PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes survivor-seat-enter");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-breathe");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-scan");
+    expect(playAreaStyles).toContain("@keyframes survivor-key-burst-flight");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(playAreaStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-seat\.is-live::after[\s\S]*animation:\s*none/,
+    );
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-key-burst--active span[\s\S]*animation:\s*none/,
     );
     expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
     expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
