@@ -235,6 +235,9 @@ describe("Burn League PlayArea", () => {
     );
 
     expect(screen.getByLabelText("Arena burn console")).toBeTruthy();
+    expect(document.querySelector(".burn-league-fuel-chamber")).toBeTruthy();
+    expect(document.querySelector(".burn-league-burn-trail")).toBeTruthy();
+    expect(document.querySelectorAll(".burn-league-burn-trail__flame").length).toBe(5);
     expect(screen.getByText("Next burn")).toBeTruthy();
     expect(screen.getByText("Fuel loaded")).toBeTruthy();
 
@@ -345,6 +348,10 @@ describe("Burn League PlayArea", () => {
     expect(styles).toContain("@keyframes burn-league-arena-drift");
     expect(styles).toContain("@keyframes burn-league-stage-heat");
     expect(styles).toContain("@keyframes burn-league-fuel-flow");
+    expect(styles).toContain("@keyframes burn-league-trail-flame");
+    expect(styles).toContain("@keyframes burn-league-trail-launch");
+    expect(styles).toContain("@keyframes burn-league-chamber-scan");
+    expect(styles).toContain("@keyframes burn-league-chamber-burn");
     expect(styles).toContain("@keyframes burn-league-scoreboard-ready");
     expect(styles).toContain("@keyframes burn-league-cta-ready");
     expect(styles).toContain("@keyframes burn-league-row-in");
@@ -356,7 +363,16 @@ describe("Burn League PlayArea", () => {
       /\.burn-league-play-area--armed \.burn-league-fuel-meter__fill[\s\S]*animation:\s*burn-league-fuel-flow/,
     );
     expect(styles).toMatch(
+      /\.burn-league-play-area--armed \.burn-league-burn-trail__flame[\s\S]*animation:\s*burn-league-trail-flame/,
+    );
+    expect(styles).toMatch(
+      /\.burn-league-play-area--armed \.burn-league-fuel-chamber::after[\s\S]*animation:\s*burn-league-chamber-scan/,
+    );
+    expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-cta \.neo-btn--primary[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-trail__flame[\s\S]*animation:\s*none/,
     );
   });
 });
