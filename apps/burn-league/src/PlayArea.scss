@@ -1400,12 +1400,23 @@ $burn-amber: var(--ns-warning, #f5a623);
 
     /* Soft-tinted disabled — keeps affordance instead of flat grey. */
     &:disabled {
-      background: $burn-accent-soft;
-      color: $burn-accent-strong;
+      border: 1px solid rgba(8, 115, 75, 0.24);
+      background: #dff7ed;
+      color: $burn-accent-deep;
       box-shadow: none;
       opacity: 1;
     }
   }
+}
+
+.burn-league-cta-spinner {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(10, 128, 80, 0.24);
+  border-top-color: $burn-accent-strong;
+  border-radius: var(--ns-radius-full, 9999px);
+  animation: burn-league-cta-spin 820ms linear infinite;
 }
 
 .burn-league-play-area--armed
@@ -2148,6 +2159,12 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
+@keyframes burn-league-cta-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes burn-league-row-in {
   from {
     opacity: 0;
@@ -2196,6 +2213,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   .burn-league-season::after,
   .burn-league-impact-value,
   .burn-league-burn-cta .neo-btn--primary,
+  .burn-league-cta-spinner,
   .burn-league-recovery-card.is-withdrawing::after,
   .burn-league-empty-icon,
   .burn-league-leaderboard-row {
