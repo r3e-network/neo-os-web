@@ -226,8 +226,14 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(screen.queryByText("Create reward pool")).toBeNull();
     expect(screen.queryByText("OneGate QR claim")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
+    const claimButton = screen.getByRole("button", { name: "Claim Reward" });
+    fireEvent.click(claimButton);
     expect(container.querySelector(".gas-pool-claim-only--claiming")).toBeTruthy();
+    expect(
+      container.querySelector(".gas-pool-claim-only")?.getAttribute("aria-busy"),
+    ).toBe("true");
+    expect(claimButton.getAttribute("aria-busy")).toBe("true");
+    expect(claimButton).toHaveProperty("disabled", true);
     expect(screen.getByText("Claim progress")).toBeTruthy();
     expect(screen.getAllByText("Wallet ready").length).toBeGreaterThan(0);
     expect(dispatch).toHaveBeenCalledWith("claimPool", {
@@ -430,6 +436,13 @@ describe("OneGate Vault PlayArea launch flow", () => {
     ).toBeGreaterThanOrEqual(3);
     fireEvent.click(createButton);
     expect(container.querySelector(".gas-pool-create-summary--launching")).toBeTruthy();
+    expect(
+      container
+        .querySelector(".gas-pool-create-summary")
+        ?.getAttribute("aria-busy"),
+    ).toBe("true");
+    expect(createButton.getAttribute("aria-busy")).toBe("true");
+    expect(createButton).toHaveProperty("disabled", true);
     expect(screen.getByRole("button", { name: "Creating pool" })).toBeTruthy();
     expect(dispatch).toHaveBeenCalledWith("createPool", {
       totalAmount: "12",

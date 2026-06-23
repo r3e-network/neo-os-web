@@ -389,6 +389,7 @@ export default function PlayArea({
         <section
           className={`gas-pool-claim-only gas-pool-claim-only--${claimVisualState}`}
           aria-label={t("claimPoolTitle")}
+          aria-busy={claimIsAnimating}
         >
           {claimSucceeded ? (
             <div
@@ -571,7 +572,8 @@ export default function PlayArea({
                   type="button"
                   className="gas-pool-claim-only__button"
                   onClick={submitClaim}
-                  disabled={isClaiming}
+                  disabled={claimIsAnimating}
+                  aria-busy={claimIsAnimating}
                 >
                   {t("claimReward")}
                 </button>
@@ -736,6 +738,7 @@ export default function PlayArea({
                     .filter(Boolean)
                     .join(" ")}
                   aria-label={t("rewardPlanTitle")}
+                  aria-busy={createMachineAnimating}
                 >
                   <span className="gas-pool-create-summary__eyebrow">
                     {t("rewardPlanTitle")}
@@ -1062,6 +1065,7 @@ export default function PlayArea({
                 className="gas-pool-claim-only__button gas-pool-create-submit"
                 onClick={submitCreatePool}
                 disabled={createMachineAnimating || !rewardPlanReady}
+                aria-busy={createMachineAnimating}
               >
                 {createMachineAnimating ? t("creatingPool") : t("createPool")}
               </button>
