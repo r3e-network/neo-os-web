@@ -9,6 +9,7 @@ import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { useAuthStore } from "@/lib/auth/store";
+import { useWalletRouteNetworkGuard } from "@/hooks/useWalletRouteNetworkGuard";
 import "@/styles/globals.css";
 
 // Lazy-load dev-only monitoring panels (excluded from production bundle)
@@ -59,6 +60,7 @@ function MonitoringInit() {
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
+  useWalletRouteNetworkGuard(router.asPath);
 
   return (
     <div className="font-sans">
