@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -114,6 +116,51 @@ describe("Dev Tipping PlayArea", () => {
     expect(document.querySelector('.tipping-hero__media img[src="./banner.jpg"]')).toBeTruthy();
     expect(document.querySelector('.tipping-hero__badge img[src="./logo.jpg"]')).toBeTruthy();
     expect(document.querySelector('.tipping-support-stage img[src="./support-board-stage.jpg"]')).toBeTruthy();
+  });
+
+  it("turns developer and amount selection into a visible ready-to-send flow", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          developers: [
+            { id: 2, name: "Ada", role: "Core tools", totalTips: 3.25 },
+            { id: 7, name: "Lin", role: "Wallet UX", totalTips: 1.5 },
+          ],
+          developerCount: 2,
+        })}
+        dispatch={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Ada" }));
+    fireEvent.click(screen.getByRole("button", { name: /0\.10\s+GAS/i }));
+
+    expect(container.querySelector(".dev-tipping-play-area--ready")).toBeTruthy();
+    expect(container.querySelector(".dev-card-glass.is-selected")).toBeTruthy();
+    expect(container.querySelector(".tip-form--ready")).toBeTruthy();
+    expect(container.querySelector(".tip-preview-card--ready")).toBeTruthy();
+    expect(container.querySelectorAll(".tip-flow-lane__node.is-ready")).toHaveLength(2);
+    expect(container.querySelector(".tip-preset-chip.is-selected")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Send Tip" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps support-board motion and reduced-motion fallbacks covered", () => {
+    const styles = readFileSync(
+      resolve(process.cwd(), "../dev-tipping/src/PlayArea.scss"),
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes tipping-stage-drift");
+    expect(styles).toContain("@keyframes tipping-stage-scan");
+    expect(styles).toContain("@keyframes tipping-flow-pulse");
+    expect(styles).toContain("@keyframes tipping-selected-ring");
+    expect(styles).toContain("@keyframes tipping-chip-confirm");
+    expect(styles).toContain("@keyframes tipping-send-ready");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tip-flow-lane__track span[\s\S]*animation:\s*none/,
+    );
   });
 
   it("does not let a default zero display hide a loaded donation total", () => {

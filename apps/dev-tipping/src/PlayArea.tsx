@@ -48,6 +48,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [selectedDevId, setSelectedDevId] = useState<number | null>(null);
   const [tipAmount, setTipAmount] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const selectedDeveloper = developers.find((dev) => dev.id === selectedDevId);
+  const parsedTipAmount = Number.parseFloat(tipAmount);
+  const tipAmountReady = Number.isFinite(parsedTipAmount) && parsedTipAmount >= 0.001;
+  const tipReady = Boolean(selectedDevId) && tipAmountReady;
+  const playAreaClassName = [
+    "dev-tipping-play-area",
+    selectedDevId ? "dev-tipping-play-area--recipient-selected" : "",
+    tipAmountReady ? "dev-tipping-play-area--amount-ready" : "",
+    tipReady ? "dev-tipping-play-area--ready" : "",
+    recentTips.length > 0 ? "dev-tipping-play-area--has-recent-tips" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   const staleZeroTotalDisplay =
     totalDonated > 0 && /^0(?:[.,]0+)?(?:\s+GAS)?$/i.test(totalDonatedDisplay.trim());
   const totalDonatedValue =
@@ -106,7 +119,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   return (
-    <div className="dev-tipping-play-area">
+    <div className={playAreaClassName}>
       {/* Hero: identity + stats + wallet */}
       <NeoCard variant="erobo" className="tipping-hero">
         <picture className="tipping-hero__media" aria-hidden="true">
@@ -189,7 +202,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="tipping-col">
           <h3 className="tipping-section-title">{t("topDevelopers")}</h3>
           {developers.length > 0 ? (
-            <TipList developers={developers} formatNum={formatNum} onSelect={handleSelectDev} t={t} />
+            <TipList
+              developers={developers}
+              selectedDevId={selectedDevId}
+              formatNum={formatNum}
+              onSelect={handleSelectDev}
+              t={t}
+            />
           ) : (
             <>
               <div className="tipping-empty">
@@ -264,6 +283,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <TipForm
               developers={developers}
               selectedDevId={selectedDevId}
+              selectedDeveloperName={selectedDeveloper?.name ?? ""}
               amount={tipAmount}
               anonymous={anonymous}
               isLoading={isLoading}
