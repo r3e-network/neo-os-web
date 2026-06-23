@@ -214,8 +214,12 @@ describe("Unbreakable Vault PlayArea", () => {
 
     expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText("Crack me if you can")).toBeTruthy();
+    expect(container.querySelector(".vault-id-scanner.is-armed.is-locked")).toBeTruthy();
+    expect(container.querySelector(".vault-id-scanner__beam")).toBeTruthy();
     expect(container.querySelector(".vault-target-card--loaded")).toBeTruthy();
     expect(container.querySelector(".vault-target-card--attempt-ready")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-attempt.is-ready")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-attempt__charge")).toBeTruthy();
     expect(container.querySelector(".vault-break-stage--attempt")).toBeTruthy();
     expect(container.querySelector(".vault-break-stage__reticle")).toBeTruthy();
     expect(container.querySelectorAll(".vault-break-stage__route .is-active").length).toBe(3);
@@ -315,7 +319,7 @@ describe("Unbreakable Vault PlayArea", () => {
   });
 
   it("hides claim/reclaim controls on an active vault and shows the attempt cost note", () => {
-    render(
+    const { container } = render(
       <PlayArea
         t={t}
         state={state({
@@ -329,9 +333,30 @@ describe("Unbreakable Vault PlayArea", () => {
 
     expect(screen.queryByRole("button", { name: "Claim Bounty" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Reclaim Vault" })).toBeNull();
+    expect(container.querySelector(".vault-secret-attempt")).toBeTruthy();
+    expect(screen.getByLabelText("Break Secret")).toBeTruthy();
     expect(
       screen.getByText("The attempt fee is charged on every try."),
     ).toBeTruthy();
+  });
+
+  it("charges the challenge input when a breaker enters a secret", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: activeVault,
+          attemptSecret: "cat",
+          canAttempt: true,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect((screen.getByLabelText("Break Secret") as HTMLInputElement).value).toBe("cat");
+    expect(container.querySelector(".vault-secret-attempt.is-charged.is-ready")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-attempt__icon")).toBeTruthy();
   });
 
   it("surfaces the bounty, title, hint, attempts and days-left a challenger needs before paying", () => {
@@ -412,11 +437,17 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(css).toContain("@keyframes vault-system-token-seal");
     expect(css).toContain("@keyframes vault-system-difficulty-ready");
     expect(css).toContain("@keyframes vault-system-seal");
+    expect(css).toContain("@keyframes vault-input-scan");
+    expect(css).toContain("@keyframes vault-id-beam-route");
+    expect(css).toContain("@keyframes vault-secret-charge");
+    expect(css).toContain("@keyframes vault-secret-ready-pulse");
     expect(css).toContain("@keyframes vault-break-scan");
     expect(css).toContain("@keyframes vault-break-reticle");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".vault-system-stage__token");
     expect(css).toContain(".vault-system-stage__difficulty");
+    expect(css).toContain(".vault-id-scanner");
+    expect(css).toContain(".vault-secret-attempt");
     expect(css).toContain(".vault-break-stage__scan");
     expect(css).toContain("animation: none");
   });

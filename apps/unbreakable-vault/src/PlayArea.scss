@@ -1166,6 +1166,222 @@
   color: var(--vault-accent-strong);
 }
 
+.vault-id-scanner,
+.vault-secret-attempt {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 15% 18%, rgba(37, 99, 235, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(240, 251, 245, 0.88));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.68),
+    0 12px 24px rgba(15, 23, 42, 0.07);
+}
+
+.vault-id-scanner {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 13px;
+}
+
+.vault-id-scanner::before,
+.vault-secret-attempt::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
+}
+
+.vault-id-scanner.is-armed::before,
+.vault-id-scanner.is-loading::before,
+.vault-secret-attempt.is-charged::before {
+  animation: vault-input-scan 3s ease-in-out infinite;
+}
+
+.vault-id-scanner.is-locked {
+  border-color: rgba(216, 154, 32, 0.3);
+  background:
+    radial-gradient(circle at 18% 16%, rgba(216, 154, 32, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 236, 0.9));
+}
+
+.vault-id-scanner__reticle,
+.vault-secret-attempt__icon {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  color: #ffffff;
+  background: linear-gradient(145deg, var(--vault-blue), var(--vault-accent));
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16);
+}
+
+.vault-id-scanner.is-armed .vault-id-scanner__reticle {
+  animation: vault-id-reticle-armed 1.8s ease-in-out infinite;
+}
+
+.vault-id-scanner.is-locked .vault-id-scanner__reticle {
+  background: linear-gradient(145deg, var(--vault-gold), var(--vault-accent));
+  animation: vault-id-reticle-locked 2.2s ease-in-out infinite;
+}
+
+.vault-id-scanner__field,
+.vault-secret-attempt__field {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.vault-id-scanner__field span,
+.vault-secret-attempt__field span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.vault-id-scanner__field input,
+.vault-secret-attempt__field input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ns-ink, #1e1e2e);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+  outline: none;
+}
+
+.vault-id-scanner__field input::placeholder,
+.vault-secret-attempt__field input::placeholder {
+  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 750;
+}
+
+.vault-id-scanner__field input:focus-visible,
+.vault-secret-attempt__field input:focus-visible {
+  box-shadow: 0 2px 0 var(--vault-accent);
+}
+
+.vault-id-scanner__beam {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 9px;
+  z-index: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.vault-id-scanner__beam::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 36%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0), rgba(37, 99, 235, 0.72), rgba(22, 199, 132, 0.72));
+  transform: translateX(-100%);
+}
+
+.vault-id-scanner.is-armed .vault-id-scanner__beam::after,
+.vault-id-scanner.is-loading .vault-id-scanner__beam::after {
+  animation: vault-id-beam-route 1.7s ease-in-out infinite;
+}
+
+.vault-id-scanner.is-locked .vault-id-scanner__beam {
+  background: rgba(216, 154, 32, 0.16);
+}
+
+.vault-id-scanner.is-locked .vault-id-scanner__beam::after {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(22, 199, 132, 0.74), rgba(216, 154, 32, 0.82));
+  transform: translateX(0);
+}
+
+.vault-secret-attempt {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 13px 13px 17px;
+  border-color: rgba(225, 29, 72, 0.15);
+}
+
+.vault-secret-attempt.is-charged {
+  border-color: rgba(225, 29, 72, 0.28);
+}
+
+.vault-secret-attempt.is-ready {
+  border-color: rgba(22, 199, 132, 0.3);
+  background:
+    radial-gradient(circle at 15% 18%, rgba(225, 29, 72, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(228, 248, 240, 0.9));
+}
+
+.vault-secret-attempt__icon {
+  background: linear-gradient(145deg, #e11d48, var(--vault-gold));
+}
+
+.vault-secret-attempt.is-ready .vault-secret-attempt__icon {
+  animation: vault-secret-ready-pulse 1.35s ease-in-out infinite;
+}
+
+.vault-secret-attempt__charge {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 9px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(225, 29, 72, 0.1);
+}
+
+.vault-secret-attempt__charge span {
+  display: block;
+  width: 34%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(225, 29, 72, 0.78), rgba(216, 154, 32, 0.82));
+  transform: translateX(-100%);
+}
+
+.vault-secret-attempt.is-charged .vault-secret-attempt__charge span {
+  animation: vault-secret-charge 1.6s ease-in-out infinite;
+}
+
+.vault-secret-attempt.is-ready .vault-secret-attempt__charge {
+  background: rgba(22, 199, 132, 0.14);
+}
+
+.vault-secret-attempt.is-ready .vault-secret-attempt__charge span {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(22, 199, 132, 0.76), rgba(216, 154, 32, 0.82));
+  transform: translateX(0);
+}
+
 .vault-break-stage {
   position: relative;
   display: grid;
@@ -1713,6 +1929,96 @@
   }
 }
 
+@keyframes vault-input-scan {
+  0%,
+  54% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  68% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes vault-id-reticle-armed {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow:
+      0 16px 30px rgba(37, 99, 235, 0.22),
+      0 0 0 6px rgba(37, 99, 235, 0.1);
+  }
+}
+
+@keyframes vault-id-reticle-locked {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 12px 24px rgba(10, 128, 80, 0.16);
+  }
+
+  50% {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 30px rgba(10, 128, 80, 0.2),
+      0 0 0 6px rgba(216, 154, 32, 0.12);
+  }
+}
+
+@keyframes vault-id-beam-route {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  64% {
+    transform: translateX(96%);
+  }
+
+  100% {
+    transform: translateX(180%);
+  }
+}
+
+@keyframes vault-secret-charge {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  58% {
+    transform: translateX(110%);
+  }
+
+  100% {
+    transform: translateX(190%);
+  }
+}
+
+@keyframes vault-secret-ready-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 12px 24px rgba(190, 18, 60, 0.16);
+  }
+
+  50% {
+    transform: scale(1.06);
+    box-shadow:
+      0 16px 30px rgba(190, 18, 60, 0.22),
+      0 0 0 6px rgba(225, 29, 72, 0.1);
+  }
+}
+
 @keyframes vault-break-scan {
   0%,
   100% {
@@ -1843,6 +2149,8 @@
   .vault-hero-identity,
   .vault-command-shell__head,
   .vault-stats,
+  .vault-id-scanner,
+  .vault-secret-attempt,
   .vault-setup-grid,
   .vault-secret-panel,
   .vault-secret-panel__fields,
@@ -2004,6 +2312,12 @@
   .vault-break-stage--claimable .vault-break-stage__reticle,
   .vault-difficulty-card.is-selected .vault-difficulty-card__icon,
   .vault-create-hint--ready .vault-create-hint__dot,
+  .vault-id-scanner::before,
+  .vault-id-scanner__reticle,
+  .vault-id-scanner__beam::after,
+  .vault-secret-attempt::before,
+  .vault-secret-attempt__icon,
+  .vault-secret-attempt__charge span,
   .vault-target-card--loaded,
   .vault-target-card--loaded .vault-target-card__icon,
   .vault-created {
