@@ -1,8 +1,11 @@
 import { useState } from "react";
 import {
   CircleDollarSign,
+  FileText,
   FolderKanban,
   HandCoins,
+  Link2,
+  Rocket,
   Sparkles,
 } from "lucide-react";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
@@ -123,12 +126,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const contributionAmountLabel = contributeAmount.trim()
     ? `${contributeAmount.trim()} GAS`
     : "— GAS";
+  const trimmedProjectName = projectName.trim();
+  const trimmedProjectDescription = projectDescription.trim();
+  const trimmedProjectLink = projectLink.trim();
   const contributionAmountPresets = ["1", "2", "5", "10"];
   const canRegisterProject = Boolean(
     selectedRound &&
-      projectName.trim() &&
+      trimmedProjectName &&
       !isRegisteringProject,
   );
+  const projectLaunchReady = Boolean(selectedRound && trimmedProjectName);
   const canContribute = Boolean(
     selectedRound &&
       contributeProjectId.trim() &&
@@ -313,33 +320,146 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {activeTab === "projects" && (
             <div className="qf-content-grid">
-              <NeoCard title={t("registerProject")} className="qf-form-panel">
-                <p className="qf-panel-hint">
+              <NeoCard
+                title={t("registerProject")}
+                className="qf-form-panel qf-project-launch-panel"
+              >
+                <p className="qf-panel-hint qf-project-launch-hint">
                   {selectedRound
                     ? selectedRoundDisplay
                     : t("qfSelectRoundBeforeProject")}
                 </p>
-                <div className="qf-form-grid">
-                  <NeoInput
-                    value={projectName}
-                    label={t("projectName")}
-                    placeholder={t("projectNamePlaceholder")}
-                    onChange={setProjectName}
+                <div
+                  className={`qf-project-launch-stage${
+                    trimmedProjectName ? " is-named" : ""
+                  }${trimmedProjectDescription ? " is-described" : ""}${
+                    trimmedProjectLink ? " is-linked" : ""
+                  }${projectLaunchReady ? " is-ready" : ""}`}
+                  aria-label={t("registerProject")}
+                >
+                  <img
+                    className="qf-project-launch-stage__image"
+                    src="./funding-desk.jpg"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
                   />
-                  <NeoInput
-                    value={projectDescription}
-                    label={t("projectDescription")}
-                    placeholder={t("projectDescriptionPlaceholder")}
-                    onChange={setProjectDescription}
+                  <div
+                    className="qf-project-launch-stage__scrim"
+                    aria-hidden="true"
                   />
-                  <NeoInput
-                    value={projectLink}
-                    label={t("projectLink")}
-                    placeholder={t("projectLinkPlaceholder")}
-                    onChange={setProjectLink}
+                  <div
+                    className="qf-project-launch-stage__beam"
+                    aria-hidden="true"
                   />
+                  <div className="qf-project-launch-card">
+                    <span>
+                      <FolderKanban aria-hidden="true" />
+                      {t("registerProject")}
+                    </span>
+                    <strong>
+                      {trimmedProjectName || t("projectNamePlaceholder")}
+                    </strong>
+                    <small>
+                      {trimmedProjectDescription ||
+                        t("projectDescriptionPlaceholder")}
+                    </small>
+                    {trimmedProjectLink && (
+                      <em>
+                        <Link2 aria-hidden="true" />
+                        {trimmedProjectLink}
+                      </em>
+                    )}
+                  </div>
+                  <div
+                    className="qf-project-launch-signals"
+                    aria-hidden="true"
+                  >
+                    <span className={trimmedProjectName ? "is-ready" : ""}>
+                      <Rocket />
+                    </span>
+                    <span
+                      className={trimmedProjectDescription ? "is-ready" : ""}
+                    >
+                      <FileText />
+                    </span>
+                    <span className={trimmedProjectLink ? "is-ready" : ""}>
+                      <Link2 />
+                    </span>
+                  </div>
                 </div>
-                <div className="qf-panel-footer">
+
+                <div className="qf-project-launch-fields">
+                  <section
+                    className={`qf-project-field qf-project-field--name${
+                      trimmedProjectName ? " is-active" : ""
+                    }`}
+                  >
+                    <div className="qf-project-field__icon" aria-hidden="true">
+                      <FolderKanban />
+                    </div>
+                    <div className="qf-project-field__body">
+                      <div className="qf-project-field__head">
+                        <span>{t("projectName")}</span>
+                        <small>01</small>
+                      </div>
+                      <NeoInput
+                        value={projectName}
+                        aria-label={t("projectName")}
+                        placeholder={t("projectNamePlaceholder")}
+                        className="qf-project-field__input"
+                        onChange={setProjectName}
+                      />
+                    </div>
+                  </section>
+
+                  <section
+                    className={`qf-project-field qf-project-field--description${
+                      trimmedProjectDescription ? " is-active" : ""
+                    }`}
+                  >
+                    <div className="qf-project-field__icon" aria-hidden="true">
+                      <FileText />
+                    </div>
+                    <div className="qf-project-field__body">
+                      <div className="qf-project-field__head">
+                        <span>{t("projectDescription")}</span>
+                        <small>02</small>
+                      </div>
+                      <NeoInput
+                        value={projectDescription}
+                        aria-label={t("projectDescription")}
+                        placeholder={t("projectDescriptionPlaceholder")}
+                        className="qf-project-field__input"
+                        onChange={setProjectDescription}
+                      />
+                    </div>
+                  </section>
+
+                  <section
+                    className={`qf-project-field qf-project-field--link${
+                      trimmedProjectLink ? " is-active" : ""
+                    }`}
+                  >
+                    <div className="qf-project-field__icon" aria-hidden="true">
+                      <Link2 />
+                    </div>
+                    <div className="qf-project-field__body">
+                      <div className="qf-project-field__head">
+                        <span>{t("projectLink")}</span>
+                        <small>03</small>
+                      </div>
+                      <NeoInput
+                        value={projectLink}
+                        aria-label={t("projectLink")}
+                        placeholder={t("projectLinkPlaceholder")}
+                        className="qf-project-field__input"
+                        onChange={setProjectLink}
+                      />
+                    </div>
+                  </section>
+                </div>
+                <div className="qf-panel-footer qf-project-launch-footer">
                   <NeoButton
                     variant="primary"
                     loading={isRegisteringProject}
