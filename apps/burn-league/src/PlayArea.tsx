@@ -737,11 +737,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     variant="primary"
                     size="lg"
                     block
-                    loading={isBurnActionBusy}
                     disabled={burnDisabled}
                     aria-label={isBurnActionBusy ? t("burning") : t("burn")}
                     onClick={handleBurn}
                   >
+                    {isBurnActionBusy ? (
+                      <span
+                        className="burn-league-cta-spinner"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <Flame size={18} strokeWidth={2.2} aria-hidden="true" />
+                    )}
                     {isBurnActionBusy ? t("burning") : t("burn")}
                   </NeoButton>
                   <span
