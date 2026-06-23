@@ -1,5 +1,9 @@
 import { createObservable, defineMiniApp } from "@shared/react";
-import { formatHash, toFixed8, fromFixed8 } from "@shared/utils/format";
+import {
+  formatHash,
+  parsePositiveFixed8,
+  fromFixed8,
+} from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { gasToWei, evmCall, decodeReturnWord } from "@shared/utils/evm-chain";
@@ -7,7 +11,12 @@ import type { EvmNetwork } from "@shared/utils/evm-chain";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { chainLabelOf, maxStakeOf, evmStatusToOutcome, maxPayableStakeOf } from "./dice-logic";
+import {
+  chainLabelOf,
+  maxStakeOf,
+  evmStatusToOutcome,
+  maxPayableStakeOf,
+} from "./dice-logic";
 import type { RollOutcome } from "./dice-logic";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
@@ -42,7 +51,9 @@ const DICE_EVM_ADDRESS: Partial<Record<EvmNetwork, string>> = {
 };
 const DICE_PLACE_BET_SELECTOR = "0x43046844"; // placeBet(uint8)
 const DICE_GET_BET_SELECTOR = "0x061e494f"; //   getBet(uint256)
-const DICE_BET_PLACED_TOPIC = "0xd8175cc91837f6ecc7efc5783d64298c19ccb0e81d4b0436c082fa056905d942";
+const DICE_BET_PLACED_TOPIC =
+  "0xd8175cc91837f6ecc7efc5783d64298c19ccb0e81d4b0436c082fa056905d942";
+const MIN_STAKE_FIXED8 = 5_000_000n; // 0.05 GAS
 
 function sanitizeFace(value: unknown): string {
   const face = Number(value);
@@ -50,14 +61,36 @@ function sanitizeFace(value: unknown): string {
   return String(face);
 }
 
-function sanitizeAmount(value: unknown, max = 20): string {
+export function sanitizeAmount(value: unknown, max = 20): string {
   const raw = String(value ?? "").trim();
   if (raw.length === 0) return "0.10";
-  const amount = Number(raw);
-  if (!Number.isFinite(amount)) return "0.10";
-  if (amount < 0.05) return "0.05";
-  if (amount > max) return max.toFixed(2).replace(/\.00$/, "");
-  return amount.toFixed(2).replace(/\.00$/, "");
+  const fixed8 = parsePositiveFixed8(raw);
+  if (!fixed8) return "0.10";
+  const amount = BigInt(fixed8);
+  const maxFixed8 = BigInt(parsePositiveFixed8(String(max)) ?? "0");
+  if (amount < MIN_STAKE_FIXED8) return "0.05";
+  if (maxFixed8 > 0n && amount > maxFixed8) {
+    return fixed8ToStakeDisplay(maxFixed8.toString());
+  }
+  return fixed8ToStakeDisplay(fixed8);
+}
+
+export function fixed8ToStakeDisplay(fixed8: string): string {
+  const raw = BigInt(fixed8);
+  const whole = raw / 100_000_000n;
+  const fraction = raw % 100_000_000n;
+  if (fraction === 0n) return whole.toString();
+  return `${whole}.${fraction.toString().padStart(8, "0").replace(/0+$/, "")}`;
+}
+
+export function parseStakeFixed8(value: unknown, max = 20): string | null {
+  const fixed8 = parsePositiveFixed8(String(value ?? "").trim());
+  if (!fixed8) return null;
+  const amount = BigInt(fixed8);
+  const maxFixed8 = BigInt(parsePositiveFixed8(String(max)) ?? "0");
+  if (amount < MIN_STAKE_FIXED8) return null;
+  if (maxFixed8 > 0n && amount > maxFixed8) return null;
+  return fixed8;
 }
 
 function payoutFor(amount: string): string {
@@ -106,7 +139,8 @@ function addrEq(eventValue: unknown, playerHash: string): boolean {
  */
 function parseBetId(value: unknown): string {
   if (value == null) return "";
-  if (typeof value === "number" && Number.isFinite(value)) return String(Math.trunc(value));
+  if (typeof value === "number" && Number.isFinite(value))
+    return String(Math.trunc(value));
   if (typeof value === "bigint") return value.toString();
   const raw = String(value).trim();
   if (raw.length === 0) return "";
@@ -150,7 +184,8 @@ defineMiniApp({
     // pinned to the ACTIVE (most recent) bet so interleaved bets never stomp
     // each other's row or banner.
     const tracker = createBetTracker();
-    const { rollHistory, lastRoll, lastOutcome, isResolving, isUnresolved } = tracker;
+    const { rollHistory, lastRoll, lastOutcome, isResolving, isUnresolved } =
+      tracker;
     // Re-run handle for the ACTIVE EVM bet's settlement poll. When the poll times
     // out (the VRF oracle has not called back yet) the player can press "Check
     // again" to poll once more rather than face a frozen spinner. EVM-only — N3
@@ -186,7 +221,9 @@ defineMiniApp({
       let liquidity = 0;
       let credit = 0;
       try {
-        liquidity = fromFixed8(parseBigInt(await ctx.services.chain.read("bankroll", [])));
+        liquidity = fromFixed8(
+          parseBigInt(await ctx.services.chain.read("bankroll", [])),
+        );
       } catch {
         liquidity = houseLiquidity.get();
       }
@@ -206,7 +243,9 @@ defineMiniApp({
       directCredit.set(credit);
       // The house cover is the bankroll alone; standing credit holds the
       // player's stake (consumed on the roll) and does not raise the cap.
-      maxPayableStake.set(maxPayableStakeOf(liquidity, LIQUIDITY_COVER_MULTIPLE));
+      maxPayableStake.set(
+        maxPayableStakeOf(liquidity, LIQUIDITY_COVER_MULTIPLE),
+      );
     };
 
     const refreshNetwork = async (): Promise<string> => {
@@ -237,7 +276,9 @@ defineMiniApp({
       const playerHash = player ? addressToScriptHash(player) : "";
       if (!playerHash || rollHistory.get().length > 0) return;
       try {
-        const events = await ctx.services.chain.listEvents("Settled", { limit: 60 });
+        const events = await ctx.services.chain.listEvents("Settled", {
+          limit: 60,
+        });
         const mine = events
           .filter((ev) => addrEq(eventStateValue(ev, 1), playerHash))
           // Newest first — the indexer returns oldest-first, so reverse.
@@ -264,23 +305,22 @@ defineMiniApp({
       }
     };
 
-    const syncSelection = (face: unknown, amount: unknown) => {
-      const nextFace = sanitizeFace(face);
-      const nextAmount = sanitizeAmount(amount, maxStake.get());
-      selectedFace.set(nextFace);
-      stakeAmount.set(`${nextAmount} GAS`);
-      payoutPreview.set(payoutFor(nextAmount));
-      return { nextFace, nextAmount };
-    };
-
     // Reveal a settled bet: update ITS history row (matched by id — a later
     // bet may occupy row 0 by now) and, only when it is still the active bet,
     // the dice + result banner. A win on the active bet fires the host
     // fireworks via the success status.
-    const finishResolve = (rowId: string, outcome: RollOutcome, rolled: number, amount: string) => {
+    const finishResolve = (
+      rowId: string,
+      outcome: RollOutcome,
+      rolled: number,
+      amount: string,
+    ) => {
       const won = outcome === "won";
-      const label =
-        won ? ctx.t("outcomeWon") : outcome === "refunded" ? ctx.t("outcomeRefunded") : ctx.t("outcomeLost");
+      const label = won
+        ? ctx.t("outcomeWon")
+        : outcome === "refunded"
+          ? ctx.t("outcomeRefunded")
+          : ctx.t("outcomeLost");
       const isActive = tracker.settleBet(rowId, {
         outcome,
         rolled,
@@ -301,7 +341,12 @@ defineMiniApp({
     };
 
     // Neo X: poll getBet(requestId) until the VRF settles the bet on-chain.
-    const resolveEvmBet = async (rowId: string, address: string, requestId: string, amount: string) => {
+    const resolveEvmBet = async (
+      rowId: string,
+      address: string,
+      requestId: string,
+      amount: string,
+    ) => {
       for (let i = 0; i < 45; i += 1) {
         await sleep(4000);
         let raw: string;
@@ -312,7 +357,12 @@ defineMiniApp({
         }
         const status = Number(decodeReturnWord(raw, 4)); // Bet.status word
         if (status <= 1) continue; // None / Pending
-        finishResolve(rowId, evmStatusToOutcome(status), Number(decodeReturnWord(raw, 3)), amount);
+        finishResolve(
+          rowId,
+          evmStatusToOutcome(status),
+          Number(decodeReturnWord(raw, 3)),
+          amount,
+        );
         return;
       }
       tracker.markUnresolved(rowId); // timed out — stays "rolling" in history
@@ -325,7 +375,9 @@ defineMiniApp({
     const findSettledEvent = async (betId: string): Promise<unknown | null> => {
       if (!betId) return null;
       try {
-        const events = await ctx.services.chain.listEvents("Settled", { limit: 60 });
+        const events = await ctx.services.chain.listEvents("Settled", {
+          limit: 60,
+        });
         const hit = [...events]
           .reverse()
           .find((ev) => parseBetId(eventStateValue(ev, 0)) === betId);
@@ -337,7 +389,11 @@ defineMiniApp({
 
     // Reveal a settled betId from its Settled event (slots: betId(0), player(1),
     // face(2), rolled(3), won(4), payout(5)). Returns true if revealed.
-    const revealFromSettledEvent = (rowId: string, event: unknown, amount: string): boolean => {
+    const revealFromSettledEvent = (
+      rowId: string,
+      event: unknown,
+      amount: string,
+    ): boolean => {
       if (event == null) return false;
       const rolled = Number(eventStateValue(event, 3)) || 0;
       const won = asBool(eventStateValue(event, 4));
@@ -355,7 +411,12 @@ defineMiniApp({
      * the Settled event; if all attempts are exhausted the bet is left unresolved
      * so the player can press "Reveal result" to retry.
      */
-    const settleN3Bet = async (rowId: string, betId: string, amount: string, initialWaitMs = SETTLE_INITIAL_WAIT_MS) => {
+    const settleN3Bet = async (
+      rowId: string,
+      betId: string,
+      amount: string,
+      initialWaitMs = SETTLE_INITIAL_WAIT_MS,
+    ) => {
       if (!betId) {
         tracker.markUnresolved(rowId);
         lastStatus.set(ctx.t("statusSettlementPending"));
@@ -402,18 +463,29 @@ defineMiniApp({
      * wait→settle flow. If the betId can't be recovered the bet stays unresolved
      * for a manual retry.
      */
-    const recoverAndSettleN3 = async (rowId: string, txid: string, playerHash: string, amount: string) => {
+    const recoverAndSettleN3 = async (
+      rowId: string,
+      txid: string,
+      playerHash: string,
+      amount: string,
+    ) => {
       for (let i = 0; i < 6; i += 1) {
         await sleep(SETTLE_RETRY_DELAY_MS);
         try {
-          const events = await ctx.services.chain.listEvents("Committed", { limit: 40 });
+          const events = await ctx.services.chain.listEvents("Committed", {
+            limit: 40,
+          });
           const hit = txid
-            ? events.find((ev) => String((ev as { txid?: unknown })?.txid ?? "") === txid)
+            ? events.find(
+                (ev) => String((ev as { txid?: unknown })?.txid ?? "") === txid,
+              )
             : undefined;
           const mine =
             hit ??
             (playerHash
-              ? [...events].reverse().find((ev) => addrEq(eventStateValue(ev, 1), playerHash))
+              ? [...events]
+                  .reverse()
+                  .find((ev) => addrEq(eventStateValue(ev, 1), playerHash))
               : undefined);
           const betId = mine ? parseBetId(eventStateValue(mine, 0)) : "";
           if (betId) {
@@ -441,8 +513,11 @@ defineMiniApp({
         ctx.setStatus(ctx.t("statusNeoXNoCredit"), "error");
         return;
       }
-      const amount = sanitizeAmount(form.amount, maxStake.get());
-      const amountFixed8 = toFixed8(amount);
+      const amountFixed8 = parseStakeFixed8(form.amount, maxStake.get());
+      if (!amountFixed8) {
+        ctx.setStatus(ctx.t("invalidStake"), "error");
+        throw new Error(ctx.t("invalidStake"));
+      }
       const contractHash = ctx.services.chain.contractAddress.get();
       if (!contractHash) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
@@ -498,7 +573,10 @@ defineMiniApp({
 
     ctx.registerAction("placeDiceBet", async (...args: unknown[]) => {
       if (isSubmitting.get()) return;
-      const form = (args[0] ?? {}) as { chosenNumber?: unknown; amount?: unknown };
+      const form = (args[0] ?? {}) as {
+        chosenNumber?: unknown;
+        amount?: unknown;
+      };
 
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
@@ -509,14 +587,18 @@ defineMiniApp({
         // Auto-detect the chain from the connected wallet (also refreshes the UI
         // chain badge + per-network stake cap + house liquidity).
         network = await refreshNetwork();
-        const submittedAmount = sanitizeAmount(form.amount, maxStake.get());
-        const { nextFace, nextAmount } = syncSelection(form.chosenNumber, form.amount);
-        const amountFixed8 = toFixed8(nextAmount);
+        const rawFixed8 = parsePositiveFixed8(String(form.amount ?? "").trim());
+        if (!rawFixed8 || BigInt(rawFixed8) < MIN_STAKE_FIXED8) {
+          throw new Error(ctx.t("invalidStake"));
+        }
+        const maxFixed8 = BigInt(
+          parsePositiveFixed8(String(maxStake.get())) ?? "0",
+        );
 
         // The stake was silently clamped to the network cap (e.g. 10 GAS typed on
         // N3 then the wallet switched to Neo X's 2 GAS cap). Abort rather than bet
         // a different amount than the user asked for.
-        if (Number(submittedAmount) !== Number(nextAmount)) {
+        if (maxFixed8 > 0n && BigInt(rawFixed8) > maxFixed8) {
           throw new Error(
             ctx.t("statusStakeClamped", {
               cap: maxStake.get().toString(),
@@ -524,6 +606,12 @@ defineMiniApp({
             }),
           );
         }
+        const amountFixed8 = rawFixed8;
+        const nextAmount = fixed8ToStakeDisplay(amountFixed8);
+        const nextFace = sanitizeFace(form.chosenNumber);
+        selectedFace.set(nextFace);
+        stakeAmount.set(`${nextAmount} GAS`);
+        payoutPreview.set(payoutFor(nextAmount));
 
         if (ctx.services.chain.isEvmNetwork(network)) {
           // -- Neo X (EVM) — async VRF settle (UNCHANGED) ----------------------
@@ -542,7 +630,8 @@ defineMiniApp({
             valueWei: gasToWei(nextAmount).toString(),
             eventTopic: DICE_BET_PLACED_TOPIC,
           });
-          const requestId = (result.event as { id?: string } | undefined)?.id ?? "";
+          const requestId =
+            (result.event as { id?: string } | undefined)?.id ?? "";
 
           lastTxid.set(result.txid ?? "");
           lastStatus.set(ctx.t("statusRolling"));
@@ -561,7 +650,8 @@ defineMiniApp({
           );
           // Retain a re-run handle so a timed-out (unresolved) VRF settlement can
           // be re-polled from the UI's "Check again" action.
-          recheckActiveBet = () => void resolveEvmBet(rowId, address, requestId, nextAmount);
+          recheckActiveBet = () =>
+            void resolveEvmBet(rowId, address, requestId, nextAmount);
           // Reveal the outcome asynchronously so the user can keep playing.
           void resolveEvmBet(rowId, address, requestId, nextAmount);
           return result;
@@ -618,7 +708,10 @@ defineMiniApp({
         // Committed(betId, player, face, amount, commitIndex): betId is slot 0
         // (a BigInteger counter). The wager is now escrowed; reflect a clear
         // pending "revealing on the next block" state. The bet is irrevocable.
-        const betId = result.event != null ? parseBetId(eventStateValue(result.event, 0)) : "";
+        const betId =
+          result.event != null
+            ? parseBetId(eventStateValue(result.event, 0))
+            : "";
         const rowId = tracker.beginBet({
           face: nextFace,
           stake: `${nextAmount} GAS`,
@@ -643,8 +736,19 @@ defineMiniApp({
           // The commit tx halted but the Committed event read timed out — without
           // the betId we cannot settle. Recover the betId from the Committed log
           // by txid, then settle; offer a manual retry meanwhile.
-          recheckActiveBet = () => void recoverAndSettleN3(rowId, result.txid ?? "", playerHash, nextAmount);
-          void recoverAndSettleN3(rowId, result.txid ?? "", playerHash, nextAmount);
+          recheckActiveBet = () =>
+            void recoverAndSettleN3(
+              rowId,
+              result.txid ?? "",
+              playerHash,
+              nextAmount,
+            );
+          void recoverAndSettleN3(
+            rowId,
+            result.txid ?? "",
+            playerHash,
+            nextAmount,
+          );
           return result;
         }
         // STEP 2 + 3 — wait one block then settle(betId), revealing the outcome
@@ -654,7 +758,8 @@ defineMiniApp({
         void settleN3Bet(rowId, betId, nextAmount);
         return result;
       } catch (error) {
-        const rawMessage = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const rawMessage =
+          error instanceof Error ? error.message : ctx.t("statusFailed");
         // This bet never started resolving, so the tracker's reveal state is
         // left alone — a still-pending earlier (EVM) bet keeps its rolling banner.
         if (stakeSent || error instanceof DepositConfirmedActionFailedError) {
