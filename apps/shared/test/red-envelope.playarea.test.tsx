@@ -39,6 +39,8 @@ function t(key: string, params?: Record<string, string | number>) {
     expiryHours: "Expiry hours",
     giftMachineTitle: "Lucky packet machine",
     giftMachineCopy: "Tune the pool, packet count, and expiry before sending.",
+    decreaseValue: "Decrease {label}",
+    increaseValue: "Increase {label}",
     hoursSuffix: "h",
     invalidAmount: "Enter at least 0.1 GAS",
     invalidExpiry: "Enter a valid expiry in hours",
@@ -50,6 +52,7 @@ function t(key: string, params?: Record<string, string | number>) {
     noPools: "No active envelopes",
     noPoolsCopy: "Create or paste an envelope ID.",
     packetCount: "Packet count",
+    packetUnit: "packets",
     perPacketLabel: "Average packet",
     poolProgress: "Pool progress",
     ready: "Ready",
@@ -70,7 +73,9 @@ function t(key: string, params?: Record<string, string | number>) {
       ]),
     ),
   };
-  return messages[key] ?? key;
+  return (messages[key] ?? key).replace(/\{(\w+)\}/g, (_, paramKey: string) =>
+    params?.[paramKey] === undefined ? `{${paramKey}}` : String(params[paramKey]),
+  );
 }
 
 function launch(url = "https://neomini.app/miniapps/red-envelope/index.html?network=testnet") {
@@ -187,6 +192,8 @@ describe("Red Envelope PlayArea", () => {
     expect(container.querySelector(".redenv-gift-machine--ready")).toBeNull();
     expect(container.querySelector(".redenv-send-button")).toBeTruthy();
     expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
+    expect(document.querySelectorAll(".redenv-machine-dial").length).toBe(3);
+    expect(document.querySelector(".redenv-envelope-dials .neo-input")).toBeNull();
     expect(document.querySelectorAll(".redenv-preset-group").length).toBe(3);
     expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.1");
     expect((screen.getByLabelText("Packet count") as HTMLInputElement).value).toBe("100");
@@ -203,13 +210,19 @@ describe("Red Envelope PlayArea", () => {
     expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(false);
     expect(container.querySelector(".redenv-gift-machine--ready")).toBeTruthy();
 
+    fireEvent.click(screen.getByRole("button", { name: "Increase Total GAS" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decrease Expiry hours" }));
+
+    expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.2");
+    expect((screen.getByLabelText("Expiry hours") as HTMLInputElement).value).toBe("11");
+
     fireEvent.click(screen.getByRole("button", { name: "Send Red Envelope" }));
 
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("createEnvelope", {
-        amount: "0.1",
+        amount: "0.2",
         count: "5",
-        expiryHours: "12",
+        expiryHours: "11",
       }),
     );
   });
@@ -244,7 +257,9 @@ describe("Red Envelope PlayArea", () => {
     expect(styles).toMatch(/@keyframes redenv-machine-sweep/);
     expect(styles).toMatch(/@keyframes redenv-machine-seal-send/);
     expect(styles).toMatch(/@keyframes redenv-machine-packet-ready/);
+    expect(styles).toMatch(/@keyframes redenv-dial-glow/);
     expect(styles).toMatch(/\.redenv-gift-machine--sending \.redenv-gift-machine__chute span\s*\{[\s\S]*animation-name:\s*redenv-machine-packet-send/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-gift-machine__chute span/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-machine-dial__track span/);
   });
 });

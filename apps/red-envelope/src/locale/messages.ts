@@ -100,8 +100,11 @@ const appMessages = {
     en: "Tune the pool, packet count, and expiry before sending.",
     zh: "发送前调好奖池、红包数量和有效期。",
   },
+  decreaseValue: { en: "Decrease {label}", zh: "减少{label}" },
+  increaseValue: { en: "Increase {label}", zh: "增加{label}" },
   readyToSendEnvelope: { en: "Ready to send", zh: "可以发送" },
   adjustEnvelopeSetup: { en: "Adjust setup", zh: "调整配置" },
+  packetUnit: { en: "packets", zh: "个" },
   packetPreset: { en: "{count} packets", zh: "{count} 个红包" },
   hourPreset: { en: "{hours}h", zh: "{hours} 小时" },
   sendOperationDesc: {

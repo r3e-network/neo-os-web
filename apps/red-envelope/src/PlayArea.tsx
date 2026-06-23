@@ -14,7 +14,9 @@ import {
   ChevronDown,
   Coins,
   Gift,
+  Minus,
   PackageOpen,
+  Plus,
   Send,
   ShieldCheck,
   Sparkles,
@@ -90,6 +92,95 @@ function getLaunchCreateForm(context: MiniAppLaunchContext) {
 const AMOUNT_PRESETS = ["0.5", "1", "3"];
 const PACKET_PRESETS = ["4", "8", "16"];
 const EXPIRY_PRESETS = ["12", "24", "72"];
+
+interface CreateDialProps {
+  label: string;
+  value: string;
+  suffix: string;
+  min: number;
+  max?: number;
+  step: number;
+  precision?: number;
+  fill: string;
+  decreaseLabel: string;
+  increaseLabel: string;
+  onChange: (value: string) => void;
+}
+
+function formatDialValue(value: number, precision = 0): string {
+  if (!Number.isFinite(value)) return "";
+  if (precision <= 0) return String(Math.round(value));
+  return value.toFixed(precision).replace(/\.?0+$/, "");
+}
+
+function clampDialValue(value: number, min: number, max?: number): number {
+  const upper = max ?? Number.POSITIVE_INFINITY;
+  return Math.min(upper, Math.max(min, value));
+}
+
+function CreateDial({
+  label,
+  value,
+  suffix,
+  min,
+  max,
+  step,
+  precision = 0,
+  fill,
+  decreaseLabel,
+  increaseLabel,
+  onChange,
+}: CreateDialProps) {
+  const numericValue = Number(value);
+  const canDecrease = Number.isFinite(numericValue) && numericValue > min;
+  const canIncrease = Number.isFinite(numericValue) && (max === undefined || numericValue < max);
+
+  const nudge = (direction: 1 | -1) => {
+    const base = Number.isFinite(numericValue) ? numericValue : min;
+    const next = clampDialValue(base + direction * step, min, max);
+    onChange(formatDialValue(next, precision));
+  };
+
+  return (
+    <div className="redenv-machine-dial" style={{ "--redenv-dial-fill": fill } as CSSProperties}>
+      <div className="redenv-machine-dial__head">
+        <span>{label}</span>
+        <small>{suffix}</small>
+      </div>
+      <div className="redenv-machine-dial__control">
+        <button
+          type="button"
+          aria-label={decreaseLabel}
+          disabled={!canDecrease}
+          onClick={() => nudge(-1)}
+        >
+          <Minus size={14} />
+        </button>
+        <input
+          aria-label={label}
+          value={value}
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          inputMode={precision > 0 ? "decimal" : "numeric"}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button
+          type="button"
+          aria-label={increaseLabel}
+          disabled={!canIncrease}
+          onClick={() => nudge(1)}
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+      <div className="redenv-machine-dial__track" aria-hidden="true">
+        <span />
+      </div>
+    </div>
+  );
+}
 
 export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { bool, val } = useStateBindings(state);
@@ -561,31 +652,39 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   className="redenv-create-grid redenv-envelope-dials"
                   aria-label={t("createPreviewTitle")}
                 >
-                  <NeoInput
+                  <CreateDial
                     value={createForm.amount}
-                    type="number"
                     min={0.1}
+                    step={0.1}
+                    precision={2}
                     suffix="GAS"
                     label={t("totalGas")}
-                    placeholder="1"
+                    fill={`${createAmountProgress}%`}
+                    decreaseLabel={t("decreaseValue", { label: t("totalGas") })}
+                    increaseLabel={t("increaseValue", { label: t("totalGas") })}
                     onChange={(value) => setCreateField("amount", value)}
                   />
-                  <NeoInput
+                  <CreateDial
                     value={createForm.count}
-                    type="number"
                     min={1}
                     max={100}
+                    step={1}
+                    suffix={t("packetUnit")}
                     label={t("packetCount")}
-                    placeholder="8"
+                    fill={`${createCountProgress}%`}
+                    decreaseLabel={t("decreaseValue", { label: t("packetCount") })}
+                    increaseLabel={t("increaseValue", { label: t("packetCount") })}
                     onChange={(value) => setCreateField("count", value)}
                   />
-                  <NeoInput
+                  <CreateDial
                     value={createForm.expiryHours}
-                    type="number"
                     min={1}
+                    step={1}
                     suffix={t("hoursSuffix")}
                     label={t("expiryHours")}
-                    placeholder="24"
+                    fill={`${createExpiryProgress}%`}
+                    decreaseLabel={t("decreaseValue", { label: t("expiryHours") })}
+                    increaseLabel={t("increaseValue", { label: t("expiryHours") })}
                     onChange={(value) => setCreateField("expiryHours", value)}
                   />
                 </div>
