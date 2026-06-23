@@ -4,12 +4,14 @@
  * Wallet-style AA account registration and inspection workspace.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import {
   ChevronDown,
   Fingerprint,
+  KeyRound,
+  Link2,
   Search,
   ShieldCheck,
   TriangleAlert,
@@ -30,6 +32,7 @@ interface PlayAreaProps {
 }
 
 const DASH = "—";
+type AccountActionPreview = "inspect" | "register" | "connect";
 
 export default function PlayArea({
   t,
@@ -71,6 +74,31 @@ export default function PlayArea({
   const [escapeTimelock, setEscapeTimelock] = useState(
     launchDefaults.escapeTimelock || DEFAULT_ESCAPE_TIMELOCK,
   );
+  const [actionPreview, setActionPreview] =
+    useState<AccountActionPreview | null>(null);
+  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(
+    () => () => {
+      if (actionPreviewTimeout.current !== null) {
+        clearTimeout(actionPreviewTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const startActionPreview = (action: AccountActionPreview) => {
+    if (actionPreviewTimeout.current !== null) {
+      clearTimeout(actionPreviewTimeout.current);
+    }
+    setActionPreview(action);
+    actionPreviewTimeout.current = setTimeout(() => {
+      setActionPreview(null);
+      actionPreviewTimeout.current = null;
+    }, 1300);
+  };
 
   // Prefill the backup owner with the connected wallet once (until the user
   // edits it). registerAccount requires the backup owner to sign, so the
@@ -123,12 +151,14 @@ export default function PlayArea({
     backupOwnerNormalized !== walletNormalized;
 
   const canInspect = Boolean(accountId.trim()) && !isInspecting;
-  const canRegister =
+  const registerReady =
     Boolean(verifierHash.trim()) &&
     Boolean(backupOwner.trim()) &&
     Boolean(escapeTimelock.trim()) &&
     Boolean(derivedRegistrationId) &&
-    !backupOwnerMismatch &&
+    !backupOwnerMismatch;
+  const canRegister =
+    registerReady &&
     !isSubmitting;
 
   // Explicit flag set by the composable after a successful read, so an account
@@ -143,6 +173,29 @@ export default function PlayArea({
   // After a successful inspect, if the entered account already has a verifier
   // set, a re-register would revert on-chain. Warn before the user pays.
   const alreadyRegistered = hasInspected && !verifierUnset;
+  const isInspectPreview = actionPreview === "inspect";
+  const isRegisterPreview = actionPreview === "register";
+  const isConnectPreview = actionPreview === "connect";
+  const isFlowActive =
+    isInspecting || isSubmitting || isInspectPreview || isRegisterPreview;
+  const accountFlowStatus = isRegisterPreview || isSubmitting
+      ? t("accountStageRegistering")
+      : isInspectPreview || isInspecting
+        ? t("accountStageInspecting")
+        : isConnectPreview
+          ? t("accountStageConnecting")
+          : registerReady
+            ? t("accountStageReady")
+            : t("accountStageIdle");
+  const accountFlowClassName = [
+    "account-flow-stage",
+    registerReady ? "account-flow-stage--ready" : "",
+    isInspectPreview || isInspecting ? "account-flow-stage--inspecting" : "",
+    isRegisterPreview || isSubmitting ? "account-flow-stage--registering" : "",
+    isConnectPreview ? "account-flow-stage--connecting" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const fmt = (value: string) =>
     !value || value === notAvailable ? DASH : value;
@@ -166,7 +219,14 @@ export default function PlayArea({
   ];
 
   return (
-    <div className="aa-account-play-area">
+    <div
+      className={[
+        "aa-account-play-area",
+        isFlowActive ? "aa-account-play-area--active" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <section className="account-hero">
         <div className="account-hero__copy">
           <div className="account-hero__intro">
@@ -215,6 +275,57 @@ export default function PlayArea({
         </div>
       </section>
 
+      <section
+        className={accountFlowClassName}
+        aria-label={t("accountFlowLabel")}
+        aria-live="polite"
+      >
+        <img
+          className="account-flow-stage__media"
+          src="./account-control-center.jpg"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          aria-hidden="true"
+        />
+        <div className="account-flow-stage__shade" aria-hidden="true" />
+        <div className="account-flow-stage__rail" aria-hidden="true">
+          <span className="account-flow-stage__node account-flow-stage__node--wallet">
+            <Wallet />
+          </span>
+          <span className="account-flow-stage__route account-flow-stage__route--one" />
+          <span className="account-flow-stage__node account-flow-stage__node--verifier">
+            <KeyRound />
+          </span>
+          <span className="account-flow-stage__route account-flow-stage__route--two" />
+          <span className="account-flow-stage__node account-flow-stage__node--shell">
+            <Fingerprint />
+          </span>
+          <span className="account-flow-stage__packet">
+            <ShieldCheck />
+          </span>
+        </div>
+        <div className="account-flow-stage__copy">
+          <small>{t("accountStageEyebrow")}</small>
+          <strong>{accountFlowStatus}</strong>
+          <span>{t("accountStageCopy")}</span>
+        </div>
+        <div className="account-flow-stage__steps">
+          <span>
+            <Search aria-hidden="true" />
+            <strong>{t("accountFlowInspect")}</strong>
+          </span>
+          <span>
+            <Link2 aria-hidden="true" />
+            <strong>{t("accountFlowRegister")}</strong>
+          </span>
+          <span>
+            <ShieldCheck aria-hidden="true" />
+            <strong>{t("accountFlowRecovery")}</strong>
+          </span>
+        </div>
+      </section>
+
       <section className="account-workspace">
         <NeoCard
           variant="erobo"
@@ -238,7 +349,10 @@ export default function PlayArea({
                 loading={isInspecting}
                 disabled={!canInspect}
                 aria-label={t("inspect")}
-                onClick={() => dispatch("inspect", accountId)}
+                onClick={() => {
+                  startActionPreview("inspect");
+                  void dispatch("inspect", accountId);
+                }}
               >
                 <Search aria-hidden="true" />
                 {t("inspect")}
@@ -246,7 +360,10 @@ export default function PlayArea({
               <NeoButton
                 variant="secondary"
                 aria-label={t("connectWallet")}
-                onClick={() => dispatch("connect")}
+                onClick={() => {
+                  startActionPreview("connect");
+                  void dispatch("connect");
+                }}
               >
                 <Wallet aria-hidden="true" />
                 {t("connectWallet")}
@@ -392,7 +509,7 @@ export default function PlayArea({
                     {t("derivedAccountIdHint")}
                   </span>
                 </div>
-                {!canRegister && (
+                {!registerReady && (
                   <p className="account-hint">{t("registerBlocked")}</p>
                 )}
                 {alreadyRegistered && (
@@ -422,8 +539,9 @@ export default function PlayArea({
                   loading={isSubmitting}
                   disabled={!canRegister}
                   aria-label={t("register")}
-                  onClick={() =>
-                    dispatch(
+                  onClick={() => {
+                    startActionPreview("register");
+                    void dispatch(
                       "register",
                       accountId,
                       verifierHash,
@@ -431,8 +549,8 @@ export default function PlayArea({
                       hookHash,
                       backupOwner,
                       escapeTimelock,
-                    )
-                  }
+                    );
+                  }}
                 >
                   <ShieldCheck aria-hidden="true" />
                   {t("register")}
