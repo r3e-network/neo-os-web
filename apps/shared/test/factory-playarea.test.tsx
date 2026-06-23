@@ -1,7 +1,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type Observable } from "../react/context";
@@ -300,17 +300,39 @@ describe("FactoryPlayArea", () => {
       document.querySelector(".domain-factory-drop-composer"),
     ).toBeTruthy();
     expect(
+      document.querySelector(".domain-factory-drop-identity"),
+    ).toBeTruthy();
+    expect(
+      document.querySelector(".domain-factory-drop-field--collection"),
+    ).toBeTruthy();
+    expect(
+      document.querySelector(".domain-factory-drop-field--symbol"),
+    ).toBeTruthy();
+    expect(
+      document.querySelector(".domain-factory-drop-supply-control"),
+    ).toBeTruthy();
+    expect(
+      document.querySelector(".domain-factory-drop-royalty-control"),
+    ).toBeTruthy();
+    expect(
       document.querySelectorAll(".domain-factory-drop-preset img"),
     ).toHaveLength(4);
     act(() => {
       screen.getByRole("button", { name: /5,000/ }).click();
     });
-    expect(screen.getByDisplayValue("5000")).toBeTruthy();
+    expect((screen.getByLabelText("Max supply") as HTMLInputElement).value).toBe(
+      "5000",
+    );
+    fireEvent.change(screen.getByLabelText("Royalty bps"), {
+      target: { value: "500" },
+    });
+    expect(screen.getByText("500 bps = 5% of each sale")).toBeTruthy();
     const soulboundPolicy = screen.getByRole("radio", { name: /Soulbound/ });
     act(() => {
       soulboundPolicy.click();
     });
     expect(soulboundPolicy.getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("switch", { name: /Transferable NFT/ })).toBeNull();
     expect(
       document.querySelector(".domain-factory-preview__edition-stack"),
     ).toBeTruthy();
@@ -328,12 +350,16 @@ describe("FactoryPlayArea", () => {
     expect(styles).toContain(".domain-factory-studio-flow__drop-deck");
     expect(styles).toContain(".domain-factory-drop-rail__stack");
     expect(styles).toContain(".domain-factory-drop-composer");
+    expect(styles).toContain(".domain-factory-drop-identity");
+    expect(styles).toContain(".domain-factory-drop-supply-control");
+    expect(styles).toContain(".domain-factory-drop-royalty-control");
     expect(styles).toContain(".domain-factory-drop-preset");
     expect(styles).toContain(".domain-factory-drop-policy");
     expect(styles).toContain(".domain-factory-preview__edition-stack");
     expect(styles).toContain("@keyframes domain-factory-nft-card-float");
     expect(styles).toContain("@keyframes domain-factory-nft-drop-cycle");
     expect(styles).toContain("@keyframes domain-factory-nft-mint-scan");
+    expect(styles).toContain("@keyframes domain-factory-drop-field-scan");
     expect(styles).toContain("@keyframes domain-factory-drop-control-lock");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });

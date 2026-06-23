@@ -1352,55 +1352,180 @@ export function FactoryPlayArea({
                     <span>{t("dropComposer")}</span>
                     <strong>{t("dropComposerHint")}</strong>
                   </div>
-                  <div
-                    className="domain-factory-drop-composer__presets"
-                    aria-label={t("dropSupplyPresets")}
-                  >
-                    {nep11SupplyPresets.map((preset) => {
-                      const selected = nep11.maxSupply === preset;
-                      return (
-                        <button
-                          key={preset}
-                          type="button"
-                          className={[
-                            "domain-factory-drop-preset",
-                            selected ? "is-active" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          onClick={() =>
+                  <div className="domain-factory-drop-identity">
+                    <section
+                      className={[
+                        "domain-factory-drop-field",
+                        "domain-factory-drop-field--collection",
+                        nep11.collectionName.trim() ? "is-active" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <span
+                        className="domain-factory-drop-field__icon"
+                        aria-hidden="true"
+                      >
+                        <Ticket size={17} />
+                      </span>
+                      <div className="domain-factory-drop-field__body">
+                        <div className="domain-factory-drop-field__head">
+                          <span>{t("collectionName")}</span>
+                          <strong>{nep11CollectionLabel}</strong>
+                        </div>
+                        <NeoInput
+                          label={t("collectionName")}
+                          value={nep11.collectionName}
+                          onChange={(collectionName) =>
                             setNep11((draft) => ({
                               ...draft,
-                              maxSupply: preset,
+                              collectionName,
                             }))
                           }
-                        >
-                          <span
-                            className="domain-factory-drop-preset__art"
-                            aria-hidden="true"
-                          >
-                            <img
-                              src="./nft-drop-preview.jpg"
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          </span>
-                          <span className="domain-factory-drop-preset__copy">
-                            <small>{t("dropSupplyPreset")}</small>
-                            <strong>{Number(preset).toLocaleString()}</strong>
-                          </span>
-                          {selected && (
-                            <Check
-                              className="domain-factory-drop-preset__check"
-                              size={15}
-                              aria-hidden="true"
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
+                        />
+                      </div>
+                    </section>
+                    <section
+                      className={[
+                        "domain-factory-drop-field",
+                        "domain-factory-drop-field--symbol",
+                        nep11.symbol.trim() ? "is-active" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <span
+                        className="domain-factory-drop-field__icon"
+                        aria-hidden="true"
+                      >
+                        <BadgeCheck size={17} />
+                      </span>
+                      <div className="domain-factory-drop-field__body">
+                        <div className="domain-factory-drop-field__head">
+                          <span>{t("symbol")}</span>
+                          <strong>{nep11SymbolLabel}</strong>
+                        </div>
+                        <NeoInput
+                          label={t("symbol")}
+                          value={nep11.symbol}
+                          onChange={(symbol) =>
+                            setNep11((draft) => ({ ...draft, symbol }))
+                          }
+                        />
+                      </div>
+                    </section>
                   </div>
+
+                  <div className="domain-factory-drop-controls">
+                    <section
+                      className={[
+                        "domain-factory-drop-supply-control",
+                        nep11.maxSupply.trim() ? "is-active" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <div className="domain-factory-drop-control__head">
+                        <span className="domain-factory-drop-control__icon">
+                          <Coins size={17} aria-hidden="true" />
+                        </span>
+                        <span>
+                          <small>{t("maxSupply")}</small>
+                          <strong>{nep11MaxSupplyLabel}</strong>
+                        </span>
+                      </div>
+                      <NeoInput
+                        label={t("maxSupply")}
+                        type="number"
+                        value={nep11.maxSupply}
+                        onChange={(maxSupply) =>
+                          setNep11((draft) => ({ ...draft, maxSupply }))
+                        }
+                      />
+                      <div
+                        className="domain-factory-drop-composer__presets"
+                        aria-label={t("dropSupplyPresets")}
+                      >
+                        {nep11SupplyPresets.map((preset) => {
+                          const selected = nep11.maxSupply === preset;
+                          return (
+                            <button
+                              key={preset}
+                              type="button"
+                              className={[
+                                "domain-factory-drop-preset",
+                                selected ? "is-active" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              onClick={() =>
+                                setNep11((draft) => ({
+                                  ...draft,
+                                  maxSupply: preset,
+                                }))
+                              }
+                            >
+                              <span
+                                className="domain-factory-drop-preset__art"
+                                aria-hidden="true"
+                              >
+                                <img
+                                  src="./nft-drop-preview.jpg"
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              </span>
+                              <span className="domain-factory-drop-preset__copy">
+                                <small>{t("dropSupplyPreset")}</small>
+                                <strong>
+                                  {Number(preset).toLocaleString()}
+                                </strong>
+                              </span>
+                              {selected && (
+                                <Check
+                                  className="domain-factory-drop-preset__check"
+                                  size={15}
+                                  aria-hidden="true"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+
+                    <section
+                      className={[
+                        "domain-factory-drop-royalty-control",
+                        royaltyHint ? "is-active" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <div className="domain-factory-drop-control__head">
+                        <span className="domain-factory-drop-control__icon">
+                          <ShieldCheck size={17} aria-hidden="true" />
+                        </span>
+                        <span>
+                          <small>{t("royaltyBps")}</small>
+                          <strong>{nep11RoyaltyLabel}</strong>
+                        </span>
+                      </div>
+                      <NeoInput
+                        label={t("royaltyBps")}
+                        type="number"
+                        value={nep11.royaltyBps}
+                        min={0}
+                        max={1000}
+                        hint={royaltyHint}
+                        onChange={(royaltyBps) =>
+                          setNep11((draft) => ({ ...draft, royaltyBps }))
+                        }
+                      />
+                    </section>
+                  </div>
+
                   <div
                     className="domain-factory-drop-composer__policy"
                     role="radiogroup"
@@ -1450,49 +1575,6 @@ export function FactoryPlayArea({
                     })}
                   </div>
                 </section>
-                <NeoInput
-                  label={t("collectionName")}
-                  value={nep11.collectionName}
-                  onChange={(collectionName) =>
-                    setNep11((draft) => ({ ...draft, collectionName }))
-                  }
-                />
-                <div className="domain-factory-form__row">
-                  <NeoInput
-                    label={t("symbol")}
-                    value={nep11.symbol}
-                    onChange={(symbol) =>
-                      setNep11((draft) => ({ ...draft, symbol }))
-                    }
-                  />
-                  <NeoInput
-                    label={t("maxSupply")}
-                    type="number"
-                    value={nep11.maxSupply}
-                    onChange={(maxSupply) =>
-                      setNep11((draft) => ({ ...draft, maxSupply }))
-                    }
-                  />
-                </div>
-                <NeoInput
-                  label={t("royaltyBps")}
-                  type="number"
-                  value={nep11.royaltyBps}
-                  min={0}
-                  max={1000}
-                  hint={royaltyHint}
-                  onChange={(royaltyBps) =>
-                    setNep11((draft) => ({ ...draft, royaltyBps }))
-                  }
-                />
-                <ToggleField
-                  label={t("transferable")}
-                  icon={Ticket}
-                  checked={nep11.transferable}
-                  onChange={(transferable) =>
-                    setNep11((draft) => ({ ...draft, transferable }))
-                  }
-                />
                 {renderDeploymentSetup(
                   <>
                     <ChoiceField
