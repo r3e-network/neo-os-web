@@ -146,6 +146,49 @@ describe("On-Chain Tarot PlayArea", () => {
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("draw"));
   });
 
+  it("previews dealing motion immediately and locks repeat draws", async () => {
+    let finishDraw: (() => void) | undefined;
+    const drawPromise = new Promise<void>((resolve) => {
+      finishDraw = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "draw" ? drawPromise : Promise.resolve(),
+    );
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ question: "What should I notice?" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Draw 3 Cards" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("draw");
+      expect(container.querySelector(".tarot-play-area--dealing")).toBeTruthy();
+      expect(container.querySelector(".tarot-intent-stage.is-dealing")).toBeTruthy();
+      expect(container.querySelector(".tarot-oracle-lane--dealing")).toBeTruthy();
+      expect(container.querySelector(".tarot-spread-table--dealing")).toBeTruthy();
+      expect(container.querySelector(".tarot-dealing-layer")).toBeTruthy();
+      expect(container.querySelector(".tarot-play-area")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".tarot-intent-stage")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".tarot-spread-table")?.getAttribute("aria-busy")).toBe("true");
+    });
+
+    const busyButton = screen.getByRole("button", {
+      name: "Drawing cards...",
+    }) as HTMLButtonElement;
+    expect(busyButton.disabled).toBe(true);
+    expect(busyButton.getAttribute("aria-busy")).toBe("true");
+
+    fireEvent.click(busyButton);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    finishDraw?.();
+  });
+
   it("marks dealing, sealed, revealed, and complete card-table states", () => {
     const sampleCards = [
       {
