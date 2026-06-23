@@ -306,7 +306,11 @@ describe("Burn League PlayArea", () => {
       expect(root?.className).toContain("burn-league-play-area--burning");
       expect(root?.getAttribute("aria-busy")).toBe("true");
     });
-    expect(screen.getByRole("button", { name: "Burning..." })).toBeTruthy();
+    const burningButton = screen.getByRole("button", { name: "Burning..." });
+    expect(burningButton.textContent).toContain("Burning...");
+    expect(
+      burnView.container.querySelector(".burn-league-cta-spinner"),
+    ).toBeTruthy();
     fireEvent.click(burnButton);
     expect(burnDispatch).toHaveBeenCalledTimes(1);
     finishBurn?.();
@@ -477,6 +481,7 @@ describe("Burn League PlayArea", () => {
     expect(styles).toContain("@keyframes burn-league-chamber-burn");
     expect(styles).toContain("@keyframes burn-league-scoreboard-ready");
     expect(styles).toContain("@keyframes burn-league-cta-ready");
+    expect(styles).toContain("@keyframes burn-league-cta-spin");
     expect(styles).toContain("@keyframes burn-league-row-in");
     expect(styles).toContain("@keyframes burn-league-action-sweep");
     expect(styles).toContain(".burn-league-recovery-card.is-withdrawing");
@@ -498,6 +503,9 @@ describe("Burn League PlayArea", () => {
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-cta \.neo-btn--primary[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-cta-spinner[\s\S]*animation:\s*none/,
     );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-trail__flame[\s\S]*animation:\s*none/,
