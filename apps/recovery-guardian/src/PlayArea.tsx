@@ -69,11 +69,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     accountReady && ownerReady && expiryReady && verifierReady && templateReady;
   const accountDisplay = accountAddress.trim() || "—";
   const expiryDisplay = expiryReady ? recoveryExpiryMinutes : "—";
+  const overrideTrimmed = verifierHashOverride.trim();
+  const queryRouteState = isQuerying
+    ? "querying"
+    : hasPayload
+      ? "ready"
+      : accountReady
+        ? "armed"
+        : "idle";
+  const prepareRouteState = canPrepareRecovery
+    ? "ready"
+    : hasPayload
+      ? "draft"
+      : "locked";
+  const commandStageTitle =
+    queryRouteState === "querying"
+      ? t("guardianStageQuerying")
+      : queryRouteState === "ready"
+        ? t("guardianStageReady")
+        : queryRouteState === "armed"
+          ? t("guardianStageArmed")
+          : t("guardianStageIdle");
+  const commandStageHint =
+    queryRouteState === "querying"
+      ? t("guardianStageQueryingHint")
+      : queryRouteState === "ready"
+        ? t("guardianStageReadyHint")
+        : queryRouteState === "armed"
+          ? t("guardianStageArmedHint")
+          : t("guardianStageIdleHint");
+  const passStatus =
+    prepareRouteState === "ready"
+      ? t("guardianPassReady")
+      : prepareRouteState === "draft"
+        ? t("guardianPassDraft")
+        : t("guardianPassLocked");
+  const verifierDisplay = overrideTrimmed
+    ? verifierReady
+      ? t("guardianPassVerifierCustom")
+      : t("guardianPassVerifierInvalid")
+    : t("guardianPassVerifierAuto");
 
   // In-app diagnostic for the optional verifier override: once a guardian state
   // is loaded and a valid override is entered, compare it to the account's
   // bound verifier and badge match/mismatch (case-insensitive Hash160 compare).
-  const overrideTrimmed = verifierHashOverride.trim();
   const boundVerifierKnown =
     hasPayload &&
     verifierHash !== t("digestPlaceholder") &&
@@ -206,6 +245,67 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           className="guardian-command"
         >
           <div className="guardian-form">
+            <div
+              className={`guardian-command-stage guardian-command-stage--${queryRouteState}`}
+              aria-label={t("guardianCommandStageLabel")}
+              aria-busy={isQuerying || undefined}
+            >
+              <div className="guardian-command-stage__copy">
+                <span>{t("guardianCommandStageEyebrow")}</span>
+                <strong>{commandStageTitle}</strong>
+                <p>{commandStageHint}</p>
+              </div>
+              <div className="guardian-command-stage__route" role="list">
+                <span
+                  className={accountReady ? "is-ready" : undefined}
+                  role="listitem"
+                >
+                  <ShieldCheck aria-hidden="true" />
+                  <small>{t("guardianRouteAccount")}</small>
+                  <strong>
+                    {accountReady
+                      ? t("guardianRouteAccountReady")
+                      : t("guardianRouteAccountNeeded")}
+                  </strong>
+                </span>
+                <span
+                  className={
+                    hasPayload
+                      ? "is-ready"
+                      : isQuerying
+                        ? "is-active"
+                        : undefined
+                  }
+                  role="listitem"
+                >
+                  <Search aria-hidden="true" />
+                  <small>{t("guardianRouteState")}</small>
+                  <strong>
+                    {isQuerying
+                      ? t("guardianRouteStateReading")
+                      : hasPayload
+                        ? t("guardianRouteStateReady")
+                        : t("guardianRouteStateWaiting")}
+                  </strong>
+                </span>
+                <span
+                  className={canPrepareRecovery ? "is-ready" : undefined}
+                  role="listitem"
+                >
+                  <KeyRound aria-hidden="true" />
+                  <small>{t("guardianRouteHandoff")}</small>
+                  <strong>
+                    {canPrepareRecovery
+                      ? t("guardianRouteLinksReady")
+                      : t("guardianRouteLinksLocked")}
+                  </strong>
+                </span>
+              </div>
+              <span
+                className="guardian-command-stage__packet"
+                aria-hidden="true"
+              />
+            </div>
             <NeoInput
               value={accountAddress}
               onChange={(v) => setField("accountAddress", v)}
@@ -219,13 +319,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="guardian-action-grid">
               <NeoButton
                 variant="primary"
-                loading={isQuerying}
+                className={`guardian-query-button${
+                  isQuerying ? " guardian-query-button--querying" : ""
+                }`}
                 disabled={!canQueryState}
                 onClick={() => handleAction("queryGuardianState")}
-                aria-label={t("queryState")}
+                aria-label={isQuerying ? t("queryingState") : t("queryState")}
+                aria-busy={isQuerying || undefined}
               >
-                <Search aria-hidden="true" />
-                {t("queryState")}
+                {isQuerying ? (
+                  <span className="guardian-query-spinner" aria-hidden="true" />
+                ) : (
+                  <Search aria-hidden="true" />
+                )}
+                {isQuerying ? t("queryingState") : t("queryState")}
               </NeoButton>
               <NeoButton
                 variant="secondary"
@@ -324,6 +431,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 : "guardian-prepare-card guardian-prepare-card--locked"
             }
           >
+            <div
+              className={`guardian-recovery-pass guardian-recovery-pass--${prepareRouteState}`}
+              aria-label={t("guardianPassTitle")}
+            >
+              <div className="guardian-recovery-pass__head">
+                <span>{t("guardianPassTitle")}</span>
+                <strong>{passStatus}</strong>
+              </div>
+              <div className="guardian-recovery-pass__grid">
+                <span className={ownerReady ? "is-ready" : undefined}>
+                  <small>{t("guardianPassOwner")}</small>
+                  <strong>
+                    {ownerReady
+                      ? t("guardianPassOwnerReady")
+                      : t("guardianPassOwnerMissing")}
+                  </strong>
+                </span>
+                <span className={expiryReady ? "is-ready" : undefined}>
+                  <small>{t("guardianPassExpiry")}</small>
+                  <strong>
+                    {expiryReady
+                      ? t("guardianPassExpiryReady")
+                      : t("guardianPassExpiryMissing")}
+                  </strong>
+                </span>
+                <span className={verifierReady ? "is-ready" : undefined}>
+                  <small>{t("guardianPassVerifier")}</small>
+                  <strong>{verifierDisplay}</strong>
+                </span>
+              </div>
+            </div>
             <div className="guardian-scope-summary">
               <strong>{t("guardianDraftLabel")}</strong>
               <span>{accountDisplay}</span>
