@@ -73,7 +73,7 @@ export default function WagerControls({
     .join(" ");
 
   return (
-    <div className={betSectionClassName}>
+    <div className={betSectionClassName} aria-busy={isFlipping || undefined}>
       <NeoCard variant="erobo" className="wager-panel wager-panel--table">
         <div className="wager-table-rail">
           <div className="wager-table-rail__side">
@@ -121,7 +121,10 @@ export default function WagerControls({
           aria-label={`${t("youPicked")} ${t(choice)}. ${t("wager")} ${formattedStake} ${t("tokenGas")}.`}
         >
           <span className="wager-runway__line" aria-hidden="true" />
-          <span className="wager-runway__coin wager-runway__coin--one" aria-hidden="true">
+          <span
+            className="wager-runway__coin wager-runway__coin--one"
+            aria-hidden="true"
+          >
             <img
               src={selectedCoinArt}
               alt=""
@@ -130,7 +133,10 @@ export default function WagerControls({
               draggable={false}
             />
           </span>
-          <span className="wager-runway__coin wager-runway__coin--two" aria-hidden="true">
+          <span
+            className="wager-runway__coin wager-runway__coin--two"
+            aria-hidden="true"
+          >
             <img
               src={selectedCoinArt}
               alt=""
@@ -141,7 +147,9 @@ export default function WagerControls({
           </span>
           <span className="wager-runway__label">
             <span>{t(choice)}</span>
-            <strong>{formattedStake} {t("tokenGas")}</strong>
+            <strong>
+              {formattedStake} {t("tokenGas")}
+            </strong>
           </span>
         </div>
 
@@ -245,20 +253,22 @@ export default function WagerControls({
               />
             </span>
             <NeoInput
-              type="number"
+              type="text"
               label={t("customBet")}
               value={betAmount}
               placeholder="1"
               suffix={t("tokenGas")}
-              min={0.05}
-              max={100}
+              inputMode="decimal"
+              pattern="[0-9]*[.]?[0-9]*"
               error={validationError ?? undefined}
               onChange={updateBetAmount}
               aria-label={t("betAmount")}
             />
           </div>
           {maxPayable ? (
-            <p className="wager-cap-hint">{t("maxPayableHint", { max: maxPayable })}</p>
+            <p className="wager-cap-hint">
+              {t("maxPayableHint", { max: maxPayable })}
+            </p>
           ) : null}
         </div>
 
@@ -266,14 +276,31 @@ export default function WagerControls({
           <div className="credit-chip" role="status">
             <span className="credit-chip__label">{t("prepaidCredit")}</span>
             <span className="credit-chip__value">{credit}</span>
-            <NeoButton variant="ghost" size="sm" className="credit-chip__withdraw" disabled={isFlipping} onClick={handleWithdraw}>
+            <NeoButton
+              variant="ghost"
+              size="sm"
+              className="credit-chip__withdraw"
+              disabled={isFlipping}
+              onClick={handleWithdraw}
+            >
               {t("withdrawCredit")}
             </NeoButton>
           </div>
         ) : null}
 
-        <NeoButton variant="primary" size="lg" block disabled={!canBet} loading={isFlipping} className="flip-btn" aria-label={isFlipping ? t("flipping") : t("flipCoin")} onClick={handleFlip}>
-          <div className="btn-content"><span>{isFlipping ? t("flipping") : t("flipCoin")}</span></div>
+        <NeoButton
+          variant="primary"
+          size="lg"
+          block
+          disabled={!canBet || isFlipping}
+          loading={isFlipping}
+          className="flip-btn"
+          aria-label={isFlipping ? t("flipping") : t("flipCoin")}
+          onClick={handleFlip}
+        >
+          <div className="btn-content">
+            <span>{isFlipping ? t("flipping") : t("flipCoin")}</span>
+          </div>
         </NeoButton>
       </NeoCard>
     </div>
