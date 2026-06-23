@@ -177,6 +177,102 @@
   animation: result-settle 420ms ease-out both;
 }
 
+.arena-choice-beacons {
+  position: absolute;
+  top: 104px;
+  right: 18px;
+  left: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.arena-choice-beacon {
+  display: grid;
+  width: min(136px, 31%);
+  min-height: 58px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  opacity: 0.68;
+  transform: translateY(4px) scale(0.96);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    opacity 220ms ease,
+    transform 220ms ease;
+  backdrop-filter: blur(14px);
+}
+
+.arena-choice-beacon img {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
+}
+
+.arena-choice-beacon span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.arena-choice-beacon small {
+  overflow: hidden;
+  color: var(--coin-text-secondary);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.arena-choice-beacon strong {
+  overflow: hidden;
+  color: var(--coin-text-primary, #1e1e2e);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arena-choice-beacon.is-selected {
+  border-color: rgba(22, 199, 132, 0.28);
+  background: rgba(236, 253, 245, 0.9);
+  box-shadow:
+    0 14px 28px rgba(22, 199, 132, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: fogplay-choice-beacon-ready 2.6s ease-in-out infinite;
+}
+
+.premium-arena--flipping .arena-choice-beacon.is-selected,
+.premium-arena--revealing .arena-choice-beacon.is-selected {
+  animation: fogplay-choice-beacon-launch 760ms ease-in-out infinite;
+}
+
+.premium-arena--lost .arena-choice-beacon.is-selected {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(254, 242, 242, 0.9);
+  box-shadow:
+    0 14px 28px rgba(239, 68, 68, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
 .status-box {
   position: relative;
   z-index: 3;
@@ -564,6 +660,32 @@
   }
 }
 
+@keyframes fogplay-choice-beacon-ready {
+  0%,
+  100% {
+    box-shadow:
+      0 14px 28px rgba(22, 199, 132, 0.12),
+      0 0 0 0 rgba(22, 199, 132, 0);
+  }
+
+  50% {
+    box-shadow:
+      0 16px 32px rgba(22, 199, 132, 0.15),
+      0 0 0 5px rgba(22, 199, 132, 0.1);
+  }
+}
+
+@keyframes fogplay-choice-beacon-launch {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-5px) scale(1.035);
+  }
+}
+
 @keyframes winner-token-in {
   0% {
     opacity: 0;
@@ -645,6 +767,7 @@
   .coin-flight-trail span,
   .coin-wrapper--won,
   .coin-wrapper--lost,
+  .arena-choice-beacon.is-selected,
   .arena-stage__winner,
   .result-banner,
   .status-dot.flipping,
@@ -657,6 +780,7 @@
   }
 
   .arena-glow,
+  .arena-choice-beacon,
   .commit-reveal-race__fill,
   .commit-reveal-race__runner,
   .commit-reveal-race__step {
@@ -708,6 +832,29 @@
 
   .coin-wrapper {
     margin-bottom: 34px;
+  }
+
+  .arena-choice-beacons {
+    top: 88px;
+    right: 10px;
+    left: 10px;
+    gap: 8px;
+  }
+
+  .arena-choice-beacon {
+    width: min(132px, 43%);
+    min-height: 50px;
+    padding: 7px 8px;
+    border-radius: 14px;
+  }
+
+  .arena-choice-beacon img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .arena-choice-beacon strong {
+    font-size: 10px;
   }
 
   .bet-preview,
