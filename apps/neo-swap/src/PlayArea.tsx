@@ -135,6 +135,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : hasQuote
         ? "quoted"
         : "planning";
+  const payFlowArmed = fromAmount.trim().length > 0;
+  const payFlowSymbols = [fromSymbol, toSymbol, fromSymbol, toSymbol];
 
   // Slippage above 1% (100 bps) warrants a gentle warning — the minimum received
   // can come in notably below the quote.
@@ -168,19 +170,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <TokenIcon symbol={fromSymbol} />
               <span>{fromSymbol}</span>
             </button>
-            <div className="neo-swap-amount-shell">
-              <NeoInput
-                className="neo-swap-amount-input"
-                value={fromAmount}
-                type="number"
-                min={0}
-                placeholder={t("enterAmount")}
-                aria-label={t("payAmountLabel")}
-                onChange={(value) => {
-                  void dispatch("setFromAmount", value);
-                }}
-              />
+            <div
+              className={[
+                "neo-swap-flow-amount-panel",
+                payFlowArmed ? "is-armed" : "",
+                hasQuote ? "is-quoted" : "",
+              ].filter(Boolean).join(" ")}
+            >
+              <label className="neo-swap-flow-amount-field">
+                <span className="neo-swap-flow-amount-field__label">
+                  {t("payAmountLabel")}
+                </span>
+                <span className="neo-swap-flow-amount-field__row">
+                  <input
+                    value={fromAmount}
+                    type="number"
+                    min={0}
+                    inputMode="decimal"
+                    placeholder={t("enterAmount")}
+                    aria-label={t("payAmountLabel")}
+                    onChange={(event) => {
+                      void dispatch("setFromAmount", event.currentTarget.value);
+                    }}
+                  />
+                  <span className="neo-swap-flow-amount-field__asset">
+                    {fromSymbol}
+                  </span>
+                </span>
+              </label>
+              <div className="neo-swap-flow-rail" aria-hidden="true">
+                <span className="neo-swap-flow-rail__track" />
+                {payFlowSymbols.map((symbol, index) => (
+                  <span
+                    key={`${symbol}-${index}`}
+                    className={`neo-swap-flow-token neo-swap-flow-token--${index + 1}`}
+                  >
+                    <TokenIcon symbol={symbol} />
+                  </span>
+                ))}
+              </div>
               <NeoButton
+                className="neo-swap-flow-max-button"
                 size="sm"
                 variant="secondary"
                 onClick={() => dispatch("setMaxAmount")}

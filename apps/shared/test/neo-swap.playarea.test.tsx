@@ -150,8 +150,9 @@ function state(
 
 describe("Neo Swap PlayArea", () => {
   it("renders a DeFi trade desk while keeping no-router settlement unavailable", () => {
+    const dispatch = vi.fn();
     const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
+      <PlayArea t={t} state={state()} dispatch={dispatch} />,
     );
 
     expect(screen.getByRole("region", { name: "Swap ticket" })).toBeTruthy();
@@ -179,6 +180,20 @@ describe("Neo Swap PlayArea", () => {
     fireEvent.click(
       screen.getByText("Set up the trade (settles when a route is enabled)"),
     );
+
+    expect(container.querySelector(".neo-swap-flow-amount-panel.is-armed.is-quoted")).toBeTruthy();
+    expect(container.querySelector(".neo-swap-flow-rail")).toBeTruthy();
+    expect(container.querySelectorAll(".neo-swap-flow-token .neo-swap-token-icon").length).toBe(4);
+    expect(container.querySelector(".neo-swap-amount-input")).toBeNull();
+    expect((screen.getByLabelText("Amount to pay") as HTMLInputElement).value).toBe("10");
+
+    fireEvent.change(screen.getByLabelText("Amount to pay"), {
+      target: { value: "4.5" },
+    });
+    expect(dispatch).toHaveBeenCalledWith("setFromAmount", "4.5");
+
+    fireEvent.click(screen.getByRole("button", { name: "MAX" }));
+    expect(dispatch).toHaveBeenCalledWith("setMaxAmount");
 
     expect(
       (
@@ -212,8 +227,15 @@ describe("Neo Swap PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes neo-swap-stage-drift");
     expect(playAreaStyles).toContain("@keyframes neo-swap-liquidity-pulse");
     expect(playAreaStyles).toContain("@keyframes neo-swap-orb-from");
+    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-panel-scan");
+    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-token-route");
+    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-token-route-mobile");
+    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-rail-live");
     expect(playAreaStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neo-swap-liquidity-lane__pulse/,
+    );
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neo-swap-flow-token/,
     );
     expect(heroStyles).toContain("@keyframes swap-hero-drift");
     expect(heroStyles).toContain("@keyframes swap-token-float");
