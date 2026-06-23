@@ -701,7 +701,7 @@ EMPTY STATE (current screenshot): a white card with a dashed hairline border, ra
 
 MEMORIAL GRID (when populated): "MEMORIALS" eyebrow over a responsive grid of TombstoneCards (auto-fill, min 190px). Each card is white, radius 20px, centered column: a 44px mint rounded-square (14px) with heart icon (or the person's photo), name (17px/800), year range (12px muted), an optional green relationship pill, and tiny green offering-tally pills (e.g. "Incense 2").
 
-CREATE FORM & DETAIL/TRIBUTE cards render as white "erobo"-variant NeoCards stacked in the same column. Form fields are inset (#f7f8fa) inputs with small labels; offering cost shows in a dedicated inset card (label + 16px/800 figure). 
+CREATE FORM & DETAIL/TRIBUTE cards render as white "erobo"-variant NeoCards stacked in the same column. Form fields are inset (#f7f8fa) inputs with small labels; offering cost shows in a dedicated inset card (label + 16px/800 figure).
 
 IDENTITY: strictly single green hue — bright #16c784 for badges/icons/eyebrows/pills + soft #e4f8f0 fills + deep #0fb174 for offering counts; the only filled CTA color is the AA-safe #0a8050 (hover #086a45). All offering tallies and relationship tags are green soft-fill pills (radius 9999px).
 
