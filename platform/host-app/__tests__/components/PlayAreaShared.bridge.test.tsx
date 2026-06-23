@@ -239,6 +239,62 @@ describe("useEmbeddedWalletBridge origin gating", () => {
     });
   });
 
+  it("publishes a disconnected state immediately when the host target network changes", async () => {
+    const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    const { rerender } = render(
+      <BridgeHarness frame={frame} network="testnet" />,
+    );
+    await waitFor(() =>
+      expect(
+        postSpy.mock.calls.some(
+          ([message]) =>
+            (message as Record<string, unknown>)?.type ===
+            HOST_WALLET_BRIDGE_STATE,
+        ),
+      ).toBe(true),
+    );
+    postSpy.mockClear();
+
+    rerender(<BridgeHarness frame={frame} network="mainnet" />);
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledTimes(1));
+    const call = postSpy.mock.calls[0] as [Record<string, unknown>, string];
+    expect(call[1]).toBe("*");
+    expect(call[0]).toMatchObject({
+      type: HOST_WALLET_BRIDGE_STATE,
+      appId: "miniapp-demo",
+      protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+      state: {
+        connected: false,
+        address: "",
+        accountHash: "",
+        network: 860833102,
+        networkName: "mainnet",
+        networkVerified: false,
+      },
+    });
+  });
+
+  it("keeps the iframe target chain stable when the wallet network is unverified", async () => {
+    const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    mockWalletState.network = null;
+    render(<BridgeHarness frame={frame} network="testnet" />);
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalled());
+    const call = postSpy.mock.calls[0] as [Record<string, unknown>, string];
+    expect(call[0]).toMatchObject({
+      type: HOST_WALLET_BRIDGE_STATE,
+      state: {
+        connected: false,
+        address: "",
+        accountHash: "",
+        network: 894710606,
+        networkName: "testnet",
+        networkVerified: false,
+      },
+    });
+  });
+
   it("drops messages whose source is not the embedded frame window", async () => {
     const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     render(<BridgeHarness frame={frame} />);
