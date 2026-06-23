@@ -130,6 +130,32 @@ describe("FogPlay PlayArea", () => {
     });
   });
 
+  it("turns a flip click into immediate toss motion instead of a static submit", async () => {
+    let resolveFlip: (() => void) | undefined;
+    const dispatch = vi.fn((name: string) => {
+      if (name === "placeBet") {
+        return new Promise<void>((resolve) => {
+          resolveFlip = resolve;
+        });
+      }
+      return Promise.resolve();
+    });
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Flip Coin" }));
+
+    expect(dispatch).toHaveBeenCalledWith("placeBet");
+    await waitFor(() => {
+      expect(container.querySelector(".coinflip-play-area--tossing")).toBeTruthy();
+      expect(container.querySelector(".premium-arena--flipping")).toBeTruthy();
+      expect(container.querySelector(".coin-scene--flipping")).toBeTruthy();
+      expect(container.querySelector(".bet-section--flipping")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Flipping..." }).getAttribute("aria-busy")).toBe("true");
+    });
+
+    resolveFlip?.();
+  });
+
   it("shows visible toss motion through commit and reveal states", () => {
     const { container } = render(
       <PlayArea

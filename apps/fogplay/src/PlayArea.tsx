@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -23,7 +23,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const wins = num("wins");
   const losses = num("losses");
   const totalGames = num("totalGames");
-  const totalWon = num("totalWon");
   const formattedTotalWon = str("formattedTotalWon", "0 GAS");
 
   // Bet state — read the choice LIVE via str() so the highlighted side tracks
@@ -54,15 +53,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const winAmount = str("winAmount", "0");
 
   // Game history
-  const gameHistory = val<GameHistoryItem[]>("gameHistory") ?? [];
-  const recentHistory = useMemo(() => gameHistory.slice(0, 10), [gameHistory]);
+  const gameHistory = val<GameHistoryItem[]>("gameHistory");
+  const [flipActionPreview, setFlipActionPreview] = useState(false);
+  const flipActionPreviewTimeout = useRef<number | null>(null);
+  const flipIsAnimating = isFlipping || flipActionPreview;
+
+  useEffect(() => {
+    return () => {
+      if (flipActionPreviewTimeout.current !== null) {
+        window.clearTimeout(flipActionPreviewTimeout.current);
+      }
+    };
+  }, []);
+
+  const startFlipActionPreview = () => {
+    if (flipActionPreviewTimeout.current !== null) {
+      window.clearTimeout(flipActionPreviewTimeout.current);
+    }
+    setFlipActionPreview(true);
+    flipActionPreviewTimeout.current = window.setTimeout(() => {
+      setFlipActionPreview(false);
+      flipActionPreviewTimeout.current = null;
+    }, 1300);
+  };
+
+  const recentHistory = useMemo(() => (gameHistory ?? []).slice(0, 10), [gameHistory]);
   const historyCoinArt: Record<"heads" | "tails", string> = {
     heads: coinHeadsUrl,
     tails: coinTailsUrl,
   };
   const playAreaClassName = [
     "coinflip-play-area",
-    isFlipping || revealing ? "coinflip-play-area--tossing" : "",
+    flipIsAnimating || revealing ? "coinflip-play-area--tossing" : "",
     hasPendingBet ? "coinflip-play-area--pending" : "",
     result ? `coinflip-play-area--${result.won ? "won" : "lost"}` : "",
     canBet ? "coinflip-play-area--ready" : "",
@@ -135,7 +157,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="coinflip-game-table__arena">
           <ArenaHero
             t={t}
-            isFlipping={isFlipping}
+            isFlipping={flipIsAnimating}
             revealing={revealing}
             hasPendingBet={hasPendingBet}
             revealFailed={revealFailed}
@@ -153,13 +175,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             choice={choice}
             betAmount={betAmount}
             canBet={canBet}
-            isFlipping={isFlipping}
+            isFlipping={flipIsAnimating}
             validationError={validationError ?? undefined}
             maxPayable={formattedMaxPayable}
             maxPayableBet={maxPayableBet}
             credit={formattedCredit}
             hasCredit={hasCredit}
             dispatch={dispatch}
+            onFlipStart={startFlipActionPreview}
           />
         </div>
       </main>
