@@ -106,6 +106,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [localBurnAmount, setLocalBurnAmount] = useState("");
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [amountPulse, setAmountPulse] = useState(0);
 
   // ── Win / settle celebration ──────────────────────────────────────────
   // Fire once per settle on the real event edge: lastSettleResult is stamped
@@ -169,6 +170,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handleBurnAmountChange = (value: string) => {
     setLocalBurnAmount(value);
+    setAmountPulse((tick) => tick + 1);
     dispatch("setBurnAmount", value);
   };
 
@@ -188,8 +190,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleReset = () => {
-    setLocalBurnAmount("1");
-    dispatch("setBurnAmount", "1");
+    handleBurnAmountChange("1");
   };
 
   const truncateAddress = (addr: string) => {
@@ -517,6 +518,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--two" />
                   <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--three" />
                 </div>
+                {amountPulse > 0 && (
+                  <div
+                    key={`burn-ember-${amountPulse}`}
+                    className="burn-league-ember-burst burn-league-ember-burst--active"
+                    aria-hidden="true"
+                  >
+                    {Array.from({ length: 8 }).map((_, index) => (
+                      <span
+                        key={index}
+                        className={`burn-league-ember-burst__spark burn-league-ember-burst__spark--${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="burn-league-burn-trail" aria-hidden="true">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <span
