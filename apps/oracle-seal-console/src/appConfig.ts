@@ -268,6 +268,29 @@ const appMessages = {
     en: "Organize a versioned envelope reference without over-promising secrecy.",
     zh: "整理带版本的信封引用，同时不夸大保密能力。",
   },
+  sealStageTitle: { en: "Envelope workbench", zh: "信封工作台" },
+  sealStageIdle: { en: "Ready to build reference", zh: "可生成引用" },
+  sealStageBuilding: {
+    en: "Building envelope reference...",
+    zh: "正在生成信封引用...",
+  },
+  sealStageCopying: {
+    en: "Copying reference metadata...",
+    zh: "正在复制引用元数据...",
+  },
+  sealStageReady: { en: "Receipt ready to copy", zh: "回执可复制" },
+  sealStageCopy: {
+    en: "Source JSON is reduced to route context and checksum metadata.",
+    zh: "JSON 来源会被整理为路由上下文和校验元数据。",
+  },
+  sealBuildActionActive: {
+    en: "Building Reference",
+    zh: "正在生成引用",
+  },
+  sealCopyActionActive: {
+    en: "Copying Metadata",
+    zh: "正在复制元数据",
+  },
   sealProtectionTitle: { en: "Reference only", zh: "仅作引用" },
   sealProtectionCopy: {
     en: "The payload is summarized by checksum and never copied into the result payload, but this tool does not encrypt it.",
