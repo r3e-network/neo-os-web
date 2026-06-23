@@ -237,6 +237,8 @@ const appMessages = {
   },
   httpStatusLabel: { en: "HTTP request status", zh: "HTTP 请求状态" },
   runAction: { en: "Preview Request", zh: "预览请求" },
+  previewingRequest: { en: "Routing request...", zh: "请求路由中..." },
+  copyingPayload: { en: "Copying payload...", zh: "正在复制 payload..." },
   method: { en: "Method", zh: "方法" },
   url: { en: "URL", zh: "URL" },
   urlPlaceholder: { en: DEFAULT_HTTP_URL, zh: DEFAULT_HTTP_URL },
