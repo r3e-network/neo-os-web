@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +29,12 @@ function t(key: string, params?: Record<string, string | number>) {
     connectWallet: "Connect wallet",
     copyAddress: "Copy address",
     copyReport: "Copy report",
+    diagnosticReportStep: "Report",
+    diagnosticStageCopy: "Connect, refresh balances, review the local safety checklist, then export a clean wallet health report.",
+    diagnosticStageTitle: "Live diagnostic run",
+    diagnosticStatusIdle: "Ready to scan",
+    diagnosticStatusReady: "Diagnostics ready",
+    diagnosticStatusScanning: "Scanning wallet",
     downloadReport: "Download report",
     loading: "Loading",
     markDone: "Mark done",
@@ -48,6 +56,7 @@ function t(key: string, params?: Record<string, string | number>) {
     checklistConnectToCheck: "Connect to check",
     refreshBalances: "Refresh balances",
     riskInsights: "Risk insights",
+    sectionBalances: "Balances",
     sectionChecklist: "Safety Checklist",
     statConnection: "Connection",
     statGas: "GAS reserve",
@@ -115,6 +124,57 @@ describe("Wallet Health PlayArea", () => {
 
     expect(document.querySelector('.wallet-health-hero-art img[src="./banner.jpg"]')).toBeTruthy();
     expect(document.querySelector('.wallet-health-logo img[src="./logo.jpg"]')).toBeTruthy();
+    expect(
+      document.querySelector(
+        '.wallet-health-diagnostic-art img[src="./wallet-health-diagnostic-station.png"]',
+      ),
+    ).toBeTruthy();
+    expect(document.querySelector(".wallet-health-diagnostic-stage--idle")).toBeTruthy();
+    expect(document.querySelectorAll(".wallet-health-diagnostic-steps li")).toHaveLength(4);
+    expect(screen.getByText("Live diagnostic run")).toBeTruthy();
+  });
+
+  it("shows an animated scanning stage while balances are refreshing", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          address: TEST_ADDRESS,
+          connectionStatus: "Connected",
+          gasDisplay: "0.45",
+          isConnected: true,
+          isRefreshing: true,
+          neoDisplay: "12",
+        })}
+        dispatch={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    const stage = document.querySelector(".wallet-health-diagnostic-stage--scanning");
+    expect(stage).toBeTruthy();
+    expect(stage?.querySelector('[aria-busy="true"]')).toBeTruthy();
+    expect(document.querySelectorAll(".wallet-health-diagnostic-steps li.is-active")).toHaveLength(1);
+    expect(screen.getByText("Scanning wallet")).toBeTruthy();
+  });
+
+  it("keeps the diagnostic station resource and motion accessible", () => {
+    const repoPath = resolve(process.cwd(), "apps/wallet-health/src/PlayArea.scss");
+    const sharedPath = resolve(process.cwd(), "../wallet-health/src/PlayArea.scss");
+    const css = readFileSync(existsSync(repoPath) ? repoPath : sharedPath, "utf8");
+    const repoAsset = resolve(
+      process.cwd(),
+      "apps/wallet-health/public/wallet-health-diagnostic-station.png",
+    );
+    const sharedAsset = resolve(
+      process.cwd(),
+      "../wallet-health/public/wallet-health-diagnostic-station.png",
+    );
+
+    expect(existsSync(existsSync(repoAsset) ? repoAsset : sharedAsset)).toBe(true);
+    expect(css).toContain("@keyframes wallet-health-scan-sweep");
+    expect(css).toContain("@keyframes wallet-health-diagnostic-breathe");
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(css).toContain("animation: none");
   });
 
   it("keeps wallet actions and manual checklist items interactive", async () => {
@@ -251,7 +311,7 @@ describe("Wallet Health PlayArea", () => {
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith("copy", TEST_ADDRESS, "addressCopied"),
     );
-    expect(screen.getByText("Address copied")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Address copied");
 
     fireEvent.click(screen.getByRole("button", { name: "Copy report" }));
     await waitFor(() => {
@@ -267,11 +327,11 @@ describe("Wallet Health PlayArea", () => {
       expect(report).toContain("DONE: Backup phrase stored");
       expect(report).toContain("Revoke stale app approvals.");
     });
-    expect(screen.getByText("Report copied")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Report copied");
 
     fireEvent.click(screen.getByRole("button", { name: "Download report" }));
     expect(URL.createObjectURL).toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:wallet-health-report");
-    expect(screen.getByText("Report downloaded")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Report downloaded");
   });
 });
