@@ -113,12 +113,12 @@ describe("game miniapp experience audit", () => {
       ).toMatch(ACTION_STATE_PATTERN);
       expect(
         keyframeCount,
-        `${app.name}: games need explicit keyframe motion for the core interaction`,
-      ).toBeGreaterThanOrEqual(3);
+        `${app.name}: games need a rich motion system, not a token spinner beside form controls`,
+      ).toBeGreaterThanOrEqual(8);
       expect(
         animationCount,
-        `${app.name}: game states need visible animated feedback`,
-      ).toBeGreaterThanOrEqual(3);
+        `${app.name}: game states need visible animated feedback across idle, action, and result states`,
+      ).toBeGreaterThanOrEqual(8);
       expect(
         source,
         `${app.name}: motion must be tied to the core play action, not only ambient decoration`,
