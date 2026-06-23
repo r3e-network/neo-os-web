@@ -920,6 +920,55 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
 
+          <div
+            className={`gasbox-studio-conveyor${studioReadyToPublish ? " is-ready" : ""}`}
+            aria-label={t("studioConveyorLabel")}
+          >
+            <div className="gasbox-studio-conveyor__head">
+              <span>{t("studioConveyorLabel")}</span>
+              <strong>{t("studioConveyorHint")}</strong>
+            </div>
+            <div className="gasbox-studio-conveyor__belt" role="list">
+              {studioPrizePreview.map((preview) => (
+                <article
+                  key={preview.index}
+                  className={`gasbox-studio-conveyor__capsule ${rarityClass(preview.derivedRarity)}`}
+                  role="listitem"
+                  style={
+                    {
+                      "--gasbox-conveyor-order": preview.index,
+                      "--gasbox-share": `${Math.max(8, Math.min(100, preview.share || 8))}%`,
+                    } as CSSProperties
+                  }
+                >
+                  <span
+                    className="gasbox-studio-conveyor__orb"
+                    aria-hidden="true"
+                  >
+                    <img
+                      src={GASBOX_CAPSULE_ASSET}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <RarityMark rarity={preview.derivedRarity} />
+                  </span>
+                  <span className="gasbox-studio-conveyor__copy">
+                    <strong>{preview.label}</strong>
+                    <small>
+                      {formatPercent(preview.share, "—")} ·{" "}
+                      {preview.amountLabel}
+                    </small>
+                  </span>
+                  <span
+                    className="gasbox-studio-conveyor__weight"
+                    aria-hidden="true"
+                  />
+                </article>
+              ))}
+            </div>
+          </div>
+
           <div className="gasbox-studio-cabinet">
             <div className="gasbox-cabinet-card gasbox-cabinet-card--identity">
               <div className="gasbox-cabinet-card__head">
