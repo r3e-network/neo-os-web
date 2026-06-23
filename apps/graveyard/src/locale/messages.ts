@@ -166,6 +166,7 @@ const appMessages = {
     zh: "原文仅保留在本设备。我们埋葬其 SHA-256 哈希，从而在不泄露内容的情况下完成承诺。",
   },
   hashFromMemory: { en: "Hash (computed locally)", zh: "哈希（本地计算）" },
+  capsuleCharge: { en: "Memory seal charge", zh: "记忆封印进度" },
   gasReclaimedEstimate: { en: "GAS spent on burials (est.)", zh: "埋葬花费 GAS（估算）" },
   sunkFeeNote: {
     en: "This fee is spent (not refundable) — it pays for the permanent on-chain record. There is no payout or reclaim.",

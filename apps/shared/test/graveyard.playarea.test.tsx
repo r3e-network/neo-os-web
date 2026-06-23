@@ -28,6 +28,7 @@ function t(key: string, params?: Record<string, string | number>) {
     memoryTextPlaceholder: "Write the memory to bury.",
     memoryTextHint: "The text stays on this device.",
     hashFromMemory: "Hash (computed locally)",
+    capsuleCharge: "Memory seal charge",
     gasReclaimedEstimate: "Burial Fees (est.)",
     forgetConfirmFee: `Forgetting costs ${params?.fee ?? ""}.`,
     forgetConfirmAction: "Confirm forget",
@@ -183,6 +184,9 @@ describe("Graveyard PlayArea", () => {
     expect(screen.getByText("Burial review")).toBeTruthy();
     expect(screen.getAllByText("Hash too short").length).toBeGreaterThan(0);
     expect(document.querySelector(".grave-ritual-stage--draft")).toBeTruthy();
+    expect(document.querySelector(".grave-hash-plaque.is-error")).toBeTruthy();
+    expect(document.querySelector(".grave-memory-seals")).toBeTruthy();
+    expect(document.querySelector(".memory-type-selector")).toBeNull();
     expect(document.querySelectorAll(".grave-ritual-track__step").length).toBe(
       4,
     );
@@ -229,6 +233,7 @@ describe("Graveyard PlayArea", () => {
         '.grave-ritual-stage__seal img[src="memory-vault-stage.jpg"]',
       ),
     ).toBeTruthy();
+    expect(document.querySelector(".grave-hash-plaque.is-ready")).toBeTruthy();
     // Memory type is presented as a record tag that is anchored on-chain
     // alongside the content hash (one label on the selector, one in the review
     // panel).
@@ -346,15 +351,16 @@ describe("Graveyard PlayArea", () => {
 
   it("offers an Add epitaph action and a local-hash 'write memory' compose mode", () => {
     const dispatch = vi.fn(async () => undefined);
+    const pageState = state({
+      history: [historyItem],
+      historyCount: 1,
+      totalDestroyed: 1,
+    });
 
     render(
       <PlayArea
         t={t}
-        state={state({
-          history: [historyItem],
-          historyCount: 1,
-          totalDestroyed: 1,
-        })}
+        state={pageState}
         dispatch={dispatch}
       />,
     );
@@ -367,6 +373,11 @@ describe("Graveyard PlayArea", () => {
     expect(screen.getByRole("tab", { name: /Write memory/ })).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /Write memory/ }));
     expect(dispatch).toHaveBeenCalledWith("setComposeMode", "write");
+
+    // Record tags are selected as seal buttons inside the ritual surface, not a
+    // separate form selector.
+    fireEvent.click(screen.getByRole("button", { name: /Regret/ }));
+    expect(pageState.memoryType.get()).toBe(2);
   });
 
   it("uses a generated memory-vault scene as the real burial stage asset", () => {
@@ -392,6 +403,7 @@ describe("Graveyard PlayArea", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByLabelText("Memory console")).toBeTruthy();
+    expect(document.querySelector(".grave-memory-seals__rail")).toBeTruthy();
   });
 
   it("renders the write-memory textarea and routes typing through setMemoryText (local hashing)", () => {
@@ -407,6 +419,13 @@ describe("Graveyard PlayArea", () => {
 
     const textarea = screen.getByLabelText("Your memory");
     expect(textarea).toBeTruthy();
+    expect(document.querySelector(".grave-memory-capsule")).toBeTruthy();
+    expect(
+      document.querySelector(
+        '.grave-memory-capsule__asset img[src="memory-vault-stage.jpg"]',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Memory seal charge")).toBeTruthy();
     fireEvent.change(textarea, { target: { value: "a secret memory" } });
     expect(dispatch).toHaveBeenCalledWith("setMemoryText", "a secret memory");
     // No raw content-hash field in write mode — only the locally derived hash.
@@ -421,13 +440,23 @@ describe("Graveyard PlayArea", () => {
 
     expect(styles).toContain(".grave-ritual-stage");
     expect(styles).toContain(".grave-memory-console");
+    expect(styles).toContain(".grave-memory-capsule");
+    expect(styles).toContain(".grave-hash-plaque");
+    expect(styles).toContain(".grave-memory-seals");
+    expect(styles).toContain(".destroy-form .neo-btn--primary:not(:disabled)");
     expect(styles).toContain(".grave-ritual-track");
+    expect(styles).toContain("@keyframes grave-memory-scan");
+    expect(styles).toContain("@keyframes grave-memory-asset-drift");
+    expect(styles).toContain("@keyframes grave-memory-charge");
     expect(styles).toContain("@keyframes grave-banner-drift");
     expect(styles).toContain("@keyframes grave-seal-ready");
     expect(styles).toContain("@keyframes grave-confirm-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.grave-ritual-stage__banner[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.grave-memory-capsule__asset img[\s\S]*animation:\s*none/,
     );
     expect(styles).toMatch(
       /@media \(max-width: 720px\)[\s\S]*\.grave-ritual-track[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
