@@ -429,6 +429,66 @@
   transform: rotate(5deg);
 }
 
+.redenv-action-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.redenv-action-burst__spark {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 228, 147, 0.7);
+  border-radius: 999px;
+  background: rgba(255, 248, 243, 0.9);
+  color: var(--re-red-strong);
+  box-shadow: 0 14px 28px rgba(88, 46, 36, 0.18);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.64);
+}
+
+.redenv-action-burst__spark--one {
+  --redenv-burst-x: -86px;
+  --redenv-burst-y: -54px;
+}
+
+.redenv-action-burst__spark--two {
+  --redenv-burst-x: 76px;
+  --redenv-burst-y: -48px;
+}
+
+.redenv-action-burst__spark--three {
+  --redenv-burst-x: -54px;
+  --redenv-burst-y: 54px;
+}
+
+.redenv-action-burst__spark--four {
+  --redenv-burst-x: 92px;
+  --redenv-burst-y: 44px;
+}
+
+.redenv-action-burst.is-opening,
+.redenv-action-burst.is-sending {
+  opacity: 1;
+}
+
+.redenv-action-burst.is-opening .redenv-action-burst__spark,
+.redenv-action-burst.is-sending .redenv-action-burst__spark {
+  animation: redenv-action-burst 1.1s ease-out infinite;
+  animation-delay: calc(var(--packet-index, 0) * 80ms);
+}
+
+.redenv-action-burst.is-sending .redenv-action-burst__spark {
+  animation-name: redenv-action-send-burst;
+}
+
 .redenv-envelope-preview--create .redenv-envelope-preview__packet {
   animation-name: redenv-packet-deal;
 }
@@ -436,6 +496,10 @@
 .redenv-envelope-preview--opening .redenv-envelope-preview__packet,
 .redenv-envelope-preview--lucky .redenv-envelope-preview__packet {
   animation-duration: 1.2s;
+}
+
+.redenv-envelope-preview--opening .redenv-envelope-preview__packet {
+  animation-name: redenv-packet-open;
 }
 
 .redenv-envelope-preview__seal {
@@ -545,6 +609,23 @@
   font-weight: 760;
 }
 
+.redenv-action-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 28px;
+  padding: 6px 10px;
+  border: 1px solid rgba(223, 76, 66, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 232, 226, 0.92);
+  color: var(--re-red-strong);
+  font-size: 11px;
+  font-weight: 850;
+  font-style: normal;
+  line-height: 1.2;
+  animation: redenv-status-pulse 1.1s ease-in-out infinite;
+}
+
 .redenv-claim-body,
 .redenv-create-body {
   display: grid;
@@ -640,6 +721,18 @@
   font-weight: 820;
   line-height: 1.15;
   text-align: center;
+}
+
+.redenv-ticket-route--opening .redenv-ticket-route__step {
+  animation: redenv-route-step 1.15s ease-in-out infinite;
+}
+
+.redenv-ticket-route--opening .redenv-ticket-route__step:nth-child(2) {
+  animation-delay: 130ms;
+}
+
+.redenv-ticket-route--opening .redenv-ticket-route__step:nth-child(3) {
+  animation-delay: 260ms;
 }
 
 .redenv-gift-builder__head {
@@ -792,6 +885,61 @@
 .redenv-gift-machine--sending .redenv-gift-machine__chute span {
   animation-name: redenv-machine-packet-send;
   animation-duration: 720ms;
+}
+
+.redenv-gift-machine__launch-trail {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.redenv-gift-machine__launch-trail span {
+  --redenv-launch-x: 0px;
+  --redenv-launch-rotation: 0deg;
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  width: 46px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 228, 147, 0.7);
+  border-radius: 10px;
+  box-shadow: 0 14px 26px rgba(88, 46, 36, 0.22);
+  opacity: 0;
+  transform: translateX(-50%) translateY(14px) rotate(0deg) scale(0.72);
+}
+
+.redenv-gift-machine__launch-trail span:nth-child(1) {
+  --redenv-launch-x: -48px;
+  --redenv-launch-rotation: -16deg;
+}
+
+.redenv-gift-machine__launch-trail span:nth-child(2) {
+  --redenv-launch-x: -24px;
+  --redenv-launch-rotation: -8deg;
+}
+
+.redenv-gift-machine__launch-trail span:nth-child(4) {
+  --redenv-launch-x: 24px;
+  --redenv-launch-rotation: 8deg;
+}
+
+.redenv-gift-machine__launch-trail span:nth-child(5) {
+  --redenv-launch-x: 48px;
+  --redenv-launch-rotation: 16deg;
+}
+
+.redenv-gift-machine__launch-trail img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.redenv-gift-machine--sending .redenv-gift-machine__launch-trail span {
+  animation: redenv-machine-launch-packet 920ms ease-out infinite;
+  animation-delay: calc(var(--packet-index) * 90ms);
 }
 
 .redenv-gift-machine__console {
@@ -971,6 +1119,23 @@
 
 .redenv-play-area .redenv-create-body .redenv-helper--error {
   color: var(--re-red-strong);
+}
+
+.redenv-submit-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 30px;
+  margin: -2px 0 0;
+  padding: 7px 11px;
+  border: 1px solid rgba(223, 76, 66, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 232, 226, 0.9);
+  color: var(--re-red-strong);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+  animation: redenv-status-pulse 1.1s ease-in-out infinite;
 }
 
 .redenv-share-card {
@@ -1720,6 +1885,48 @@
   }
 }
 
+@keyframes redenv-action-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.58);
+  }
+
+  38% {
+    opacity: 1;
+    transform:
+      translate(calc(-50% + var(--redenv-burst-x)), calc(-50% + var(--redenv-burst-y)))
+      scale(1.02);
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(-50% + var(--redenv-burst-x)), calc(-50% + var(--redenv-burst-y)))
+      scale(0.78);
+  }
+}
+
+@keyframes redenv-action-send-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+
+  44% {
+    opacity: 1;
+    transform:
+      translate(calc(-50% + var(--redenv-burst-x)), calc(-50% - var(--redenv-burst-y)))
+      scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate(calc(-50% + var(--redenv-burst-x)), calc(-50% - var(--redenv-burst-y)))
+      scale(0.78);
+  }
+}
+
 @keyframes redenv-packet-float {
   0%,
   100% {
@@ -1743,6 +1950,85 @@
   46% {
     opacity: 0.94;
     translate: 7px -6px;
+  }
+}
+
+@keyframes redenv-packet-open {
+  0% {
+    opacity: 0.66;
+    transform: rotate(0deg) scale(0.94);
+    translate: 0 0;
+  }
+
+  46% {
+    opacity: 1;
+    transform: rotate(10deg) scale(1.06);
+    translate: 0 -18px;
+  }
+
+  100% {
+    opacity: 0.48;
+    transform: rotate(-8deg) scale(0.9);
+    translate: 0 8px;
+  }
+}
+
+@keyframes redenv-route-step {
+  0%,
+  100% {
+    background: rgba(255, 248, 243, 0.92);
+    box-shadow: none;
+    transform: translateY(0);
+  }
+
+  45% {
+    background: rgba(255, 232, 226, 0.96);
+    box-shadow: 0 8px 18px rgba(180, 35, 24, 0.14);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes redenv-status-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(223, 76, 66, 0.08);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(223, 76, 66, 0.16),
+      0 8px 18px rgba(180, 35, 24, 0.12);
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes redenv-machine-launch-packet {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) rotate(-4deg) scale(0.66);
+  }
+
+  24% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    transform:
+      translateX(calc(-50% + var(--redenv-launch-x)))
+      translateY(-70px)
+      rotate(var(--redenv-launch-rotation))
+      scale(0.94);
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translateX(calc(-50% + var(--redenv-launch-x)))
+      translateY(-96px)
+      rotate(var(--redenv-launch-rotation))
+      scale(0.78);
   }
 }
 
@@ -1772,11 +2058,11 @@
 @keyframes redenv-send-ready {
   0%,
   100% {
-    transform: translateY(0);
+    box-shadow: 0 5px 16px rgba(180, 35, 24, 0.24);
   }
 
   50% {
-    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(180, 35, 24, 0.34);
   }
 }
 
@@ -1974,9 +2260,14 @@
   .redenv-gift-machine__window img,
   .redenv-gift-machine__seal,
   .redenv-gift-machine__chute span,
+  .redenv-gift-machine__launch-trail span,
   .redenv-gift-machine__reel::after,
   .redenv-machine-dial__control button,
   .redenv-machine-dial__track span,
+  .redenv-action-burst__spark,
+  .redenv-action-status,
+  .redenv-submit-status,
+  .redenv-ticket-route__step,
   .redenv-envelope-preview::before,
   .redenv-envelope-preview::after,
   .redenv-envelope-preview__art img,
