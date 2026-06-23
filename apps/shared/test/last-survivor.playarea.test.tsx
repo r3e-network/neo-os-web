@@ -1,6 +1,12 @@
 import React from "react";
 import fs from "node:fs";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -35,7 +41,8 @@ function t(key: string) {
     refreshRound: "Refresh Round",
     refreshRoundHint: "Refresh the game state before buying keys.",
     round: "Round",
-    roundStateRequired: "Refresh the round state before submitting a key purchase.",
+    roundStateRequired:
+      "Refresh the round state before submitting a key purchase.",
     roundStateUnavailableTitle: "Round state unavailable",
     ruleDeposit: "Buy keys",
     ruleDepositDesc: "Each purchase adds GAS to the prize pool.",
@@ -77,7 +84,9 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   return {
     countdown: createObservable("00:00:00"),
     dangerLevel: createObservable("low"),
@@ -132,15 +141,23 @@ describe("LastSurvivor PlayArea", () => {
     expect(
       screen
         .getAllByRole("status")
-        .some((el) => el.textContent?.includes("The countdown service is not available")),
+        .some((el) =>
+          el.textContent?.includes("The countdown service is not available"),
+        ),
     ).toBe(true);
-    expect(screen.queryByText(/OS service error|os-game-status|Not Found/i)).toBeNull();
+    expect(
+      screen.queryByText(/OS service error|os-game-status|Not Found/i),
+    ).toBeNull();
     expect(screen.getByLabelText("Last Survivor arena")).toBeTruthy();
     expect(
-      screen.getByAltText("Bright futuristic arena with a glowing button console and GAS prize pool"),
+      screen.getByAltText(
+        "Bright futuristic arena with a glowing button console and GAS prize pool",
+      ),
     ).toBeTruthy();
     expect(screen.getByText("Buy a key. Reset the clock.")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Refresh Round" }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: "Refresh Round" }).length,
+    ).toBeGreaterThan(0);
     expect(
       (screen.getByRole("button", { name: "Buy Keys" }) as HTMLButtonElement)
         .disabled,
@@ -168,21 +185,41 @@ describe("LastSurvivor PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: "Increase" }));
     expect(container.querySelector(".key-count-value")?.textContent).toBe("2");
     expect(container.querySelector(".survivor-key-burst--active")).toBeTruthy();
-    expect(container.querySelectorAll(".survivor-key-burst span")).toHaveLength(6);
+    expect(container.querySelectorAll(".survivor-key-burst span")).toHaveLength(
+      6,
+    );
     expect(container.querySelector(".survivor-play-area--live")).toBeTruthy();
-    expect(container.querySelector(".survivor-stage.survivor-play-area--live")).toBeTruthy();
+    expect(
+      container.querySelector(".survivor-stage.survivor-play-area--live"),
+    ).toBeTruthy();
     const lane = container.querySelector(".survivor-arena-lane") as HTMLElement;
     expect(lane).toBeTruthy();
-    expect(lane.style.getPropertyValue("--survivor-player-progress")).toBe("50%");
-    expect(container.querySelectorAll(".survivor-arena-lane__marker").length).toBe(3);
-    expect(container.querySelector(".survivor-arena-lane__marker--leader.is-live")).toBeTruthy();
-    expect(container.querySelector(".survivor-arena-lane__marker--player.is-live")).toBeTruthy();
-    expect(container.querySelector(".survivor-arena-lane__marker--pot.is-live")).toBeTruthy();
+    expect(lane.style.getPropertyValue("--survivor-player-progress")).toBe(
+      "50%",
+    );
+    expect(
+      container.querySelectorAll(".survivor-arena-lane__marker").length,
+    ).toBe(3);
+    expect(
+      container.querySelector(".survivor-arena-lane__marker--leader.is-live"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".survivor-arena-lane__marker--player.is-live"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".survivor-arena-lane__marker--pot.is-live"),
+    ).toBeTruthy();
     expect(container.querySelector(".survivor-seat-strip")).toBeTruthy();
-    expect(container.querySelector(".survivor-seat--leader.is-live")).toBeTruthy();
-    expect(container.querySelector(".survivor-seat--player.is-live")).toBeTruthy();
+    expect(
+      container.querySelector(".survivor-seat--leader.is-live"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector(".survivor-seat--player.is-live"),
+    ).toBeTruthy();
     expect(container.querySelector(".survivor-seat--pot.is-live")).toBeTruthy();
-    expect(container.querySelectorAll(".survivor-seat__icon svg").length).toBe(3);
+    expect(container.querySelectorAll(".survivor-seat__icon svg").length).toBe(
+      3,
+    );
     expect(container.querySelector(".key-adjust-btn.plus svg")).toBeTruthy();
     expect(container.querySelector(".key-adjust-btn.minus svg")).toBeTruthy();
 
@@ -226,23 +263,47 @@ describe("LastSurvivor PlayArea", () => {
 
     expect(dispatch).toHaveBeenCalledWith("buyKeys", "1");
     await waitFor(() => {
-      expect(container.querySelector(".survivor-play-area--buying")).toBeTruthy();
-      expect(container.querySelector(".survivor-stage.survivor-play-area--buying")).toBeTruthy();
-      expect(container.querySelector(".survivor-key-burst--active")).toBeTruthy();
-      expect(container.querySelector(".survivor-play-area--buying .survivor-seat--player")).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Buying..." }).getAttribute("aria-busy")).toBe("true");
+      expect(
+        container.querySelector(".survivor-play-area--buying"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".survivor-stage.survivor-play-area--buying"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".survivor-key-burst--active"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(
+          ".survivor-play-area--buying .survivor-seat--player",
+        ),
+      ).toBeTruthy();
+      expect(
+        screen
+          .getByRole("button", { name: "Buying..." })
+          .getAttribute("aria-busy"),
+      ).toBe("true");
     });
 
     resolveBuy?.();
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("setKeyCount", "1"));
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("setKeyCount", "1"),
+    );
   });
 
   it("surfaces a permissionless Settle affordance for an ended round and blocks buying", async () => {
     // The on-chain contract rejects a buy on an ended round ("settle first"), so
     // the ended-round affordance is Settle — which dispatches the permissionless
     // settle() — NOT a buy-and-rollover. (Replaces the old OS-rollover behavior.)
-    const dispatch = vi.fn(async () => {});
-    render(
+    let resolveSettle: (() => void) | undefined;
+    const dispatch = vi.fn((name: string) => {
+      if (name === "settleRound") {
+        return new Promise<void>((resolve) => {
+          resolveSettle = resolve;
+        });
+      }
+      return Promise.resolve();
+    });
+    const { container } = render(
       <PlayArea
         t={t}
         state={state({
@@ -262,6 +323,23 @@ describe("LastSurvivor PlayArea", () => {
     expect((settle as HTMLButtonElement).disabled).toBe(false);
     settle.click();
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("settleRound"));
+    await waitFor(() => {
+      expect(
+        container.querySelector(".survivor-play-area--settling"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".survivor-stage.survivor-play-area--settling"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".claim-card-inner.is-settling"),
+      ).toBeTruthy();
+      expect(
+        screen
+          .getByRole("button", { name: "Settling..." })
+          .getAttribute("aria-busy"),
+      ).toBe("true");
+    });
+    resolveSettle?.();
 
     // Buying is blocked while the round needs settlement.
     const buy = screen.getByRole("button", { name: "Buy Keys" });
@@ -285,7 +363,9 @@ describe("LastSurvivor PlayArea", () => {
 
     expect(container.querySelector(".hero-badge svg")).toBeTruthy();
     expect(container.querySelector(".last-buyer-icon svg")).toBeTruthy();
-    expect(container.querySelectorAll(".participation-icon svg").length).toBe(3);
+    expect(container.querySelectorAll(".participation-icon svg").length).toBe(
+      3,
+    );
     expect(container.querySelector(".history-section-icon svg")).toBeTruthy();
     expect(container.querySelector(".cost-gas-icon")).toBeTruthy();
   });
@@ -356,6 +436,11 @@ describe("LastSurvivor PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes survivor-lane-marker-ready");
     expect(playAreaStyles).toContain("@keyframes survivor-stage-buying");
     expect(playAreaStyles).toContain("@keyframes survivor-lane-buy-charge");
+    expect(playAreaStyles).toContain("@keyframes survivor-stage-settling");
+    expect(playAreaStyles).toContain("@keyframes survivor-lane-settle-charge");
+    expect(playAreaStyles).toContain("@keyframes survivor-seat-settle-award");
+    expect(playAreaStyles).toContain("@keyframes survivor-settle-crown-turn");
+    expect(playAreaStyles).toContain("@keyframes survivor-claim-settle-sweep");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-enter");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-breathe");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-buy-press");
@@ -373,10 +458,21 @@ describe("LastSurvivor PlayArea", () => {
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-play-area--buying \.survivor-seat--player[\s\S]*animation:\s*none/,
     );
     expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-stage\.survivor-play-area--settling[\s\S]*animation:\s*none/,
+    );
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-play-area--settling \.survivor-seat--leader[\s\S]*animation:\s*none/,
+    );
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.claim-card-inner\.is-settling::before[\s\S]*animation:\s*none/,
+    );
+    expect(playAreaStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-key-burst--active span[\s\S]*animation:\s*none/,
     );
     expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
     expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(buyKeysStyles).toContain(".buy-keys-card .neo-btn--primary:disabled:not(.neo-btn--loading)");
+    expect(buyKeysStyles).toContain(
+      ".buy-keys-card .neo-btn--primary:disabled:not(.neo-btn--loading)",
+    );
   });
 });
