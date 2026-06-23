@@ -17,7 +17,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { formatNumber } from "@shared/utils/format";
 import type { Observable } from "@shared/react/context";
@@ -517,6 +517,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--two" />
                   <span className="burn-league-fuel-meter__spark burn-league-fuel-meter__spark--three" />
                 </div>
+                <div className="burn-league-burn-trail" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className={`burn-league-burn-trail__flame burn-league-burn-trail__flame--${index + 1}`}
+                    >
+                      <Flame size={18} strokeWidth={2.2} />
+                    </span>
+                  ))}
+                </div>
                 <div className="burn-league-stage-dial">
                   <button
                     type="button"
@@ -530,23 +540,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   >
                     <Minus size={16} strokeWidth={2.4} aria-hidden="true" />
                   </button>
-                  <NeoInput
-                    className="burn-league-amount-input"
-                    type="number"
-                    value={currentBurnAmount}
-                    placeholder={t("enterAmount")}
-                    label={t("amount")}
-                    suffix="GAS"
-                    min={minBurn}
-                    max={maxBurn}
-                    hint={rangeCopy}
-                    error={
-                      currentBurnAmount && !amountIsValid
-                        ? t("burnRangeError", { min: minBurn, max: maxBurn })
-                        : ""
-                    }
-                    onChange={handleBurnAmountChange}
-                  />
+                  <label className="burn-league-fuel-chamber">
+                    <span className="burn-league-fuel-chamber__label">
+                      {t("amount")}
+                    </span>
+                    <span className="burn-league-fuel-chamber__readout">
+                      <input
+                        aria-label={t("amount")}
+                        className="burn-league-fuel-chamber__input"
+                        type="number"
+                        value={currentBurnAmount}
+                        placeholder={t("enterAmount")}
+                        min={minBurn}
+                        max={maxBurn}
+                        inputMode="decimal"
+                        onChange={(event) =>
+                          handleBurnAmountChange(event.currentTarget.value)
+                        }
+                      />
+                      <span className="burn-league-fuel-chamber__unit">
+                        GAS
+                      </span>
+                    </span>
+                    <span className="burn-league-fuel-chamber__hint">
+                      {rangeCopy}
+                    </span>
+                    {currentBurnAmount && !amountIsValid && (
+                      <span
+                        className="burn-league-fuel-chamber__error"
+                        role="alert"
+                      >
+                        {t("burnRangeError", { min: minBurn, max: maxBurn })}
+                      </span>
+                    )}
+                  </label>
                   <button
                     type="button"
                     className="burn-league-stepper"
