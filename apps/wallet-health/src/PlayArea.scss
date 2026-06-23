@@ -297,6 +297,8 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
+  background-size: 160% 100%;
+  animation: wallet-health-progress-flow 4.8s linear infinite;
   transition: width 0.24s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
@@ -305,6 +307,238 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 1.3;
+}
+
+.wallet-health-diagnostic-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 247, 223, 0.78), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(236, 250, 244, 0.94));
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  letter-spacing: 0;
+}
+
+.wallet-health-diagnostic-art {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 270px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.16)),
+    rgba(232, 250, 242, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  isolation: isolate;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: auto 16% 16px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(22, 199, 132, 0.2), transparent 70%);
+    filter: blur(8px);
+    z-index: 0;
+  }
+
+  img {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: saturate(1.04) contrast(1.01);
+    animation: wallet-health-diagnostic-breathe 5.2s ease-in-out infinite;
+  }
+}
+
+.wallet-health-diagnostic-art__scan,
+.wallet-health-diagnostic-art__pulse {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wallet-health-diagnostic-art__scan {
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 38%,
+      rgba(255, 255, 255, 0.06) 42%,
+      rgba(22, 199, 132, 0.34) 48%,
+      rgba(255, 255, 255, 0.08) 54%,
+      transparent 60%,
+      transparent 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(22, 199, 132, 0.08) 0 1px,
+      transparent 1px 18px
+    );
+  transform: translateY(-36%);
+}
+
+.wallet-health-diagnostic-art__pulse {
+  right: 18px;
+  bottom: 18px;
+  width: 66px;
+  height: 66px;
+  border: 1px solid rgba(22, 199, 132, 0.42);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(22, 199, 132, 0.3) 0 6px, transparent 7px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.82), rgba(228, 248, 240, 0.18));
+  box-shadow: 0 12px 28px rgba(17, 92, 78, 0.12);
+  animation: wallet-health-pulse 2.8s ease-in-out infinite;
+}
+
+.wallet-health-diagnostic-stage--connecting .wallet-health-diagnostic-art__scan,
+.wallet-health-diagnostic-stage--scanning .wallet-health-diagnostic-art__scan {
+  opacity: 1;
+  animation: wallet-health-scan-sweep 1.75s ease-in-out infinite;
+}
+
+.wallet-health-diagnostic-stage--ready .wallet-health-diagnostic-art__pulse {
+  border-color: rgba(22, 199, 132, 0.62);
+  background:
+    radial-gradient(circle, rgba(22, 199, 132, 0.48) 0 7px, transparent 8px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.9), rgba(228, 248, 240, 0.28));
+}
+
+.wallet-health-diagnostic-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 6px 4px;
+
+  p {
+    max-width: 620px;
+    margin: 0 0 16px;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 13.5px;
+    font-weight: 560;
+    line-height: 1.54;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-section-heading--compact {
+  margin-bottom: 10px;
+}
+
+.wallet-health-diagnostic-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  letter-spacing: 0;
+
+  li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-radius: var(--ns-radius-md, 16px);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    transition:
+      border-color 0.18s ease,
+      background 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  li.is-done {
+    border-color: rgba(22, 199, 132, 0.32);
+    background: rgba(228, 248, 240, 0.76);
+  }
+
+  li.is-active {
+    border-color: rgba(22, 199, 132, 0.48);
+    background: rgba(255, 255, 255, 0.88);
+    transform: translateY(-1px);
+  }
+
+  strong,
+  small {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    letter-spacing: 0;
+  }
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 12.5px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  small {
+    margin-top: 4px;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11.5px;
+    font-weight: 650;
+    line-height: 1.32;
+  }
+}
+
+.wallet-health-diagnostic-steps__mark {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(22, 199, 132, 0.24);
+  border-radius: 50%;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: inset 0 0 0 5px rgba(22, 199, 132, 0.08);
+}
+
+.wallet-health-diagnostic-steps li.is-done .wallet-health-diagnostic-steps__mark {
+  border-color: rgba(22, 199, 132, 0.62);
+  background: var(--ns-success, #16c784);
+  box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.1);
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 3px;
+    width: 5px;
+    height: 9px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+}
+
+.wallet-health-diagnostic-steps li.is-active .wallet-health-diagnostic-steps__mark {
+  border-color: rgba(22, 199, 132, 0.68);
+  box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.12);
+  animation: wallet-health-node-ready 1.35s ease-in-out infinite;
 }
 
 .wallet-health-balance-strip,
@@ -607,6 +841,14 @@
   .wallet-health-score-card {
     width: min(100%, 520px);
   }
+
+  .wallet-health-diagnostic-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-health-diagnostic-art {
+    min-height: 310px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -675,6 +917,20 @@
     grid-template-columns: 1fr;
   }
 
+  .wallet-health-diagnostic-stage {
+    padding: 14px;
+    border-radius: var(--ns-radius-md, 16px);
+  }
+
+  .wallet-health-diagnostic-art {
+    min-height: 250px;
+    border-radius: var(--ns-radius-md, 16px);
+  }
+
+  .wallet-health-diagnostic-steps {
+    grid-template-columns: 1fr;
+  }
+
   .wallet-health-report-actions .neo-btn {
     flex: 1 1 100%;
     width: 100%;
@@ -701,5 +957,77 @@
       max-width: 100%;
       text-align: left;
     }
+  }
+}
+
+@keyframes wallet-health-diagnostic-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.022);
+  }
+}
+
+@keyframes wallet-health-scan-sweep {
+  0% {
+    transform: translateY(-42%);
+  }
+
+  56% {
+    transform: translateY(42%);
+  }
+
+  100% {
+    transform: translateY(42%);
+  }
+}
+
+@keyframes wallet-health-pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.76;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes wallet-health-node-ready {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes wallet-health-progress-flow {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 160% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-health-diagnostic-art img,
+  .wallet-health-diagnostic-art__scan,
+  .wallet-health-diagnostic-art__pulse,
+  .wallet-health-diagnostic-steps li,
+  .wallet-health-diagnostic-steps li.is-active .wallet-health-diagnostic-steps__mark,
+  .wallet-health-progress span {
+    animation: none;
+    transition: none;
+    transform: none;
   }
 }
