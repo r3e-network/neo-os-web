@@ -17,6 +17,7 @@ function t(key: string) {
     arenaMomentumHint:
       "Leader, your stake, and the pot move as the round heats up.",
     awaitingFirstKey: "Be the first to buy a key",
+    buying: "Buying...",
     buyKeys: "Buy Keys",
     buyKeysAndRollover: "Buy Keys and Roll Forward",
     buyKeysRolloverHint:
@@ -194,6 +195,48 @@ describe("LastSurvivor PlayArea", () => {
     ).toBe(false);
   });
 
+  it("turns a key purchase into immediate arena motion instead of a static submit", async () => {
+    let resolveBuy: (() => void) | undefined;
+    const dispatch = vi.fn((name: string) => {
+      if (name === "buyKeys") {
+        return new Promise<void>((resolve) => {
+          resolveBuy = resolve;
+        });
+      }
+      return Promise.resolve();
+    });
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          isRoundActive: true,
+          lastBuyer: "NMockLastBuyer111111111111111111111111111",
+          roundDataAvailable: true,
+          roundStatusDisplay: "Active",
+          totalPot: 4.2,
+          totalKeysDisplay: 2,
+          userKeys: 1,
+          userSharePercent: 50,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Buy Keys" }));
+
+    expect(dispatch).toHaveBeenCalledWith("buyKeys", "1");
+    await waitFor(() => {
+      expect(container.querySelector(".survivor-play-area--buying")).toBeTruthy();
+      expect(container.querySelector(".survivor-stage.survivor-play-area--buying")).toBeTruthy();
+      expect(container.querySelector(".survivor-key-burst--active")).toBeTruthy();
+      expect(container.querySelector(".survivor-play-area--buying .survivor-seat--player")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Buying..." }).getAttribute("aria-busy")).toBe("true");
+    });
+
+    resolveBuy?.();
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("setKeyCount", "1"));
+  });
+
   it("surfaces a permissionless Settle affordance for an ended round and blocks buying", async () => {
     // The on-chain contract rejects a buy on an ended round ("settle first"), so
     // the ended-round affordance is Settle — which dispatches the permissionless
@@ -311,18 +354,29 @@ describe("LastSurvivor PlayArea", () => {
     expect(playAreaStyles).toContain("@keyframes survivor-lane-progress");
     expect(playAreaStyles).toContain("@keyframes survivor-lane-scan");
     expect(playAreaStyles).toContain("@keyframes survivor-lane-marker-ready");
+    expect(playAreaStyles).toContain("@keyframes survivor-stage-buying");
+    expect(playAreaStyles).toContain("@keyframes survivor-lane-buy-charge");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-enter");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-breathe");
+    expect(playAreaStyles).toContain("@keyframes survivor-seat-buy-press");
+    expect(playAreaStyles).toContain("@keyframes survivor-key-icon-turn");
     expect(playAreaStyles).toContain("@keyframes survivor-seat-scan");
     expect(playAreaStyles).toContain("@keyframes survivor-key-burst-flight");
     expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-stage\.survivor-play-area--buying[\s\S]*animation:\s*none/,
+    );
+    expect(playAreaStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-seat\.is-live::after[\s\S]*animation:\s*none/,
+    );
+    expect(playAreaStyles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-play-area--buying \.survivor-seat--player[\s\S]*animation:\s*none/,
     );
     expect(playAreaStyles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-key-burst--active span[\s\S]*animation:\s*none/,
     );
     expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
     expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(buyKeysStyles).toContain(".buy-keys-card .neo-btn--primary:disabled:not(.neo-btn--loading)");
   });
 });

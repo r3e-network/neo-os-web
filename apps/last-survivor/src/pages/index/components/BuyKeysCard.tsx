@@ -71,8 +71,9 @@ export default function BuyKeysCard({
         variant="primary"
         size="lg"
         block
-        disabled={isPaying || disabled}
-        aria-label={submitLabel ?? t("buyKeys")}
+        loading={isPaying}
+        disabled={disabled}
+        aria-label={isPaying ? t("buying") : (submitLabel ?? t("buyKeys"))}
         onClick={onBuy}
       >
         {isPaying ? t("buying") : (submitLabel ?? t("buyKeys"))}

@@ -70,6 +70,15 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.76);
 }
 
+.survivor-stage.survivor-play-area--buying {
+  border-color: rgba(22, 199, 132, 0.42);
+  animation: survivor-stage-buying 920ms ease-in-out infinite;
+  box-shadow:
+    0 28px 78px rgba(20, 64, 50, 0.18),
+    0 0 0 5px rgba(22, 199, 132, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
 .survivor-stage__image {
   position: absolute;
   inset: 0;
@@ -234,6 +243,23 @@
   mix-blend-mode: screen;
   opacity: 0.72;
   animation: survivor-lane-scan 2.8s linear infinite;
+}
+
+.survivor-play-area--buying .survivor-arena-lane {
+  border-color: rgba(22, 199, 132, 0.32);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 0 0 4px rgba(22, 199, 132, 0.08);
+}
+
+.survivor-play-area--buying .survivor-arena-lane__track::after {
+  animation: survivor-lane-buy-charge 740ms ease-in-out infinite;
+}
+
+.survivor-play-area--buying .survivor-arena-lane__pulse {
+  width: 96px;
+  opacity: 0.92;
+  animation: survivor-lane-scan 1.05s linear infinite;
 }
 
 .survivor-arena-lane__marker {
@@ -466,6 +492,22 @@
 .survivor-seat--pot.is-live .survivor-seat__icon {
   color: #0b6b49;
   background: pm.$neo-soft;
+}
+
+.survivor-play-area--buying .survivor-seat--player {
+  border-color: rgba(22, 199, 132, 0.36);
+  background: rgba(255, 255, 255, 0.94);
+  color: #0b6b49;
+  animation: survivor-seat-buy-press 780ms ease-in-out infinite;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 5px rgba(22, 199, 132, 0.09);
+}
+
+.survivor-play-area--buying .survivor-seat--player .survivor-seat__icon {
+  background: pm.$neo-soft;
+  color: pm.$neo-strong;
+  animation: survivor-key-icon-turn 780ms ease-in-out infinite;
 }
 
 .survivor-seat small {
@@ -785,6 +827,17 @@
   }
 }
 
+@keyframes survivor-stage-buying {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
 @keyframes survivor-badge-breathe {
   0%,
   100% {
@@ -855,6 +908,19 @@
   }
 }
 
+@keyframes survivor-lane-buy-charge {
+  0%,
+  100% {
+    opacity: 0.82;
+    box-shadow: 0 0 14px rgba(22, 199, 132, 0.24);
+  }
+
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 28px rgba(22, 199, 132, 0.42);
+  }
+}
+
 @keyframes survivor-lane-scan {
   from {
     transform: translateX(-96px);
@@ -900,6 +966,28 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
       0 0 0 5px rgba(22, 199, 132, 0.08);
+  }
+}
+
+@keyframes survivor-seat-buy-press {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.018);
+  }
+}
+
+@keyframes survivor-key-icon-turn {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(-8deg) scale(1.08);
   }
 }
 
@@ -989,6 +1077,13 @@
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 251, 246, 0.92));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+.survivor-play-area--buying .survivor-action-console .buy-keys-card {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 14px 32px rgba(22, 199, 132, 0.1);
 }
 
 .round-control-card__body,
@@ -1139,6 +1234,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .survivor-stage::before,
+  .survivor-stage.survivor-play-area--buying,
   .survivor-stage__image,
   .hero-badge,
   .status-active .status-dot,
@@ -1150,6 +1246,8 @@
   .survivor-seat,
   .survivor-seat.is-live,
   .survivor-seat.is-live::after,
+  .survivor-play-area--buying .survivor-seat--player,
+  .survivor-play-area--buying .survivor-seat--player .survivor-seat__icon,
   .survivor-key-burst--active span,
   .survivor-play-area--live .participation-icon,
   .claim-card-trophy,
