@@ -139,6 +139,10 @@ describe("Dice Game PlayArea", () => {
     expect(container.querySelector('.dice-chip-rack__visual img[src="./dice-chip-rack.jpg"]')).toBeTruthy();
     expect(container.querySelector(".dice-table-console")).toBeTruthy();
     expect(container.querySelector(".dice-play-loop.is-ready")).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop--idle")).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop__motion--chip svg")).toBeTruthy();
+    expect(container.querySelector('.dice-play-loop__motion-die img[src="./dice-face-6.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop__motion--spark svg")).toBeTruthy();
     expect(container.querySelector('.dice-play-loop__die img[src="./dice-face-6.jpg"]')).toBeTruthy();
     expect(container.querySelector(".dice-stake-drawer")).toBeTruthy();
     expect(container.querySelectorAll(".dice-face-grid__item").length).toBe(6);
@@ -164,6 +168,8 @@ describe("Dice Game PlayArea", () => {
     expect(container.querySelectorAll(".dice-stage__trail-die").length).toBe(3);
     expect(container.querySelector(".dice-roll-button--rolling")).toBeTruthy();
     expect(container.querySelector(".dice-play-loop.is-ready.is-rolling")).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop--rolling")).toBeTruthy();
+    expect(container.querySelectorAll(".dice-play-loop__motion").length).toBe(3);
     expect(screen.getAllByText("Rolling...").length).toBeGreaterThan(0);
   });
 
@@ -180,6 +186,7 @@ describe("Dice Game PlayArea", () => {
     expect(container.querySelector(".dice-stage__visual--won")).toBeTruthy();
     expect(container.querySelector(".dice-stage__landing-zone--settled")).toBeTruthy();
     expect(container.querySelector(".dice-stage__die--won")).toBeTruthy();
+    expect(container.querySelector(".dice-play-loop--won")).toBeTruthy();
   });
 
   it("renders real local roll history instead of placeholder rows", () => {
@@ -217,9 +224,16 @@ describe("Dice Game PlayArea", () => {
     expect(styles).toContain("@keyframes dice-play-loop-flow");
     expect(styles).toContain("@keyframes dice-play-loop-roll");
     expect(styles).toContain("@keyframes dice-play-loop-prize");
+    expect(styles).toContain("@keyframes dice-play-loop-chip-route");
+    expect(styles).toContain("@keyframes dice-play-loop-die-route");
+    expect(styles).toContain("@keyframes dice-play-loop-spark-route");
+    expect(styles).toContain("@keyframes dice-play-loop-result-hold");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.dice-play-loop__route::after[\s\S]*animation:\s*none/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.dice-play-loop__motion[\s\S]*animation:\s*none/,
     );
   });
 });
