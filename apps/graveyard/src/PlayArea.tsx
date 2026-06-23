@@ -6,12 +6,15 @@ import {
   WalletCards,
 } from "lucide-react";
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import type { CSSProperties } from "react";
+import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { HistoryItem } from "./types";
 import HistoryTab from "./pages/index/components/HistoryTab";
 import "./PlayArea.scss";
+
+const MEMORY_TYPE_ICONS = [ShieldCheck, FileText, Archive, Hash, WalletCards];
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -62,6 +65,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       ? `${trimmedAssetHash.slice(0, 12)}...${trimmedAssetHash.slice(-8)}`
       : trimmedAssetHash
     : t("hashPending");
+  const memoryTextLength = memoryText.trim().length;
+  const memoryProgress = Math.min(
+    100,
+    Math.max(0, Math.round((memoryTextLength / 120) * 100)),
+  );
   const readinessTitle = !trimmedAssetHash
     ? t("hashMissing")
     : hashReady
@@ -276,16 +284,89 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span>{t("memoryConsole")}</span>
                   <strong>{selectedMemoryTypeLabel}</strong>
                 </div>
+
+                <div
+                  className="grave-memory-seals"
+                  aria-label={t("memoryTypeLocal")}
+                >
+                  <span className="grave-memory-seals__label">
+                    {t("memoryTypeLocal")}
+                  </span>
+                  <div className="grave-memory-seals__rail">
+                    {memoryTypeOptions.map((option, index) => {
+                      const Icon =
+                        MEMORY_TYPE_ICONS[index % MEMORY_TYPE_ICONS.length] ??
+                        ShieldCheck;
+                      const selected = memoryType === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`grave-memory-seal${selected ? " is-active" : ""}`}
+                          onClick={() => state.memoryType?.set(option.value)}
+                          aria-pressed={selected}
+                          disabled={burialBusy}
+                        >
+                          <Icon size={15} aria-hidden="true" />
+                          <span>{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <small>{t("memoryTypeLocalHint")}</small>
+                </div>
+
                 {isWriteMode ? (
                   <>
-                    <NeoInput
-                      type="textarea"
-                      value={memoryText}
-                      label={t("memoryTextLabel")}
-                      placeholder={t("memoryTextPlaceholder")}
-                      hint={t("memoryTextHint")}
-                      onChange={(val) => dispatch("setMemoryText", val)}
-                    />
+                    <div
+                      className={`grave-memory-capsule${
+                        memoryTextLength > 0 ? " is-engraved" : ""
+                      }${hashReady ? " is-ready" : ""}`}
+                      style={
+                        {
+                          "--grave-memory-progress": `${memoryProgress}%`,
+                        } as CSSProperties
+                      }
+                    >
+                      <figure
+                        className="grave-memory-capsule__asset"
+                        aria-hidden="true"
+                      >
+                        <img
+                          src="memory-vault-stage.jpg"
+                          alt=""
+                          loading="eager"
+                          decoding="async"
+                        />
+                        <figcaption>
+                          <span>{t("composeModeWrite")}</span>
+                          <strong>{selectedMemoryTypeLabel}</strong>
+                        </figcaption>
+                      </figure>
+                      <label className="grave-memory-capsule__scribe">
+                        <span className="grave-memory-capsule__label">
+                          {t("memoryTextLabel")}
+                        </span>
+                        <textarea
+                          value={memoryText}
+                          aria-label={t("memoryTextLabel")}
+                          placeholder={t("memoryTextPlaceholder")}
+                          disabled={burialBusy}
+                          onChange={(event) =>
+                            dispatch("setMemoryText", event.currentTarget.value)
+                          }
+                        />
+                        <span className="grave-memory-capsule__hint">
+                          {t("memoryTextHint")}
+                        </span>
+                      </label>
+                      <div
+                        className="grave-memory-capsule__meter"
+                        aria-label={t("capsuleCharge")}
+                      >
+                        <span />
+                      </div>
+                    </div>
                     {trimmedAssetHash && (
                       <p
                         className="grave-local-hash"
@@ -301,14 +382,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     )}
                   </>
                 ) : (
-                  <NeoInput
-                    value={assetHash}
-                    label={t("assetHash")}
-                    placeholder={t("assetHashPlaceholder")}
-                    hint={!hashError ? t("assetHashHint") : ""}
-                    error={hashError}
-                    onChange={(val) => state.assetHash?.set(val)}
-                  />
+                  <label
+                    className={`grave-hash-plaque${
+                      hashError ? " is-error" : trimmedAssetHash ? " is-ready" : ""
+                    }`}
+                  >
+                    <span className="grave-hash-plaque__icon" aria-hidden="true">
+                      <Hash size={18} />
+                    </span>
+                    <span className="grave-hash-plaque__copy">
+                      <span className="grave-hash-plaque__label">
+                        {t("assetHash")}
+                      </span>
+                      <input
+                        value={assetHash}
+                        aria-label={t("assetHash")}
+                        placeholder={t("assetHashPlaceholder")}
+                        disabled={burialBusy}
+                        onChange={(event) =>
+                          state.assetHash?.set(event.currentTarget.value)
+                        }
+                      />
+                      <small>
+                        {hashError || t("assetHashHint")}
+                      </small>
+                    </span>
+                  </label>
                 )}
               </div>
             </section>
@@ -329,24 +428,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               >
                 {t("clearHash")}
               </NeoButton>
-            </div>
-            <div className="memory-type-selector">
-              <span className="field-label">{t("memoryTypeLocal")}</span>
-              <div className="type-options">
-                {memoryTypeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`type-option${memoryType === option.value ? " active" : ""}`}
-                    onClick={() => state.memoryType?.set(option.value)}
-                  >
-                    <span>{option.label}</span>
-                  </button>
-                ))}
-              </div>
-              <span className="memory-type-hint">
-                {t("memoryTypeLocalHint")}
-              </span>
             </div>
             {trimmedAssetHash.length > 0 && (
               <section
