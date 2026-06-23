@@ -4,7 +4,10 @@ import { useEffect, useRef } from "react";
 import { SocialRatingWidget } from "@/components/SocialRatingWidget";
 import { SocialCommentThread } from "@/components/SocialCommentThread";
 import { useReviews } from "@/hooks/useReviews";
-import { useWalletStore } from "@/lib/wallet/store";
+import {
+  selectConnectedWalletAddress,
+  useWalletStore,
+} from "@/lib/wallet/store";
 
 interface ReviewsTabProps {
   appId: string;
@@ -12,7 +15,7 @@ interface ReviewsTabProps {
 }
 
 export function ReviewsTab({ appId, network = "testnet" }: ReviewsTabProps) {
-  const { address: walletAddress } = useWalletStore();
+  const walletAddress = useWalletStore(selectConnectedWalletAddress);
   const {
     rating,
     comments,

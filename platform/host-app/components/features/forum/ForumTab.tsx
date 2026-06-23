@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useForum } from "./useForum";
-import { useWalletStore } from "@/lib/wallet/store";
+import {
+  selectConnectedWalletAddress,
+  useWalletStore,
+} from "@/lib/wallet/store";
 import type { ForumThread } from "./types";
 import { EmptyStateArt } from "../../../../../apps/shared/components-react/illustrations";
 
@@ -36,7 +39,7 @@ const categoryColors = {
 };
 
 export function ForumTab({ appId, network = "testnet" }: ForumTabProps) {
-  const { address: walletAddress } = useWalletStore();
+  const walletAddress = useWalletStore(selectConnectedWalletAddress);
   const { threads, loading, fetchThreads, createThread } = useForum({
     appId,
     walletAddress,

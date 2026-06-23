@@ -7,7 +7,10 @@ import { Search, Menu, X, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/react";
-import { useWalletStore } from "@/lib/wallet/store";
+import {
+  selectConnectedWalletAddress,
+  useWalletStore,
+} from "@/lib/wallet/store";
 import { BRAND } from "@/lib/brand";
 
 const NotificationDropdown = dynamic(
@@ -50,7 +53,7 @@ export function Navbar() {
   const { locale, setLocale, t } = useI18n();
   // Subscribe to the single field this component renders so the 60s balance
   // poll does not re-render the whole navbar (logo, nav links, search).
-  const walletAddress = useWalletStore((state) => state.address);
+  const walletAddress = useWalletStore(selectConnectedWalletAddress);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);

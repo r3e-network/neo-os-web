@@ -23,12 +23,21 @@ const mockedFetchOK = fetchOK as jest.MockedFunction<typeof fetchOK>;
 const mockedGetWalletSessionToken =
   getWalletSessionToken as jest.MockedFunction<typeof getWalletSessionToken>;
 
+function mockAuthState(overrides: Record<string, unknown> = {}) {
+  mockedUseAuthStore.mockImplementation((selector: (state: unknown) => unknown) =>
+    selector({
+      authenticated: true,
+      walletAddress: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+      walletType: "external",
+      ...overrides,
+    }),
+  );
+}
+
 describe("NotificationDropdown", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseAuthStore.mockImplementation((selector: (state: unknown) => unknown) =>
-      selector({ authenticated: true }),
-    );
+    mockAuthState();
     mockedFetchJSON.mockResolvedValue({ events: [] });
     mockedFetchOK.mockResolvedValue(undefined);
   });
@@ -52,6 +61,17 @@ describe("NotificationDropdown", () => {
       expect(mockedFetchJSON).toHaveBeenCalledWith(
         "/api/notifications/events?wallet=NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu&limit=10",
       );
+    });
+  });
+
+  it("does not fetch with a wallet token bound to a previous account", async () => {
+    mockedGetWalletSessionToken.mockReturnValue("wallet-session-jwt");
+    mockAuthState({ walletAddress: "NPreviousWalletAddress" });
+
+    render(<NotificationDropdown walletAddress="NNewConnectedWalletAddress" />);
+
+    await waitFor(() => {
+      expect(mockedFetchJSON).not.toHaveBeenCalled();
     });
   });
 

@@ -1,10 +1,13 @@
 "use client";
 
 import { Leaderboard } from "@/components/features/gamification";
-import { useWalletStore } from "@/lib/wallet/store";
+import {
+  selectConnectedWalletAddress,
+  useWalletStore,
+} from "@/lib/wallet/store";
 
 export function LeaderboardPageClient() {
-  const { address } = useWalletStore();
+  const address = useWalletStore(selectConnectedWalletAddress);
 
   return <Leaderboard currentWallet={address} />;
 }
