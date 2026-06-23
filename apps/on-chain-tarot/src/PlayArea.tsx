@@ -58,6 +58,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const revealCount = drawn.filter((card) => card.flipped).length;
   const oracleReady = readingMode === "oracle";
   const isDealing = isLoading || dealPreview;
+  const drawButtonLabel = isDealing ? t("drawingCards") : t("drawCards");
   const questionText = question.trim();
   const readingSlipText = questionText || t("questionPreviewFallback");
   const playStateClass = [
@@ -116,12 +117,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleDraw = async () => {
+    if (isDealing) return;
     startDealPreview();
     await dispatch("draw");
   };
 
   return (
-    <div className={`tarot-play-area ${playStateClass}`.trim()}>
+    <div
+      className={`tarot-play-area ${playStateClass}`.trim()}
+      aria-busy={isDealing || undefined}
+    >
       <div className="tarot-shell">
         <section className="tarot-main" aria-label={t("tarotHeroTitle")}>
           <div className="tarot-hero">
@@ -189,6 +194,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   allFlipped ? "is-complete" : "",
                 ].filter(Boolean).join(" ")}
                 aria-label={t("readingIntentTitle")}
+                aria-busy={isDealing || undefined}
               >
                 <div className="tarot-intent-stage__deck" aria-hidden="true">
                   {[0, 1, 2].map((item) => (
@@ -302,11 +308,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <>
                     <NeoButton
                       variant="primary"
-                      loading={isLoading}
-                      disabled={isLoading}
+                      loading={isDealing}
+                      disabled={isDealing}
+                      aria-label={drawButtonLabel}
                       onClick={handleDraw}
                     >
-                      {isLoading ? t("drawingCards") : t("drawCards")}
+                      {drawButtonLabel}
                     </NeoButton>
                     <p className="tarot-draw-hint">{t("drawValueHint")}</p>
                   </>
@@ -353,6 +360,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <div
                 className={`tarot-spread-table${questionText ? " tarot-spread-table--ready" : ""}${isDealing && !hasDrawn ? " tarot-spread-table--dealing" : ""}${hasDrawn ? " tarot-spread-table--drawn" : ""}${allFlipped ? " tarot-spread-table--complete" : ""}`}
+                aria-busy={isDealing || undefined}
               >
                 <img
                   className="tarot-spread-table__mat"
