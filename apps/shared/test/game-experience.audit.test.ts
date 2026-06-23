@@ -25,6 +25,8 @@ const ASSET_PATTERN =
   /(<picture\b|<img\b|from\s+["'][^"']+\.(?:png|jpe?g|webp|avif|svg)["']|url\(["']?[^)]+\.(?:png|jpe?g|webp|avif|svg))/i;
 const PLAY_SURFACE_PATTERN =
   /(arena|stage|machine|table|plaza|workbench|lane|route|deck)/i;
+const INTERACTION_MOTION_PATTERN =
+  /(?:is-|--)(rolling|tossing|opening|sending|sealing|creating|launching|claiming|pulling|drawing|dealing|flipping|flipped|burning|settling|won|lost|ready|active|complete|claimable)[\s\S]{0,900}animation\s*:/i;
 
 function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
@@ -109,6 +111,10 @@ describe("game miniapp experience audit", () => {
         animationCount,
         `${app.name}: game states need visible animated feedback`,
       ).toBeGreaterThanOrEqual(3);
+      expect(
+        source,
+        `${app.name}: motion must be tied to the core play action, not only ambient decoration`,
+      ).toMatch(INTERACTION_MOTION_PATTERN);
       expect(
         source,
         `${app.name}: motion-heavy game UI must honor reduced-motion users`,
