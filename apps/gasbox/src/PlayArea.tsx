@@ -306,7 +306,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handlePull = async () => {
     const machineId = selectedMachine?.id;
-    if (!machineId) return;
+    if (!machineId || !selectedMachineReady || pullAnimating || isAwaitingReveal) return;
     startPullPreview();
     setLeverPulled(true);
     // Two-step: commit → wait one block → settle. The dispatch resolves after
@@ -340,6 +340,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : betPhase === "settling"
         ? t("gasboxRevealing")
         : t("gasboxCommitted");
+  const pullMotionLabel =
+    betPhase === "idle" && pullAnimating ? t("pulling") : pendingPhaseLabel;
+  const pullButtonLabel =
+    betPhase === "committing"
+      ? t("gasboxCommitting")
+      : betPhase === "settling"
+        ? t("gasboxRevealing")
+        : pullAnimating
+          ? t("pulling")
+          : t("pull");
 
   const handleWithdrawRevenue = async () => {
     const machineId = selectedMachine?.id;
@@ -1087,7 +1097,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {selectedMachine && (
         <NeoCard variant="erobo" className="gasbox-pull-card">
           <div className="gasbox-selected-display">
-            <div className="gasbox-pull-stage">
+            <div className="gasbox-pull-stage" aria-busy={pullAnimating || undefined}>
               <figure className={`gasbox-stage-art${pullAnimating ? " gasbox-stage-art--pulling" : ""}`}>
                 <picture aria-hidden="true">
                   <source srcSet="logo.avif" type="image/avif" />
@@ -1168,6 +1178,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div
                   className={`gasbox-prize-reel${pullAnimating ? " gasbox-prize-reel--active" : ""}${selectedMachineReady ? " gasbox-prize-reel--ready" : " gasbox-prize-reel--locked"}`}
                   aria-label={t("gasboxReelTitle")}
+                  aria-busy={pullAnimating || undefined}
                   aria-live={pullAnimating ? "polite" : "off"}
                 >
                   <div className="gasbox-reel-head">
@@ -1175,7 +1186,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <Sparkles aria-hidden="true" />
                       {t("gasboxReelTitle")}
                     </span>
-                    <strong>{pullAnimating ? pendingPhaseLabel : t("gasboxReelHint")}</strong>
+                    <strong>{pullAnimating ? pullMotionLabel : t("gasboxReelHint")}</strong>
                   </div>
                   <div className="gasbox-reel-window">
                     <div className="gasbox-reel-marker" aria-hidden="true">
@@ -1209,6 +1220,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}>
                   <div
                     className={`gasbox-control-deck${pullAnimating ? " gasbox-control-deck--active" : ""}${selectedMachineReady ? " gasbox-control-deck--ready" : " gasbox-control-deck--locked"}`}
+                    aria-busy={pullAnimating || undefined}
                   >
                     <div
                       className={`gasbox-cabinet-lever${pullAnimating ? " is-active" : ""}${selectedMachineReady ? " is-ready" : " is-locked"}`}
@@ -1227,21 +1239,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         variant="primary"
                         size="lg"
                         block
-                        loading={isPulling}
-                        disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
+                        loading={pullAnimating}
+                        disabled={pullAnimating || isAwaitingReveal || !selectedMachineReady}
+                        aria-label={pullButtonLabel}
                         className={`gasbox-pull-btn${pullAnimating ? " gasbox-pull-btn--active" : ""}`}
                         onClick={handlePull}
                       >
                         <div className="gasbox-pull-btn-content">
                           <Ticket aria-hidden="true" />
                           <span className="gasbox-pull-btn-text">
-                            {betPhase === "committing"
-                              ? t("gasboxCommitting")
-                              : betPhase === "settling"
-                                ? t("gasboxRevealing")
-                                : isPulling
-                                  ? t("pulling")
-                                  : t("pull")}
+                            {pullButtonLabel}
                           </span>
                           <span className="gasbox-pull-btn-cost">
                             {selectedMachine.price} GAS
