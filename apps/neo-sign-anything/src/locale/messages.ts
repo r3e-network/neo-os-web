@@ -26,6 +26,70 @@ const appMessages = {
     en: "Your message preview will appear here before it goes to wallet review.",
     zh: "输入后会先在这里预览，再进入钱包确认。",
   },
+  signRouteStageLabel: {
+    en: "Signing route",
+    zh: "签名通道",
+  },
+  signRouteStageEmpty: {
+    en: "Prepare the message",
+    zh: "准备签署内容",
+  },
+  signRouteStageEmptyHint: {
+    en: "Add a message or load a file digest before opening the wallet.",
+    zh: "先输入消息或载入文件摘要，再打开钱包确认。",
+  },
+  signRouteStageReady: {
+    en: "Ready for wallet review",
+    zh: "可进入钱包确认",
+  },
+  signRouteStageReadyHint: {
+    en: "The message is within the size limit and ready for signing or broadcast.",
+    zh: "消息大小合规，可签名或上链广播。",
+  },
+  signRouteStageSigning: {
+    en: "Wallet signature in progress",
+    zh: "钱包签名进行中",
+  },
+  signRouteStageSigningHint: {
+    en: "Confirm the message in your wallet; the proof will appear here after approval.",
+    zh: "请在钱包中确认消息；批准后证明会显示在这里。",
+  },
+  signRouteStageBroadcasting: {
+    en: "Broadcast route in progress",
+    zh: "广播通道进行中",
+  },
+  signRouteStageBroadcastingHint: {
+    en: "The wallet is preparing a public 0 GAS self-transfer with the message attached.",
+    zh: "钱包正在准备一笔公开的 0 GAS 自转账，并附带该消息。",
+  },
+  signRouteStageSigned: {
+    en: "Signature proof ready",
+    zh: "签名证明已就绪",
+  },
+  signRouteStageSignedHint: {
+    en: "Copy the signature or verifier bundle for off-chain proof.",
+    zh: "复制签名或验证包，用于链下证明。",
+  },
+  signRouteStageBroadcasted: {
+    en: "On-chain proof posted",
+    zh: "链上证明已发布",
+  },
+  signRouteStageBroadcastedHint: {
+    en: "Copy the transaction hash or inspect the public receipt in the explorer.",
+    zh: "复制交易哈希，或在浏览器中查看公开回执。",
+  },
+  signRouteStageMessage: {
+    en: "Message",
+    zh: "消息",
+  },
+  signRouteStageWallet: {
+    en: "Wallet",
+    zh: "钱包",
+  },
+  signRouteStageProof: {
+    en: "Proof",
+    zh: "证明",
+  },
   messageTypePlain: { en: "Message payload", zh: "消息 payload" },
   messageTypeDigest: { en: "File digest", zh: "文件摘要" },
   signFlowTitle: { en: "Signature flow", zh: "签名流程" },
@@ -55,7 +119,10 @@ const appMessages = {
   signRouteLabel: { en: "Sign route", zh: "签名路径" },
   signContractRoute: { en: "chain.signMessage", zh: "chain.signMessage" },
   broadcastRouteLabel: { en: "Broadcast route", zh: "广播路径" },
-  broadcastContractRoute: { en: "GAS.transfer self -> data", zh: "GAS.transfer 自转账 -> data" },
+  broadcastContractRoute: {
+    en: "GAS.transfer self -> data",
+    zh: "GAS.transfer 自转账 -> data",
+  },
   privacyLabel: { en: "Privacy", zh: "隐私" },
   privacyValue: { en: "No secrets", zh: "不要写入机密" },
   resultPanelTitle: { en: "Proof output", zh: "证明输出" },
@@ -81,7 +148,10 @@ const appMessages = {
   gasAmountLabel: { en: "Transfer amount", zh: "转账金额" },
   messageBytesLabel: { en: "Message bytes", zh: "信息字节" },
   messageLabel: { en: "Message", zh: "信息" },
-  messagePlaceholder: { en: "Enter your message here...", zh: "在此输入您的信息..." },
+  messagePlaceholder: {
+    en: "Enter your message here...",
+    zh: "在此输入您的信息...",
+  },
   messageTemplateLabel: { en: "Message starters", zh: "消息模板" },
   templateReleaseLabel: { en: "Release proof", zh: "发布证明" },
   templateReleaseBody: {
@@ -98,7 +168,10 @@ const appMessages = {
     en: "I approve this request after reviewing the destination, amount, and purpose.",
     zh: "我已核对目标、金额与用途，并批准此请求。",
   },
-  messageTooLong: { en: "Message is too long for on-chain broadcast.", zh: "信息过长，无法上链广播。" },
+  messageTooLong: {
+    en: "Message is too long for on-chain broadcast.",
+    zh: "信息过长，无法上链广播。",
+  },
   signBtn: { en: "Sign Message", zh: "签名信息" },
   broadcastBtn: { en: "Broadcast Message (On-chain)", zh: "广播信息 (上链)" },
   signatureResult: { en: "Signature", zh: "签名结果" },
@@ -125,19 +198,34 @@ const appMessages = {
   },
   fileHashed: { en: "File hashed and loaded", zh: "文件已哈希并载入" },
   signSuccess: { en: "Message signed", zh: "已签名" },
-  connectWallet: { en: "Please connect your wallet to proceed.", zh: "请连接钱包以继续。" },
-  broadcastSuccess: { en: "Message broadcasted successfully!", zh: "信息广播成功！" },
+  connectWallet: {
+    en: "Please connect your wallet to proceed.",
+    zh: "请连接钱包以继续。",
+  },
+  broadcastSuccess: {
+    en: "Message broadcasted successfully!",
+    zh: "信息广播成功！",
+  },
   signFailed: { en: "Signing failed", zh: "签名失败" },
   broadcastFailed: { en: "Broadcast failed", zh: "广播失败" },
-  txPending: { en: "Transaction sent (ID pending)", zh: "交易已发送 (等待哈希)" },
+  txPending: {
+    en: "Transaction sent (ID pending)",
+    zh: "交易已发送 (等待哈希)",
+  },
   aboutTitle: { en: "About Neo Sign Anything", zh: "关于 Neo 任意签" },
   aboutText: {
     en: "This tool allows you to sign messages using your Neo private key. You can either generate an off-chain signature or broadcast the message to the blockchain as a transaction.",
     zh: "此工具允许您使用 Neo 私钥签名信息。您可以生成链下签名，也可以将信息作为交易广播到区块链上。",
   },
   howItWorksTitle: { en: "How it Works", zh: "如何使用" },
-  step1: { en: "Enter your message in the text area.", zh: "在文本区域输入您的信息。" },
-  step2: { en: 'Click "Sign Message" to get a cryptographic signature.', zh: "点击“签名信息”获取加密签名。" },
+  step1: {
+    en: "Enter your message in the text area.",
+    zh: "在文本区域输入您的信息。",
+  },
+  step2: {
+    en: 'Click "Sign Message" to get a cryptographic signature.',
+    zh: "点击“签名信息”获取加密签名。",
+  },
   step3: {
     en: 'Click "Broadcast Message" to send a 0-value transaction with your message attached as data.',
     zh: "点击“广播信息”发送一笔带有您信息的 0 值交易。",
@@ -192,8 +280,14 @@ const appMessages = {
     en: "This tool allows you to sign messages using your Neo private key. You can either generate an off-chain signature or broadcast the message to the blockchain as a transaction.",
     zh: "此工具允许您使用 Neo 私钥签名信息。您可以生成链下签名，也可以将信息作为交易广播到区块链上。",
   },
-  docStep1: { en: "Enter your message in the text area.", zh: "在文本区域输入您的信息。" },
-  docStep2: { en: 'Click "Sign Message" to get a cryptographic signature.', zh: '点击"签名信息"获取加密签名。' },
+  docStep1: {
+    en: "Enter your message in the text area.",
+    zh: "在文本区域输入您的信息。",
+  },
+  docStep2: {
+    en: 'Click "Sign Message" to get a cryptographic signature.',
+    zh: '点击"签名信息"获取加密签名。',
+  },
   docStep3: {
     en: 'Click "Broadcast Message" to send a 0-value transaction with your message attached as data.',
     zh: '点击"广播信息"发送一笔带有您信息的 0 值交易。',
