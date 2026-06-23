@@ -8,7 +8,11 @@
   border: 1px solid rgba(20, 22, 38, 0.06);
   border-radius: 24px;
   background:
-    radial-gradient(circle at 50% 18%, rgba(22, 199, 132, 0.12), transparent 34%),
+    radial-gradient(
+      circle at 50% 18%,
+      rgba(22, 199, 132, 0.12),
+      transparent 34%
+    ),
     #f8faf9;
 }
 
@@ -45,8 +49,16 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(248, 250, 249, 0.08), rgba(248, 250, 249, 0.92) 67%),
-    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.76), transparent 48%);
+    linear-gradient(
+      180deg,
+      rgba(248, 250, 249, 0.08),
+      rgba(248, 250, 249, 0.92) 67%
+    ),
+    radial-gradient(
+      circle at 50% 58%,
+      rgba(255, 255, 255, 0.76),
+      transparent 48%
+    );
 }
 
 .arena-orbit {
@@ -76,7 +88,9 @@
   border-radius: 999px;
   background: var(--coin-arena-ambient);
   transform: translate(-50%, -50%);
-  transition: transform 0.35s ease, background 0.35s ease;
+  transition:
+    transform 0.35s ease,
+    background 0.35s ease;
 
   &.flipping {
     background: var(--coin-arena-ambient-flip);
@@ -98,8 +112,7 @@
 .premium-arena--flipping .arena-stage__pedestal,
 .premium-arena--revealing .arena-stage__pedestal {
   animation-duration: 1.4s;
-  filter:
-    drop-shadow(0 18px 34px rgba(8, 20, 35, 0.2))
+  filter: drop-shadow(0 18px 34px rgba(8, 20, 35, 0.2))
     drop-shadow(0 0 24px rgba(22, 199, 132, 0.28));
 }
 
@@ -109,8 +122,7 @@
   bottom: 52px;
   width: 148px;
   opacity: 0.88;
-  filter:
-    drop-shadow(0 16px 28px rgba(8, 20, 35, 0.18))
+  filter: drop-shadow(0 16px 28px rgba(8, 20, 35, 0.18))
     drop-shadow(0 0 22px rgba(22, 199, 132, 0.2));
   animation: winner-token-in 560ms cubic-bezier(0.2, 0.78, 0.22, 1.08) both;
 }
@@ -188,6 +200,158 @@
     background: #fef3c7;
     color: #b45309;
   }
+}
+
+.commit-reveal-race {
+  --fogplay-race-progress: 10%;
+
+  position: relative;
+  z-index: 3;
+  display: grid;
+  width: min(100%, 430px);
+  gap: 9px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 8px 22px rgba(20, 22, 38, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.commit-reveal-race--committing {
+  --fogplay-race-progress: 38%;
+}
+
+.commit-reveal-race--revealing {
+  --fogplay-race-progress: 68%;
+
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(255, 251, 235, 0.92);
+}
+
+.commit-reveal-race--settled {
+  --fogplay-race-progress: 92%;
+}
+
+.commit-reveal-race__track {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.commit-reveal-race__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fogplay-race-progress);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #16c784, #f59e0b, #16c784);
+  box-shadow: 0 0 18px rgba(22, 199, 132, 0.22);
+  transition: width 300ms ease;
+}
+
+.commit-reveal-race__fill::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.72),
+    transparent
+  );
+  content: "";
+  opacity: 0;
+  transform: translateX(-100%);
+}
+
+.commit-reveal-race--committing .commit-reveal-race__fill::after,
+.commit-reveal-race--revealing .commit-reveal-race__fill::after {
+  animation: fogplay-race-scan 1.05s ease-in-out infinite;
+}
+
+.commit-reveal-race__runner {
+  position: absolute;
+  top: 50%;
+  left: var(--fogplay-race-progress);
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #16c784;
+  box-shadow:
+    0 0 0 4px rgba(22, 199, 132, 0.14),
+    0 0 18px rgba(22, 199, 132, 0.4);
+  transform: translate(-50%, -50%);
+  transition: left 300ms ease;
+}
+
+.commit-reveal-race--revealing .commit-reveal-race__runner {
+  background: #f59e0b;
+  box-shadow:
+    0 0 0 4px rgba(245, 158, 11, 0.16),
+    0 0 18px rgba(245, 158, 11, 0.44);
+}
+
+.commit-reveal-race--committing .commit-reveal-race__runner,
+.commit-reveal-race--revealing .commit-reveal-race__runner {
+  animation: fogplay-race-runner 840ms ease-in-out infinite;
+}
+
+.commit-reveal-race__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.commit-reveal-race__step {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.72);
+  transition:
+    border-color 200ms ease,
+    background 200ms ease,
+    transform 200ms ease;
+}
+
+.commit-reveal-race__step small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.commit-reveal-race__step strong {
+  color: #1e293b;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.commit-reveal-race__step.is-complete {
+  border-color: rgba(22, 199, 132, 0.18);
+  background: rgba(236, 253, 245, 0.82);
+}
+
+.commit-reveal-race__step.is-active {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: rgba(255, 251, 235, 0.94);
+  animation: fogplay-race-step-pop 780ms ease-in-out infinite;
+  transform: translateY(-1px);
 }
 
 .reveal-pending {
@@ -437,6 +601,44 @@
   }
 }
 
+@keyframes fogplay-race-scan {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  36% {
+    opacity: 0.82;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fogplay-race-runner {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.18);
+  }
+}
+
+@keyframes fogplay-race-step-pop {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arena-orbit--inner,
   .arena-stage__pedestal,
@@ -445,11 +647,19 @@
   .coin-wrapper--lost,
   .arena-stage__winner,
   .result-banner,
-  .status-dot.flipping {
+  .status-dot.flipping,
+  .commit-reveal-race--committing .commit-reveal-race__fill::after,
+  .commit-reveal-race--revealing .commit-reveal-race__fill::after,
+  .commit-reveal-race--committing .commit-reveal-race__runner,
+  .commit-reveal-race--revealing .commit-reveal-race__runner,
+  .commit-reveal-race__step.is-active {
     animation: none;
   }
 
-  .arena-glow {
+  .arena-glow,
+  .commit-reveal-race__fill,
+  .commit-reveal-race__runner,
+  .commit-reveal-race__step {
     transition: none;
   }
 }
@@ -501,9 +711,22 @@
   }
 
   .bet-preview,
-  .reveal-pending {
+  .reveal-pending,
+  .commit-reveal-race {
     width: min(100%, 320px);
     box-sizing: border-box;
+  }
+
+  .commit-reveal-race__steps {
+    gap: 6px;
+  }
+
+  .commit-reveal-race__step {
+    padding: 7px 6px;
+  }
+
+  .commit-reveal-race__step strong {
+    font-size: 10px;
   }
 
   .result-banner {
