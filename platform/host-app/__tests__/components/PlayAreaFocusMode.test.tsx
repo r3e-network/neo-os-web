@@ -7,7 +7,15 @@ import { LastSurvivorPlayArea } from "../../components/playarea/PlayAreaCoreFlow
 import type { MiniAppInfo } from "../../components/types";
 
 jest.mock("@/lib/wallet/store", () => ({
-  useWalletStore: { getState: () => ({ connected: false, address: "" }) },
+  useWalletStore: {
+    getState: () => ({
+      connected: false,
+      address: "",
+      accountHash: "",
+      network: null,
+    }),
+    subscribe: jest.fn(() => () => {}),
+  },
   getWalletAdapter: () => null,
 }));
 

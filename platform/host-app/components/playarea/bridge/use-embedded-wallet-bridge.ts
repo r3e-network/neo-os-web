@@ -95,17 +95,28 @@ export function useEmbeddedWalletBridge({
     };
 
     const publishWalletState = (state: ReturnType<typeof useWalletStore.getState>) => {
+      const networkMatchesTarget = state.network === network;
+      const connected = Boolean(
+        state.connected &&
+          state.address &&
+          networkMatchesTarget,
+      );
+
       postToFrame({
         type: HOST_WALLET_BRIDGE_STATE,
         appId,
         protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
         state: {
-          connected: Boolean(state.connected && state.address),
-          address: state.connected ? state.address : "",
-          accountHash: state.connected ? state.accountHash : "",
-          network: state.network ? bridgeNetworkMagic(state.network) : null,
-          networkName: state.network,
-          networkVerified: Boolean(state.network),
+          connected,
+          address: connected ? state.address : "",
+          accountHash: connected ? state.accountHash : "",
+          // This state packet describes the embedded app's active chain, not a
+          // guarantee that the wallet is usable on it. Keeping the target
+          // network stable prevents a disconnected/wrong-network wallet from
+          // flipping a testnet iframe back to the SDK's mainnet fallback.
+          network: bridgeNetworkMagic(network),
+          networkName: network,
+          networkVerified: networkMatchesTarget,
         },
       });
     };
