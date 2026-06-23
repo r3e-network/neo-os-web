@@ -1,4 +1,4 @@
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import {
   Clock3,
   Crown,
@@ -82,7 +82,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
   const [keyBurst, setKeyBurst] = useState(0);
+  const [buyActionPreview, setBuyActionPreview] = useState(false);
+  const buyActionPreviewTimeout = useRef<number | null>(null);
   const formatNum = (n: number) => formatNumber(n, 2);
+  const buyKeysIsAnimating = isBuyingKeys || buyActionPreview;
+
+  useEffect(() => {
+    return () => {
+      if (buyActionPreviewTimeout.current !== null) {
+        window.clearTimeout(buyActionPreviewTimeout.current);
+      }
+    };
+  }, []);
+
+  const startBuyActionPreview = () => {
+    if (buyActionPreviewTimeout.current !== null) {
+      window.clearTimeout(buyActionPreviewTimeout.current);
+    }
+    setBuyActionPreview(true);
+    buyActionPreviewTimeout.current = window.setTimeout(() => {
+      setBuyActionPreview(false);
+      buyActionPreviewTimeout.current = null;
+    }, 1400);
+  };
   // A fresh round is active on-chain but has no keys sold yet, so it reports
   // remainingTime 0 — the danger ring/meter must NOT render a pulsing red
   // CRITICAL 00:00:00 for it. Reserve the live danger styling for a round that
@@ -151,6 +173,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleBuyKeys = async () => {
+    if (!canBuyKeys || buyKeysIsAnimating) return;
+    setKeyBurst((tick) => tick + 1);
+    startBuyActionPreview();
     await dispatch("buyKeys", localKeyCount);
     setLocalKeyCount("1");
     void dispatch("setKeyCount", "1");
@@ -168,6 +193,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     awaitingFirstKey ? "survivor-play-area--awaiting-first-key" : "",
     needsLifecycleSync ? "survivor-play-area--settlement" : "",
     viewerIsWinner ? "survivor-play-area--winner" : "",
+    buyKeysIsAnimating ? "survivor-play-area--buying" : "",
     serviceNotice ? "survivor-play-area--service-notice" : "",
   ]
     .filter(Boolean)
@@ -394,7 +420,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <BuyKeysCard
                     keyCount={localKeyCount}
                     estimatedCost={estimatedCost}
-                    isPaying={isBuyingKeys}
+                    isPaying={buyKeysIsAnimating}
                     disabled={!canBuyKeys}
                     validationError={keyValidationError}
                     helperText={buyKeysHelper}

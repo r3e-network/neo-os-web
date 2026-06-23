@@ -200,7 +200,7 @@
    not-allowed cursor signal "this is waiting on the round", while the soft tint
    keeps it on-system and legible (clears AA). Scoped to the buy-keys card so it
    can't leak onto other primary buttons. */
-.buy-keys-card .neo-btn--primary:disabled {
+.buy-keys-card .neo-btn--primary:disabled:not(.neo-btn--loading) {
   background: var(--ns-surface, #f7f8fa);
   border: 1.5px dashed rgba(22, 199, 132, 0.4);
   color: pm.$text-muted;
