@@ -146,6 +146,9 @@ function t(key: string, params?: Record<string, string | number>) {
     studioOddsRailTitle: "Capsule odds rail",
     studioOddsRailHint:
       "Preview what players will see before the wallet confirmation.",
+    studioConveyorLabel: "Capsule conveyor",
+    studioConveyorHint:
+      "Capsules move from setup into the machine inventory as weights change.",
     rarityCommon: "COMMON",
     rarityRare: "RARE",
     rarityEpic: "EPIC",
@@ -689,6 +692,15 @@ describe("GasBox PlayArea", () => {
     expect(container.querySelectorAll(".gasbox-studio-odds-token").length).toBe(
       1,
     );
+    expect(container.querySelector(".gasbox-studio-conveyor")).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-studio-conveyor__belt"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-studio-conveyor__orb img[src="gasbox-prize-capsule.png"]',
+      ),
+    ).not.toBeNull();
     expect(container.querySelector(".gasbox-studio-launch-pad")).not.toBeNull();
     expect(
       container.querySelector(".gasbox-studio-launch-pad.is-ready"),
@@ -732,6 +744,7 @@ describe("GasBox PlayArea", () => {
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
     expect(screen.getByText("Capsule odds rail")).toBeTruthy();
+    expect(screen.getByText("Capsule conveyor")).toBeTruthy();
     expect(screen.getAllByText("Shape cabinet").length).toBeGreaterThanOrEqual(
       1,
     );
@@ -770,6 +783,9 @@ describe("GasBox PlayArea", () => {
 
     expect(
       container.querySelector(".gasbox-studio-launch-pad.is-ready"),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(".gasbox-studio-conveyor.is-ready"),
     ).not.toBeNull();
     expect(screen.getByText("Machine ready for wallet publish")).toBeTruthy();
     expect(publish.disabled).toBe(false);
@@ -924,6 +940,9 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain("@keyframes gasbox-studio-machine-breathe");
     expect(css).toContain("@keyframes gasbox-studio-token-glow");
     expect(css).toContain("@keyframes gasbox-studio-capsule-roll");
+    expect(css).toContain("@keyframes gasbox-studio-belt-flow");
+    expect(css).toContain("@keyframes gasbox-studio-conveyor-bob");
+    expect(css).toContain("@keyframes gasbox-studio-conveyor-ready");
     expect(css).toContain("@keyframes gasbox-studio-item-scan");
     expect(css).toContain("@keyframes gasbox-studio-launch-ready");
     expect(css).toContain(".gasbox-studio-launch-pad");
@@ -931,6 +950,8 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain(".gasbox-result-theater__capsule");
     expect(css).toContain("&--revealing");
     expect(css).toContain(".gasbox-studio-odds-token__capsule");
+    expect(css).toContain(".gasbox-studio-conveyor__belt");
+    expect(css).toContain(".gasbox-studio-conveyor__capsule");
     expect(css).toContain(".gasbox-studio-item__asset");
     expect(css).toContain(".gasbox-dial-control");
     expect(css).toContain("animation: none");

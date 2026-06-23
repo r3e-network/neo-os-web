@@ -373,6 +373,11 @@ const appMessages = {
         en: "Preview what players will see before the wallet confirmation.",
         zh: "在钱包确认前预览玩家会看到的奖品轨道。",
     },
+    studioConveyorLabel: { en: "Capsule conveyor", zh: "胶囊输送线" },
+    studioConveyorHint: {
+        en: "Capsules move from setup into the machine inventory as weights change.",
+        zh: "权重变化时，胶囊会从配置区进入机器库存预览。",
+    },
     studioAmountUnset: { en: "Set prize", zh: "设置奖品" },
     studioCapsuleLabel: { en: "Capsule {index}", zh: "胶囊 {index}" },
     studioCapsuleFallback: { en: "Name this prize capsule", zh: "命名这个奖品胶囊" },
