@@ -142,6 +142,9 @@ describe("Neo Convert PlayArea", () => {
     expect(screen.getByText("Local pipeline")).toBeTruthy();
     expect(screen.getByText("Waiting for key material")).toBeTruthy();
     expect(document.querySelector(".convert-pipeline--idle")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline__route")).toBeTruthy();
+    expect(document.querySelectorAll(".convert-pipeline__route-node")).toHaveLength(3);
+    expect(document.querySelector(".convert-pipeline__route-packet")).toBeTruthy();
     expect(document.querySelector(".convert-format-rail")).toBeTruthy();
     expect(document.querySelectorAll(".convert-format-card img")).toHaveLength(4);
     expect(screen.getByText("Output appears after a valid paste")).toBeTruthy();
@@ -182,8 +185,11 @@ describe("Neo Convert PlayArea", () => {
     );
 
     expect(screen.getByText("Deriving formats on this device.")).toBeTruthy();
-    expect(document.querySelector(".convert-pipeline--processing")).toBeTruthy();
+    const pipeline = document.querySelector(".convert-pipeline--processing");
+    expect(pipeline).toBeTruthy();
+    expect(pipeline?.getAttribute("aria-busy")).toBe("true");
     expect(document.querySelector(".convert-pipeline-step--active")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline__route-packet")).toBeTruthy();
   });
 
   it("keeps generated private material hidden until the user reveals it", () => {
@@ -255,6 +261,8 @@ describe("Neo Convert PlayArea", () => {
     expect(screen.getByText("Derived values are ready to inspect.")).toBeTruthy();
     expect(screen.getByText("Copy only the value you verified.")).toBeTruthy();
     expect(document.querySelector(".convert-pipeline--complete")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline__route-line")).toBeTruthy();
+    expect(document.querySelector(".convert-pipeline__route-node--output")).toBeTruthy();
     expect(screen.getByText("NconvertedAddress")).toBeTruthy();
     expect(screen.queryByText("[object Object]")).toBeNull();
   });
@@ -318,7 +326,14 @@ describe("Neo Convert PlayArea", () => {
 
     expect(styles).toContain(".convert-format-card");
     expect(styles).toContain(".convert-format-card__media img");
+    expect(styles).toContain(".convert-pipeline__route");
+    expect(styles).toContain("@keyframes convert-route-packet");
+    expect(styles).toContain("@keyframes convert-route-scan");
+    expect(styles).toContain("@keyframes convert-route-node-scan");
     expect(styles).toContain("@keyframes convert-format-card-lock");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.convert-pipeline--processing \.convert-pipeline__route-packet/,
+    );
   });
 });
