@@ -28,6 +28,7 @@ function t(key: string) {
     tabProjects: "Projects",
     tabContribute: "Contribute",
     finalizeRound: "Finalize",
+    finalizeSuggested: "Finalize with suggested matches",
     finalizeProjectsJson: "Project IDs (JSON)",
     finalizeMatchesJson: "Matched amounts (JSON)",
     finalizeKnownProjects: "Projects in this round",
@@ -35,6 +36,8 @@ function t(key: string) {
     addMatching: "Add matching",
     claimUnused: "Claim unused",
     adminTools: "Round Ops",
+    matchTableDonors: "Donors",
+    matchTableSuggested: "Suggested match",
   };
   return overrides[key] ?? key;
 }
@@ -234,5 +237,64 @@ describe("Quadratic Funding PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Use these" }));
     expect((screen.getByLabelText("Project IDs (JSON)") as HTMLInputElement).value).toBe("[7,9]");
+  });
+
+  it("renders round ops as an app-like control room instead of flat admin form groups", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          activeTab: "rounds",
+          isAdmin: true,
+          canFinalizeSelectedRound: true,
+          canClaimUnused: true,
+          suggestedMatches: [
+            {
+              id: "7",
+              name: "Alpha",
+              contributedDisplay: "12 GAS",
+              donors: "4",
+              matchDisplay: "8 GAS",
+              matchBaseUnits: "800000000",
+            },
+            {
+              id: "9",
+              name: "Beta",
+              contributedDisplay: "3 GAS",
+              donors: "2",
+              matchDisplay: "2 GAS",
+              matchBaseUnits: "200000000",
+            },
+          ],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(container.querySelector(".qf-admin-console")).toBeTruthy();
+    expect(container.querySelector(".qf-ops-module--reserve")).toBeTruthy();
+    expect(container.querySelector(".qf-ops-module--finalize")).toBeTruthy();
+    expect(container.querySelectorAll(".qf-match-card")).toHaveLength(2);
+    expect(container.querySelector(".qf-ops-secondary-grid")).toBeTruthy();
+    expect(container.querySelector(".qf-admin-group")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "10 GAS" }));
+    expect(
+      (container.querySelector(".qf-reserve-input input") as HTMLInputElement)
+        .value,
+    ).toBe("10");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add matching" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("addMatching", "10");
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Finalize with suggested matches" }),
+    );
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("finalizeSuggested");
+    });
   });
 });
