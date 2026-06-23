@@ -283,6 +283,53 @@ describe("GasBox PlayArea", () => {
     });
   });
 
+  it("previews the pull motion immediately and locks repeat clicks", async () => {
+    let finishPull: (() => void) | undefined;
+    const pullPromise = new Promise<void>((resolve) => {
+      finishPull = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "pull" ? pullPromise : Promise.resolve(),
+    );
+    const selectedMachine = machine();
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Pull/ }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("pull", "gasbox-alpha");
+      expect(container.querySelector(".gasbox-stage-art--pulling")).not.toBeNull();
+      expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
+      expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
+      expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
+      expect(container.querySelectorAll(".gasbox-stage-art__capsule").length).toBe(3);
+      expect(container.querySelector(".gasbox-pull-stage")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".gasbox-prize-reel")?.getAttribute("aria-busy")).toBe("true");
+      expect(container.querySelector(".gasbox-control-deck")?.getAttribute("aria-busy")).toBe("true");
+      expect(screen.getByText("Pulling...")).toBeTruthy();
+    });
+
+    const busyButton = screen.getByRole("button", { name: "Pulling..." }) as HTMLButtonElement;
+    expect(busyButton.disabled).toBe(true);
+    expect(busyButton.getAttribute("aria-busy")).toBe("true");
+
+    fireEvent.click(busyButton);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    finishPull?.();
+  });
+
   it("blocks pulls when the selected machine is inactive or inventory is missing", () => {
     const blockedMachine = machine({
       active: false,
