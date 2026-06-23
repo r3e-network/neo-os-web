@@ -108,6 +108,9 @@ describe("On-Chain Tarot PlayArea", () => {
 
     expect(document.querySelector('.tarot-hero-stage img[src="./tarot-reading-table.jpg"]')).toBeTruthy();
     expect(document.querySelector('.tarot-spread-table__mat[src="./tarot-reading-table.jpg"]')).toBeTruthy();
+    expect(screen.getAllByLabelText("Reading intent").length).toBeGreaterThan(0);
+    expect(document.querySelector(".tarot-intent-stage")).toBeTruthy();
+    expect(document.querySelectorAll(".tarot-intent-stage__card").length).toBe(3);
     expect(document.querySelectorAll(".tarot-intention-deck__card").length).toBe(3);
     expect(document.querySelectorAll(".tarot-intent-card__mini img").length).toBe(3);
     expect(screen.getByLabelText("Oracle draw lane")).toBeTruthy();
@@ -121,6 +124,7 @@ describe("On-Chain Tarot PlayArea", () => {
     );
     expect(document.querySelector(".tarot-play-area--intent-pulse")).toBeTruthy();
     expect(document.querySelector(".tarot-play-area--question-ready")).toBeTruthy();
+    expect(document.querySelector(".tarot-intent-stage.is-ready")).toBeTruthy();
     expect(document.querySelector(".tarot-oracle-lane--intent")).toBeTruthy();
     expect(document.querySelector(".tarot-oracle-lane__step.is-ready")).toBeTruthy();
     expect(document.querySelector(".tarot-spread-table--ready")).toBeTruthy();
@@ -179,6 +183,7 @@ describe("On-Chain Tarot PlayArea", () => {
     );
 
     expect(dealingView.container.querySelector(".tarot-play-area--dealing")).toBeTruthy();
+    expect(dealingView.container.querySelector(".tarot-intent-stage.is-dealing")).toBeTruthy();
     expect(dealingView.container.querySelector(".tarot-spread-table--dealing")).toBeTruthy();
     expect(dealingView.container.querySelector(".tarot-oracle-lane--dealing")).toBeTruthy();
     dealingView.unmount();
@@ -198,6 +203,7 @@ describe("On-Chain Tarot PlayArea", () => {
     );
 
     expect(completeView.container.querySelector(".tarot-play-area--complete")).toBeTruthy();
+    expect(completeView.container.querySelector(".tarot-intent-stage.is-complete")).toBeTruthy();
     expect(completeView.container.querySelector(".tarot-oracle-lane--drawn")).toBeTruthy();
     expect(completeView.container.querySelector(".tarot-oracle-lane--revealed")).toBeTruthy();
     expect(completeView.container.querySelectorAll(".tarot-oracle-lane__step.is-ready").length).toBe(3);
@@ -212,6 +218,10 @@ describe("On-Chain Tarot PlayArea", () => {
     );
 
     expect(styles).toContain("@keyframes tarot-table-drift");
+    expect(styles).toContain("@keyframes tarot-intent-stage-sheen");
+    expect(styles).toContain("@keyframes tarot-intent-stage-card");
+    expect(styles).toContain("@keyframes tarot-intent-stage-path");
+    expect(styles).toContain("@keyframes tarot-intent-slip-ready");
     expect(styles).toContain("@keyframes tarot-spread-ready");
     expect(styles).toContain("@keyframes tarot-intention-board-picked");
     expect(styles).toContain("@keyframes tarot-intention-card-shuffle");
@@ -226,6 +236,9 @@ describe("On-Chain Tarot PlayArea", () => {
     expect(styles).toContain("@keyframes tarot-card-face-flash");
     expect(styles).toContain("@keyframes tarot-spread-complete-pulse");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-intent-stage\.is-ready \.tarot-intent-stage__card/,
+    );
     expect(styles).toMatch(
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tarot-play-area--intent-pulse \.tarot-intention-board/,
     );

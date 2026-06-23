@@ -59,6 +59,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const oracleReady = readingMode === "oracle";
   const isDealing = isLoading || dealPreview;
   const questionText = question.trim();
+  const readingSlipText = questionText || t("questionPreviewFallback");
   const playStateClass = [
     questionText ? "tarot-play-area--question-ready" : "",
     intentPulse ? "tarot-play-area--intent-pulse" : "",
@@ -179,6 +180,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </strong>
               </div>
               <p className="tarot-intent-copy">{t("readingIntentCopy")}</p>
+              <div
+                className={[
+                  "tarot-intent-stage",
+                  questionText ? "is-ready" : "",
+                  isDealing ? "is-dealing" : "",
+                  hasDrawn ? "is-drawn" : "",
+                  allFlipped ? "is-complete" : "",
+                ].filter(Boolean).join(" ")}
+                aria-label={t("readingIntentTitle")}
+              >
+                <div className="tarot-intent-stage__deck" aria-hidden="true">
+                  {[0, 1, 2].map((item) => (
+                    <img
+                      key={item}
+                      className={`tarot-intent-stage__card tarot-intent-stage__card--${item + 1}`}
+                      src={TAROT_CARD_BACK}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ))}
+                </div>
+                <div className="tarot-intent-stage__path" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className="tarot-intent-stage__slip">
+                  <small>{t("questionPreviewLabel")}</small>
+                  <strong>{readingSlipText}</strong>
+                </div>
+              </div>
               <div
                 className="tarot-question-presets"
                 aria-label={t("quickIntentLabel")}
