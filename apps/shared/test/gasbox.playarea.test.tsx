@@ -52,6 +52,12 @@ function t(key: string, params?: Record<string, string | number>) {
     gasboxReelEmpty: "No escrow-ready prizes are available for this machine.",
     gasboxReelHint: "Ready to spin",
     gasboxReelTitle: "Prize reel",
+    gasboxCommitted: "Bet placed - revealing on the next block...",
+    gasboxPendingDesc: "The bet is committed. Reveal when the next block can settle the prize.",
+    gasboxPendingTitle: "Draw in progress",
+    gasboxRevealAction: "Reveal result",
+    gasboxRevealHint: "Retry safely if the reveal block is not ready yet.",
+    gasboxRevealing: "Revealing your prize...",
     gasboxPullBlockedInactive:
       "This machine is inactive. Choose an active machine or open Studio to update it.",
     gasboxPullBlockedInventory:
@@ -328,6 +334,50 @@ describe("GasBox PlayArea", () => {
     expect(dispatch).toHaveBeenCalledTimes(1);
 
     finishPull?.();
+  });
+
+  it("previews reveal motion immediately and locks repeat clicks", async () => {
+    let finishReveal: (() => void) | undefined;
+    const revealPromise = new Promise<void>((resolve) => {
+      finishReveal = resolve;
+    });
+    const dispatch = vi.fn((name: string) =>
+      name === "reveal" ? revealPromise : Promise.resolve(),
+    );
+    const selectedMachine = machine();
+
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          betPhase: "committed",
+          canReveal: true,
+          isAwaitingReveal: true,
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reveal result" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("reveal");
+      expect(container.querySelector(".gasbox-pending--revealing")).not.toBeNull();
+      expect(container.querySelector(".gasbox-prize-reel--active")).not.toBeNull();
+      expect(container.querySelector(".gasbox-control-deck--active")).not.toBeNull();
+      expect(container.querySelector(".gasbox-cabinet-lever.is-active")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Revealing your prize..." }).getAttribute("aria-busy")).toBe("true");
+    });
+
+    const busyButton = screen.getByRole("button", { name: "Revealing your prize..." }) as HTMLButtonElement;
+    expect(busyButton.disabled).toBe(true);
+    fireEvent.click(busyButton);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+
+    finishReveal?.();
   });
 
   it("blocks pulls when the selected machine is inactive or inventory is missing", () => {
@@ -610,6 +660,8 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain("@keyframes gasbox-machine-idle");
     expect(css).toContain("@keyframes gasbox-capsule-ready");
     expect(css).toContain("@keyframes gasbox-result-capsule-open");
+    expect(css).toContain("@keyframes gasbox-pending-reveal-sweep");
+    expect(css).toContain("@keyframes gasbox-pending-reveal-pop");
     expect(css).toContain("@keyframes gasbox-studio-machine-breathe");
     expect(css).toContain("@keyframes gasbox-studio-token-glow");
     expect(css).toContain("@keyframes gasbox-studio-capsule-roll");
@@ -618,6 +670,7 @@ describe("GasBox PlayArea", () => {
     expect(css).toContain(".gasbox-studio-launch-pad");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(".gasbox-result-theater__capsule");
+    expect(css).toContain("&--revealing");
     expect(css).toContain(".gasbox-studio-odds-token__capsule");
     expect(css).toContain(".gasbox-studio-item__asset");
     expect(css).toContain(".gasbox-dial-control");

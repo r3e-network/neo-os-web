@@ -196,7 +196,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [showResult, setShowResult] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
   const [pullPreview, setPullPreview] = useState(false);
+  const [revealPreview, setRevealPreview] = useState(false);
   const pullPreviewTimeout = useRef<number | null>(null);
+  const revealPreviewTimeout = useRef<number | null>(null);
   const [topUpAmount, setTopUpAmount] = useState("");
 
   const [machineName, setMachineName] = useState("");
@@ -208,12 +210,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [studioError, setStudioError] = useState<string | null>(null);
 
   const selectedMachineReady = Boolean(selectedMachine?.active && selectedMachine?.inventoryReady);
+  const revealAnimating = betPhase === "settling" || revealPreview;
   const pullAnimating =
     isPulling ||
     leverPulled ||
     pullPreview ||
     betPhase === "committing" ||
-    betPhase === "settling";
+    revealAnimating;
   // Creator earnings flow: surface Withdraw Revenue only to the machine's
   // creator (connected wallet matches creatorHash) and only when there is
   // accrued, withdrawable revenue. Otherwise the control stays hidden.
@@ -289,6 +292,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       if (pullPreviewTimeout.current !== null) {
         window.clearTimeout(pullPreviewTimeout.current);
       }
+      if (revealPreviewTimeout.current !== null) {
+        window.clearTimeout(revealPreviewTimeout.current);
+      }
     },
     [],
   );
@@ -302,6 +308,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       setPullPreview(false);
       pullPreviewTimeout.current = null;
     }, 1400);
+  };
+
+  const startRevealPreview = () => {
+    if (revealPreviewTimeout.current !== null) {
+      window.clearTimeout(revealPreviewTimeout.current);
+    }
+    setRevealPreview(true);
+    revealPreviewTimeout.current = window.setTimeout(() => {
+      setRevealPreview(false);
+      revealPreviewTimeout.current = null;
+    }, 1200);
   };
 
   const handlePull = async () => {
@@ -324,6 +341,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Reveal-retry: finish a committed bet whose settle timed out. Permissionless
   // and safe to retry — the contract pays exactly once.
   const handleReveal = async () => {
+    if (revealAnimating) return;
+    startRevealPreview();
     await dispatch("reveal");
     setShowResult(true);
   };
@@ -337,7 +356,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pendingPhaseLabel =
     betPhase === "committing"
       ? t("gasboxCommitting")
-      : betPhase === "settling"
+      : revealAnimating
         ? t("gasboxRevealing")
         : t("gasboxCommitted");
   const pullMotionLabel =
@@ -1283,14 +1302,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             {(isAwaitingReveal || canReveal) && (
               <section
-                className="gasbox-pending"
+                className={`gasbox-pending${revealAnimating ? " gasbox-pending--revealing" : ""}`}
                 role="status"
                 aria-live="polite"
                 aria-label={t("gasboxPendingTitle")}
               >
                 <div className="gasbox-pending__head">
                   <span
-                    className={`gasbox-pending__spinner${betPhase === "committed" ? " is-waiting" : ""}`}
+                    className={`gasbox-pending__spinner${betPhase === "committed" && !revealAnimating ? " is-waiting" : ""}`}
                     aria-hidden="true"
                   />
                   <div className="gasbox-pending__copy">
@@ -1305,11 +1324,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <NeoButton
                       variant="primary"
                       size="md"
-                      loading={betPhase === "settling"}
-                      disabled={betPhase === "settling"}
+                      loading={revealAnimating}
+                      disabled={revealAnimating}
+                      aria-label={revealAnimating ? t("gasboxRevealing") : t("gasboxRevealAction")}
                       onClick={handleReveal}
                     >
-                      {t("gasboxRevealAction")}
+                      {revealAnimating ? t("gasboxRevealing") : t("gasboxRevealAction")}
                     </NeoButton>
                     <span className="gasbox-pending__hint">{t("gasboxRevealHint")}</span>
                   </div>
