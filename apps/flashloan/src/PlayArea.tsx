@@ -190,6 +190,9 @@ export default function PlayArea({
     (!isMainnet || depositReceiptId.trim() !== "");
   const canWithdraw = liquidityAmount.trim() !== "";
   const displayLoanAmount = loanAmount.trim() || "0";
+  const callbackDisplay = callbackContract.trim()
+    ? compactTxid(callbackContract.trim())
+    : t("readinessCallbackMissing");
 
   const requestReadiness = [
     {
@@ -430,6 +433,68 @@ export default function PlayArea({
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div
+            className={`flashloan-capital-lane${canRequest ? " flashloan-capital-lane--armed" : ""}`}
+            aria-label={t("capitalRouteTitle")}
+          >
+            <div className="flashloan-capital-lane__head">
+              <span>{t("capitalRouteTitle")}</span>
+              <strong>{t("capitalRouteHint")}</strong>
+            </div>
+            <div className="flashloan-capital-lane__stage">
+              <span className="flashloan-capital-lane__media" aria-hidden="true">
+                <img src="./flashloan-desk.jpg" alt="" loading="lazy" />
+              </span>
+              <div className="flashloan-capital-lane__rail" aria-hidden="true">
+                <span className="flashloan-capital-lane__pulse flashloan-capital-lane__pulse--one" />
+                <span className="flashloan-capital-lane__pulse flashloan-capital-lane__pulse--two" />
+                <span className="flashloan-capital-lane__pulse flashloan-capital-lane__pulse--three" />
+              </div>
+              <div className="flashloan-capital-lane__nodes" role="list">
+                <article
+                  className="flashloan-capital-node flashloan-capital-node--pool"
+                  role="listitem"
+                >
+                  <Landmark size={16} aria-hidden="true" />
+                  <span>{t("poolReservoir")}</span>
+                  <strong>{poolBalance.toFixed(4)} GAS</strong>
+                </article>
+                <article
+                  className="flashloan-capital-node flashloan-capital-node--callback"
+                  role="listitem"
+                >
+                  <CircuitBoard size={16} aria-hidden="true" />
+                  <span>{t("callbackContract")}</span>
+                  <strong title={callbackContract.trim() || undefined}>
+                    {callbackDisplay}
+                  </strong>
+                </article>
+                <article
+                  className="flashloan-capital-node flashloan-capital-node--guard"
+                  role="listitem"
+                >
+                  <ShieldCheck size={16} aria-hidden="true" />
+                  <span>{t("totalRepayment")}</span>
+                  <strong>{repaymentPreview} GAS</strong>
+                </article>
+              </div>
+            </div>
+            <div className="flashloan-capital-lane__ledger">
+              <span>
+                <small>{t("amount")}</small>
+                <strong>{displayLoanAmount} GAS</strong>
+              </span>
+              <span>
+                <small>{t("estimatedFee")}</small>
+                <strong>{feePreview} GAS</strong>
+              </span>
+              <span>
+                <small>{t("callbackMethod")}</small>
+                <strong>{CALLBACK_METHOD}</strong>
+              </span>
             </div>
           </div>
 

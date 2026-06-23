@@ -595,6 +595,239 @@
   margin-bottom: 12px;
 }
 
+.flashloan-capital-lane {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 12px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(36, 116, 232, 0.14);
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(36, 116, 232, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(234, 243, 255, 0.84)),
+    var(--fl-surface, #ffffff);
+  box-shadow: var(--fl-shadow-soft);
+}
+
+.flashloan-capital-lane--armed {
+  border-color: rgba(22, 199, 132, 0.26);
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(22, 199, 132, 0.16),
+      transparent 34%
+    ),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(228, 248, 240, 0.88)),
+    var(--fl-surface, #ffffff);
+}
+
+.flashloan-capital-lane__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.flashloan-capital-lane__head span {
+  color: var(--fl-brand-deep);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.flashloan-capital-lane__head strong {
+  min-width: 0;
+  color: var(--fl-text);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.flashloan-capital-lane__stage {
+  position: relative;
+  display: grid;
+  min-height: 162px;
+  overflow: hidden;
+  border: 1px solid rgba(16, 32, 25, 0.08);
+  border-radius: 13px;
+  background: var(--fl-surface-warm);
+}
+
+.flashloan-capital-lane__media {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flashloan-capital-lane__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.3;
+  filter: saturate(1.08) brightness(1.04);
+  transform: scale(1.03);
+}
+
+.flashloan-capital-lane__stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.48)),
+    radial-gradient(circle at 82% 24%, rgba(22, 199, 132, 0.16), transparent 34%);
+}
+
+.flashloan-capital-lane__rail {
+  position: absolute;
+  left: 9%;
+  right: 9%;
+  top: 50%;
+  z-index: 1;
+  height: 7px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(36, 116, 232, 0.26), rgba(22, 199, 132, 0.82), rgba(191, 127, 23, 0.44)),
+    rgba(16, 32, 25, 0.08);
+  box-shadow: 0 0 18px rgba(22, 199, 132, 0.18);
+  transform: translateY(-50%);
+}
+
+.flashloan-capital-lane__pulse {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  background: var(--fl-brand);
+  box-shadow:
+    0 0 0 5px rgba(22, 199, 132, 0.14),
+    0 0 22px rgba(22, 199, 132, 0.36);
+  transform: translate(-50%, -50%);
+  animation: flashloan-capital-pulse 2.4s ease-in-out infinite;
+}
+
+.flashloan-capital-lane__pulse--two {
+  animation-delay: 260ms;
+}
+
+.flashloan-capital-lane__pulse--three {
+  animation-delay: 520ms;
+}
+
+.flashloan-capital-lane:not(.flashloan-capital-lane--armed)
+  .flashloan-capital-lane__pulse {
+  opacity: 0.26;
+  animation-play-state: paused;
+}
+
+.flashloan-capital-lane__nodes {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 22px;
+}
+
+.flashloan-capital-node {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 12px 24px rgba(16, 32, 25, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.flashloan-capital-node svg {
+  color: var(--fl-brand-strong);
+}
+
+.flashloan-capital-node span,
+.flashloan-capital-lane__ledger small {
+  color: var(--fl-muted);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.flashloan-capital-node strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fl-ink);
+  font-size: 13px;
+  font-weight: 920;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flashloan-capital-node--guard {
+  border-color: rgba(22, 199, 132, 0.26);
+  background: rgba(228, 248, 240, 0.92);
+}
+
+.flashloan-capital-lane--armed .flashloan-capital-node--callback {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow:
+    0 14px 28px rgba(22, 199, 132, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  animation: flashloan-capital-node-ready 2.6s ease-in-out infinite;
+}
+
+.flashloan-capital-lane__ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  min-width: 0;
+}
+
+.flashloan-capital-lane__ledger span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--fl-line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.flashloan-capital-lane__ledger strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fl-brand-deep);
+  font-size: 13px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .flashloan-readiness {
   display: grid;
   gap: 5px;
@@ -1386,11 +1619,43 @@
   }
 }
 
+@keyframes flashloan-capital-pulse {
+  0% {
+    left: 0%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.82);
+  }
+
+  18%,
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    left: 100%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+@keyframes flashloan-capital-node-ready {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .flashloan-deal-ticket::before,
   .flashloan-route-node::after,
   .flashloan-loan-package--active,
-  .flashloan-loan-package--active::after {
+  .flashloan-loan-package--active::after,
+  .flashloan-capital-lane__pulse,
+  .flashloan-capital-lane--armed .flashloan-capital-node--callback {
     animation: none;
   }
 
@@ -1426,8 +1691,14 @@
   }
 
   .flashloan-deal-ticket__route,
-  .flashloan-readiness-grid {
+  .flashloan-readiness-grid,
+  .flashloan-capital-lane__nodes,
+  .flashloan-capital-lane__ledger {
     grid-template-columns: 1fr;
+  }
+
+  .flashloan-capital-lane__rail {
+    display: none;
   }
 
   .flashloan-loan-package-deck {
