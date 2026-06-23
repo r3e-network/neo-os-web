@@ -115,9 +115,9 @@ export default function PlayArea({
   const selectedProviderLabel = selectedProvider
     ? optionLabel(selectedProvider, t)
     : values.provider;
-  const didText = values.did.trim();
-  const claimText = values.claim.trim();
-  const callbackText = values.callback.trim();
+  const didText = String(values.did ?? "").trim();
+  const claimText = String(values.claim ?? "").trim();
+  const callbackText = String(values.callback ?? "").trim();
   const didValid = draftResult.payload.didValid === true;
   const claimReady = claimText.length > 0;
   const callbackValid = callbackText
@@ -148,6 +148,46 @@ export default function PlayArea({
       key: "callback",
       label: t("callbackShort"),
       value: callbackText || t("callbackOptional"),
+    },
+  ];
+  const identityTrackClassName = [
+    "neodid-identity-track",
+    draftOk ? "is-ready" : "is-blocked",
+    didValid ? "has-did" : "",
+    claimReady ? "has-claim" : "",
+    callbackValid ? "has-callback" : "callback-blocked",
+    result ? "has-result" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const identityTrackNodes = [
+    {
+      key: "did",
+      icon: <IdCard size={18} aria-hidden="true" />,
+      label: t("neodidTrackSubject"),
+      value: didValid ? didText : t("inputRequired"),
+      ready: didValid,
+    },
+    {
+      key: "provider",
+      icon: <ScanSearch size={18} aria-hidden="true" />,
+      label: t("neodidTrackProvider"),
+      value: selectedProviderLabel,
+      ready: true,
+    },
+    {
+      key: "claim",
+      icon: <BadgeCheck size={18} aria-hidden="true" />,
+      label: t("neodidTrackClaim"),
+      value: claimReady ? claimText : t("inputRequired"),
+      ready: claimReady,
+    },
+    {
+      key: "receipt",
+      icon: <KeyRound size={18} aria-hidden="true" />,
+      label: t("neodidTrackReceipt"),
+      value: draftOk ? previewDigest : t("inputRequired"),
+      ready: draftOk,
     },
   ];
 
@@ -284,6 +324,30 @@ export default function PlayArea({
               <small>{t("neodidCatalogCopy")}</small>
             </span>
           </div>
+
+          <section
+            className={identityTrackClassName}
+            aria-label={t("neodidIdentityTrackTitle")}
+          >
+            <picture className="neodid-identity-track__token" aria-hidden="true">
+              <source srcSet="./logo.avif" type="image/avif" />
+              <source srcSet="./logo.webp" type="image/webp" />
+              <img src="./logo.jpg" alt="" loading="eager" decoding="sync" />
+            </picture>
+            <span className="neodid-identity-track__rail" aria-hidden="true" />
+            {identityTrackNodes.map((node) => (
+              <div
+                key={node.key}
+                className={`neodid-identity-track__node${
+                  node.ready ? " is-ready" : " is-blocked"
+                }`}
+              >
+                {node.icon}
+                <span>{node.label}</span>
+                <strong>{node.value}</strong>
+              </div>
+            ))}
+          </section>
 
           <div
             className="neodid-summary-strip"

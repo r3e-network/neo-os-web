@@ -341,6 +341,14 @@ const appMessages = {
     en: "Provider and claim options are examples. Check GET /neodid/providers before dispatching a real request.",
     zh: "提供方与声明选项为示例。分发真实请求前请检查 GET /neodid/providers。",
   },
+  neodidIdentityTrackTitle: {
+    en: "Identity verification track",
+    zh: "身份校验轨道",
+  },
+  neodidTrackSubject: { en: "Subject", zh: "主体" },
+  neodidTrackProvider: { en: "Provider", zh: "提供方" },
+  neodidTrackClaim: { en: "Claim", zh: "声明" },
+  neodidTrackReceipt: { en: "Receipt", zh: "回执" },
   neodidSubjectTitle: { en: "Identity subject", zh: "身份主体" },
   neodidSubjectCopy: {
     en: "Start with the DID that the oracle should evaluate.",
