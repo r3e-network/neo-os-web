@@ -1051,36 +1051,135 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.64);
 }
 
-.redenv-envelope-dials .neo-input {
+.redenv-machine-dial {
+  --redenv-dial-fill: 12%;
+  display: grid;
+  gap: 9px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--re-line);
+  min-height: 126px;
+  padding: 11px;
+  overflow: hidden;
+  border: 1px solid rgba(105, 50, 43, 0.1);
   border-radius: var(--re-radius-sm);
-  background: rgba(255, 255, 255, 0.82);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 228, 147, 0.22), transparent 48%),
+    rgba(255, 255, 255, 0.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 18px rgba(88, 46, 36, 0.05);
 }
 
-.redenv-envelope-dials .neo-input__label {
+.redenv-machine-dial__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.redenv-machine-dial__head span,
+.redenv-machine-dial__head small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redenv-machine-dial__head span {
   color: var(--re-red-strong);
   font-size: 10.5px;
-  font-weight: 860;
-}
-
-.redenv-envelope-dials .neo-input__wrapper {
-  min-height: 48px;
-  border-color: rgba(223, 76, 66, 0.14);
-  background: rgba(255, 255, 255, 0.94);
-}
-
-.redenv-envelope-dials .neo-input__field {
-  font-size: 18px;
   font-weight: 880;
-  text-align: center;
+  line-height: 1.15;
+  text-transform: uppercase;
 }
 
-.redenv-envelope-dials .neo-input__suffix {
+.redenv-machine-dial__head small {
   color: var(--re-muted);
-  font-size: 11px;
-  font-weight: 850;
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.redenv-machine-dial__control {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  gap: 7px;
+  align-items: center;
+}
+
+.redenv-machine-dial__control button,
+.redenv-machine-dial__control input {
+  height: 42px;
+  border-radius: 999px;
+  font: inherit;
+}
+
+.redenv-machine-dial__control button {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(223, 76, 66, 0.16);
+  background: rgba(255, 248, 243, 0.94);
+  color: var(--re-red-strong);
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.redenv-machine-dial__control button:hover:not(:disabled) {
+  border-color: rgba(223, 76, 66, 0.34);
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.redenv-machine-dial__control button:disabled {
+  color: rgba(128, 103, 98, 0.48);
+  cursor: default;
+  transform: none;
+}
+
+.redenv-machine-dial__control input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(223, 76, 66, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 243, 0.9)),
+    #fff;
+  color: var(--re-ink);
+  font-size: 19px;
+  font-weight: 900;
+  text-align: center;
+  box-shadow:
+    inset 0 2px 8px rgba(88, 46, 36, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.redenv-machine-dial__control input::-webkit-outer-spin-button,
+.redenv-machine-dial__control input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.redenv-machine-dial__control input {
+  -moz-appearance: textfield;
+}
+
+.redenv-machine-dial__track {
+  height: 8px;
+  padding: 2px;
+  border: 1px solid rgba(105, 50, 43, 0.08);
+  border-radius: 999px;
+  background: rgba(105, 50, 43, 0.08);
+}
+
+.redenv-machine-dial__track span {
+  display: block;
+  width: var(--redenv-dial-fill);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--re-red), var(--re-gold));
+  box-shadow: 0 0 14px rgba(217, 154, 38, 0.24);
+  transition: width 220ms ease;
+  animation: redenv-dial-glow 2.6s ease-in-out infinite;
 }
 
 .redenv-create-summary {
@@ -1109,6 +1208,20 @@
   background: var(--re-red);
   color: #fff;
   box-shadow: 0 5px 16px rgba(180, 35, 24, 0.24);
+}
+
+.redenv-action-panel .redenv-open-button:not(:disabled),
+.redenv-action-panel .redenv-send-button:not(:disabled) {
+  border-color: var(--re-red);
+  background: #df4c42;
+  color: #fff;
+  box-shadow: 0 5px 16px rgba(180, 35, 24, 0.24);
+}
+
+.redenv-action-panel .redenv-open-button:not(:disabled) svg,
+.redenv-action-panel .redenv-send-button:not(:disabled) svg {
+  color: currentColor;
+  stroke: currentColor;
 }
 
 .redenv-open-button,
@@ -1419,6 +1532,8 @@
 
 .redenv-tab:focus-visible,
 .redenv-preset-group button:focus-visible,
+.redenv-machine-dial__control button:focus-visible,
+.redenv-machine-dial__control input:focus-visible,
 .redenv-row:focus-visible,
 .redenv-details > summary:focus-visible,
 .redenv-modal-button:focus-visible,
@@ -1678,6 +1793,19 @@
   }
 }
 
+@keyframes redenv-dial-glow {
+  0%,
+  100% {
+    filter: saturate(1);
+    opacity: 0.86;
+  }
+
+  50% {
+    filter: saturate(1.16);
+    opacity: 1;
+  }
+}
+
 @keyframes redenv-modal-pop {
   0% {
     opacity: 0;
@@ -1786,7 +1914,7 @@
     min-height: 66px;
   }
 
-  .redenv-envelope-dials .neo-input:nth-child(3) {
+  .redenv-envelope-dials .redenv-machine-dial:nth-child(3) {
     grid-column: 1 / -1;
   }
 
@@ -1830,6 +1958,16 @@
   }
 }
 
+@media (max-width: 460px) {
+  .redenv-create-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .redenv-envelope-dials .redenv-machine-dial:nth-child(3) {
+    grid-column: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .redenv-summary-chevron,
   .redenv-gift-machine::before,
@@ -1837,6 +1975,8 @@
   .redenv-gift-machine__seal,
   .redenv-gift-machine__chute span,
   .redenv-gift-machine__reel::after,
+  .redenv-machine-dial__control button,
+  .redenv-machine-dial__track span,
   .redenv-envelope-preview::before,
   .redenv-envelope-preview::after,
   .redenv-envelope-preview__art img,
