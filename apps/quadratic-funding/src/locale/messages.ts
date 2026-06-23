@@ -172,6 +172,23 @@ const appMessages = {
   roundCreator: { en: "Creator", zh: "创建者" },
 
   adminTools: { en: "Round Ops", zh: "轮次管理" },
+  qfOpsControlRoom: { en: "Control room", zh: "控制室" },
+  qfOpsControlRoomHint: {
+    en: "Manage reserves, review suggested allocation, then finalize only when the round is ready.",
+    zh: "管理匹配储备、复核建议分配，并仅在轮次就绪后结算。",
+  },
+  qfOpsStatus: { en: "Round ops status", zh: "轮次操作状态" },
+  qfOpsAdminReady: { en: "Admin wallet", zh: "管理员钱包" },
+  qfOpsAdminNeeded: { en: "Admin required", zh: "需要管理员" },
+  qfOpsCreatorReady: { en: "Creator controls", zh: "创建者操作" },
+  qfOpsReadOnly: { en: "Read-only", zh: "只读" },
+  qfOpsReserve: { en: "Reserve", zh: "储备" },
+  qfOpsReservePresets: { en: "Matching reserve presets", zh: "匹配储备预设" },
+  qfOpsAllocation: { en: "Allocation", zh: "分配" },
+  qfOpsClaimUnusedHint: {
+    en: "Recover matching funds that were never allocated after finalization.",
+    zh: "结算后取回未分配的匹配资金。",
+  },
   addMatching: { en: "Add matching", zh: "追加匹配" },
   addMatchingPlaceholder: { en: "10", zh: "10" },
   addingMatching: { en: "Adding...", zh: "追加中..." },
