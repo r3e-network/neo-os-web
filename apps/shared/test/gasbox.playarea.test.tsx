@@ -299,6 +299,11 @@ describe("GasBox PlayArea", () => {
       container.querySelector(".gasbox-cabinet-lever.is-ready"),
     ).not.toBeNull();
     expect(container.querySelector(".gasbox-prize-reel--ready")).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-stage-art img[src="gasbox-capsule-machine.png"]',
+      ),
+    ).not.toBeNull();
     expect(screen.getByText("Prize reel")).toBeTruthy();
     expect(screen.getByText("Ready to spin")).toBeTruthy();
     expect(
@@ -707,7 +712,17 @@ describe("GasBox PlayArea", () => {
     ).not.toBeNull();
     expect(
       container.querySelector(
-        '.gasbox-studio-item__asset source[srcset="logo.avif"]',
+        '.gasbox-studio-item__asset img[src="gasbox-prize-capsule.png"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-studio-machine-preview img[src="gasbox-capsule-machine.png"]',
+      ),
+    ).not.toBeNull();
+    expect(
+      container.querySelector(
+        '.gasbox-studio-launch-pad__machine img[src="gasbox-capsule-machine.png"]',
       ),
     ).not.toBeNull();
     expect(container.querySelector(".gasbox-dial-control")).not.toBeNull();
@@ -864,12 +879,12 @@ describe("GasBox PlayArea", () => {
 
     expect(
       container.querySelector(
-        '.gasbox-result-theater__machine source[srcset="logo.avif"]',
+        '.gasbox-result-theater__machine img[src="gasbox-capsule-machine.png"]',
       ),
     ).not.toBeNull();
     expect(
       container.querySelector(
-        '.gasbox-result-theater__machine img[src="logo.jpg"]',
+        '.gasbox-result-theater__capsule img[src="gasbox-prize-capsule.png"]',
       ),
     ).not.toBeNull();
     expect(
@@ -891,7 +906,16 @@ describe("GasBox PlayArea", () => {
       existsSync(repoPath) ? repoPath : sharedPath,
       "utf8",
     );
+    const repoAssetDir = resolve(process.cwd(), "apps/gasbox/public");
+    const sharedAssetDir = resolve(process.cwd(), "../gasbox/public");
+    const assetDir = existsSync(repoAssetDir) ? repoAssetDir : sharedAssetDir;
 
+    expect(existsSync(resolve(assetDir, "gasbox-capsule-machine.png"))).toBe(
+      true,
+    );
+    expect(existsSync(resolve(assetDir, "gasbox-prize-capsule.png"))).toBe(
+      true,
+    );
     expect(css).toContain("@keyframes gasbox-machine-idle");
     expect(css).toContain("@keyframes gasbox-capsule-ready");
     expect(css).toContain("@keyframes gasbox-result-capsule-open");

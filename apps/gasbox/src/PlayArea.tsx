@@ -75,6 +75,8 @@ const PRIZE_AMOUNT_PRESETS: Record<PrizeAsset, readonly string[]> = {
   GAS: ["0.1", "0.5", "1", "5"],
   NEO: ["1", "5", "10", "20"],
 };
+const GASBOX_MACHINE_ASSET = "gasbox-capsule-machine.png";
+const GASBOX_CAPSULE_ASSET = "gasbox-prize-capsule.png";
 
 const emptyStudioItem = (): StudioItem => ({
   name: "",
@@ -649,9 +651,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="gasbox-market-empty">
             <div className="gasbox-empty-stage" aria-hidden="true">
               <picture className="gasbox-empty-stage__machine">
-                <source srcSet="logo.avif" type="image/avif" />
-                <source srcSet="logo.webp" type="image/webp" />
-                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                <img
+                  src={GASBOX_MACHINE_ASSET}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               </picture>
               <span className="gasbox-empty-stage__lock">
                 <LockKeyhole aria-hidden="true" />
@@ -836,9 +841,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             <figure className="gasbox-studio-machine-preview">
               <picture aria-hidden="true">
-                <source srcSet="logo.avif" type="image/avif" />
-                <source srcSet="logo.webp" type="image/webp" />
-                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                <img
+                  src={GASBOX_MACHINE_ASSET}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               </picture>
               <div
                 className="gasbox-studio-machine-preview__lights"
@@ -1019,10 +1027,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       aria-hidden="true"
                     >
                       <picture className="gasbox-studio-item__machine">
-                        <source srcSet="logo.avif" type="image/avif" />
-                        <source srcSet="logo.webp" type="image/webp" />
                         <img
-                          src="logo.jpg"
+                          src={GASBOX_CAPSULE_ASSET}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -1239,9 +1245,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               className="gasbox-studio-launch-pad__machine"
               aria-hidden="true"
             >
-              <source srcSet="logo.avif" type="image/avif" />
-              <source srcSet="logo.webp" type="image/webp" />
-              <img src="logo.jpg" alt="" loading="eager" decoding="sync" />
+              <img
+                src={GASBOX_MACHINE_ASSET}
+                alt=""
+                loading="eager"
+                decoding="sync"
+              />
             </picture>
             <div className="gasbox-studio-launch-pad__copy">
               <span>{t("studioLaunchPadLabel")}</span>
@@ -1290,9 +1299,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 className={`gasbox-stage-art${pullAnimating ? " gasbox-stage-art--pulling" : ""}`}
               >
                 <picture aria-hidden="true">
-                  <source srcSet="logo.avif" type="image/avif" />
-                  <source srcSet="logo.webp" type="image/webp" />
-                  <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                  <img
+                    src={GASBOX_MACHINE_ASSET}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </picture>
                 <div
                   className={`gasbox-stage-art__slot${pullAnimating ? " is-active" : ""}${selectedMachineReady ? " is-ready" : " is-locked"}`}
@@ -1300,7 +1312,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 >
                   <span className="gasbox-stage-art__slot-light" />
                   <span className="gasbox-stage-art__slot-capsule">
-                    <Ticket />
+                    <img src={GASBOX_CAPSULE_ASSET} alt="" loading="lazy" />
                   </span>
                 </div>
                 {pullAnimating && (
@@ -1313,10 +1325,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         key={index}
                         className={`gasbox-stage-art__capsule gasbox-stage-art__capsule--${index + 1}`}
                       >
-                        <source srcSet="logo.avif" type="image/avif" />
-                        <source srcSet="logo.webp" type="image/webp" />
                         <img
-                          src="logo.jpg"
+                          src={GASBOX_CAPSULE_ASSET}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -1796,14 +1806,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             <div className="gasbox-result-theater" aria-hidden="true">
               <picture className="gasbox-result-theater__machine">
-                <source srcSet="logo.avif" type="image/avif" />
-                <source srcSet="logo.webp" type="image/webp" />
-                <img src="logo.jpg" alt="" loading="lazy" decoding="async" />
+                <img
+                  src={GASBOX_MACHINE_ASSET}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               </picture>
               <span className="gasbox-result-theater__beam" />
               <span
                 className={`gasbox-result-theater__capsule ${rarityClass(pullResult.rarity)}`}
               >
+                <img src={GASBOX_CAPSULE_ASSET} alt="" loading="eager" />
                 <RarityMark
                   rarity={pullResult.rarity}
                   className="gasbox-result-theater__gem"
