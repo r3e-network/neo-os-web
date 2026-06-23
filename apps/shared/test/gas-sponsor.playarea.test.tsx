@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -113,12 +114,37 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
   it("renders the refill-station visual and available quota card", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />,
+    );
 
     expect(
       document.querySelector('.gas-refill-hero__media img[src="./gas-sponsor-refill-station.jpg"]'),
     ).toBeTruthy();
     expect(screen.getByText("Today available")).toBeTruthy();
+    expect(container.querySelector(".gas-command-deck--wallet")).toBeTruthy();
+    expect(container.querySelector(".gas-refill-pipeline")).toBeTruthy();
+    expect(container.querySelectorAll(".gas-refill-pipeline__packet")).toHaveLength(3);
+    expect(container.querySelector(".pump-meter")).toBeTruthy();
+    expect(container.querySelectorAll(".pump-meter__drop")).toHaveLength(3);
+  });
+
+  it("arms the refill pipeline and pump meter for an eligible connected wallet", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ isEligible: true, remainingQuota: 0.1, userAddress: VALID_ADDR })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(container.querySelector(".gas-command-deck--ready")).toBeTruthy();
+    expect(container.querySelector(".request-form--armed")).toBeTruthy();
+    expect(
+      (container.querySelector(".request-console__screen") as HTMLElement).style.getPropertyValue(
+        "--pump-fill",
+      ),
+    ).toBe("10%");
   });
 
   it("shows the locked pay-it-forward state for an unfunded (eligible) wallet", () => {
@@ -279,5 +305,23 @@ describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
     const cta = screen.getByRole("button", { name: "Connect wallet to request" }) as HTMLButtonElement;
     expect(cta.disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Request GAS" })).toBeNull();
+  });
+
+  it("backs the refill station with motion and reduced-motion fallbacks", () => {
+    const styles = readFileSync(
+      `${process.cwd()}/../gas-sponsor/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes gas-sponsor-station-drift");
+    expect(styles).toContain("@keyframes gas-sponsor-pipeline-packet");
+    expect(styles).toContain("@keyframes gas-sponsor-meter-flow");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.gas-command-deck--ready \.gas-refill-pipeline__packet[\s\S]*animation:\s*gas-sponsor-pipeline-packet/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pump-meter__drop[\s\S]*animation:\s*none !important/,
+    );
   });
 });
