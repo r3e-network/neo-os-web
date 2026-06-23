@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -188,6 +189,22 @@ describe("Anchor admin role gating (non-operator)", () => {
 });
 
 describe("Anchor admin renders the on-chain agent directory", () => {
+  it("TrustAnchor Admin promotes a resource-backed route stage above the command cards", () => {
+    const { container } = render(
+      <TrustAnchorAdminPlayArea
+        t={t}
+        state={adminState({ adminState: "admin" })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(container.querySelector(".anchor-admin-hero--staged")).toBeTruthy();
+    expect(container.querySelector('.anchor-admin-route-stage img[src="./banner.jpg"]')).toBeTruthy();
+    expect(screen.getByText("routeMapTitle")).toBeTruthy();
+    expect(container.querySelectorAll(".anchor-admin-route-steps li")).toHaveLength(3);
+    expect(container.querySelectorAll(".anchor-admin-route-steps li.is-ready").length).toBeGreaterThan(0);
+  });
+
   it("TrustAnchor Admin shows getAgent account addresses (not only static roster fields)", () => {
     render(
       <TrustAnchorAdminPlayArea
@@ -203,5 +220,22 @@ describe("Anchor admin renders the on-chain agent directory", () => {
     expect(
       screen.getByText("0xabc0000000000000000000000000000000000001"),
     ).toBeTruthy();
+  });
+
+  it("TrustAnchor Admin backs the route stage with motion and reduced-motion fallbacks", () => {
+    const styles = readFileSync(
+      `${process.cwd()}/../trustanchor-admin/src/PlayArea.scss`,
+      "utf8",
+    );
+
+    expect(styles).toContain("@keyframes anchor-admin-stage-drift");
+    expect(styles).toContain("@keyframes anchor-admin-route-beam");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /\.anchor-admin-route-stage img[\s\S]*animation:\s*anchor-admin-stage-drift/,
+    );
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.anchor-admin-route-beam::after[\s\S]*animation:\s*none/,
+    );
   });
 });
