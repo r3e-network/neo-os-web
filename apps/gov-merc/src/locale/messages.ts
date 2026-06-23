@@ -33,6 +33,12 @@ const appMessages = {
   marketPlateLabel: { en: "Live influence round", zh: "实时影响力周期" },
   marketPlateEpoch: { en: "Epoch #{epoch}", zh: "周期 #{epoch}" },
   marketPlateTopBid: { en: "Top bid: {amount} {tokenGas}", zh: "最高竞价：{amount} {tokenGas}" },
+  marketRouting: { en: "Routing transaction", zh: "交易路由中" },
+  connectingWallet: { en: "Connecting wallet...", zh: "钱包连接中..." },
+  stakingNeo: { en: "Staking NEO...", zh: "NEO 质押中..." },
+  unstakingNeo: { en: "Unstaking NEO...", zh: "NEO 取消质押中..." },
+  placingBid: { en: "Routing GAS bid...", zh: "GAS 竞价路由中..." },
+  settlingEpoch: { en: "Settling epoch...", zh: "周期结算中..." },
   earnLaneTitle: { en: "Earn with NEO", zh: "用 NEO 赚收益" },
   earnLaneCopy: {
     en: "Stake once, then receive your share whenever an epoch settles.",
