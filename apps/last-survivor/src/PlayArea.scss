@@ -321,9 +321,11 @@
 }
 
 .survivor-seat-strip {
+  position: relative;
   display: grid;
   gap: 12px;
   padding: 14px;
+  overflow: hidden;
   border: 1px solid rgba(20, 22, 38, 0.06);
   border-radius: 18px;
   background:
@@ -332,6 +334,39 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     0 14px 30px rgba(20, 64, 50, 0.08);
+}
+
+.survivor-key-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.survivor-key-burst span {
+  position: absolute;
+  left: var(--survivor-key-burst-x, 50%);
+  bottom: 12px;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.95), transparent 38%),
+    linear-gradient(145deg, #fff7df, #dff9ee);
+  color: #0b6b49;
+  opacity: 0;
+  box-shadow:
+    0 12px 24px rgba(20, 64, 50, 0.18),
+    0 0 0 4px rgba(22, 199, 132, 0.08);
+  transform: translate3d(-50%, 20px, 0) scale(0.72) rotate(-10deg);
+}
+
+.survivor-key-burst--active span {
+  animation: survivor-key-burst-flight 760ms ease-out both;
+  animation-delay: var(--survivor-key-burst-delay, 0ms);
 }
 
 .survivor-seat-strip__head {
@@ -885,6 +920,31 @@
   }
 }
 
+@keyframes survivor-key-burst-flight {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 20px, 0) scale(0.72) rotate(-10deg);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  62% {
+    opacity: 0.92;
+    transform: translate3d(-50%, calc(var(--survivor-key-burst-y, 48px) * -0.82), 0)
+      scale(1.02)
+      rotate(7deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, calc(var(--survivor-key-burst-y, 48px) * -1), 0)
+      scale(0.66)
+      rotate(16deg);
+  }
+}
+
 .participation-detail {
   display: grid;
   gap: 2px;
@@ -1090,10 +1150,15 @@
   .survivor-seat,
   .survivor-seat.is-live,
   .survivor-seat.is-live::after,
+  .survivor-key-burst--active span,
   .survivor-play-area--live .participation-icon,
   .claim-card-trophy,
   .claim-card-inner.is-winner {
     animation: none;
+  }
+
+  .survivor-key-burst span {
+    opacity: 0;
   }
 
   .survivor-stage,
