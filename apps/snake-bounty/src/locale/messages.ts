@@ -1,0 +1,186 @@
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
+  appEyebrow: { en: "Snake Bounty", zh: "贪吃蛇赏金" },
+  appSubtitle: {
+    en: "Guide the snake, eat bounty fruit, and reach the target before time runs out.",
+    zh: "操控贪吃蛇吃下赏金果，在倒计时前达到目标长度。",
+  },
+  playTab: { en: "Play", zh: "对局" },
+  ranksTab: { en: "Ranks", zh: "排行" },
+  lobbyTitle: { en: "Open the bounty trail", zh: "开启赏金蛇道" },
+  playingTitle: { en: "{difficulty} game in play", zh: "{difficulty}盘面进行中" },
+  statusWonTitle: { en: "Target reached!", zh: "通关成功！" },
+  networkBadge: { en: "Neo N3", zh: "Neo N3" },
+  rankBadge: { en: "Rank #{rank}", zh: "第 {rank} 名" },
+  rankLabel: { en: "Global rank", zh: "全网排名" },
+  sidebarTitle: { en: "My arena record", zh: "我的战绩" },
+  creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
+
+  difficultyTitle: { en: "Bounty trail", zh: "赏金蛇道" },
+  difficulty_easy: { en: "Garden Trail", zh: "花园蛇道" },
+  difficulty_medium: { en: "Market Trail", zh: "集市蛇道" },
+  difficulty_hard: { en: "Apex Trail", zh: "巅峰蛇道" },
+  routeEyebrow: { en: "bounty trail", zh: "赏金蛇道" },
+  routeSummary: { en: "Selected trail reward, entry, target, and clock", zh: "当前蛇道的奖励、报名费、目标和时间" },
+  routeObjective_easy: {
+    en: "A bright garden lane with a short growth target. Good for warm-up runs and clean first wins.",
+    zh: "明亮的花园路线，目标长度较短。适合热身和拿下第一局。",
+  },
+  routeObjective_medium: {
+    en: "A tighter market chase with more growth pressure and a stronger bounty.",
+    zh: "更紧凑的集市追逐，成长压力更高，赏金也更强。",
+  },
+  routeObjective_hard: {
+    en: "A long apex hunt for confident players. Grow carefully, then settle the full bounty.",
+    zh: "面向熟练玩家的长线巅峰追猎。稳住蛇身，冲击完整赏金。",
+  },
+  lobbyPreviewLabel: {
+    en: "{difficulty} bounty route preview, target length {target}",
+    zh: "{difficulty}赏金路线预览，目标长度 {target}",
+  },
+  lobbyHuntGoal: {
+    en: "Grow to length {target}",
+    zh: "成长到 {target} 长度",
+  },
+  winAmount: { en: "Win {amount} GAS", zh: "赢 {amount} GAS" },
+  entryAmount: { en: "Entry {amount} GAS", zh: "报名 {amount} GAS" },
+  timeAmount: { en: "{minutes} min", zh: "{minutes} 分钟" },
+  targetRibbon: { en: "Length {target}", zh: "长度 {target}" },
+  poolLine: { en: "Pool {pool} GAS", zh: "奖池 {pool} GAS" },
+  creditLine: { en: "your credit {credit} GAS", zh: "你的余额 {credit} GAS" },
+  walletRequiredStatus: {
+    en: "Connect wallet to start",
+    zh: "连接钱包后开始",
+  },
+
+  startAction: { en: "Start hunt", zh: "开始追猎" },
+  startHint: { en: "Entry {amount} GAS — deposited with this transaction", zh: "报名费 {amount} GAS——随本交易一并存入" },
+  startDescription: {
+    en: "Pick a bounty trail, pay the entry, and the Morpheus enclave seeds a 20×20 grid. Grow to the trail target before the clock runs out to win the fixed GAS bounty.",
+    zh: "选择赏金蛇道并支付报名费，Morpheus 飞地会播种 20×20 网格。在倒计时结束前成长到路线目标长度，即可赢取固定 GAS 赏金。",
+  },
+  submitAction: { en: "Submit win", zh: "提交胜利" },
+  submitHint: { en: "Target length reached — submit before the deadline", zh: "已达目标长度——在截止前提交" },
+  fillHint: { en: "Length {len}/{target}", zh: "长度 {len}/{target}" },
+  timeUpAction: { en: "Time is up", zh: "时间到" },
+
+  undoAction: { en: "Undo", zh: "撤回" },
+  undoConfirm: { en: "Confirm undo?", zh: "确认撤回？" },
+  undoHint: {
+    en: "Recorded by the enclave session — no transaction needed. Undo reverts the last move.",
+    zh: "由飞地会话记录——无需交易。撤回上一步移动。",
+  },
+  releaseAction: { en: "Release game", zh: "结算过期对局" },
+  releaseHint: {
+    en: "Frees the reward reservation of an expired game (refunds an undealt entry).",
+    zh: "释放过期对局占用的奖励额度（未发牌的对局将退回报名费）。",
+  },
+  withdrawAction: { en: "Withdraw {amount} GAS", zh: "提取 {amount} GAS" },
+  withdrawTitle: { en: "Withdraw winnings", zh: "提取奖金" },
+  withdrawHint: {
+    en: "Pulls your winnings and unused entry credit back to your wallet.",
+    zh: "将奖金与未使用的报名余额提回钱包。",
+  },
+
+  boardLabel: { en: "Snake grid", zh: "贪吃蛇网格" },
+  controlsHint: { en: "Swipe · arrow keys · WASD", zh: "滑动 · 方向键 · WASD" },
+  cellLabel: { en: "Row {row}, column {col}", zh: "第 {row} 行第 {col} 列" },
+  scoreLabel: { en: "Length", zh: "长度" },
+  targetLabel: { en: "Target", zh: "目标" },
+  rewardNow: { en: "{amount} GAS", zh: "{amount} GAS" },
+  minSolveHint: {
+    en: "Anti-bot floor: submission unlocks in {clock}",
+    zh: "防脚本时间下限：{clock} 后可提交",
+  },
+  timeUpHint: {
+    en: "The deadline passed — release the game to start a new one.",
+    zh: "已超过截止时间——请结算本局后再开新局。",
+  },
+  deadlineBufferHint: {
+    en: "Too close to the deadline — a transaction can no longer land in time.",
+    zh: "距截止时间太近——交易已无法在截止前上链。",
+  },
+  shufflingCopy: {
+    en: "Your grid is seeded inside the Morpheus enclave — only its hash commitment goes on-chain, and the food placements never leave the TEE.",
+    zh: "网格在 Morpheus 飞地内播种——链上只记录其哈希承诺，食物位置永不离开 TEE。",
+  },
+  checkDealAgain: { en: "Retry sealing", zh: "重试密封" },
+
+  solvedBanner: { en: "You won {payout}!", zh: "你赢得了 {payout}！" },
+  solvedBannerHint: {
+    en: "Credited to your withdrawable balance — start another game to climb the ranks.",
+    zh: "已计入可提取余额——再开一局，冲击更高排名。",
+  },
+  gameOverBanner: { en: "Snake crashed!", zh: "蛇撞到了！" },
+  gameOverBannerHint: {
+    en: "The entry stays in the reward pool. Fresh grid, fresh chances.",
+    zh: "报名费留在奖池中。新的一局，新的机会。",
+  },
+  expiredBanner: { en: "That game expired", zh: "这一局没能完成" },
+  expiredBannerHint: {
+    en: "The entry stays in the reward pool. Fresh grid, fresh chances.",
+    zh: "报名费留在奖池中。新的一局，新的机会。",
+  },
+
+  scoreReward: { en: "Reward at stake", zh: "本局奖励" },
+  scoreTime: { en: "Time left", zh: "剩余时间" },
+  scoreLength: { en: "Length", zh: "长度" },
+  scoreWon: { en: "Total won", zh: "累计赢取" },
+
+  drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  leaderboardIntro: {
+    en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
+    zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",
+  },
+  leaderboardTitle: { en: "Global leaderboard", zh: "全网积分榜" },
+  leaderboardEmpty: {
+    en: "No solves recorded yet — the first name on this board could be yours.",
+    zh: "暂无通关记录——榜单第一个名字可能就是你。",
+  },
+  refreshRanks: { en: "Refresh ranking", zh: "刷新排行" },
+  solvesCount: { en: "{count} solves", zh: "{count} 次通关" },
+  youTag: { en: "you", zh: "你" },
+  historyTitle: { en: "My solves", zh: "我的通关" },
+  historyEmpty: { en: "Your solved games will appear here.", zh: "你完成的盘面会显示在这里。" },
+
+  rulesTitle: { en: "How it works", zh: "玩法说明" },
+  rulesCopy: {
+    en: "1. Choose a bounty trail and pay the entry (Garden 0.02, Market 0.10, Apex 0.20 GAS). 2. The Morpheus enclave seeds a 20×20 grid with food placements from a deterministic seed and binds its hash commitment on-chain. 3. Use arrow keys, WASD, or swipe to move the snake. Eat food to grow. Reach the target length (10/20/35) before the deadline (3/5/10 min) to win. 4. Crash into a wall or yourself and it's game over — no reward. 5. The enclave verifies your game, signs the settlement, and the contract checks the signature and commitment before paying. A short anti-bot floor applies.",
+    zh: "1. 选择赏金蛇道并支付报名费（花园 0.02、集市 0.10、巅峰 0.20 GAS）。2. Morpheus 飞地在 20×20 网格中用确定性种子放置食物，并将哈希承诺绑定上链。3. 使用方向键、WASD 或滑动操作蛇移动。吃食物增长。在截止时间（3/5/10 分钟）前达到目标长度（10/20/35）即可赢取奖励。4. 撞到墙壁或自己则游戏结束——无奖励。5. 飞地验证游戏并签署结算，合约核验签名与承诺后发奖。提交前有一段防脚本的最短用时。",
+  },
+  fairnessTitle: { en: "Provably fair grid", zh: "可验证公平网格" },
+  fairnessCopy: {
+    en: "The food placements are generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, so the snake's path cannot be scripted outside the app. At settlement the enclave signs the result (problem hash, answer hash, time) and the contract verifies both the signature and that the problem hash equals the original commitment before paying. The grid and food positions you see are all any client ever receives.",
+    zh: "食物位置由 Morpheus TEE 用每局独立的密钥在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此蛇的路径无法在平台之外用脚本模拟。结算时飞地对结果（问题哈希、答案哈希、用时）签名，合约先核验签名、再核验问题哈希与开局承诺一致后才发奖。任何客户端能看到的只有网格和食物位置。",
+  },
+  commitmentLine: {
+    en: "Game #{gameId} · sealed commitment {commitment}",
+    zh: "对局 #{gameId} · 密封承诺 {commitment}",
+  },
+
+  statusReady: { en: "Choose a bounty trail to start", zh: "选择赏金蛇道即可开始" },
+  statusStarting: { en: "Paying entry and starting…", zh: "正在支付报名费并开局…" },
+  statusStarted: { en: "Game started — sealing the grid", zh: "对局已开始——正在密封网格" },
+  statusShuffling: { en: "Seeding your grid…", zh: "正在播种网格…" },
+  statusSealing: { en: "Seeding your grid in the enclave…", zh: "正在飞地中播种网格…" },
+  statusDealt: { en: "Grid seeded and bound — the clock is running", zh: "网格已密封上链——计时开始" },
+  statusDealPending: {
+    en: "Sealing is taking longer than usual — retry shortly.",
+    zh: "密封比平时慢——请稍后重试。",
+  },
+  statusSubmitting: { en: "Enclave verifying — settling on-chain…", zh: "飞地验证中——正在链上结算…" },
+  statusSolved: { en: "Correct! {payout} GAS credited", zh: "答案正确！已入账 {payout} GAS" },
+  statusGameOver: { en: "Snake crashed — no reward", zh: "蛇撞到了——无奖励" },
+  statusBoardIncomplete: { en: "Reach the target length before submitting", zh: "达到目标长度后再提交" },
+  statusExpired: { en: "Game released", zh: "对局已结算" },
+  statusPoolLow: {
+    en: "Pool needs refill",
+    zh: "奖池需要补充",
+  },
+  statusFailed: { en: "Something went wrong", zh: "操作失败" },
+  noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
+  creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+};
+
+export const messages = mergeMessages(appMessages);

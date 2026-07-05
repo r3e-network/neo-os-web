@@ -1,566 +1,360 @@
 /**
- * PlayArea.tsx — React version of Timestamp Proof PlayArea.
+ * PlayArea.tsx - Timestamp Proof.
+ *
+ * Tool identity: a clean proof desk where the user's material becomes a local
+ * certificate first, then an optional public anchor. The stage shows the
+ * workflow and preview, not an empty stamp backdrop or a flat form.
  */
-
 import { useState } from "react";
 import {
-  Anchor,
-  BadgeCheck,
   CheckCircle2,
-  Copy,
-  FileCheck2,
   FileText,
   Fingerprint,
-  Hash,
-  SearchCheck,
+  Link2,
+  PenLine,
+  Search,
   ShieldCheck,
-  Trash2,
-  type LucideIcon,
+  Stamp,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import ProofHero from "./components/ProofHero";
-import type { TimestampProof } from "./composables/useTimestampProof";
-import { explorerTxUrl } from "./utils/explorer";
+import type { ObservableState } from "@shared/react/context";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-const PROOF_PRESETS = [
-  {
-    key: "release",
-    labelKey: "proofTemplateRelease",
-    bodyKey: "proofTemplateReleaseBody",
-    sample: "release-notes.pdf v1.2.0 | sha256 pending | published 2026-06-20",
-    icon: FileText,
-  },
-  {
-    key: "audit",
-    labelKey: "proofTemplateAudit",
-    bodyKey: "proofTemplateAuditBody",
-    sample:
-      "audit-report-final.pdf | reviewed by security council | seal ready",
-    icon: ShieldCheck,
-  },
-  {
-    key: "digest",
-    labelKey: "proofTemplateDigest",
-    bodyKey: "proofTemplateDigestBody",
-    sample: "7f83b1657ff1fc53b92dc18148a1d65dfa13583b2d4f4f6bdad4f3f4f7c2e6aa",
-    icon: Hash,
-  },
-] satisfies ReadonlyArray<{
-  key: string;
-  labelKey: string;
-  bodyKey: string;
-  sample: string;
-  icon: LucideIcon;
-}>;
+interface Proof {
+  id: number;
+  content?: string;
+  contentHash?: string;
+  timestamp?: number | string;
+  anchorTxid?: string;
+  anchored?: boolean;
+  [k: string]: unknown;
+}
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num, str, bool, val } = useStateBindings(state);
+const TEMPLATES = [
+  { key: "release", label: "proofTemplateRelease", body: "proofTemplateReleaseBody" },
+  { key: "audit", label: "proofTemplateAudit", body: "proofTemplateAuditBody" },
+  { key: "digest", label: "proofTemplateDigest", body: "proofTemplateDigestBody" },
+] as const;
 
-  const totalProofs = num("totalProofs");
-  const anchoredProofs = num("anchoredProofs");
+const proofDeskArt = new URL("../public/proof-desk.webp", import.meta.url).href;
+
+function shortHash(value: string | undefined): string {
+  if (!value) return "------";
+  return value.length > 16 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
+}
+
+function formatTimestamp(value: number | string | undefined): string {
+  const raw = typeof value === "string" ? Number(value) : value;
+  if (!raw || Number.isNaN(raw)) return "--";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(raw);
+}
+
+function isDigestLike(value: string): boolean {
+  return /^[0-9a-f]{64}$/i.test(value.trim());
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, val } = useStateBindings(state);
+
   const isCreating = bool("isCreating");
   const isVerifying = bool("isVerifying");
   const isAnchoring = bool("isAnchoring");
-  const anchoringId = num("anchoringId");
   const verifyError = bool("verifyError");
-  const rawLatestId = str("latestId", "—");
-  const latestId = !rawLatestId || rawLatestId === "N/A" ? "—" : rawLatestId;
-  const proofList = val<TimestampProof[]>("proofs", []) ?? [];
-  const verifiedProof = val<TimestampProof>("verifiedProof", null);
-  const hasProofStats =
-    totalProofs > 0 || anchoredProofs > 0 || latestId !== "—";
+  const proofs = (val<Proof[]>("proofs", []) ?? []);
+  const verifiedProof = val<Proof | null>("verifiedProof", null);
+  const latestId = str("latestId");
 
-  const [content, setContent] = useState("");
-  const [verifyId, setVerifyId] = useState("");
+  const [msg, setMsg] = useState("");
+  const [verifyQuery, setVerifyQuery] = useState("");
 
-  const trimmedContent = content.trim();
-  const canCreate = trimmedContent.length > 0;
-  const looksLikeSha256 = /^[a-fA-F0-9]{64}$/.test(trimmedContent);
-  const contentKind = looksLikeSha256
-    ? t("documentTypeHash")
-    : t("documentTypeText");
-  const previewTitle = trimmedContent
-    ? contentKind
-    : t("documentPreviewEmptyTitle");
-  const previewStatus = canCreate ? t("proofRouteReady") : t("proofRouteWaiting");
-  const proofPressState = isCreating
-    ? "stamping"
-    : canCreate
-      ? "ready"
-      : "empty";
-  const proofAnchorState = isAnchoring
-    ? "anchoring"
-    : verifiedProof?.anchored
-      ? "anchored"
-      : "local";
-  const proofPressTitleKey =
-    proofPressState === "stamping"
-      ? "proofPressStampingTitle"
-      : proofPressState === "ready"
-        ? "proofPressReadyTitle"
-        : "proofPressEmptyTitle";
-  const proofPressBodyKey =
-    proofPressState === "stamping"
-      ? "proofPressStampingBody"
-      : proofPressState === "ready"
-        ? "proofPressReadyBody"
-        : "proofPressEmptyBody";
-  const proofAnchorLabel =
-    proofAnchorState === "anchoring"
-      ? t("proofPressAnchorAnchoring")
-      : proofAnchorState === "anchored"
-        ? t("proofPressAnchorAnchored")
-        : t("proofPressAnchorLocal");
+  const latestProof = proofs[0];
+  const anchorTargetId = latestProof?.id ?? 0;
+  const trimmedMsg = msg.trim();
+  const contentChars = trimmedMsg.length;
+  const hasDraft = contentChars > 0;
+  const busy = isCreating || isAnchoring || isVerifying;
+  const anchoredCount = proofs.filter((p) => p.anchored).length;
+  const activeProof = verifiedProof ?? latestProof ?? null;
+  const activeDigest = activeProof?.contentHash || "";
+  const documentType = hasDraft && isDigestLike(trimmedMsg) ? t("documentTypeHash") : t("documentTypeText");
+  const sceneState = isCreating
+    ? "creating"
+    : isAnchoring
+      ? "anchoring"
+      : verifiedProof
+        ? "verified"
+        : hasDraft
+          ? "draft"
+          : proofs.length > 0
+            ? "ready"
+            : "idle";
 
-  return (
-    <div className="proof-play-area">
-      <ProofHero t={t} />
+  const handleAnchor = () => {
+    if (!anchorTargetId || isAnchoring) return;
+    void dispatch("anchorProof", anchorTargetId);
+  };
 
-      {hasProofStats && (
-        <div className="proof-stats" role="group" aria-label={t("proofStats")}>
-          <div className="proof-stat">
-            <span className="proof-stat__label">{t("totalProofs")}</span>
-            <span className="proof-stat__value">{totalProofs}</span>
+  const handleCreate = () => {
+    if (!trimmedMsg || isCreating) return;
+    void dispatch("createProof", trimmedMsg);
+    setMsg("");
+  };
+
+  const handleVerify = () => {
+    if (!verifyQuery.trim() || isVerifying) return;
+    void dispatch("verifyProof", verifyQuery);
+  };
+
+  const applyTemplate = (labelKey: string, bodyKey: string) => {
+    const next = `${t(labelKey)} - ${t(bodyKey)}`;
+    setMsg((current) => current.trim() || next);
+  };
+
+  const scene = (
+    <div className="tsp-workbench" data-state={sceneState}>
+      <section className="tsp-document-card" aria-label={t("enterContent")}>
+        <header className="tsp-document-card__head">
+          <span className="tsp-icon-chip" aria-hidden="true">
+            <FileText size={21} strokeWidth={2.25} />
+          </span>
+          <div>
+            <span>{t("createPanelKicker")}</span>
+            <strong>{hasDraft ? t("proofPressReadyTitle") : t("createPanelTitle")}</strong>
+            <p>{hasDraft ? t("proofPressReadyBody") : t("createPanelBody")}</p>
           </div>
-          <div className="proof-stat">
-            <span className="proof-stat__label">{t("anchoredProofs")}</span>
-            <span className="proof-stat__value">{anchoredProofs}</span>
+        </header>
+
+        <div className="tsp-proof-sheet" data-ready={hasDraft ? "true" : undefined}>
+          <div className="tsp-proof-sheet__bar">
+            <span>{t("proofSheetLabel")}</span>
+            <strong>{hasDraft ? `${contentChars} ${t("contentChars").toLowerCase()}` : t("documentPreviewEmptyTitle")}</strong>
           </div>
-          <div className="proof-stat">
-            <span className="proof-stat__label">{t("latestId")}</span>
-            <span className="proof-stat__value proof-stat__value--mono">
-              {latestId}
+          <div className="tsp-proof-sheet__surface">
+            <textarea
+              className="tsp-document-card__input"
+              value={msg}
+              onChange={(event) => setMsg(event.target.value)}
+              placeholder={t("contentPlaceholder")}
+              disabled={isCreating}
+              aria-label={t("contentPlaceholder")}
+              rows={3}
+            />
+            <span className="tsp-proof-sheet__seal" aria-hidden="true">
+              <Stamp size={22} strokeWidth={2.2} />
             </span>
+          </div>
+          <div className="tsp-proof-sheet__seal-row">
+            <div className="tsp-proof-sheet__digest">
+              <Fingerprint size={15} strokeWidth={2.3} aria-hidden="true" />
+              <span>{activeDigest ? shortHash(activeDigest) : t("pendingDigest")}</span>
+            </div>
+            <div className="tsp-proof-sheet__privacy">
+              <ShieldCheck size={15} strokeWidth={2.25} aria-hidden="true" />
+              <span>{t("proofRouteSave")}</span>
+            </div>
           </div>
         </div>
-      )}
 
-      <section className="proof-workbench" aria-label={t("proofWorkspace")}>
-        <NeoCard className="proof-composer">
-          <div className="proof-panel-head">
-            <span className="proof-panel-head__icon" aria-hidden="true">
-              <FileCheck2 size={20} />
-            </span>
-            <div>
-              <span>{t("createPanelKicker")}</span>
-              <h3>{t("createPanelTitle")}</h3>
-              <p>{t("createPanelBody")}</p>
-            </div>
-          </div>
-
-          <div
-            className="proof-template-row"
-            aria-label={t("proofTemplatesLabel")}
-          >
-            {PROOF_PRESETS.map((preset) => {
-              const Icon = preset.icon;
-
-              return (
-                <button
-                  key={preset.key}
-                  type="button"
-                  className="proof-template-card"
-                  onClick={() => setContent(preset.sample)}
-                >
-                  <span
-                    className="proof-template-card__icon"
-                    aria-hidden="true"
-                  >
-                    <Icon size={17} />
-                  </span>
-                  <span>
-                    <strong>{t(preset.labelKey)}</strong>
-                    <small>{t(preset.bodyKey)}</small>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            className="proof-document-preview"
-            aria-label={t("documentPreviewLabel")}
-          >
-            <div
-              className={`proof-press-stage proof-press-stage--${proofPressState} proof-press-stage--anchor-${proofAnchorState}`}
-              aria-label={t("proofPressLabel")}
+        <div className="tsp-template-dock" aria-label={t("proofTemplatesLabel")}>
+          <span>{t("proofTemplatesLabel")}</span>
+          {TEMPLATES.map((template) => (
+            <button
+              key={template.key}
+              type="button"
+              onClick={() => applyTemplate(template.label, template.body)}
+              disabled={Boolean(msg.trim()) || isCreating}
             >
-              <picture className="proof-press-stage__media" aria-hidden="true">
-                <img src="./proof-desk.jpg" alt="" loading="lazy" />
-              </picture>
-              <div className="proof-press-stage__wash" aria-hidden="true" />
-              <div className="proof-press-stage__sheet" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span
-                className="proof-press-stage__scanner"
-                aria-hidden="true"
-              />
-              <span className="proof-press-stage__seal" aria-hidden="true">
-                <Fingerprint size={28} />
-              </span>
-              <div className="proof-press-stage__copy">
-                <span>{t("proofPressKicker")}</span>
-                <strong>{t(proofPressTitleKey)}</strong>
-                <p>{t(proofPressBodyKey)}</p>
-              </div>
-              <div
-                className="proof-press-stage__rail"
-                aria-label={t("proofPressRailLabel")}
-              >
-                <span className={canCreate || isCreating ? "is-active" : ""}>
-                  <Fingerprint size={14} aria-hidden="true" />
-                  {t("proofRouteHash")}
-                </span>
-                <span className={isCreating ? "is-active" : ""}>
-                  <FileCheck2 size={14} aria-hidden="true" />
-                  {t("proofRouteSave")}
-                </span>
-                <span
-                  className={
-                    proofAnchorState === "anchoring" ||
-                    proofAnchorState === "anchored"
-                      ? "is-active"
-                      : ""
-                  }
-                >
-                  <Anchor size={14} aria-hidden="true" />
-                  {proofAnchorLabel}
-                </span>
-              </div>
-            </div>
-            <div className="proof-document-preview__paper">
-              <div className="proof-document-preview__toolbar">
-                <span className="proof-document-preview__type">
-                  {previewTitle}
-                </span>
-                <span className={canCreate ? "is-ready" : ""}>
-                  <Fingerprint size={14} aria-hidden="true" />
-                  {previewStatus}
-                </span>
-              </div>
-              <div className="proof-document-preview__lines" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-              <span className="proof-document-preview__seal" aria-hidden="true">
-                <Fingerprint size={26} />
-              </span>
-              <label className="proof-document-preview__field">
-                <span>{t("enterContent")}</span>
-                <textarea
-                  value={content}
-                  placeholder={t("contentPlaceholder")}
-                  onChange={(event) => setContent(event.currentTarget.value)}
-                />
-              </label>
-            </div>
-            <div className="proof-document-preview__meta">
-              <span>
-                <small>{t("contentChars")}</small>
-                <strong>{trimmedContent.length}</strong>
-              </span>
-              <span>
-                <small>{t("anchorStatus")}</small>
-                <strong>{t("localOnly")}</strong>
-              </span>
-              <span>
-                <small>{t("proofDigest")}</small>
-                <strong>
-                  {canCreate ? t("pendingDigest") : t("notAvailable")}
-                </strong>
-              </span>
-            </div>
-          </div>
-
-          <div className="proof-route" aria-label={t("proofRouteLabel")}>
-            <span className={canCreate ? "is-ready" : ""}>
-              <Fingerprint size={16} aria-hidden="true" />
-              <small>{t("proofRouteHash")}</small>
-              <strong>
-                {canCreate ? t("proofRouteReady") : t("proofRouteWaiting")}
-              </strong>
-            </span>
-            <span>
-              <CheckCircle2 size={16} aria-hidden="true" />
-              <small>{t("proofRouteSave")}</small>
-              <strong>{t("localOnly")}</strong>
-            </span>
-            <span>
-              <Anchor size={16} aria-hidden="true" />
-              <small>{t("proofRouteAnchor")}</small>
-              <strong>{t("anchorShort")}</strong>
-            </span>
-          </div>
-
-          <div className="proof-form proof-form--composer">
-            <div className="proof-privacy-note">
-              <ShieldCheck size={16} aria-hidden="true" />
-              <span>{t("proofPrivacy")}</span>
-            </div>
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              className="proof-cta"
-              loading={isCreating}
-              disabled={!canCreate}
-              aria-label={t("createProof")}
-              onClick={async () => {
-                // Preserve the user's input until the proof is actually saved.
-                // Clearing synchronously before the async dispatch resolves would
-                // lose their text if hashing/persistence rejected.
-                try {
-                  await dispatch("createProof", content);
-                  setContent("");
-                } catch {
-                  // Keep `content` intact so the user can retry without retyping.
-                }
-              }}
-            >
-              <FileCheck2 size={17} aria-hidden="true" />
-              <span className="proof-cta__label">
-                {isCreating ? t("creating") : t("createProof")}
-              </span>
-            </NeoButton>
-            {!canCreate && !isCreating && (
-              <p className="proof-cta-hint">{t("createDisabledHint")}</p>
-            )}
-          </div>
-        </NeoCard>
-
-        <div className="proof-side-rail">
-          <NeoCard className="proof-verifier">
-            <div className="proof-panel-head proof-panel-head--compact">
-              <span className="proof-panel-head__icon" aria-hidden="true">
-                <SearchCheck size={20} />
-              </span>
-              <div>
-                <span>{t("verifyPanelKicker")}</span>
-                <h3>{t("verifyPanelTitle")}</h3>
-                <p>{t("verifyPanelBody")}</p>
-              </div>
-            </div>
-
-            <div className="proof-form verify-panel__body">
-              <NeoInput
-                value={verifyId}
-                type="text"
-                label={t("proofLookup")}
-                placeholder={t("verifyPlaceholder")}
-                error={verifyError ? t("invalidProof") : ""}
-                onChange={(val) => {
-                  setVerifyId(val);
-                  if (verifyError) dispatch("clearVerifyError");
-                }}
-              />
-              <NeoButton
-                variant="secondary"
-                block
-                loading={isVerifying}
-                disabled={!verifyId.trim()}
-                aria-label={t("verifyProof")}
-                onClick={() => dispatch("verifyProof", verifyId)}
-              >
-                <SearchCheck size={17} aria-hidden="true" />
-                {isVerifying ? t("verifying") : t("verifyProof")}
-              </NeoButton>
-              {verifiedProof ? (
-                <div className="verify-result">
-                  <span className="verify-result__label">
-                    <BadgeCheck size={16} aria-hidden="true" />
-                    {t("validProof")}
-                  </span>
-                  <div className="verify-result__row">
-                    <span>{t("proofId")}</span>
-                    <span className="mono">#{verifiedProof.id}</span>
-                  </div>
-                  <div className="verify-result__row">
-                    <span>{t("timestamp")}</span>
-                    <span className="mono">
-                      {new Date(verifiedProof.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="verify-result__row">
-                    <span>{t("proofDigest")}</span>
-                    <span className="mono verify-result__hash">
-                      {verifiedProof.contentHash}
-                    </span>
-                  </div>
-                  <div className="verify-result__row">
-                    <span>{t("anchorStatus")}</span>
-                    <span
-                      className={`proof-anchor-badge ${verifiedProof.anchored ? "is-anchored" : "is-local"}`}
-                    >
-                      {verifiedProof.anchored
-                        ? t("anchoredOnChain")
-                        : t("localOnly")}
-                    </span>
-                  </div>
-                  {verifiedProof.anchored && verifiedProof.anchorTxid && (
-                    <>
-                      <div className="verify-result__row">
-                        <span>{t("anchorTxid")}</span>
-                        <a
-                          className="mono verify-result__hash verify-result__txlink"
-                          href={explorerTxUrl(verifiedProof.anchorTxid)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={t("viewOnExplorer")}
-                        >
-                          {verifiedProof.anchorTxid}
-                        </a>
-                      </div>
-                      <div className="verify-result__note">
-                        <strong>{t("howToVerifyTitle")}</strong>
-                        <span>{t("howToVerifyBody")}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="verify-result__row">
-                    <span>{t("contentPreview")}</span>
-                    <span className="verify-result__preview">
-                      {verifiedProof.content}
-                    </span>
-                  </div>
-                  {!verifiedProof.anchored && (
-                    <>
-                      <p className="verify-result__cost-note">
-                        {t("anchorCostNote")}
-                      </p>
-                      <NeoButton
-                        variant="primary"
-                        size="sm"
-                        loading={
-                          isAnchoring && anchoringId === verifiedProof.id
-                        }
-                        disabled={isAnchoring}
-                        aria-label={t("anchorOnChain")}
-                        onClick={() =>
-                          dispatch("anchorProof", verifiedProof.id)
-                        }
-                      >
-                        <Anchor size={15} aria-hidden="true" />
-                        {t("anchorOnChain")}
-                      </NeoButton>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p className="verify-result__empty">{t("verifyEmpty")}</p>
-              )}
-            </div>
-          </NeoCard>
-
-          {totalProofs === 0 ? (
-            <div className="empty-state">
-              <span className="empty-badge" aria-hidden="true">
-                <FileText size={22} />
-              </span>
-              <span className="empty-text">{t("noProofs")}</span>
-              <span className="empty-hint">{t("noProofsHint")}</span>
-            </div>
-          ) : (
-            <NeoCard
-              className="proof-ledger"
-              title={t("recentProofs")}
-              header={
-                <NeoButton
-                  variant="ghost"
-                  size="sm"
-                  aria-label={t("clearAllProofs")}
-                  onClick={() => dispatch("clearProofs")}
-                >
-                  {t("clearAllProofs")}
-                </NeoButton>
-              }
-            >
-              <ul className="proof-list">
-                {proofList.map((proof) => (
-                  <li key={proof.id} className="proof-list__item">
-                    <div className="proof-list__main">
-                      <span className="proof-list__id mono">#{proof.id}</span>
-                      <span className="proof-list__hash mono">
-                        {proof.contentHash}
-                      </span>
-                      <span className="proof-list__time">
-                        {new Date(proof.timestamp).toLocaleString()}
-                      </span>
-                      <span
-                        className={`proof-anchor-badge ${proof.anchored ? "is-anchored" : "is-local"}`}
-                      >
-                        {proof.anchored ? t("anchoredOnChain") : t("localOnly")}
-                      </span>
-                    </div>
-                    <div className="proof-list__actions">
-                      <NeoButton
-                        variant="secondary"
-                        size="sm"
-                        aria-label={t("verify")}
-                        onClick={() =>
-                          dispatch("verifyProof", String(proof.id))
-                        }
-                      >
-                        <SearchCheck size={15} aria-hidden="true" />
-                        {t("verify")}
-                      </NeoButton>
-                      {!proof.anchored && (
-                        <NeoButton
-                          variant="ghost"
-                          size="sm"
-                          loading={isAnchoring && anchoringId === proof.id}
-                          disabled={isAnchoring}
-                          aria-label={t("anchorOnChain")}
-                          onClick={() => dispatch("anchorProof", proof.id)}
-                        >
-                          <Anchor size={15} aria-hidden="true" />
-                          {t("anchorShort")}
-                        </NeoButton>
-                      )}
-                      <NeoButton
-                        variant="ghost"
-                        size="sm"
-                        aria-label={t("copyDigest")}
-                        onClick={() => dispatch("copyProofDigest", proof.id)}
-                      >
-                        <Copy size={15} aria-hidden="true" />
-                      </NeoButton>
-                      <NeoButton
-                        variant="ghost"
-                        size="sm"
-                        aria-label={t("copyReference")}
-                        onClick={() => dispatch("copyProofReference", proof.id)}
-                      >
-                        <FileText size={15} aria-hidden="true" />
-                      </NeoButton>
-                      <NeoButton
-                        variant="ghost"
-                        size="sm"
-                        aria-label={t("deleteProof")}
-                        onClick={() => dispatch("deleteProof", proof.id)}
-                      >
-                        <Trash2 size={15} aria-hidden="true" />
-                      </NeoButton>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </NeoCard>
-          )}
+              <PenLine size={14} strokeWidth={2.3} aria-hidden="true" />
+              <span>{t(template.label)}</span>
+            </button>
+          ))}
         </div>
+
+        <dl className="tsp-document-card__facts">
+          <div>
+            <dt>{t("documentTypeText")}</dt>
+            <dd>{documentType}</dd>
+          </div>
+          <div>
+            <dt>{t("contentChars")}</dt>
+            <dd>{contentChars}</dd>
+          </div>
+          <div>
+            <dt>{t("proofDigest")}</dt>
+            <dd>{activeDigest ? shortHash(activeDigest) : t("pendingDigest")}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="tsp-press-card" aria-label={t("proofPressLabel")}>
+        <figure className="tsp-press-card__media">
+          <img src={proofDeskArt} alt={t("proofDeskAlt")} />
+        </figure>
+
+        <div className="tsp-press-card__status">
+          <div className="tsp-press-card__seal" aria-hidden="true">
+            <span className="tsp-press-card__ring" />
+            {verifiedProof ? <CheckCircle2 size={38} strokeWidth={1.9} /> : <Stamp size={40} strokeWidth={1.8} />}
+          </div>
+          <div className="tsp-press-card__copy">
+            <span>{t("proofPressKicker")}</span>
+            <strong>
+              {isCreating
+                ? t("proofPressStampingTitle")
+                : isAnchoring
+                  ? t("proofPressAnchorAnchoring")
+                  : verifiedProof
+                    ? t("validProof")
+                    : hasDraft
+                      ? t("proofPressReadyTitle")
+                      : t("proofPressEmptyTitle")}
+            </strong>
+            <p>{hasDraft ? t("proofPressReadyBody") : t("proofPressEmptyBody")}</p>
+          </div>
+        </div>
+
+        <ol className="tsp-route" aria-label={t("proofRouteLabel")}>
+          <li data-active={hasDraft || proofs.length > 0 ? "true" : undefined}>
+            <Fingerprint size={17} strokeWidth={2.25} />
+            <span>{t("proofRouteHash")}</span>
+            <strong>{hasDraft || activeProof ? t("proofRouteReady") : t("proofRouteWaiting")}</strong>
+          </li>
+          <li data-active={proofs.length > 0 ? "true" : undefined}>
+            <ShieldCheck size={17} strokeWidth={2.25} />
+            <span>{t("proofRouteSave")}</span>
+            <strong>{latestId || "--"}</strong>
+          </li>
+          <li data-active={anchoredCount > 0 ? "true" : undefined}>
+            <Link2 size={17} strokeWidth={2.25} />
+            <span>{t("proofRouteAnchor")}</span>
+            <strong>{anchoredCount > 0 ? t("anchoredOnChain") : t("localOnly")}</strong>
+          </li>
+        </ol>
       </section>
     </div>
+  );
+
+  const score = [
+    { label: t("totalProofs"), value: String(proofs.length), accent: true },
+    { label: t("anchoredProofs"), value: String(anchoredCount) },
+    { label: t("latestId"), value: latestId || "--" },
+  ];
+
+  const drawer = (
+    <div className="tsp-drawer">
+      <OpenUiPanel
+        className="tsp-drawer__panel tsp-drawer__panel--wide"
+        icon={<Search size={18} strokeWidth={2.35} aria-hidden="true" />}
+        title={t("verifyProof")}
+        subtitle={t("verifyPlaceholder")}
+      >
+        <OpenUiTextField
+          className="tsp-drawer__field"
+          label={t("proofId")}
+          value={verifyQuery}
+          onChange={(e) => setVerifyQuery(e.target.value)}
+          placeholder={t("verifyPlaceholder")}
+          disabled={isVerifying}
+          mono
+        />
+        <div className="tsp-drawer__actions">
+          <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleVerify} disabled={!verifyQuery.trim() || isVerifying}>
+            {isVerifying ? t("verifying") : t("verify")}
+          </button>
+        </div>
+        {verifyError && (
+          <OpenUiNotice className="tsp-drawer__notice" icon={<Search size={18} strokeWidth={2.35} aria-hidden="true" />} title={t("verifyFailed")} type="error" />
+        )}
+        {verifiedProof && (
+          <div className="tsp-drawer__verified">
+            <p><strong>{t("proofId")}</strong> #{verifiedProof.id}</p>
+            <p><strong>{t("proofDigest")}</strong> {verifiedProof.contentHash}</p>
+            <p><strong>{t("timestamp")}</strong> {formatTimestamp(verifiedProof.timestamp)}</p>
+            {verifiedProof.anchored && <p><strong>{t("anchorTxid")}</strong> {verifiedProof.anchorTxid}</p>}
+          </div>
+        )}
+      </OpenUiPanel>
+
+      <OpenUiPanel
+        className="tsp-drawer__panel"
+        icon={<Link2 size={18} strokeWidth={2.35} aria-hidden="true" />}
+        title={t("anchorOnChain")}
+        subtitle={t("anchorCostNote")}
+      >
+        <div className="tsp-drawer__actions">
+          <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleAnchor} disabled={!anchorTargetId || isAnchoring || Boolean(latestProof?.anchored)}>
+            {isAnchoring ? t("proofPressAnchorAnchoring") : t("anchorShort")}
+          </button>
+        </div>
+      </OpenUiPanel>
+
+      <OpenUiPanel
+        className="tsp-drawer__panel"
+        icon={<FileText size={18} strokeWidth={2.35} aria-hidden="true" />}
+        title={t("recentProofs")}
+        subtitle={proofs.length > 0 ? `${proofs.length}` : t("noProofsHint")}
+      >
+        {proofs.length > 0 ? (
+          <ul className="mx2-history">
+            {proofs.slice(0, 10).map((p) => (
+              <li key={p.id} className="mx2-history__item">
+                <span className="mx2-history__face">#{p.id}</span>
+                <span className="mx2-history__result">{p.anchored ? t("anchoredOnChain") : t("localOnly")}</span>
+                {!p.anchored && <button className="mx2-btn mx2-btn--ghost" type="button" onClick={() => void dispatch("anchorProof", p.id)}>{t("anchorShort")}</button>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <OpenUiNotice className="tsp-drawer__notice" icon={<FileText size={18} strokeWidth={2.35} aria-hidden="true" />} title={t("recentProofs")}>
+            {t("noProofsHint")}
+          </OpenUiNotice>
+        )}
+      </OpenUiPanel>
+    </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div className="timestamp-proof-play-area mx2 mx2-cat-tool">
+        <PlayStage
+          category="tool"
+          stage={{ eyebrow: t("proofStageKicker"), title: t("proofStageTitle"), subtitle: t("proofPrivacy") }}
+          scene={scene}
+          score={score}
+          actions={{
+            primary: {
+              label: isCreating ? "..." : t("createProof"),
+              onClick: handleCreate,
+              loading: isCreating,
+              disabled: !trimmedMsg || busy,
+              icon: <Stamp size={18} strokeWidth={2.3} />,
+            },
+            secondary: [
+              {
+                label: t("anchorShort"),
+                onClick: handleAnchor,
+                loading: isAnchoring,
+                disabled: !anchorTargetId || Boolean(latestProof?.anchored) || isAnchoring,
+                icon: <Link2 size={16} strokeWidth={2.25} />,
+              },
+            ],
+          }}
+          drawerToggleLabel={t("proofWorkspace")}
+          drawer={{ title: t("proofWorkspace"), children: drawer }}
+        />
+      </div>
+    </OpenUiProvider>
   );
 }

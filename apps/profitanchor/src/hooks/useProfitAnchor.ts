@@ -6,7 +6,8 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { getMiniAppContractHash } from "@shared/constants/rpc";
 import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
@@ -37,7 +38,7 @@ export interface AnchorAdminInfo {
 }
 
 export interface UseProfitAnchorOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -127,7 +128,7 @@ function normalizeHash160OrAddress(input: unknown, t: Translate): string {
   throw new Error(t("invalidAgentAccount"));
 }
 
-export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) {
+export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
   const isLoading = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
@@ -142,15 +143,15 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const loadMyStake = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       myStake.set(0);
       return;
     }
     try {
-      const result = await chain.read("getUserStake", [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: addr },
+      const result = await app.chain.readRaw("getUserStake", [
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(addr),
       ], anchorOptions());
       myStake.set(asNumber(result));
     } catch (e) {
@@ -162,15 +163,15 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const loadPendingRewards = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       pendingRewards.set(0);
       return;
     }
     try {
-      const result = await chain.read("getPendingRewards", [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: addr },
+      const result = await app.chain.readRaw("getPendingRewards", [
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(addr),
       ], anchorOptions());
       pendingRewards.set(asNumber(result) / GAS_DECIMALS);
     } catch (e) {
@@ -182,15 +183,15 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const loadPendingWithdraw = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       pendingWithdraw.set(0);
       return;
     }
     try {
-      const result = await chain.read("getCredit", [
-        { type: "Hash160", value: addr },
-        { type: "String", value: "NEO" },
+      const result = await app.chain.readRaw("getCredit", [
+        app.chain.arg.hash160(addr),
+        app.chain.arg.string("NEO"),
       ], anchorOptions());
       pendingWithdraw.set(asNumber(result));
     } catch (e) {
@@ -203,8 +204,8 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
 
   const loadStats = async () => {
     try {
-      const result = await chain.read("getAnchorStats", [
-        { type: "String", value: APP_ID },
+      const result = await app.chain.readRaw("getAnchorStats", [
+        app.chain.arg.string(APP_ID),
       ], anchorOptions());
       stats.set({
         totalStaked: asNumber(asMapValue(result, "totalStaked")),
@@ -226,17 +227,17 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   // is the per-app operator. Either witness authorizes the admin console paths.
   const loadAdmin = async () => {
     try {
-      const [platform, app] = await Promise.all([
-        chain.read("admin", [], anchorOptions()),
-        chain.read(
+      const [platformAdminRaw, appAdminRaw] = await Promise.all([
+        app.chain.readRaw("admin", [], anchorOptions()),
+        app.chain.readRaw(
           "getAppAdmin",
-          [{ type: "String", value: APP_ID }],
+          [app.chain.arg.string(APP_ID)],
           anchorOptions(),
         ),
       ]);
       adminInfo.set({
-        platformAdmin: parseHash160(platform),
-        appAdmin: parseHash160(app),
+        platformAdmin: parseHash160(platformAdminRaw),
+        appAdmin: parseHash160(appAdminRaw),
       });
     } catch (e) {
       console.warn(
@@ -251,9 +252,9 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   const loadAgents = async () => {
     try {
       const count = asNumber(
-        await chain.read(
+        await app.chain.readRaw(
           "getAgentCount",
-          [{ type: "String", value: APP_ID }],
+          [app.chain.arg.string(APP_ID)],
           anchorOptions(),
         ),
       );
@@ -264,11 +265,11 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
       const reads = [];
       for (let id = 1; id <= count; id += 1) {
         reads.push(
-          chain.read(
+          app.chain.readRaw(
             "getAgent",
             [
-              { type: "String", value: APP_ID },
-              { type: "Integer", value: id },
+              app.chain.arg.string(APP_ID),
+              app.chain.arg.integer(id),
             ],
             anchorOptions(),
           ),
@@ -313,8 +314,10 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   const isAdmin = (): boolean | null => {
     const info = adminInfo.get();
     if (!info) return null;
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) return false;
+    // addressToScriptHash here is a comparison tool (matches the connected wallet
+    // against on-chain admin hashes), not a contract-arg builder — kept ad-hoc.
     const myHash = addressToScriptHash(addr).toLowerCase();
     if (!myHash) return false;
     return (
@@ -324,17 +327,20 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const stakeNeo = async (amountInput: unknown) => {
-    const user = await chain.ensureWallet();
-    const contract = getMiniAppContractHash(APP_ID) || chain.contractAddress.get();
+    const user = await app.chain.ensureWallet();
+    const contract = getMiniAppContractHash(APP_ID) || app.chain.contractAddress.get();
     if (!contract) throw new Error(t("missingContract"));
     const amount = normalizeWholeNeo(amountInput, t);
-    const result = await chain.invoke(
+    // `contract` is the app contract hash (not the connected wallet), passed raw
+    // exactly as before so the wallet provider receives the identical value —
+    // mapDapiArgs only remaps the connected account.
+    const result = await app.chain.invoke(
       "transfer",
       [
-        { type: "Hash160", value: user },
+        app.chain.arg.hash160(user),
         { type: "Hash160", value: contract },
-        { type: "Integer", value: amount },
-        { type: "String", value: `stake:${APP_ID}` },
+        app.chain.arg.integer(amount),
+        app.chain.arg.string(`stake:${APP_ID}`),
       ],
       {
         scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
@@ -348,14 +354,14 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const withdrawNeo = async (amountInput: unknown) => {
-    const user = await chain.ensureWallet();
+    const user = await app.chain.ensureWallet();
     const amount = normalizeWholeNeo(amountInput, t);
-    const result = await chain.invoke(
+    const result = await app.chain.invoke(
       "withdraw",
       [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: user },
-        { type: "Integer", value: amount },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(user),
+        app.chain.arg.integer(amount),
       ],
       {
         ...anchorOptions(),
@@ -369,12 +375,12 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const claimRewards = async () => {
-    const user = await chain.ensureWallet();
-    const result = await chain.invoke(
+    const user = await app.chain.ensureWallet();
+    const result = await app.chain.invoke(
       "claimRewards",
       [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: user },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(user),
       ],
       {
         ...anchorOptions(),
@@ -391,17 +397,17 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   // the "stake:<appId>" memo). withdrawCredit(user,"NEO",amount) is witness-
   // gated to the user and transfers the NEO back from the contract balance.
   const recoverNeoCredit = async () => {
-    const user = await chain.ensureWallet();
+    const user = await app.chain.ensureWallet();
     const amount = pendingWithdraw.get();
     if (!Number.isInteger(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
-    const result = await chain.invoke(
+    const result = await app.chain.invoke(
       "withdrawCredit",
       [
-        { type: "Hash160", value: user },
-        { type: "String", value: "NEO" },
-        { type: "Integer", value: amount },
+        app.chain.arg.hash160(user),
+        app.chain.arg.string("NEO"),
+        app.chain.arg.integer(amount),
       ],
       anchorOptions(),
     );
@@ -415,18 +421,18 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
     toAgentIdInput: unknown,
     amountInput: unknown,
   ) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const fromAgentId = normalizeAgentId(fromAgentIdInput, t);
     const toAgentId = normalizeAgentId(toAgentIdInput, t);
     const amount = normalizeWholeNeo(amountInput, t);
     if (fromAgentId === toAgentId) throw new Error(t("sameAgent"));
-    await chain.invoke(
+    await app.chain.invoke(
       "transferAgentNeo",
       [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: fromAgentId },
-        { type: "Integer", value: toAgentId },
-        { type: "Integer", value: amount },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.integer(fromAgentId),
+        app.chain.arg.integer(toAgentId),
+        app.chain.arg.integer(amount),
       ],
       anchorOptions(),
     );
@@ -443,14 +449,15 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
     agentIdInput: unknown,
     candidateInput: unknown,
   ) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
-    await chain.invoke(
+    // PublicKey has no framework arg builder; kept raw to preserve the exact arg.
+    await app.chain.invoke(
       "setAgentCandidate",
       [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: agentId },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.integer(agentId),
         { type: "PublicKey", value: candidate },
       ],
       anchorOptions(),
@@ -464,13 +471,13 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const voteAgent = async (agentIdInput: unknown) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput, t);
-    await chain.invoke(
+    await app.chain.invoke(
       "voteAgent",
       [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: agentId },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.integer(agentId),
       ],
       anchorOptions(),
     );
@@ -483,17 +490,22 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
     candidateInput: unknown,
     verificationScriptHashInput: unknown,
   ) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const agentAccount = normalizeHash160OrAddress(agentAccountInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
     const verificationScriptHash = normalizeHex(verificationScriptHashInput, t);
-    await chain.invoke(
+    // `agentAccount` is a third-party account (0x-hash, bare hex, or N-address as
+    // validated); the pre-migration code passed the raw validated value to the
+    // wallet. arg.hash160 would normalize/convert it (e.g. N-address → script
+    // hash, bare hex → 0x), changing the provider input — kept raw. PublicKey has
+    // no framework builder either.
+    await app.chain.invoke(
       "registerAgent",
       [
-        { type: "String", value: APP_ID },
+        app.chain.arg.string(APP_ID),
         { type: "Hash160", value: agentAccount },
         { type: "PublicKey", value: candidate },
-        { type: "ByteArray", value: verificationScriptHash },
+        app.chain.arg.byteArray(verificationScriptHash),
       ],
       anchorOptions(),
     );

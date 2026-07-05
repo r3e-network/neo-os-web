@@ -12,6 +12,7 @@
  *          lastRequestId, requestUnfunded (RequestUnfunded event lookup)
  */
 
+import type { MiniAppFramework } from "@shared/react";
 import {
   assetHash,
   buildApproveArgs,
@@ -33,40 +34,15 @@ import {
 /**
  * A single contract argument as accepted by the platform chain layer. The
  * runtime SDK tolerates nested Array values (an array of ContractArg), which
- * the static `ChainService.ContractArg` type narrows to scalars — this widened
- * alias is what we hand to the chain at the call boundary.
+ * the static framework `FrameworkContractArg` type narrows to scalars — this
+ * widened alias is what we hand to the chain at the call boundary.
  */
 type ChainArg = { type: string; value: unknown };
 
 /**
- * Minimal chain surface this service needs. `ctx.services.chain` satisfies it.
- * Kept narrow so the dependency is explicit and the module stays testable.
+ * Cast our typed vault args to the widened chain-arg shape the framework chain
+ * layer accepts (it tolerates nested Array values the static type narrows).
  */
-export interface VaultChain {
-  invoke(
-    operation: string,
-    args: ChainArg[],
-    options?: { scriptHash?: string; waitForEvent?: string },
-  ): Promise<{ txid: string; success: boolean }>;
-  read(
-    operation: string,
-    args?: ChainArg[],
-    options?: { scriptHash?: string },
-  ): Promise<unknown>;
-  /**
-   * Decoded contract-event listing (ChainService.listEvents). Optional so
-   * older/leaner chain layers still satisfy the interface; event-derived
-   * features (RequestUnfunded detection) degrade gracefully without it.
-   */
-  listEvents?(
-    eventName: string,
-    options?: { limit?: number },
-  ): Promise<unknown[]>;
-  /** Resolved app contract hash (the custody vault). */
-  contractAddress: { get(): string | null };
-}
-
-/** Cast our typed vault args to the widened chain-arg shape. */
 function toChainArgs(args: ContractArg[]): ChainArg[] {
   return args as unknown as ChainArg[];
 }
@@ -103,10 +79,10 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
-export function createVaultApi(chain: VaultChain) {
+export function createVaultApi(app: MiniAppFramework) {
   /** Resolve the deployed custody-vault contract hash from the chain layer. */
   function contractHash(): string {
-    const hash = chain.contractAddress.get();
+    const hash = app.chain.contractAddress.get();
     if (!hash) {
       throw new Error("Vault contract is not configured for this network.");
     }
@@ -119,9 +95,9 @@ export function createVaultApi(chain: VaultChain) {
     /** createVault(creator, signers[], threshold) — connected wallet witnesses. */
     async createVault(input: CreateVaultInput) {
       const set = validateSignerSet(input.signers, input.threshold);
-      return chain.invoke(
+      return app.chain.invoke(
         "createVault",
-        toChainArgs(buildCreateVaultArgs(input.creator, set)),
+        toChainArgs(buildCreateVaultArgs(input.creator, set)) as never,
       );
     },
 
@@ -141,7 +117,7 @@ export function createVaultApi(chain: VaultChain) {
       // refreshVault read reflect a CONFIRMED, in-block balance change — a
       // fire-and-forget transfer otherwise reports success while balances are
       // still stale (the user has to reload to see the deposit).
-      return chain.invoke("transfer", toChainArgs(args), {
+      return app.chain.invoke("transfer", toChainArgs(args) as never, {
         scriptHash: assetHash(input.asset),
         waitForEvent: "Deposited",
       });
@@ -149,60 +125,60 @@ export function createVaultApi(chain: VaultChain) {
 
     /** createRequest(vaultId, creator, recipient, asset, amount, memo). */
     async createRequest(input: CreateRequestInput) {
-      return chain.invoke(
+      return app.chain.invoke(
         "createRequest",
-        toChainArgs(buildCreateRequestArgs(input)),
+        toChainArgs(buildCreateRequestArgs(input)) as never,
       );
     },
 
     /** approve(reqId, signer) — releases funds at threshold. */
     async approve(reqId: number, signer: string) {
-      return chain.invoke("approve", toChainArgs(buildApproveArgs(reqId, signer)));
+      return app.chain.invoke("approve", toChainArgs(buildApproveArgs(reqId, signer)) as never);
     },
 
     /** cancel(reqId, caller) — ANY vault signer (v2), pending requests only. */
     async cancel(reqId: number, caller: string) {
-      return chain.invoke("cancel", toChainArgs(buildCancelArgs(reqId, caller)));
+      return app.chain.invoke("cancel", toChainArgs(buildCancelArgs(reqId, caller)) as never);
     },
 
     // -- Reads --------------------------------------------------------------
 
     async getVault(vaultId: number): Promise<VaultView | null> {
-      const raw = await chain.read("getVault", [
-        { type: "Integer", value: String(vaultId) },
+      const raw = await app.chain.readRaw("getVault", [
+        app.chain.arg.integer(vaultId),
       ]);
       return parseVault(raw);
     },
 
     async getRequest(reqId: number): Promise<RequestView | null> {
-      const raw = await chain.read("getRequest", [
-        { type: "Integer", value: String(reqId) },
+      const raw = await app.chain.readRaw("getRequest", [
+        app.chain.arg.integer(reqId),
       ]);
       return parseRequest(raw);
     },
 
     async balanceOf(vaultId: number, asset: VaultAsset): Promise<number> {
-      const raw = await chain.read("balanceOf", [
-        { type: "Integer", value: String(vaultId) },
+      const raw = await app.chain.readRaw("balanceOf", [
+        app.chain.arg.integer(vaultId),
         { type: "Hash160", value: assetHash(asset) },
       ]);
       return toNumber(raw);
     },
 
     async hasApproved(reqId: number, signer: string): Promise<boolean> {
-      const raw = await chain.read("hasApproved", [
-        { type: "Integer", value: String(reqId) },
+      const raw = await app.chain.readRaw("hasApproved", [
+        app.chain.arg.integer(reqId),
         { type: "Hash160", value: signer },
       ]);
       return Boolean(raw);
     },
 
     async lastVaultId(): Promise<number> {
-      return toNumber(await chain.read("lastVaultId"));
+      return toNumber(await app.chain.readRaw("lastVaultId"));
     },
 
     async lastRequestId(): Promise<number> {
-      return toNumber(await chain.read("lastRequestId"));
+      return toNumber(await app.chain.readRaw("lastRequestId"));
     },
 
     /**
@@ -213,9 +189,8 @@ export function createVaultApi(chain: VaultChain) {
      * callers fall back to a generic auto-cancel notice.
      */
     async requestUnfunded(reqId: number): Promise<RequestUnfundedEvent | null> {
-      if (typeof chain.listEvents !== "function") return null;
       try {
-        const events = await chain.listEvents("RequestUnfunded", { limit: 50 });
+        const events = await app.chain.events("RequestUnfunded", { limit: 50 });
         for (const entry of events ?? []) {
           const parsed = parseRequestUnfundedEvent(entry);
           if (parsed && parsed.requestId === reqId) return parsed;

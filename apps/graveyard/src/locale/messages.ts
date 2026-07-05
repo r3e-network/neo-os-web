@@ -1,6 +1,10 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  requestForget: { en: "requestForget", zh: "requestForget" },
+  memoryText: { en: "memoryText", zh: "memoryText" },
+  executeDestroy: { en: "executeDestroy", zh: "executeDestroy" },
+  burialFeeDisplay: { en: "burialFeeDisplay", zh: "burialFeeDisplay" },
   // App translations
   title: { en: "Graveyard", zh: "数字墓地" },
   subtitle: { en: "Hash-based memory burial on-chain", zh: "基于哈希的链上记忆埋葬" },

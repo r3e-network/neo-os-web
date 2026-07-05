@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import type { ChainService } from "../services/ChainService";
+import { createMiniAppFramework } from "../react";
 import {
   fetchOwnedDomains,
   ownerValueToAddress,
@@ -188,6 +189,16 @@ function t(key: string) {
   return key;
 }
 
+// Wrap a mock ChainService in the MiniApp framework SDK, mirroring how main.tsx
+// passes ctx.framework to the hook. Arg builders + raw passthroughs preserve the
+// same recorded calls the direct-chain hook made.
+function makeApp(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-neo-ns" },
+  );
+}
+
 describe("useNeoNS.loadMyDomains populates from the iterator bypass", () => {
   const originalFetch = globalThis.fetch;
   afterEach(() => {
@@ -201,7 +212,7 @@ describe("useNeoNS.loadMyDomains populates from the iterator bypass", () => {
     }) as unknown as typeof fetch;
 
     const chain = makeChainMock(OWNER_ADDRESS);
-    const ns = useNeoNS({ chain, eventBus: makeEventBus(), t });
+    const ns = useNeoNS({ app: makeApp(chain), eventBus: makeEventBus(), t });
 
     await ns.loadMyDomains();
 
@@ -215,7 +226,7 @@ describe("useNeoNS.loadMyDomains populates from the iterator bypass", () => {
 
   it("clears the list with no connected wallet", async () => {
     const chain = makeChainMock(null);
-    const ns = useNeoNS({ chain, eventBus: makeEventBus(), t });
+    const ns = useNeoNS({ app: makeApp(chain), eventBus: makeEventBus(), t });
     await ns.loadMyDomains();
     expect(ns.myDomains.get()).toEqual([]);
   });
@@ -225,15 +236,17 @@ describe("useNeoNS.getRenewPrice discloses the renewal cost", () => {
   it("reads getPrice for the domain's base-name length in GAS", async () => {
     const chain = makeChainMock(OWNER_ADDRESS);
     (chain.read as ReturnType<typeof vi.fn>).mockResolvedValueOnce(200000000); // 2 GAS in datoshi
-    const ns = useNeoNS({ chain, eventBus: makeEventBus(), t });
+    const ns = useNeoNS({ app: makeApp(chain), eventBus: makeEventBus(), t });
 
     const price = await ns.getRenewPrice({ name: "alice.neo", owner: OWNER_ADDRESS, expiry: 0 });
 
     expect(price).toBe(2);
-    // getPrice is called with the base-name length (5 for "alice"), not the full ".neo".
+    // getPrice is called with the base-name length (5 for "alice"), not the full
+    // ".neo". arg.integer normalizes the length to its string form ("5"), the
+    // same on-chain Integer the raw {value: 5} produced.
     expect(chain.read).toHaveBeenCalledWith(
       "getPrice",
-      [{ type: "Integer", value: 5 }],
+      [{ type: "Integer", value: "5" }],
       { scriptHash: NNS_CONTRACT },
     );
   });

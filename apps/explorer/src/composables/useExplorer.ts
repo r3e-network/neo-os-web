@@ -68,7 +68,9 @@ function isLocalStaticExplorer() {
   if (typeof window === "undefined") return false;
   const { hostname } = window.location;
   const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-  return isLocalHost && window.location.pathname.includes("/miniapps/explorer/");
+  const isMiniappStaticPath = window.location.pathname.includes("/miniapps/explorer/");
+  const isStandaloneViteRoot = import.meta.env.DEV && isLocalHost && window.location.port !== "" && window.location.pathname === "/";
+  return isLocalHost && (isMiniappStaticPath || isStandaloneViteRoot);
 }
 
 function shouldUseExplorerApi() {

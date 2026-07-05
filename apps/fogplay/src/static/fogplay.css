@@ -25,7 +25,7 @@
     position: fixed;
     inset: 0;
     z-index: -2;
-    background-image: url("@/static/bg_vault.png");
+    background-image: url("@/static/bg_vault.webp");
     background-size: cover;
     background-position: center;
     filter: var(--coin-vault-filter);
@@ -144,7 +144,7 @@
     border: 1px solid var(--coin-status-border);
     font-size: 14px;
     font-weight: 600;
-    letter-spacing: 1px;
+    letter-spacing: 0;
     text-transform: uppercase;
     display: inline-flex;
     align-items: center;

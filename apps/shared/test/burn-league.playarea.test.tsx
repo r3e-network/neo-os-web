@@ -1,12 +1,5 @@
-import fs from "node:fs";
 import React from "react";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -18,506 +11,311 @@ afterEach(() => cleanup());
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    amount: "Amount",
-    arenaConsoleLabel: "Arena burn console",
-    burn: "Burn Now",
-    burnActionHint:
-      "Burning deposits GAS to the on-chain pool, then records your season total.",
-    burnBlockedSettle: "Burning is paused until the ended season is settled.",
-    burnPresets: "Burn amount presets",
-    burnRange: `Burn range: ${params?.min ?? 1}-${params?.max ?? 1000} GAS`,
-    burnRangeError: `Enter a burn amount from ${params?.min ?? 1} to ${params?.max ?? 1000} GAS.`,
-    burning: "Burning...",
-    burnReview: "Burn review checklist",
-    burnServiceUnavailableTitle: "Burn league data unavailable",
+    burnNow: "Burn Now",
     burnTokens: "Burn Tokens",
-    chooseFuel: "Choose fuel",
-    currentLeader: "Current leader",
+    burnPresets: "Fuel capsules",
+    burning: "Burning...",
+    burnRange: `Burn range: ${params?.min ?? 1}-${params?.max ?? 1000} GAS`,
     decreaseBurn: "Decrease burn amount",
-    enterAmount: "Amount to burn",
-    entryAmount: "Entry amount",
-    fuelConsole: "Fuel console",
-    fuelMeter: "Burn fuel meter",
     increaseBurn: "Increase burn amount",
     leaderboard: "Leaderboard",
     liveLeague: "Live league",
-    localPreview: "Data pending",
-    lastSubmitted: `Last submitted burn: ${params?.amount ?? ""}`,
-    noEntries:
-      "Burns appear here with rank and burned GAS as soon as they confirm on chain.",
-    noEntriesTitle: "No leaderboard entries yet",
-    noLeaderYet: "No burns yet",
-    outOf: `of ${params?.total ?? 0} players`,
-    prepaidCreditHint: "Withdraw unused GAS from a failed burn.",
-    prepaidCreditLabel: "Prepaid credit",
     prizePool: "Prize pool",
     projectedTotal: "Projected total",
-    projectedRank: "Projected rank",
-    readyToBurn: "Fuel loaded",
-    resetBurn: "Reset",
-    rewardPool: "Reward Pool",
-    reviewAmount: "Confirm amount",
-    reviewLeaderboard: "Review rank impact",
-    reviewWallet: "Sign wallet intent",
-    seasonActive: "Live now",
-    seasonDormant: "Not started",
-    seasonDormantHint:
-      "No active season yet — the first burn starts a fresh season.",
-    seasonEnded: "Ended — awaiting settle",
-    seasonEndedHint: `The season has ended. Settle to award the ${params?.amount ?? ""} pool to the top burner.`,
-    seasonEndsIn: "Ends in",
+    fuelConsole: "Fuel rack",
+    fuelCore: "Fuel core",
+    fuelDialLabel: "Fuel tuner",
+    fuelLoadHint: "Capsules tune the next ignition",
+    readyToBurn: "Core armed",
     seasonLabel: "Season",
     seasonStatus: "Season status",
-    scoreboardEyebrow: "Next burn",
+    seasonDormantHint: "No active season yet — the first burn starts a fresh season.",
+    seasonEndedHint: "The season has ended. Settle to award the pool to the top burner.",
+    seasonEndsIn: "Ends in",
+    seasonLengthLabel: "Season length",
+    currentLeader: "Current leader",
     settleSeason: "Settle season",
+    settleSuccess: "Season settled",
     subtitle: "Burn tokens, earn rewards",
     title: "Burn League",
-    totalBurned: "Total Burned",
-    withdrawingCredit: "Withdrawing...",
+    youLeadBadge: "You lead",
+    youBurned: "You burned",
+    yourRank: "Your rank",
+    noEntries: "No leaderboard entries yet",
+    howItWorks: "How it works",
+    howStepPick: "Pick an amount.",
+    howStepBurn: "Burn GAS.",
+    howStepClimb: "Climb the leaderboard.",
+    howStepWin: "Win the pool.",
+    prepaidCreditLabel: "Prepaid credit",
+    prepaidCreditHint: "Withdrawable.",
     withdrawCredit: "Withdraw credit",
-    yourBurns: "Your Burns",
-    yourRank: "Your Rank",
+    celebrationDismiss: "Done",
+    settleWinTitle: "You won!",
+    settleWinBody: "The pool is yours.",
+    settleDoneTitle: "Season settled",
+    settleDoneBody: "The pool was awarded.",
   };
-  return messages[key] ?? key;
+  let value = messages[key] ?? key;
+  if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
+  return value;
 }
 
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  return {
-    actionNotice: createObservable(""),
-    burnAmount: createObservable("1"),
-    burnCount: createObservable(0),
-    burnValidationError: createObservable(null),
-    countdown: createObservable("00:01:30"),
-    formattedRank: createObservable("--"),
-    formattedSeason: createObservable("#1"),
-    isBurning: createObservable(false),
-    isLoading: createObservable(false),
-    isSettling: createObservable(false),
-    lastSubmittedAmount: createObservable(""),
-    leaderboard: createObservable([]),
-    leaderboardPreview: createObservable([]),
-    leaderboardSize: createObservable(0),
-    leaderLabel: createObservable("--"),
-    leagueDataAvailable: createObservable(false),
-    needsSettle: createObservable(false),
-    prizePoolDisplay: createObservable("0.00 GAS"),
-    projectedTotalBurnedDisplay: createObservable("1.00 GAS"),
-    rank: createObservable(0),
-    rewardPool: createObservable(0),
-    rewardPoolDisplay: createObservable("0.00 GAS"),
-    seasonPhase: createObservable("active"),
-    seasonStatusLabel: createObservable("Live now"),
-    serviceNotice: createObservable(""),
-    topBurnedDisplay: createObservable("0.00 GAS"),
-    totalBurned: createObservable(0),
-    totalBurnedDisplay: createObservable("0.00 GAS"),
-    userBurned: createObservable(0),
-    userBurnedDisplay: createObservable("0.00 GAS"),
-    ...Object.fromEntries(
-      Object.entries(overrides).map(([key, value]) => [
-        key,
-        createObservable(value),
-      ]),
-    ),
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    actionNotice: "",
+    burnAmount: "1",
+    burnValidationError: null,
+    countdown: "00:01:30",
+    formattedRank: "--",
+    formattedSeason: "#1",
+    isBurning: false,
+    isLoading: false,
+    isSettling: false,
+    lastSubmittedAmount: "",
+    leaderboardPreview: [],
+    leaderboardSize: 0,
+    leaderLabel: "--",
+    leagueDataAvailable: false,
+    needsSettle: false,
+    prizePoolDisplay: "0.00 GAS",
+    projectedTotalBurnedDisplay: "1.00 GAS",
+    seasonPhase: "active",
+    seasonStatusLabel: "Live now",
+    seasonDurationLabel: "2 min",
+    serviceNotice: "",
+    totalBurnedDisplay: "0.00 GAS",
+    userBurned: 0,
+    userBurnedDisplay: "0.00 GAS",
+    userIsLeader: false,
+    prepaidCredit: 0,
+    prepaidCreditDisplay: "0.00 GAS",
+    minBurnGas: 1,
+    maxBurnGas: 1000,
+    lastSettleResult: null,
   };
+  return Object.fromEntries(
+    Object.entries({ ...base, ...overrides }).map(([k, v]) => [k, createObservable(v)]),
+  );
 }
 
-describe("Burn League PlayArea", () => {
-  it("shows professional service copy and a burn preview with the whole-pool prize", () => {
-    render(
+function appsRoot(): string {
+  const path = require("node:path");
+  return process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+}
+
+describe("Burn League PlayArea (v2 scene-driven)", () => {
+  it("renders the resource-led burn arena with the burn action", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".burn-scene")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".burn-scene__arena-image")?.getAttribute("src")).toContain("burn-league-arena.webp");
+    expect(container.querySelector(".burn-scene__shade")).toBeTruthy();
+    expect(container.querySelector(".burn-scene__brazier-art")).toBeNull();
+    expect(container.querySelector(".burn-scene__torch-medal .mx2-coin")).toBeTruthy();
+    expect(container.querySelector(".burn-scene__brazier")).toBeTruthy();
+    expect(container.querySelector(".burn-scene__token-trail")).toBeNull();
+    expect(container.querySelector(".burn-scene__meter")).toBeTruthy();
+    // Primary burn action lives in the arena target.
+    expect(container.querySelector(".mx2-btn--primary")).toBeTruthy();
+  });
+
+  it("uses compact fuel controls instead of a raw form input", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".burn-controls__dock")).toBeTruthy();
+    expect(container.querySelector(".burn-controls__header")?.textContent).toContain("Fuel core");
+    expect(container.querySelector(".burn-stepper__output")?.textContent).toContain("1");
+    expect(container.querySelector(".burn-stepper__input")).toBeNull();
+    expect(container.querySelector(".burn-controls__presets")?.getAttribute("aria-label")).toBe("Fuel capsules");
+    expect(container.querySelector(".burn-preset")?.getAttribute("aria-label")).toBe("1 GAS");
+    expect(container.querySelector(".burn-preset strong")?.textContent).toBe("1");
+    expect(container.textContent).not.toContain("Choose fuel");
+  });
+
+  it("shows the service notice once in the scene when present", () => {
+    const { container } = render(
       <PlayArea
         t={t}
-        state={state({
-          serviceNotice:
-            "Live burn stats could not be read from the chain right now.",
-          prizePoolDisplay: "15.00 GAS",
-        })}
+        state={state({ serviceNotice: "Stats unavailable right now." })}
         dispatch={vi.fn()}
       />,
     );
-
-    expect(screen.getAllByRole("status")[0]).toBeTruthy();
-    // The service notice was slimmed to a one-line title (the long body
-    // sentence was dropped in the polish pass); assert the retained title.
-    expect(screen.getByText(/Burn league data unavailable/)).toBeTruthy();
-    expect(
-      screen.queryByText(/OS service error|os-game-status|Not Found/i),
-    ).toBeNull();
-    expect(screen.getByText("Entry amount")).toBeTruthy();
-    expect(screen.getByText("Projected total")).toBeTruthy();
-    expect(screen.getAllByText("Projected rank").length).toBeGreaterThan(0);
-    expect(screen.getByText("Confirm amount")).toBeTruthy();
-    // The prize model is the WHOLE pool, surfaced in the impact strip — no 0.1x.
-    expect(screen.getAllByText("Prize pool").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("15.00 GAS").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Est. Reward")).toBeNull();
-    expect(screen.getByRole("button", { name: "Burn Now" })).toBeTruthy();
+    expect(container.querySelector(".burn-scene__status")?.textContent).toContain("Stats unavailable right now.");
+    expect(container.querySelector(".burn-controls__notice[role='alert']")).toBeNull();
   });
 
-  it("renders an active-season countdown banner with pool and leader", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          seasonPhase: "active",
-          seasonStatusLabel: "Live now",
-          countdown: "00:01:30",
-          prizePoolDisplay: "8.00 GAS",
-          leaderLabel: "NTop12...9zEs",
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
+  it("dispatches a burn for a preset amount and shows burning motion", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    expect(screen.getByText("Live now")).toBeTruthy();
-    expect(screen.getByText("Ends in")).toBeTruthy();
-    expect(screen.getByText("00:01:30")).toBeTruthy();
-    expect(screen.getByText("NTop12...9zEs")).toBeTruthy();
-    // No settle affordance while the season is live.
-    expect(screen.queryByRole("button", { name: "Settle season" })).toBeNull();
+    // Select a preset.
+    const preset5 = container.querySelectorAll(".burn-preset")[1]; // "5"
+    fireEvent.click(preset5);
+
+    // Fire the in-scene burn action, not a duplicated rail button.
+    fireEvent.click(container.querySelector(".burn-scene__brazier") as Element);
+
+    await waitFor(() => {
+      expect(container.querySelector('.burn-scene[data-state="burning"]')).toBeTruthy();
+      expect(container.querySelector(".burn-scene__token-trail")).toBeTruthy();
+      expect(container.querySelector(".burn-scene__coin-burst")).toBeTruthy();
+    });
+    expect(dispatch).toHaveBeenCalledWith("burn", "5");
   });
 
-  it("surfaces the settle affordance and dispatches settle when a season has ended", () => {
-    const dispatch = vi.fn();
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          seasonPhase: "ended",
-          needsSettle: true,
-          seasonStatusLabel: "Ended — awaiting settle",
-          prizePoolDisplay: "12.00 GAS",
-        })}
-        dispatch={dispatch}
-      />,
+  it("locks repeat burns while a burn is in flight", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ isBurning: true })} dispatch={dispatch} />);
+
+    const primary = container.querySelector(".burn-scene__brazier") as HTMLButtonElement;
+    expect(primary.disabled).toBe(true);
+  });
+
+  it("exposes a settle action when the season needs settling", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ needsSettle: true, seasonPhase: "ended" })} dispatch={dispatch} />,
     );
 
-    const settleBtn = screen.getByRole("button", { name: "Settle season" });
+    const settleBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("Settle season"),
+    );
     expect(settleBtn).toBeTruthy();
-    fireEvent.click(settleBtn);
+    fireEvent.click(settleBtn!);
     expect(dispatch).toHaveBeenCalledWith("settle");
-
-    // Burning is blocked until the ended season is settled.
-    expect(
-      (screen.getByRole("button", { name: "Burn Now" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
   });
 
-  it("explains a dormant season needs a first burn", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          seasonPhase: "dormant",
-          seasonStatusLabel: "Not started",
-          formattedSeason: "--",
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(screen.getAllByText("Not started").length).toBeGreaterThan(1);
-    expect(screen.getByText(/No active season yet/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Settle season" })).toBeNull();
-  });
-
-  it("lets users choose a preset amount before submitting", () => {
-    const dispatch = vi.fn();
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "5 GAS" }));
-
-    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "5");
-    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe(
-      "5",
-    );
-    expect(screen.getByRole("button", { name: "5 GAS" }).className).toContain(
-      "is-active",
-    );
-    expect(document.querySelector(".burn-league-ember-burst--active")).toBeTruthy();
-    expect(document.querySelectorAll(".burn-league-ember-burst__spark")).toHaveLength(8);
-  });
-
-  it("keeps the arena amount controls wired to the burn amount", () => {
-    const dispatch = vi.fn();
-    render(
-      <PlayArea t={t} state={state({ burnAmount: "5" })} dispatch={dispatch} />,
-    );
-
-    expect(screen.getByLabelText("Arena burn console")).toBeTruthy();
-    expect(document.querySelector(".burn-league-fuel-chamber")).toBeTruthy();
-    expect(document.querySelector(".burn-league-burn-trail")).toBeTruthy();
-    expect(document.querySelectorAll(".burn-league-burn-trail__flame").length).toBe(5);
-    expect(screen.getByText("Next burn")).toBeTruthy();
-    expect(screen.getByText("Fuel loaded")).toBeTruthy();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Increase burn amount" }),
-    );
-    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "6");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Decrease burn amount" }),
-    );
-    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "5");
-  });
-
-  it("resets the burn amount to the minimum safe entry", () => {
-    const dispatch = vi.fn();
-    render(
-      <PlayArea
-        t={t}
-        state={state({ burnAmount: "25" })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
-
-    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "1");
-    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe(
-      "1",
-    );
-  });
-
-  it("previews burn, settle, and credit withdrawal immediately", async () => {
-    let finishBurn: (() => void) | undefined;
-    const burnPromise = new Promise<void>((resolve) => {
-      finishBurn = resolve;
-    });
-    const burnDispatch = vi.fn((name: string) =>
-      name === "burn" ? burnPromise : Promise.resolve(),
-    );
-    const burnView = render(
-      <PlayArea t={t} state={state()} dispatch={burnDispatch} />,
-    );
-
-    const burnButton = screen.getByRole("button", { name: "Burn Now" });
-    fireEvent.click(burnButton);
-
-    await waitFor(() => {
-      const root = burnView.container.querySelector(
-        ".burn-league-play-area",
-      );
-      expect(burnDispatch).toHaveBeenCalledWith("burn", "1");
-      expect(root?.className).toContain("burn-league-play-area--burning");
-      expect(root?.getAttribute("aria-busy")).toBe("true");
-    });
-    const burningButton = screen.getByRole("button", { name: "Burning..." });
-    expect(burningButton.textContent).toContain("Burning...");
-    expect(
-      burnView.container.querySelector(".burn-league-cta-spinner"),
-    ).toBeTruthy();
-    fireEvent.click(burnButton);
-    expect(burnDispatch).toHaveBeenCalledTimes(1);
-    finishBurn?.();
-    burnView.unmount();
-
-    let finishSettle: (() => void) | undefined;
-    const settlePromise = new Promise<void>((resolve) => {
-      finishSettle = resolve;
-    });
-    const settleDispatch = vi.fn((name: string) =>
-      name === "settle" ? settlePromise : Promise.resolve(),
-    );
-    const settleView = render(
-      <PlayArea
-        t={t}
-        state={state({
-          seasonPhase: "ended",
-          needsSettle: true,
-          seasonStatusLabel: "Ended — awaiting settle",
-        })}
-        dispatch={settleDispatch}
-      />,
-    );
-
-    const settleButton = screen.getByRole("button", { name: "Settle season" });
-    fireEvent.click(settleButton);
-
-    await waitFor(() => {
-      const root = settleView.container.querySelector(
-        ".burn-league-play-area",
-      );
-      expect(settleDispatch).toHaveBeenCalledWith("settle");
-      expect(root?.className).toContain("burn-league-play-area--settling");
-      expect(
-        settleView.container
-          .querySelector(".burn-league-season")
-          ?.getAttribute("aria-busy"),
-      ).toBe("true");
-    });
-    fireEvent.click(settleButton);
-    expect(settleDispatch).toHaveBeenCalledTimes(1);
-    finishSettle?.();
-    settleView.unmount();
-
-    let finishWithdraw: (() => void) | undefined;
-    const withdrawPromise = new Promise<void>((resolve) => {
-      finishWithdraw = resolve;
-    });
-    const withdrawDispatch = vi.fn((name: string) =>
-      name === "withdrawCredit" ? withdrawPromise : Promise.resolve(),
-    );
-    const withdrawView = render(
-      <PlayArea
-        t={t}
-        state={state({
-          prepaidCredit: 0.2,
-          prepaidCreditDisplay: "0.20 GAS",
-        })}
-        dispatch={withdrawDispatch}
-      />,
-    );
-
-    const withdrawButton = screen.getByRole("button", {
-      name: "Withdraw credit",
-    });
-    fireEvent.click(withdrawButton);
-
-    await waitFor(() => {
-      const root = withdrawView.container.querySelector(
-        ".burn-league-play-area",
-      );
-      expect(withdrawDispatch).toHaveBeenCalledWith("withdrawCredit");
-      expect(root?.className).toContain("burn-league-play-area--recovering");
-      expect(
-        withdrawView.container.querySelector(
-          ".burn-league-recovery-card.is-withdrawing",
-        ),
-      ).toBeTruthy();
-    });
-    expect(withdrawButton.getAttribute("aria-busy")).toBe("true");
-    fireEvent.click(withdrawButton);
-    expect(withdrawDispatch).toHaveBeenCalledTimes(1);
-    finishWithdraw?.();
-  });
-
-  it("blocks out-of-range burns before wallet intent submission", () => {
-    const dispatch = vi.fn();
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.change(screen.getByLabelText("Amount"), {
-      target: { value: "1001" },
-    });
-
-    expect(
-      screen.getByText("Enter a burn amount from 1 to 1000 GAS."),
-    ).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Burn Now" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-  });
-
-  it("renders leaderboard entries with rank, address, and burned GAS", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          leaderboardPreview: [
-            {
-              rank: 1,
-              address: "NMockBurner111111111111111111111111",
-              burned: 12,
-            },
-          ],
-          leaderboardSize: 1,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByText("#1")).toBeTruthy();
-    // The burned amount is now rendered with consistent 2-decimal GAS
-    // formatting (formatNumber(burned, 2) + " GAS"), and the value + unit are
-    // split across text nodes inside the <strong>, so match on the element's
-    // normalized text content.
-    expect(
-      screen.getByText((_, element) => {
-        if (!element || element.tagName !== "STRONG") return false;
-        return element.textContent?.replace(/\s+/g, " ").trim() === "12.00 GAS";
-      }),
-    ).toBeTruthy();
-    expect(screen.queryByText("No leaderboard entries yet")).toBeNull();
-  });
-
-  it("exposes live arena motion states with reduced-motion fallbacks", () => {
+  it("renders the leaderboard inside the drawer", () => {
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          isBurning: true,
-          userIsLeader: true,
-          burnAmount: "10",
+          leaderboardPreview: [
+            { address: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa", burned: 12, rank: 1, isUser: true },
+            { address: "NOtherAddr0123456789", burned: 5, rank: 2 },
+          ],
         })}
         dispatch={vi.fn()}
       />,
     );
 
-    const rootClass = container.querySelector(
-      ".burn-league-play-area",
-    )?.className;
-    expect(rootClass).toContain("burn-league-play-area--live");
-    expect(rootClass).toContain("burn-league-play-area--armed");
-    expect(rootClass).toContain("burn-league-play-area--burning");
-    expect(rootClass).toContain("burn-league-play-area--leader");
+    // Open the drawer.
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.textContent).toContain("12.00 GAS");
+  });
 
+  it("shows prepaid-credit withdrawal inside the drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ prepaidCredit: 2.5 })} dispatch={dispatch} />,
+    );
+
+    // Withdraw is a secondary action (visible in the rail).
+    const withdrawBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("Withdraw credit"),
+    );
+    expect(withdrawBtn).toBeTruthy();
+    fireEvent.click(withdrawBtn!);
+    expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
+  });
+
+  it("celebrates a win when lastSettleResult arrives", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ lastSettleResult: { won: true, amount: "15.00 GAS", token: 12345 } })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const modal = container.querySelector(".burn-celebrate");
+    expect(modal).toBeTruthy();
+    expect(container.querySelector(".burn-celebrate__medal img")).toBeTruthy();
+    expect(container.querySelector(".burn-celebrate__icon")).toBeNull();
+    expect(container.textContent).toContain("You won!");
+    expect(container.textContent).toContain("15.00 GAS");
+    expect(container.textContent).not.toContain("🔥");
+  });
+
+  it("keeps motion backed by reduced-motion fallbacks", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
     const styles = fs.readFileSync(
-      `${process.cwd()}/../burn-league/src/PlayArea.scss`,
+      path.join(appsRoot(), "burn-league/src/PlayArea.scss"),
+      "utf8",
+    );
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
+  });
+
+  it("does not regress to CSS-drawn flame/cauldron art", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const styles = fs.readFileSync(
+      path.join(appsRoot(), "burn-league/src/PlayArea.scss"),
+      "utf8",
+    );
+    expect(styles).not.toContain(".burn-scene__flame");
+    expect(styles).not.toContain(".burn-scene__cauldron");
+    expect(styles).not.toContain(".burn-scene__ember");
+  });
+
+  it("keeps the arena background clean so controls and burn target own the foreground", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const styles = fs.readFileSync(
+      path.join(appsRoot(), "burn-league/src/PlayArea.scss"),
+      "utf8",
+    );
+    const tokens = fs.readFileSync(
+      path.join(appsRoot(), "shared/styles/v2/_tokens.scss"),
       "utf8",
     );
 
-    expect(styles).toContain("@keyframes burn-league-arena-drift");
-    expect(styles).toContain("@keyframes burn-league-stage-heat");
-    expect(styles).toContain("@keyframes burn-league-ember-burst-flight");
-    expect(styles).toContain("@keyframes burn-league-fuel-flow");
-    expect(styles).toContain("@keyframes burn-league-trail-flame");
-    expect(styles).toContain("@keyframes burn-league-trail-launch");
-    expect(styles).toContain("@keyframes burn-league-chamber-scan");
-    expect(styles).toContain("@keyframes burn-league-chamber-burn");
-    expect(styles).toContain("@keyframes burn-league-scoreboard-ready");
-    expect(styles).toContain("@keyframes burn-league-cta-ready");
-    expect(styles).toContain("@keyframes burn-league-cta-spin");
-    expect(styles).toContain("@keyframes burn-league-row-in");
-    expect(styles).toContain("@keyframes burn-league-action-sweep");
-    expect(styles).toContain(".burn-league-recovery-card.is-withdrawing");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /\.burn-league-play-area--burning \.burn-league-stake-stage[\s\S]*animation:\s*burn-league-stage-burn/,
-    );
-    expect(styles).toMatch(
-      /\.burn-league-play-area--armed \.burn-league-fuel-meter__fill[\s\S]*animation:\s*burn-league-fuel-flow/,
-    );
-    expect(styles).toMatch(
-      /\.burn-league-play-area--armed \.burn-league-burn-trail__flame[\s\S]*animation:\s*burn-league-trail-flame/,
-    );
-    expect(styles).toMatch(
-      /\.burn-league-play-area--armed \.burn-league-fuel-chamber::after[\s\S]*animation:\s*burn-league-chamber-scan/,
-    );
-    expect(styles).toMatch(
-      /\.burn-league-play-area--settling \.burn-league-season::after[\s\S]*animation:\s*burn-league-action-sweep/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-cta \.neo-btn--primary[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-cta-spinner[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-burn-trail__flame[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-ember-burst__spark[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-season::after[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.burn-league-recovery-card\.is-withdrawing::after[\s\S]*animation:\s*none/,
-    );
+    expect(tokens).toMatch(/--mx2-scene-bg:\s*#ffffff/);
+    expect(styles).toMatch(/burn-scene\s*\{[\s\S]*background:\s*#fff8ed/);
+    expect(styles).toMatch(/burn-scene__arena-image\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/burn-league-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/burn-scene__arena-image\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/burn-scene__shade\s*\{[\s\S]*linear-gradient/);
+    expect(styles).not.toMatch(/burn-scene__wash|var\(--mx2-scene-art-opacity/);
+    expect(styles).toMatch(/burn-scene__readout[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/burn-scene__brazier\s*\{[\s\S]*position:\s*absolute/);
+    expect(styles).toMatch(/burn-scene__brazier\s*\{[\s\S]*min-height:\s*286px/);
+    expect(styles).not.toMatch(/burn-scene__brazier-art\s*\{/);
+    expect(styles).toMatch(/burn-scene__brazier-scrim[\s\S]*display:\s*block/);
+    expect(styles).toMatch(/burn-scene__torch-medal[\s\S]*width:\s*64px/);
+    expect(styles).toMatch(/burn-celebrate__medal\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/burn-celebrate__medal img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/burn-celebrate__medal img\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/burn-celebrate__medal img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/burn-celebrate__medal::after\s*\{[\s\S]*content:\s*none/);
+    expect(styles).not.toMatch(/burn-celebrate__medal img\s*\{[^}]*object-fit:\s*cover/);
+    expect(styles).not.toMatch(/burn-celebrate__medal img\s*\{[^}]*filter:\s*saturate/);
+    expect(styles).not.toMatch(/burn-celebrate__medal::after\s*\{[^}]*rgba\(17,\s*24,\s*39/);
+    expect(styles).toMatch(/burn-scene__meter[\s\S]*position:\s*absolute/);
+    expect(styles).toMatch(/burn-controls__dock[\s\S]*grid-template-columns:\s*minmax\(148px,\s*0\.58fr\)/);
+    expect(styles).toMatch(/burn-preset[\s\S]*min-height:\s*66px/);
+    expect(styles).not.toMatch(/burn-preset[\s\S]*min-height:\s*62px/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).toMatch(/burn-scene__stat,[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.94\)/);
+    expect(styles).toMatch(/burn-controls__stepper[\s\S]*background:\s*#fff8ed/);
+    expect(styles).toMatch(/burn-league-play-area\.mx2\.mx2-cat-game[\s\S]*burn-scene__brazier-copy > span[\s\S]*color:\s*#b45309/);
+    expect(styles).toMatch(/burn-scene__brazier-scrim\s*\{[\s\S]*bottom:\s*20px/);
+    expect(styles).toMatch(/burn-scene__brazier-scrim\s*\{[\s\S]*height:\s*126px/);
+    expect(styles).toMatch(/burn-league-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/burn-league-play-area \.mx2-action-rail__row\s*\{[\s\S]*justify-content:\s*center/);
+    expect(styles).toMatch(/burn-league-play-area \.mx2-action-rail__drawer-toggle\s*\{[\s\S]*min-width:\s*176px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*burn-scene\s*\{[\s\S]*min-height:\s*540px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*burn-scene__hud\s*\{[\s\S]*position:\s*absolute/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*burn-scene__brazier\s*\{[\s\S]*min-height:\s*236px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*burn-scene__status\s*\{[\s\S]*-webkit-line-clamp:\s*2/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*burn-controls__presets\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*burn-league-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*display:\s*none/);
   });
 });

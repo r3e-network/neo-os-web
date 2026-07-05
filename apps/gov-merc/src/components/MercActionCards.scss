@@ -23,7 +23,7 @@
   &--bid {
     border-color: rgba(15, 177, 116, 0.24);
     background:
-      linear-gradient(150deg, rgba(228, 248, 240, 0.92), rgba(255, 255, 255, 0.98)),
+      linear-gradient(150deg, rgba(236, 235, 253, 0.92), rgba(255, 255, 255, 0.98)),
       var(--ns-surface, #ffffff);
   }
 
@@ -53,7 +53,7 @@
     font-size: 18px;
     font-weight: 850;
     line-height: 1.12;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 }
 
@@ -66,7 +66,7 @@
   font-weight: 850;
   line-height: 1.35;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   white-space: nowrap;
 
   &--neo {
@@ -100,7 +100,7 @@
     font-weight: 800;
     line-height: 1.2;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
   }
 
   strong {
@@ -164,7 +164,7 @@
     font-size: 14px;
     font-weight: 850;
     line-height: 1.2;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   p {

@@ -135,6 +135,12 @@ const appMessages = {
   recipeMode: { en: "Recipe Mode", zh: "配方模式" },
   recipeModeValue: { en: "Price / schedule / callback", zh: "价格 / 调度 / 回调" },
   recipePreview: { en: "Recipe preview", zh: "配方预览" },
+  flowStateDraft: { en: "Draft route", zh: "草稿路径" },
+  flowStateBuilding: { en: "Building route", zh: "正在生成路径" },
+  flowStateRegistering: { en: "Registering trigger", zh: "正在注册触发器" },
+  flowStateRefreshing: { en: "Syncing status", zh: "正在同步状态" },
+  flowStateEnabled: { en: "Live automation", zh: "自动化运行中" },
+  flowStateDisabled: { en: "Paused automation", zh: "自动化已暂停" },
   recipePreviewLine: {
     en: "Watch {asset} around {price}, then run the selected action.",
     zh: "围绕 {price} 监听 {asset}，然后执行所选动作。",

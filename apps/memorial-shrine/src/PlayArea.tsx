@@ -1,522 +1,446 @@
 /**
- * PlayArea.tsx — Memorial Shrine
+ * PlayArea.tsx -- Memorial Shrine.
  *
- * Full interactive memorial console: garden hero, obituary rail,
- * memorial wall, creation studio, and tribute station.
+ * Keeps the primary surface as a memorial garden and tribute altar. The chain
+ * actions stay unchanged; long memorial metadata fields live in the drawer.
  */
-
 import { useState } from "react";
 import {
   Apple,
-  CalendarDays,
   Flame,
   Flower2,
-  Heart,
   Image as ImageIcon,
-  Plus,
+  PenLine,
   ScrollText,
-  Share2,
-  ShieldCheck,
   Sprout,
   Utensils,
   Wine,
-  X,
   type LucideIcon,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import TombstoneCard, { resolvePhotoSrc } from "./pages/index/components/TombstoneCard";
+import { OpenUiPanel, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
-
-/** Offering tallies in on-chain order, paired with their i18n label keys. */
-const OFFERING_FIELDS: ReadonlyArray<{ key: string; labelKey: string }> = [
-  { key: "incense", labelKey: "incense" },
-  { key: "candle", labelKey: "candle" },
-  { key: "flower", labelKey: "flower" },
-  { key: "fruit", labelKey: "fruit" },
-  { key: "wine", labelKey: "wine" },
-  { key: "feast", labelKey: "feast" },
-];
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext?: { network?: "mainnet" | "testnet" | null };
+  launchContext?: { network?: string | null };
+}
+
+interface Memorial {
+  id: number;
+  name: string;
+  birthYear?: number;
+  deathYear?: number;
+  relationship?: string;
+  biography?: string;
+  obituary?: string;
+  photoHash?: string;
+  offerings?: Record<string, number>;
+}
+
+type FormState = {
+  name: string;
+  relationship: string;
+  birthYear: string;
+  deathYear: string;
+  biography: string;
+  obituary: string;
+  photoHash: string;
+};
+
+const GARDEN_IMAGE = "memorial-garden.webp";
+const ALTAR_IMAGE = "shrine-scene-art.webp";
+
+const OFFERINGS: Array<{ type: number; key: string; cost: string; Icon: LucideIcon }> = [
+  { type: 1, key: "incense", cost: "0.01", Icon: Sprout },
+  { type: 2, key: "candle", cost: "0.02", Icon: Flame },
+  { type: 3, key: "flower", cost: "0.03", Icon: Flower2 },
+  { type: 4, key: "fruit", cost: "0.05", Icon: Apple },
+  { type: 5, key: "wine", cost: "0.10", Icon: Wine },
+  { type: 6, key: "feast", cost: "0.50", Icon: Utensils },
+];
+
+const MEMORY_PRESETS: Array<{
+  key: string;
+  labelKey: string;
+  relationKey: string;
+  bioKey: string;
+  Icon: LucideIcon;
+}> = [
+  {
+    key: "family",
+    labelKey: "memoryPresetFamily",
+    relationKey: "memoryPresetFamilyRelation",
+    bioKey: "memoryPresetFamilyBio",
+    Icon: Flower2,
+  },
+  {
+    key: "mentor",
+    labelKey: "memoryPresetMentor",
+    relationKey: "memoryPresetMentorRelation",
+    bioKey: "memoryPresetMentorBio",
+    Icon: ScrollText,
+  },
+  {
+    key: "friend",
+    labelKey: "memoryPresetFriend",
+    relationKey: "memoryPresetFriendRelation",
+    bioKey: "memoryPresetFriendBio",
+    Icon: Sprout,
+  },
+];
+
+function resolvePhotoSrc(photoHash?: string): string | null {
+  const raw = String(photoHash ?? "").trim();
+  if (!raw) return null;
+  if (/^https:\/\//i.test(raw)) return raw;
+  const cid = raw.replace(/^ipfs:\/\//i, "").replace(/^\/?ipfs\//i, "");
+  if (/^[A-Za-z0-9]{46,}$/.test(cid) || /^bafy[A-Za-z0-9]+$/i.test(cid)) {
+    return `https://ipfs.io/ipfs/${cid}`;
+  }
+  return null;
+}
+
+function yearsFor(memorial: Memorial | null, fallback: string) {
+  if (!memorial) return fallback;
+  if (memorial.birthYear && memorial.deathYear) return `${memorial.birthYear} - ${memorial.deathYear}`;
+  if (memorial.birthYear) return String(memorial.birthYear);
+  if (memorial.deathYear) return String(memorial.deathYear);
+  return fallback;
+}
+
+function totalOfferings(memorial: Memorial) {
+  return Object.values(memorial.offerings ?? {}).reduce(
+    (total, value) => total + Number(value || 0),
+    0,
+  );
 }
 
 export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { num, bool } = useStateBindings(state);
-
-  const memorials = (state.memorials?.get() ?? []) as Array<{ id: number; name?: string; [key: string]: unknown }>;
-  const visitedMemorials = (state.visitedMemorials?.get() ?? []) as Array<{ id: number; [key: string]: unknown }>;
-  const recentObituaries = (state.recentObituaries?.get() ?? []) as Array<{ id: number; name: string; text: string }>;
-  const selectedMemorial = state.selectedMemorial?.get() as {
-    id: number;
-    name?: string;
-    photoHash?: string;
-    offerings?: Record<string, number>;
-    [key: string]: unknown;
-  } | null;
-  const shareStatus = (state.shareStatus?.get() ?? null) as string | null;
-  const lastTx = state.lastTx?.get() as { txid?: string } | null;
   const memorialCount = num("memorialCount");
   const tributeCount = num("tributeCount");
   const isSubmitting = bool("isSubmitting");
   const isPaying = bool("isPaying");
-
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formName, setFormName] = useState("");
-  const [formPhotoHash, setFormPhotoHash] = useState("");
-  const [formRelationship, setFormRelationship] = useState("");
-  const [formBirthYear, setFormBirthYear] = useState("");
-  const [formDeathYear, setFormDeathYear] = useState("");
-  const [formBiography, setFormBiography] = useState("");
-  const [formObituary, setFormObituary] = useState("");
-
-  const [tributeMessage, setTributeMessage] = useState("");
-  const [tributeOfferingType, setTributeOfferingType] = useState("1");
-  const [tributeReceiptId, setTributeReceiptId] = useState("");
+  const memorials = (state.memorials?.get() ?? []) as Memorial[];
+  const recentObituaries = (state.recentObituaries?.get() ?? []) as Array<{ id: number; name: string; text: string }>;
+  const myTributes = (state.myTributes?.get() ?? []) as Array<{ tributeId: number; memorialId: number; offeringName: string; message: string; amountGas: string }>;
+  const selectedMemorial = (state.selectedMemorial?.get() ?? null) as Memorial | null;
   const isMainnet = launchContext?.network === "mainnet";
 
-  const defaultOffering = { value: "1", costGas: "0.01 GAS", label: t("incense") };
-  const offeringOptions = [
-    defaultOffering,
-    { value: "2", costGas: "0.02 GAS", label: t("candle") },
-    { value: "3", costGas: "0.03 GAS", label: t("flower") },
-    { value: "4", costGas: "0.05 GAS", label: t("fruit") },
-    { value: "5", costGas: "0.10 GAS", label: t("wine") },
-    { value: "6", costGas: "0.50 GAS", label: t("feast") },
-  ];
-  const selectedOffering =
-    offeringOptions.find((item) => item.value === tributeOfferingType) ?? defaultOffering;
-  const offeringVisuals: Record<string, LucideIcon> = {
-    "1": Sprout,
-    "2": Flame,
-    "3": Flower2,
-    "4": Apple,
-    "5": Wine,
-    "6": Utensils,
-  };
-  const currentYear = new Date().getFullYear();
-  const SelectedOfferingIcon = offeringVisuals[tributeOfferingType] ?? Sprout;
-  const birthYearRaw = formBirthYear.trim();
-  const deathYearRaw = formDeathYear.trim();
-  const parsedDeathYear = parseInt(formDeathYear, 10);
-  const parsedBirthYear = parseInt(formBirthYear, 10);
-  const deathYearDigits = /^\d+$/.test(deathYearRaw) && parsedDeathYear > 0;
-  const birthYearDigits = birthYearRaw === "" || (/^\d+$/.test(birthYearRaw) && parsedBirthYear > 0);
-  const deathYearValid = deathYearDigits && parsedDeathYear <= currentYear;
-  const birthYearValid =
-    birthYearRaw === "" ||
-    (birthYearDigits && parsedBirthYear <= currentYear);
-  const yearOrderValid =
-    birthYearRaw === "" || !deathYearDigits || parsedBirthYear <= parsedDeathYear;
-  // Inline feedback: only surface an error once the user has typed something.
-  const deathYearError = deathYearRaw === ""
-    ? ""
-    : !deathYearDigits
-      ? t("yearInvalid")
-      : parsedDeathYear > currentYear
-        ? t("yearFuture")
-        : "";
-  const birthYearError = birthYearRaw === ""
-    ? ""
-    : !/^\d+$/.test(birthYearRaw) || parsedBirthYear <= 0
-      ? t("yearInvalid")
-      : parsedBirthYear > currentYear
-        ? t("yearFuture")
-        : !yearOrderValid
-          ? t("yearOrder")
-          : "";
-  const canCreateMemorial =
-    formName.trim().length > 0 && deathYearValid && birthYearValid && yearOrderValid;
-  const selectedMemorialName = selectedMemorial?.name ? String(selectedMemorial.name) : t("unnamed");
-  const selectedMemorialYears =
-    selectedMemorial?.birthYear && selectedMemorial?.deathYear
-      ? `${String(selectedMemorial.birthYear)}-${String(selectedMemorial.deathYear)}`
-      : "";
-  const selectedMemorialBio = selectedMemorial?.biography ? String(selectedMemorial.biography) : "";
-  const selectedPhotoSrc = resolvePhotoSrc(selectedMemorial?.photoHash);
-  const selectedOfferings = selectedMemorial?.offerings ?? {};
-  const selectedPaidOfferings = OFFERING_FIELDS.filter(
-    (field) => Number(selectedOfferings[field.key]) > 0,
-  );
-  const previewPhotoSrc = resolvePhotoSrc(formPhotoHash);
-  const previewName = formName.trim() || t("previewEmptyName");
-  const previewRelation = formRelationship.trim() || t("previewRelationEmpty");
-  const previewYears =
-    birthYearRaw || deathYearRaw
-      ? `${birthYearRaw || "----"}-${deathYearRaw || "----"}`
-      : t("previewDatesEmpty");
-  const previewBio = formBiography.trim() || t("previewBioEmpty");
-  const previewObituary = formObituary.trim() || t("previewObituaryEmpty");
-  const hasIdentityDraft = Boolean(formName.trim() || formRelationship.trim() || formPhotoHash.trim());
-  const hasStoryDraft = Boolean(formBiography.trim() || formObituary.trim());
-  const studioState = isSubmitting
-    ? "publishing"
-    : canCreateMemorial
-      ? "ready"
-      : hasIdentityDraft || hasStoryDraft || birthYearRaw || deathYearRaw
-        ? "draft"
-        : "idle";
-  const canPayTribute = !isMainnet || tributeReceiptId.trim().length > 0;
+  const [tab, setTab] = useState<"memorials" | "create">("memorials");
+  const [form, setForm] = useState<FormState>({
+    name: "",
+    relationship: "",
+    birthYear: "",
+    deathYear: "",
+    biography: "",
+    obituary: "",
+    photoHash: "",
+  });
+  const [tributeOffering, setTributeOffering] = useState(3);
+  const [tributeMessage, setTributeMessage] = useState("");
+  const [tributeReceiptId, setTributeReceiptId] = useState("");
+  const [activeMemoryPreset, setActiveMemoryPreset] = useState("");
 
-  const handleCreate = async () => {
-    if (!canCreateMemorial) return;
-    await dispatch("createMemorial", {
-      name: formName,
-      photoHash: formPhotoHash,
-      relationship: formRelationship,
-      birthYear: parseInt(formBirthYear, 10) || 0,
-      deathYear: parseInt(formDeathYear, 10) || 0,
-      biography: formBiography,
-      obituary: formObituary,
-    });
-    setShowCreateForm(false);
-    setFormName(""); setFormPhotoHash(""); setFormRelationship("");
-    setFormBirthYear(""); setFormDeathYear(""); setFormBiography(""); setFormObituary("");
+  const hasMemorials = memorials.length > 0 || Boolean(selectedMemorial);
+  const mode: "tribute" | "create" = tab === "create" || !hasMemorials ? "create" : "tribute";
+  const activeMemorial = mode === "tribute" ? selectedMemorial ?? memorials[0] ?? null : null;
+  const activeOffering = OFFERINGS.find((offering) => offering.type === tributeOffering) ?? OFFERINGS[2];
+  const activePhoto = resolvePhotoSrc(activeMemorial?.photoHash);
+  const createPhoto = resolvePhotoSrc(form.photoHash);
+  const memorialRail = [...(activeMemorial ? [activeMemorial] : []), ...memorials]
+    .filter((memorial, index, source) => source.findIndex((item) => item.id === memorial.id) === index)
+    .slice(0, 6);
+
+  const updateForm = (key: keyof FormState, value: string) => {
+    if (key === "relationship" || key === "biography") setActiveMemoryPreset("");
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+  const applyMemoryPreset = (preset: (typeof MEMORY_PRESETS)[number]) => {
+    setActiveMemoryPreset(preset.key);
+    setForm((current) => ({
+      ...current,
+      relationship: t(preset.relationKey),
+      biography: t(preset.bioKey),
+    }));
   };
 
-  const handlePayTribute = async (memorialId: number) => {
-    if (!canPayTribute) return;
-    await dispatch("payTribute", memorialId, parseInt(tributeOfferingType, 10), tributeMessage, tributeReceiptId);
-    setTributeMessage("");
-    setTributeReceiptId("");
+  const handleCreate = () => {
+    if (!form.name.trim()) return;
+    void dispatch("createMemorial", form);
   };
 
-  return (
-    <div className="memorial-play-area">
-      <div className="shrine-hero">
-        <img className="shrine-hero__image" src="./memorial-garden.jpg" alt={t("gardenAlt")} />
-        <div className="shrine-hero__shade" aria-hidden="true" />
-        <div className="shrine-hero__content">
-          <span className="shrine-hero__eyebrow">{t("heroKicker")}</span>
-          <h2 className="shrine-hero__title">{t("title")}</h2>
-          <p className="shrine-hero__subtitle">{t("subtitle")}</p>
-          <div className="shrine-hero__signals" aria-label={t("chainPermanence")}>
-            <span>
-              <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
-              {t("chainPermanence")}
-            </span>
-            <span>{memorialCount} {t("memorials")}</span>
-            <span>{tributeCount} {t("myTributes")}</span>
-            <span>{visitedMemorials.length} {t("visited")}</span>
-          </div>
-          <NeoButton
-            variant="primary"
-            className="shrine-hero__cta"
-            onClick={() => setShowCreateForm((current) => !current)}
-            aria-label={showCreateForm ? t("cancel") : t("createMemorial")}
-          >
-            {showCreateForm ? <X size={16} strokeWidth={2.2} aria-hidden="true" /> : <Plus size={16} strokeWidth={2.2} aria-hidden="true" />}
-            {showCreateForm ? t("cancel") : t("createMemorial")}
-          </NeoButton>
+  const handlePayTribute = () => {
+    if (!activeMemorial) return;
+    void dispatch("payTribute", activeMemorial.id, tributeOffering, tributeMessage, tributeReceiptId);
+  };
+
+  const openMemorial = (id: number) => {
+    setTab("memorials");
+    void dispatch("openMemorial", id);
+  };
+
+  const canCreate = form.name.trim() !== "";
+  const canPay = Boolean(activeMemorial) && (!isMainnet || tributeReceiptId.trim() !== "");
+
+  const createScene = (
+    <div className="shrine-create-card" data-ready={canCreate ? "true" : "false"}>
+      <div className="shrine-create-card__media">
+        <img src={createPhoto ?? ALTAR_IMAGE} alt="" aria-hidden="true" loading="eager" decoding="async" />
+        <span className="shrine-create-card__media-label">
+          <ScrollText size={14} /> {t("chainPermanence")}
+        </span>
+      </div>
+      <div className="shrine-create-card__copy">
+        <span><PenLine size={14} /> {t("previewLabel")}</span>
+        <div className="shrine-inscription-panel">
+          <small>{form.relationship.trim() || t("previewRelationEmpty")}</small>
+          <strong>{form.name.trim() || t("previewEmptyName")}</strong>
+          <p>{form.biography.trim() || t("previewBioEmpty")}</p>
+          <label className="shrine-name-plaque">
+            <span>{t("engravingLabel")}</span>
+            <input
+              value={form.name}
+              onChange={(event) => updateForm("name", event.target.value)}
+              placeholder={t("placeholderName")}
+              disabled={isSubmitting}
+            />
+          </label>
         </div>
-        {lastTx?.txid && (
-          <div className="chain-receipt" aria-live="polite">
-            <span>{t("lastTransaction")}</span>
-            <strong>{lastTx.txid}</strong>
+        <div className="shrine-memory-presets" aria-label={t("memoryPresetLabel")}>
+          {MEMORY_PRESETS.map(({ Icon, ...preset }) => (
+            <button
+              key={preset.key}
+              type="button"
+              className={[
+                "shrine-memory-preset",
+                activeMemoryPreset === preset.key ? "shrine-memory-preset--active" : null,
+              ].filter(Boolean).join(" ")}
+              onClick={() => applyMemoryPreset({ ...preset, Icon })}
+              disabled={isSubmitting}
+            >
+              <Icon size={16} aria-hidden="true" />
+              <span>{t(preset.labelKey)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const tributeScene = activeMemorial ? (
+    <div className="shrine-tribute-card" data-state={isPaying ? "paying" : "ready"}>
+      <div className="shrine-tribute-card__portrait">
+        <img src={activePhoto ?? ALTAR_IMAGE} alt="" aria-hidden="true" loading="eager" decoding="async" />
+      </div>
+      <div className="shrine-tribute-card__body">
+        <span>{t("foreverRemember")}</span>
+        <strong>{activeMemorial.name}</strong>
+        <small>{yearsFor(activeMemorial, t("previewDatesEmpty"))}</small>
+        <p>{activeMemorial.biography?.trim() || activeMemorial.relationship?.trim() || t("tributeStationDesc")}</p>
+      </div>
+      <div className="shrine-offering-dock" role="radiogroup" aria-label={t("selectOffering")}>
+        {OFFERINGS.map(({ type, key, cost, Icon }) => {
+          const selected = tributeOffering === type;
+          return (
+            <button
+              key={type}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={`shrine-offering${selected ? " shrine-offering--active" : ""}`}
+              onClick={() => setTributeOffering(type)}
+              disabled={isPaying}
+            >
+              <span className="shrine-offering__icon" aria-hidden="true"><Icon size={19} /></span>
+              <span className="shrine-offering__label">{t(key)}</span>
+              <span className="shrine-offering__cost">{cost} GAS</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+  const scene = (
+    <div className="shrine-workbench" data-mode={mode} data-state={isPaying ? "paying" : "idle"}>
+      <div className="shrine-garden-panel" aria-hidden={mode === "create" ? "true" : undefined}>
+        <img src={GARDEN_IMAGE} alt={t("gardenAlt")} loading="eager" decoding="async" />
+        <div className="shrine-garden-panel__caption">
+          <span><ScrollText size={14} /> {t("chainPermanence")}</span>
+          <strong>{mode === "create" ? t("memoryStudio") : activeOffering ? t(activeOffering.key) : t("payTribute")}</strong>
+          <small>{mode === "create" ? t("createDesc") : t("offeringDisclosure")}</small>
+        </div>
+        {mode === "tribute" && memorialRail.length > 1 && (
+          <div className="shrine-memorial-rail" aria-label={t("memorialRailLabel")}>
+            {memorialRail.map((memorial) => {
+              const selected = activeMemorial?.id === memorial.id;
+              const offeringsCount = totalOfferings(memorial);
+              return (
+                <button
+                  key={memorial.id}
+                  type="button"
+                  className={`shrine-memorial-stone${selected ? " shrine-memorial-stone--active" : ""}`}
+                  aria-pressed={selected}
+                  onClick={() => openMemorial(memorial.id)}
+                >
+                  <span className="shrine-memorial-stone__name">{memorial.name || t("unnamed")}</span>
+                  <span className="shrine-memorial-stone__years">{yearsFor(memorial, t("previewDatesEmpty"))}</span>
+                  <span className="shrine-memorial-stone__meta">
+                    {memorial.relationship?.trim() || memorial.biography?.trim() || t("foreverRemember")}
+                  </span>
+                  {offeringsCount > 0 && (
+                    <span className="shrine-memorial-stone__offerings">
+                      {offeringsCount} {t("offeringsReceived").toLowerCase()}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
+      <div className="shrine-workbench__focus">
+        {mode === "create" ? createScene : tributeScene}
+      </div>
+    </div>
+  );
 
-      {recentObituaries.length > 0 && (
-        <div className="obituary-banner">
-          <div className="banner-title">
-            <ScrollText size={16} strokeWidth={2} aria-hidden="true" />
-            <span>{t("obituaries")}</span>
+  const drawer = (
+    <div className="shrine-drawer-shell">
+      {mode === "create" ? (
+        <OpenUiPanel
+          className="shrine-drawer-panel shrine-drawer-panel--studio"
+          icon={<PenLine size={16} />}
+          title={t("createTitle")}
+          subtitle={t("createDesc")}
+          titleId="shrine-drawer-studio"
+        >
+          <div className="shrine-studio-grid">
+            <OpenUiTextField className="shrine-drawer-field" label={t("labelRelation")} value={form.relationship} onChange={(event) => updateForm("relationship", event.target.value)} placeholder={t("placeholderRelation")} disabled={isSubmitting} />
+            <OpenUiTextField className="shrine-drawer-field" label={t("labelPhoto")} value={form.photoHash} onChange={(event) => updateForm("photoHash", event.target.value)} placeholder={t("photoHashPlaceholder")} disabled={isSubmitting} mono />
+            <OpenUiTextField className="shrine-drawer-field" label={t("labelBirth")} value={form.birthYear} onChange={(event) => updateForm("birthYear", event.target.value)} placeholder={t("placeholderBirthYear")} inputMode="numeric" pattern="[0-9]*" disabled={isSubmitting} />
+            <OpenUiTextField className="shrine-drawer-field" label={t("labelDeath")} value={form.deathYear} onChange={(event) => updateForm("deathYear", event.target.value)} placeholder={t("placeholderDeathYear")} inputMode="numeric" pattern="[0-9]*" disabled={isSubmitting} />
+            <OpenUiTextArea className="shrine-drawer-field shrine-drawer-field--wide mx2-open-field--compact" label={t("labelBio")} value={form.biography} onChange={(event) => updateForm("biography", event.target.value)} placeholder={t("placeholderBio")} disabled={isSubmitting} rows={3} />
+            <OpenUiTextArea className="shrine-drawer-field shrine-drawer-field--wide mx2-open-field--compact" label={t("labelObituary")} value={form.obituary} onChange={(event) => updateForm("obituary", event.target.value)} placeholder={t("placeholderObituary")} disabled={isSubmitting} rows={3} />
           </div>
-          <div className="banner-scroll">
-            {recentObituaries.map((ob) => (
-              <button key={ob.id} type="button" className="obituary-item" aria-label={ob.name}
-                onClick={() => dispatch("openMemorial", ob.id)}>
-                <span className="name">{ob.name}</span>
-                <span className="text">{ob.text}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedMemorial && (
-        <NeoCard variant="erobo" className="detail-card memorial-focus">
-          <div className="detail-header">
-            <div className="detail-portrait" aria-hidden="true">
-              {selectedPhotoSrc ? (
-                <img
-                  className="detail-photo"
-                  src={selectedPhotoSrc}
-                  alt=""
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-              ) : (
-                <Heart size={25} strokeWidth={1.9} />
-              )}
-            </div>
-            <div className="detail-identity">
-              <span className="detail-kicker">{t("foreverRemember")}</span>
-              <span className="detail-name">{selectedMemorialName}</span>
-              {selectedMemorialYears && (
-                <span className="detail-years">
-                  <CalendarDays size={14} strokeWidth={2} aria-hidden="true" />
-                  {selectedMemorialYears}
-                </span>
-              )}
-            </div>
-            <div className="detail-actions">
-              <NeoButton
-                variant="ghost"
-                className="detail-action"
-                onClick={() => dispatch("shareMemorial", selectedMemorial.id)}
-                aria-label={t("shareMemorial")}
-              >
-                <Share2 size={15} strokeWidth={2.2} aria-hidden="true" />
-                {t("share")}
-              </NeoButton>
-              <NeoButton
-                variant="ghost"
-                className="detail-action"
-                onClick={() => dispatch("closeMemorial")}
-                aria-label={t("close")}
-              >
-                <X size={15} strokeWidth={2.2} aria-hidden="true" />
-                {t("close")}
-              </NeoButton>
-            </div>
-          </div>
-          {shareStatus && (
-            <p className="detail-share-status" aria-live="polite">{shareStatus}</p>
-          )}
-          {selectedMemorialBio && (
-            <p className="detail-bio">{selectedMemorialBio}</p>
-          )}
-          {selectedPaidOfferings.length > 0 && (
-            <div className="detail-offerings">
-              <span className="detail-offerings__title">{t("offeringsReceived")}</span>
-              <div className="detail-offerings__tallies">
-                {selectedPaidOfferings.map((field) => (
-                  <span key={field.key} className="detail-offering-tally">
-                    <span className="detail-offering-tally__label">{t(field.labelKey)}</span>
-                    <span className="detail-offering-tally__count">{Number(selectedOfferings[field.key])}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="tribute-station">
-            <div className={`tribute-altar tribute-altar--${tributeOfferingType}${isPaying ? " is-paying" : ""}`}>
-              <div className="tribute-altar__garden" aria-hidden="true">
-                <img src="./memorial-garden.jpg" alt="" loading="lazy" decoding="async" />
-              </div>
-              <span className="tribute-altar__flame" aria-hidden="true">
-                <SelectedOfferingIcon size={24} strokeWidth={1.9} />
-              </span>
-              <div className="tribute-altar__copy">
-                <small>{t("payTribute")}</small>
-                <strong>{selectedOffering.label}</strong>
-                <span>{selectedMemorialName} · {selectedOffering.costGas}</span>
-              </div>
-            </div>
-            <div className="tribute-station__head">
-              <div>
-                <span className="tribute-title">{t("payTribute")}</span>
-                <p>{t("tributeStationDesc")}</p>
-              </div>
-              <div className="offering-cost-card" aria-label={t("offeringCost")}>
-                <span>{t("offeringCost")}</span>
-                <strong>{selectedOffering.costGas}</strong>
-              </div>
-            </div>
-            <NeoInput
-              value={tributeMessage}
-              label={t("tributeMessage")}
-              placeholder={t("tributeMessagePlaceholder")}
-              className="tribute-message-input"
-              onChange={setTributeMessage}
-            />
-            <div className="offering-tray" role="radiogroup" aria-label={t("selectOffering")}>
-              {offeringOptions.map((option) => {
-                const Icon = offeringVisuals[option.value] ?? Sprout;
-                const isSelected = option.value === tributeOfferingType;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`offering-option${isSelected ? " is-selected" : ""}`}
-                    role="radio"
-                    aria-checked={isSelected}
-                    onClick={() => setTributeOfferingType(option.value)}
-                  >
-                    <span className="offering-option__icon" aria-hidden="true">
-                      <Icon size={17} strokeWidth={2} />
-                    </span>
-                    <span className="offering-option__label">{option.label}</span>
-                    <span className="offering-option__cost">{option.costGas}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="tribute-disclosure" role="note">{t("offeringDisclosure")}</p>
-            {isMainnet && (
-              <>
-                <p className="tribute-mainnet-note" role="note">{t("mainnetTributeNote")}</p>
-                <NeoInput
-                  value={tributeReceiptId}
-                  label={t("receiptId")}
-                  placeholder={t("receiptIdPlaceholder")}
-                  onChange={setTributeReceiptId}
-                />
-              </>
-            )}
-            <NeoButton
-              variant="primary"
-              loading={isPaying}
-              disabled={!canPayTribute}
-              className="tribute-submit"
-              onClick={() => handlePayTribute(selectedMemorial.id)}
-              aria-label={t("payTribute")}
-            >
-              <Heart size={16} strokeWidth={2.2} aria-hidden="true" />
-              {t("payTribute")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      )}
-
-      {showCreateForm && (
-        <section className={`memorial-studio memorial-studio--${studioState}`} aria-label={t("memoryStudio")}>
-          <div className="create-form-panel">
-            <div className="create-form__head">
-              <span>{t("memoryStudio")}</span>
-              <p>{t("createDesc")}</p>
-            </div>
-            <div className="studio-step">
-              <span className="studio-step__index">01</span>
-              <span>{t("studioStepIdentity")}</span>
-            </div>
-            <div className="field-grid">
-              <NeoInput value={formName} label={t("labelName")} placeholder={t("placeholderName")} onChange={setFormName} />
-              <NeoInput value={formRelationship} label={t("labelRelation")} placeholder={t("placeholderRelation")} onChange={setFormRelationship} />
-              <NeoInput value={formPhotoHash} label={t("labelPhoto")} placeholder={t("photoHashPlaceholder")} hint={t("photoUrlHelper")} onChange={setFormPhotoHash} />
-              <div className="year-row">
-                <NeoInput value={formBirthYear} label={t("labelBirth")} placeholder={t("placeholderBirthYear")} onChange={setFormBirthYear} />
-                <NeoInput value={formDeathYear} label={t("labelDeath")} placeholder={t("placeholderDeathYear")} onChange={setFormDeathYear} />
-              </div>
-            </div>
-            {(birthYearError || deathYearError) && (
-              <p className="field-error" role="alert">
-                {deathYearError || birthYearError}
-              </p>
-            )}
-            <div className="studio-mobile-publish">
-              <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial")}>
-                <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
-                {t("createMemorial")}
-              </NeoButton>
-              <span>{t("studioStepPublish")}</span>
-            </div>
-            <div className="studio-step">
-              <span className="studio-step__index">02</span>
-              <span>{t("studioStepStory")}</span>
-            </div>
-            <div className="story-grid">
-              <NeoInput value={formBiography} type="textarea" label={t("labelBio")} placeholder={t("placeholderBio")} onChange={setFormBiography} />
-              <NeoInput value={formObituary} type="textarea" label={t("labelObituary")} placeholder={t("placeholderObituary")} onChange={setFormObituary} />
-            </div>
-            <div className="studio-publish">
-              <div className="studio-step studio-step--publish">
-                <span className="studio-step__index">03</span>
-                <span>{t("studioStepPublish")}</span>
-              </div>
-              <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial")}>
-                <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
-                {t("createMemorial")}
-              </NeoButton>
-            </div>
-          </div>
-
-          <div className="studio-preview">
-            <div className="studio-preview__scene">
-              <img className="studio-preview__garden" src="./memorial-garden.jpg" alt="" loading="lazy" decoding="async" />
-              <div className="studio-preview__media">
-                {previewPhotoSrc ? (
-                  <img
-                    src={previewPhotoSrc}
-                    alt=""
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <ImageIcon size={24} strokeWidth={1.9} aria-hidden="true" />
-                )}
-              </div>
-              <span className="studio-preview__light" aria-hidden="true">
-                <Flame size={18} strokeWidth={1.9} />
-              </span>
-            </div>
-            <span className="studio-preview__label">{t("previewLabel")}</span>
-            <strong>{previewName}</strong>
-            <span className="studio-preview__years">{previewYears}</span>
-            <span className="studio-preview__relation">{previewRelation}</span>
-            <div className="studio-ritual-track" aria-label={t("memoryStudio")}>
-              <span className={`studio-ritual-track__step${hasIdentityDraft ? " is-active" : ""}`}>
-                <Heart size={15} strokeWidth={2} aria-hidden="true" />
-                <strong>{t("studioStepIdentity")}</strong>
-                <small>{previewName}</small>
-              </span>
-              <span className={`studio-ritual-track__step${hasStoryDraft ? " is-active" : ""}`}>
-                <ScrollText size={15} strokeWidth={2} aria-hidden="true" />
-                <strong>{t("studioStepStory")}</strong>
-                <small>{previewBio}</small>
-              </span>
-              <span className={`studio-ritual-track__step${canCreateMemorial ? " is-active is-complete" : ""}`}>
-                <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
-                <strong>{t("studioStepPublish")}</strong>
-                <small>{previewYears}</small>
-              </span>
-            </div>
-            <p>{previewBio}</p>
-            <blockquote>{previewObituary}</blockquote>
-          </div>
-        </section>
-      )}
-
-      {memorials.length > 0 ? (
-        <section className="memorials-section">
-          <div className="section-heading">
-            <span className="section-eyebrow">{t("memorials")}</span>
-            <span>{t("chainPermanenceDesc")}</span>
-          </div>
-          <div className="memorials-grid">
-            {memorials.map((memorial) => (
-              <TombstoneCard key={memorial.id} memorial={memorial} onClick={() => dispatch("openMemorial", memorial.id)} t={t} />
-            ))}
-          </div>
-        </section>
+        </OpenUiPanel>
       ) : (
-        <div className="empty-memorials">
-          <span className="empty-memorials__badge" aria-hidden="true">
-            <Heart size={27} strokeWidth={1.8} />
-          </span>
-          <p>{t("noMemorials")}</p>
-          {!showCreateForm && (
-            <NeoButton
-              variant="ghost"
-              size="sm"
-              className="empty-memorials__cta"
-              onClick={() => setShowCreateForm(true)}
-            >
-              {t("createMemorial")}
-            </NeoButton>
+        <OpenUiPanel
+          className="shrine-drawer-panel shrine-drawer-panel--tribute"
+          icon={<Flame size={16} />}
+          title={t("payTribute")}
+          subtitle={activeMemorial?.name ?? t("tributeStationDesc")}
+          titleId="shrine-drawer-tribute"
+        >
+          <OpenUiTextArea className="shrine-drawer-field shrine-drawer-field--wide mx2-open-field--compact" label={t("tributeMessage")} value={tributeMessage} onChange={(event) => setTributeMessage(event.target.value)} placeholder={t("tributeMessagePlaceholder")} disabled={isPaying} rows={2} />
+          {isMainnet && (
+            <OpenUiTextField className="shrine-drawer-field shrine-drawer-field--wide" label={t("receiptId")} value={tributeReceiptId} onChange={(event) => setTributeReceiptId(event.target.value)} placeholder={t("receiptIdPlaceholder")} disabled={isPaying} mono />
           )}
-        </div>
+          <p className="shrine-disclosure">{isMainnet ? t("mainnetTributeNote") : t("offeringDisclosure")}</p>
+        </OpenUiPanel>
       )}
+      <OpenUiPanel
+        className="shrine-drawer-panel shrine-drawer-panel--records"
+        icon={<ScrollText size={16} />}
+        title={t("memorials")}
+        subtitle={`${memorials.length} ${t("memorials").toLowerCase()}`}
+        titleId="shrine-drawer-memorials"
+      >
+        {memorials.length > 0 ? (
+          <ul className="shrine-drawer-list shrine-memorial-list">
+            {memorials.slice(0, 8).map((memorial) => (
+              <li key={memorial.id} className="shrine-drawer-list__item">
+                <button
+                  type="button"
+                  className="mx2-btn mx2-btn--ghost"
+                  onClick={() => openMemorial(memorial.id)}
+                >
+                  {memorial.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="shrine-drawer-empty">{t("noMemorials")}</p>}
+      </OpenUiPanel>
+      <OpenUiPanel
+        className="shrine-drawer-panel shrine-drawer-panel--records"
+        icon={<PenLine size={16} />}
+        title={t("obituaries")}
+        subtitle={`${recentObituaries.length} ${t("obituaries").toLowerCase()}`}
+        titleId="shrine-drawer-obituaries"
+      >
+        {recentObituaries.length > 0 ? (
+          <ul className="shrine-drawer-list">
+            {recentObituaries.slice(0, 8).map((obituary) => (
+              <li key={obituary.id} className="shrine-drawer-list__item">
+                <span className="shrine-drawer-list__face">{obituary.name}</span>
+                <span className="shrine-drawer-list__meta">{obituary.text?.slice(0, 60)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="shrine-drawer-empty">{t("noMemorials")}</p>}
+      </OpenUiPanel>
+      <OpenUiPanel
+        className="shrine-drawer-panel shrine-drawer-panel--records"
+        icon={<Flame size={16} />}
+        title={t("myTributes")}
+        subtitle={`${myTributes.length} ${t("myTributes").toLowerCase()}`}
+        titleId="shrine-drawer-tributes"
+      >
+        {myTributes.length > 0 ? (
+          <ul className="shrine-drawer-list">
+            {myTributes.slice(0, 8).map((tribute) => (
+              <li key={tribute.tributeId} className="shrine-drawer-list__item">
+                <span className="shrine-drawer-list__face">{tribute.offeringName || t("payTribute")}</span>
+                <span className="shrine-drawer-list__amount">{tribute.amountGas} GAS</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="shrine-drawer-empty">{t("noTributes")}</p>}
+      </OpenUiPanel>
+    </div>
+  );
+
+  return (
+    <div className="memorial-play-area mx2 mx2-cat-nft">
+      <PlayStage
+        category="nft"
+        stage={{
+          eyebrow: t("heroKicker"),
+          title: mode === "create" ? t("createTitle") : activeMemorial?.name ?? t("title"),
+          subtitle: mode === "create" ? t("previewBioEmpty") : t("subtitle"),
+          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {memorialCount} {t("memorials").toLowerCase()}</span>,
+        }}
+        scene={scene}
+        score={[
+          { label: t("memorials"), value: String(memorialCount), accent: true },
+          { label: t("myTributes"), value: String(tributeCount) },
+        ]}
+        actions={{
+          primary: mode === "tribute"
+            ? { label: isPaying ? t("paying") : t("payTributeBtn"), onClick: handlePayTribute, disabled: !canPay || isPaying, loading: isPaying, icon: <Flame size={18} /> }
+            : { label: t("createMemorial"), onClick: handleCreate, disabled: !canCreate || isSubmitting, loading: isSubmitting, icon: <ImageIcon size={18} /> },
+          secondary: hasMemorials ? [
+            {
+              label: mode === "create" ? t("memorials") : t("createMemorial"),
+              onClick: () => setTab(mode === "create" ? "memorials" : "create"),
+              disabled: isSubmitting || isPaying,
+              icon: mode === "create" ? <ScrollText size={17} /> : <PenLine size={17} />,
+            },
+          ] : undefined,
+        }}
+        drawerToggleLabel={mode === "create" ? t("memoryStudio") : t("obituaries")}
+        drawer={{
+          title: mode === "create" ? t("memoryStudio") : t("obituaries"),
+          children: drawer,
+        }}
+      />
     </div>
   );
 }

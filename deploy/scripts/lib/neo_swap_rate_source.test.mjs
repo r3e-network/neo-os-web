@@ -30,7 +30,9 @@ test("Neo Swap quotes use the Morpheus DataFeed instead of a missing wallet SDK 
   assert.match(hook, /const rate = from\w+(?:\.price)? \/ to\w+(?:\.price)?;/);
   assert.match(hook, /function setFromAmount\(value: string\)/);
   assert.match(hook, /fromAmount\.set\(value\);[\s\S]*onFromAmountChange\(\);/);
-  assert.match(playArea, /dispatch\("setFromAmount", value\)/);
+  assert.match(playArea, /function normalizeAmountForToken\(value: string, token: Token\): string/);
+  assert.match(playArea, /token\.decimals === 0[\s\S]*text\.split\(\s*\/\[\.,\]\/\s*\)\[0\]/);
+  assert.match(playArea, /dispatch\("setFromAmount", normalizeAmountForToken\(value, fromToken\)\)/);
   assert.match(main, /ctx\.registerAction\("setFromAmount"/);
   assert.doesNotMatch(hook, /waitForSDK/);
 });

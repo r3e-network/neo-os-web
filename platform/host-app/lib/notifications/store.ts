@@ -23,6 +23,8 @@ interface NotificationActions {
 
 type NotificationStore = NotificationState & NotificationActions;
 
+const NOTIFICATION_STORAGE_KEY = "notification-store";
+
 const defaultPreferences: NotificationPreferences = {
   walletAddress: "",
   email: null,
@@ -139,6 +141,30 @@ export const useNotificationStore = create<NotificationStore>()(
 
       clearError: () => set({ error: null }),
     }),
-    { name: "notification-store" },
+    { name: NOTIFICATION_STORAGE_KEY },
   ),
 );
+
+/**
+ * Keep the notification view in sync across tabs.
+ *
+ * `markAsRead` and preference updates persist to localStorage but `persist`
+ * only re-reads on the originating tab's load. Without this listener, marking a
+ * notification read (or changing digest/email prefs) in one tab leaves every
+ * other tab showing a stale badge until reload. The `storage` event fans out to
+ * every other same-origin tab, so rehydrating here converges the dropdown and
+ * settings UI. This is display/optimistic state only — the server remains the
+ * source of truth and is re-fetched on focus/open — so a plain rehydrate is
+ * safe and never affects wallet/network/auth truth.
+ */
+let crossTabNotificationSyncInstalled = false;
+function installCrossTabNotificationSync(): void {
+  if (crossTabNotificationSyncInstalled || typeof window === "undefined") return;
+  crossTabNotificationSyncInstalled = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== NOTIFICATION_STORAGE_KEY) return;
+    void useNotificationStore.persist.rehydrate();
+  });
+}
+
+installCrossTabNotificationSync();

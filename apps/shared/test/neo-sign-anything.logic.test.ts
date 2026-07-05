@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
+import { addressToScriptHash } from "../utils/neo";
 import { useSignAnything } from "../../neo-sign-anything/src/composables/useSignAnything";
 
 const ADDRESS = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+// The transfer Hash160 args are built via app.chain.arg.hash160, which yields
+// the 0x little-endian script hash — on-chain-identical to passing the base58
+// address (the interaction layer converts either form to the same UInt160).
+const ADDRESS_HASH = addressToScriptHash(ADDRESS);
 
 function t(key: string) {
   return key;
@@ -35,7 +41,11 @@ function setup(options: { signResult?: unknown; txid?: string } = {}) {
   const clipboard = { copy: vi.fn(async () => true) } as never;
   const eventBus = { emit: vi.fn() } as never;
 
-  const app = useSignAnything({ chain, eventBus, clipboard, storage, t });
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-neo-sign-anything" },
+  );
+  const app = useSignAnything({ app: framework, chain, eventBus, clipboard, storage, t });
   return { app, signMessage, invoke };
 }
 
@@ -100,8 +110,8 @@ describe("useSignAnything", () => {
     expect(invoke).toHaveBeenCalledWith(
       "transfer",
       [
-        { type: "Hash160", value: ADDRESS },
-        { type: "Hash160", value: ADDRESS },
+        { type: "Hash160", value: ADDRESS_HASH },
+        { type: "Hash160", value: ADDRESS_HASH },
         { type: "Integer", value: "0" },
         { type: "String", value: "on-chain note" },
       ],

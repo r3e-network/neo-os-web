@@ -28,8 +28,8 @@
   "entry_url": "mf://manifest?app=miniapp-aa-session-key-lab",
   "dapp_url": "/miniapps/aa-session-key-lab/index.html",
   "media": {
-    "icon": "/miniapps/aa-session-key-lab/logo.jpg",
-    "banner": "/miniapps/aa-session-key-lab/banner.jpg"
+    "icon": "/miniapps/aa-session-key-lab/logo.webp",
+    "banner": "/miniapps/aa-session-key-lab/banner.webp"
   },
   "permissions": {
     "aa": true

@@ -26,8 +26,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/neo-convert/index.html",
-    "icon": "/miniapps/neo-convert/logo.jpg",
-    "banner": "/miniapps/neo-convert/banner.jpg"
+    "icon": "/miniapps/neo-convert/logo.webp",
+    "banner": "/miniapps/neo-convert/banner.webp"
   },
   "permissions": [
     "read:blockchain"

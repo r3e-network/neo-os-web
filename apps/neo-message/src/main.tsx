@@ -17,6 +17,7 @@ import {
   hasEvmWallet,
 } from "@shared/utils/evm-chain";
 import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
+import { sleep } from "@shared/utils/format";
 import { encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-confidential-envelope";
 import { safeReadJSON, safeWriteJSON } from "@shared/utils/safe-storage";
 import PlayArea from "./PlayArea";
@@ -31,6 +32,7 @@ import {
   TOPICS,
   buildRevealStatement,
   validateCompose,
+  needsPublicRevealAck,
   addressesEqual,
   type ComposeForm,
   type MessageView,
@@ -38,8 +40,13 @@ import {
 
 const appId = "miniapp-neo-message";
 
-const DEFAULT_FORM: ComposeForm = { recipient: "", body: "", lockMode: "recipient", revealDate: "" };
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const DEFAULT_FORM: ComposeForm = {
+  recipient: "",
+  body: "",
+  lockMode: "recipient",
+  revealDate: "",
+  publicRevealAcknowledged: false,
+};
 
 // Cap the per-refresh getMessage fan-out: ids are monotonically increasing, so
 // the newest PAGE_SIZE rows are the relevant ones; a heavy account would
@@ -217,7 +224,7 @@ defineMiniApp({
 
     // ── actions ──────────────────────────────────────────────────────────────
 
-    ctx.registerAction("connectAndLoad", async () => {
+    ctx.framework.actions.register("connectAndLoad", async () => {
       if (isLoading.get()) return;
       isLoading.set(true);
       try {
@@ -234,12 +241,18 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("sendMessage", async () => {
+    ctx.framework.actions.register("sendMessage", async () => {
       if (isSending.get()) return;
       const form = composeForm.get();
       const check = validateCompose(form);
       if (!check.ok) {
         const msg = ctx.t(check.error || "error");
+        lastStatus.set(msg);
+        ctx.setStatus(msg, "error");
+        return;
+      }
+      if (needsPublicRevealAck(form.lockMode, Boolean(form.publicRevealAcknowledged))) {
+        const msg = ctx.t("timedAcknowledge");
         lastStatus.set(msg);
         ctx.setStatus(msg, "error");
         return;
@@ -281,7 +294,7 @@ defineMiniApp({
 
     // Recipient-only reveal: prove recipient via wallet signature, decrypt
     // off-chain through the oracle edge. Plaintext is shown locally only.
-    ctx.registerAction("revealRecipient", async (row: unknown) => {
+    ctx.framework.actions.register("revealRecipient", async (row: unknown) => {
       const msg = row as MessageView;
       if (!msg?.id || busyIds.get().includes(msg.id)) return;
       addBusy(msg.id);
@@ -364,7 +377,7 @@ defineMiniApp({
       setTimeout(() => void tick(), 30000);
     };
 
-    ctx.registerAction("requestTimedReveal", async (row: unknown) => {
+    ctx.framework.actions.register("requestTimedReveal", async (row: unknown) => {
       const msg = row as MessageView;
       if (!msg?.id || busyIds.get().includes(msg.id)) return;
       addBusy(msg.id);
@@ -404,7 +417,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("switchToNeoX", async () => {
+    ctx.framework.actions.register("switchToNeoX", async () => {
       if (isLoading.get()) return;
       isLoading.set(true);
       try {
@@ -421,7 +434,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("loadOlder", async () => {
+    ctx.framework.actions.register("loadOlder", async () => {
       const who = address.get();
       if (!who || isLoading.get()) return;
       isLoading.set(true);
@@ -437,7 +450,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("updateCompose", async (patch: unknown) => {
+    ctx.framework.actions.register("updateCompose", async (patch: unknown) => {
       setForm((patch ?? {}) as Partial<ComposeForm>);
     });
 

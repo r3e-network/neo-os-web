@@ -84,7 +84,7 @@
 
 .pair-item:hover,
 .pair-item.active {
-  border-color: rgba(22, 199, 132, 0.44);
+  border-color: var(--mx2-brand-subtle);
   background:
     linear-gradient(135deg, #ffffff 0%, rgba(228, 248, 240, 0.82) 58%, rgba(255, 244, 207, 0.6) 100%);
   transform: translateY(-1px);
@@ -92,7 +92,7 @@
 
 .pair-item:focus-visible {
   outline: none;
-  border-color: var(--ns-brand, #16c784);
+  border-color: var(--ns-brand, var(--mx2-brand));
   box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
 }
 

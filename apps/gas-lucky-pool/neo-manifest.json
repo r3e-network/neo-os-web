@@ -40,7 +40,7 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/gas-lucky-pool/index.html",
-    "icon": "/miniapps/gas-lucky-pool/logo.png",
+    "icon": "/miniapps/gas-lucky-pool/logo.webp",
     "banner": "/miniapps/gas-lucky-pool/banner.svg"
   },
   "onegate": {
@@ -51,7 +51,7 @@
   "media": {
     "logo_variants": [
       {
-        "url": "/miniapps/gas-lucky-pool/logo.png",
+        "url": "/miniapps/gas-lucky-pool/logo.webp",
         "theme": "any",
         "density": "3x"
       },

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { useTarot } from "./useTarot";
 import type { UseTarotOptions } from "./useTarot";
-import type { ContractArg, TxResult } from "@shared/services/ChainService";
+import { createMiniAppFramework } from "@shared/react";
+import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
@@ -73,6 +74,7 @@ function makeChain(
     drawThrows?: boolean;
     getReadingCards?: [number, number, number];
     withdrawAmount?: string;
+    contract?: string | null;
   } = {},
 ) {
   const cards = opts.cards ?? [0, 21, 47];
@@ -130,13 +132,13 @@ function makeChain(
   };
 
   const chain = {
-    contractAddress: { get: () => CONTRACT },
+    contractAddress: { get: () => ("contract" in opts ? opts.contract : CONTRACT) },
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
     invoke,
     read,
     readArray,
-  } as unknown as UseTarotOptions["chain"];
+  } as unknown as ChainService;
 
   return {
     chain,
@@ -151,7 +153,11 @@ function makeChain(
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
   const deps = makeChain(opts);
-  const tarot = useTarot({ chain: deps.chain, cache: deps.cache, clipboard: deps.clipboard, t });
+  const app = createMiniAppFramework(
+    { services: { chain: deps.chain }, t } as never,
+    { appId: "miniapp-onchaintarot" },
+  );
+  const tarot = useTarot({ app, cache: deps.cache, clipboard: deps.clipboard, t });
   tarot.setAddress(PLAYER);
   return { tarot, ...deps };
 }
@@ -297,6 +303,19 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
     expect(read.mock.calls.some((c) => c[0] === "playerReadingCount")).toBe(true);
     expect(tarot.readingsCount.get()).toBe(5);
     expect(tarot.cardsDrawnCount.get()).toBe(15);
+  });
+
+  it("keeps host/local preview quiet when no contract address is configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { tarot, read } = setup({ contract: null, credit: "10000000" });
+
+    await tarot.loadAll();
+
+    expect(read).not.toHaveBeenCalled();
+    expect(tarot.readingsCount.get()).toBe(0);
+    expect(tarot.prepaidCredit.get()).toBe(0);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it("loads the connected wallet's prepaid draw-credit into prepaidCredit / hasCredit", async () => {

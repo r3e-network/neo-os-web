@@ -38,6 +38,17 @@ describe("MiniApp detail style contract", () => {
     expect(operationPanelSource).not.toMatch(/rounded-\[[0-9]+px\]/);
   });
 
+  it("keeps the action panel visually quiet instead of returning to a heavy form wizard", () => {
+    expect(operationPanelSource).not.toContain("font-black");
+    expect(operationPanelSource).not.toContain("rounded-2xl");
+    expect(operationPanelSource).not.toContain("Advanced / Operator");
+    expect(operationPanelSource).toContain('className="sr-only"');
+    expect(operationPanelSource).toContain("Transaction workflow steps");
+    expect(detailSource).toContain("primary-action-guide");
+    expect(detailSource).toContain("advanced-operation-console");
+    expect(detailSource).toContain("Host transaction console");
+  });
+
   it("keeps the mobile transaction dock on the same wallet-style surface", () => {
     expect(detailSource).toContain("mobile-action-dock-shell");
     expect(detailSource).toContain("mobile-action-button");

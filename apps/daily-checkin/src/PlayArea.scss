@@ -1,2178 +1,655 @@
-/**
- * Daily Check-in PlayArea — Neo Soft (light) system.
- *
- * Accent identity: GREEN (#16C784).
- *
- * Layout intent:
- *   - White cards (radius 20, soft shadow), --ns-surface-subtle insets,
- *     navy ink text, hairline borders.
- *   - The hero leads with the current-streak number balanced by a compact
- *     info strip (status / next reward / best) so it never reads as a lone
- *     number floating in empty space.
- *   - The page is fleshed out with real data cards (stats, rewards,
- *     milestones, platform, history) instead of a thin column.
- *   - The dApp surface owns the visible check-in, claim, and refresh actions,
- *     with a compact decision panel explaining the UTC window and reward route.
- */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-@use "@shared/styles/variables.scss" as *;
-@use "@shared/styles/mixins.scss" as *;
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/playarea-base";
-
-/* ============================================================
- *  Neo Soft tokens (resolved locals w/ fallbacks)
- * ============================================================ */
-
-$ns-bg: var(--ns-surface, #ffffff);
-$ns-subtle: var(--ns-surface-subtle, #f7f8fa);
-$ns-border: var(--ns-border, rgba(20, 22, 38, 0.06));
-$ns-border-strong: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-$ns-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-$ns-radius: var(--ns-radius-lg, 20px);
-
-$ns-ink: var(--ns-ink, #1e1e2e);
-$ns-text: var(--ns-text, #2a2d3d);
-$ns-text-2: var(--ns-text-2, #5b6478);
-$ns-text-muted: var(--ns-text-muted, #8a92a6);
-$ns-text-faint: var(--ns-text-faint, #aeb4c2);
-
-/* Accent — GREEN */
-$ac: var(--ns-brand, #16c784);
-$ac-strong: var(--ns-brand-strong, #0fb174);
-$ac-soft: var(--ns-brand-soft, #e4f8f0);
-$ac-border: rgba(22, 199, 132, 0.22);
-/* AA-contrast greens (same hue, darkened) for text/fills behind text:
-   $ac-fill carries white text (>=4.5:1); $ac-ink reads on the soft tint. */
-$ac-fill: #0a7a52;
-$ac-ink: #08714a;
-
-$amber: #f59e0b;
-
-/* ============================================================
- *  Root canvas
- * ============================================================ */
-
-.checkin-play-area {
-  display: grid;
-  gap: 20px;
-  box-sizing: border-box;
-  padding: 20px 24px 32px;
-  max-width: 880px;
-  margin: 0 auto;
-  min-height: 100vh;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: $ns-text;
-  background: $ns-subtle;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Hide the legacy fire/ember chrome + in-app CTA (Action Console owns it).
-   The confetti container is intentionally NOT hidden — it is the streak-up
-   payoff and only mounts on the real canCheckIn true->false edge (see TSX). */
-.flame-bg-effects,
-.ember,
-.checkin-flame-stack {
-  display: none !important;
-}
-
-/* ============================================================
- *  Upper region two-column grid
- *  Hero + week strip (left) sit beside the primary action card
- *  (right) on desktop so the Check In action is above the fold
- *  and the wide hero no longer reads as thin-and-stretched. The
- *  left column is wider; the action rail is a fixed, comfortable
- *  width. Collapses to a single stack on narrow screens.
- * ============================================================ */
-
-.checkin-top-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.checkin-top-left {
-  display: contents;
-}
-
-.checkin-top-right {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  display: grid;
-  gap: 20px;
-  min-width: 0;
-  align-content: start;
-}
-
-.checkin-streak-section,
-.checkin-streak-stage,
-.checkin-week-wrapper {
-  grid-column: 1;
-}
-
-/* The action rail stretches to the top of the column so the primary CTA is
-   vertically anchored beside the hero rather than floating. */
-.checkin-top-right .checkin-action-card {
-  align-self: start;
-}
-
-/* In the narrow desktop action rail the Claim + Refresh row would wrap awkwardly
-   two-up; stack them so each reads as a clean full-width peer under the primary
-   Check In. The single-column grid collapse below 720px keeps the wider layout. */
-@media (min-width: 721px) {
-  .checkin-top-right .checkin-actions-secondary {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .checkin-top-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .checkin-streak-section,
-  .checkin-top-right,
-  .checkin-streak-stage,
-  .checkin-week-wrapper {
-    grid-column: 1;
-  }
-
-  .checkin-streak-section {
-    grid-row: 1;
-  }
-
-  .checkin-top-right {
-    grid-row: 2;
-  }
-
-  .checkin-streak-stage {
-    grid-row: 3;
-  }
-
-  .checkin-week-wrapper {
-    grid-row: 4;
-  }
-}
-
-/* One-line connect prompt inside the action card — co-locates the invite with
-   the operable Refresh/retry action so the next step is clear from where the
-   primary CTA lives, not only as a hero badge. */
-.checkin-connect-hint {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: $ac-soft;
-  border: 1px solid $ac-border;
-  color: $ac-strong;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.action-card {
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-.checkin-btn,
-.checkin-claim-btn {
-  min-height: 48px;
-}
-
-/* ============================================================
- *  1. Hero — current streak (the focal datapoint).
- *     JSX structure:
- *       .checkin-streak-section
- *         .checkin-fire-ring
- *           .checkin-streak-number   ← the big number
- *         .checkin-streak-text       ← "Day Streak" label (becomes sub-line)
- *         .checkin-tier-badge        ← optional pill
- *
- *     Treatment: a single white card split into a number block (left) and a
- *     compact info strip (right) so the figure is balanced, not lonely.
- * ============================================================ */
-
-.checkin-streak-section {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 22px 24px;
-  border-radius: $ns-radius;
-  background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 64%);
-  border: 1px solid $ac-border;
-  box-shadow: $ns-shadow;
-
-  /* hide decorative flame chrome */
-  .checkin-flame-stack {
-    display: none;
-  }
-}
-
-.checkin-streak-stage {
-  position: relative;
-  display: grid;
-  min-height: 238px;
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: $ns-radius;
-  background: #f4fbf3;
-  box-shadow: $ns-shadow;
-}
-
-.checkin-streak-stage img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transform-origin: 58% 50%;
-  animation: checkin-plaza-drift 14s ease-in-out infinite alternate;
-}
-
-.checkin-streak-stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    112deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255, 255, 255, 0.46) 50%,
-    transparent 62%,
-    transparent 100%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-74%);
-  animation: checkin-plaza-sweep 7.2s ease-in-out infinite;
-}
-
-.checkin-streak-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.42) 58%, rgba(255, 255, 255, 0.08)),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
-}
-
-.checkin-streak-stage figcaption,
-.checkin-streak-stage__tokens {
-  position: relative;
-  z-index: 2;
-}
-
-@keyframes checkin-plaza-drift {
-  from {
-    transform: scale(1);
-  }
-
-  to {
-    transform: scale(1.045) translate3d(1%, -1%, 0);
-  }
-}
-
-@keyframes checkin-plaza-sweep {
-  0%,
-  58% {
-    opacity: 0;
-    transform: translateX(-74%);
-  }
-
-  72% {
-    opacity: 0.72;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(74%);
-  }
-}
-
-.checkin-streak-stage figcaption {
-  align-self: end;
-  display: grid;
-  gap: 4px;
-  width: min(100% - 28px, 360px);
-  margin: 14px;
-  padding: 13px 15px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 12px 28px rgba(20, 22, 38, 0.12);
-}
-
-.checkin-streak-stage figcaption span {
-  color: $ac-ink;
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: 0;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
-.checkin-streak-stage figcaption strong {
-  color: $ns-ink;
-  font-size: 14px;
-  font-weight: 850;
-  line-height: 1.25;
-}
-
-.checkin-streak-stage figcaption small {
-  color: $ns-text-2;
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.checkin-streak-stage__tokens {
-  position: absolute;
-  right: 14px;
-  top: 14px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  width: min(310px, calc(100% - 28px));
-}
-
-.checkin-streak-stage__tokens span {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 24px rgba(20, 22, 38, 0.1);
-}
-
-.checkin-streak-stage__tokens small {
-  overflow: hidden;
-  color: $ns-text-muted;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.checkin-streak-stage__tokens strong {
-  overflow: hidden;
-  color: $ac-ink;
-  font-size: 13px;
-  font-weight: 900;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.streak-milestone-ready .checkin-streak-stage__tokens span:last-child {
-  border-color: rgba(245, 158, 11, 0.38);
-  background: rgba(255, 252, 244, 0.94);
-  box-shadow:
-    0 14px 28px rgba(245, 158, 11, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.62);
-  animation: checkin-reward-token-ready 2.6s ease-in-out infinite;
-}
-
-.streak-milestone-ready .checkin-streak-stage__tokens span:last-child strong {
-  color: #9a5a12;
-}
-
-@keyframes checkin-reward-token-ready {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-/* Icon badge — the streak figure, accent-ringed */
-.checkin-fire-ring {
-  position: relative;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
-  background: $ns-bg;
-  border: 1px solid $ac-border;
-  box-shadow: 0 6px 16px -8px rgba(22, 199, 132, 0.45);
-}
-
-.checkin-streak-number {
+.daily-checkin-play-area {
   display: block;
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0;
-  color: $ac-strong;
-  font-variant-numeric: tabular-nums;
+  --mx2-stage-floor: #ffffff;
 }
 
-/* Body column: eyebrow + title + subtitle */
-.checkin-hero-body {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  /* Reserve only enough room for the top-right status/best chips so the
-     ring + streak cluster stays together on the left instead of being
-     pushed to the opposite edge of a stretched hero. */
-  padding-right: 112px;
-}
-
-.checkin-hero-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ac-strong;
-}
-
-.checkin-streak-text {
+.daily-checkin-play-area .mx2-stage__scene {
+  min-height: 0;
   display: block;
-  margin: 0;
   padding: 0;
-  border: 0;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1.15;
-  color: $ns-ink;
-  letter-spacing: 0;
-  text-transform: none;
-  font-variant-numeric: tabular-nums;
+  background: #ffffff;
 }
 
-.checkin-hero-subtitle {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: $ns-text-2;
+.dci-reward-board {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  margin: 0 auto;
+  border: 1px solid rgba(217, 119, 6, 0.14);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fffdf8;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  isolation: isolate;
 }
 
-/* Best-streak chip — top-right of the hero */
-.checkin-best-text {
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: 18px;
-  right: 22px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1;
-  min-width: max-content;
-  white-space: nowrap;
-  background: $ns-bg;
-  color: $ns-text-muted;
-  border: 1px solid $ns-border;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Tier chip — sits just under the best chip when present */
-.checkin-tier-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  top: 18px;
-  right: 22px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1;
-  min-width: max-content;
-  white-space: nowrap;
-  background: $ac-soft;
-  color: $ac-ink;
-  border: 1px solid $ac-border;
-  z-index: 2;
-
-  &.blaze,
-  &.inferno {
-    background: rgba(245, 158, 11, 0.12);
-    /* Darkened amber text holds AA contrast on the soft amber tint. */
-    color: #a8530b;
-    border-color: rgba(245, 158, 11, 0.28);
-  }
-
-  /* First-open invite — an accent-filled prompt to connect, so the very first
-     screen reads as a call to action instead of a stuck "Loading…" pill. The
-     base badge is single-line (min-width: max-content); the invite is longer, so
-     reset that and let it wrap inside a constrained width. */
-  &.connect {
-    min-width: 0;
-    max-width: 128px;
-    white-space: normal;
-    text-align: right;
-    line-height: 1.25;
-    background: $ac-fill;
-    color: #ffffff;
-    border-color: $ac-fill;
-    box-shadow: 0 8px 18px -8px rgba(22, 199, 132, 0.55);
-  }
-
-  /* Ready-to-check-in emphasis — solid accent fill matching the open window. */
-  &.ready {
-    background: $ac-fill;
-    color: #ffffff;
-    border-color: $ac-fill;
-    box-shadow: 0 8px 18px -8px rgba(22, 199, 132, 0.5);
-  }
-}
-
-/* When a tier badge is shown, push the best chip below it */
-.checkin-streak-section:has(.checkin-tier-badge) .checkin-best-text {
-  top: 46px;
-}
-
-/* The first-open connect prompt wraps to two lines — push the best chip lower so
-   the two chips never collide on the disconnected hero. */
-.checkin-streak-section:has(.checkin-tier-badge.connect) .checkin-best-text {
-  top: 62px;
-}
-
-/* Tier accent tweaks */
-.checkin-fire-ring.blaze,
-.checkin-fire-ring.inferno {
-  border-color: rgba(245, 158, 11, 0.32);
-  box-shadow: 0 6px 16px -8px rgba(245, 158, 11, 0.5);
-
-  .checkin-streak-number {
-    color: $amber;
-  }
-}
-
-.checkin-fire-ring.cold {
-  border-color: $ns-border-strong;
-  box-shadow: none;
-
-  .checkin-streak-number {
-    color: $ns-text-muted;
-  }
-}
-
-/* "Ready to check in" energy — when the daily window is open the streak ring
-   gains an accent glow and a soft pulse so the focal number invites the action
-   instead of sitting flat. Applies even on the cold/zero tier so day-one feels
-   live, and yields to prefers-reduced-motion. */
-.streak-can-checkin .checkin-fire-ring {
-  border-color: $ac;
-  box-shadow: 0 8px 22px -8px rgba(22, 199, 132, 0.55);
-  animation: checkin-ring-pulse 2.4s ease-in-out infinite;
-
-  &.cold .checkin-streak-number {
-    color: $ac-strong;
-  }
-}
-
-.streak-celebrating .checkin-fire-ring {
-  animation: checkin-success-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.streak-can-checkin .checkin-streak-section::after {
-  content: "";
+.dci-reward-board__burst {
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    112deg,
-    transparent 18%,
-    rgba(255, 255, 255, 0.42) 42%,
-    rgba(22, 199, 132, 0.12) 52%,
-    transparent 74%
-  );
-  pointer-events: none;
-  transform: translateX(-72%);
-  animation: checkin-ready-sheen 4.8s ease-in-out infinite;
-}
-
-@keyframes checkin-ring-pulse {
-  0%,
-  100% {
-    box-shadow: 0 8px 22px -8px rgba(22, 199, 132, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.1),
-      0 10px 26px -8px rgba(22, 199, 132, 0.6);
-  }
-}
-
-@keyframes checkin-success-pop {
-  0% {
-    transform: scale(0.96);
-  }
-  58% {
-    transform: scale(1.06);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes checkin-ready-sheen {
-  0%,
-  68% {
-    opacity: 0;
-    transform: translateX(-72%);
-  }
-  78% {
-    opacity: 0.82;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(72%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .checkin-streak-stage img,
-  .checkin-streak-stage::before,
-  .streak-milestone-ready .checkin-streak-stage__tokens span:last-child,
-  .streak-celebrating .checkin-fire-ring,
-  .streak-can-checkin .checkin-fire-ring,
-  .streak-can-checkin .checkin-streak-section::after,
-  .checkin-week-day-slot.today-ready .checkin-day-icon,
-  .checkin-route-runner,
-  .streak-can-checkin .checkin-route-spark {
-    animation: none;
-  }
-}
-
-/* ============================================================
- *  Shared card chrome
- * ============================================================ */
-
-.checkin-week-wrapper,
-.checkin-decision-panel,
-.checkin-action-card,
-.checkin-stats-card,
-.checkin-rewards-card,
-.checkin-milestones-card,
-.checkin-global-card,
-.checkin-history-card,
-.checkin-evidence-card {
-  padding: 20px 22px !important;
-  border-radius: $ns-radius !important;
-  background: $ns-bg !important;
-  border: 1px solid $ns-border !important;
-  box-shadow: $ns-shadow !important;
-}
-
-.checkin-section-title {
-  margin: 0 0 14px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ns-text-muted;
-}
-
-/* ============================================================
- *  2. Week strip
- * ============================================================ */
-
-.checkin-week-progress-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.checkin-progress-text {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ns-text-muted;
-
-  &::before {
-    content: "This Week · ";
-    color: $ns-text-faint;
-  }
-}
-
-.checkin-week-complete-badge {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: $ac-soft;
-  color: $ac-ink;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-.checkin-week-row {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 12px;
-}
-
-.checkin-week-day-slot {
+  z-index: 6;
   display: grid;
   place-items: center;
-  gap: 6px;
-  padding: 16px 0 14px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  color: $ns-text-2;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0;
-  position: relative;
-  transition: all 140ms ease;
-
-  &.checked {
-    background: $ac-soft;
-    border-color: $ac-border;
-    color: $ac-ink;
-  }
-
-  &.today,
-  &.today-ready {
-    background: $ac-fill;
-    border-color: $ac-fill;
-    color: #ffffff;
-    box-shadow: 0 8px 18px -8px rgba(22, 199, 132, 0.55);
-    font-weight: 800;
-  }
+  pointer-events: none;
 }
 
-.checkin-week-day-slot.today-ready::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border: 1px solid rgba(22, 199, 132, 0.32);
+.dci-streak-card {
+  min-width: 0;
+  border: 1px solid rgba(217, 119, 6, 0.12);
   border-radius: 10px;
-  opacity: 0;
-  pointer-events: none;
-  animation: checkin-today-ready-ring 1.7s ease-in-out infinite;
-}
-
-.checkin-day-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.checkin-week-day-slot.today-ready .checkin-day-icon {
-  animation: checkin-today-token-hop 1.8s ease-in-out infinite;
-}
-
-.checkin-day-label {
-  font-size: 10px;
-  /* Inherit the slot's muted ink at full opacity — dimming it dropped the
-     label below the AA 4.5:1 threshold against the subtle slot fill. */
-  opacity: 1;
-}
-
-.checkin-bonus-star {
-  position: absolute;
-  top: -6px;
-  right: -4px;
-  font-size: 11px;
-  color: $amber;
-  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
-}
-
-.checkin-week-connector {
-  position: relative;
-  margin-top: 14px;
-  height: 22px;
-  border-radius: 999px;
-  background: transparent;
-  overflow: visible;
-}
-
-.checkin-week-connector::before {
-  content: "";
-  position: absolute;
-  inset: 50% 0 auto;
-  height: 6px;
-  border: 1px solid $ns-border;
-  border-radius: 999px;
-  background: $ns-subtle;
-  transform: translateY(-50%);
-}
-
-.checkin-connector-fill {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  height: 100%;
-  max-height: 6px;
-  border-radius: 999px;
-  background: $ac;
-  transform: translateY(-50%);
-  transition: width 320ms ease;
-}
-
-.streak-can-checkin .checkin-connector-fill {
-  background: linear-gradient(90deg, $ac 0%, #26d99a 50%, $ac 100%);
-  background-size: 180% 100%;
-  animation: checkin-progress-flow 1.8s linear infinite;
-}
-
-.checkin-route-runner {
-  position: absolute;
-  top: 50%;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid $ac-border;
-  border-radius: 999px;
-  background: $ns-bg;
-  color: $ac-ink;
-  box-shadow:
-    0 10px 22px rgba(20, 22, 38, 0.12),
-    0 0 0 4px rgba(22, 199, 132, 0.08);
-  transform: translate(-50%, -50%);
-  transition:
-    left 320ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.checkin-route-runner--ready {
-  border-color: rgba(22, 199, 132, 0.42);
-  color: #ffffff;
-  background: $ac-fill;
-  animation: checkin-route-runner-ready 1.65s ease-in-out infinite;
-}
-
-.checkin-route-runner--checking-in {
-  border-color: rgba(245, 158, 11, 0.46);
-  color: #ffffff;
-  background: linear-gradient(135deg, $ac-fill, #d97706);
-  box-shadow:
-    0 16px 30px rgba(10, 122, 82, 0.2),
-    0 0 0 7px rgba(245, 158, 11, 0.14);
-  animation: checkin-route-runner-checking 760ms ease-in-out infinite;
-}
-
-.checkin-route-runner--celebrating {
-  animation: checkin-route-runner-claim 620ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.checkin-route-spark {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: 1;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
   background: #ffffff;
-  box-shadow:
-    0 0 0 2px rgba(22, 199, 132, 0.16),
-    0 0 14px rgba(22, 199, 132, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-
-.streak-can-checkin .checkin-route-spark {
-  animation: checkin-route-spark 2.7s linear infinite;
-}
-
-.checkin-route-spark--two {
-  animation-delay: 420ms;
-}
-
-.checkin-route-spark--three {
-  animation-delay: 840ms;
-}
-
-@keyframes checkin-today-ready-ring {
-  0%,
-  100% {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  45% {
-    opacity: 1;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes checkin-today-token-hop {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  48% {
-    transform: translateY(-3px) scale(1.06);
-  }
-}
-
-@keyframes checkin-progress-flow {
-  from {
-    background-position: 0% 50%;
-  }
-  to {
-    background-position: 180% 50%;
-  }
-}
-
-@keyframes checkin-route-runner-ready {
-  0%,
-  100% {
-    box-shadow:
-      0 10px 22px rgba(20, 22, 38, 0.12),
-      0 0 0 4px rgba(22, 199, 132, 0.1);
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  50% {
-    box-shadow:
-      0 14px 28px rgba(10, 122, 82, 0.18),
-      0 0 0 8px rgba(22, 199, 132, 0.1);
-    transform: translate(-50%, -54%) scale(1.06);
-  }
-}
-
-@keyframes checkin-route-runner-checking {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  42% {
-    transform: translate(-50%, -62%) scale(1.12);
-  }
-
-  70% {
-    transform: translate(-50%, -48%) scale(0.98);
-  }
-}
-
-@keyframes checkin-route-runner-claim {
-  0% {
-    transform: translate(-50%, -50%) scale(0.92);
-  }
-
-  58% {
-    transform: translate(-50%, -56%) scale(1.16);
-  }
-
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-@keyframes checkin-route-spark {
-  0% {
-    left: 0%;
-    opacity: 0;
-  }
-
-  16%,
-  76% {
-    opacity: 0.9;
-  }
-
-  100% {
-    left: 100%;
-    opacity: 0;
-  }
-}
-
-/* ============================================================
- *  3. Next-check-in countdown (inside .checkin-week-timing)
- *     The CountdownTimer renders a 180px SVG ring by default; in this
- *     compact row we suppress the ring and present a tidy accent pill so
- *     the timing reads as one balanced line with the UTC clock.
- * ============================================================ */
-
-/* Suppress the SVG ring + urgency hint — compact text pill instead */
-.checkin-week-timing .countdown-timer__ring,
-.checkin-week-timing .countdown-timer__urgency-hint {
-  display: none !important;
-}
-
-.checkin-week-timing .countdown-timer {
-  flex: 0 0 auto;
-}
-
-.checkin-week-timing .countdown-timer__circle {
-  position: relative;
-  width: auto;
-  height: auto;
-  display: inline-flex;
-  align-items: center;
-}
-
-.checkin-week-timing .countdown-timer__display {
-  position: static;
-  inset: auto;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: $ac-soft;
-  border: 1px solid $ac-border;
-  transform: none;
-}
-
-.checkin-week-timing .countdown-timer__time {
-  font-size: 14px;
-  font-weight: 700;
-  color: $ac-strong;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  text-shadow: none !important;
-}
-
-.checkin-week-timing .countdown-timer__label {
-  margin-top: 0;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ac-strong;
-}
-
-.status-pill {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: $ns-bg;
-  border: 1px solid $ns-border;
-  color: $ns-text-2;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: $ns-shadow;
-  overflow-wrap: anywhere;
-
-  &.ready {
-    background: $ac-soft;
-    border-color: $ac-border;
-    color: $ac-strong;
-  }
-
-  &.error {
-    background: var(--ns-danger-soft, #fde7e9);
-    border-color: rgba(200, 30, 42, 0.18);
-    color: #c81e2a;
-  }
-}
-
-.checkin-notice {
-  padding: 12px 16px;
-  border-radius: $ns-radius;
-  border: 1px solid rgba(200, 30, 42, 0.18);
-  background: #fdf3e7;
-  color: #9a5a12;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-  box-shadow: $ns-shadow;
-
-  &--paused {
-    border-color: rgba(200, 30, 42, 0.22);
-    background: var(--ns-danger-soft, #fde7e9);
-    color: #c81e2a;
-  }
-
-  &--unfunded {
-    border-color: rgba(180, 120, 20, 0.22);
-    background: #fdf3e7;
-    color: #9a5a12;
-  }
-}
-
-.checkin-stat-item--warn .checkin-stat-value {
-  color: #9a5a12;
-}
-
-.reward-preview {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: $ns-radius;
-  background: linear-gradient(135deg, $ns-bg 0%, $ac-soft 100%);
-  border: 1px solid $ac-border;
-  box-shadow: $ns-shadow;
-}
-
-.reward-preview > div {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.reward-preview > div:last-child {
-  text-align: right;
-}
-
-.reward-preview-label {
-  color: $ns-text-muted;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.reward-preview-hint {
-  color: $ns-ink;
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.reward-preview-amount {
-  padding: 8px 14px;
-  border-radius: 999px;
-  color: $ac-strong;
-  background: $ns-bg;
-  border: 1px solid $ac-border;
-  font-size: 16px;
-  font-weight: 900;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.checkin-decision-panel {
-  display: grid;
-  gap: 16px;
-}
-
-.checkin-decision-header {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.checkin-decision-header span,
-.checkin-decision-tile span {
-  color: $ns-text-muted;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.checkin-decision-header strong,
-.checkin-decision-tile strong {
-  min-width: 0;
-  color: $ns-ink;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.28;
-}
-
-.checkin-decision-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 12px;
-  min-width: 0;
-}
-
-.checkin-decision-tile {
   display: grid;
   align-content: start;
-  gap: 10px;
-  min-width: 0;
-  min-height: 128px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid $ns-border;
-  background: $ns-subtle;
-}
-
-.checkin-decision-tile-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.checkin-decision-tile-top span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Inline status badge — replaces the separate readiness checklist */
-.checkin-decision-badge {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 60%;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  color: #475569;
-  font-size: 10px;
-  font-weight: 800;
-  font-style: normal;
-  letter-spacing: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
-
-  &.is-ready {
-    background: #dcfce7;
-    color: #047857;
-  }
-}
-
-.checkin-decision-tile strong,
-.checkin-decision-tile p {
-  overflow-wrap: anywhere;
-}
-
-.checkin-decision-tile p {
-  margin: 0;
-  color: $ns-text-2;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.checkin-decision-tile.is-ready {
-  border-color: $ac-border;
-  background: $ac-soft;
-}
-
-.checkin-decision-tile.is-done {
-  background: #f8fafc;
-}
-
-.checkin-action-card {
-  padding: 14px !important;
-}
-
-.checkin-action-card--busy {
-  position: relative;
-  overflow: hidden;
-  border-color: rgba(22, 199, 132, 0.22) !important;
-  box-shadow:
-    $ns-shadow,
-    0 0 0 1px rgba(22, 199, 132, 0.08),
-    0 18px 38px rgba(10, 122, 82, 0.1) !important;
-}
-
-.checkin-action-card--busy::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(
-    112deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255, 255, 255, 0.52) 50%,
-    transparent 64%,
-    transparent 100%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-78%);
-  animation: checkin-action-sweep 1.18s ease-in-out infinite;
-}
-
-.checkin-action-card--busy .neo-card__content {
-  position: relative;
-  z-index: 1;
-}
-
-.checkin-action-card--checkin {
-  background:
-    radial-gradient(circle at 12% 0%, rgba(245, 158, 11, 0.13), transparent 34%),
-    linear-gradient(135deg, #ffffff, rgba(228, 248, 240, 0.92)) !important;
-}
-
-.checkin-actions-grid {
-  display: grid;
-  // Three equal columns so the Refresh control reads as a peer action rather
-  // than a cramped icon-width sliver wedged at the right edge.
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.checkin-actions-grid .neo-btn {
-  min-height: 48px;
-}
-
-/* Disabled "Claim Rewards" — when the contract is paused or the pool is topping
-   up the reward is still pending, so keep the soft accent-tinted affordance that
-   reads as part of the green reward flow it belongs to (inert: no shadow, muted
-   text). */
-.checkin-claim-btn:disabled {
-  background: $ac-soft !important;
-  border-color: $ac-border !important;
-  color: rgba(15, 177, 116, 0.55) !important;
-  box-shadow: none !important;
-}
-
-/* …but when there is genuinely nothing accrued yet ("Nothing to claim yet"),
-   the button is a true empty/dead state, not a pending-reward one. Drop the
-   green tint to a neutral greyed affordance so it no longer reads as an active
-   call to action the user might tap into a dead end. Greyed ink on the subtle
-   fill stays above the AA contrast threshold for disabled text. */
-.checkin-claim-btn--empty:disabled {
-  background: $ns-subtle !important;
-  border-color: $ns-border !important;
-  color: $ns-text-muted !important;
-  box-shadow: none !important;
-}
-
-/* ============================================================
- *  4. Stat tiles (shared by Your Stats + Platform Stats)
- * ============================================================ */
-
-.checkin-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.checkin-stat-item {
-  display: grid;
-  gap: 6px;
-  padding: 16px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  text-align: left;
-}
-
-.checkin-stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: $ns-ink;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-
-  /* A genuine zero is dimmed to a lighter weight + muted ink so an empty
-     network-stats grid reads as "nothing yet" rather than a wall of bold
-     zeros that looks broken. Styling only — the value is unchanged. */
-  &.is-zero {
-    font-weight: 600;
-    color: $ns-text-faint;
-  }
-}
-
-.checkin-stat-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ns-text-muted;
-}
-
-/* ============================================================
- *  5. Rewards
- * ============================================================ */
-
-.checkin-rewards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.checkin-reward-item {
-  display: grid;
-  gap: 6px;
-  padding: 16px 18px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  text-align: left;
-}
-
-.checkin-reward-value {
-  font-size: 24px;
-  font-weight: 800;
-  color: $ns-ink;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-
-  &--unclaimed {
-    color: $ac-strong;
-  }
-}
-
-.checkin-reward-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ns-text-muted;
-}
-
-/* ============================================================
- *  6. Milestones
- * ============================================================ */
-
-.checkin-milestones-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.checkin-milestone {
-  display: grid;
-  gap: 4px;
-  padding: 16px 18px;
-  border-radius: 14px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  position: relative;
-
-  &.reached {
-    background: $ac-soft;
-    border-color: $ac-border;
-  }
-
-  &.next {
-    border-color: $ac-border;
-    box-shadow: 0 0 0 1px $ac-border inset;
-  }
-}
-
-.checkin-milestone-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  color: $ns-text-faint;
-  margin-bottom: 2px;
-
-  .reached & {
-    color: $ac-strong;
-  }
-}
-
-.checkin-milestone-day {
-  font-size: 13px;
-  font-weight: 800;
-  color: $ns-ink;
-  letter-spacing: 0;
-}
-
-.checkin-milestone-reward {
-  font-size: 13px;
-  font-weight: 700;
-  color: $ac-strong;
-}
-
-.checkin-milestone-cumulative {
-  font-size: 11px;
-  font-weight: 600;
-  color: $ns-text-muted;
-}
-
-/* ============================================================
- *  7. History
- * ============================================================ */
-
-.checkin-history-list {
-  display: grid;
-  gap: 8px;
-}
-
-.checkin-history-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-}
-
-.checkin-history-date {
-  font-size: 12px;
-  font-weight: 600;
-  color: $ns-text-2;
-  font-variant-numeric: tabular-nums;
-}
-
-.checkin-history-streak {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: $ns-text-muted;
-}
-
-.checkin-history-reward {
-  font-size: 12px;
-  font-weight: 800;
-  color: $ac-strong;
-  font-variant-numeric: tabular-nums;
-}
-
-.checkin-history-empty {
-  padding: 14px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  color: $ns-text-muted;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-}
-
-/* Evidence — collapsible debug block (closed by default) */
-.checkin-evidence-card {
-  &[open] .checkin-evidence-chevron {
-    transform: rotate(180deg);
-  }
-}
-
-.checkin-evidence-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  border-radius: var(--ns-radius-xs, 8px);
-  transition: color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-
-  &::-webkit-details-marker {
-    display: none;
-  }
-
-  .checkin-section-title {
-    margin: 0;
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-  }
-}
-
-.checkin-evidence-chevron {
-  flex: 0 0 auto;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1;
-  color: $ns-text-muted;
-  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.checkin-evidence-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.checkin-evidence-box {
-  min-width: 0;
-  padding: 12px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-}
-
-.checkin-evidence-box > span {
-  color: $ns-text-muted;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.checkin-evidence-box pre {
-  max-height: 220px;
-  margin: 8px 0 0;
-  overflow: auto;
-  color: $ns-ink;
-  font-size: 11px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/* ============================================================
- *  Status toast (StandaloneDappSurface)
- * ============================================================ */
-
-.standalone-dapp-root .status-toast {
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: $ns-bg;
-  color: $ns-ink;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid $ns-border;
-  box-shadow: 0 12px 28px -10px rgba(20, 22, 38, 0.18);
-}
-
-/* ============================================================
- *  Responsive
- * ============================================================ */
-
-@media (max-width: 520px) {
-  .checkin-stats-grid,
-  .checkin-actions-grid,
-  .checkin-evidence-grid,
-  .reward-preview {
-    grid-template-columns: 1fr;
-  }
-
-  .reward-preview > div:last-child {
-    text-align: left;
-  }
-
-  .checkin-streak-section {
-    gap: 14px;
-    padding: 20px 18px;
-  }
-
-  .checkin-hero-body {
-    padding-right: 0;
-  }
-
-  /* The connect invite is a wider pill that would collide with the streak
-     title in the top-right corner on narrow screens. Drop it to its own full-
-     width line below the ring + body instead of overlapping the title. */
-  .checkin-streak-section:has(.checkin-tier-badge.connect) {
-    flex-wrap: wrap;
-  }
-
-  .checkin-tier-badge.connect {
-    position: static;
-    order: 3;
-    width: 100%;
-    max-width: none;
-    min-height: 38px;
-    padding: 9px 14px;
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .checkin-tier-badge.ready {
-    top: 16px;
-    right: 18px;
-    min-height: 0;
-    padding: 5px 11px;
-  }
-
-  .checkin-fire-ring {
-    width: 64px;
-    height: 64px;
-  }
-
-  .checkin-streak-number {
-    font-size: 28px;
-  }
-
-  .checkin-best-text {
-    display: none !important;
-  }
-
-  .checkin-streak-section:has(.checkin-tier-badge) .checkin-best-text {
-    display: none !important;
-  }
-}
-
-/* ============================================================
- *  IA refactor (2026-06): consolidated hero facts, week timing,
- *  and a single compact personal-metrics strip.
- * ============================================================ */
-
-.checkin-hero-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-top: 8px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: $ns-text-muted;
-  font-variant-numeric: tabular-nums;
-}
-
-.checkin-week-timing {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid $ns-border;
-}
-
-.checkin-week-utc {
-  font-size: 12px;
-  font-weight: 700;
-  color: $ns-text-2;
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.checkin-action-card .status-pill {
-  margin-bottom: 12px;
-}
-
-/* Two-column reference/activity region — uses horizontal space on desktop so
-   the page is not an endless single stack. Children stretch to equal height. */
-.checkin-two-col {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
-  align-items: stretch;
-}
-
-.checkin-two-col > .checkin-milestones-card,
-.checkin-two-col > .checkin-history-card {
-  margin: 0;
-  height: 100%;
-}
-
-.checkin-meta-strip {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.checkin-meta-item {
-  display: grid;
-  gap: 3px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  text-align: left;
-}
-
-.checkin-meta-value {
-  font-size: 18px;
-  font-weight: 800;
-  color: $ns-ink;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-
-  /* Empty personal metric (0 check-ins / 0 unclaimed / 0 claimed on first run)
-     is dimmed so the strip does not read as a dead/broken app. Styling only. */
-  &.is-zero {
-    font-weight: 600;
-    color: $ns-text-faint;
-  }
-}
-
-.checkin-meta-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ns-text-muted;
-}
-
-/* Collapse the two-column region to a single stack on narrow viewports so the
-   milestone tiles and history rows keep comfortable width. */
-@media (max-width: 720px) {
-  .checkin-two-col {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-}
-
-@media (max-width: 560px) {
-  .checkin-week-timing {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .checkin-meta-strip {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Today plan — narrates the UTC window, milestone impact, claim plan and the
-   service route in one reference panel below the primary actions. */
-.checkin-plan-card {
-  margin-top: 18px;
-}
-
-.checkin-plan-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
-
-  .checkin-section-title {
-    margin: 0;
-  }
-}
-
-.checkin-plan-subtitle {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: $ns-text-2;
-}
-
-.checkin-plan-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.checkin-plan-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  background: $ns-subtle;
-  border: 1px solid $ns-border;
-  border-radius: var(--ns-radius-md, 14px);
-}
-
-.checkin-plan-rewards {
-  border-color: rgba(22, 199, 132, 0.28);
-  background: rgba(22, 199, 132, 0.06);
-}
-
-.checkin-plan-eyebrow {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  color: $ns-text-muted;
-}
-
-.checkin-plan-title {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0;
-  color: $ns-text;
-}
-
-.checkin-plan-copy {
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: $ns-text-2;
-}
-
-.checkin-plan-route {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid $ns-border;
-  font-size: 12px;
-  line-height: 1.5;
-  color: $ns-text-muted;
-}
-
-@media (max-width: 720px) {
-  .checkin-plan-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ============================================================
- *  Primary action emphasis
- *  Check In is the single full-width hero CTA; Claim + Refresh
- *  drop to a quieter secondary row so the primary action is
- *  unambiguous at a glance.
- * ============================================================ */
-
-.checkin-actions-grid {
-  grid-template-columns: 1fr;
-}
-
-.checkin-actions-grid .checkin-btn {
-  min-height: 54px;
-  font-size: 15px;
-}
-
-.checkin-actions-grid .checkin-btn--ready:not(:disabled) {
-  animation: checkin-cta-breathe 2.2s ease-in-out infinite;
-}
-
-.checkin-actions-secondary {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 10px;
-}
-
-.checkin-actions-secondary .neo-btn {
-  min-height: 44px;
-}
-
-@media (max-width: 520px) {
-  .checkin-actions-secondary {
-    grid-template-columns: 1fr;
-  }
-}
-
-@keyframes checkin-cta-breathe {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow: 0 10px 24px rgba(10, 122, 82, 0.22);
-  }
-  50% {
-    transform: translateY(-1px);
-    box-shadow: 0 16px 30px rgba(10, 122, 82, 0.3);
-  }
-}
-
-@keyframes checkin-action-sweep {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translateX(-78%);
-  }
-
-  42% {
-    opacity: 0.74;
-  }
-
-  78% {
-    opacity: 0;
-    transform: translateX(78%);
-  }
-}
-
-/* ============================================================
- *  Reward reveal — milestone payout celebration
- *  Fires on the real edge where a check-in lands on a milestone
- *  day (currentStreak crosses 7 / 14). A brief, on-brand banner
- *  announces the +GAS payout the daily flow just unlocked.
- * ============================================================ */
-
-.checkin-reward-reveal {
-  display: flex;
-  align-items: center;
   gap: 14px;
-  padding: 16px 20px;
-  border-radius: $ns-radius;
-  background: linear-gradient(135deg, $ac-soft 0%, rgba(245, 158, 11, 0.12) 100%);
-  border: 1px solid $ac-border;
-  box-shadow: 0 14px 30px -14px rgba(22, 199, 132, 0.5);
-  animation: checkin-reveal-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  padding: 14px;
 }
 
-.checkin-reward-reveal__icon {
-  flex: 0 0 auto;
+.dci-streak-card__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dci-streak-card__icon {
   display: grid;
   place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(217, 119, 6, 0.18);
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.dci-streak-card__icon {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
-  background: $ns-bg;
-  border: 1px solid rgba(245, 158, 11, 0.32);
-  color: $amber;
-  animation: checkin-reveal-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-radius: 15px;
 }
 
-.checkin-reward-reveal__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.dci-streak-card__head div {
   min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
-.checkin-reward-reveal__eyebrow {
+.dci-streak-card__head span,
+.dci-day-node strong {
+  color: var(--mx2-text-muted);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
-  color: $ac-strong;
 }
 
-.checkin-reward-reveal__title {
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing: 0;
-  color: $ns-ink;
-  font-variant-numeric: tabular-nums;
-}
-
-.checkin-reward-reveal__copy {
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: $ns-text-2;
-}
-
-@keyframes checkin-reveal-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes checkin-reveal-pop {
-  0% {
-    transform: scale(0.4) rotate(-12deg);
-  }
-  100% {
-    transform: scale(1) rotate(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .checkin-reward-reveal,
-  .checkin-reward-reveal__icon,
-  .checkin-week-day-slot.today-ready::after,
-  .streak-can-checkin .checkin-connector-fill,
-  .checkin-week-day-slot.today-ready .checkin-day-icon,
-  .checkin-route-runner,
-  .streak-can-checkin .checkin-route-spark,
-  .checkin-actions-grid .checkin-btn--ready:not(:disabled),
-  .checkin-route-runner--checking-in,
-  .checkin-action-card--busy::after {
-    animation: none;
-  }
-}
-
-/* ============================================================
- *  Confetti — streak-up payoff
- *  18 lightweight pieces drift down across the surface for a
- *  short burst when the daily check-in lands. Subtle, on-system
- *  (brand green + accent amber), pointer-events off, and fully
- *  suppressed under prefers-reduced-motion.
- * ============================================================ */
-
-.confetti-container {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
+.dci-streak-card__head strong {
+  min-width: 0;
   overflow: hidden;
-  pointer-events: none;
+  color: var(--mx2-ink);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.confetti-piece {
-  position: absolute;
-  top: -12px;
+.dci-streak-card__badge {
+  max-width: 206px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(217, 119, 6, 0.18);
+  border-radius: var(--mx2-r-pill);
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.1;
+}
+
+.dci-streak-card__summary {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.1);
+  border-radius: 10px;
+  padding: 8px;
+  background: #fffaf0;
+}
+
+.dci-streak-card__summary span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border-right: 1px solid rgba(217, 119, 6, 0.1);
+  padding: 2px 10px 2px 2px;
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 560;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dci-streak-card__summary span:last-child {
+  border-right: 0;
+}
+
+.dci-streak-card__summary strong {
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.dci-status-dot {
   width: 8px;
-  height: 12px;
-  border-radius: 2px;
-  opacity: 0;
-  animation: confetti-fall 2.2s cubic-bezier(0.45, 0, 0.55, 1) forwards;
-}
-
-.confetti-piece-1 {
-  left: 12%;
-  background: $ac;
-  animation-delay: 0ms;
-}
-.confetti-piece-2 {
-  left: 26%;
-  background: $amber;
-  animation-delay: 120ms;
-  width: 7px;
-  height: 7px;
+  height: 8px;
+  flex: 0 0 8px;
   border-radius: 50%;
+  background: #f59e0b;
 }
-.confetti-piece-3 {
-  left: 40%;
-  background: $ac-strong;
-  animation-delay: 60ms;
+
+.dci-plaza-art {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(217, 119, 6, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
 }
-.confetti-piece-4 {
-  left: 54%;
-  background: $amber;
-  animation-delay: 200ms;
+
+.dci-plaza-art img {
+  display: block;
+  width: 100%;
+  height: clamp(270px, 34vw, 380px);
+  object-fit: cover;
+  object-position: center;
+  filter: none;
 }
-.confetti-piece-5 {
-  left: 68%;
-  background: $ac;
-  animation-delay: 90ms;
-  width: 7px;
+
+.dci-plaza-art figcaption {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid rgba(217, 119, 6, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+}
+
+.dci-plaza-art__coin {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(217, 119, 6, 0.16);
+  border-radius: 16px;
+  background: #fffbeb;
+}
+
+.dci-plaza-art__coin .mx2-coin {
+  box-shadow: none !important;
+}
+
+.dci-plaza-art figcaption div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.dci-plaza-art figcaption span:not(.dci-plaza-art__coin),
+.dci-plaza-art figcaption small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dci-plaza-art figcaption span:not(.dci-plaza-art__coin) {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.dci-plaza-art figcaption strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dci-plaza-art__meter {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: min(240px, calc(100% - 32px));
   height: 7px;
-  border-radius: 50%;
-}
-.confetti-piece-6 {
-  left: 84%;
-  background: $ac-strong;
-  animation-delay: 160ms;
+  overflow: hidden;
+  border-radius: var(--mx2-r-pill);
+  background: rgba(232, 226, 214, 0.9);
 }
 
-/* Stagger the second set of pieces (TSX renders 18 = three repeats of 6) so
-   the burst spreads across the width rather than six tight columns. */
-.confetti-piece:nth-child(n + 7) {
-  animation-duration: 1.9s;
+.dci-plaza-art__meter span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: #16c784;
+  transition: width 220ms var(--mx2-ease);
 }
-.confetti-piece:nth-child(7) { left: 19%; }
-.confetti-piece:nth-child(8) { left: 33%; }
-.confetti-piece:nth-child(9) { left: 47%; }
-.confetti-piece:nth-child(10) { left: 61%; }
-.confetti-piece:nth-child(11) { left: 75%; }
-.confetti-piece:nth-child(12) { left: 90%; }
-.confetti-piece:nth-child(n + 13) {
-  animation-duration: 2.4s;
-}
-.confetti-piece:nth-child(13) { left: 8%; }
-.confetti-piece:nth-child(14) { left: 30%; }
-.confetti-piece:nth-child(15) { left: 50%; }
-.confetti-piece:nth-child(16) { left: 64%; }
-.confetti-piece:nth-child(17) { left: 78%; }
-.confetti-piece:nth-child(18) { left: 95%; }
 
-@keyframes confetti-fall {
-  0% {
-    opacity: 0;
-    transform: translateY(0) rotate(0deg);
+.dci-reward-board[data-state="checking-in"] .dci-plaza-art__coin,
+.dci-reward-board[data-state="claiming"] .dci-plaza-art__coin {
+  animation: mx2-coin-fly 1s var(--mx2-ease-settle) infinite;
+}
+
+.dci-reward-board[data-state="checking-in"] .dci-status-dot,
+.dci-reward-board[data-state="claiming"] .dci-status-dot {
+  animation: mx2-float 0.9s var(--mx2-ease) infinite;
+}
+
+.dci-path {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(58px, 1fr));
+  gap: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.1);
+  border-radius: 10px;
+  padding: 14px 10px 10px;
+  background: #fffaf0;
+  overflow: hidden;
+}
+
+.dci-path::before {
+  position: absolute;
+  top: 34px;
+  left: 38px;
+  right: 38px;
+  height: 2px;
+  border-radius: var(--mx2-r-pill);
+  background: rgba(217, 119, 6, 0.18);
+  content: "";
+}
+
+.dci-day-node {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 72px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 10px;
+  padding: 4px 2px;
+  background: transparent;
+  color: var(--mx2-text);
+}
+
+.dci-day-node--complete {
+  color: #0f766e;
+}
+
+.dci-day-node--active {
+  color: #92400e;
+}
+
+.dci-day-node--reward {
+  color: #92400e;
+}
+
+.dci-day-node__mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(217, 119, 6, 0.16);
+  color: var(--mx2-text-muted);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.dci-day-node--complete .dci-day-node__mark {
+  border-color: rgba(22, 199, 132, 0.25);
+  background: #e8f8f1;
+  color: #0f766e;
+}
+
+.dci-day-node--active .dci-day-node__mark,
+.dci-reward-board[data-state="checking-in"] .dci-day-node--active .dci-day-node__mark {
+  background: #fffbeb;
+  border-color: rgba(217, 119, 6, 0.32);
+  color: #d97706;
+  animation: mx2-pulse-ring 1.4s var(--mx2-ease) infinite;
+}
+
+.dci-day-node--reward .dci-day-node__mark {
+  background: #fffbeb;
+  border-color: rgba(217, 119, 6, 0.2);
+  color: #d97706;
+}
+
+.dci-day-node strong,
+.dci-day-node small {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dci-day-node strong {
+  color: var(--mx2-ink);
+  font-weight: 600;
+}
+
+.dci-day-node small {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.daily-checkin-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 188px;
+  max-width: 188px;
+  min-height: 52px;
+  border-radius: var(--mx2-r-pill);
+  white-space: nowrap;
+}
+
+.dci-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dci-drawer__checkin,
+.dci-drawer__claim {
+  min-height: 40px;
+  padding: 10px 16px;
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--mx2-r-pill);
+  font-weight: 620;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: var(--mx2-shadow-sm);
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.04);
   }
-  10% {
-    opacity: 1;
+
+  &:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
   }
-  100% {
-    opacity: 0;
-    transform: translateY(105vh) rotate(540deg);
+}
+
+.dci-drawer__claim {
+  background: #16a34a;
+}
+
+.dci-drawer__refresh {
+  align-self: flex-start;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: var(--mx2-surface);
+  color: var(--mx2-ink-soft);
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  font-size: 12px;
+  font-weight: 560;
+  cursor: pointer;
+
+  &:hover {
+    border-color: #d97706;
+    color: #b45309;
   }
+}
+
+.dci-drawer__caution {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 560;
+  color: var(--mx2-warning-ink, #92500a);
+  background: var(--mx2-warning-bg, #fff4e0);
+  border-radius: var(--mx2-r);
+  border-left: 3px solid var(--mx2-warning, #e09000);
+}
+
+.dci-drawer__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
+  & > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px;
+    background: var(--mx2-surface-sunken);
+    border-radius: var(--mx2-r);
+  }
+
+  & span {
+    font-size: 10px;
+    font-weight: 560;
+    color: var(--mx2-ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  & strong {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--mx2-ink);
+  }
+}
+
+.dci-drawer__history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dci-drawer__history-title {
+  font-size: 12px;
+  font-weight: 620;
+  color: var(--mx2-ink);
+}
+
+@media (max-width: 640px) {
+  .daily-checkin-play-area .mx2-stage {
+    padding: 16px 14px 18px;
+  }
+
+  .daily-checkin-play-area .mx2-stage__subtitle {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.28;
+  }
+
+  .daily-checkin-play-area .mx2-action-rail {
+    margin-top: 8px;
+    padding: 0 14px;
+  }
+
+  .daily-checkin-play-area .mx2-action-rail__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .daily-checkin-play-area .mx2-action-rail__row .mx2-btn--primary {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: 50px;
+  }
+
+  .daily-checkin-play-area .mx2-action-rail__drawer-toggle {
+    margin-left: 0;
+    min-height: 50px;
+  }
+
+  .dci-reward-board {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .dci-streak-card {
+    padding: 12px;
+  }
+
+  .dci-streak-card__head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .dci-streak-card__badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+    max-width: 100%;
+  }
+
+  .dci-streak-card__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .dci-streak-card__summary span {
+    border-right: 1px solid rgba(217, 119, 6, 0.1);
+    border-bottom: 0;
+    padding: 2px 5px 2px 0;
+    font-size: 9px;
+  }
+
+  .dci-streak-card__summary span:last-child {
+    border-right: 0;
+  }
+
+  .dci-streak-card__summary strong {
+    font-size: 13px;
+  }
+
+  .dci-plaza-art img {
+    height: 250px;
+  }
+
+  .dci-plaza-art figcaption {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    max-width: none;
+    padding: 9px 10px 17px;
+  }
+
+  .dci-plaza-art__meter {
+    right: 20px;
+    bottom: 18px;
+    left: 62px;
+    width: auto;
+  }
+
+  .dci-path {
+    grid-auto-columns: 66px;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    gap: 8px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 12px 9px 10px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+
+  .dci-path::before {
+    left: 34px;
+    right: 34px;
+  }
+
+  .dci-day-node {
+    min-height: 68px;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 6px;
+    border-radius: 10px;
+    scroll-snap-align: start;
+  }
+
+  .dci-day-node__mark {
+    width: 28px;
+    height: 28px;
+    grid-row: auto;
+    border-radius: 999px;
+  }
+
+  .dci-day-node strong {
+    grid-column: auto;
+    font-size: 10px;
+  }
+
+  .dci-day-node small {
+    display: none;
+  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .confetti-container {
-    display: none !important;
+  .dci-reward-board[data-state="checking-in"] .dci-status-dot,
+  .dci-reward-board[data-state="claiming"] .dci-status-dot,
+  .dci-reward-board[data-state="checking-in"] .dci-plaza-art__coin,
+  .dci-reward-board[data-state="claiming"] .dci-plaza-art__coin,
+  .dci-day-node--active .dci-day-node__mark,
+  .dci-reward-board[data-state="checking-in"] .dci-day-node--active .dci-day-node__mark,
+  .dci-plaza-art__meter span,
+  .dci-streak-card,
+  .dci-day-node {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

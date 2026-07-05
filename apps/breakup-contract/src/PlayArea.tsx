@@ -1,526 +1,440 @@
-import { useState } from "react";
+/**
+ * PlayArea.tsx - Breakup Contract
+ *
+ * Social/NFT identity. The first screen is a pact desk: review partner, stake,
+ * duration, and the on-chain consequence before creating the wallet intent.
+ * Contract actions live on concrete pact cards in the drawer.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
-  Clock3,
-  Coins,
-  FileText,
-  HeartHandshake,
+  CalendarDays,
+  FileSignature,
+  Handshake,
+  HeartCrack,
+  RefreshCw,
   ShieldCheck,
-  UserRound,
+  Sparkles,
+  UserRoundCheck,
+  WalletCards,
+  XCircle,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import ContractList from "./components/ContractList";
+import type { ObservableState } from "@shared/react/context";
+import { OpenUiNotice, OpenUiPanel, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import type { RelationshipContractView } from "./types";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-const isValidNeoAddress = (value: string) =>
-  /^N[0-9a-zA-Z]{33}$/.test(value.trim());
+const PACT_IMAGE = "pact-table.webp";
+const STAKE_PRESETS = ["1", "5", "10"];
+const DURATION_PRESETS = ["30", "90", "365"];
+type DrawerMode = "setup" | "contracts";
 
-const truncate = (value: string) =>
-  value.length > 24 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
+function compact(value: unknown, empty = "-") {
+  const text = String(value ?? "").trim();
+  if (!text) return empty;
+  return text.length > 22 ? `${text.slice(0, 12)}...${text.slice(-7)}` : text;
+}
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num, str, bool, val } = useStateBindings(state);
+function statusTone(status?: string) {
+  if (status === "active") return "active";
+  if (status === "broken" || status === "cancelled") return "danger";
+  if (status === "ended") return "done";
+  return "pending";
+}
 
-  const contracts = val<unknown[]>("contracts") ?? [];
-  const address = str("address");
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, num, val } = useStateBindings(state);
+
   const contractCount = num("contractCount");
   const activeCount = num("activeCount");
-  const pendingCount = num("pendingCount");
-  const brokenCount = num("brokenCount");
   const isLoading = bool("isLoading");
   const serviceNotice = str("serviceNotice");
   const actionNotice = str("actionNotice");
   const lastSubmittedTitle = str("lastSubmittedTitle");
-  const creditBalance = str("creditBalance");
+  const creditBalance = str("creditBalance", "0");
   const hasCredit = bool("hasCredit");
+  const contracts = (val("contracts") ?? []) as RelationshipContractView[];
 
-  const [partner, setPartner] = useState("");
-  const [stake, setStake] = useState("");
-  const [days, setDays] = useState("90");
-  const [title, setTitle] = useState("");
-  const [terms, setTerms] = useState("");
+  const [partnerAddress, setPartnerAddress] = useState("");
+  const [stakeAmount, setStakeAmount] = useState("1");
+  const [duration, setDuration] = useState("30");
+  const [contractTitle, setContractTitle] = useState("");
+  const [contractTerms, setContractTerms] = useState("");
+  const [actionPreview, setActionPreview] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("setup");
+  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const TITLE_MAX = 100;
-  const TERMS_MAX = 2000;
-  const stakeNumber = Number(stake);
-  const daysNumber = Number(days);
-  const partnerLooksInvalid =
-    partner.trim().length > 0 && !isValidNeoAddress(partner);
-  const stakeLooksInvalid =
-    stake.trim().length > 0 &&
-    (!Number.isFinite(stakeNumber) || stakeNumber < 1);
-  const daysLooksInvalid =
-    days.trim().length > 0 && (!Number.isFinite(daysNumber) || daysNumber < 30);
-  // Length limits mirror the composable's createContract guards (title > 100,
-  // terms > 2000). Surface them inline/pre-submit instead of only after submit.
-  const titleTooLong = title.trim().length > TITLE_MAX;
-  const termsTooLong = terms.trim().length > TERMS_MAX;
-  const canSubmit =
-    isValidNeoAddress(partner) &&
-    Number.isFinite(stakeNumber) &&
-    stakeNumber >= 1 &&
-    Number.isFinite(daysNumber) &&
-    daysNumber >= 30 &&
-    title.trim().length > 0 &&
-    !titleTooLong &&
-    !termsTooLong &&
-    !isLoading;
-  // Single-line "why can't I create yet" prompt: surface the first unmet
-  // requirement near the disabled CTA instead of relying only on the greyed
-  // button. Mirrors canSubmit's field order; goes quiet (ready) once valid.
-  const createHintKey = !isValidNeoAddress(partner)
-    ? "createHintPartner"
-    : !(Number.isFinite(stakeNumber) && stakeNumber >= 1)
-      ? "createHintStake"
-      : !(Number.isFinite(daysNumber) && daysNumber >= 30)
-        ? "createHintDuration"
-        : title.trim().length === 0 || titleTooLong
-          ? "createHintTitle"
-          : "createHintReady";
+  useEffect(() => () => {
+    if (actionPreviewTimeout.current) clearTimeout(actionPreviewTimeout.current);
+  }, []);
 
-  const stakePresets = ["1", "5", "10"];
-  const durationPresets = ["30", "90", "365"];
+  const latestContract = contracts[0] ?? null;
+  const previewTerms = contractTerms.trim() || latestContract?.terms || t("pactPreviewTerms");
+  const partnerReady = partnerAddress.trim().length > 0;
+  const titleReady = contractTitle.trim().length > 0;
+  const stakeReady = Number(stakeAmount) >= 1;
+  const durationReady = Number(duration) >= 30;
+  const formReady = partnerReady && titleReady && stakeReady && durationReady;
+  const busy = isLoading || actionPreview;
+  const pactTitle = contractTitle.trim() || latestContract?.title || t("contractTitlePlaceholder");
+  const pactPartner = partnerReady
+    ? compact(partnerAddress)
+    : latestContract?.partner
+      ? compact(latestContract.partner)
+      : t("pactPreviewPartner");
 
-  const hasContracts = contractCount > 0;
-  const previewTitle = title.trim() || t("pactPreviewUntitled");
-  const previewPartner = partner.trim()
-    ? truncate(partner.trim())
-    : t("pactPreviewPartner");
-  const previewStake = stake.trim() || "0";
-  const previewDays = days.trim() || "90";
-  const previewTerms = terms.trim() || t("pactPreviewTerms");
-  const hasDraftInput = Boolean(
-    partner.trim() || stake.trim() || title.trim() || terms.trim(),
-  );
-  const pactState = isLoading
-    ? "submitting"
-    : canSubmit
-      ? "ready"
-      : hasDraftInput
-        ? "drafting"
-        : "empty";
-  const lifecycleSteps = [
-    {
-      key: "partner",
-      label: t("builderStepPartner"),
-      value: previewPartner,
-      icon: UserRound,
-      active: isValidNeoAddress(partner),
-    },
-    {
-      key: "stake",
-      label: t("builderStepStake"),
-      value: `${previewStake} GAS`,
-      icon: Coins,
-      active: Number.isFinite(stakeNumber) && stakeNumber >= 1,
-    },
-    {
-      key: "terms",
-      label: t("builderStepTerms"),
-      value: previewTitle,
-      icon: FileText,
-      active: title.trim().length > 0 && !titleTooLong && !termsTooLong,
-    },
-    {
-      key: "wallet",
-      label: t("createContract"),
-      value: isLoading
-        ? t("contractPreparing", {
-            title: title || "contract",
-            amount: `${stake || "0"} GAS`,
-          })
-        : canSubmit
-          ? t("createHintReady")
-          : t(createHintKey),
-      icon: ShieldCheck,
-      active: canSubmit || isLoading,
-    },
-  ];
+  const createHint = useMemo(() => {
+    if (!partnerReady) return t("createHintPartner");
+    if (!stakeReady) return t("createHintStake");
+    if (!durationReady) return t("createHintDuration");
+    if (!titleReady) return t("createHintTitle");
+    return t("createHintReady");
+  }, [durationReady, partnerReady, stakeReady, t, titleReady]);
 
-  const handleCreate = async () => {
-    if (!canSubmit) return;
-    // dispatch resolves to the action's result (true only on a real success);
-    // notify.guard swallows failures into error toasts, so a validation/chain
-    // failure must NOT wipe the form — keep the input for retry.
-    const ok = (await dispatch("createContract", {
-      partnerAddress: partner,
-      stakeAmount: stake,
-      duration: days,
-      title,
-      terms,
-    })) as unknown as boolean;
-    if (ok) {
-      setPartner("");
-      setStake("");
-      setDays("90");
-      setTitle("");
-      setTerms("");
-    }
+  const startPreview = () => {
+    if (actionPreviewTimeout.current) clearTimeout(actionPreviewTimeout.current);
+    setActionPreview(true);
+    actionPreviewTimeout.current = setTimeout(() => {
+      setActionPreview(false);
+      actionPreviewTimeout.current = null;
+    }, 1100);
   };
 
-  return (
-    <div className={`breakup-play-area breakup-play-area--${pactState}`}>
-      <div className="breakup-hero">
-        <img
-          className="breakup-hero-image"
-          src="./pact-table.jpg"
-          alt={t("heroImageAlt")}
-        />
-        <div className="breakup-hero-shade" aria-hidden="true" />
-        <div className="breakup-hero-content">
-          <span className="breakup-hero-badge" aria-hidden="true">
-            <HeartHandshake size={24} strokeWidth={2.1} />
-          </span>
-          <span className="breakup-hero-eyebrow">{t("contractTitle")}</span>
-          <h1 className="breakup-hero-title">{t("title")}</h1>
-          <p className="breakup-hero-subtitle">{t("subtitle")}</p>
-          <ul className="breakup-hero-tags" aria-label={t("howItWorksTitle")}>
-            <li className="breakup-hero-tag">
-              <Coins size={14} strokeWidth={2} aria-hidden="true" />
-              {t("heroTagStakeBacked")}
-            </li>
-            <li className="breakup-hero-tag">
-              <ShieldCheck size={14} strokeWidth={2} aria-hidden="true" />
-              {t("heroTagOnChain")}
-            </li>
-            <li className="breakup-hero-tag">
-              <BadgeCheck size={14} strokeWidth={2} aria-hidden="true" />
-              {t("heroTagRefundable")}
-            </li>
-          </ul>
+  const handleCreate = () => {
+    if (!formReady || busy) return;
+    startPreview();
+    void dispatch("createContract", {
+      partnerAddress: partnerAddress.trim(),
+      stakeAmount: stakeAmount.trim(),
+      duration: duration.trim(),
+      title: contractTitle.trim(),
+      terms: contractTerms.trim(),
+    });
+  };
 
-          {hasContracts && (
-            <div className="breakup-hero-metrics" role="group">
-              <span className="breakup-metric">
-                <strong>{activeCount}</strong> {t("active")}
-              </span>
-              <span className="breakup-metric">
-                <strong>{pendingCount}</strong> {t("pending")}
-              </span>
-              <span className="breakup-metric">
-                <strong>{brokenCount}</strong> {t("broken")}
-              </span>
-              <span className="breakup-metric">
-                <strong>{contractCount}</strong> {t("total")}
-              </span>
-            </div>
-          )}
+  const handleRefresh = () => {
+    void dispatch("refreshContracts");
+  };
+
+  const scene = (
+    <div className="breakup-scene" data-state={busy ? "creating" : formReady ? "ready" : "draft"}>
+      <section className="breakup-preview" aria-label={t("pactPreview")}>
+        <div className="breakup-preview__header">
+          <span>{t("pactPreview")}</span>
+          <strong>{pactTitle}</strong>
+          <small>{titleReady ? t("titleLabel") : t("contractTitlePlaceholder")}</small>
         </div>
-      </div>
 
-      <section className="breakup-builder" aria-label={t("newContract")}>
-        <div className="breakup-pact-preview">
-          <div className="breakup-pact-tabletop" aria-hidden="true">
-            <img
-              src="./pact-table.jpg"
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-            <span className="breakup-pact-seal">
-              <HeartHandshake size={22} strokeWidth={2.1} />
-            </span>
-            <span className="breakup-pact-stake">{previewStake} GAS</span>
-          </div>
-          <div className="breakup-pact-document">
-            <span className="breakup-preview-label">{t("pactPreview")}</span>
-            <strong>{previewTitle}</strong>
-            <p>{previewTerms}</p>
-            <div className="breakup-pact-signature" aria-hidden="true">
-              <span />
-              <span />
+        <div className="breakup-preview__partner" data-ready={partnerReady ? "true" : undefined}>
+          <Handshake size={18} />
+          <span>{t("partner")}</span>
+          <strong>{pactPartner}</strong>
+        </div>
+
+        <div className="breakup-preview__terms">
+          <p>{previewTerms}</p>
+        </div>
+
+        <div className="breakup-pact-console" aria-label={t("builderTitle")}>
+          <div className="breakup-summary-grid" aria-label={t("builderStepStake")}>
+            <div className="breakup-summary-card">
+              <span><CoinArt size={18} variant="gas" decorative /> {t("stake")}</span>
+              <strong>{stakeAmount} GAS</strong>
+            </div>
+            <div className="breakup-summary-card">
+              <span><CalendarDays size={16} /> {t("duration")}</span>
+              <strong>{duration} {t("daysSuffix")}</strong>
+            </div>
+            <div className="breakup-summary-card">
+              <span><FileSignature size={16} /> {t("builderStepTerms")}</span>
+              <strong>{contractTerms.trim() ? t("builderStepTerms") : t("partnerTermsOffChain")}</strong>
             </div>
           </div>
-          <div className="breakup-preview-meta">
-            <span>
-              <UserRound size={15} strokeWidth={2} aria-hidden="true" />
-              {previewPartner}
-            </span>
-            <span>
-              <Coins size={15} strokeWidth={2} aria-hidden="true" />
-              {previewStake} GAS
-            </span>
-            <span>
-              <Clock3 size={15} strokeWidth={2} aria-hidden="true" />
-              {previewDays} {t("daysSuffix")}
-            </span>
-          </div>
-          <div className="breakup-preview-rule">
-            <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
-            <span>{t("pactPreviewRule")}</span>
-          </div>
-          <div className="breakup-pact-lifecycle" role="list">
-            {lifecycleSteps.map(({ key, label, value, icon: Icon, active }) => (
-              <span
-                key={key}
-                className={`breakup-pact-lifecycle__step${active ? " is-active" : ""}`}
-                role="listitem"
-              >
-                <Icon size={16} strokeWidth={2} aria-hidden="true" />
-                <small>{label}</small>
-                <strong>{value}</strong>
-              </span>
-            ))}
+          <div className="breakup-status-card" data-ready={formReady ? "true" : undefined}>
+            <ShieldCheck size={17} />
+            <span>{t("walletAction")}</span>
+            <strong>{formReady ? t("createHintReady") : createHint}</strong>
           </div>
         </div>
 
-        <div
-          className={`breakup-builder-panel breakup-builder-panel--${pactState}`}
-        >
-          <div className="breakup-builder-head">
-            <span className="breakup-builder-eyebrow">{t("newContract")}</span>
-            <h2>{t("builderTitle")}</h2>
-            <p>{t("contractDescription")}</p>
-          </div>
-          <div className="breakup-builder-note">
-            <FileText size={16} strokeWidth={2} aria-hidden="true" />
-            <span>{t("clause1")}</span>
-          </div>
-          <div className="breakup-builder-step">
-            <span className="breakup-step-index">01</span>
-            <span>{t("builderStepPartner")}</span>
-          </div>
-          <div className="breakup-field-grid">
-            <NeoInput
-              label={t("partnerAddress")}
-              placeholder="N..."
-              value={partner}
-              error={partnerLooksInvalid ? t("partnerInvalid") : ""}
-              onChange={setPartner}
-            />
-            <NeoInput
-              label={t("titleLabel")}
-              placeholder={t("contractTitlePlaceholder")}
-              value={title}
-              required
-              error={titleTooLong ? t("titleTooLong") : ""}
-              hint={
-                titleTooLong
-                  ? ""
-                  : t("titleCounter", {
-                      count: title.trim().length,
-                      max: TITLE_MAX,
-                    })
-              }
-              onChange={setTitle}
-            />
-          </div>
-          <div className="breakup-builder-step">
-            <span className="breakup-step-index">02</span>
-            <span>{t("builderStepStake")}</span>
-          </div>
-          <div className="create-contract-grid">
-            <div className="breakup-field-stack">
-              <NeoInput
-                label={t("stakeAmount")}
-                placeholder="5"
-                type="number"
-                suffix="GAS"
-                min={1}
-                value={stake}
-                error={stakeLooksInvalid ? t("stakeOrDurationInvalid") : ""}
-                onChange={setStake}
-              />
-              <div className="breakup-presets" aria-label={t("stakeLabel")}>
-                {stakePresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={`breakup-preset${stake === preset ? " is-active" : ""}`}
-                    onClick={() => setStake(preset)}
-                  >
-                    {preset} GAS
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="breakup-field-stack">
-              <NeoInput
-                label={t("durationDays")}
-                placeholder="90"
-                type="number"
-                suffix={t("daysSuffix")}
-                min={30}
-                value={days}
-                error={daysLooksInvalid ? t("stakeOrDurationInvalid") : ""}
-                onChange={setDays}
-              />
-              <div className="breakup-presets" aria-label={t("durationLabel")}>
-                {durationPresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={`breakup-preset${days === preset ? " is-active" : ""}`}
-                    onClick={() => setDays(preset)}
-                  >
-                    {preset} {t("daysSuffix")}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="breakup-builder-step">
-            <span className="breakup-step-index">03</span>
-            <span>{t("builderStepTerms")}</span>
-          </div>
-          <NeoInput
-            label={t("contractTerms")}
-            placeholder={t("contractTermsPlaceholder")}
-            type="textarea"
-            className="breakup-terms-input"
-            value={terms}
-            error={termsTooLong ? t("termsTooLong") : ""}
-            hint={
-              termsTooLong
-                ? ""
-                : t("termsCounter", {
-                    count: terms.trim().length,
-                    max: TERMS_MAX,
-                  })
-            }
-            onChange={setTerms}
-          />
-          {actionNotice && (
-            <div className="breakup-action-notice" role="status">
-              {actionNotice}
-            </div>
-          )}
-          <div className="breakup-create-action">
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              className={`breakup-create-cta${canSubmit ? " is-ready" : ""}`}
-              loading={isLoading}
-              disabled={!canSubmit}
-              aria-label={
-                isLoading
-                  ? t("contractPreparing", {
-                      title: title || "contract",
-                      amount: `${stake || "0"} GAS`,
-                    })
-                  : t("createContract")
-              }
-              onClick={handleCreate}
-            >
-              {t("createContract")}
-            </NeoButton>
-            {!isLoading && (
-              <p
-                className={`breakup-create-hint${canSubmit ? " is-ready" : ""}`}
-                aria-live="polite"
-              >
-                {t(createHintKey)}
-              </p>
-            )}
-          </div>
-        </div>
+        <p className="breakup-preview__rule">
+          <HeartCrack size={16} />
+          {t("pactPreviewRule")}
+        </p>
       </section>
 
-      {/* How-it-works explainer — fills the empty/first-paint viewport with the
-          pact lifecycle so the lower page is not a void. Hidden once there are
-          real contracts (or a result/notice) to show in the list below. */}
-      {!hasContracts && !lastSubmittedTitle && !serviceNotice && (
-        <NeoCard
-          title={t("howItWorksTitle")}
-          className="breakup-howitworks-card"
-        >
-          <ol className="breakup-howitworks">
-            <li className="breakup-howitworks-step">
-              <span className="breakup-howitworks-num" aria-hidden="true">
-                1
-              </span>
-              <div className="breakup-howitworks-text">
-                <strong>{t("howItWorksStakeTitle")}</strong>
-                <span>{t("howItWorksStakeCopy")}</span>
-              </div>
-            </li>
-            <li className="breakup-howitworks-step">
-              <span className="breakup-howitworks-num" aria-hidden="true">
-                2
-              </span>
-              <div className="breakup-howitworks-text">
-                <strong>{t("howItWorksBreakTitle")}</strong>
-                <span>{t("howItWorksBreakCopy")}</span>
-              </div>
-            </li>
-            <li className="breakup-howitworks-step">
-              <span className="breakup-howitworks-num" aria-hidden="true">
-                3
-              </span>
-              <div className="breakup-howitworks-text">
-                <strong>{t("howItWorksSettleTitle")}</strong>
-                <span>{t("howItWorksSettleCopy")}</span>
-              </div>
-            </li>
-          </ol>
-        </NeoCard>
-      )}
-
-      {/* Stranded stake-credit recovery — a deposit that landed without its
-          create/sign completing (e.g. a rejected second prompt) is held as
-          reusable prepaid credit; withdraw returns it to the wallet. Shown only
-          when there is recoverable credit. */}
-      {hasCredit && (
-        <NeoCard
-          title={t("creditRecoveryTitle")}
-          className="breakup-credit-card"
-        >
-          <p className="breakup-credit-copy">{t("creditRecoveryCopy")}</p>
-          <div className="breakup-credit-row">
-            <span className="breakup-credit-amount">
-              <strong>{creditBalance}</strong> GAS
-            </span>
-            <NeoButton
-              variant="primary"
-              size="sm"
-              loading={isLoading}
-              disabled={isLoading}
-              onClick={() => dispatch("withdrawCredit")}
-            >
-              {t("recoverCredit")}
-            </NeoButton>
+      <section className="breakup-desk" aria-label={t("pactPreview")}>
+        <div className="breakup-desk__media">
+          <img className="breakup-desk__image" src={PACT_IMAGE} alt="" aria-hidden="true" />
+        </div>
+        <span className="breakup-desk__chip"><Sparkles size={14} />{t("heroTagStakeBacked")}</span>
+        <div className="breakup-desk__pact" data-ready={formReady ? "true" : undefined}>
+          <div>
+            <span>{t("pactPreview")}</span>
+            <strong>{pactTitle}</strong>
           </div>
-        </NeoCard>
+          <dl>
+            <div>
+              <dt>{t("partner")}</dt>
+              <dd>{pactPartner}</dd>
+            </div>
+            <div>
+              <dt>{t("stake")}</dt>
+              <dd>{stakeAmount} GAS</dd>
+            </div>
+            <div>
+              <dt>{t("duration")}</dt>
+              <dd>{duration} {t("daysSuffix")}</dd>
+            </div>
+          </dl>
+          <em>{formReady ? t("createHintReady") : createHint}</em>
+        </div>
+        <div className="breakup-desk__signatures" aria-label={t("contractTitle")}>
+          <span data-ready="true"><UserRoundCheck size={16} />{t("builderStepPartner")}</span>
+          <span data-ready={formReady ? "true" : undefined}><FileSignature size={16} />{t("builderStepTerms")}</span>
+        </div>
+      </section>
+    </div>
+  );
+
+  const drawer = (
+    <div className="breakup-drawer">
+      {(serviceNotice || actionNotice || lastSubmittedTitle) && (
+        <OpenUiNotice className="breakup-notices" icon={<Sparkles size={17} />} title={t("walletAction")}>
+          {serviceNotice && <p>{serviceNotice}</p>}
+          {actionNotice && <p>{actionNotice}</p>}
+          {lastSubmittedTitle && <p>{t("lastSubmittedContract", { title: lastSubmittedTitle })}</p>}
+        </OpenUiNotice>
       )}
 
-      {/* Contracts — only shown once there is something to list */}
-      {(hasContracts || lastSubmittedTitle || serviceNotice) && (
-        <NeoCard title={t("contracts")} className="breakup-list-card">
-          {lastSubmittedTitle && (
-            <div className="breakup-last-submit" role="status">
-              {t("lastSubmittedContract", { title: lastSubmittedTitle })}
+      <OpenUiSegmented
+        className="breakup-drawer-tabs"
+        label={t("builderTitle")}
+        onChange={(value) => setDrawerMode(value === "contracts" ? "contracts" : "setup")}
+        options={[
+          { value: "setup", label: t("builderStepPartner") },
+          { value: "contracts", label: t("contracts") },
+        ]}
+        value={drawerMode}
+      />
+
+      <div className="breakup-drawer__panel" data-mode={drawerMode}>
+        {drawerMode === "setup" && (
+          <OpenUiPanel
+            className="breakup-drawer-panel breakup-drawer-editor"
+            icon={<FileSignature size={16} />}
+            title={t("pactDetails")}
+            subtitle={t("partnerTermsOffChain")}
+          >
+            <div className="breakup-drawer-editor__grid">
+              <OpenUiTextField
+                className="breakup-field breakup-field--title"
+                inputClassName="breakup-input--title"
+                label={t("titleLabel")}
+                value={contractTitle}
+                onChange={(event) => setContractTitle(event.target.value)}
+                placeholder={latestContract?.title || t("contractTitlePlaceholder")}
+                maxLength={100}
+              />
+              <OpenUiTextField
+                className="breakup-field breakup-field--partner"
+                inputClassName="breakup-input--partner"
+                label={t("partnerAddress")}
+                value={partnerAddress}
+                onChange={(event) => setPartnerAddress(event.target.value)}
+                placeholder={latestContract?.partner ? compact(latestContract.partner) : t("partnerPlaceholder")}
+              />
+              <OpenUiTextField
+                className="breakup-field breakup-field--stake"
+                inputClassName="breakup-input--stake"
+                label={t("stakeLabel")}
+                value={stakeAmount}
+                onChange={(event) => setStakeAmount(event.target.value)}
+                placeholder={t("stakePlaceholder")}
+                inputMode="decimal"
+              />
+              <OpenUiTextField
+                className="breakup-field breakup-field--duration"
+                inputClassName="breakup-input--duration"
+                label={t("durationLabel")}
+                value={duration}
+                onChange={(event) => setDuration(event.target.value)}
+                placeholder={t("durationPlaceholder")}
+                inputMode="numeric"
+              />
+              <OpenUiTextArea
+                className="breakup-field breakup-field--terms mx2-open-field--compact"
+                textareaClassName="breakup-input--terms"
+                label={t("termsLabel")}
+                value={contractTerms}
+                onChange={(event) => setContractTerms(event.target.value)}
+                placeholder={t("contractTermsPlaceholder")}
+                maxLength={2000}
+                rows={3}
+              />
             </div>
-          )}
-          {serviceNotice && (
-            <p className="breakup-service-hint" role="status">
-              <strong>{t("contractServiceUnavailableTitle")}</strong>
-              <span>{serviceNotice}</span>
-            </p>
-          )}
-          <ContractList
-            contracts={contracts}
-            address={address || null}
-            onSign={(c: unknown) => dispatch("signContract", c)}
-            onBreak={(c: unknown) => dispatch("breakContract", c)}
-            onCancel={(c: unknown) => dispatch("cancelContract", c)}
-            onSettle={(c: unknown) => dispatch("settleContract", c)}
-            busy={isLoading}
-            t={t}
-          />
-          {contracts.length === 0 && !isLoading && !serviceNotice && (
-            <p className="breakup-list-empty">{t("noContractsHint")}</p>
-          )}
-        </NeoCard>
-      )}
+            <div className="breakup-preset-board breakup-preset-board--drawer">
+              <div className="breakup-preset-group" role="radiogroup" aria-label={t("stakeLabel")}>
+                <span>{t("stakeLabel")}</span>
+                <div>
+                  {STAKE_PRESETS.map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      aria-checked={stakeAmount === amount}
+                      role="radio"
+                      className={stakeAmount === amount ? "is-selected" : undefined}
+                      onClick={() => setStakeAmount(amount)}
+                    >
+                      <CoinArt size={18} variant="gas" decorative />
+                      {amount} GAS
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="breakup-preset-group" role="radiogroup" aria-label={t("durationLabel")}>
+                <span>{t("durationLabel")}</span>
+                <div>
+                  {DURATION_PRESETS.map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      aria-checked={duration === days}
+                      role="radio"
+                      className={duration === days ? "is-selected" : undefined}
+                      onClick={() => setDuration(days)}
+                    >
+                      <CalendarDays size={16} />
+                      {days} {t("daysSuffix")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </OpenUiPanel>
+        )}
+
+        {drawerMode === "contracts" && (
+          <div className="breakup-contracts-panel">
+            {hasCredit && (
+              <OpenUiPanel
+                className="breakup-drawer-panel breakup-credit"
+                icon={<WalletCards size={16} />}
+                title={t("creditRecoveryTitle")}
+                subtitle={`${creditBalance} GAS`}
+              >
+                <button type="button" onClick={() => void dispatch("withdrawCredit")}>{t("recoverCredit")}</button>
+              </OpenUiPanel>
+            )}
+
+            <OpenUiPanel
+              className="breakup-drawer-panel breakup-contract-list"
+              icon={<FileSignature size={16} />}
+              title={t("contracts")}
+              subtitle={`${contractCount} ${t("contracts")}`}
+            >
+              <div className="breakup-drawer__head">
+                <button type="button" onClick={handleRefresh} disabled={isLoading}>
+                  <RefreshCw size={14} />
+                  {t("refreshRecords")}
+                </button>
+              </div>
+
+              {contracts.length > 0 ? (
+                <ul className="breakup-contracts">
+                  {contracts.slice(0, 10).map((contract) => (
+                    <li key={contract.pactId || contract.id} className="breakup-contract" data-tone={statusTone(contract.status)}>
+                      <div className="breakup-contract__main">
+                        <span className="breakup-contract__icon"><FileSignature size={17} /></span>
+                        <span>
+                          <strong>{contract.title || t("untitledContract")}</strong>
+                          <em>#{contract.pactId || contract.id} · {t(contract.status || "pending")}</em>
+                        </span>
+                      </div>
+
+                      <div className="breakup-contract__meta">
+                        <span>{t("stake")}: <strong>{contract.stake} GAS</strong></span>
+                        <span>{t("partner")}: <strong>{compact(contract.partner || contract.party2)}</strong></span>
+                      </div>
+
+                      <div className="breakup-contract__actions">
+                        {contract.status === "pending" && (
+                          <>
+                            <button type="button" onClick={() => void dispatch("signContract", contract)}>{t("signContract")}</button>
+                            {contract.isCreator && <button type="button" onClick={() => void dispatch("cancelContract", contract)}>{t("cancelContract")}</button>}
+                          </>
+                        )}
+                        {contract.status === "active" && (
+                          <>
+                            <button type="button" onClick={() => void dispatch("breakContract", contract)}>{t("breakContract")}</button>
+                            {contract.settleable && <button type="button" onClick={() => void dispatch("settleContract", contract)}>{t("settleContract")}</button>}
+                          </>
+                        )}
+                        {contract.status !== "pending" && contract.status !== "active" && (
+                          <span className="breakup-contract__closed"><XCircle size={14} />{t(contract.status || "ended")}</span>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="breakup-empty">
+                  <FileSignature size={18} />
+                  <strong>{t("noContracts")}</strong>
+                  <span>{t("noContractsHint")}</span>
+                </div>
+              )}
+            </OpenUiPanel>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="breakup-contract-play-area mx2 mx2-cat-nft">
+      <PlayStage
+        category="nft"
+        stage={{
+          eyebrow: t("contractTitle"),
+          title: t("title"),
+          subtitle: t("docSubtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {contractCount} {t("contracts")}</span>
+              <span className="mx2-badge">{activeCount} {t("active")}</span>
+            </>
+          ),
+        }}
+        scene={scene}
+        actions={{
+          primary: {
+            label: busy ? t("preparingWallet") : t("createContract"),
+            onClick: handleCreate,
+            loading: busy,
+            disabled: busy || !formReady,
+            icon: <BadgeCheck size={17} />,
+          },
+          secondary: [
+            {
+              label: t("refreshRecords"),
+              onClick: handleRefresh,
+              loading: isLoading,
+              icon: <RefreshCw size={16} />,
+            },
+          ],
+        }}
+        drawerToggleLabel={t("builderTitle")}
+        drawer={{ title: t("builderTitle"), children: drawer }}
+      />
     </div>
   );
 }

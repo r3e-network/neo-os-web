@@ -1,9 +1,11 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "App", zh: "应用" },
   // tabs / nav
   composeTab: { en: "Compose", zh: "撰写" },
   inboxTab: { en: "Inbox", zh: "收件箱" },
+  deliveryTab: { en: "Delivery", zh: "投递" },
 
   // hero
   heroEyebrow: { en: "Private messages", zh: "私密消息" },
@@ -42,8 +44,8 @@ const appMessages = {
   recipientDeskEmpty: { en: "Recipient pending", zh: "收件人待定" },
   deliveryDeskRecipient: { en: "Recipient-only seal", zh: "收件人私密封存" },
   deliveryDeskTimed: { en: "Timed public reveal", zh: "定时公开揭示" },
-  readinessDeskNeedsDetails: { en: "Needs details", zh: "等待补全" },
-  readinessDeskNeedsAck: { en: "Needs consent", zh: "等待确认" },
+  readinessDeskNeedsDetails: { en: "Shorten note", zh: "请缩短信件" },
+  readinessDeskNeedsAck: { en: "Reveal consent pending", zh: "等待公开确认" },
   readinessDeskReady: { en: "Wallet ready", zh: "钱包可发送" },
   recipientLabel: { en: "Send to (Neo X address)", zh: "发送给（Neo X 地址）" },
   recipientNicknameLabel: { en: "Nickname (optional, just for you)", zh: "昵称（可选，仅你可见）" },
@@ -53,14 +55,14 @@ const appMessages = {
   messagePreviewTitle: { en: "Sealed message preview", zh: "封存消息预览" },
   messageDraftEmpty: { en: "Your note preview appears here while you write.", zh: "你写下内容后，会在这里预览信件。" },
   recipientPreviewLabel: { en: "To", zh: "收件人" },
-  recipientPreviewEmpty: { en: "Choose a recipient", zh: "选择收件人" },
+  recipientPreviewEmpty: { en: "No recipient yet", zh: "尚未选择收件人" },
   deliveryPreviewLabel: { en: "Delivery", zh: "投递方式" },
   characterBudgetLabel: { en: "Length", zh: "长度" },
   privateSealLabel: { en: "Private seal", zh: "私密封存" },
   publicRevealLabel: { en: "Public later", zh: "到时公开" },
-  readinessNeedRecipient: { en: "Add a valid recipient", zh: "添加有效收件人" },
-  readinessNeedMessage: { en: "Write a message", zh: "填写消息内容" },
-  readinessNeedAck: { en: "Confirm public reveal", zh: "确认公开揭示" },
+  readinessNeedRecipient: { en: "Recipient seal pending", zh: "等待收件人封存" },
+  readinessNeedMessage: { en: "Blank note draft", zh: "空白信件草稿" },
+  readinessNeedAck: { en: "Reveal consent pending", zh: "等待公开确认" },
   readinessReady: { en: "Ready to send", zh: "可以发送" },
   deliveryModeLabel: { en: "Delivery mode", zh: "投递模式" },
   modeRecipient: { en: "Just for them", zh: "只给对方" },
@@ -110,6 +112,7 @@ const appMessages = {
   bodyCounter: { en: "{count}/{max}", zh: "{count}/{max}" },
 
   // message states / actions
+  statusBadgeRecipient: { en: "Sealed", zh: "已封存" },
   statusBadgeSealed: { en: "Sealed", zh: "已封存" },
   statusBadgeLocked: { en: "Locked", zh: "锁定中" },
   statusBadgeUnlockable: { en: "Ready", zh: "可解锁" },

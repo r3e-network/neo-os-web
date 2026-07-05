@@ -1,619 +1,294 @@
-import { useMemo, useState } from "react";
+/**
+ * PlayArea.tsx - Oracle NeoDID Console.
+ *
+ * Identity request desk: the DID, provider, claim, and receipt are foreground
+ * objects. The generated identity artwork is a quiet supporting asset, not a
+ * full-stage backdrop.
+ */
+import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
-  Check,
-  ChevronDown,
-  Copy,
-  FileJson2,
   Fingerprint,
   IdCard,
   KeyRound,
   Network,
-  Play,
-  RotateCcw,
-  ScanSearch,
   ShieldCheck,
-  Sparkles,
-  UserCheck,
-  WalletCards,
+  type LucideIcon,
 } from "lucide-react";
-import {
-  NeoButton,
-  NeoInput,
-  type ConsoleFieldOption,
-  type ConsoleResult,
-} from "@shared/components-react";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
-import { consoleConfig } from "./appConfig";
+import { PlayStage } from "@shared/components-react/v2";
+import {
+  appMeta,
+  consoleConfig,
+  isValidCallback,
+  isValidDid,
+} from "./appConfig";
 import "./PlayArea.scss";
 
-function initialValues(
-  launchParams: Record<string, string> = {},
-): Record<string, string> {
-  return consoleConfig.fields.reduce<Record<string, string>>((acc, field) => {
-    acc[field.key] = launchParams[field.key] ?? field.defaultValue ?? "";
-    return acc;
-  }, {});
+interface PlayAreaProps {
+  t: (key: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-function setObservable(state: ObservableState, key: string, value: unknown) {
-  const observable = state[key];
-  if (observable && typeof observable.set === "function") {
-    observable.set(value);
-  }
+interface TrackItem {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  detail: string;
+  active?: boolean;
 }
 
-function readObservable(state: ObservableState, key: string, fallback: string) {
-  const value = state[key]?.get?.();
-  return value == null || value === "" ? fallback : String(value);
+const IDENTITY_STAGE_IMAGE = "neodid-identity-stage.webp";
+
+function defaultFieldValue(key: string): string {
+  const field = consoleConfig.fields.find((item) => item.key === key);
+  return String(field?.defaultValue ?? "");
 }
 
-function optionLabel(option: ConsoleFieldOption, t: PlayAreaProps["t"]) {
-  return option.labelKey ? t(option.labelKey) : (option.label ?? option.value);
+function optionLabel(
+  fieldKey: string,
+  value: string,
+  t: (key: string, p?: Record<string, string | number>) => string,
+): string {
+  const field = consoleConfig.fields.find((item) => item.key === fieldKey);
+  const option = field?.options?.find((item) => item.value === value);
+  if (option?.labelKey) return t(option.labelKey);
+  if (option?.label) return option.label;
+  return value || t("notAvailable");
 }
 
-function boolLabel(value: unknown, t: PlayAreaProps["t"]) {
-  return value === true ? t("yes") : t("no");
+function compactValue(value: string, fallback: string, head = 16, tail = 10) {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  if (text.length <= head + tail + 3) return text;
+  return `${text.slice(0, head)}...${text.slice(-tail)}`;
 }
 
-function providerHint(value: string, t: PlayAreaProps["t"]) {
-  if (value === "wallet-signature") return t("providerWalletHint");
-  if (value === "social-attestation") return t("providerSocialHint");
-  return t("providerRegistryHint");
-}
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+  const { str, num } = useStateBindings(state);
+  const networkLabel = str("networkLabel");
+  const endpointLabel = str("endpointLabel");
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const digestPlaceholder = t("digestPlaceholder");
+  const lastDigest = str("lastDigest", digestPlaceholder);
+  const requestCount = num("requestCount");
 
-function providerIcon(value: string) {
-  if (value === "wallet-signature") return <WalletCards size={18} />;
-  if (value === "social-attestation") return <UserCheck size={18} />;
-  return <Network size={18} />;
-}
+  const [actionPreview, setActionPreview] = useState(false);
+  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-export default function PlayArea({
-  t,
-  state,
-  services,
-  setStatus,
-  launchContext,
-}: PlayAreaProps) {
-  const [values, setValues] = useState(() =>
-    initialValues(launchContext?.params),
-  );
-  const [result, setResult] = useState<ConsoleResult | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [initialDigest] = useState(() =>
-    readObservable(state, "lastDigest", t("digestPlaceholder")),
-  );
-  const [initialStatus] = useState(() =>
-    readObservable(state, "lastStatus", t("statusReady")),
+  useEffect(
+    () => () => {
+      if (previewTimeout.current) clearTimeout(previewTimeout.current);
+    },
+    [],
   );
 
-  const payloadText = useMemo(
-    () => (result ? JSON.stringify(result.payload, null, 2) : ""),
-    [result],
-  );
-  const draftResult = useMemo(
-    () => consoleConfig.buildResult(values, t),
-    [values, t],
-  );
-  const networkLabel = readObservable(state, "networkLabel", t("notAvailable"));
-  const endpointLabel = readObservable(
-    state,
-    "endpointLabel",
-    t("notAvailable"),
-  );
-  const lastStatus = readObservable(state, "lastStatus", initialStatus);
-  const lastDigest = readObservable(state, "lastDigest", initialDigest);
-  const requestCount = readObservable(state, "requestCount", "0");
-  const providerField = consoleConfig.fields.find(
-    (field) => field.key === "provider",
-  );
-  const providerOptions = providerField?.options ?? [];
-  const selectedProvider =
-    providerOptions.find((option) => option.value === values.provider) ??
-    providerOptions[0];
-  const selectedProviderLabel = selectedProvider
-    ? optionLabel(selectedProvider, t)
-    : values.provider;
-  const didText = String(values.did ?? "").trim();
-  const claimText = String(values.claim ?? "").trim();
-  const callbackText = String(values.callback ?? "").trim();
-  const didValid = draftResult.payload.didValid === true;
-  const claimReady = claimText.length > 0;
-  const callbackValid = callbackText
-    ? draftResult.payload.callbackValid === true
-    : true;
-  const draftOk = draftResult.payload.status !== "input_required";
-  const resultOk = result?.payload.status !== "input_required";
-  const previewDigest = String(
-    draftResult.payload.digest ?? t("digestPlaceholder"),
-  );
-  const summaryItems = [
+  const startPreview = () => {
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+    setActionPreview(true);
+    previewTimeout.current = setTimeout(() => {
+      setActionPreview(false);
+      previewTimeout.current = null;
+    }, 1200);
+  };
+
+  const handleBuild = () => {
+    startPreview();
+    void dispatch("buildRequest", { did, provider, claim, callback });
+  };
+
+  const did = defaultFieldValue("did");
+  const provider = defaultFieldValue("provider") || "neodid-registry";
+  const claim = defaultFieldValue("claim");
+  const callback = defaultFieldValue("callback");
+  const didReady = isValidDid(did);
+  const callbackReady = isValidCallback(callback);
+  const claimReady = claim.trim().length > 0;
+  const formatReady = didReady && callbackReady && claimReady;
+  const providerLabel = optionLabel("provider", provider, t);
+  const digestReady = Boolean(lastDigest && lastDigest !== digestPlaceholder);
+  const visibleDigest = compactValue(lastDigest, digestPlaceholder, 14, 10);
+  const statusLabel = actionPreview
+    ? t("previewReady")
+    : digestReady
+      ? t("neodidValidationReady")
+      : formatReady
+        ? t("ready")
+        : t("validationBlocked");
+  const primaryLabel = actionPreview
+    ? t("neodidBuildActive")
+    : t(consoleConfig.primaryActionKey || "buildRequest");
+
+  const track: TrackItem[] = [
     {
       key: "did",
-      label: t("did"),
-      value: didText || t("inputRequired"),
-    },
-    {
-      key: "provider",
-      label: t("providerShort"),
-      value: selectedProviderLabel,
-    },
-    {
-      key: "claim",
-      label: t("claim"),
-      value: claimText || t("inputRequired"),
-    },
-    {
-      key: "callback",
-      label: t("callbackShort"),
-      value: callbackText || t("callbackOptional"),
-    },
-  ];
-  const identityTrackClassName = [
-    "neodid-identity-track",
-    draftOk ? "is-ready" : "is-blocked",
-    didValid ? "has-did" : "",
-    claimReady ? "has-claim" : "",
-    callbackValid ? "has-callback" : "callback-blocked",
-    result ? "has-result" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const identityTrackNodes = [
-    {
-      key: "did",
-      icon: <IdCard size={18} aria-hidden="true" />,
+      icon: IdCard,
       label: t("neodidTrackSubject"),
-      value: didValid ? didText : t("inputRequired"),
-      ready: didValid,
+      value: compactValue(did, t("did"), 17, 11),
+      detail: didReady ? t("didReadyHint") : t("didInvalidHint"),
+      active: didReady,
     },
     {
       key: "provider",
-      icon: <ScanSearch size={18} aria-hidden="true" />,
+      icon: ShieldCheck,
       label: t("neodidTrackProvider"),
-      value: selectedProviderLabel,
-      ready: true,
+      value: providerLabel,
+      detail: t("providerRegistryHint"),
+      active: true,
     },
     {
       key: "claim",
-      icon: <BadgeCheck size={18} aria-hidden="true" />,
+      icon: BadgeCheck,
       label: t("neodidTrackClaim"),
-      value: claimReady ? claimText : t("inputRequired"),
-      ready: claimReady,
+      value: claim || t("claim"),
+      detail: claimReady ? t("claimReadyHint") : t("claimMissingHint"),
+      active: claimReady,
     },
     {
       key: "receipt",
-      icon: <KeyRound size={18} aria-hidden="true" />,
+      icon: Fingerprint,
       label: t("neodidTrackReceipt"),
-      value: draftOk ? previewDigest : t("inputRequired"),
-      ready: draftOk,
+      value: visibleDigest,
+      detail: digestReady ? lastDigest : t("neodidEmptyCopy"),
+      active: digestReady,
     },
   ];
 
-  function updateValue(key: string, value: string) {
-    setValues((current) => ({ ...current, [key]: value }));
-  }
+  const scene = (
+    <div
+      className="neodid-workspace"
+      data-state={actionPreview ? "building" : digestReady ? "ready" : "idle"}
+    >
+      <section className="neodid-request-card" aria-label={t("neodidPlan")}>
+        <header className="neodid-request-card__head">
+          <span className="neodid-request-card__icon" aria-hidden="true">
+            <IdCard size={22} strokeWidth={2.3} />
+          </span>
+          <div>
+            <span>{t("neodidIdentityTrackTitle")}</span>
+            <strong>{lastStatus}</strong>
+          </div>
+          <span className="neodid-request-card__badge">
+            <span className="neodid-status-dot" />
+            {statusLabel}
+          </span>
+        </header>
 
-  function applyResult(next: ConsoleResult) {
-    setResult(next);
-    const ok = next.payload.status !== "input_required";
-    setObservable(state, "lastStatus", next.status);
-    const digest = next.payload.digest ?? next.payload.requestId;
-    if (ok && digest != null && digest !== "") {
-      setObservable(state, "lastDigest", String(digest));
-    } else if (!ok) {
-      setObservable(
-        state,
-        "lastDigest",
-        readObservable(state, "lastDigest", t("notAvailable")),
-      );
-    }
-    if (ok) {
-      const count = Number(state.requestCount?.get?.() ?? 0);
-      setObservable(state, "requestCount", count + 1);
-    }
-    setStatus(next.status, ok ? "success" : "warning");
-  }
+        <p className="neodid-request-card__copy">{t("neodidPlanCopy")}</p>
 
-  function buildPreview() {
-    applyResult(consoleConfig.buildResult(values, t));
-  }
+        <div className="neodid-track" aria-label={t("neodidFlowTitle")}>
+          {track.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article
+                key={item.key}
+                className="neodid-track__item"
+                data-active={item.active ? "true" : "false"}
+              >
+                <span className="neodid-track__icon" aria-hidden="true">
+                  <Icon size={17} strokeWidth={2.35} />
+                </span>
+                <span className="neodid-track__label">{item.label}</span>
+                <strong>{item.value}</strong>
+                <small>{item.detail}</small>
+              </article>
+            );
+          })}
+        </div>
 
-  function reset() {
-    setValues(initialValues(launchContext?.params));
-    setResult(null);
-    setObservable(state, "lastStatus", initialStatus);
-    setObservable(state, "lastDigest", initialDigest);
-    setObservable(state, "requestCount", 0);
-  }
+        <div className="neodid-receipt-strip" aria-label={t("neodidReceipt")}>
+          <span>{t("statDigest")}</span>
+          <code>{visibleDigest}</code>
+        </div>
+      </section>
 
-  async function copyPayload() {
-    if (!payloadText) return;
-    await services.clipboard.copy(payloadText, consoleConfig.copiedKey);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
-  }
+      <aside className="neodid-side-panel" aria-label={t("neodidCatalogTitle")}>
+        <figure className="neodid-stage-art" aria-hidden="true">
+          <img src={IDENTITY_STAGE_IMAGE} alt="" loading="eager" decoding="async" />
+        </figure>
+
+        <section className="neodid-catalog-card">
+          <div className="neodid-catalog-card__head">
+            <span className="neodid-catalog-card__icon" aria-hidden="true">
+              <KeyRound size={18} strokeWidth={2.35} />
+            </span>
+            <div>
+              <span>{t("neodidCatalogTitle")}</span>
+              <strong>{providerLabel}</strong>
+            </div>
+          </div>
+          <p>{t("neodidCatalogCopy")}</p>
+          <dl className="neodid-catalog-card__facts">
+            <div>
+              <dt>{t("claim")}</dt>
+              <dd>{claim}</dd>
+            </div>
+            <div>
+              <dt>{t("callbackShort")}</dt>
+              <dd>{callback || t("callbackOptional")}</dd>
+            </div>
+            <div>
+              <dt>{t("statRequests")}</dt>
+              <dd>{requestCount}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="neodid-route-card" aria-label={t("statEndpoint")}>
+          <Network size={17} strokeWidth={2.35} aria-hidden="true" />
+          <span>{t("statEndpoint")}</span>
+          <strong>{endpointLabel || appMeta.endpointLabel}</strong>
+        </section>
+      </aside>
+    </div>
+  );
 
   return (
-    <div className="neodid-play-area">
-      <section className="neodid-hero" aria-label={t("panelTitle")}>
-        <img
-          className="neodid-hero__media"
-          src="./neodid-identity-stage.jpg"
-          alt={t("neodidHeroAlt")}
-          loading="eager"
-          decoding="async"
-        />
-        <div className="neodid-hero__shade" aria-hidden="true" />
-        <div className="neodid-hero__copy">
-          <span className="neodid-hero__badge" aria-hidden="true">
-            <IdCard size={24} />
-          </span>
-          <span className="neodid-eyebrow">{t("panelEyebrow")}</span>
-          <h2>{t("panelTitle")}</h2>
-          <p>{t("neodidHeroCopy")}</p>
-          <div
-            className="neodid-hero__pills"
-            aria-label={t("neodidStatusLabel")}
-          >
-            <span>
-              <ShieldCheck size={15} aria-hidden="true" />
-              {lastStatus}
+    <div className="oracle-neodid-play-area mx2 mx2-cat-tool">
+      <PlayStage
+        category="tool"
+        stage={{
+          eyebrow: t(consoleConfig.eyebrowKey || "panelEyebrow"),
+          title: t(consoleConfig.titleKey || "panelTitle"),
+          subtitle: endpointLabel || "",
+          badges: (
+            <span className="mx2-badge" data-tone="accent">
+              <span className="mx2-badge__dot" /> {networkLabel || appMeta.networkLabel}
             </span>
-            <span>
-              <Fingerprint size={15} aria-hidden="true" />
-              {lastDigest}
-            </span>
-          </div>
-        </div>
-        <div className="neodid-hero__metrics" aria-label={t("statistics")}>
-          <span>
-            <small>{t("statNetwork")}</small>
-            <strong>{networkLabel}</strong>
-          </span>
-          <span>
-            <small>{t("statEndpoint")}</small>
-            <strong>{endpointLabel}</strong>
-          </span>
-          <span>
-            <small>{t("statRequests")}</small>
-            <strong>{requestCount}</strong>
-          </span>
-        </div>
-      </section>
-
-      <section className="neodid-flow" aria-label={t("neodidFlowTitle")}>
-        <span>
-          <IdCard size={18} aria-hidden="true" />
-          <strong>{t("neodidFlowSubject")}</strong>
-          <small>{t("neodidFlowSubjectDesc")}</small>
-        </span>
-        <span>
-          <ScanSearch size={18} aria-hidden="true" />
-          <strong>{t("neodidFlowProvider")}</strong>
-          <small>{t("neodidFlowProviderDesc")}</small>
-        </span>
-        <span>
-          <KeyRound size={18} aria-hidden="true" />
-          <strong>{t("neodidFlowReceipt")}</strong>
-          <small>{t("neodidFlowReceiptDesc")}</small>
-        </span>
-      </section>
-
-      <section className="neodid-workspace">
-        <div className="neodid-request-card" aria-label={t("neodidPlan")}>
-          <header className="neodid-card-head">
-            <span aria-hidden="true">
-              <Sparkles size={19} />
-            </span>
-            <div>
-              <small>{t("neodidPlan")}</small>
-              <strong>{t("neodidPlanCopy")}</strong>
-            </div>
-          </header>
-
-          <div
-            className="neodid-catalog-band"
-            role="note"
-            aria-label={t("neodidCatalogTitle")}
-          >
-            <ScanSearch size={18} aria-hidden="true" />
-            <span>
-              <strong>{t("neodidCatalogTitle")}</strong>
-              <small>{t("neodidCatalogCopy")}</small>
-            </span>
-          </div>
-
-          <section
-            className={identityTrackClassName}
-            aria-label={t("neodidIdentityTrackTitle")}
-          >
-            <picture className="neodid-identity-track__token" aria-hidden="true">
-              <source srcSet="./logo.avif" type="image/avif" />
-              <source srcSet="./logo.webp" type="image/webp" />
-              <img src="./logo.jpg" alt="" loading="eager" decoding="sync" />
-            </picture>
-            <span className="neodid-identity-track__rail" aria-hidden="true" />
-            {identityTrackNodes.map((node) => (
-              <div
-                key={node.key}
-                className={`neodid-identity-track__node${
-                  node.ready ? " is-ready" : " is-blocked"
-                }`}
-              >
-                {node.icon}
-                <span>{node.label}</span>
-                <strong>{node.value}</strong>
-              </div>
-            ))}
-          </section>
-
-          <div
-            className="neodid-summary-strip"
-            aria-label={t("consoleSelectedValues")}
-          >
-            {summaryItems.map((item) => (
-              <span key={item.key}>
-                <small>{item.label}</small>
-                <strong>{item.value}</strong>
-              </span>
-            ))}
-          </div>
-
-          <section
-            className="neodid-subject-panel"
-            aria-label={t("neodidSubjectTitle")}
-          >
-            <div className="neodid-section-copy">
-              <small>{t("neodidSubjectTitle")}</small>
-              <strong>{t("neodidSubjectCopy")}</strong>
-            </div>
-            <div className="neodid-input-with-chip">
-              <NeoInput
-                label={t("did")}
-                value={values.did}
-                placeholder={t("didPlaceholder")}
-                hint={didValid ? t("didReadyHint") : ""}
-                error={didText && !didValid ? t("didInvalidHint") : ""}
-                onChange={(value) => updateValue("did", value)}
-              />
-              <span
-                className={`neodid-valid-chip${
-                  didValid
-                    ? " neodid-valid-chip--ok"
-                    : " neodid-valid-chip--warn"
-                }`}
-              >
-                {didValid ? (
-                  <Check size={15} aria-hidden="true" />
-                ) : (
-                  <Fingerprint size={15} aria-hidden="true" />
-                )}
-                {t("didValid")}: {boolLabel(didValid, t)}
-              </span>
-            </div>
-          </section>
-
-          <section
-            className="neodid-provider-panel"
-            aria-label={t("neodidProviderTitle")}
-          >
-            <div className="neodid-section-copy">
-              <small>{t("neodidProviderTitle")}</small>
-              <strong>{t("neodidProviderCopy")}</strong>
-            </div>
-            <div
-              className="neodid-provider-grid"
-              role="radiogroup"
-              aria-label={t("providerShort")}
-            >
-              {providerOptions.map((option) => {
-                const selected = values.provider === option.value;
-                const label = optionLabel(option, t);
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={`${t("providerShort")}: ${label}`}
-                    className={`neodid-provider-card${
-                      selected ? " neodid-provider-card--selected" : ""
-                    }`}
-                    onClick={() => updateValue("provider", option.value)}
-                  >
-                    <span aria-hidden="true">{providerIcon(option.value)}</span>
-                    <strong>{label}</strong>
-                    <small>{providerHint(option.value, t)}</small>
-                    {selected && (
-                      <span
-                        className="neodid-provider-card__check"
-                        aria-hidden="true"
-                      >
-                        <Check size={14} />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section
-            className="neodid-claim-panel"
-            aria-label={t("neodidClaimTitle")}
-          >
-            <div className="neodid-section-copy">
-              <small>{t("neodidClaimTitle")}</small>
-              <strong>{t("neodidClaimCopy")}</strong>
-            </div>
-            <div className="neodid-claim-grid">
-              <div className="neodid-input-with-chip">
-                <NeoInput
-                  label={t("claim")}
-                  value={values.claim}
-                  placeholder={t("claimPlaceholder")}
-                  hint={claimReady ? t("claimReadyHint") : ""}
-                  error={claimReady ? "" : t("claimMissingHint")}
-                  onChange={(value) => updateValue("claim", value)}
-                />
-                <span
-                  className={`neodid-valid-chip${
-                    claimReady
-                      ? " neodid-valid-chip--ok"
-                      : " neodid-valid-chip--warn"
-                  }`}
-                >
-                  {claimReady ? (
-                    <Check size={15} aria-hidden="true" />
-                  ) : (
-                    <BadgeCheck size={15} aria-hidden="true" />
-                  )}
-                  {t("claim")}: {claimReady ? t("ready") : t("inputRequired")}
-                </span>
-              </div>
-              <div className="neodid-input-with-chip">
-                <NeoInput
-                  label={t("callback")}
-                  value={values.callback}
-                  placeholder={t("callbackPlaceholder")}
-                  hint={
-                    callbackValid
-                      ? t("callbackReadyHint")
-                      : t("callbackInvalid")
-                  }
-                  error={callbackValid ? "" : t("callbackInvalidHint")}
-                  onChange={(value) => updateValue("callback", value)}
-                />
-                <span
-                  className={`neodid-valid-chip${
-                    callbackValid
-                      ? " neodid-valid-chip--ok"
-                      : " neodid-valid-chip--warn"
-                  }`}
-                >
-                  {callbackValid ? (
-                    <Check size={15} aria-hidden="true" />
-                  ) : (
-                    <KeyRound size={15} aria-hidden="true" />
-                  )}
-                  {t("callbackValid")}: {boolLabel(callbackValid, t)}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <div className="neodid-action-row">
-            <NeoButton variant="primary" size="lg" onClick={buildPreview}>
-              <Play size={18} aria-hidden="true" />
-              {t("runAction")}
-            </NeoButton>
-            <NeoButton variant="secondary" size="lg" onClick={reset}>
-              <RotateCcw size={17} aria-hidden="true" />
-              {t("reset")}
-            </NeoButton>
-          </div>
-        </div>
-
-        <aside className="neodid-result-card" aria-label={t("neodidReceipt")}>
-          <header className="neodid-card-head">
-            <span aria-hidden="true">
-              <FileJson2 size={19} />
-            </span>
-            <div>
-              <small>{t("neodidReceipt")}</small>
-              <strong>
-                {result ? result.status : t("neodidValidationReady")}
-              </strong>
-            </div>
-          </header>
-
-          <div
-            className={`neodid-readiness${
-              draftOk ? " neodid-readiness--ok" : " neodid-readiness--warn"
-            }`}
-          >
-            <span>{draftOk ? t("verifyReady") : draftResult.status}</span>
-            <strong>{draftResult.summary}</strong>
-          </div>
-
-          {result ? (
+          ),
+        }}
+        scene={scene}
+        score={[
+          { label: t("statRequests"), value: String(requestCount), accent: true },
+          { label: t("lastStatus"), value: lastStatus },
+        ]}
+        actions={{
+          primary: {
+            label: primaryLabel,
+            onClick: () => void handleBuild(),
+            loading: actionPreview,
+          },
+        }}
+        drawerToggleLabel={t("detailsLabel")}
+        drawer={{
+          title: t("detailsLabel"),
+          children: (
             <>
-              <div
-                className={`neodid-result-hero${
-                  resultOk ? " neodid-result-hero--ok" : ""
-                }`}
-              >
-                <span>
-                  {resultOk ? t("verifyReady") : t("validationBlocked")}
-                </span>
-                <strong>{result.summary}</strong>
-              </div>
-              <div className="neodid-result-rows">
-                {result.rows.map((row) => (
-                  <span key={`${row.label}-${row.value}`}>
-                    <small>{row.label}</small>
-                    <strong>{row.value}</strong>
-                  </span>
-                ))}
-              </div>
-              <div className="neodid-digest-strip">
-                <span>
-                  <small>{t("statDigest")}</small>
-                  <strong>
-                    {String(result.payload.digest ?? t("notAvailable"))}
-                  </strong>
-                </span>
-                <span>
-                  <small>{t("dispatchReady")}</small>
-                  <strong>{boolLabel(result.payload.dispatchReady, t)}</strong>
-                </span>
-              </div>
+              <h4>{t(consoleConfig.titleKey || "panelTitle")}</h4>
+              <p>{networkLabel || appMeta.networkLabel}</p>
+              <p>{endpointLabel || appMeta.endpointLabel}</p>
+              {digestReady && (
+                <p>
+                  <strong>{t("statDigest")}:</strong> <code>{lastDigest}</code>
+                </p>
+              )}
             </>
-          ) : (
-            <div className="neodid-empty-state">
-              <BadgeCheck size={34} aria-hidden="true" />
-              <strong>{t("neodidEmptyTitle")}</strong>
-              <p>{t("neodidEmptyCopy")}</p>
-            </div>
-          )}
-
-          <details className="neodid-payload-details" open={Boolean(result)}>
-            <summary>
-              <span>
-                <FileJson2 size={17} aria-hidden="true" />
-                {t("payload")}
-              </span>
-              <strong>{result ? t("previewReady") : previewDigest}</strong>
-              <ChevronDown
-                className="neodid-payload-details__icon"
-                size={15}
-                aria-hidden="true"
-              />
-            </summary>
-            <pre className="console-tool__payload-card neodid-payload-card">
-              {payloadText || JSON.stringify(draftResult.payload, null, 2)}
-            </pre>
-          </details>
-
-          <div className="neodid-action-row neodid-action-row--result">
-            <NeoButton
-              variant="secondary"
-              size="md"
-              disabled={!payloadText}
-              onClick={copyPayload}
-            >
-              <Copy size={17} aria-hidden="true" />
-              {copied ? t("copied") : t("copy")}
-            </NeoButton>
-            <NeoButton variant="ghost" size="md" onClick={buildPreview}>
-              <Play size={17} aria-hidden="true" />
-              {t("runAction")}
-            </NeoButton>
-          </div>
-        </aside>
-      </section>
+          ),
+        }}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
  * useTarot — Domain logic for On-Chain Tarot.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppTarot) via
- * ctx.services.chain. The earlier path paid a "draw fee" to the OS payment
+ * the MiniApp framework SDK (ctx.framework). The earlier path paid a "draw fee" to the OS payment
  * kernel (which moved nothing), polled OS storage for a reading the kernel
  * never wrote, and derived the three cards CLIENT-SIDE from the deposit tx id.
  * That made the reading client-trusted rather than authoritative.
@@ -15,7 +15,7 @@
  *
  * Contract interaction model (verified against MiniAppTarot.cs / ABI):
  *
- *   READS (chain.read / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     drawFee()                          -> Integer (0.1 GAS in base units)
  *     readingsCount()                    -> Integer (global reading id counter)
  *     creditOf(player)                   -> Integer (prepaid GAS credit, base units)
@@ -23,7 +23,7 @@
  *     getPlayerReadings(player,off,limit) -> Integer[] (reading ids)
  *     getReading(readingId)              -> Map{id,player,cards(int[3]),time}
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT (fund a draw) — a GAS transfer to the contract with the memo
  *        "miniapp-tarot:draw" so OnNEP17Payment credits the player's draw
  *        balance:
@@ -57,24 +57,23 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import type { CacheService } from "@shared/services/CacheService";
 import type { ClipboardService } from "@shared/services/ClipboardService";
 import { eventValue } from "@shared/utils/chain-events";
 import { fromFixed8 } from "@shared/utils/format";
-import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { TAROT_CARD_BACK, TAROT_DECK } from "../pages/index/components/tarot-data";
-import type { TarotCardDefinition } from "../pages/index/components/tarot-data";
+import { TAROT_CARD_BACK, TAROT_DECK } from "../data/tarot-data";
+import type { TarotCardDefinition } from "../data/tarot-data";
 
 export interface Card extends TarotCardDefinition {
   flipped: boolean;
 }
 
 export interface UseTarotOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK (ctx.framework) — chain/arg surface. */
+  app: MiniAppFramework;
   /** Shared cache service from ctx.services.cache (on-device question store). */
   cache: CacheService;
   /** Clipboard service from ctx.services.clipboard (copy/share reading). */
@@ -156,7 +155,7 @@ function cardFromIndex(cardId: number): Card {
 // Composable
 // ============================================================================
 
-export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
+export function useTarot({ app, cache, clipboard, t }: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
   const drawn = createObservable<Card[]>([]);
   const readingsCount = createObservable(0);
@@ -175,11 +174,12 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
   const readingMode = createObservable<"idle" | "oracle">("idle");
 
   // Connected wallet address (synced from main.tsx / chain).
-  const address = createObservable<string | null>(chain.address.get() ?? null);
+  const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
   };
+  const hasContractAddress = () => Boolean(app.chain.contractAddress.get());
 
   // ── On-device question store (not on-chain) ──────────────────────────
 
@@ -199,7 +199,7 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
   /** Read the on-chain draw fee in base units, falling back to 0.1 GAS. */
   const loadDrawFee = async (): Promise<bigint> => {
     try {
-      const raw = await chain.read("drawFee", []);
+      const raw = await app.chain.readRaw("drawFee", []);
       const fee = parseBigInt(raw);
       return fee > 0n ? fee : DRAW_FEE_FALLBACK;
     } catch {
@@ -234,12 +234,12 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
     try {
       const prompt = question.get().trim() || t("defaultQuestion");
 
-      const playerAddr = address.get() || (await chain.ensureWallet());
-      const playerHash = addressToScriptHash(playerAddr || "");
-      if (!playerAddr || !playerHash) throw new Error(t("walletNotConnected"));
+      const playerAddr = address.get() || (await app.chain.ensureWallet());
+      if (!playerAddr) throw new Error(t("walletNotConnected"));
+      const playerArg = app.chain.arg.hash160(playerAddr);
       setAddress(playerAddr);
 
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("readingUnavailable"));
 
       const fee = await loadDrawFee();
@@ -249,7 +249,7 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+          await app.chain.readRaw("creditOf", [playerArg]),
         );
       } catch {
         credit = 0n;
@@ -260,13 +260,13 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
         // in a block before draw() consumes it — an unconfirmed deposit lets the
         // draw execute first and fault on what should have been a clean first
         // draw (intra-block ordering is fee/hash-based).
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: playerHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: (fee - credit).toString() },
-            { type: "String", value: DRAW_MEMO },
+            playerArg,
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(fee - credit),
+            app.chain.arg.string(DRAW_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
@@ -277,9 +277,9 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
       // landed but this reverts, the credit persists as reusable prepaid credit.
       let result;
       try {
-        result = await chain.invoke(
+        result = await app.chain.invoke(
           "draw",
-          [{ type: "Hash160", value: playerHash }],
+          [playerArg],
           { waitForEvent: "ReadingDrawn" },
         );
       } catch (drawErr) {
@@ -336,7 +336,7 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
    * player's history.
    */
   const readReadingCards = async (readingId: string): Promise<number[]> => {
-    const raw = await chain.read("getReading", [{ type: "Integer", value: readingId }]);
+    const raw = await app.chain.readRaw("getReading", [app.chain.arg.integer(readingId)]);
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       throw new Error("reading not found");
     }
@@ -382,19 +382,23 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
    * never blank. The count reflects authoritative on-chain state.
    */
   const loadReadingCount = async () => {
+    if (!hasContractAddress()) {
+      readingsCount.set(Math.max(readingsCount.get(), 0));
+      return;
+    }
+
     try {
       const playerAddr = address.get();
-      const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
 
-      if (playerHash) {
-        const raw = await chain.read("playerReadingCount", [
-          { type: "Hash160", value: playerHash },
+      if (playerAddr) {
+        const raw = await app.chain.readRaw("playerReadingCount", [
+          app.chain.arg.hash160(playerAddr),
         ]);
         readingsCount.set(Number(parseBigInt(raw)));
         return;
       }
 
-      const globalRaw = await chain.read("readingsCount", []);
+      const globalRaw = await app.chain.readRaw("readingsCount", []);
       readingsCount.set(Number(parseBigInt(globalRaw)));
     } catch (e) {
       console.warn(
@@ -411,15 +415,19 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
    * failure leaves the last known value (the withdraw path re-reads first).
    */
   const loadCredit = async () => {
+    if (!hasContractAddress()) {
+      prepaidCredit.set(0);
+      return;
+    }
+
     const playerAddr = address.get();
-    const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
-    if (!playerHash) {
+    if (!playerAddr) {
       prepaidCredit.set(0);
       return;
     }
     try {
-      const raw = await chain.read("creditOf", [
-        { type: "Hash160", value: playerHash },
+      const raw = await app.chain.readRaw("creditOf", [
+        app.chain.arg.hash160(playerAddr),
       ]);
       prepaidCredit.set(fromFixed8(parseBigInt(raw)));
     } catch (e) {
@@ -440,9 +448,9 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
   const withdrawCredit = async (): Promise<{ amount: number }> => {
     if (isLoading.get()) return { amount: 0 };
 
-    const accountAddr = address.get() || (await chain.ensureWallet());
-    const accountHash = addressToScriptHash(accountAddr || "");
-    if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
+    const accountAddr = address.get() || (await app.chain.ensureWallet());
+    if (!accountAddr) throw new Error(t("walletNotConnected"));
+    const accountArg = app.chain.arg.hash160(accountAddr);
     setAddress(accountAddr);
 
     isLoading.set(true);
@@ -452,16 +460,16 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+          await app.chain.readRaw("creditOf", [accountArg]),
         );
       } catch {
         credit = 0n;
       }
       if (credit <= 0n) throw new Error(t("noCredit"));
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: accountHash }],
+        [accountArg],
         { waitForEvent: "CreditWithdrawn" },
       );
 
@@ -477,7 +485,7 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
   };
 
   const loadAll = async () => {
-    setAddress(chain.address.get() ?? null);
+    setAddress(app.chain.address.get() ?? null);
     await loadReadingCount();
     await loadCredit();
   };

@@ -21,49 +21,55 @@ test("AA Session Key Lab exposes a wallet-style session workspace with guarded c
   );
   const messages = read("apps/aa-session-key-lab/src/locale/messages.ts");
 
-  assert.match(playArea, /className="session-hero"/);
-  assert.match(playArea, /className="session-hero__metrics"/);
-  // Neo Soft redesign: the two-step setup workspace is the `session-flow-stack`
-  // container (was `session-workspace`), holding step 1 (command) + step 2
-  // (configure) cards.
-  assert.match(playArea, /className="session-flow-stack"/);
-  // The primary configure flow lives in the `session-config-card` (was the
-  // `session-flow` region) — it wraps the scope form + the guarded submit CTA.
-  assert.match(playArea, /className="session-config-card"/);
-  assert.match(playArea, /const canConfigure =/);
-  assert.match(playArea, /disabled=\{!canConfigure/);
-  assert.match(playArea, /className="session-action-grid"/);
-  assert.match(styles, /\.session-play-area button:disabled/);
+  assert.match(playArea, /from "@shared\/components-react\/v2"/);
+  assert.match(playArea, /OpenUiProvider/);
+  assert.match(playArea, /PlayStage/);
+  assert.match(playArea, /OpenUiPanel/);
+  assert.match(playArea, /OpenUiTextField/);
+  assert.match(playArea, /OpenUiNotice/);
+  assert.match(playArea, /const SESSION_ART = "session-key-control\.jpg"/);
+  assert.ok(
+    fs.existsSync(path.join(ROOT, "apps/aa-session-key-lab/public/session-key-control.webp")),
+    "AA session scene art must ship with the miniapp",
+  );
+
+  assert.match(playArea, /className="sess-play-area mx2 mx2-cat-tool"/);
+  assert.match(playArea, /scene=\{<div className="sess-workspace">\{scene\}\{controls\}<\/div>\}/);
+  assert.match(playArea, /className="sess-scene"/);
+  assert.match(playArea, /"sess-scene__pass"/);
+  assert.match(playArea, /className="sess-scene__scope"/);
+  assert.match(playArea, /className="sess-controls"/);
+  assert.match(playArea, /className="sess-visual-card"/);
+  assert.match(playArea, /className="sess-preset-grid"/);
+  assert.match(playArea, /className="sess-drawer"/);
+  assert.match(playArea, /drawerToggleLabel=\{t\("sessionCommandTitle"\)\}/);
+  assert.match(playArea, /drawer=\{\{ title: t\("sessionCommandTitle"\), children: drawer \}\}/);
+
+  assert.match(playArea, /void dispatch\("generateKey"\)/);
+  assert.match(playArea, /void dispatch\("inspectSession", draftAccount\)/);
+  assert.match(playArea, /void dispatch\("revokeSession", draftAccount\)/);
+  assert.match(playArea, /void dispatch\(\s*"configureSessionKey"/s);
+  assert.match(playArea, /void dispatch\("checkSponsor", draftAccount, ""\)/);
+  assert.match(playArea, /void dispatch\("requestSponsor", draftAccount, "", draftSpendLimit\)/);
+  assert.match(playArea, /const needsKey = !seg\.key/);
+  assert.match(playArea, /disabled: !needsKey && !scopeReady/);
+  assert.match(playArea, /hint: !needsKey && !scopeReady \? t\("configureSessionBlocked"\) : undefined/);
+  assert.match(styles, /\.sess-play-area \.mx2-action-rail__row \.mx2-btn--primary:disabled/);
+  assert.match(styles, /\.sess-workspace\s*\{[^}]*grid-template-columns/s);
+  assert.match(styles, /\.sess-scene\s*\{[^}]*background:\s*var\(--mx2-surface-2\)/s);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(styles, /filter:\s*saturate/);
   assert.doesNotMatch(styles, /opacity:\s*0\.55/);
-  assert.match(styles, /\.session-hint\s*\{[^}]*padding:\s*12px 14px/s);
-  assert.match(styles, /\.session-hint\s*\{[^}]*border:\s*1px solid/s);
-  // Neo Soft redesign: the pre-input hint reads as neutral muted guidance (not
-  // an amber warning tint) — its surface is the shared --ns-surface-subtle token.
-  assert.match(
-    styles,
-    /\.session-hint\s*\{[^}]*background:\s*var\(--ns-surface-subtle/s,
-  );
+  assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
+  assert.doesNotMatch(styles, /radial-gradient/);
   assert.match(composable, /aa\.isCheckingSponsorship\.get\(\)/);
   assert.doesNotMatch(
     composable,
     /get:\s*\(\)\s*=>\s*aa\.isCheckingSponsorship,/,
   );
   assert.match(messages, /sessionHeroTitle/);
-  assert.match(messages, /sessionMetricScope/);
+  assert.match(messages, /sessionPassReady/);
+  assert.match(messages, /sessionScopeTitle/);
   assert.match(messages, /configureSessionBlocked/);
-  assert.match(messages, /sessionFlowSponsor/);
-
-  // Neo Soft design language (intentionally adopted in the 05ef54aab redesign):
-  // the hero leads with an uppercase eyebrow label rendered above the title.
-  assert.match(playArea, /className="session-hero__eyebrow"/);
-  assert.match(
-    styles,
-    /\.session-hero__eyebrow\s*\{[^}]*text-transform:\s*uppercase/s,
-  );
-  // Eyebrows/labels carry the signature 0.12em tracking of the design system.
-  assert.match(
-    styles,
-    /\.session-hero__eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/s,
-  );
+  assert.match(messages, /sessionCommandTitle/);
 });

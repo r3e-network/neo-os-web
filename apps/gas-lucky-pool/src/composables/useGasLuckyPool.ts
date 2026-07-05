@@ -56,7 +56,7 @@ export type {
 } from "./useGasLuckyPool.shared";
 
 export function useGasLuckyPool({
-  chain,
+  app,
   launchContext,
   t,
 }: UseGasLuckyPoolOptions) {
@@ -172,7 +172,7 @@ export function useGasLuckyPool({
       currentPool.set(null);
       return null;
     }
-    const raw = await chain.readArray("getRangeGasPool", [
+    const raw = await app.chain.readArray("getRangeGasPool", [
       { type: "String", value: APP_ID },
       { type: "Integer", value: id },
     ]);
@@ -183,7 +183,7 @@ export function useGasLuckyPool({
 
   async function loadRecentPools() {
     try {
-      const events = await chain.listEvents("RangeGasPoolCreated", {
+      const events = await app.chain.events("RangeGasPoolCreated", {
         limit: 10,
       });
       const items = events
@@ -218,7 +218,7 @@ export function useGasLuckyPool({
 
   async function loadRecentClaims() {
     try {
-      const events = await chain.listEvents("RangeGasPoolClaimed", {
+      const events = await app.chain.events("RangeGasPoolClaimed", {
         limit: 12,
       });
       const items = events
@@ -311,8 +311,8 @@ export function useGasLuckyPool({
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const creator = await chain.ensureWallet();
-      const result = await chain.invokeWithPayment(
+      const creator = await app.chain.ensureWallet();
+      const result = await app.chain.invokeWithPayment(
         parsed.total.toString(),
         `gas-lucky-pool:create:${parsed.maxClaims}`,
         "createRangeGasPool",
@@ -352,8 +352,8 @@ export function useGasLuckyPool({
     isCreditLoading.set(true);
     lastError.set("");
     try {
-      const user = await chain.ensureWallet();
-      const raw = await chain.read("getDirectGasCredit", [
+      const user = await app.chain.ensureWallet();
+      const raw = await app.chain.readRaw("getDirectGasCredit", [
         { type: "Hash160", value: user },
       ]);
       const amount = asBigInt(raw);
@@ -385,8 +385,8 @@ export function useGasLuckyPool({
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const user = await chain.ensureWallet();
-      const result = await chain.invoke(
+      const user = await app.chain.ensureWallet();
+      const result = await app.chain.invoke(
         "withdrawGasCredit",
         [
           { type: "Hash160", value: user },
@@ -488,11 +488,11 @@ export function useGasLuckyPool({
     const launchAddress = normalizeNeoAddress(identity.walletAddress);
     if (launchAddress) return launchAddress;
 
-    const currentAddress = normalizeNeoAddress(chain.address?.get?.());
+    const currentAddress = normalizeNeoAddress(app.chain.address?.get?.());
     if (currentAddress) return currentAddress;
 
     try {
-      const walletAddress = await chain.ensureWallet();
+      const walletAddress = await app.chain.ensureWallet();
       diagnostics.wallet = "available";
       const normalizedWalletAddress = normalizeNeoAddress(walletAddress);
       return normalizedWalletAddress || walletAddress;
@@ -763,9 +763,9 @@ export function useGasLuckyPool({
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const claimer = await chain.ensureWallet();
+      const claimer = await app.chain.ensureWallet();
       claimProgress.set("submitting");
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "claimRangeGasPool",
         [
           { type: "String", value: APP_ID },
@@ -816,7 +816,7 @@ export function useGasLuckyPool({
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "refundRangeGasPool",
         [
           { type: "String", value: APP_ID },
@@ -859,8 +859,8 @@ export function useGasLuckyPool({
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const creator = await chain.ensureWallet();
-      const result = await chain.invokeWithPayment(
+      const creator = await app.chain.ensureWallet();
+      const result = await app.chain.invokeWithPayment(
         amount.toString(),
         `gas-lucky-pool:fund:${id}`,
         "fundRangeGasPool",

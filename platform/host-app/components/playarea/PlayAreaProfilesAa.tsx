@@ -481,7 +481,7 @@ export const AA_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     icon: <Boxes className="h-5 w-5" />,
     fields: [
       { key: "symbol", label: "Symbol", defaultValue: "YIWU" },
-      { key: "name", label: "Asset name", defaultValue: "Yiwu Credits" },
+      { key: "name", label: "Asset name", defaultValue: "Neo Credits" },
       {
         key: "supply",
         label: "Initial supply",
@@ -491,7 +491,7 @@ export const AA_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     ],
     cards: [
       { label: "Symbol", value: "YIWU" },
-      { label: "Asset name", value: "Yiwu Credits" },
+      { label: "Asset name", value: "Neo Credits" },
       { label: "Supply", value: "1000000" },
     ],
     steps: [

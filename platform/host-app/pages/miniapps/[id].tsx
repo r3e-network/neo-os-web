@@ -6,6 +6,8 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  PlayCircle,
+  SlidersHorizontal,
   Wallet,
   X,
 } from "lucide-react";
@@ -828,16 +830,17 @@ export default function MiniAppDetailPage({
   const handleBack = () => {
     router.push("/miniapps");
   };
+  const focusMiniAppWorkspace = () => {
+    const workspace = document.querySelector('[data-testid="miniapp-playarea"]');
+    workspace?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const operationPanel = app.detail_template?.operation_panel;
   const operationTitle =
     operationPanel?.title ||
     (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
-  const primaryOperationLabel =
-    operations[0]?.method === "prepareMiniAppOperation"
-      ? "Open workspace"
-      : operations[0]?.name || operationTitle;
+  const mobileDockLabel = `Play ${app.name}`;
   const hasClaimOnlyServerPayout = operations.some(
     isOneGateVaultPayoutOperation,
   );
@@ -854,6 +857,93 @@ export default function MiniAppDetailPage({
         ? "Shared module runtime"
         : "Integrated dApp runtime";
   const contractDomainDisplayValue = contractDomainBinding?.domain || null;
+  const renderPrimaryActionGuide = (compact = false) => (
+    <div
+      className={`rounded-xl border border-emerald-100 bg-emerald-50/70 ${
+        compact ? "p-3" : "mt-4 p-3"
+      }`}
+      data-testid={
+        compact ? "mobile-primary-action-guide" : "primary-action-guide"
+      }
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-emerald-700 shadow-sm shadow-emerald-900/10">
+          <PlayCircle className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="m-0 text-sm font-bold text-gray-900">
+            Play in the MiniApp
+          </p>
+          <p className="m-0 mt-1 text-xs leading-5 text-gray-600">
+            Use the embedded workspace for the normal flow. Wallet prompts and
+            transaction results stay tied to the MiniApp experience.
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2">
+        <button
+          type="button"
+          onClick={focusMiniAppWorkspace}
+          className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-700 px-3 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-700/15 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        >
+          <PlayCircle className="h-4 w-4" aria-hidden="true" />
+          Use embedded workspace
+        </button>
+        {oneGateLaunchUrl && (
+          <a
+            href={oneGateLaunchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          >
+            Open in OneGate
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+  const renderOperationConsole = (compact = false) =>
+    operations.length > 0 ? (
+      <details
+        className="group mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
+        data-testid={
+          compact
+            ? "mobile-advanced-operation-console"
+            : "advanced-operation-console"
+        }
+      >
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gray-50 text-gray-600">
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-bold text-gray-900">
+                Host transaction console
+              </span>
+              <span className="mt-0.5 block truncate text-xs text-gray-500">
+                Advanced fallback for direct host-side submissions.
+              </span>
+            </span>
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-gray-100 p-3">
+          <OperationPanel
+            operations={operations}
+            onInvoke={handleInvoke}
+            showTitle={false}
+            className="border-0 shadow-none"
+            variant="embedded"
+            getDisabledReason={getOperationDisabledReason}
+            onActiveOperationChange={handleActiveOperationChange}
+            launchContext={launchContext}
+            showInvokeError={false}
+          />
+        </div>
+      </details>
+    ) : null;
 
   return (
     <Layout hideFooter>
@@ -893,7 +983,7 @@ export default function MiniAppDetailPage({
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm shadow-gray-950/5 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40">
                   <span className="min-w-0">
-                    <span className="block text-sm font-black text-gray-950">
+                    <span className="block text-sm font-semibold text-gray-900">
                       Reference and diagnostics
                     </span>
                     <span className="mt-0.5 block text-xs leading-5 text-gray-600">
@@ -946,7 +1036,7 @@ export default function MiniAppDetailPage({
                       Focus action
                     </p>
                     <h2 className="m-0 text-base font-bold text-gray-900 sm:text-lg">
-                      {operationTitle}
+                      {app.name}
                     </h2>
                   </div>
                   <span
@@ -963,19 +1053,8 @@ export default function MiniAppDetailPage({
                   </p>
                 )}
 
-                {operations.length > 0 && (
-                  <OperationPanel
-                    operations={operations}
-                    onInvoke={handleInvoke}
-                    showTitle={false}
-                    className="mt-3 border-0 shadow-none"
-                    variant="embedded"
-                    getDisabledReason={getOperationDisabledReason}
-                    onActiveOperationChange={handleActiveOperationChange}
-                    launchContext={launchContext}
-                    showInvokeError={false}
-                  />
-                )}
+                {renderPrimaryActionGuide()}
+                {renderOperationConsole()}
 
                 <OneGateLaunchCard
                   app={app}
@@ -1080,10 +1159,10 @@ export default function MiniAppDetailPage({
                 >
                   <span className="min-w-0">
                     <span className="block text-[11px] font-bold uppercase tracking-wide text-white">
-                      Focus action
+                      Play / OneGate
                     </span>
                     <span className="block truncate text-sm font-bold">
-                      {primaryOperationLabel}
+                      {mobileDockLabel}
                     </span>
                   </span>
                   {/* The chevron alone signals the bottom sheet; a verb pill
@@ -1114,10 +1193,10 @@ export default function MiniAppDetailPage({
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-600">
-                          Focus action
+                          Play / OneGate
                         </p>
                         <h2 className="m-0 truncate text-lg font-bold text-gray-900">
-                          {operationTitle}
+                          {app.name}
                         </h2>
                         {operationSubtitle && (
                           <p className="mt-1 text-xs leading-5 text-gray-500">
@@ -1145,17 +1224,8 @@ export default function MiniAppDetailPage({
                       </div>
                     </div>
 
-                    <OperationPanel
-                      operations={operations}
-                      onInvoke={handleInvoke}
-                      showTitle={false}
-                      className="border-0 shadow-none"
-                      variant="embedded"
-                      getDisabledReason={getOperationDisabledReason}
-                      onActiveOperationChange={handleActiveOperationChange}
-                      launchContext={launchContext}
-                      showInvokeError={false}
-                    />
+                    {renderPrimaryActionGuide(true)}
+                    {renderOperationConsole(true)}
 
                     <OneGateLaunchCard
                       app={app}

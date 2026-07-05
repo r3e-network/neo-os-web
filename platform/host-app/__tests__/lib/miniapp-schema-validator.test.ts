@@ -84,7 +84,7 @@ describe("miniapp-schema-validator", () => {
         },
       },
       media: {
-        logo: "https://cdn.example.com/logo.png",
+        logo: "https://cdn.example.com/logo.webp",
         banner: "https://cdn.example.com/banner.png",
         logo_variants: [{ url: "https://cdn.example.com/logo-dark.png", theme: "dark" }],
         banner_variants: [{ url: "https://cdn.example.com/banner-2x.png", density: "2x" }],

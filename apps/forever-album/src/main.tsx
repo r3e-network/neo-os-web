@@ -26,7 +26,7 @@ defineMiniApp({
     const launchDefaults = getForeverAlbumLaunchDefaults(ctx.launchContext);
     album.isEncrypted.set(launchDefaults.isEncrypted);
 
-    ctx.registerAction("viewPhoto", async (photo: unknown) => {
+    ctx.framework.actions.register("viewPhoto", async (photo: unknown) => {
       album.viewPhoto(
         photo as {
           id: string;
@@ -37,26 +37,26 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("openUpload", async () => {
+    ctx.framework.actions.register("openUpload", async () => {
       album.openUpload();
     });
-    ctx.registerAction("closeUpload", async () => {
+    ctx.framework.actions.register("closeUpload", async () => {
       album.closeUpload();
     });
-    ctx.registerAction("refreshPhotos", async () => {
+    ctx.framework.actions.register("refreshPhotos", async () => {
       await album.loadPhotos();
     });
-    ctx.registerAction("closeViewer", async () => {
+    ctx.framework.actions.register("closeViewer", async () => {
       album.closeViewer();
     });
-    ctx.registerAction("openDecrypt", async () => {
+    ctx.framework.actions.register("openDecrypt", async () => {
       album.openDecrypt();
     });
-    ctx.registerAction("closeDecrypt", async () => {
+    ctx.framework.actions.register("closeDecrypt", async () => {
       album.closeDecrypt();
     });
 
-    ctx.registerAction("handleDecrypt", async (pwd: unknown) => {
+    ctx.framework.actions.register("handleDecrypt", async (pwd: unknown) => {
       await notify.guard(
         () => album.handleDecrypt(pwd as string),
         undefined,
@@ -64,7 +64,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("uploadPhotos", async () => {
+    ctx.framework.actions.register("uploadPhotos", async () => {
       await notify.guard(
         () => album.uploadPhotos(),
         "uploadSuccess",
@@ -72,15 +72,15 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("removeImage", async (id: unknown) => {
+    ctx.framework.actions.register("removeImage", async (id: unknown) => {
       album.removeImage(id as string);
     });
 
-    ctx.registerAction("deletePhoto", async (id: unknown) => {
+    ctx.framework.actions.register("deletePhoto", async (id: unknown) => {
       await notify.guard(() => album.deletePhoto(id as string), "photoDeleted");
     });
 
-    ctx.registerAction("addFiles", async (...args: unknown[]) => {
+    ctx.framework.actions.register("addFiles", async (...args: unknown[]) => {
       const files = args[0] as File[] | FileList | undefined;
       if (!files) return;
       await album.addFiles(files);

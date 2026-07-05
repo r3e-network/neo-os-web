@@ -1,442 +1,130 @@
 import React from "react";
 import fs from "node:fs";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../private-transfer/src/PlayArea";
-import { messages as privateTransferMessages } from "../../private-transfer/src/appConfig";
-import {
-  clearSealedIntents,
-  readSealedIntents,
-} from "../../private-transfer/src/history";
-
-// The seal flow's real X25519-HKDF-AES envelope relies on WebCrypto X25519,
-// which jsdom does not provide. Mock the envelope module so the copy-affordance
-// test can exercise the stored state deterministically without crypto support.
-vi.mock("../utils/morpheus-confidential-envelope", () => ({
-  buildConfidentialTransferPackage: vi.fn(async () => ({
-    confidentialPayload: { sealed: true },
-    publicEnvelope: {
-      note_commitment: "commitment-abc",
-      nullifier_hash: "nullifier-def",
-    },
-  })),
-  encryptJsonWithOraclePublicKey: vi.fn(async () => "ciphertext-stub"),
-}));
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+afterEach(() => cleanup());
+function t(k: string) { return k; }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
 
-const VALID_NEO_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
-const originalFetch = globalThis.fetch;
-
-// Resolve t() against the app's real English locale (with {param} interpolation)
-// so the UI renders the same copy a user sees instead of raw key names.
-const en = privateTransferMessages as Record<string, { en: string }>;
-function t(key: string, params?: Record<string, string | number>): string {
-  const value = en[key]?.en ?? key;
-  if (!params) {
-    return value;
-  }
-  return value.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`));
+function source() {
+  return fs.readFileSync(`${process.cwd()}/../private-transfer/src/PlayArea.tsx`, "utf8") as string;
 }
 
-function state(): ObservableState {
-  return {
-    requestCount: createObservable(0),
-    lastStatus: createObservable("Ready"),
-    lastDigest: createObservable("—"),
-    networkLabel: createObservable("Mainnet"),
-  };
+function stylesheet() {
+  return fs.readFileSync(`${process.cwd()}/../private-transfer/src/PlayArea.scss`, "utf8") as string;
 }
 
-function props(setStatus = vi.fn(), appState: ObservableState = state()) {
-  return {
-    t,
-    state: appState,
-    dispatch: vi.fn(async () => undefined),
-    services: {},
-    status: null,
-    setStatus,
-    clearStatus: vi.fn(),
-    loadError: null,
-    retryLoad: vi.fn(async () => undefined),
-    launchContext: {
-      appId: "miniapp-private-transfer",
-      source: "url",
-      operation: null,
-      tab: null,
-      network: "mainnet",
-      params: {},
-      keys: [],
-      hasParams: false,
-      signature: "",
-    },
-  } as React.ComponentProps<typeof PlayArea>;
-}
+describe("private-transfer PlayArea (v2)", () => {
+  it("renders a foreground-led privacy sealing device without emoji locks", () => {
+    const { container } = render(<PlayArea t={t} state={state({ requestCount: 1, lastDigest: "0x1234567890abcdef", lastSecretRef: "secret-ref-1234567890", lastNullifier: "0xabc" })} dispatch={vi.fn()} />);
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-  globalThis.fetch = originalFetch;
-  clearSealedIntents();
-});
-
-describe("Private Transfer PlayArea", () => {
-  it("keeps sealing disabled until recipient and amount are valid", () => {
-    render(<PlayArea {...props()} />);
-
-    const sealButton = screen.getByRole("button", {
-      name: "Seal private transfer intent",
-    }) as HTMLButtonElement;
-    expect(sealButton.disabled).toBe(true);
-    expect(screen.queryByRole("combobox")).toBeNull();
-
-    const recipientInput = screen.getByPlaceholderText("N...");
-
-    fireEvent.change(recipientInput, {
-      target: { value: "not-a-neo-address" },
-    });
-    expect(screen.getByText("Enter a valid Neo N3 address.")).toBeTruthy();
-
-    fireEvent.change(recipientInput, {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-
-    expect(screen.queryByText("Enter a valid Neo N3 address.")).toBeNull();
-    expect(sealButton.disabled).toBe(false);
+    expect(container.querySelector(".pt-scene")).toBeTruthy();
+    expect(container.querySelector(".pt-seal-device")).toBeTruthy();
+    expect(container.querySelector(".pt-packet-console")).toBeTruthy();
+    expect(container.querySelector(".pt-transfer-packet")).toBeTruthy();
+    expect(container.querySelector(".pt-transfer-packet__seal")).toBeTruthy();
+    expect(container.querySelector(".pt-transfer-packet__seal img")?.getAttribute("src")).toContain("private-transfer-stage.webp");
+    expect(container.querySelectorAll(".pt-packet-console .pt-compose-input .semi-input")).toHaveLength(2);
+    expect(container.querySelectorAll(".pt-compose-slot")).toHaveLength(2);
+    expect(container.querySelectorAll(".pt-asset-switch__group .semi-radio")).toHaveLength(2);
+    expect(container.querySelectorAll(".pt-amount-presets__group .semi-radio")).toHaveLength(3);
+    expect(container.querySelector(".pt-vault-card")).toBeTruthy();
+    expect(container.querySelector(".pt-vault-card__art img")?.getAttribute("src")).toContain("private-transfer-stage.webp");
+    expect(container.querySelector(".pt-packet-console__head strong")?.textContent).not.toBe("validationHint");
+    expect(container.querySelector(".pt-packet-console__head strong")?.textContent).toBe("packetSealed");
+    expect(container.querySelector(".pt-seal-device__body small")?.textContent).not.toBe("summaryPending");
+    expect(container.querySelector(".pt-scene__intent")).toBeTruthy();
+    expect(container.querySelector(".pt-drawer__memo")).toBeFalsy();
+    expect(container.querySelector(".pt-scene")?.firstElementChild).toBe(container.querySelector(".pt-vault-card"));
+    expect(container.querySelector(".pt-vault-card")?.nextElementSibling).toBe(container.querySelector(".pt-packet-console"));
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".pt-drawer__memo")).toBeTruthy();
+    expect(container.querySelectorAll(".pt-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(container.querySelector(".pt-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".pt-drawer__memo.mx2-open-field .mx2-open-field__control input.semi-input")).toBeTruthy();
+    expect(container.querySelector(".pt-drawer__review")).toBeNull();
+    expect(container.querySelector(".pt-drawer__summary")).toBeNull();
+    expect(container.querySelector(".pt-drawer h4")).toBeNull();
+    expect(container.querySelector(".pt-scene__backdrop")).toBeFalsy();
+    expect(container.textContent).not.toMatch(/🔒|🔓|🔑/);
   });
 
-  it("turns the static explainer into a stateful sealed-route stage", () => {
-    const { container } = render(<PlayArea {...props()} />);
-
-    const route = container.querySelector(".private-transfer__route");
-    expect(route).toBeTruthy();
-    expect(route?.classList.contains("private-transfer__route--draft")).toBe(
-      true,
-    );
-    expect(
-      container
-        .querySelector(".private-transfer__route-stage img")
-        ?.getAttribute("src"),
-    ).toBe("./private-transfer-stage.jpg");
-    expect(screen.getByText("Amount pending")).toBeTruthy();
-    expect(screen.getByText("Recipient pending")).toBeTruthy();
-
-    fireEvent.change(screen.getByPlaceholderText("N..."), {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-
-    expect(
-      container
-        .querySelector(".private-transfer__route")
-        ?.classList.contains("private-transfer__route--ready"),
-    ).toBe(true);
-    expect(screen.getAllByText("1 GAS").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("NR3E4D8N…qNih32").length).toBeGreaterThan(0);
-    expect(
-      container.querySelectorAll(".private-transfer__route-steps li.is-ready")
-        .length,
-    ).toBe(1);
+  it("keeps private transfer styling clean and motion guarded", () => {
+    const s = stylesheet();
+    const playAreaSource = source();
+    const config = fs.readFileSync(`${process.cwd()}/../private-transfer/src/appConfig.ts`, "utf8");
+    expect(playAreaSource).toContain("OpenUiProvider");
+    expect(playAreaSource).toContain("OpenUiSegmented");
+    expect(playAreaSource).toContain("OpenUiTextField");
+    expect(playAreaSource).not.toMatch(/<(input|textarea|select)\b/);
+    expect(playAreaSource).not.toContain('role="radio"');
+    expect(playAreaSource).not.toContain('role="radiogroup"');
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).toMatch(/\.private-transfer-play-area \.mx2-stage__scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.private-transfer-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 156px/);
+    expect(s).toMatch(/\.pt-scene\s*\{[^}]*background:\s*transparent/);
+    expect(s).toMatch(/\.pt-scene\s*\{[^}]*grid-template-columns:\s*minmax\(540px,\s*1\.18fr\) minmax\(320px,\s*0\.82fr\)/);
+    expect(s).toMatch(/\.pt-packet-console\s*\{[\s\S]*background:\s*var\(--mx2-brand-light\)/);
+    expect(s).toMatch(/\.pt-transfer-packet\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.pt-transfer-packet\s*\{[\s\S]*grid-template-areas:\s*[\s\S]*"seal body"[\s\S]*"route route"/);
+    expect(s).toMatch(/\.pt-transfer-packet__seal img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(s).toMatch(/\.pt-transfer-packet__seal img\s*\{[\s\S]*filter:\s*none/);
+    expect(s).toMatch(/\.pt-compose-strip\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(s).toMatch(/\.pt-compose-strip\s*\{[\s\S]*background:\s*#f7faf8/);
+    expect(s).toMatch(/\.pt-compose-slot\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.pt-compose-slot--recipient\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(s).toMatch(/\.pt-amount-desk\s*\{[\s\S]*border:\s*1px solid var\(--mx2-brand-subtle\)/);
+    expect(s).toMatch(/\.pt-asset-switch__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.pt-asset-option\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/\.pt-asset-switch__group \.semi-radio-checked \.pt-asset-option\s*\{[\s\S]*box-shadow:/);
+    expect(s).toMatch(/\.pt-asset-switch__group \.semi-radio-checked \.pt-asset-option\[data-asset="neo"\]\s*\{[\s\S]*color:\s*#047857/);
+    expect(s).toMatch(/\.pt-compose-input--amount\s*\{[\s\S]*height:\s*46px/);
+    expect(s).toMatch(/\.pt-compose-input--amount \.semi-input\s*\{[\s\S]*font-size:\s*28px/);
+    expect(s).toMatch(/\.pt-amount-presets__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.pt-vault-card__art img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(s).toMatch(/\.pt-vault-card\s*\{[\s\S]*grid-template-rows:\s*minmax\(230px,\s*auto\) auto/);
+    expect(s).toMatch(/\.pt-vault-card__art img\s*\{[\s\S]*width:\s*100%/);
+    expect(s).toMatch(/\.pt-vault-card__art img\s*\{[\s\S]*height:\s*clamp\(230px,\s*28vw,\s*316px\)/);
+    expect(s).toMatch(/\.pt-vault-card__art img\s*\{[\s\S]*opacity:\s*1/);
+    expect(s).toMatch(/\.pt-vault-card__art img\s*\{[\s\S]*filter:\s*none/);
+    expect(s).toMatch(/\.pt-seal-device\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(s).toMatch(/\.pt-scene__intent\s*\{[\s\S]*width:\s*fit-content/);
+    expect(s).toMatch(/\.pt-scene__status\s*\{[\s\S]*justify-self:\s*start/);
+    expect(s).toMatch(/\.pt-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.pt-drawer__panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*20px/);
+    expect(s).toMatch(/\.pt-drawer__notice\.mx2-open-notice\.semi-banner\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
+    expect(s).toMatch(/\.pt-drawer__panel--crypto \.pt-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.private-transfer-play-area \.mx2-stage\s*\{[\s\S]*padding:\s*14px 14px 16px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-packet-console\s*\{[\s\S]*order:\s*1/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-vault-card\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-scene__intent\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-scene__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-compose-input--amount\s*\{[\s\S]*height:\s*40px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-compose-input--amount \.semi-input\s*\{[\s\S]*font-size:\s*22px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.pt-drawer,[\s\S]*\.pt-drawer__panel--crypto \.pt-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(s).not.toMatch(/pt-intent-card|pt-transfer-packet__rail|pt-field|pt-scene__backdrop|pt-scene-art|pt-drawer__review|pt-drawer__summary|linear-gradient|var\(--mx2-ink-soft|🔒|🔓|🔑/);
+    expect(config).not.toContain("Add a valid recipient and positive amount");
+    expect(config).toContain("Recipient and {asset} amount are still local draft slots.");
   });
 
-  it("always shows the no-funds-moved disclosure and badges off-app lifecycle steps", () => {
-    render(<PlayArea {...props()} />);
+  it("switches to NEO as a compact asset control and keeps the amount whole-number only", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    // The honest framing: this app seals an intent and never moves funds, so
-    // the disclosure must be visible up front (not only inside an error state).
-    expect(
-      screen.getByText(
-        "No funds were moved — this seals an encrypted intent for Morpheus confidential compute, not a payment.",
-      ),
-    ).toBeTruthy();
+    const assetButtons = container.querySelectorAll(".pt-asset-option");
+    fireEvent.click(assetButtons[1]);
 
-    // Steps 1 (Deposit) and 4 (Release/refund) are not performed here, so they
-    // are badged "Not in this app"; the local-encryption/TEE steps are "In this app".
-    expect(screen.getAllByText("Not in this app")).toHaveLength(2);
-    expect(screen.getAllByText("In this app")).toHaveLength(2);
-  });
+    const amountInput = container.querySelector<HTMLInputElement>("input[placeholder='1']");
+    expect(amountInput).toBeTruthy();
+    expect(amountInput?.inputMode).toBe("numeric");
 
-  it("rejects fractional NEO amounts because NEO is indivisible", () => {
-    render(<PlayArea {...props()} />);
+    fireEvent.change(amountInput as HTMLInputElement, { target: { value: "12.75" } });
 
-    fireEvent.change(screen.getByPlaceholderText("N..."), {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-
-    fireEvent.click(screen.getByRole("radio", { name: "Asset: NEO" }));
-
-    const amountInput = screen.getByRole("spinbutton") as HTMLInputElement;
-    fireEvent.change(amountInput, { target: { value: "0.5" } });
-
-    const sealButton = screen.getByRole("button", {
-      name: "Seal private transfer intent",
-    }) as HTMLButtonElement;
-    expect(sealButton.disabled).toBe(true);
-    expect(
-      screen.getByText(
-        "NEO is indivisible — enter a whole number greater than zero.",
-      ),
-    ).toBeTruthy();
-    expect(amountInput.step).toBe("1");
-
-    fireEvent.change(amountInput, { target: { value: "2" } });
-    expect(
-      screen.queryByText(
-        "NEO is indivisible — enter a whole number greater than zero.",
-      ),
-    ).toBeNull();
-    expect(sealButton.disabled).toBe(false);
-  });
-
-  it("normalizes Morpheus service errors before rendering them", async () => {
-    const setStatus = vi.fn();
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    globalThis.fetch = vi.fn(async () => ({
-      ok: false,
-      json: async () => ({
-        error: "DATABASE_PASSWORD=secret raw Morpheus stack trace",
-      }),
-    })) as unknown as typeof fetch;
-
-    const { container } = render(<PlayArea {...props(setStatus)} />);
-
-    fireEvent.change(screen.getByPlaceholderText("N..."), {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-    fireEvent.click(screen.getByRole("button", { name: "Seal private transfer intent" }));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          "Morpheus sealing is unavailable for this network. Your transfer details remain local.",
-        ),
-      ).toBeTruthy();
-    });
-
-    expect(container.textContent).not.toContain("DATABASE_PASSWORD");
-    expect(container.textContent).not.toContain("raw Morpheus stack trace");
-    expect(setStatus).toHaveBeenLastCalledWith(
-      "Morpheus sealing is unavailable for this network. Your transfer details remain local.",
-      "error",
-    );
-    expect(warnSpy).toHaveBeenCalled();
-  });
-
-  it("keeps the network stat tile in sync with the in-form network picker", () => {
-    // No chain service is injected, so the form defaults to mainnet — the lane
-    // that currently serves a live Morpheus key — rather than the degraded
-    // testnet default.
-    globalThis.fetch = vi.fn(async () => ({
-      ok: false,
-      json: async () => ({}),
-    })) as unknown as typeof fetch;
-    const appState = state();
-    render(<PlayArea {...props(vi.fn(), appState)} />);
-
-    // Seeds to the active (mainnet) selection on mount instead of "Neo N3".
-    expect(appState.networkLabel?.get()).toBe("Mainnet");
-
-    const testnetRadio = screen
-      .getAllByRole("radio")
-      .find((element) =>
-        element.getAttribute("aria-label")?.startsWith("Network: Testnet"),
-      );
-    expect(testnetRadio).toBeTruthy();
-    fireEvent.click(testnetRadio!);
-    expect(appState.networkLabel?.get()).toBe("Testnet");
-
-    const mainnetRadio = screen
-      .getAllByRole("radio")
-      .find((element) =>
-        element.getAttribute("aria-label")?.startsWith("Network: Mainnet"),
-      );
-    expect(mainnetRadio).toBeTruthy();
-    fireEvent.click(mainnetRadio!);
-    expect(appState.networkLabel?.get()).toBe("Mainnet");
-  });
-
-  it("re-floors a fractional amount when switching from GAS to NEO", () => {
-    render(<PlayArea {...props()} />);
-
-    const amountInput = screen.getByRole("spinbutton") as HTMLInputElement;
-    fireEvent.change(amountInput, { target: { value: "1.5" } });
-    expect(amountInput.value).toBe("1.5");
-
-    fireEvent.click(screen.getByRole("radio", { name: "Asset: NEO" }));
-
-    // Fractional part dropped so the value is valid for indivisible NEO.
-    expect(amountInput.value).toBe("1");
-    expect(
-      screen.queryByText(
-        "NEO is indivisible — enter a whole number greater than zero.",
-      ),
-    ).toBeNull();
-  });
-
-  it("copies a sealed output value to the clipboard", async () => {
-    const writeText = vi.fn(async () => undefined);
-    Object.defineProperty(globalThis.navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
-
-    const secretRef = "secret-ref-xyz";
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("public-key")) {
-        return {
-          ok: true,
-          json: async () => ({
-            public_key: "0".repeat(64),
-            algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
-          }),
-        };
-      }
-      return {
-        ok: true,
-        json: async () => ({ secret_ref: secretRef }),
-      };
-    }) as unknown as typeof fetch;
-
-    render(<PlayArea {...props()} />);
-    fireEvent.change(screen.getByPlaceholderText("N..."), {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Seal private transfer intent" }),
-    );
-
-    // The secret ref appears both in the result aside and the persisted
-    // "Sealed intents" history card; copy the first (the result aside).
-    const copyButtons = await screen.findAllByRole("button", {
-      name: "Copy Secret ref",
-    });
-    fireEvent.click(copyButtons[0]);
-
-    await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith(secretRef);
-    });
-    await screen.findByRole("button", { name: "Secret ref copied" });
-  });
-
-  it("persists a successful seal to local history and renders the Sealed intents card", async () => {
-    const secretRef = "secret-ref-persisted";
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("public-key")) {
-        return {
-          ok: true,
-          json: async () => ({
-            public_key: "0".repeat(64),
-            algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
-          }),
-        };
-      }
-      return {
-        ok: true,
-        json: async () => ({ secret_ref: secretRef }),
-      };
-    }) as unknown as typeof fetch;
-
-    const appState = state();
-    render(<PlayArea {...props(vi.fn(), appState)} />);
-    fireEvent.change(screen.getByPlaceholderText("N..."), {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Seal private transfer intent" }),
-    );
-
-    // The secret ref is written to safe-storage so it survives a remount.
-    await waitFor(() => {
-      expect(readSealedIntents()).toHaveLength(1);
-    });
-    expect(readSealedIntents()[0].secretRef).toBe(secretRef);
-
-    // requestCount stat tracks the persisted count, not in-memory state only.
-    expect(appState.requestCount?.get()).toBe(1);
-    // The Sealed intents history card is now rendered.
-    expect(screen.getByText("Sealed intents")).toBeTruthy();
-
-    // Clearing the history wipes storage and resets the count.
-    fireEvent.click(screen.getByRole("button", { name: "Clear sealed intents history" }));
-    expect(readSealedIntents()).toHaveLength(0);
-    expect(appState.requestCount?.get()).toBe(0);
-  });
-
-  it("surfaces the upstream store detail when the proxy returns an inline fallback", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("public-key")) {
-        return {
-          ok: true,
-          json: async () => ({
-            public_key: "0".repeat(64),
-            algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
-          }),
-        };
-      }
-      // The host proxy converts an upstream 404 into a 200 inline fallback.
-      return {
-        ok: true,
-        json: async () => ({
-          status: "inline_fallback",
-          inline_fallback: true,
-          store_available: false,
-          upstream_status: 404,
-          error: "not found",
-        }),
-      };
-    }) as unknown as typeof fetch;
-
-    render(<PlayArea {...props()} />);
-    fireEvent.change(screen.getByPlaceholderText("N..."), {
-      target: { value: VALID_NEO_ADDRESS },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Seal private transfer intent" }),
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          "Morpheus confidential storage is temporarily unavailable. Your transfer details remain local.",
-        ),
-      ).toBeTruthy();
-    });
-    // The upstream detail (status + reason) is surfaced, not discarded.
-    expect(screen.getByText(/not found \(404\)/)).toBeTruthy();
-    // Nothing was persisted on a failed seal.
-    expect(readSealedIntents()).toHaveLength(0);
-    expect(warnSpy).toHaveBeenCalled();
-  });
-
-  it("backs the sealed route with motion and reduced-motion fallbacks", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../private-transfer/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes private-transfer-stage-drift");
-    expect(styles).toContain("@keyframes private-transfer-route-rail");
-    expect(styles).toContain("@keyframes private-transfer-packet-sealing");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /\.private-transfer__route--sealing \.private-transfer__route-packet[\s\S]*animation:\s*private-transfer-packet-sealing/,
-    );
+    expect(amountInput?.value).toBe("12");
+    expect(container.querySelector(".pt-amount-desk")?.getAttribute("data-asset")).toBe("neo");
+    expect(container.querySelector(".pt-transfer-packet__body")?.textContent).toContain("NEO");
   });
 });

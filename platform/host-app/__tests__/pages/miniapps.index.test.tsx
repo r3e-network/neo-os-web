@@ -111,7 +111,7 @@ describe("MiniAppsPage", () => {
       expect(screen.getAllByText("LastSurvivor").length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
+    expect(screen.getAllByText("On-Chain Tarot").length).toBeGreaterThan(0);
   });
 
   it("renders bundled MiniApp props immediately before the catalog refresh completes", async () => {
@@ -141,7 +141,7 @@ describe("MiniAppsPage", () => {
     );
 
     expect(screen.getAllByText("GasBox").length).toBeGreaterThan(0);
-    expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
+    expect(screen.getAllByText("On-Chain Tarot").length).toBeGreaterThan(0);
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/miniapps/catalog?scope=all",
       expect.any(Object),
@@ -185,7 +185,7 @@ describe("MiniAppsPage", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "义乌小程序" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Neo Miniapps" })).toBeInTheDocument();
     });
 
     expect(screen.getByPlaceholderText("按名称、分类或应用 ID 搜索")).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe("MiniAppsPage", () => {
     expect(screen.getAllByText("打开小程序").length).toBeGreaterThan(0);
   });
 
-  it("renders a wallet-style market shell with quick filters and a lead preview", async () => {
+  it("renders an OS-style app launcher shell with compact filters and a featured shelf", async () => {
     const user = userEvent.setup();
     global.fetch = jest.fn(() => new Promise<Response>(() => undefined)) as typeof fetch;
 
@@ -239,14 +239,20 @@ describe("MiniAppsPage", () => {
     expect(screen.getByTestId("miniapps-market-search")).toBeInTheDocument();
     expect(screen.getByTestId("miniapps-lead-preview")).toHaveTextContent("Live Swap");
     expect(screen.getByTestId("miniapps-lead-preview")).toHaveClass(
-      "min-h-[260px]",
+      "min-h-[250px]",
     );
+    expect(screen.getByTestId("miniapps-featured-shelf")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("miniapps-featured-shelf")).getAllByTestId(
+        "miniapp-logo",
+      ),
+    ).toHaveLength(3);
     expect(screen.getByTestId("miniapps-market-list")).toBeInTheDocument();
     expect(screen.getAllByTestId("miniapp-market-row")).toHaveLength(3);
     expect(screen.getAllByTestId("miniapp-row-open")[0]).toHaveTextContent("Open app");
 
     const quickFilters = screen.getByTestId("miniapps-quick-filters");
-    expect(within(quickFilters).getAllByRole("button")).toHaveLength(3);
+    expect(within(quickFilters).getAllByRole("button")).toHaveLength(5);
 
     await act(async () => {
       await user.click(within(quickFilters).getByRole("button", { name: /tool/i }));

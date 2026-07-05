@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neo MiniApps — 发现无限可能</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   Neo v3 Design Tokens — Light Theme
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --n3-bg: #faf9f7;
+  --n3-bg-alt: #f3f1ee;
+  --n3-bg-inset: #eeebe6;
+  --n3-surface: #ffffff;
+  --n3-surface-hover: #fafaf9;
+  --n3-ink: #141626;
+  --n3-text: #1e2036;
+  --n3-text-secondary: #515572;
+  --n3-text-muted: #787e9b;
+  --n3-text-faint: #a5a9bd;
+  --n3-brand: #16c784;
+  --n3-brand-hover: #0fb174;
+  --n3-brand-soft: #e4f8f0;
+  --n3-brand-subtle: #f2fcf7;
+  --n3-brand-glow: rgba(22,199,132,0.25);
+  --n3-brand-gradient: linear-gradient(135deg, #16c784, #0fb174);
+  --n3-brand-gradient-warm: linear-gradient(135deg, #16c784 0%, #34d399 50%, #a7f3d0 100%);
+  --n3-accent: #2563eb;
+  --n3-accent-soft: #eff6ff;
+  --n3-border: rgba(20,26,38,0.06);
+  --n3-border-strong: rgba(20,26,38,0.10);
+  --n3-radius-sm: 10px;
+  --n3-radius-md: 14px;
+  --n3-radius-lg: 20px;
+  --n3-radius-xl: 28px;
+  --n3-radius-full: 9999px;
+  --n3-shadow-sm: 0 1px 2px rgba(20,26,38,0.04);
+  --n3-shadow-md: 0 4px 16px rgba(20,26,38,0.05), 0 1px 4px rgba(20,26,38,0.03);
+  --n3-shadow-lg: 0 12px 32px rgba(20,26,38,0.07), 0 4px 8px rgba(20,26,38,0.04);
+  --n3-shadow-brand: 0 8px 32px rgba(22,199,132,0.18);
+  --n3-duration-fast: 150ms;
+  --n3-duration-normal: 250ms;
+  --n3-duration-slow: 400ms;
+  --n3-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --n3-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --n3-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--n3-font-sans);
+  background: var(--n3-bg);
+  color: var(--n3-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Navigation
+   ═══════════════════════════════════════════════════════════ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+  padding: 12px 0;
+  transition: all var(--n3-duration-normal) var(--n3-ease-out-expo);
+}
+.nav.scrolled {
+  background: rgba(250,249,247,0.85);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--n3-border);
+  box-shadow: var(--n3-shadow-sm);
+}
+.nav-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 20px; color: var(--n3-ink);
+  text-decoration: none; letter-spacing: -0.01em;
+}
+.nav-logo-dot {
+  width: 32px; height: 32px;
+  background: var(--n3-brand-gradient);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 14px;
+}
+.nav-links {
+  display: flex; align-items: center; gap: 4px;
+  list-style: none;
+}
+.nav-links a {
+  text-decoration: none; color: var(--n3-text-secondary);
+  font-size: 14px; font-weight: 500; padding: 8px 16px;
+  border-radius: var(--n3-radius-full);
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.nav-links a:hover, .nav-links a.active {
+  color: var(--n3-ink);
+  background: var(--n3-bg-alt);
+}
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.nav-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--n3-surface); border: 1px solid var(--n3-border-strong);
+  border-radius: var(--n3-radius-full); padding: 8px 16px;
+  width: 240px; transition: all var(--n3-duration-fast) var(--n3-ease-out-expo);
+}
+.nav-search:focus-within {
+  border-color: var(--n3-brand);
+  box-shadow: 0 0 0 4px var(--n3-brand-glow);
+}
+.nav-search svg { flex-shrink: 0; color: var(--n3-text-faint); }
+.nav-search input {
+  border: none; background: none; outline: none;
+  font-size: 14px; font-family: var(--n3-font-sans);
+  color: var(--n3-ink); width: 100%;
+}
+.nav-search input::placeholder { color: var(--n3-text-faint); }
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--n3-brand-gradient); color: #fff;
+  font-weight: 600; font-size: 14px; border: none;
+  border-radius: var(--n3-radius-full); padding: 10px 24px;
+  cursor: pointer; white-space: nowrap;
+  transition: all var(--n3-duration-fast) var(--n3-ease-out-expo);
+  text-decoration: none;
+}
+.btn-primary:hover {
+  box-shadow: var(--n3-shadow-brand);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--n3-surface); color: var(--n3-ink);
+  font-weight: 500; font-size: 14px;
+  border: 1px solid var(--n3-border-strong);
+  border-radius: var(--n3-radius-full); padding: 10px 24px;
+  cursor: pointer; white-space: nowrap; text-decoration: none;
+  transition: all var(--n3-duration-fast) var(--n3-ease-out-expo);
+}
+.btn-secondary:hover {
+  background: var(--n3-surface-hover);
+  border-color: rgba(20,26,38,0.16);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Hero Section
+   ═══════════════════════════════════════════════════════════ */
+.hero {
+  padding: 160px 24px 80px;
+  max-width: 1280px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 80px; align-items: center;
+}
+.hero-content { max-width: 560px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--n3-brand-soft); color: var(--n3-brand-hover);
+  font-size: 12px; font-weight: 700;
+  padding: 6px 16px; border-radius: var(--n3-radius-full);
+  margin-bottom: 24px; letter-spacing: 0.05em;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--n3-brand);
+  box-shadow: 0 0 8px var(--n3-brand-glow);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+.hero-title {
+  font-size: clamp(2.5rem, 2rem + 2.5vw, 3.75rem);
+  font-weight: 800; line-height: 1.1;
+  color: var(--n3-ink); letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+.hero-title span {
+  background: var(--n3-brand-gradient-warm);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-desc {
+  font-size: 18px; color: var(--n3-text-secondary);
+  line-height: 1.65; margin-bottom: 36px;
+}
+.hero-stats {
+  display: flex; gap: 40px; margin-bottom: 36px;
+}
+.hero-stat-value {
+  font-size: 32px; font-weight: 800; color: var(--n3-ink);
+  letter-spacing: -0.02em; line-height: 1;
+}
+.hero-stat-label {
+  font-size: 13px; color: var(--n3-text-muted);
+  margin-top: 6px; font-weight: 500;
+}
+.hero-actions { display: flex; gap: 12px; }
+
+.hero-visual {
+  position: relative; height: 480px;
+}
+.hero-card-stack {
+  position: relative; width: 100%; height: 100%;
+}
+.hero-card {
+  position: absolute;
+  background: var(--n3-surface);
+  border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-xl);
+  box-shadow: var(--n3-shadow-lg);
+  overflow: hidden;
+  transition: all var(--n3-duration-slow) var(--n3-ease-out-expo);
+}
+.hero-card-1 {
+  width: 340px; top: 0; left: 50%; transform: translateX(-50%) rotate(-3deg);
+  z-index: 3; padding: 0;
+}
+.hero-card-2 {
+  width: 300px; top: 20px; right: -20px; transform: rotate(6deg);
+  z-index: 2; padding: 0;
+}
+.hero-card-3 {
+  width: 280px; top: 100px; left: -10px; transform: rotate(-6deg);
+  z-index: 1; padding: 0;
+}
+.hero-card:hover { transform: translateY(-8px) rotate(0deg); z-index: 10; }
+.hero-card-preview {
+  width: 100%; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; position: relative; overflow: hidden;
+}
+.hero-card-preview.game { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.hero-card-preview.defi { background: linear-gradient(135deg, #dbeafe, #c7d2fe); }
+.hero-card-preview.nft { background: linear-gradient(135deg, #fae8ff, #e9d5ff); }
+.hero-card-info { padding: 20px; }
+.hero-card-name { font-size: 16px; font-weight: 700; color: var(--n3-ink); margin-bottom: 4px; }
+.hero-card-cat { font-size: 12px; color: var(--n3-text-muted); font-weight: 500; }
+.hero-card-users { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.hero-card-avatars {
+  display: flex;
+}
+.hero-card-avatars span {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid #fff; margin-left: -8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+.hero-card-avatars span:first-child { margin-left: 0; }
+.hero-card-avatars .av1 { background: #f59e0b; }
+.hero-card-avatars .av2 { background: #ef4444; }
+.hero-card-avatars .av3 { background: #8b5cf6; }
+.hero-card-users-text { font-size: 12px; color: var(--n3-text-muted); font-weight: 500; }
+.hero-float-badge {
+  position: absolute; z-index: 5;
+  background: var(--n3-surface); border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-md);
+  padding: 12px 20px; box-shadow: var(--n3-shadow-md);
+  display: flex; align-items: center; gap: 12px;
+  font-size: 14px; font-weight: 600;
+  animation: float-y 3s ease-in-out infinite;
+}
+.hero-float-badge-1 { top: 40px; right: -40px; animation-delay: 0s; }
+.hero-float-badge-2 { bottom: 80px; left: -30px; animation-delay: 1.5s; }
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Category Navigation
+   ═══════════════════════════════════════════════════════════ */
+.section { padding: 0 24px; max-width: 1280px; margin: 0 auto; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 32px;
+}
+.section-title {
+  font-size: 28px; font-weight: 700; color: var(--n3-ink);
+  letter-spacing: -0.02em;
+}
+.section-link {
+  font-size: 14px; font-weight: 600; color: var(--n3-brand);
+  text-decoration: none; display: flex; align-items: center; gap: 4px;
+  transition: gap var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.section-link:hover { gap: 8px; }
+.cat-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;
+  margin-bottom: 80px;
+}
+.cat-card {
+  background: var(--n3-surface); border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-xl); padding: 24px 20px;
+  cursor: pointer; text-align: center; text-decoration: none;
+  transition: all var(--n3-duration-normal) var(--n3-ease-out-expo);
+}
+.cat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--n3-shadow-lg);
+  border-color: transparent;
+}
+.cat-icon {
+  width: 52px; height: 52px; border-radius: var(--n3-radius-md);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px; font-size: 24px;
+}
+.cat-icon.game { background: #fef3c7; }
+.cat-icon.defi { background: #dbeafe; }
+.cat-icon.nft { background: #f3e8ff; }
+.cat-icon.tool { background: #ccfbf1; }
+.cat-icon.social { background: #fce7f3; }
+.cat-icon.governance { background: #e0e7ff; }
+.cat-name { font-size: 14px; font-weight: 600; color: var(--n3-ink); margin-bottom: 4px; }
+.cat-count { font-size: 12px; color: var(--n3-text-muted); }
+
+/* ═══════════════════════════════════════════════════════════
+   Featured Apps
+   ═══════════════════════════════════════════════════════════ */
+.featured { padding: 0 24px 80px; max-width: 1280px; margin: 0 auto; }
+.featured-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+.featured-card {
+  background: var(--n3-surface); border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-xl); overflow: hidden;
+  transition: all var(--n3-duration-normal) var(--n3-ease-out-expo);
+  text-decoration: none; display: block;
+}
+.featured-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--n3-shadow-lg);
+}
+.featured-card-preview {
+  height: 200px; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.preview-game { background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 50%, #f59e0b 100%); }
+.preview-defi { background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 50%, #3b82f6 100%); }
+.preview-nft { background: linear-gradient(135deg, #f3e8ff 0%, #c084fc 50%, #a855f7 100%); }
+.featured-card-preview-icon { font-size: 56px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
+.featured-card-badge {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
+  padding: 4px 12px; border-radius: var(--n3-radius-full);
+  font-size: 11px; font-weight: 700; color: var(--n3-ink);
+}
+.featured-card-body { padding: 24px; }
+.featured-card-cat {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--n3-text-muted);
+  margin-bottom: 8px;
+}
+.featured-card-title { font-size: 18px; font-weight: 700; color: var(--n3-ink); margin-bottom: 8px; }
+.featured-card-desc {
+  font-size: 14px; color: var(--n3-text-secondary); line-height: 1.6;
+  margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.featured-card-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 16px; border-top: 1px solid var(--n3-border);
+}
+.featured-card-stats { font-size: 13px; color: var(--n3-text-muted); font-weight: 500; }
+.featured-card-rating {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; font-weight: 600; color: var(--n3-ink);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   All Apps Grid
+   ═══════════════════════════════════════════════════════════ */
+.apps-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  padding-bottom: 80px;
+}
+.app-card {
+  background: var(--n3-surface); border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-lg); padding: 24px;
+  cursor: pointer; text-decoration: none; display: block;
+  transition: all var(--n3-duration-normal) var(--n3-ease-out-expo);
+}
+.app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--n3-shadow-md);
+  border-color: var(--n3-border-strong);
+}
+.app-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+.app-card-icon {
+  width: 48px; height: 48px; border-radius: var(--n3-radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.app-card-icon.game { background: #fef3c7; }
+.app-card-icon.defi { background: #dbeafe; }
+.app-card-icon.nft { background: #f3e8ff; }
+.app-card-icon.tool { background: #ccfbf1; }
+.app-card-icon.social { background: #fce7f3; }
+.app-card-icon.default { background: var(--n3-bg-alt); }
+.app-card-title {
+  font-size: 16px; font-weight: 700; color: var(--n3-ink);
+  margin-bottom: 4px; line-height: 1.3;
+}
+.app-card-network {
+  font-size: 11px; color: var(--n3-text-muted);
+  display: flex; align-items: center; gap: 4px;
+}
+.app-card-desc {
+  font-size: 13px; color: var(--n3-text-secondary);
+  line-height: 1.55; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CTA Section
+   ═══════════════════════════════════════════════════════════ */
+.cta {
+  margin: 0 24px 80px; max-width: 1280px; margin-left: auto; margin-right: auto;
+}
+.cta-inner {
+  background: linear-gradient(135deg, #141626 0%, #1e2036 50%, #162648 100%);
+  border-radius: var(--n3-radius-2xl, 36px); padding: 64px 80px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+  overflow: hidden; position: relative;
+}
+.cta-inner::before {
+  content: ""; position: absolute; top: -40%; right: -20%;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(22,199,132,0.12), transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.cta-title {
+  font-size: 32px; font-weight: 800; color: #fff;
+  line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 16px;
+}
+.cta-desc { font-size: 16px; color: rgba(255,255,255,0.65); line-height: 1.7; margin-bottom: 32px; }
+.cta-actions { display: flex; gap: 12px; }
+
+/* ═══════════════════════════════════════════════════════════
+   Footer
+   ═══════════════════════════════════════════════════════════ */
+.footer {
+  border-top: 1px solid var(--n3-border);
+  padding: 48px 24px;
+  max-width: 1280px; margin: 0 auto;
+}
+.footer-grid {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 40px;
+}
+.footer-brand { }
+.footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.footer-logo-text { font-size: 20px; font-weight: 700; color: var(--n3-ink); }
+.footer-desc { font-size: 14px; color: var(--n3-text-secondary); line-height: 1.7; max-width: 300px; }
+.footer-col h4 { font-size: 13px; font-weight: 700; color: var(--n3-ink); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.06em; }
+.footer-col ul { list-style: none; }
+.footer-col li { margin-bottom: 12px; }
+.footer-col a { font-size: 14px; color: var(--n3-text-secondary); text-decoration: none; transition: color var(--n3-duration-fast); }
+.footer-col a:hover { color: var(--n3-brand); }
+.footer-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--n3-border);
+  font-size: 13px; color: var(--n3-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Theme Toggle
+   ═══════════════════════════════════════════════════════════ */
+.theme-toggle {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--n3-border-strong); background: var(--n3-surface);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--n3-text-secondary); font-size: 18px;
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.theme-toggle:hover { background: var(--n3-bg-alt); color: var(--n3-ink); }
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 120px; }
+  .hero-visual { height: 360px; }
+  .hero-card-1 { left: 40%; }
+  .hero-card-2 { right: 0; }
+  .hero-float-badge-1 { right: 0; }
+  .cat-grid { grid-template-columns: repeat(3, 1fr); }
+  .featured-grid { grid-template-columns: repeat(2, 1fr); }
+  .apps-grid { grid-template-columns: repeat(2, 1fr); }
+  .cta-inner { grid-template-columns: 1fr; padding: 48px; }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-search { display: none; }
+}
+@media (max-width: 640px) {
+  .hero { padding: 100px 16px 40px; }
+  .hero-stats { gap: 24px; }
+  .hero-stat-value { font-size: 24px; }
+  .cat-grid { grid-template-columns: repeat(2, 1fr); }
+  .featured-grid { grid-template-columns: 1fr; }
+  .apps-grid { grid-template-columns: 1fr; }
+  .cta-inner { padding: 32px 24px; border-radius: var(--n3-radius-xl); }
+  .nav-links { display: none; }
+  .hero-card-2, .hero-card-3, .hero-float-badge-1, .hero-float-badge-2 { display: none; }
+  .hero-card-1 { position: static; transform: none; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ Navigation ═══════════════ -->
+<nav class="nav" id="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-dot">N</div>
+      Neo MiniApps
+    </a>
+    <ul class="nav-links">
+      <li><a href="#" class="active">探索</a></li>
+      <li><a href="#">排行榜</a></li>
+      <li><a href="#">文档</a></li>
+      <li><a href="#">开发者</a></li>
+      <li><a href="#">关于</a></li>
+    </ul>
+    <div class="nav-actions">
+      <div class="nav-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="搜索小程序...">
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌗</button>
+      <a href="#" class="btn-secondary">连接钱包</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════ Hero ═══════════════ -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      75+ 小程序实时运行中
+    </div>
+    <h1 class="hero-title">
+      在 Neo 区块链上<br><span>发现、游玩、创造</span>
+    </h1>
+    <p class="hero-desc">
+      Neo MiniApps 是你进入 Web3 世界的入口。从趣味小游戏到 DeFi 工具，从 NFT 画廊到智能合约，一切都在链上运行，即刻体验，无需下载。
+    </p>
+    <div class="hero-stats">
+      <div>
+        <div class="hero-stat-value">75+</div>
+        <div class="hero-stat-label">小程序</div>
+      </div>
+      <div>
+        <div class="hero-stat-value">12.4K</div>
+        <div class="hero-stat-label">日活用户</div>
+      </div>
+      <div>
+        <div class="hero-stat-value">$2.8M</div>
+        <div class="hero-stat-label">总锁仓量</div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary" style="padding: 14px 32px; font-size: 16px;">
+        开始探索
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="#" class="btn-secondary" style="padding: 14px 32px; font-size: 16px;">
+        成为开发者
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="hero-card-stack">
+      <div class="hero-card hero-card-1">
+        <div class="hero-card-preview game">🎮</div>
+        <div class="hero-card-info">
+          <div class="hero-card-name">Color Clash</div>
+          <div class="hero-card-cat">游戏 · 多人对战</div>
+          <div class="hero-card-users">
+            <div class="hero-card-avatars">
+              <span class="av1">A</span><span class="av2">B</span><span class="av3">C</span>
+            </div>
+            <span class="hero-card-users-text">2.3K 在线</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-card hero-card-2">
+        <div class="hero-card-preview defi">💰</div>
+        <div class="hero-card-info">
+          <div class="hero-card-name">Neo Swap</div>
+          <div class="hero-card-cat">DeFi · 去中心化交易</div>
+        </div>
+      </div>
+      <div class="hero-card hero-card-3">
+        <div class="hero-card-preview nft">🖼️</div>
+        <div class="hero-card-info">
+          <div class="hero-card-name">NFT Factory</div>
+          <div class="hero-card-cat">NFT · 铸造与收藏</div>
+        </div>
+      </div>
+      <div class="hero-float-badge hero-float-badge-1">
+        <span style="font-size:28px">🏆</span>
+        <div>
+          <div style="font-weight:700;color:var(--n3-ink)">本周热门</div>
+          <div style="font-size:11px;color:var(--n3-text-muted)">Dice Game 登顶</div>
+        </div>
+      </div>
+      <div class="hero-float-badge hero-float-badge-2">
+        <span style="font-size:28px">⚡</span>
+        <div>
+          <div style="font-weight:700;color:var(--n3-ink)">Gas 免费</div>
+          <div style="font-size:11px;color:var(--n3-text-muted)">赞助模式已开启</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ Categories ═══════════════ -->
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">探索分类</h2>
+    <a href="#" class="section-link">查看全部 <span>→</span></a>
+  </div>
+  <div class="cat-grid">
+    <a href="#" class="cat-card"><div class="cat-icon game">🎮</div><div class="cat-name">游戏</div><div class="cat-count">18 个小程序</div></a>
+    <a href="#" class="cat-card"><div class="cat-icon defi">💰</div><div class="cat-name">DeFi</div><div class="cat-count">14 个小程序</div></a>
+    <a href="#" class="cat-card"><div class="cat-icon nft">🖼️</div><div class="cat-name">NFT</div><div class="cat-count">8 个小程序</div></a>
+    <a href="#" class="cat-card"><div class="cat-icon tool">🔧</div><div class="cat-name">工具</div><div class="cat-count">22 个小程序</div></a>
+    <a href="#" class="cat-card"><div class="cat-icon social">👥</div><div class="cat-name">社交</div><div class="cat-count">6 个小程序</div></a>
+    <a href="#" class="cat-card"><div class="cat-icon governance">🏛️</div><div class="cat-name">治理</div><div class="cat-count">7 个小程序</div></a>
+  </div>
+</section>
+
+<!-- ═══════════════ Featured ═══════════════ -->
+<section class="featured">
+  <div class="section-header">
+    <h2 class="section-title">精选推荐</h2>
+    <a href="#" class="section-link">更多推荐 <span>→</span></a>
+  </div>
+  <div class="featured-grid">
+    <a href="#" class="featured-card">
+      <div class="featured-card-preview preview-game">
+        <div class="featured-card-preview-icon">🎯</div>
+        <span class="featured-card-badge">🔥 热门</span>
+      </div>
+      <div class="featured-card-body">
+        <div class="featured-card-cat">游戏</div>
+        <div class="featured-card-title">Aim Master</div>
+        <div class="featured-card-desc">链上射击对战游戏，用你的反应速度赢得 NEO 奖励</div>
+        <div class="featured-card-meta">
+          <span class="featured-card-stats">5.2K 玩家</span>
+          <span class="featured-card-rating">⭐ 4.8</span>
+        </div>
+      </div>
+    </a>
+    <a href="#" class="featured-card">
+      <div class="featured-card-preview preview-defi">
+        <div class="featured-card-preview-icon">📊</div>
+        <span class="featured-card-badge">🆕 新品</span>
+      </div>
+      <div class="featured-card-body">
+        <div class="featured-card-cat">DeFi</div>
+        <div class="featured-card-title">Profit Anchor</div>
+        <div class="featured-card-desc">稳健收益策略，智能定投与自动复利，让资产持续增长</div>
+        <div class="featured-card-meta">
+          <span class="featured-card-stats">$420K TVL</span>
+          <span class="featured-card-rating">⭐ 4.6</span>
+        </div>
+      </div>
+    </a>
+    <a href="#" class="featured-card">
+      <div class="featured-card-preview preview-nft">
+        <div class="featured-card-preview-icon">💎</div>
+        <span class="featured-card-badge">🏅 精选</span>
+      </div>
+      <div class="featured-card-body">
+        <div class="featured-card-cat">NFT</div>
+        <div class="featured-card-title">Forever Album</div>
+        <div class="featured-card-desc">将珍贵记忆永久铭刻在区块链上，打造不可篡改的数字珍藏</div>
+        <div class="featured-card-meta">
+          <span class="featured-card-stats">1.8K 藏品</span>
+          <span class="featured-card-rating">⭐ 4.9</span>
+        </div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════ All Apps ═══════════════ -->
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">全部小程序</h2>
+    <a href="#" class="section-link">浏览全部 <span>→</span></a>
+  </div>
+  <div class="apps-grid">
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon game">🃏</div>
+        <div>
+          <div class="app-card-title">Dice Game</div>
+          <div class="app-card-network">Neo N3 Mainnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">经典骰子游戏，链上透明随机数保障公平</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon defi">🧧</div>
+        <div>
+          <div class="app-card-title">Red Envelope</div>
+          <div class="app-card-network">Neo N3 Mainnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">链上红包，支持随机金额和拼手气模式</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon nft">🎟️</div>
+        <div>
+          <div class="app-card-title">Event Ticket</div>
+          <div class="app-card-network">Neo N3 Testnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">区块链门票系统，防伪验证一步到位</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon tool">🔐</div>
+        <div>
+          <div class="app-card-title">Recovery Guardian</div>
+          <div class="app-card-network">Neo N3 Mainnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">社交恢复钱包守护者，安全无忧管理资产</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon game">🐍</div>
+        <div>
+          <div class="app-card-title">Snake Bounty</div>
+          <div class="app-card-network">Neo N3 Testnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">经典贪吃蛇，吃得多奖励多，链上排行榜竞技</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon defi">💱</div>
+        <div>
+          <div class="app-card-title">Neo Convert</div>
+          <div class="app-card-network">Neo N3 Mainnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">一键代币兑换，最优价格路由自动匹配</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon social">💬</div>
+        <div>
+          <div class="app-card-title">Neo Message</div>
+          <div class="app-card-network">Neo N3 Mainnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">链上加密消息，端到端安全通信</div>
+    </a>
+    <a href="#" class="app-card">
+      <div class="app-card-header">
+        <div class="app-card-icon tool">📋</div>
+        <div>
+          <div class="app-card-title">Neo MultiSig</div>
+          <div class="app-card-network">Neo N3 Mainnet</div>
+        </div>
+      </div>
+      <div class="app-card-desc">多签钱包管理，团队资产安全协作</div>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════ CTA ═══════════════ -->
+<section class="cta">
+  <div class="cta-inner">
+    <div style="position:relative;z-index:1">
+      <h2 class="cta-title">创建属于你的小程序</h2>
+      <p class="cta-desc">
+        Neo MiniApps 提供完整的开发框架和部署工具。从模板开始，几分钟内即可发布你的第一个链上小程序。
+      </p>
+      <div class="cta-actions">
+        <a href="#" class="btn-primary" style="background:#16c784;font-size:16px;padding:14px 32px;">
+          开始构建
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+        <a href="#" class="btn-secondary" style="color:#fff;border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);font-size:16px;padding:14px 32px;">
+          查看文档
+        </a>
+      </div>
+    </div>
+    <div style="position:relative;z-index:1;text-align:center;font-size:120px;opacity:0.15">⚡</div>
+  </div>
+</section>
+
+<!-- ═══════════════ Footer ═══════════════ -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <div class="nav-logo-dot">N</div>
+        <span class="footer-logo-text">Neo MiniApps</span>
+      </div>
+      <p class="footer-desc">在 Neo N3 区块链上发现、游玩和创建去中心化小程序。一切皆在链上，即刻体验。</p>
+    </div>
+    <div class="footer-col">
+      <h4>产品</h4>
+      <ul>
+        <li><a href="#">探索小程序</a></li>
+        <li><a href="#">排行榜</a></li>
+        <li><a href="#">开发者平台</a></li>
+        <li><a href="#">Gas 赞助</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>资源</h4>
+      <ul>
+        <li><a href="#">开发文档</a></li>
+        <li><a href="#">API 参考</a></li>
+        <li><a href="#">SDK 下载</a></li>
+        <li><a href="#">模板市场</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>社区</h4>
+      <ul>
+        <li><a href="#">Discord</a></li>
+        <li><a href="#">Twitter</a></li>
+        <li><a href="#">GitHub</a></li>
+        <li><a href="#">论坛</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>关于</h4>
+      <ul>
+        <li><a href="#">关于我们</a></li>
+        <li><a href="#">博客</a></li>
+        <li><a href="#">隐私政策</a></li>
+        <li><a href="#">服务条款</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 Neo MiniApps. All rights reserved.</span>
+    <span>Built on Neo N3 Blockchain</span>
+  </div>
+</footer>
+
+<script>
+// Scroll effect
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Theme toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

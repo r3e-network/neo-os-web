@@ -27,8 +27,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/wallet-health/index.html",
-    "icon": "/miniapps/wallet-health/logo.jpg",
-    "banner": "/miniapps/wallet-health/banner.jpg"
+    "icon": "/miniapps/wallet-health/logo.webp",
+    "banner": "/miniapps/wallet-health/banner.webp"
   },
   "permissions": [
     "invoke:primary",

@@ -1,1039 +1,1016 @@
-@use "@shared/styles/console-common" as console;
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss" as *;
-@use "./pages/index/gov-merc-theme.scss" as *;
+/**
+ * Gov Merc -- resource-led PlayArea styles.
+ *
+ * Governance/DeFi identity: a bright civic market room, NEO stake and GAS bid
+ * rails, compact order tickets, and secondary settlement/rewards in the drawer.
+ */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-body {
-  background: #f5f6f3;
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #4f46e5;
+  --mx2-brand-hover: #4338ca;
+  --mx2-brand-light: #ecebfd;
+  --mx2-brand-subtle: #c9c5f8;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #7c3aed;
+  --mx2-accent-strong: #5b21b6;
+  --mx2-accent-soft: #f2ebfe;
+  --mx2-accent-ink: #3b1d75;
 }
 
-.gov-merc-shell {
-  @include console.play-area;
-  display: grid;
-  grid-template-columns: minmax(0, 0.74fr) minmax(340px, 0.46fr);
-  gap: 18px;
-  min-height: 620px;
-  align-items: start;
-  color: #122019;
-  letter-spacing: 0;
-}
 
-.gov-merc-main,
-.gov-merc-side {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
-.gov-merc-hero {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.48fr);
-  gap: 22px;
-  align-items: stretch;
-  min-width: 0;
-  padding: 24px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  background: linear-gradient(135deg, #ffffff 0%, var(--ns-brand-soft, #e4f8f0) 100%);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-  letter-spacing: 0;
-}
-
-.gov-merc-hero::after {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  content: "";
-  background:
-    linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.52) 42%, transparent 58%),
-    radial-gradient(circle at 84% 16%, rgba(245, 177, 66, 0.14), transparent 24%);
-  opacity: 0.66;
-  transform: translateX(-42%);
-  animation: gov-merc-hero-sheen 7.6s ease-in-out infinite;
-}
-
-.gov-merc-hero-copy {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  align-content: center;
-  gap: 10px;
-  min-width: 0;
-
-  span {
-    width: fit-content;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    color: var(--ns-brand-deep, #0b5e3e);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  h2 {
-    margin: 0;
-    color: var(--ns-ink, #102019);
-    font-size: 29px;
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
-  }
-
-  p {
-    max-width: 560px;
-    margin: 0;
-    color: #3c5a4d;
-    font-size: 13.5px;
-    line-height: 1.5;
-    letter-spacing: 0;
-  }
-}
-
-// Civic lede: what winning the title actually grants. Brand-soft callout so it
-// reads as the headline meaning, not fine print.
-.gov-merc-hero-grant {
-  max-width: 560px;
-  margin: 2px 0 0 !important;
-  padding: 10px 12px;
-  border-left: 3px solid var(--ns-brand, #16c784);
-  border-radius: 0 var(--ns-radius-sm, 10px) var(--ns-radius-sm, 10px) 0;
-  background: rgba(255, 255, 255, 0.72);
-  color: #2c463b !important;
-  font-size: 12px !important;
-  line-height: 1.5 !important;
-}
-
-.gov-merc-hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  letter-spacing: 0;
-}
-
-.gov-merc-hero-deposits {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    color: var(--ns-ink, #102019);
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.gov-merc-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 11px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-deep, #0b5e3e);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-
-  &.is-loading {
-    background: var(--ns-surface-subtle, #f7f8fa);
-    color: var(--ns-text-muted, #8a92a6);
-  }
-}
-
-.gov-merc-hero-dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 6px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand, #16c784);
-
-  .is-loading & {
-    background: var(--ns-text-muted, #8a92a6);
-  }
-}
-
-.gov-merc-scoreboard {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  align-content: center;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  border-radius: 16px;
-  background: transparent;
-}
-
-.gov-merc-market-stage {
-  position: relative;
-  grid-column: 1 / -1;
+.gov-merc-play-area {
   display: block;
-  min-width: 0;
-  min-height: 214px;
+}
+
+.gov-merc-play-area .mx2-stage__scene {
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+.gov-merc-play-area .mx2-stage__head {
+  align-items: center;
+}
+
+.gov-merc-play-area .mx2-stage__title,
+.gov-merc-play-area .mx2-eyebrow {
+  letter-spacing: 0;
+}
+
+.merc-stage-badge {
+  max-width: min(260px, 34vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-scene {
+  position: relative;
+  min-height: 620px;
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(230px, 0.72fr) minmax(160px, 1fr);
+  grid-template-rows: auto auto auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: 16px 18px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: var(--mx2-r-lg);
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.merc-stage-art {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  width: min(100%, 760px);
+  aspect-ratio: 16 / 9;
   margin: 0;
   overflow: hidden;
-  border: 1px solid rgba(15, 177, 116, 0.22);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: #f8fff8;
-  box-shadow:
-    0 18px 38px rgba(30, 84, 56, 0.14),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.72);
-  isolation: isolate;
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    min-height: 214px;
-    object-fit: cover;
-    object-position: 50% 56%;
-    filter: saturate(1.04) contrast(1.01);
-    transform: scale(1.04);
-    animation: gov-merc-stage-drift 18s ease-in-out infinite alternate;
-  }
-
-  &::after {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    content: "";
-    background:
-      linear-gradient(180deg, rgba(7, 41, 30, 0.02) 28%, rgba(7, 41, 30, 0.58) 100%),
-      radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.32), transparent 30%);
-  }
-
-  &::before {
-    position: absolute;
-    left: -20%;
-    right: -20%;
-    bottom: 18%;
-    z-index: 2;
-    height: 3px;
-    pointer-events: none;
-    content: "";
-    border-radius: 999px;
-    background: linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.9), rgba(245, 177, 66, 0.9), transparent);
-    opacity: 0.72;
-    filter: blur(0.2px);
-    animation: gov-merc-stage-signal 4.6s ease-in-out infinite;
-  }
-
-  figcaption {
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    bottom: 14px;
-    z-index: 3;
-    display: grid;
-    gap: 5px;
-    min-width: 0;
-    padding: 13px;
-    border: 1px solid rgba(255, 255, 255, 0.42);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.76);
-    box-shadow: 0 14px 28px rgba(9, 45, 32, 0.16);
-    backdrop-filter: blur(14px);
-  }
-
-  span {
-    color: var(--ns-brand-deep, #0b5e3e);
-    font-size: 11px;
-    font-weight: 850;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  strong {
-    color: #102019;
-    font-size: 20px;
-    font-weight: 900;
-    line-height: 1.08;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-  }
-
-  em {
-    color: #456357;
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 750;
-    line-height: 1.25;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: calc(var(--mx2-r-lg) - 6px);
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 118, 110, 0.1);
 }
 
-.gov-merc-market-stage__lanes {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  left: 14px;
-  z-index: 3;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  pointer-events: none;
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 28px;
-    padding: 6px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.46);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
-    color: var(--ns-brand-deep, #0b5e3e);
-    box-shadow: 0 10px 22px rgba(9, 45, 32, 0.12);
-    font-size: 11px;
-    font-weight: 900;
-    line-height: 1.1;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    backdrop-filter: blur(12px);
-  }
-
-  span:last-child {
-    color: #76520f;
-  }
-}
-
-.gov-merc-market-stage__action {
-  position: absolute;
-  inset: 50px 18px auto;
-  z-index: 3;
-  display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  pointer-events: none;
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-
-  span,
-  strong {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.78);
-    box-shadow: 0 10px 22px rgba(9, 45, 32, 0.12);
-    backdrop-filter: blur(12px);
-  }
-
-  span {
-    justify-content: center;
-    min-width: 44px;
-    padding: 6px 10px;
-    color: var(--ns-brand-deep, #0b5e3e);
-    font-size: 11px;
-    font-weight: 900;
-    line-height: 1.1;
-    text-transform: uppercase;
-    letter-spacing: 0;
-  }
-
-  span:nth-child(2) {
-    color: #76520f;
-  }
-
-  strong {
-    min-width: 0;
-    padding: 6px 12px;
-    color: #102019;
-    font-size: 11px;
-    font-weight: 850;
-    line-height: 1.15;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-}
-
-.gov-merc-market-stage.is-staking .gov-merc-market-stage__action,
-.gov-merc-market-stage.is-bidding .gov-merc-market-stage__action,
-.gov-merc-market-stage.is-settling .gov-merc-market-stage__action {
+.merc-stage-art img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
   opacity: 1;
-  transform: translateY(0);
+  filter: none;
 }
 
-.gov-merc-market-stage.is-staking .gov-merc-market-stage__action span:first-child,
-.gov-merc-market-stage.is-bidding .gov-merc-market-stage__action span:nth-child(2),
-.gov-merc-market-stage.is-settling .gov-merc-market-stage__action strong {
-  animation: gov-merc-market-route 1.05s ease-in-out infinite;
+.merc-stage-art::after {
+  content: none;
 }
 
-.gov-merc-market-stage.is-bidding::before {
-  animation-duration: 1.25s;
-}
-
-.gov-merc-market-stage.is-settling figcaption {
-  animation: gov-merc-settle-plate 1.1s ease-in-out infinite;
-}
-
-.gov-merc-flow {
+.merc-lane {
+  position: relative;
+  z-index: 3;
+  grid-row: 2;
+  width: min(260px, 100%);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-items: center;
   gap: 12px;
-
-  div {
-    min-width: 0;
-    padding: 16px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: var(--ns-radius-md, 16px);
-    background: var(--ns-surface, #ffffff);
-    box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-  }
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 999px;
-    background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-deep, #0b5e3e);
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    font-variant-numeric: tabular-nums;
-  }
-
-  strong {
-    display: block;
-    margin-top: 12px;
-    color: #102019;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-  }
-
-  p {
-    margin: 6px 0 0;
-    color: #66756e;
-    font-size: 12px;
-    line-height: 1.45;
-    letter-spacing: 0;
-  }
 }
 
-.gov-merc-action-panel,
-.gov-merc-risk-panel,
-.gov-merc-bid-panel,
-.gov-merc-settle-panel,
-.gov-merc-staker-panel {
-  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+.merc-lane--stake {
+  grid-column: 1;
+  color: var(--mx2-brand-hover);
 }
 
-// Detailed on-chain disclosure under the flow strip. The hero lede states the
-// civic meaning; this carries the full "title is recorded, NEO is never voted"
-// detail in a quiet, authoritative card.
-.gov-merc-influence-note {
-  padding: 16px 18px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-left: 3px solid var(--ns-brand, #16c784);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-
-  strong {
-    display: block;
-    color: var(--ns-ink, #102019);
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-  }
-
-  p {
-    margin: 6px 0 0;
-    color: #53645c;
-    font-size: 12.5px;
-    line-height: 1.5;
-    letter-spacing: 0;
-  }
+.merc-lane--bid {
+  grid-column: 3;
+  color: #b45309;
 }
 
-.gov-merc-settle-panel {
-  p {
-    margin: 0 0 12px;
-    color: #53645c;
-    font-size: 13px;
-    line-height: 1.52;
-    letter-spacing: 0;
-  }
-
-  .neo-btn {
-    width: 100%;
-  }
+.merc-lane__rail {
+  position: absolute;
+  inset: 58px auto auto 50%;
+  width: min(280px, 52vw);
+  height: 8px;
+  border-radius: var(--mx2-r-pill);
+  background: currentColor;
+  opacity: 0.22;
+  filter: blur(0.2px);
+  transform-origin: center;
 }
 
-// v2 bidding window: countdown while the window is open, closed state once the
-// deadline passes (settlement unlocks). Mirrors the settle-last tile styling.
-.gov-merc-settle-window {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  border-radius: var(--ns-radius-md, 14px);
-  background: var(--ns-surface-muted, #f5f7fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-
-  span {
-    color: var(--ns-text-muted, #66756e);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.3;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    color: var(--ns-ink, #102019);
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.35;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &.is-closed {
-    background: var(--ns-brand-soft, #e4f8f0);
-    border-color: rgba(15, 177, 116, 0.18);
-
-    strong {
-      color: var(--ns-brand-deep, #0b5e3e);
-    }
-  }
+.merc-lane--stake .merc-lane__rail {
+  transform: translateX(-28%) rotate(-9deg);
 }
 
-.gov-merc-settle-last {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  border-radius: var(--ns-radius-md, 14px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  border: 1px solid rgba(15, 177, 116, 0.18);
-
-  span {
-    color: var(--ns-text-muted, #66756e);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.3;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    // AA: #0fb174 on the soft-green settle banner is ~2.5:1; deep brand ~7:1.
-    color: var(--ns-brand-deep, #0b5e3e);
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.35;
-    letter-spacing: 0;
-    word-break: break-word;
-    font-variant-numeric: tabular-nums;
-  }
+.merc-lane--bid .merc-lane__rail {
+  transform: translateX(-72%) rotate(9deg);
 }
 
-.gov-merc-settle-hint {
-  margin: 10px 0 0 !important;
-  color: var(--ns-text-muted, #8a92a6) !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
+.merc-lane__coin-stack {
+  position: relative;
+  width: 132px;
+  height: 84px;
 }
 
-.gov-merc-settle-status {
+.merc-lane__coin-stack span {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.1);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(6, 95, 70, 0.12);
+}
+
+.merc-lane__coin-stack span:nth-child(1) {
+  left: 44px;
+  top: 10px;
+  width: 54px;
+  height: 54px;
+}
+
+.merc-lane__coin-stack span:nth-child(2) {
+  left: 10px;
+  top: 34px;
+  width: 42px;
+  height: 42px;
+}
+
+.merc-lane__coin-stack span:nth-child(3) {
+  right: 8px;
+  top: 42px;
+  width: 36px;
+  height: 36px;
+}
+
+.merc-lane[data-active="true"] .merc-lane__coin-stack span {
+  animation: merc-token-route 0.86s var(--mx2-ease) infinite;
+}
+
+.merc-lane__copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 18px;
+  padding: 11px 16px;
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-sm);
+  text-align: center;
+}
+
+.merc-lane__copy span {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.merc-lane__copy strong {
+  color: var(--mx2-ink);
+  font-size: 17px;
+  font-weight: 680;
+}
+
+.merc-core {
+  position: relative;
+  z-index: 4;
+  grid-column: 2;
+  grid-row: 2;
+  width: min(250px, 100%);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.92),
+    0 28px 74px rgba(6, 95, 70, 0.18);
+  color: #0f766e;
+  text-align: center;
+}
+
+.merc-core__halo {
+  position: absolute;
+  inset: 18px;
+  border: 2px solid rgba(15, 118, 110, 0.14);
+  border-radius: 50%;
+}
+
+.merc-core strong,
+.merc-core em {
+  position: relative;
+  z-index: 2;
+  max-width: 82%;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.merc-core strong {
+  color: var(--mx2-ink);
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 680;
+}
+
+.merc-core em {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+  line-height: 1.24;
+  white-space: normal;
+}
+
+.merc-scene[data-state="settle"] .merc-core,
+.merc-scene[data-state="bid"] .merc-core {
+  animation: merc-core-pulse 0.72s var(--mx2-ease) infinite;
+}
+
+.merc-readout {
+  position: absolute;
+  z-index: 5;
+  min-width: 146px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  gap: 2px 8px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 18px;
+  padding: 11px 13px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(6, 95, 70, 0.12);
+}
+
+.merc-readout svg {
+  grid-area: icon;
+  color: #0f766e;
+}
+
+.merc-readout span {
+  grid-area: label;
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.merc-readout strong {
+  grid-area: value;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 15px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-readout--pool {
+  left: clamp(18px, 4vw, 70px);
+  top: clamp(28px, 5vw, 58px);
+}
+
+.merc-readout--bid {
+  right: clamp(18px, 4vw, 70px);
+  top: clamp(38px, 6vw, 68px);
+}
+
+.merc-route {
+  position: relative;
+  z-index: 5;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  width: min(700px, calc(100% - 42px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: var(--mx2-r-pill);
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-sm);
+}
+
+.merc-route__node {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  width: fit-content;
-  min-height: 30px;
-  margin: 10px 0 0;
-  padding: 7px 11px;
-  border: 1px solid rgba(15, 177, 116, 0.18);
-  border-radius: 999px;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-deep, #0b5e3e);
-  font-size: 12px;
-  font-weight: 850;
-  line-height: 1.2;
-  animation: gov-merc-action-status 1.1s ease-in-out infinite;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--mx2-r-pill);
+  padding: 7px 9px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  text-align: center;
 }
 
-.gov-merc-shell {
-  .neo-input__field:focus,
-  .neo-input__field:focus-within {
-    border-color: var(--ns-brand-deep, #0b5e3e);
-    box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.16);
-  }
-
-  .neo-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.2);
-  }
-
-  .neo-btn--primary:disabled {
-    background: var(--ns-brand-soft, #e4f8f0);
-    border-color: rgba(15, 177, 116, 0.18);
-    color: var(--ns-brand-deep, #0b5e3e);
-    opacity: 0.65;
-  }
+.merc-route__node--core {
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
 }
 
-.gov-merc-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.merc-route__beam {
+  height: 2px;
+  border-radius: var(--mx2-r-pill);
+  background: rgba(15, 118, 110, 0.16);
+}
+
+.merc-route__beam--stake {
+  background: var(--mx2-brand);
+}
+
+.merc-route__beam--bid {
+  background: #f59e0b;
+}
+
+.merc-scene[data-state="bid"] .merc-route__beam--bid,
+.merc-scene[data-state="deposit"] .merc-route__beam--stake {
+  animation: merc-route-pulse 0.9s var(--mx2-ease) infinite;
+}
+
+.merc-scene__status {
+  position: relative;
+  z-index: 5;
+  grid-column: 1 / -1;
+  grid-row: 4;
+  width: min(560px, calc(100% - 32px));
+  margin: 0 0 18px;
+  padding: 9px 14px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-sm);
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 620;
+  text-align: center;
+}
+
+.merc-scene .mx2-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+}
+
+.merc-controls {
+  width: min(940px, 100%);
+  margin: 14px auto 0;
+  display: grid;
   gap: 12px;
-  min-width: 0;
-  margin-bottom: 16px;
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.3;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    max-width: 62%;
-    color: #102019;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-align: right;
-    word-break: break-word;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
 }
 
-// Onboarding: clear connect CTA when no wallet is linked (replaces the inert
-// look of a disabled-feeling action grid with an explicit next step).
-.gov-merc-connect {
-  display: flex;
-  flex-wrap: wrap;
+.merc-wallet-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 14px;
-  margin-bottom: 14px;
-  padding: 16px 18px;
-  border: 1px solid rgba(15, 177, 116, 0.22);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-brand-soft, #e4f8f0);
-
-  .gov-merc-connect-copy {
-    flex: 1 1 240px;
-    min-width: 0;
-
-    strong {
-      display: block;
-      color: var(--ns-ink, #102019);
-      font-size: 14px;
-      font-weight: 800;
-      line-height: 1.25;
-      letter-spacing: -0.01em;
-    }
-
-    p {
-      margin: 6px 0 0;
-      color: #3c5a4d;
-      font-size: 12px;
-      line-height: 1.45;
-      letter-spacing: 0;
-    }
-  }
-
-  .neo-btn {
-    flex: 0 0 auto;
-    min-height: 42px;
-  }
+  border: 1px solid var(--mx2-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-sm);
 }
 
-// Token legend: one coherent green hue, NEO and GAS told apart by chip style.
-.gov-merc-token-legend {
-  display: flex;
-  flex-wrap: wrap;
+.merc-wallet-card__icon,
+.merc-deal-card__head > span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  background: var(--mx2-brand-light);
+  color: #0f766e;
+}
+
+.merc-wallet-card strong,
+.merc-deal-card__head strong {
+  color: var(--mx2-ink);
+  font-size: 15px;
+  font-weight: 680;
+}
+
+.merc-wallet-card p,
+.merc-deal-card__hint {
+  margin: 2px 0 0;
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.merc-deal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: 12px;
+}
+
+.merc-deal-card {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--mx2-border);
+  border-radius: 20px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-sm);
+}
+
+.merc-deal-card--bid {
+  border-color: rgba(180, 83, 9, 0.28);
+  background: #ffffff;
+}
+
+.merc-deal-card__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.merc-deal-card__head em {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-amount-field {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid var(--mx2-border);
+  border-radius: 16px;
+  padding: 9px 12px;
+  background: var(--mx2-surface);
+}
+
+.merc-amount-field input {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--mx2-ink);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 680;
+}
+
+.merc-amount-field input:focus {
+  outline: none;
+}
+
+.merc-amount-field span {
+  border-radius: var(--mx2-r-pill);
+  padding: 5px 8px;
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.merc-deal-card--bid .merc-amount-field span {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.merc-preset-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.merc-preset {
+  min-height: 36px;
+  border: 1.5px solid var(--mx2-border);
+  border-radius: 14px;
+  background: var(--mx2-surface);
+  color: var(--mx2-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.merc-preset--active,
+.merc-preset:hover:not(:disabled) {
+  border-color: rgba(180, 83, 9, 0.54);
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.merc-preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.merc-card-action {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(15, 118, 110, 0.25);
+  border-radius: 15px;
+  background: #0f766e;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 680;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.16);
+}
+
+.merc-card-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.merc-drawer-action,
+.merc-drawer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
 }
 
-.gov-merc-token-legend-title {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+.merc-amount-field--drawer input {
+  font-size: 14px;
 }
 
-.gov-merc-token-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: var(--ns-radius-full, 9999px);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-
-  &--neo {
-    background: var(--ns-brand-soft, #e4f8f0);
-    // AA: #0fb174 on the soft-green chip is only ~2.5:1; deep brand is ~7:1.
-    color: var(--ns-brand-deep, #0b5e3e);
-  }
-
-  &--gas {
-    background: var(--ns-surface-subtle, #f1f4f2);
-    color: #38554a;
-    box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.3);
-  }
+.merc-drawer-row {
+  margin-bottom: 8px;
 }
 
-.gov-merc-action-grid {
+.merc-drawer-row span {
+  color: var(--mx2-text-muted);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.merc-drawer {
   display: grid;
-  grid-template-columns: minmax(0, 0.58fr) minmax(280px, 0.42fr);
   gap: 12px;
 }
 
-.gov-merc-risk-panel {
-  p {
-    margin: 0 0 12px;
-    color: #53645c;
-    font-size: 13px;
-    line-height: 1.52;
-    letter-spacing: 0;
-  }
+.merc-drawer-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
-// Collapsed operator/contract detail: keeps the side rail focused on the
-// actionable settle + leaderboard panels.
-.gov-merc-risk-details {
-  summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    cursor: pointer;
-    list-style: none;
-    user-select: none;
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    > span:first-child {
-      color: var(--ns-text-muted, #8a92a6);
-      font-size: 11px;
-      font-weight: 700;
-      line-height: 1.3;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
-  }
-
-  .gov-merc-risk-summary-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--ns-brand-deep, #0b5e3e);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.3;
-    letter-spacing: 0;
-
-    &::after {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-right: 2px solid currentColor;
-      border-bottom: 2px solid currentColor;
-      transform: rotate(45deg) translateY(-1px);
-      transition: transform 0.18s ease;
-    }
-  }
-
-  &[open] .gov-merc-risk-summary-label::after {
-    transform: rotate(-135deg) translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: none;
-  }
-
-  summary:focus-visible {
-    outline: none;
-    border-radius: 8px;
-    box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.2);
-  }
-
-  .gov-merc-risk-body {
-    margin-top: 14px;
-  }
+.merc-drawer-tabs button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 3px 8px;
+  min-height: 54px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 16px;
+  padding: 9px 10px;
+  background: #ffffff;
+  color: #134e4a;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 680;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease-snap),
+    background var(--mx2-t-fast) var(--mx2-ease-snap),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease-snap);
 }
 
-.gov-merc-signal-row {
+.merc-drawer-tabs button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.42);
+}
+
+.merc-drawer-tabs button.is-active {
+  border-color: rgba(15, 118, 110, 0.54);
+  background: var(--mx2-brand-light);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12), 0 8px 18px rgba(15, 118, 110, 0.08);
+}
+
+.merc-drawer-tabs__icon {
+  grid-row: span 2;
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 11px;
+  color: #0f766e;
+  background: #f0fdfa;
+}
+
+.merc-drawer-tabs strong {
+  display: block;
+  color: var(--mx2-text-muted);
+  font-size: 0.7rem;
+  font-weight: 680;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-drawer__panel.mx2-open-panel.semi-card {
+  overflow: hidden;
+  border-color: rgba(15, 118, 110, 0.15);
+  border-radius: 18px;
+  box-shadow: 0 5px 16px rgba(6, 95, 70, 0.045);
+}
+
+.merc-drawer__panel .semi-card-body {
+  padding: 14px;
+}
+
+.merc-drawer__panel-body {
+  display: grid;
+  gap: 12px;
+}
+
+.merc-drawer__summary,
+.merc-drawer__empty,
+.merc-risk-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-width: 0;
-  padding: 11px 0;
-  border-top: 1px solid #edf1ee;
+  min-height: 46px;
+  border: 1px solid rgba(15, 118, 110, 0.13);
+  border-radius: 15px;
+  padding: 10px 12px;
+  background: #fbfffd;
+}
 
-  span {
-    color: #66756e;
-    font-size: 12px;
-    line-height: 1.3;
-    letter-spacing: 0;
+.merc-drawer__summary span,
+.merc-drawer__empty,
+.merc-risk-card span,
+.merc-guide-steps span {
+  color: var(--mx2-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.merc-drawer__summary strong {
+  flex: 0 0 auto;
+  border-radius: var(--mx2-r-pill);
+  padding: 5px 9px;
+  color: var(--mx2-brand-hover);
+  background: var(--mx2-brand-light);
+  font-size: 0.78rem;
+  font-weight: 680;
+}
+
+.merc-drawer-list {
+  gap: 9px;
+}
+
+.merc-drawer-list__item {
+  min-height: 48px;
+  border-color: rgba(15, 118, 110, 0.12);
+  background: #ffffff;
+}
+
+.merc-drawer-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.merc-drawer__wide-action {
+  justify-self: start;
+}
+
+.merc-risk-card {
+  justify-content: flex-start;
+}
+
+.merc-risk-card svg {
+  flex: 0 0 auto;
+  color: #0f766e;
+}
+
+.merc-guide-steps {
+  display: grid;
+  gap: 9px;
+}
+
+.merc-guide-steps div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 15px;
+  padding: 11px 12px;
+  background: #ffffff;
+}
+
+.merc-guide-steps strong {
+  color: var(--mx2-ink);
+  font-size: 0.92rem;
+  font-weight: 680;
+}
+
+@keyframes merc-token-route {
+  0%, 100% {
+    transform: translateY(0) scale(1);
   }
-
-  strong {
-    color: #102019;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.3;
-    text-align: right;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
+  50% {
+    transform: translateY(-8px) scale(1.04);
   }
 }
 
-@media (max-width: 920px) {
-  .gov-merc-shell {
+@keyframes merc-core-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.92),
+      0 28px 74px rgba(6, 95, 70, 0.18);
+  }
+  50% {
+    box-shadow:
+      var(--mx2-shadow-glow),
+      0 28px 74px rgba(6, 95, 70, 0.2);
+  }
+}
+
+@keyframes merc-route-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scaleX(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 980px) {
+  .merc-scene {
+    grid-template-columns: 1fr 1fr;
+    min-height: 700px;
+  }
+
+  .merc-stage-art {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: min(100%, 680px);
+    aspect-ratio: 16 / 9;
+  }
+
+  .merc-core {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 0;
+  }
+
+  .merc-lane--stake {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .merc-lane--bid {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .merc-route {
+    grid-row: 4;
+  }
+
+  .merc-scene__status {
+    grid-row: 5;
+  }
+
+  .merc-deal-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .gov-merc-play-area .mx2-stage {
+    padding: 18px 14px 22px;
+    border-radius: 22px;
+  }
+
+  .gov-merc-play-area .mx2-stage__head {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .gov-merc-play-area .mx2-stage__badges {
+    display: none;
+  }
+
+  .gov-merc-play-area .mx2-stage__title {
+    font-size: 24px;
+    line-height: 1.08;
+  }
+
+  .gov-merc-play-area .mx2-stage__subtitle {
+    max-width: 100%;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .merc-scene {
+    min-height: 790px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .merc-stage-art {
+    grid-row: 1;
+    width: min(100% - 18px, 440px);
+    aspect-ratio: 16 / 9;
+    border-radius: 20px;
+  }
+
+  .merc-core,
+  .merc-lane--stake,
+  .merc-lane--bid,
+  .merc-route,
+  .merc-scene__status {
+    grid-column: 1;
+  }
+
+  .merc-core {
+    grid-row: 2;
+    width: min(250px, calc(100% - 56px));
+    margin-top: 0;
+  }
+
+  .merc-lane--stake {
+    grid-row: 3;
+  }
+
+  .merc-lane--bid {
+    grid-row: 4;
+  }
+
+  .merc-lane {
+    width: min(100% - 34px, 340px);
+  }
+
+  .merc-lane__rail,
+  .merc-lane__coin-stack {
+    display: none;
+  }
+
+  .merc-readout {
+    position: relative;
+    inset: auto;
+    width: min(100% - 34px, 360px);
+  }
+
+  .merc-readout--pool {
+    grid-row: 5;
+  }
+
+  .merc-readout--bid {
+    grid-row: 6;
+  }
+
+  .merc-route {
+    grid-row: 7;
+  }
+
+  .merc-scene__status {
+    grid-row: 8;
+  }
+
+  .merc-route {
+    width: min(100% - 30px, 420px);
+    grid-template-columns: 1fr;
+    border-radius: 22px;
+  }
+
+  .merc-route__beam {
+    width: 2px;
+    height: 15px;
+    justify-self: center;
+  }
+
+  .merc-scene__status {
+    width: min(100% - 30px, 420px);
+  }
+
+  .merc-preset-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .merc-drawer-action,
+  .merc-drawer-row {
+    grid-template-columns: 1fr;
+  }
+
+  .merc-drawer-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .merc-drawer-tabs button {
+    min-height: 44px;
+    padding: 7px 8px;
+  }
+
+  .merc-drawer-tabs__icon {
+    grid-row: auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 10px;
+  }
+
+  .merc-drawer-tabs button > span:not(.merc-drawer-tabs__icon) {
+    max-width: 100%;
+    font-size: 0.72rem;
+    line-height: 1.05;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .merc-drawer-tabs strong {
+    display: none;
+  }
+
+  .merc-drawer__summary,
+  .merc-drawer__empty,
+  .merc-risk-card {
+    align-items: flex-start;
+    flex-direction: column;
     min-height: 0;
   }
 
-  .gov-merc-hero {
-    grid-template-columns: 1fr;
+  .merc-drawer__wide-action,
+  .merc-drawer-action .mx2-btn,
+  .merc-drawer-row .mx2-btn {
+    width: 100%;
   }
 }
 
-@media (max-width: 720px) {
-  .gov-merc-scoreboard {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .gov-merc-flow {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .gov-merc-shell {
-    gap: 12px;
-  }
-
-  .gov-merc-hero {
-    padding: 16px;
-    gap: 14px;
-    border-radius: var(--ns-radius-lg, 20px);
-  }
-
-  .gov-merc-hero-copy h2 {
-    font-size: 23px;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-
-  .gov-merc-action-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .gov-merc-market-stage {
-    min-height: 184px;
-    border-radius: 16px;
-
-    img {
-      min-height: 184px;
-      object-position: 50% 58%;
-    }
-
-    figcaption {
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
-      padding: 10px;
-      border-radius: 14px;
-    }
-
-    strong {
-      font-size: 16px;
-    }
-  }
-
-  .gov-merc-market-stage__lanes {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-
-    span {
-      min-height: 24px;
-      padding: 5px 8px;
-      font-size: 10px;
-    }
-  }
-
-  .gov-merc-flow {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-
-    div {
-      padding: 10px;
-      border-radius: 14px;
-    }
-
-    span {
-      width: 24px;
-      height: 24px;
-      font-size: 10px;
-    }
-
-    strong {
-      margin-top: 8px;
-      font-size: 11px;
-      line-height: 1.2;
-    }
-
-    p {
-      display: none;
-    }
-  }
-
-  .gov-merc-section-heading {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-
-    strong {
-      max-width: 60%;
-      text-align: right;
-    }
-  }
-}
-
-@keyframes gov-merc-hero-sheen {
-  0%,
-  34% {
-    transform: translateX(-48%);
-  }
-
-  72%,
-  100% {
-    transform: translateX(34%);
-  }
-}
-
-@keyframes gov-merc-stage-drift {
-  from {
-    transform: scale(1.04) translate3d(-1.2%, 0, 0);
-  }
-
-  to {
-    transform: scale(1.08) translate3d(1.4%, -0.8%, 0);
-  }
-}
-
-@keyframes gov-merc-stage-signal {
-  0%,
-  100% {
-    transform: translateX(-10%) scaleX(0.68);
-    opacity: 0.42;
-  }
-
-  50% {
-    transform: translateX(10%) scaleX(1);
-    opacity: 0.86;
-  }
-}
-
-@keyframes gov-merc-market-route {
-  0%,
-  100% {
-    box-shadow: 0 10px 22px rgba(9, 45, 32, 0.12);
-    transform: translateY(0);
-  }
-
-  50% {
-    box-shadow: 0 12px 26px rgba(15, 177, 116, 0.22);
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes gov-merc-settle-plate {
-  0%,
-  100% {
-    box-shadow: 0 14px 28px rgba(9, 45, 32, 0.16);
-  }
-
-  50% {
-    box-shadow: 0 18px 34px rgba(15, 177, 116, 0.24);
-  }
-}
-
-@keyframes gov-merc-action-status {
-  0%,
-  100% {
-    box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.08);
-  }
-
-  50% {
-    box-shadow:
-      inset 0 0 0 1px rgba(15, 177, 116, 0.16),
-      0 8px 18px rgba(15, 177, 116, 0.14);
-  }
+.gov-merc-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 180px;
+  max-width: min(100%, 180px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gov-merc-hero::after,
-  .gov-merc-market-stage img,
-  .gov-merc-market-stage::before,
-  .gov-merc-market-stage__action,
-  .gov-merc-market-stage__action span,
-  .gov-merc-market-stage__action strong,
-  .gov-merc-market-stage figcaption,
-  .gov-merc-settle-status {
-    animation: none;
-    transition: none;
+  .merc-lane[data-active="true"] .merc-lane__coin-stack span,
+  .merc-scene[data-state="settle"] .merc-core,
+  .merc-scene[data-state="bid"] .merc-core,
+  .merc-scene[data-state="bid"] .merc-route__beam--bid,
+  .merc-scene[data-state="deposit"] .merc-route__beam--stake,
+  .merc-scene .mx2-burst {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

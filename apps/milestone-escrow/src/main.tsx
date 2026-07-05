@@ -16,6 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const escrow = useMilestoneEscrow({
+      app: ctx.framework,
       chain: ctx.services.chain,
       t: ctx.t,
     });
@@ -26,11 +27,11 @@ defineMiniApp({
     // error toast instead of an unhandled rejection — critical for the
     // deposit-then-create flow, where "depositPrepaidNoEscrow" fires AFTER the
     // user's funds already moved and must never be silently swallowed.
-    ctx.registerAction("refreshEscrows", async () => {
+    ctx.framework.actions.register("refreshEscrows", async () => {
       await ctx.services.notify.guard(() => escrow.refreshEscrows());
     });
 
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       await ctx.services.notify.guard(async () => {
         await ctx.services.chain.ensureWallet();
         escrow.setAddress(ctx.services.chain.address.get() ?? "");
@@ -38,7 +39,7 @@ defineMiniApp({
       });
     });
 
-    ctx.registerAction("createEscrow", async (data: unknown) => {
+    ctx.framework.actions.register("createEscrow", async (data: unknown) => {
       // Surface the guard result so PlayArea keeps its post-success form reset
       // behind an actual success (guard swallows failures into error toasts).
       const result = await ctx.services.notify.guard(async () => {
@@ -50,7 +51,7 @@ defineMiniApp({
       return result === true;
     });
 
-    ctx.registerAction("approveMilestone", async (escrowItem: unknown) => {
+    ctx.framework.actions.register("approveMilestone", async (escrowItem: unknown) => {
       await ctx.services.notify.guard(
         () =>
           escrow.approveMilestone(
@@ -60,7 +61,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("claimMilestone", async (escrowItem: unknown) => {
+    ctx.framework.actions.register("claimMilestone", async (escrowItem: unknown) => {
       await ctx.services.notify.guard(
         () =>
           escrow.claimMilestone(
@@ -70,7 +71,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("cancelEscrow", async (escrowItem: unknown) => {
+    ctx.framework.actions.register("cancelEscrow", async (escrowItem: unknown) => {
       await ctx.services.notify.guard(
         () =>
           escrow.cancelEscrow(

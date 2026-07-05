@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { addressToScriptHash } from "../utils/neo";
 import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
 import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
@@ -30,7 +31,12 @@ function fakeAnchorDeps(
   const eventBus = { emit: vi.fn() };
   // Identity translator: throws surface the key, so we can assert on the key.
   const t = (key: string) => key;
-  return { chain, eventBus, t, invoke, read };
+  // Hooks consume the framework SDK (ctx.framework); build it from the mock chain.
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-anchor" },
+  );
+  return { app, chain, eventBus, t, invoke, read };
 }
 
 describe("Anchor hook localizes validation errors through t()", () => {
@@ -76,9 +82,12 @@ describe("Anchor hook NEO-credit recovery (withdrawCredit exit path)", () => {
       expect(deps.invoke).toHaveBeenCalledWith(
         "withdrawCredit",
         [
-          { type: "Hash160", value: OPERATOR },
+          // arg.hash160 emits the (canonical) script-hash form addressToScriptHash
+          // produces — the same value ChainService/the wallet normalizes an address
+          // to, and arg.integer stringifies integer values.
+          { type: "Hash160", value: addressToScriptHash(OPERATOR) },
           { type: "String", value: "NEO" },
-          { type: "Integer", value: 7 },
+          { type: "Integer", value: "7" },
         ],
         expect.any(Object),
       );

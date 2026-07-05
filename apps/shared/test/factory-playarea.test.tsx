@@ -133,7 +133,7 @@ describe("FactoryPlayArea", () => {
       studioFlow
         ?.querySelector(".domain-factory-studio-flow__stage--nep17 img")
         ?.getAttribute("src"),
-    ).toBe("./token-mint-studio.jpg");
+    ).toBe("./token-mint-studio.webp");
     expect(
       document.querySelector(".domain-factory-studio-flow__step--active")
         ?.textContent,
@@ -146,6 +146,12 @@ describe("FactoryPlayArea", () => {
         .getByRole("radio", { name: "Network: Neo N3 Testnet" })
         .getAttribute("aria-checked"),
     ).toBe("true");
+    expect(
+      screen.getAllByRole("button", { name: "Generate template plan" }),
+    ).toHaveLength(1);
+    expect(
+      document.querySelectorAll(".domain-factory-studio-flow__step--blocked"),
+    ).toHaveLength(0);
     // The template artifact row is honest about not having a live read yet.
     expect(screen.getAllByText("Unverified").length).toBeGreaterThan(0);
   }, 15_000);
@@ -356,12 +362,25 @@ describe("FactoryPlayArea", () => {
     expect(styles).toContain(".domain-factory-drop-preset");
     expect(styles).toContain(".domain-factory-drop-policy");
     expect(styles).toContain(".domain-factory-preview__edition-stack");
+    expect(styles).toMatch(/\.domain-factory-drop-composer\s*\{[\s\S]*background:\s*var\(--ns-surface,\s*#ffffff\)/);
+    expect(styles).toMatch(/\.domain-factory-drop-composer__presets\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.domain-factory-drop-preset\s*\{[\s\S]*min-height:\s*58px/);
+    expect(styles).toMatch(/\.domain-factory-drop-policy\s*\{[\s\S]*min-height:\s*52px/);
+    const mobileDropPolicyBlock =
+      styles.match(
+        /@media \(max-width:\s*480px\)[\s\S]*?\.domain-factory-drop-composer__policy\s*\{(?<body>[\s\S]*?)\n {2}\}/,
+      )?.groups?.body ?? "";
+    expect(mobileDropPolicyBlock).toContain("grid-template-columns: repeat(2, minmax(0, 1fr));");
+    expect(styles).not.toMatch(/\.domain-factory-drop-preset\s*\{[\s\S]*min-height:\s*112px/);
+    expect(mobileDropPolicyBlock).not.toContain("grid-template-columns: 1fr;");
     expect(styles).toContain("@keyframes domain-factory-nft-card-float");
     expect(styles).toContain("@keyframes domain-factory-nft-drop-cycle");
     expect(styles).toContain("@keyframes domain-factory-nft-mint-scan");
     expect(styles).toContain("@keyframes domain-factory-drop-field-scan");
     expect(styles).toContain("@keyframes domain-factory-drop-control-lock");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/\.domain-factory-control-card\s*\{[\s\S]*order:\s*1/);
+    expect(styles).toMatch(/\.domain-factory-output\s*\{[\s\S]*order:\s*2/);
   });
 
   it("binds the wallet signature into the copyable package JSON once signed", async () => {

@@ -63,7 +63,6 @@ import {
 } from "lucide-react";
 import {
   buildMiniAppLogoSources,
-  buildModernImageSources,
 } from "@/lib/miniapp-media";
 
 // Map app_id to professional Lucide icons
@@ -156,16 +155,15 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   other: Puzzle,
 };
 
-// Category gradient colors for logo background
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  gaming: "from-purple-500 to-indigo-600",
-  defi: "from-cyan-500 to-blue-600",
-  social: "from-pink-500 to-rose-600",
-  governance: "from-emerald-500 to-teal-600",
-  utility: "from-gray-500 to-gray-600",
-  nft: "from-teal-500 to-emerald-600",
-  data: "from-cyan-500 to-sky-700",
-  other: "from-gray-500 to-zinc-700",
+const CATEGORY_ACCENTS: Record<string, { text: string; background: string }> = {
+  gaming: { text: "text-cat-game", background: "bg-cat-game/10" },
+  defi: { text: "text-cat-defi", background: "bg-cat-defi/10" },
+  social: { text: "text-cat-social", background: "bg-cat-social/10" },
+  governance: { text: "text-cat-governance", background: "bg-cat-governance/10" },
+  utility: { text: "text-cat-tool", background: "bg-cat-tool/10" },
+  nft: { text: "text-cat-nft", background: "bg-cat-nft/10" },
+  data: { text: "text-info-600", background: "bg-info-50" },
+  other: { text: "text-ink-muted", background: "bg-surface-secondary" },
 };
 
 interface MiniAppLogoProps {
@@ -198,18 +196,18 @@ export function MiniAppLogo({
   alt,
 }: MiniAppLogoProps) {
   const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
-  const gradient = CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.utility;
+  const accent = CATEGORY_ACCENTS[category] || CATEGORY_ACCENTS.utility;
 
   const sizeClasses = {
-    sm: "w-8 h-8",
-    md: "w-10 h-10",
-    lg: "w-12 h-12",
+    sm: "h-8 w-8 rounded-lg",
+    md: "h-10 w-10 rounded-xl",
+    lg: "h-12 w-12 rounded-xl",
   };
 
   const iconSizes = {
-    sm: 16,
-    md: 20,
-    lg: 24,
+    sm: 14,
+    md: 17,
+    lg: 20,
   };
 
   const logoSources = useMemo(
@@ -230,44 +228,40 @@ export function MiniAppLogo({
   }, [logoSources]);
 
   const logoSource = logoSources[logoIndex];
-  const modernSources = buildModernImageSources(logoSource);
   if (logoSource) {
     return (
       <div
-        className={`relative flex-shrink-0 ${sizeClasses[size]} overflow-hidden rounded-xl bg-gradient-to-br ${gradient} shadow-lg ${className}`}
+        className={`relative flex-shrink-0 ${sizeClasses[size]} overflow-hidden border border-border bg-surface shadow-sm ${className}`}
       >
         <div className="absolute inset-0 flex items-center justify-center">
-          <Icon size={iconSizes[size]} className="text-white" strokeWidth={2} />
-        </div>
-        <picture className="absolute inset-0 block h-full w-full">
-          {modernSources.avif && (
-            <source srcSet={modernSources.avif} type="image/avif" />
-          )}
-          {modernSources.webp && (
-            <source srcSet={modernSources.webp} type="image/webp" />
-          )}
-          <img
-            src={logoSource}
-            alt={alt || appId}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            decoding="async"
-            onError={() => {
-              setLogoIndex((prev) =>
-                prev + 1 < logoSources.length ? prev + 1 : logoSources.length,
-              );
-            }}
+          <Icon
+            size={iconSizes[size]}
+            className={accent.text}
+            strokeWidth={1.8}
+            aria-hidden="true"
           />
-        </picture>
+        </div>
+        <img
+          src={logoSource}
+          alt={alt || appId}
+          className="absolute inset-0 h-full w-full object-contain p-0.5"
+          loading="lazy"
+          decoding="async"
+          onError={() => {
+            setLogoIndex((prev) =>
+              prev + 1 < logoSources.length ? prev + 1 : logoSources.length,
+            );
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div
-      className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg ${className}`}
+      className={`flex flex-shrink-0 items-center justify-center border border-border shadow-sm ${sizeClasses[size]} ${accent.background} ${accent.text} ${className}`}
     >
-      <Icon size={iconSizes[size]} className="text-white" strokeWidth={2} />
+      <Icon size={iconSizes[size]} strokeWidth={1.8} aria-hidden="true" />
     </div>
   );
 }

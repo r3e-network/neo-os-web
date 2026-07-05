@@ -1,606 +1,320 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Circle, Gift, Lock } from "lucide-react";
-import { NeoButton, NeoCard } from "@shared/components-react";
+/**
+ * PlayArea.tsx - Daily Check-in.
+ *
+ * Game identity: a clean seven-day streak board with a GAS reward chest. The
+ * player advances a visible path; visual energy stays in the foreground
+ * controls and reward feedback instead of a busy scenic backdrop.
+ */
+import { useEffect, useRef, useState } from "react";
+import { CalendarCheck, Gift, RefreshCw, Sparkles } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import { formatGas } from "@shared/utils/format";
-import CountdownTimer from "./components/CountdownTimer";
-import { MS_PER_DAY, MILESTONES } from "./composables/useCheckin";
-import type { CheckinHistoryItem } from "./composables/useCheckin";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-type ActionPreview = "checkIn" | "claim" | "refresh";
+interface CheckinItem {
+  streak?: number;
+  time?: string;
+  reward?: string;
+  action?: string;
+  txid?: string;
+  [k: string]: unknown;
+}
 
-const evidenceText = (value: unknown, empty: string): string => {
-  if (!value) return empty;
-  return JSON.stringify(value, null, 2);
-};
+const STREAK_IMAGE = "streak-plaza.webp";
+const PATH_DAYS = [1, 2, 3, 4, 5, 6, 7];
 
-const formatHistoryTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toISOString().replace("T", " ").slice(0, 19);
-};
+function hasPositiveAmount(value: string): boolean {
+  const text = String(value || "").replace(/,/g, "").trim();
+  const amount = text.match(/[0-9]+(?:\.[0-9]+)?/);
+  if (amount) return Number(amount[0]) > 0;
+  return Boolean(text && text !== "—" && text.toLowerCase() !== "none");
+}
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+function pathProgress(streak: number): number {
+  if (streak <= 0) return 0;
+  return ((streak - 1) % 7) + 1;
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  const currentStreak = num("currentStreakRaw");
-  const highestStreakFormatted = str("highestStreak", `0 ${t("days")}`);
-  const totalUserCheckins = num("totalUserCheckins");
-  const unclaimedRewards = num("unclaimedRewards");
-  const totalClaimed = num("totalClaimed");
-  const checkInFee = num("checkInFee", 100000);
-
-  const totalGlobalCheckins = num("totalGlobalCheckins");
-  const totalGlobalUsers = num("totalGlobalUsers");
-  const totalGlobalRewarded = num("totalGlobalRewarded");
-  const rewardPoolBalance = num("rewardPoolBalance");
+  const currentStreak = str("currentStreak");
+  const highestStreak = str("highestStreak");
+  const unclaimedRewards = str("unclaimedRewards");
+  const totalClaimed = str("totalClaimed");
+  const rewardPoolBalance = str("rewardPoolBalance");
+  const streakRaw = num("currentStreakRaw");
   const isPaused = bool("isPaused");
-  const rewardsUnderfunded = bool("rewardsUnderfunded");
-  const claimableButUnfunded = bool("claimableButUnfunded");
-
   const canCheckIn = bool("canCheckIn");
-  const hasLoadedStatus = bool("hasLoadedStatus");
-  const isLoading = bool("isLoading");
   const isClaiming = bool("isClaiming");
   const isCheckingIn = bool("isCheckingIn");
-  const isRefreshing = bool("isRefreshing");
-  const workflowStatus = str("workflowStatus", t("workflowReady"));
-  const lastError = str("lastError");
+  const rewardsUnderfunded = bool("rewardsUnderfunded");
+  const history = (val<CheckinItem[]>("checkinHistory", []) ?? []);
+  const hasClaimableRewards = hasPositiveAmount(unclaimedRewards);
 
-  const utcTimeDisplay = str("utcTimeDisplay", "00:00:00");
-  const nextUtcMidnight = num("nextUtcMidnight");
-  const checkinHistory = val<CheckinHistoryItem[]>("checkinHistory") ?? [];
-  const latestRequest = val("latestRequest");
-  const latestResult = val("latestResult");
-
-  const nextMilestone = useMemo(
-    () => MILESTONES.find((milestone) => currentStreak < milestone.day) ?? MILESTONES[0],
-    [currentStreak],
-  );
-  const daysToReward = Math.max(nextMilestone.day - currentStreak, 0);
-  const weekSlotFilled = currentStreak >= 7 && currentStreak % 7 === 0 ? 7 : currentStreak % 7;
-  const weekSlotToday = weekSlotFilled === 7 && canCheckIn ? 1 : Math.min(weekSlotFilled + 1, 7);
-
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [actionPreview, setActionPreview] = useState<ActionPreview | null>(null);
-  const actionPreviewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track the previously observed value via a ref so it faithfully mirrors the
-  // last render's canCheckIn on every edge — avoids the prior bug where prev
-  // stuck at `true` because it was only updated in the non-firing branch.
-  const prevCanCheckInRef = useRef(canCheckIn);
-  useEffect(() => {
-    const fired = prevCanCheckInRef.current === true && canCheckIn === false;
-    prevCanCheckInRef.current = canCheckIn;
-    if (!fired) return;
-    setShowConfetti(true);
-    const timer = setTimeout(() => setShowConfetti(false), 2200);
-    return () => clearTimeout(timer);
-  }, [canCheckIn]);
+  const [claimPreview, setClaimPreview] = useState(false);
+  const [checkInPreview, setCheckInPreview] = useState(false);
+  const claimPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkInPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
     () => () => {
-      if (actionPreviewTimeoutRef.current !== null) {
-        clearTimeout(actionPreviewTimeoutRef.current);
-      }
+      if (claimPreviewTimeout.current) clearTimeout(claimPreviewTimeout.current);
+      if (checkInPreviewTimeout.current) clearTimeout(checkInPreviewTimeout.current);
     },
     [],
   );
 
-  // Milestone payout reveal — when a check-in lands the streak ON a milestone
-  // day (the streak counter crosses 7 or 14 upward), surface the +GAS reward the
-  // daily flow just unlocked. Gated on a real upward edge of currentStreak so it
-  // only fires once per milestone, not on every status refresh.
-  const [reachedMilestone, setReachedMilestone] = useState<(typeof MILESTONES)[number] | null>(null);
-  const prevStreakRef = useRef(currentStreak);
-  useEffect(() => {
-    const prev = prevStreakRef.current;
-    prevStreakRef.current = currentStreak;
-    if (currentStreak <= prev) return;
-    const crossed = MILESTONES.find((m) => prev < m.day && currentStreak >= m.day);
-    if (!crossed) return;
-    setReachedMilestone(crossed);
-    const timer = setTimeout(() => setReachedMilestone(null), 4200);
-    return () => clearTimeout(timer);
-  }, [currentStreak]);
+  const startClaimPreview = () => {
+    if (claimPreviewTimeout.current) clearTimeout(claimPreviewTimeout.current);
+    setClaimPreview(true);
+    claimPreviewTimeout.current = setTimeout(() => {
+      setClaimPreview(false);
+      claimPreviewTimeout.current = null;
+    }, 1200);
+  };
 
-  const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
-  const checkInPreview = actionPreview === "checkIn";
-  const claimPreview = actionPreview === "claim";
-  const refreshPreview = actionPreview === "refresh";
-  const isCheckInBusy = isCheckingIn || checkInPreview;
-  const isClaimBusy = isClaiming || claimPreview;
-  const isRefreshBusy = isRefreshing || refreshPreview;
-  const isActionBusy = isCheckInBusy || isClaimBusy || isRefreshBusy;
-  // A chain read is genuinely in flight only while the global coordinator is
-  // running before the first successful load. Once it settles with no wallet
-  // (the standalone resting state) isLoading is false again — that is NOT a
-  // loading state and must not show a "Loading…" pill.
-  const statusReadInFlight = !hasLoadedStatus && (isLoading || isRefreshBusy);
-  // The settled first-open / disconnected resting state: the initial read has
-  // resolved with no wallet/data (isLoading back to false) and nothing else is
-  // running. This is the empty archetype state — not a loading state.
-  const awaitingConnect = !hasLoadedStatus && !isLoading && !isRefreshBusy && !isCheckInBusy;
-  const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading || isPaused || isActionBusy;
-  // Only collapse the primary verb to "Loading…" while a read is actually in
-  // flight. In the settled disconnected state keep the real "Check In Now"
-  // label (disabled) so the game's core action is always visible and named,
-  // never hidden behind a perpetual loading pill.
-  const checkInLabel = isPaused
-    ? t("contractPaused")
-    : statusReadInFlight
-      ? t("loading")
-      : !hasLoadedStatus
-        ? t("checkInNow")
+  const startCheckInPreview = () => {
+    if (checkInPreviewTimeout.current) clearTimeout(checkInPreviewTimeout.current);
+    setCheckInPreview(true);
+    checkInPreviewTimeout.current = setTimeout(() => {
+      setCheckInPreview(false);
+      checkInPreviewTimeout.current = null;
+    }, 1200);
+  };
+
+  const handleClaim = () => {
+    startClaimPreview();
+    void dispatch("claimRewards");
+  };
+
+  const handleCheckIn = () => {
+    if (isPaused || !canCheckIn) return;
+    startCheckInPreview();
+    void dispatch("doCheckIn");
+  };
+
+  const handleRefresh = () => {
+    void dispatch("refreshStatus");
+  };
+
+  const busy = isClaiming || isCheckingIn || claimPreview || checkInPreview;
+  const completedPathDay = pathProgress(streakRaw);
+  const nextPathDay = canCheckIn ? Math.min(7, completedPathDay + 1) : completedPathDay;
+  const daysToChest = Math.max(0, 7 - completedPathDay);
+  const rewardLabel = completedPathDay >= 7 ? "0.02 GAS" : "0.01 GAS";
+  const progressPercent = Math.min(100, Math.max(0, (completedPathDay / 7) * 100));
+  const sceneState = isPaused
+    ? "paused"
+    : isCheckingIn || checkInPreview
+      ? "checking-in"
+      : isClaiming || claimPreview
+        ? "claiming"
         : canCheckIn
-          ? t("checkInNow")
-          : t("waitForNext");
-  const hasClaimable = unclaimedRewards > 0;
-  // Block claiming when the contract is paused or the reward pool cannot cover
-  // the accrued amount, so the CTA never invites a transaction that will fault.
-  const claimBlocked = isPaused || claimableButUnfunded;
-  const claimDisabled = !hasClaimable || isActionBusy || claimBlocked;
-  // When there is genuinely nothing accrued, the claim CTA reads as an explicit
-  // "Nothing to claim yet" dead-state rather than an active-looking
-  // "Claim Rewards (0 GAS)" — so the disabled button is not a confusing
-  // dead-end tap. Copy-only; the disabled logic above is unchanged.
-  const claimLabel = isPaused
+          ? "ready"
+          : hasClaimableRewards
+            ? "claimable"
+            : "waiting";
+
+  const statusText = isPaused
     ? t("contractPaused")
-    : claimableButUnfunded
-      ? t("claimUnfunded")
-      : hasClaimable
-        ? `${t("claimRewards")} (${formatGas(unclaimedRewards)} ${t("tokenGas")})`
-        : t("claimNothingYet");
+    : isCheckingIn || checkInPreview
+      ? t("workflowCheckingIn")
+      : isClaiming || claimPreview
+        ? t("workflowClaiming")
+        : canCheckIn
+          ? t("todayPlanReady")
+          : hasClaimableRewards
+            ? t("rewardPlanReady")
+            : t("notCheckedIn");
 
-  // "Today plan" facts — derived from the same state the actions use, so the
-  // panel narrates exactly what the buttons will do this UTC cycle. In the
-  // settled disconnected state lead with the actionable invite to start the
-  // streak rather than three idle "nothing happening" rows.
-  const planTitle = awaitingConnect
-    ? t("todayPlanInvite")
-    : canCheckIn
-      ? t("todayPlanReady")
-      : t("todayPlanDone");
-  const planCopy = awaitingConnect
-    ? t("todayPlanInviteCopy")
-    : canCheckIn
-      ? t("todayPlanReadyCopy", { streak: currentStreak + 1 })
-      : t("todayPlanDoneCopy");
-  const milestoneReachable = canCheckIn && currentStreak + 1 >= nextMilestone.day;
-  const milestoneCopy = milestoneReachable
-    ? t("milestoneImpactReady", { day: nextMilestone.day })
-    : t("milestoneImpactPending", { days: daysToReward });
-  const claimTitle = hasClaimable ? t("rewardPlanReady") : t("rewardPlanEmpty");
-  const claimCopy = hasClaimable
-    ? t("rewardPlanReadyCopy", { amount: `${formatGas(unclaimedRewards)} ${t("tokenGas")}` })
-    : t("rewardPlanEmptyCopy");
-
-  // The hero badge already conveys the idle "Ready" state, so only surface the
-  // inline status pill when it carries new information (an error or an active
-  // workflow message) — avoids duplicating the hero "Ready" pill.
-  const showStatusPill = Boolean(lastError) || (workflowStatus !== t("workflowReady") && workflowStatus.trim().length > 0);
-
-  // The hero pill reads as an invite to connect in the resting state rather
-  // than a perpetual "Loading…": "Loading…" is reserved for an in-flight read.
-  const ringReady = hasLoadedStatus && canCheckIn;
-  const routeProgressPercent = Math.max(0, Math.min(100, (weekSlotFilled / 7) * 100));
-  const routeMarkerDay = canCheckIn ? weekSlotToday : Math.max(weekSlotFilled, 1);
-  const routeMarkerPercent = Math.max(
-    7,
-    Math.min(93, ((routeMarkerDay - 0.5) / 7) * 100),
-  );
-  const routeRunnerClassName = [
-    "checkin-route-runner",
-    canCheckIn ? "checkin-route-runner--ready" : "",
-    isCheckInBusy ? "checkin-route-runner--checking-in" : "",
-    showConfetti || reachedMilestone ? "checkin-route-runner--celebrating" : "",
-  ].filter(Boolean).join(" ");
-  const actionCardClassName = [
-    "checkin-action-card",
-    isActionBusy ? "checkin-action-card--busy" : "",
-    isCheckInBusy ? "checkin-action-card--checkin" : "",
-    isClaimBusy ? "checkin-action-card--claim" : "",
-    isRefreshBusy ? "checkin-action-card--refresh" : "",
-  ].filter(Boolean).join(" ");
-
-  const startActionPreview = (action: ActionPreview) => {
-    if (actionPreviewTimeoutRef.current !== null) {
-      clearTimeout(actionPreviewTimeoutRef.current);
+  const primary = (() => {
+    if (isPaused) {
+      return {
+        label: t("refreshStatus"),
+        onClick: handleRefresh,
+        loading: false,
+        disabled: busy,
+      };
     }
-    setActionPreview(action);
-    actionPreviewTimeoutRef.current = setTimeout(() => {
-      setActionPreview(null);
-      actionPreviewTimeoutRef.current = null;
-    }, 1400);
-  };
+    if (canCheckIn) {
+      return {
+        label: isCheckingIn || checkInPreview ? "..." : t("checkInNow"),
+        onClick: handleCheckIn,
+        loading: isCheckingIn || checkInPreview,
+        disabled: busy,
+      };
+    }
+    if (hasClaimableRewards) {
+      return {
+        label: isClaiming || claimPreview ? "..." : t("claimRewards"),
+        onClick: handleClaim,
+        loading: isClaiming || claimPreview,
+        disabled: busy,
+      };
+    }
+    return {
+      label: t("refreshStatus"),
+      onClick: handleRefresh,
+      loading: false,
+      disabled: busy,
+    };
+  })();
 
-  const handleCheckIn = async () => {
-    if (checkInDisabled) return;
-    startActionPreview("checkIn");
-    await dispatch("doCheckIn");
-  };
-
-  const handleClaimRewards = async () => {
-    if (claimDisabled) return;
-    startActionPreview("claim");
-    await dispatch("claimRewards");
-  };
-
-  const handleRefreshStatus = async () => {
-    if (isLoading || isClaimBusy || isCheckInBusy || isRefreshBusy) return;
-    startActionPreview("refresh");
-    await dispatch("refreshStatus");
-  };
-
-  return (
-    <div
-      className={[
-        "checkin-play-area",
-        `streak-${streakTier}`,
-        ringReady ? "streak-can-checkin" : "",
-        milestoneReachable ? "streak-milestone-ready" : "",
-        isCheckInBusy ? "streak-checking-in" : "",
-        showConfetti || reachedMilestone ? "streak-celebrating" : "",
-      ].filter(Boolean).join(" ")}
-      aria-busy={isActionBusy || undefined}
-    >
-      {/* Upper region — hero + week (left) and the primary action card (right)
-          share a two-column grid on desktop so the core Check In action sits
-          above the fold and the page uses its width instead of stacking thin. */}
-      <div className="checkin-top-grid">
-      <div className="checkin-top-left">
-      {/* Hero — streak, status, and the only timing/fee facts that matter, in one block */}
-      <div className="checkin-streak-section">
-        <div className={`checkin-fire-ring ${streakTier}`}>
-          <span className="checkin-streak-number">{currentStreak}</span>
+  const scene = (
+    <div className="dci-reward-board" data-state={sceneState}>
+      {(isClaiming || claimPreview || isCheckingIn || checkInPreview) && (
+        <div className="dci-reward-board__burst">
+          <ParticleBurst coins count={10} />
         </div>
-        <div className="checkin-hero-body">
-          <span className="checkin-hero-eyebrow">{t("title")}</span>
-          <span className="checkin-streak-text">{currentStreak} {t("dayStreak")}</span>
-          <span className="checkin-hero-subtitle">{t("docSubtitle")}</span>
-          <div className="checkin-hero-facts">
-            <span>{t("nextReward")}: {t("day")} {nextMilestone.day} · +{nextMilestone.reward} {t("tokenGas")}</span>
-            <span>{t("checkInFee")}: {formatGas(checkInFee)} {t("tokenGas")}</span>
+      )}
+
+      <section className="dci-streak-card" aria-label={t("streakStageProgress")}>
+        <header className="dci-streak-card__head">
+          <span className="dci-streak-card__icon" aria-hidden="true">
+            <CalendarCheck size={22} strokeWidth={2.35} />
+          </span>
+          <div>
+            <span>{t("streakStageProgress")}</span>
+            <strong>{currentStreak}</strong>
           </div>
-        </div>
-        <span
-          className={`checkin-tier-badge ${streakTier}${awaitingConnect ? " connect" : ""}${ringReady ? " ready" : ""}`}
-        >
-          {awaitingConnect
-            ? t("connectToStart")
-            : !hasLoadedStatus
-              ? t("loading")
-              : canCheckIn
-                ? t("checkInReady")
-                : t("checkedInToday")}
-        </span>
-        <span className="checkin-best-text">{t("bestStreak")}: {highestStreakFormatted}</span>
-      </div>
+          <span className="dci-streak-card__badge">
+            <span className="dci-status-dot" />
+            {statusText}
+          </span>
+          <div className="dci-streak-card__summary" aria-label={t("yourRewards")}>
+            <span>
+              {t("unclaimed")}
+              <strong>{unclaimedRewards}</strong>
+            </span>
+            <span>
+              {t("rewardPool")}
+              <strong>{rewardPoolBalance}</strong>
+            </span>
+            <span>
+              {t("bestStreak")}
+              <strong>{highestStreak}</strong>
+            </span>
+          </div>
+        </header>
 
-      <figure className="checkin-streak-stage" aria-label={t("streakStageTitle")}>
-        <img src="./streak-plaza.jpg" alt="" loading="eager" decoding="async" />
-        <figcaption>
-          <span>{t("streakStageEyebrow")}</span>
-          <strong>{t("streakStageTitle")}</strong>
-          <small>{t("streakStageCopy")}</small>
-        </figcaption>
-        <div className="checkin-streak-stage__tokens" aria-hidden="true">
-          <span>
-            <small>{t("streakStageProgress")}</small>
-            <strong>{weekSlotFilled}/7 {t("days")}</strong>
-          </span>
-          <span>
-            <small>{t("streakStageReward")}</small>
-            <strong>+{nextMilestone.reward} {t("tokenGas")}</strong>
-          </span>
-        </div>
-      </figure>
+        <figure className="dci-plaza-art" aria-label={t("streakStageTitle")}>
+          <img src={STREAK_IMAGE} alt="" loading="eager" decoding="async" />
+          <figcaption>
+            <span className="dci-plaza-art__coin" aria-hidden="true">
+              <CoinArt size={34} variant="gas" decorative />
+            </span>
+            <div>
+              <span>{t("nextReward")}</span>
+              <strong>{rewardLabel}</strong>
+              <small>{daysToChest === 0 ? t("milestoneReached") : t("daysToReward", { days: daysToChest })}</small>
+            </div>
+          </figcaption>
+          <div className="dci-plaza-art__meter" aria-hidden="true">
+            <span style={{ width: `${progressPercent}%` }} />
+          </div>
+        </figure>
 
-      {/* Week progress + next check-in countdown together (one timing context) */}
-      <div
-        className="checkin-week-wrapper"
-        aria-label={t("rewardProgress")}
-        aria-busy={isActionBusy || undefined}
-      >
-        <div className="checkin-week-progress-label">
-          <span className="checkin-progress-text">{weekSlotFilled}/7 {t("days")}</span>
-          <span className="checkin-week-complete-badge">
-            {daysToReward === 0 ? t("milestoneReached") : t("daysToReward", { days: daysToReward })}
-          </span>
-        </div>
-        <div className="checkin-week-row">
-          {Array.from({ length: 7 }, (_, i) => {
-            const day = i + 1;
-            const checked = day <= weekSlotFilled;
-            const today = day === weekSlotToday;
+        <div className="dci-path" aria-label={t("milestones")}>
+          {PATH_DAYS.map((day) => {
+            const complete = day <= completedPathDay;
+            const active = day === nextPathDay && canCheckIn;
+            const reward = day === 7;
             return (
-              <div
+              <span
                 key={day}
                 className={[
-                  "checkin-week-day-slot",
-                  checked ? "checked" : "",
-                  today ? "today" : "",
-                  today && canCheckIn ? "today-ready" : "",
-                ].filter(Boolean).join(" ")}
+                  "dci-day-node",
+                  complete ? "dci-day-node--complete" : null,
+                  active ? "dci-day-node--active" : null,
+                  reward ? "dci-day-node--reward" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
-                <span className="checkin-day-icon" role="img" aria-label={checked ? t("dayCompleted") : t("dayPending")}>
-                  {checked ? <Check size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
+                <span className="dci-day-node__mark">
+                  {reward ? <Gift size={17} strokeWidth={2.4} /> : <Sparkles size={15} strokeWidth={2.4} />}
                 </span>
-                <span className="checkin-day-label">{t("dayPrefix")}{day}</span>
-              </div>
+                <strong>{t("dayPrefix")}{day}</strong>
+                <small>{complete ? t("dayCompleted") : active ? t("checkInReady") : t("dayPending")}</small>
+              </span>
             );
           })}
         </div>
-        <div className="checkin-week-connector">
-          <div className="checkin-connector-fill" style={{ width: `${routeProgressPercent}%` }} />
-          <span
-            className={routeRunnerClassName}
-            style={{ left: `${routeMarkerPercent}%` }}
-            aria-hidden="true"
-          >
-            {canCheckIn ? (
-              <Gift size={14} />
-            ) : weekSlotFilled > 0 ? (
-              <Check size={14} />
-            ) : (
-              <Circle size={14} />
-            )}
-          </span>
-          <span className="checkin-route-spark checkin-route-spark--one" aria-hidden="true" />
-          <span className="checkin-route-spark checkin-route-spark--two" aria-hidden="true" />
-          <span className="checkin-route-spark checkin-route-spark--three" aria-hidden="true" />
-        </div>
-        <div className="checkin-week-timing">
-          <span className="checkin-week-utc">{utcTimeDisplay} {t("utcLabel")}</span>
-          <CountdownTimer
-            targetTime={nextUtcMidnight}
-            totalDuration={MS_PER_DAY}
-            label={t("nextCheckin")}
-            t={t}
-          />
-        </div>
-      </div>
-      </div>
 
-      <div className="checkin-top-right">
-      {/* Honesty banners — surface a paused contract or a reward pool that is
-          temporarily too low to cover the next milestone, so the user knows
-          whether milestone GAS rewards can be paid before they spend the daily
-          check-in fee. The pool is owner-fundable, so this only shows when the
-          pool is actually short, not as a permanent state. */}
-      {isPaused ? (
-        <div className="checkin-notice checkin-notice--paused" role="status">
-          {t("contractPausedStatus")}
-        </div>
-      ) : rewardsUnderfunded ? (
-        <div className="checkin-notice checkin-notice--unfunded" role="status">
-          {t("rewardsUnfundedBanner")}
-        </div>
-      ) : null}
+      </section>
+    </div>
+  );
 
-      {/* Primary action — surfaced right after the hero, with inline status */}
-      <NeoCard variant="erobo" className={actionCardClassName}>
-        {showStatusPill && (
-          <div className={`status-pill${lastError ? " error" : ""}`}>
-            <span>{lastError || workflowStatus}</span>
-          </div>
-        )}
-        {awaitingConnect && (
-          <p className="checkin-connect-hint">{t("connectHint")}</p>
-        )}
-        <div className="checkin-actions-grid" aria-busy={isActionBusy || undefined}>
-          <NeoButton
-            variant={canCheckIn ? "success" : "secondary"}
-            size="lg"
-            disabled={checkInDisabled}
-            loading={isCheckInBusy}
-            className={`checkin-btn${canCheckIn ? " checkin-btn--ready" : ""}`}
-            onClick={handleCheckIn}
-            aria-label={checkInLabel}
-          >
-            {checkInLabel}
-          </NeoButton>
-        </div>
-        <div className="checkin-actions-secondary">
-          <NeoButton
-            variant="primary"
-            size="lg"
-            disabled={claimDisabled}
-            loading={isClaimBusy}
-            className={`checkin-claim-btn${!hasClaimable && !claimBlocked ? " checkin-claim-btn--empty" : ""}`}
-            onClick={handleClaimRewards}
-            aria-label={hasClaimable ? t("claimRewards") : t("claimNothingYet")}
-          >
-            {claimLabel}
-          </NeoButton>
-          <NeoButton
-            variant="secondary"
-            size="lg"
-            disabled={isLoading || isClaimBusy || isCheckInBusy || isRefreshBusy}
-            loading={isRefreshBusy}
-            onClick={handleRefreshStatus}
-            aria-label={t("refreshStatus")}
-          >
-            {t("refreshStatus")}
-          </NeoButton>
-        </div>
-      </NeoCard>
-      </div>
-      </div>
-
-      {/* Milestone payout reveal — the reward feedback moment. Appears briefly
-          when a check-in lands the streak on a milestone day, announcing the
-          +GAS the daily flow just unlocked. */}
-      {reachedMilestone && (
-        <div className="checkin-reward-reveal" role="status">
-          <span className="checkin-reward-reveal__icon" aria-hidden="true">
-            <Gift size={22} />
-          </span>
-          <div className="checkin-reward-reveal__body">
-            <span className="checkin-reward-reveal__eyebrow">
-              {t("milestoneReached")}
-            </span>
-            <span className="checkin-reward-reveal__title">
-              +{reachedMilestone.reward} {t("tokenGas")}
-            </span>
-            <span className="checkin-reward-reveal__copy">
-              {t("milestoneRewardUnlocked", { day: reachedMilestone.day })}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Today plan — narrates what the actions above will do this UTC cycle:
-          the window status, milestone impact, claim plan, and service route. */}
-      <NeoCard
-        variant="erobo-neo"
-        className="checkin-plan-card"
-        aria-label={t("todayPlan")}
+  const drawer = (
+    <div className="dci-drawer">
+      <button
+        type="button"
+        className="dci-drawer__checkin"
+        onClick={handleCheckIn}
+        disabled={isPaused || !canCheckIn || isCheckingIn || checkInPreview}
       >
-        <div className="checkin-plan-head">
-          <h3 className="checkin-section-title">{t("todayPlan")}</h3>
-          <p className="checkin-plan-subtitle">{t("todayPlanSubtitle")}</p>
-        </div>
-        <div className="checkin-plan-grid">
-          <div className="checkin-plan-item">
-            <span className="checkin-plan-eyebrow">{t("dailyWindow")}</span>
-            <span className="checkin-plan-title">{planTitle}</span>
-            <span className="checkin-plan-copy">{planCopy}</span>
-          </div>
-          <div className="checkin-plan-item">
-            <span className="checkin-plan-eyebrow">{t("milestoneImpact")}</span>
-            <span className="checkin-plan-title">
-              {milestoneReachable
-                ? `+${nextMilestone.reward} ${t("tokenGas")}`
-                : t("noImmediateReward")}
-            </span>
-            <span className="checkin-plan-copy">{milestoneCopy}</span>
-          </div>
-          <div className="checkin-plan-item checkin-plan-rewards">
-            <span className="checkin-plan-eyebrow">{t("yourRewards")}</span>
-            <span className="checkin-plan-title">{claimTitle}</span>
-            <span className="checkin-plan-copy">{claimCopy}</span>
-          </div>
-        </div>
-        <p className="checkin-plan-route">{t("serviceRouteCopy")}</p>
-      </NeoCard>
-
-      {showConfetti && (
-        <div className="confetti-container" aria-hidden="true">
-          {Array.from({ length: 18 }, (_, i) => (
-            <span key={i} className={`confetti-piece confetti-piece-${(i % 6) + 1}`} />
-          ))}
+        {isCheckingIn || checkInPreview ? "..." : canCheckIn ? t("checkInNow") : t("waitForNext")}
+      </button>
+      <button
+        type="button"
+        className="dci-drawer__claim"
+        onClick={handleClaim}
+        disabled={isPaused || !hasClaimableRewards || isClaiming || claimPreview}
+      >
+        {isClaiming || claimPreview ? "..." : t("claimRewards")}
+      </button>
+      <button type="button" className="dci-drawer__refresh" onClick={handleRefresh}>
+        <RefreshCw size={14} strokeWidth={2.3} aria-hidden="true" />
+        {t("refreshStatus")}
+      </button>
+      {rewardsUnderfunded && <p className="dci-drawer__caution">{t("rewardsUnfundedBanner")}</p>}
+      <div className="dci-drawer__stats">
+        <div><span>{t("bestStreak")}</span><strong>{highestStreak}</strong></div>
+        <div><span>{t("totalClaimed")}</span><strong>{totalClaimed}</strong></div>
+        <div><span>{t("unclaimed")}</span><strong>{unclaimedRewards}</strong></div>
+        <div><span>{t("rewardPool")}</span><strong>{rewardPoolBalance}</strong></div>
+      </div>
+      {history.length > 0 && (
+        <div className="dci-drawer__history">
+          <span className="dci-drawer__history-title">{t("recentCheckins")}</span>
+          <ul className="mx2-history">
+            {history.slice(0, 10).map((h, i) => (
+              <li key={i} className="mx2-history__item">
+                <span className="mx2-history__face">{h.streak ?? "—"} {t("days")}</span>
+                <span className="mx2-history__result">{h.reward ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
+    </div>
+  );
 
-      {/* One compact personal-metrics strip (replaces the separate Your Stats + Your Rewards cards) */}
-      {/* Genuinely-empty zero metrics render in a muted style (className flag only,
-          the value/number itself is untouched) so the green streak hero + Check In
-          CTA carry the visual focus on first run instead of a wall of bold zeros. */}
-      <div className="checkin-meta-strip">
-        <div className="checkin-meta-item">
-          <span className={`checkin-meta-value${totalUserCheckins === 0 ? " is-zero" : ""}`}>{totalUserCheckins}</span>
-          <span className="checkin-meta-label">{t("totalCheckins")}</span>
-        </div>
-        <div className="checkin-meta-item">
-          <span className={`checkin-meta-value${unclaimedRewards === 0 ? " is-zero" : ""}`}>{formatGas(unclaimedRewards)}</span>
-          <span className="checkin-meta-label">{t("unclaimed")}</span>
-        </div>
-        <div className="checkin-meta-item">
-          <span className={`checkin-meta-value${totalClaimed === 0 ? " is-zero" : ""}`}>{formatGas(totalClaimed)}</span>
-          <span className="checkin-meta-label">{t("totalClaimed")}</span>
-        </div>
-      </div>
-
-      {/* Reference + activity, paired into two columns on desktop to use width
-          and shorten the page. Collapses to a single column on narrow screens. */}
-      <div className="checkin-two-col">
-        {/* Milestone ladder — the reward schedule, kept as useful reference */}
-        <NeoCard variant="erobo-neo" className="checkin-milestones-card">
-          <h3 className="checkin-section-title">{t("milestones")}</h3>
-          <div className="checkin-milestones-row">
-            {MILESTONES.map((milestone) => {
-              const reached = currentStreak >= milestone.day;
-              const next = !reached && currentStreak < milestone.day;
-              return (
-                <div key={milestone.day} className={`checkin-milestone${reached ? " reached" : next ? " next" : ""}`}>
-                  <div className="checkin-milestone-icon" aria-hidden="true">
-                    {reached ? <Check size={16} /> : <Lock size={16} />}
-                  </div>
-                  <span className="checkin-milestone-day">{t("day")} {milestone.day}</span>
-                  <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas")}</span>
-                  <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total")})</span>
-                </div>
-              );
-            })}
-          </div>
-        </NeoCard>
-
-        {/* Your recent activity */}
-        <NeoCard variant="erobo" className="checkin-history-card">
-          <h3 className="checkin-section-title">{t("recentCheckins")}</h3>
-          {checkinHistory.length > 0 ? (
-            <div className="checkin-history-list">
-              {checkinHistory.slice(0, 10).map((entry, idx) => (
-                <div key={`${entry.time}-${idx}`} className="checkin-history-row">
-                  <span className="checkin-history-date">{formatHistoryTime(entry.time)}</span>
-                  <span className="checkin-history-streak">{entry.action === "claim" ? t("claimRewards") : `${entry.streak} ${t("dayStreak")}`}</span>
-                  <span className="checkin-history-reward">{formatGas(entry.reward)} {t("tokenGas")}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="checkin-history-empty">{t("noCheckins")}</div>
-          )}
-        </NeoCard>
-      </div>
-
-      {/* Secondary: network-wide stats + raw evidence, de-emphasised at the bottom */}
-      <NeoCard variant="erobo" className="checkin-global-card">
-        <h3 className="checkin-section-title">{t("globalStats")}</h3>
-        <div className="checkin-stats-grid">
-          <div className="checkin-stat-item">
-            <span className={`checkin-stat-value${totalGlobalCheckins === 0 ? " is-zero" : ""}`}>{totalGlobalCheckins.toLocaleString()}</span>
-            <span className="checkin-stat-label">{t("totalCheckins")}</span>
-          </div>
-          <div className="checkin-stat-item">
-            <span className={`checkin-stat-value${totalGlobalUsers === 0 ? " is-zero" : ""}`}>{totalGlobalUsers.toLocaleString()}</span>
-            <span className="checkin-stat-label">{t("totalUsers")}</span>
-          </div>
-          <div className="checkin-stat-item">
-            <span className={`checkin-stat-value${totalGlobalRewarded === 0 ? " is-zero" : ""}`}>{formatGas(totalGlobalRewarded)}</span>
-            <span className="checkin-stat-label">{t("totalRewarded")}</span>
-          </div>
-          <div className={`checkin-stat-item${rewardsUnderfunded ? " checkin-stat-item--warn" : ""}`}>
-            <span className={`checkin-stat-value${rewardPoolBalance === 0 && !rewardsUnderfunded ? " is-zero" : ""}`}>{formatGas(rewardPoolBalance)}</span>
-            <span className="checkin-stat-label">{t("rewardPool")}</span>
-          </div>
-        </div>
-      </NeoCard>
-
-      <details className="checkin-evidence-card" role="region" aria-label={t("evidence")}>
-        <summary className="checkin-evidence-summary">
-          <span className="checkin-section-title">{t("evidence")}</span>
-          <span className="checkin-evidence-chevron" aria-hidden="true">⌄</span>
-        </summary>
-        <div className="checkin-evidence-grid">
-          <div className="checkin-evidence-box">
-            <span>{t("latestRequest")}</span>
-            <pre>{evidenceText(latestRequest, t("requestEmpty"))}</pre>
-          </div>
-          <div className="checkin-evidence-box">
-            <span>{t("latestResult")}</span>
-            <pre>{evidenceText(latestResult, t("resultEmpty"))}</pre>
-          </div>
-        </div>
-      </details>
+  return (
+    <div className="daily-checkin-play-area mx2 mx2-cat-game">
+      <PlayStage
+        category="game"
+        stage={{
+          eyebrow: t("streakStageEyebrow"),
+          title: t("streakStageTitle"),
+          subtitle: t("streakStageCopy"),
+        }}
+        scene={scene}
+        actions={{
+          primary,
+        }}
+        drawerToggleLabel={t("yourStats")}
+        drawer={{ title: t("yourStats"), children: drawer }}
+      />
     </div>
   );
 }

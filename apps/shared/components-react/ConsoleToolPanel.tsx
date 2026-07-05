@@ -70,7 +70,7 @@ export interface ConsoleToolConfig {
   previewNoticeKey?: string;
   /**
    * Optional public image path for the scene card. Oracle console apps default
-   * to ./oracle-workspace-stage.jpg, which each app ships from its public dir.
+   * to ./oracle-workspace-stage.webp, which each app ships from its public dir.
    */
   visualSrc?: string;
   /**
@@ -205,7 +205,7 @@ export function ConsoleToolPanel({
   const requestCount = readObservable(state, "requestCount", "0");
   const choiceFields = config.fields.filter((field) => field.type === "select");
   const inputFields = config.fields.filter((field) => field.type !== "select");
-  const stageSrc = config.visualSrc ?? "./oracle-workspace-stage.jpg";
+  const stageSrc = config.visualSrc ?? "./oracle-workspace-stage.webp";
   const requestSummary = config.fields.slice(0, 4).map((field) => ({
     key: field.key,
     label: t(field.labelKey),
@@ -307,7 +307,7 @@ export function ConsoleToolPanel({
               const image = event.currentTarget;
               if (image.dataset.fallbackApplied === "true") return;
               image.dataset.fallbackApplied = "true";
-              image.src = "./banner.jpg";
+              image.src = "./banner.webp";
             }}
           />
           <figcaption>
@@ -353,100 +353,115 @@ export function ConsoleToolPanel({
             ))}
           </div>
 
-          {choiceFields.length > 0 && (
-            <div className="console-tool__choice-stack">
-              {choiceFields.map((field) => {
-                const fieldLabel = t(field.labelKey);
-                const fieldHeadingId = `${panelId}-${field.key}-choice`;
-                const selectedOption = (field.options ?? []).find(
-                  (option) => option.value === values[field.key],
-                );
-                const selectedLabel = selectedOption
-                  ? optionLabel(selectedOption, t)
-                  : values[field.key] || t("notAvailable");
+          {(choiceFields.length > 0 || inputFields.length > 0) && (
+            <details className="console-tool__parameters">
+              <summary>
+                <span className="console-tool__parameters-copy">
+                  <span>{t("consoleParametersEyebrow")}</span>
+                  <strong>{t("consoleParametersTitle")}</strong>
+                  <small>{t("consoleParametersHint")}</small>
+                </span>
+                <span className="console-tool__parameters-edit">
+                  {t("consoleParametersEdit")}
+                </span>
+              </summary>
+              <div className="console-tool__parameters-body">
+                {choiceFields.length > 0 && (
+                  <div className="console-tool__choice-stack">
+                    {choiceFields.map((field) => {
+                      const fieldLabel = t(field.labelKey);
+                      const fieldHeadingId = `${panelId}-${field.key}-choice`;
+                      const selectedOption = (field.options ?? []).find(
+                        (option) => option.value === values[field.key],
+                      );
+                      const selectedLabel = selectedOption
+                        ? optionLabel(selectedOption, t)
+                        : values[field.key] || t("notAvailable");
 
-                return (
-                  <section
-                    className="console-tool__choice-group"
-                    key={field.key}
-                    aria-labelledby={fieldHeadingId}
-                  >
-                    <div className="console-tool__choice-head">
-                      <span id={fieldHeadingId}>{fieldLabel}</span>
-                      <strong>{selectedLabel}</strong>
-                    </div>
-                    <div
-                      className="console-tool__choice-options"
-                      role="radiogroup"
-                      aria-label={fieldLabel}
-                    >
-                      {(field.options ?? []).map((option) => {
-                        const label = optionLabel(option, t);
-                        const selected = values[field.key] === option.value;
-                        const showValue = option.value !== label;
-
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            aria-label={`${fieldLabel}: ${label}`}
-                            className={`console-tool__choice-button${
-                              selected ? " console-tool__choice-button--active" : ""
-                            }`}
-                            onClick={() => updateValue(field.key, option.value)}
+                      return (
+                        <section
+                          className="console-tool__choice-group"
+                          key={field.key}
+                          aria-labelledby={fieldHeadingId}
+                        >
+                          <div className="console-tool__choice-head">
+                            <span id={fieldHeadingId}>{fieldLabel}</span>
+                            <strong>{selectedLabel}</strong>
+                          </div>
+                          <div
+                            className="console-tool__choice-options"
+                            role="radiogroup"
+                            aria-label={fieldLabel}
                           >
-                            <span className="console-tool__choice-copy">
-                              <strong>{label}</strong>
-                              {showValue && <small>{option.value}</small>}
-                            </span>
-                            {selected && (
-                              <span className="console-tool__choice-check" aria-hidden="true">
-                                <Check size={14} />
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
+                            {(field.options ?? []).map((option) => {
+                              const label = optionLabel(option, t);
+                              const selected = values[field.key] === option.value;
+                              const showValue = option.value !== label;
+
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={selected}
+                                  aria-label={`${fieldLabel}: ${label}`}
+                                  className={`console-tool__choice-button${
+                                    selected ? " console-tool__choice-button--active" : ""
+                                  }`}
+                                  onClick={() => updateValue(field.key, option.value)}
+                                >
+                                  <span className="console-tool__choice-copy">
+                                    <strong>{label}</strong>
+                                    {showValue && <small>{option.value}</small>}
+                                  </span>
+                                  {selected && (
+                                    <span className="console-tool__choice-check" aria-hidden="true">
+                                      <Check size={14} />
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {inputFields.length > 0 && (
+                  <section
+                    className="console-tool__input-section"
+                    aria-label={t("consoleParametersTitle")}
+                  >
+                    <div className="console-tool__input-grid">
+                      {inputFields.map((field) => (
+                        <div
+                          key={field.key}
+                          className={`console-tool__input-cell${
+                            isWideConsoleField(field) ? " console-tool__input-cell--wide" : ""
+                          }`}
+                        >
+                          <NeoInput
+                            type={
+                              field.type === "number"
+                                ? "number"
+                                : field.type === "textarea"
+                                  ? "textarea"
+                                  : "text"
+                            }
+                            label={t(field.labelKey)}
+                            value={values[field.key] ?? ""}
+                            placeholder={field.placeholderKey ? t(field.placeholderKey) : ""}
+                            onChange={(value) => updateValue(field.key, value)}
+                          />
+                        </div>
+                      ))}
                     </div>
                   </section>
-                );
-              })}
-            </div>
-          )}
-
-          {inputFields.length > 0 && (
-            <section className="console-tool__input-section">
-              <div className="console-tool__section-head">
-                <span>{t("consoleParametersEyebrow")}</span>
-                <strong>{t("consoleParametersTitle")}</strong>
+                )}
               </div>
-              <div className="console-tool__input-grid">
-                {inputFields.map((field) => (
-                  <div
-                    key={field.key}
-                    className={`console-tool__input-cell${
-                      isWideConsoleField(field) ? " console-tool__input-cell--wide" : ""
-                    }`}
-                  >
-                    <NeoInput
-                      type={
-                        field.type === "number"
-                          ? "number"
-                          : field.type === "textarea"
-                            ? "textarea"
-                            : "text"
-                      }
-                      label={t(field.labelKey)}
-                      value={values[field.key] ?? ""}
-                      placeholder={field.placeholderKey ? t(field.placeholderKey) : ""}
-                      onChange={(value) => updateValue(field.key, value)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
+            </details>
           )}
 
           <div className="console-tool__actions">

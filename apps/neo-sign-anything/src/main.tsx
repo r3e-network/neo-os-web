@@ -7,7 +7,7 @@
  * via ctx.os.storage so they survive page reloads.
  */
 
-import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
+import { defineMiniApp } from "@shared/react/defineMiniApp";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -23,6 +23,7 @@ defineMiniApp({
     const { notify } = ctx.services;
 
     const signAnything = useSignAnything({
+      app: ctx.framework,
       chain: ctx.services.chain,
       eventBus: ctx.services.events,
       clipboard: ctx.services.clipboard,
@@ -30,30 +31,30 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("signMessage", async (...args: unknown[]) => {
+    ctx.framework.actions.register("signMessage", async (...args: unknown[]) => {
       await notify.guard(
         () => signAnything.signMessage(String(args[0] ?? "")),
         "signSuccess",
       );
     });
 
-    ctx.registerAction("broadcastMessage", async (...args: unknown[]) => {
+    ctx.framework.actions.register("broadcastMessage", async (...args: unknown[]) => {
       await notify.guard(
         () => signAnything.broadcastMessage(String(args[0] ?? "")),
         "broadcastSuccess",
       );
     });
 
-    ctx.registerAction("copyToClipboard", async (...args: unknown[]) => {
+    ctx.framework.actions.register("copyToClipboard", async (...args: unknown[]) => {
       await signAnything.copyToClipboard(String(args[0] ?? ""));
     });
-    ctx.registerAction("loadFileDigest", async (...args: unknown[]) => {
+    ctx.framework.actions.register("loadFileDigest", async (...args: unknown[]) => {
       const file = args[0];
       if (file instanceof File) {
         await notify.guard(() => signAnything.loadFileDigest(file), "fileHashed");
       }
     });
-    ctx.registerAction("setMessage", async (...args: unknown[]) => {
+    ctx.framework.actions.register("setMessage", async (...args: unknown[]) => {
       signAnything.message.set(String(args[0] ?? ""));
     });
 

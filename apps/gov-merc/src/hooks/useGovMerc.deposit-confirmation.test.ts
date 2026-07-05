@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useGovMerc } from "./useGovMerc";
+import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -51,7 +52,11 @@ function makeChain() {
 describe("useGovMerc — bid deposit waits for the Credited event before bid()", () => {
   it("passes waitForEvent:'Credited' on the bid-funding transfer and bids only after it settles", async () => {
     const { chain, invoke } = makeChain();
-    const app = useGovMerc({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-gov-merc" },
+    );
+    const app = useGovMerc({ app: framework, t });
     app.setAddress(ALICE);
     await app.loadData();
     invoke.mockClear();

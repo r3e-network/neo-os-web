@@ -34,8 +34,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/aa-permissions-lab/index.html",
-    "icon": "/miniapps/aa-permissions-lab/logo.jpg",
-    "banner": "/miniapps/aa-permissions-lab/banner.jpg"
+    "icon": "/miniapps/aa-permissions-lab/logo.webp",
+    "banner": "/miniapps/aa-permissions-lab/banner.webp"
   },
   "permissions": [
     "invoke:primary",

@@ -221,8 +221,10 @@ const appMessages = {
   appName: { en: "Oracle HTTP Console", zh: "预言机 HTTP 控制台" },
   title: { en: "Oracle HTTP", zh: "预言机 HTTP" },
   tabHttp: { en: "HTTP", zh: "HTTP" },
+  detailsLabel: { en: "Details", zh: "详情" },
   panelEyebrow: { en: "HTTP data feed", zh: "HTTP 数据源" },
   panelTitle: { en: "HTTP Oracle Request", zh: "HTTP 预言机请求" },
+  buildRequest: { en: "Build Request", zh: "构建请求" },
   panelDescription: {
     en: "Prepare a clear web-data request for Morpheus before binding it to an on-chain callback. This is a preview builder — it computes the request digest locally and does not call the URL; the actual fetch runs on the Morpheus lane after you bind the request.",
     zh: "绑定链上回调前，先准备清晰的 Morpheus Web 数据请求。这是预览构建器——它在本地计算请求摘要，不会调用该 URL；实际抓取在绑定请求后由 Morpheus 通道执行。",

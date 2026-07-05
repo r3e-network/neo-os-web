@@ -1,124 +1,159 @@
 import React from "react";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import type { PlatformServices } from "../services";
 import PlayArea from "../../oracle-neodid-console/src/PlayArea";
-import { messages } from "../../oracle-neodid-console/src/appConfig";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-type LocalizedMessage = {
-  en: string;
-  zh: string;
-};
-
-const appMessages = messages as Record<string, LocalizedMessage>;
-
-function t(key: string, params: Record<string, string | number> = {}) {
-  let text = appMessages[key]?.en ?? key;
-  for (const [param, value] of Object.entries(params)) {
-    text = text.replace(`{${param}}`, String(value));
-  }
-  return text;
-}
-
-function makeState(): ObservableState {
-  return {
-    networkLabel: createObservable("Morpheus Mainnet"),
-    endpointLabel: createObservable("Verification preview builder"),
-    requestCount: createObservable(0),
-    lastDigest: createObservable("—"),
-    lastStatus: createObservable("Ready"),
-  };
-}
-
-function makeServices() {
-  return {
-    clipboard: { copy: vi.fn(async () => undefined) },
-  } as unknown as PlatformServices;
-}
-
-function makeProps(state = makeState(), setStatus = vi.fn()) {
-  return {
-    t,
-    state,
-    dispatch: vi.fn(async () => undefined),
-    services: makeServices(),
-    status: null,
-    setStatus,
-    clearStatus: vi.fn(),
-    loadError: null,
-    retryLoad: vi.fn(async () => undefined),
-    launchContext: { params: {}, network: "mainnet" },
-  };
-}
-
-function clickPreview() {
-  const buttons = screen.getAllByRole("button", { name: "Preview Verification" });
-  fireEvent.click(buttons[buttons.length - 1]);
-}
-
 afterEach(() => cleanup());
 
-describe("Oracle NeoDID Console PlayArea", () => {
-  it("presents the default DID request as a visual identity verification track", () => {
-    const state = makeState();
-    const setStatus = vi.fn();
-    const { container } = render(<PlayArea {...makeProps(state, setStatus)} />);
+function t(key: string) {
+  const messages: Record<string, string> = {
+    buildRequest: "Build Request",
+    callbackOptional: "No callback",
+    callbackReadyHint: "Callback is optional and format-safe.",
+    callbackShort: "Callback",
+    claim: "Claim",
+    claimMissingHint: "Choose the claim type to verify.",
+    claimReadyHint: "Claim type is present.",
+    detailsLabel: "Details",
+    did: "DID",
+    didInvalidHint: "Use did:neo:<method-specific-id>.",
+    didReadyHint: "DID shape is ready for preview.",
+    digestPlaceholder: "No digest",
+    lastStatus: "Last Status",
+    neodidCatalogCopy: "Provider and claim options are examples.",
+    neodidCatalogTitle: "Review mode",
+    neodidBuildActive: "Building preview...",
+    neodidEmptyCopy: "Preview the request to see the digest.",
+    neodidFlowTitle: "NeoDID verification flow",
+    neodidIdentityTrackTitle: "Identity verification track",
+    neodidPlan: "Verification workspace",
+    neodidPlanCopy: "Build the request from identity context.",
+    neodidReceipt: "Verification receipt",
+    neodidTrackClaim: "Claim",
+    neodidTrackProvider: "Provider",
+    neodidTrackReceipt: "Receipt",
+    neodidTrackSubject: "Subject",
+    neodidValidationReady: "Ready to preview",
+    panelEyebrow: "Oracle",
+    panelTitle: "NeoDID",
+    previewReady: "Preview ready",
+    providerRegistry: "NeoDID registry",
+    providerRegistryHint: "Registry-backed credential lookup",
+    ready: "Ready",
+    runAction: "Preview Verification",
+    statDigest: "Digest",
+    statEndpoint: "Mode",
+    statNetwork: "Network",
+    statRequests: "Requests",
+    statusReady: "Ready",
+    validationBlocked: "Validation blocked",
+  };
+  return messages[key] ?? key;
+}
 
-    expect(screen.getByLabelText("Identity verification track")).toBeTruthy();
-    expect(container.querySelector(".neodid-identity-track.is-ready.has-did.has-claim.has-callback")).toBeTruthy();
-    expect(container.querySelector('.neodid-identity-track__token img[src="./logo.jpg"]')).toBeTruthy();
-    expect(container.querySelectorAll(".neodid-identity-track__node").length).toBe(4);
-    expect(screen.getByText("Subject")).toBeTruthy();
-    expect(screen.getAllByText("NeoDID registry").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("profile.kyc").length).toBeGreaterThan(0);
-    expect(screen.getByText("Preview only")).toBeTruthy();
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    endpointLabel: "Preview",
+    lastDigest: "No digest",
+    lastStatus: "Ready",
+    networkLabel: "Mainnet",
+    requestCount: 0,
+    ...o,
+  };
+  return Object.fromEntries(
+    Object.entries(base).map(([key, value]) => [key, createObservable(value)]),
+  );
+}
 
-    clickPreview();
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
+}
 
-    expect(screen.getAllByText("Verification preview ready").length).toBeGreaterThan(0);
-    expect(state.requestCount?.get?.()).toBe(1);
-    expect(String(state.lastDigest?.get?.())).toMatch(/^0x[0-9a-f]+$/);
-    expect(setStatus).toHaveBeenCalledWith("Verification preview ready", "success");
+describe("oracle-neodid-console PlayArea (v2)", () => {
+  it("renders a clean identity workspace instead of a backdrop terminal", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
+    );
+
+    expect(container.querySelector(".neodid-workspace")).toBeTruthy();
+    expect(container.querySelector(".neodid-request-card")).toBeTruthy();
+    expect(container.querySelectorAll(".neodid-track__item")).toHaveLength(4);
+    expect(container.querySelector(".neodid-stage-art img")?.getAttribute("src"))
+      .toBe("neodid-identity-stage.webp");
+    expect(container.querySelector(".oracle-console-scene__backdrop")).toBeNull();
+    expect(container.textContent).not.toContain("⚡");
   });
 
-  it("turns a malformed DID into a blocked track and warning receipt", () => {
-    const state = makeState();
-    const setStatus = vi.fn();
-    const { container } = render(<PlayArea {...makeProps(state, setStatus)} />);
+  it("keeps Preview Verification wired to the preview action", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    fireEvent.change(screen.getByLabelText("DID"), {
-      target: { value: "hello world" },
+    fireEvent.click(screen.getByRole("button", { name: /Preview Verification/ }));
+
+    expect(dispatch).toHaveBeenCalledWith("buildRequest", {
+      callback: "",
+      claim: "profile.kyc",
+      did: "did:neo:testnet:sample-user",
+      provider: "neodid-registry",
     });
-    clickPreview();
-
-    expect(container.querySelector(".neodid-identity-track.is-blocked")).toBeTruthy();
-    expect(container.querySelector(".neodid-identity-track__node.is-blocked")).toBeTruthy();
-    expect(screen.getAllByText("Enter a valid did:neo identifier").length).toBeGreaterThan(0);
-    expect(state.requestCount?.get?.()).toBe(0);
-    expect(state.lastDigest?.get?.()).toBe("—");
-    expect(setStatus).toHaveBeenCalledWith(
-      "Enter a valid did:neo identifier",
-      "warning",
-    );
   });
 
-  it("keeps identity-track motion explicit and disabled for reduced-motion users", () => {
-    const css = readFileSync(
-      `${process.cwd()}/../oracle-neodid-console/src/PlayArea.scss`,
-      "utf8",
+  it("surfaces digest state without turning art into the foreground", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ lastDigest: "0x1234567890abcdef1234567890abcdef" })}
+        dispatch={vi.fn()}
+      />,
     );
 
-    expect(css).toContain("@keyframes neodid-track-sheen");
-    expect(css).toContain("@keyframes neodid-track-rail-flow");
-    expect(css).toContain("@keyframes neodid-track-token-route");
-    expect(css).toContain("@keyframes neodid-track-token-route-mobile");
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(css).toContain(".neodid-identity-track__token");
-    expect(css).toContain("animation: none !important");
+    expect(container.querySelector(".neodid-workspace")?.getAttribute("data-state"))
+      .toBe("ready");
+    expect(container.textContent).toContain("0x1234567890ab...7890abcdef");
+    expect(container.querySelector(".neodid-stage-art")?.getAttribute("aria-hidden"))
+      .toBe("true");
+  });
+
+  it("keeps the scene scoped, clean, and motion-accessible", () => {
+    const styles = playAreaStyles("oracle-neodid-console");
+
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/animation-duration:\s*0\.001ms/);
+    expect(styles).toMatch(
+      /\.oracle-neodid-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/,
+    );
+    expect(styles).toMatch(
+      /\.oracle-neodid-play-area \.mx2-stage__scene\s*\{[\s\S]*background:\s*#ffffff/,
+    );
+    expect(styles).toMatch(/\.neodid-stage-art\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.neodid-stage-art\s*\{[\s\S]*padding:\s*12px/);
+    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.neodid-stage-art::after\s*\{[\s\S]*content:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-request-card__copy\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-track\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-track__item strong\s*\{[\s\S]*white-space:\s*normal/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-track__item small\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-stage-art\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-stage-art\s*\{[\s\S]*height:\s*86px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-catalog-card__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-catalog-card__facts dd\s*\{[\s\S]*white-space:\s*normal/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-route-card\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.oracle-neodid-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).not.toMatch(/\.neodid-stage-art img\s*\{[\s\S]*opacity:\s*0\.34/);
+    expect(styles).not.toMatch(/\.neodid-stage-art img\s*\{[\s\S]*filter:\s*saturate/);
+    expect(styles).not.toMatch(/AI-generated scene backdrop/);
+    expect(styles).not.toMatch(/__backdrop/);
+    expect(styles).not.toMatch(/\.tool-scene__backdrop/);
+    expect(styles).not.toMatch(/oracle-console-scene__icon/);
   });
 });

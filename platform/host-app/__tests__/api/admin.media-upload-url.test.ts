@@ -35,8 +35,8 @@ describe("/api/miniapps/admin/media/upload-url", () => {
     isMiniAppMediaUploadConfigured.mockReturnValue(true);
     createMiniAppMediaUploadUrl.mockResolvedValue({
       upload_url: "https://signed.example.com",
-      public_url: "https://meshmini.app/miniapp-assets/miniapp-demo/logo.png",
-      key: "miniapp-assets/miniapp-demo/logo.png",
+      public_url: "https://meshmini.app/miniapp-assets/miniapp-demo/logo.webp",
+      key: "miniapp-assets/miniapp-demo/logo.webp",
       expires_in: 900,
       headers: {
         "Content-Type": "image/png",
@@ -97,7 +97,7 @@ describe("/api/miniapps/admin/media/upload-url", () => {
         app_id: "miniapp-demo",
         asset_type: "logo",
         content_type: "image/png",
-        file_name: "logo.png",
+        file_name: "logo.webp",
         variant: { theme: "dark" },
       },
     });

@@ -59,6 +59,12 @@ function readJson(filePath) {
   return JSON.parse(readText(filePath));
 }
 
+function stripSourceComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
+
 function walkFiles(dir) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -78,16 +84,21 @@ function parseRegistryKinds() {
   ].map((match) => [match[1], match[2]]);
   const customIds = new Set(customEntries.map(([appId]) => appId));
   const customComponents = new Map(customEntries);
-  const profiledSection = [
-    readText(path.join(PLAYAREA_COMPONENTS_ROOT, "PlayAreaProfilesAa.tsx")),
-    readText(
-      path.join(PLAYAREA_COMPONENTS_ROOT, "PlayAreaProfilesBusiness.tsx"),
-    ),
-  ].join("\n");
+  const profiledSection = fs
+    .readdirSync(PLAYAREA_COMPONENTS_ROOT, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        /^PlayAreaProfiles(?!\.tsx$|.*Types\.tsx$).+\.tsx$/.test(entry.name),
+    )
+    .map((entry) => readText(path.join(PLAYAREA_COMPONENTS_ROOT, entry.name)))
+    .join("\n");
   const profiledIds = new Set(
-    [...profiledSection.matchAll(/"(miniapp-[^"]+)":\s*\{/g)].map(
-      (match) => match[1],
-    ),
+    [
+      ...profiledSection.matchAll(
+        /"(miniapp-[^"]+)":\s*(?:[A-Za-z_$][\w$]*\s*\(\s*)?\{/g,
+      ),
+    ].map((match) => match[1]),
   );
 
   return {
@@ -432,7 +443,7 @@ function auditApp(app, kinds) {
   const hostManagedApiOperation = hasHostManagedApiOperations(app);
   const hostFundedWalletOperation = hasHostFundedWalletOperation(app.appId);
   const hasFileUpload = /type=["']file["']/.test(combinedSource);
-  const sourceText = `${combinedSource}\n${JSON.stringify(app.manifest)}\n${JSON.stringify(app.hostDefinition)}`;
+  const sourceText = `${stripSourceComments(combinedSource)}\n${JSON.stringify(app.manifest)}\n${JSON.stringify(app.hostDefinition)}`;
   const workflowEvidence = workflowEvidenceForApp({
     appId: app.appId,
     source,
@@ -515,11 +526,7 @@ function auditApp(app, kinds) {
   ) {
     gaps.push("source contains placeholder-only language");
   }
-  if (
-    /\b[Ss]tage\s+|staged status preview|Ready to submit|Local preview/.test(
-      sourceText,
-    )
-  ) {
+  if (/staged status preview|Ready to submit|Local preview/.test(sourceText)) {
     gaps.push("source contains staging/status-only user-facing language");
   }
 

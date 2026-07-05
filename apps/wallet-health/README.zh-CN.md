@@ -41,7 +41,7 @@
 - **入口点**：`src/pages/index/index.vue`
 - **文档**：`src/pages/docs/index.vue`
 - **国际化**：`src/locale/messages.ts`
-- **资源**：`src/static/logo.jpg`, `src/static/banner.jpg`
+- **资源**：`src/static/logo.webp`, `src/static/banner.webp`
 - **主题**：`theme-wallet-health`
 
 ## 技术细节

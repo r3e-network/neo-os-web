@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { addressToScriptHash } from "../utils/neo";
 import { useSoulbound } from "../../soulbound-certificate/src/composables/useSoulbound";
 
@@ -62,7 +63,7 @@ function setup(options: { revoked?: boolean } = {}) {
           }
         : undefined,
   }));
-  const read = vi.fn(async (operation: string) => {
+  const read = vi.fn(async (operation: string, _args?: unknown[]) => {
     if (operation === "getIssuerTemplates") return ["7"];
     if (operation === "getTemplateDetails") {
       return {
@@ -99,18 +100,23 @@ function setup(options: { revoked?: boolean } = {}) {
   const storage = {
     list: vi.fn(async () => ({})),
   };
+  const chain = {
+    address: createObservable(OWNER),
+    ensureWallet: vi.fn(async () => OWNER),
+    invoke,
+    read,
+  };
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-soulbound-certificate" },
+  );
   const soulbound = useSoulbound({
     nftService: { validate: vi.fn() } as never,
     storageService: storage as never,
     badgeService: { award: vi.fn(async () => undefined) } as never,
     clipboard: { copy: vi.fn(async () => true) } as never,
     eventBus: { emit: vi.fn() },
-    chain: {
-      address: createObservable(OWNER),
-      ensureWallet: vi.fn(async () => OWNER),
-      invoke,
-      read,
-    },
+    app,
     t,
   });
   return { soulbound, invoke, read };
@@ -181,7 +187,11 @@ describe("useSoulbound contract intents", () => {
     );
 
     await soulbound.verifyCertificate({ tokenId: "0x0700000000000001" });
-    expect(read).toHaveBeenCalledWith("getCertificateDetails", [
+    // readRaw passes options through as a trailing arg, so match the operation +
+    // args positionally rather than asserting an exact 2-arg call shape.
+    const detailsRead = read.mock.calls.find((c) => c[0] === "getCertificateDetails");
+    expect(detailsRead, "getCertificateDetails read").toBeTruthy();
+    expect(detailsRead?.[1]).toEqual([
       { type: "ByteArray", value: "MHgwNzAwMDAwMDAwMDAwMDAx" },
     ]);
     expect(soulbound.verifiedCertificate.get()?.recipientName).toBe("Alex Chen");
@@ -270,18 +280,23 @@ describe("useSoulbound My Certificates reconstruction", () => {
       if (operation === "getIssuerTemplates") return ["1"];
       return null;
     });
+    const chain = {
+      address: createObservable(OWNER),
+      ensureWallet: vi.fn(async () => OWNER),
+      invoke: vi.fn(),
+      read,
+    };
+    const app = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-soulbound-certificate" },
+    );
     const soulbound = useSoulbound({
       nftService: { validate: vi.fn() } as never,
       storageService: { list: vi.fn(async () => ({})) } as never,
       badgeService: { award: vi.fn(async () => undefined) } as never,
       clipboard: { copy: vi.fn(async () => true) } as never,
       eventBus: { emit: vi.fn() },
-      chain: {
-        address: createObservable(OWNER),
-        ensureWallet: vi.fn(async () => OWNER),
-        invoke: vi.fn(),
-        read,
-      },
+      app,
       t,
     });
     return { soulbound, read };

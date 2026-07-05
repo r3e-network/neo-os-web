@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "App", zh: "应用" },
   tabOverview: { en: "Overview", zh: "概览" },
   appName: { en: "ProfitAnchor Admin", zh: "ProfitAnchor 管理台" },
   noneFallback: { en: "None", zh: "无" },
@@ -38,6 +39,7 @@ const appMessages = {
   },
   agentBalanceLabel: { en: "NEO", zh: "NEO" },
   agentBalanceUnknown: { en: "—", zh: "—" },
+  agentBalancePending: { en: "Balance pending", zh: "余额待加载" },
   agentActive: { en: "Active", zh: "已启用" },
   agentInactive: { en: "Inactive", zh: "未启用" },
   agentCandidateLabel: { en: "Candidate", zh: "候选人" },
@@ -105,6 +107,7 @@ const appMessages = {
   neoAmount: { en: "NEO amount", zh: "NEO 数量" },
   candidatePublicKey: { en: "Candidate public key", zh: "候选人公钥" },
   operatorRule: { en: "Operator rule", zh: "运营边界" },
+  operationMode: { en: "Operation mode", zh: "操作模式" },
   manualOnly: { en: "Manual only", zh: "仅人工" },
   operatorRuleDesc: {
     en: "ProfitAnchor Admin does only three things: move NEO between the app's own 21 AA agents, update an agent's vote target, and sync that vote.",

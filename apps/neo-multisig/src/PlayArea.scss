@@ -1,1547 +1,427 @@
-@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-.multisig-play-area {
-  --ms-ink: #17211c;
-  --ms-text: #35443c;
-  --ms-muted: #6f7b73;
-  --ms-line: rgba(23, 33, 28, 0.1);
-  --ms-line-strong: rgba(23, 33, 28, 0.18);
-  --ms-surface: rgba(255, 255, 255, 0.92);
-  --ms-surface-strong: #ffffff;
-  --ms-surface-soft: #f7faf4;
-  --ms-brand: #16a66f;
-  --ms-brand-strong: #087b50;
-  --ms-brand-soft: #e2f7ec;
-  --ms-gold: #d8a038;
-  --ms-gold-soft: #fff2ca;
-  --ms-danger: #b42318;
-  --ms-radius: 12px;
-  --ms-radius-sm: 10px;
-  --ms-shadow: 0 16px 42px rgba(30, 50, 38, 0.09);
-  --ms-shadow-soft: 0 8px 20px rgba(30, 50, 38, 0.07);
-
-  width: 100%;
-  min-height: 100%;
-  padding: 18px 12px 24px;
-  box-sizing: border-box;
-  background:
-    radial-gradient(
-      circle at 92% 0%,
-      rgba(255, 221, 158, 0.34),
-      transparent 34%
-    ),
-    linear-gradient(180deg, #fffaf0 0%, #fbfdf8 48%, #f2f8f5 100%);
-  color: var(--ms-ink);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #0891b2;
+  --mx2-brand-hover: #0e7490;
+  --mx2-brand-light: #e2f4f9;
+  --mx2-brand-subtle: #ade0ec;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #6366f1;
+  --mx2-accent-strong: #4338ca;
+  --mx2-accent-soft: #ebebfe;
+  --mx2-accent-ink: #312e81;
 }
 
-.multisig-play-area *,
-.multisig-play-area *::before,
-.multisig-play-area *::after {
-  box-sizing: border-box;
+
+.neo-multisig-play-area {
+  display: block;
+  --mx2-stage-floor: #ffffff;
+}
+
+.neo-multisig-play-area .mx2-stage__scene {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+.multisig-workbench {
+  width: 100%;
+  min-height: 318px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(286px, 0.92fr);
+  grid-template-areas:
+    "vault approval"
+    "vault load";
+  gap: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.11);
+  border-radius: var(--mx2-r-lg);
+  padding: 12px;
+  background: #ffffff;
+}
+
+.multisig-vault-card,
+.multisig-approval-card,
+.multisig-load-panel {
   min-width: 0;
-  letter-spacing: 0;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.045);
 }
 
-.multisig-play-area .neo-input__label,
-.multisig-play-area .neo-input__hint {
-  color: var(--ms-muted);
-  font-weight: 750;
-}
-
-.multisig-play-area .neo-input__wrapper {
-  min-height: 44px;
-  border-color: var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
-}
-
-.multisig-play-area .neo-input__field {
-  color: var(--ms-ink);
-  font-weight: 650;
-}
-
-.multisig-play-area .neo-input__field::placeholder {
-  color: #9aa59e;
-}
-
-.multisig-shell {
-  width: min(100%, 1260px);
-  margin: 0 auto;
-}
-
-.multisig-main {
-  display: grid;
-  gap: 16px;
-}
-
-.multisig-hero {
+.multisig-vault-card {
+  grid-area: vault;
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(270px, 360px);
-  gap: 24px;
-  min-height: 360px;
-  padding: 26px;
   overflow: hidden;
-  isolation: isolate;
-  border: 1px solid var(--ms-line);
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: var(--ms-shadow);
-}
-
-.multisig-hero__image,
-.multisig-hero__shade {
-  position: absolute;
-  inset: 0;
-}
-
-.multisig-hero__image {
-  z-index: -2;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transform: scale(1.04);
-  animation: multisig-hero-drift 18s ease-in-out infinite alternate;
-}
-
-.multisig-hero__shade {
-  z-index: -1;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.96),
-      rgba(255, 255, 255, 0.78) 42%,
-      rgba(255, 255, 255, 0.22) 78%
-    ),
-    linear-gradient(
-      0deg,
-      rgba(255, 250, 240, 0.92),
-      rgba(255, 250, 240, 0.1) 58%
-    );
-}
-
-.multisig-hero__copy {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-self: start;
-  gap: 14px;
-  max-width: 680px;
+  grid-template-columns: minmax(0, 1fr) minmax(148px, 34%);
+  align-items: stretch;
+  gap: 16px;
+  min-height: 294px;
+  padding: 22px;
+  background: #ffffff;
 }
 
-.multisig-hero-accent {
+.multisig-vault-card::before {
+  content: none;
+}
+
+.multisig-vault-card__copy {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  display: grid;
+  gap: 11px;
+}
+
+.multisig-vault-card__copy > span,
+.multisig-approval-card__head > span,
+.multisig-load-panel label > span {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 1px solid rgba(22, 166, 111, 0.22);
-  border-radius: var(--ms-radius);
-  background: rgba(226, 247, 236, 0.86);
-  color: var(--ms-brand-strong);
-  box-shadow: var(--ms-shadow-soft);
-}
-
-.multisig-hero-eyebrow,
-.multisig-hero__glass span,
-.multisig-board__head span,
-.multisig-section-heading > strong,
-.multisig-proposal-preview__copy span,
-.multisig-approval-card__head span,
-.multisig-request-id-row > span,
-.multisig-roster-title,
-.multisig-request-details span {
-  color: var(--ms-muted);
+  gap: 7px;
+  color: var(--mx2-brand-hover);
   font-size: 11px;
-  font-weight: 850;
-  line-height: 1.25;
+  font-weight: 680;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.multisig-hero h2 {
-  margin: 5px 0 0;
-  color: var(--ms-ink);
-  font-size: 32px;
-  font-weight: 850;
-  line-height: 1.08;
-  text-wrap: balance;
-}
-
-.multisig-hero p {
-  max-width: 610px;
-  margin: 9px 0 0;
-  color: var(--ms-text);
-  font-size: 14px;
-  font-weight: 620;
-  line-height: 1.55;
-}
-
-.multisig-hero-flow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.multisig-hero-flow span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 11px;
-  border: 1px solid rgba(22, 166, 111, 0.18);
-  border-radius: 999px;
-  background: rgba(226, 247, 236, 0.88);
-  color: var(--ms-brand-strong);
-  font-size: 12px;
-  font-weight: 780;
-}
-
-.multisig-hero__glass {
-  display: grid;
-  align-content: end;
-  gap: 12px;
-}
-
-.multisig-hero__vault-card,
-.multisig-hero__proposal-card {
-  display: grid;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid rgba(23, 33, 28, 0.11);
-  border-radius: var(--ms-radius);
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: var(--ms-shadow-soft);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-
-.multisig-hero__glass strong {
-  color: var(--ms-ink);
-  font-size: 22px;
-  font-weight: 860;
-  line-height: 1.12;
-}
-
-.multisig-hero__glass small {
-  color: var(--ms-text);
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.multisig-route-stage {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
-  gap: 16px;
-  padding: 14px;
-  overflow: hidden;
-  isolation: isolate;
-  border: 1px solid rgba(22, 166, 111, 0.18);
-  border-radius: var(--ms-radius);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.94),
-      rgba(226, 247, 236, 0.72)
-    ),
-    var(--ms-surface-strong);
-  box-shadow: var(--ms-shadow);
-}
-
-.multisig-route-stage::before {
-  content: "";
-  position: absolute;
-  inset: -80% -26%;
-  z-index: -1;
-  background: linear-gradient(
-    112deg,
-    transparent 31%,
-    rgba(255, 255, 255, 0.68) 44%,
-    rgba(255, 221, 158, 0.38) 50%,
-    transparent 63%
-  );
-  opacity: 0.72;
-  transform: translateX(-46%);
-  animation: multisig-route-sheen 8.5s ease-in-out infinite;
-}
-
-.multisig-route-stage__media {
-  position: relative;
-  min-height: 198px;
-  overflow: hidden;
-  border: 1px solid rgba(23, 33, 28, 0.12);
-  border-radius: var(--ms-radius);
-  background: #edf7ef;
-  box-shadow: var(--ms-shadow-soft);
-}
-
-.multisig-route-stage__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: inherit;
-  object-fit: cover;
-  object-position: center;
-  transform: scale(1.02);
-  animation: multisig-stage-breathe 9s ease-in-out infinite;
-}
-
-.multisig-route-stage__proposal {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  width: min(46%, 172px);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 18px 34px rgba(30, 50, 38, 0.22);
-  animation: multisig-proposal-card-float 4.8s ease-in-out infinite;
-}
-
-.multisig-route-stage__proposal img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1.25;
-  object-fit: cover;
-}
-
-.multisig-route-stage__pulse {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  width: 54px;
-  height: 54px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.96) 0 28%, transparent 31%),
-    rgba(22, 166, 111, 0.34);
-  box-shadow: 0 0 0 0 rgba(22, 166, 111, 0.28);
-  animation: multisig-route-pulse 2.8s ease-out infinite;
-}
-
-.multisig-route-stage__body {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  align-content: center;
-  gap: 12px;
+.multisig-vault-card__copy strong {
   min-width: 0;
-}
-
-.multisig-route-stage__body > p {
-  max-width: 760px;
-  margin: -4px 0 0;
-  color: var(--ms-text);
-  font-size: 13px;
-  font-weight: 620;
-  line-height: 1.5;
-}
-
-.multisig-route-stage__track {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 40px;
-  margin: 1px 0;
-}
-
-.multisig-route-stage__rail {
-  position: absolute;
-  right: 12px;
-  left: 12px;
-  height: 8px;
   overflow: hidden;
-  border: 1px solid rgba(22, 166, 111, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
+  color: #092f2b;
+  font-size: 38px;
+  font-weight: 680;
+  line-height: 1;
+  text-overflow: ellipsis;
 }
 
-.multisig-route-stage__rail::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(22, 166, 111, 0.52),
-    #d8a038,
-    transparent
-  );
-  transform: translateX(-72%);
-  animation: multisig-route-rail-flow 3.6s linear infinite;
-}
-
-.multisig-route-stage__packet {
-  position: absolute;
-  left: 8%;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #fff;
-  border-radius: 999px;
-  background: var(--ms-brand);
-  box-shadow:
-    0 0 0 5px rgba(22, 166, 111, 0.13),
-    0 8px 20px rgba(8, 123, 80, 0.24);
-  animation: multisig-route-packet 4.2s cubic-bezier(0.62, 0, 0.3, 1) infinite;
-}
-
-.multisig-route-stage__packet--two {
-  opacity: 0.74;
-  animation-delay: 1.7s;
-}
-
-.multisig-route-stage--cancelling .multisig-route-stage__packet,
-.multisig-route-stage--cancelled .multisig-route-stage__packet {
-  background: var(--ms-gold);
-  box-shadow:
-    0 0 0 5px rgba(216, 160, 56, 0.16),
-    0 8px 20px rgba(138, 90, 10, 0.22);
-}
-
-.multisig-route-stage--released .multisig-route-stage__packet {
-  background: var(--ms-brand-strong);
-}
-
-.multisig-route-stage__nodes {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.multisig-vault-card__copy p {
+  max-width: 520px;
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.multisig-route-stage__node {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 9px;
-  align-items: center;
-  min-height: 74px;
-  padding: 10px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: rgba(255, 255, 255, 0.72);
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease,
-    background 160ms ease;
-}
-
-.multisig-route-stage__node.is-active {
-  border-color: rgba(22, 166, 111, 0.34);
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: var(--ms-shadow-soft);
-  transform: translateY(-2px);
-}
-
-.multisig-route-stage__node.is-complete {
-  border-color: rgba(22, 166, 111, 0.28);
-  background: rgba(226, 247, 236, 0.86);
-}
-
-.multisig-route-stage__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: #fff;
-  color: var(--ms-brand-strong);
-  box-shadow: var(--ms-shadow-soft);
-}
-
-.multisig-route-stage__node.is-active .multisig-route-stage__icon {
-  animation: multisig-route-node-ready 1.9s ease-in-out infinite;
-}
-
-.multisig-route-stage__node.is-complete .multisig-route-stage__icon {
-  background: var(--ms-brand);
-  color: #fff;
-}
-
-.multisig-route-stage__node strong {
-  display: block;
-  color: var(--ms-ink);
+  color: var(--mx2-text-2);
   font-size: 13px;
-  font-weight: 850;
-  line-height: 1.2;
-}
-
-.multisig-route-stage__node small {
-  display: block;
-  margin-top: 4px;
-  color: var(--ms-muted);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.multisig-workspace {
-  display: grid;
-  grid-template-columns: minmax(360px, 0.98fr) minmax(0, 1.02fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.multisig-request-panel,
-.multisig-activity-panel,
-.multisig-signer-panel,
-.multisig-load-panel {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius);
-  background: var(--ms-surface);
-  box-shadow: var(--ms-shadow);
-}
-
-.multisig-aside {
-  display: grid;
-  align-content: start;
-  gap: 16px;
-  position: sticky;
-  top: 12px;
-}
-
-.multisig-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.multisig-section-heading > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  color: var(--ms-ink);
-  font-size: 18px;
-  font-weight: 850;
-  line-height: 1.2;
-}
-
-.multisig-section-heading > span svg,
-.multisig-board__seal svg,
-.multisig-hero-flow svg,
-.multisig-approval-card svg {
-  flex: 0 0 auto;
-}
-
-.multisig-section-heading > strong {
-  flex: 0 0 auto;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: var(--ms-surface-soft);
-  color: var(--ms-muted);
-}
-
-.multisig-request-panel > p,
-.multisig-signer-panel > p,
-.multisig-load-panel > p {
-  margin: -3px 0 2px;
-  color: var(--ms-text);
-  font-size: 13px;
-  font-weight: 610;
-  line-height: 1.55;
-}
-
-.multisig-board {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(22, 166, 111, 0.2);
-  border-radius: var(--ms-radius);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.94),
-      rgba(226, 247, 236, 0.74)
-    ),
-    var(--ms-surface-strong);
-}
-
-.multisig-board__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.36fr);
-  gap: 12px;
-  align-items: center;
-}
-
-.multisig-board__head > div:first-child {
-  display: grid;
-  gap: 4px;
-}
-
-.multisig-board__head strong {
-  color: var(--ms-ink);
-  font-size: 22px;
-  font-weight: 860;
-  line-height: 1.1;
-}
-
-.multisig-board__progress,
-.multisig-approval-card__track {
-  height: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(22, 166, 111, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
-}
-
-.multisig-board__progress span,
-.multisig-approval-card__track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--ms-brand), #cfa15e, var(--ms-brand));
-  background-size: 180% 100%;
-  animation: multisig-progress-flow 3.2s linear infinite;
-}
-
-.multisig-board__signers {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 9px;
-}
-
-.multisig-board__signer {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 9px;
-  align-items: center;
-  min-height: 58px;
-  padding: 10px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: rgba(255, 255, 255, 0.76);
-}
-
-.multisig-board__signer.is-approved {
-  border-color: rgba(22, 166, 111, 0.32);
-  background: rgba(226, 247, 236, 0.92);
-}
-
-.multisig-board__signer.is-you {
-  box-shadow: inset 0 0 0 2px rgba(22, 166, 111, 0.14);
-}
-
-.multisig-board__seal {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  background: #fff;
-  color: var(--ms-brand-strong);
-  box-shadow: var(--ms-shadow-soft);
-}
-
-.multisig-board__signer strong,
-.multisig-proposal-preview__copy strong,
-.multisig-approval-card__head strong,
-.multisig-request-id-row > strong,
-.multisig-request-details strong,
-.multisig-signal-row > strong {
-  min-width: 0;
-  color: var(--ms-ink);
-  font-weight: 850;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.multisig-board__signer small {
-  display: block;
-  margin-top: 3px;
-  color: var(--ms-muted);
-  font-size: 11px;
-  font-weight: 720;
-  line-height: 1.25;
-}
-
-.multisig-create-console,
-.multisig-signer-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.multisig-create-console {
-  gap: 14px;
-}
-
-.multisig-signer-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: end;
-}
-
-.multisig-signer-remove,
-.multisig-signer-add,
-.multisig-copy-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: #fff;
-  color: var(--ms-text);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 780;
-}
-
-.multisig-signer-remove {
-  width: 38px;
-  height: 38px;
-}
-
-.multisig-signer-remove:hover {
-  border-color: rgba(180, 35, 24, 0.35);
-  color: var(--ms-danger);
-}
-
-.multisig-signer-add {
-  justify-self: start;
-  min-height: 38px;
-  padding: 8px 12px;
-  border-style: dashed;
-  color: var(--ms-brand-strong);
-}
-
-.multisig-signer-add:hover,
-.multisig-copy-btn:hover,
-.multisig-icon-button:hover {
-  border-color: rgba(22, 166, 111, 0.34);
-  background: var(--ms-brand-soft);
-  color: var(--ms-brand-strong);
-}
-
-.multisig-threshold-panel,
-.multisig-transfer-console,
-.multisig-spend-console,
-.multisig-memo-drawer {
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius);
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.multisig-threshold-panel {
-  display: grid;
-  gap: 11px;
-  padding: 12px;
-}
-
-.multisig-threshold-panel__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.multisig-threshold-panel__head span,
-.multisig-asset-toggle legend,
-.multisig-memo-drawer > summary span {
-  color: var(--ms-muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.25;
-}
-
-.multisig-threshold-panel__head strong {
-  color: var(--ms-brand-strong);
-  font-size: 18px;
-  font-weight: 880;
-}
-
-.multisig-threshold-chips {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
-  gap: 7px;
-}
-
-.multisig-threshold-chip,
-.multisig-asset-toggle__option {
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: #fff;
-  color: var(--ms-text);
-  cursor: pointer;
-  font: inherit;
-  font-weight: 780;
-  transition:
-    border-color 140ms ease,
-    background 140ms ease,
-    box-shadow 140ms ease,
-    color 140ms ease,
-    transform 140ms ease;
-}
-
-.multisig-threshold-chip {
-  min-height: 40px;
-  padding: 9px;
-}
-
-.multisig-threshold-chip:hover,
-.multisig-asset-toggle__option:hover {
-  border-color: rgba(22, 166, 111, 0.3);
-  background: var(--ms-brand-soft);
-  color: var(--ms-brand-strong);
-}
-
-.multisig-threshold-chip.is-active,
-.multisig-asset-toggle__option.is-active {
-  border-color: rgba(22, 166, 111, 0.42);
-  background: linear-gradient(135deg, rgba(226, 247, 236, 0.92), #fff), #fff;
-  color: var(--ms-brand-strong);
-  box-shadow: inset 0 0 0 1px rgba(22, 166, 111, 0.18);
-}
-
-.multisig-transfer-console {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.86fr);
-  gap: 12px;
-  align-items: stretch;
-  padding: 12px;
-}
-
-.multisig-amount-panel {
-  display: grid;
-  align-content: center;
-}
-
-.multisig-asset-toggle {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  min-inline-size: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.multisig-asset-toggle legend {
-  grid-column: 1 / -1;
-  padding: 0;
-}
-
-.multisig-asset-toggle__option {
-  display: grid;
-  gap: 5px;
-  min-height: 72px;
-  padding: 11px;
-  text-align: left;
-}
-
-.multisig-asset-toggle__option strong {
-  color: inherit;
-  font-size: 15px;
-  line-height: 1.2;
-}
-
-.multisig-asset-toggle__option span {
-  color: var(--ms-muted);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.multisig-asset-toggle__option.is-active span {
-  color: var(--ms-brand-strong);
-}
-
-.multisig-spend-console {
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-}
-
-.multisig-recipient-panel {
-  display: grid;
-}
-
-.multisig-memo-drawer {
-  padding: 0;
-  overflow: hidden;
-}
-
-.multisig-memo-drawer > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-  padding: 11px 12px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.multisig-memo-drawer > summary::-webkit-details-marker {
-  display: none;
-}
-
-.multisig-memo-drawer > summary svg {
-  flex: 0 0 auto;
-  padding: 4px;
-  border: 1px solid rgba(22, 166, 111, 0.22);
-  border-radius: 999px;
-  background: var(--ms-brand-soft);
-  color: var(--ms-brand-strong);
-  transition: transform 140ms ease;
-}
-
-.multisig-memo-drawer[open] > summary svg {
-  transform: rotate(180deg);
-}
-
-.multisig-memo-drawer .neo-input {
-  padding: 0 12px 12px;
-}
-
-.multisig-memo-drawer .neo-input__field {
-  min-height: 84px;
-  resize: vertical;
-}
-
-.multisig-request-hint {
-  margin: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: var(--ms-surface-soft);
-  color: var(--ms-text);
-  font-size: 13px;
-  font-weight: 620;
+  font-weight: 680;
   line-height: 1.45;
 }
 
-.multisig-request-hint.is-ready {
-  border-color: rgba(22, 166, 111, 0.24);
-  background: var(--ms-brand-soft);
-  color: var(--ms-brand-strong);
-}
-
-.multisig-request-hint--guide {
-  border-color: rgba(22, 166, 111, 0.18);
-  background: #f8fbf7;
-}
-
-.multisig-request-hint--info {
-  font-weight: 540;
-}
-
-.multisig-request-hint--unfunded {
-  border-color: rgba(216, 160, 56, 0.36);
-  background: #fff8e5;
-  color: #8a5a0a;
-}
-
-.multisig-receipt {
-  display: grid;
-  gap: 7px;
-  padding: 13px;
-  border: 1px solid rgba(22, 166, 111, 0.22);
-  border-radius: var(--ms-radius);
-  background: rgba(226, 247, 236, 0.72);
-}
-
-.multisig-receipt span {
-  color: var(--ms-muted);
-  font-size: 12px;
-  font-weight: 780;
-}
-
-.multisig-receipt em {
-  color: var(--ms-text);
-  font-size: 13px;
-  font-style: normal;
-  line-height: 1.4;
-}
-
-.multisig-proposal-preview {
-  position: relative;
-  display: grid;
-  min-height: 210px;
-  overflow: hidden;
-  border: 1px solid rgba(216, 160, 56, 0.22);
-  border-radius: var(--ms-radius);
-  background: #fff;
-  box-shadow: var(--ms-shadow-soft);
-}
-
-.multisig-proposal-preview__art {
-  position: absolute;
-  inset: 0;
-  transform: scale(1.02);
-  animation: multisig-stage-breathe 10s ease-in-out infinite;
-}
-
-.multisig-proposal-preview__art img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.multisig-proposal-preview__copy {
-  position: relative;
-  z-index: 1;
-  align-self: end;
-  display: grid;
-  gap: 8px;
-  margin: 14px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: var(--ms-radius);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 12px 30px rgba(30, 50, 38, 0.12);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  animation: multisig-proposal-card-float 5.8s ease-in-out infinite;
-}
-
-.multisig-proposal-preview__copy strong {
-  font-size: 1.32rem;
-}
-
-.multisig-proposal-preview__copy div,
-.multisig-approval-card__route {
+.multisig-vault-card__chips {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
 }
 
-.multisig-proposal-preview__copy small,
-.multisig-approval-card__route span {
+.multisig-vault-card__chips em {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
-  padding: 6px 9px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--ms-text);
-  font-size: 11px;
-  font-weight: 760;
+  min-height: 32px;
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 620;
 }
 
-.multisig-request-id-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+.multisig-vault-card__art {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: minmax(172px, 1fr) auto;
   gap: 10px;
-  margin-top: 6px;
+  min-height: 238px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 118, 110, 0.1);
+  border-radius: 20px;
+  padding: 12px;
+  background: #ffffff;
 }
 
-.multisig-copy-btn {
-  min-height: 30px;
-  padding: 5px 10px;
-  color: var(--ms-brand-strong);
+.multisig-vault-card__art::after {
+  content: none;
+}
+
+.multisig-vault-card__image {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid rgba(15, 118, 110, 0.08);
+  border-radius: 16px;
+  object-fit: contain;
+  object-position: center;
+  opacity: 1;
+  filter: none;
+  transform: none;
+  pointer-events: none;
+}
+
+.multisig-keyring {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.multisig-keyring span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--mx2-text-faint);
+}
+
+.multisig-keyring span.is-lit {
+  background: #ecfdf5;
+  color: #059669;
+  box-shadow: 0 10px 20px rgba(5, 150, 105, 0.12);
 }
 
 .multisig-approval-card {
+  grid-area: approval;
   display: grid;
-  gap: 11px;
-  padding: 14px;
-  border: 1px solid rgba(22, 166, 111, 0.24);
-  border-radius: var(--ms-radius);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(226, 247, 236, 0.76)
-  );
+  align-content: center;
+  gap: 14px;
+  padding: 18px;
 }
 
 .multisig-approval-card__head {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: baseline;
-}
-
-.multisig-request-details {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius);
-  background: var(--ms-surface-soft);
-}
-
-.multisig-request-details > div,
-.multisig-signal-row {
-  display: grid;
-  gap: 4px;
-}
-
-.multisig-request-details strong {
-  font-size: 13px;
-}
-
-.multisig-primary-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.multisig-primary-actions--row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.multisig-primary-actions .neo-btn,
-.multisig-load-box .neo-btn {
-  gap: 7px;
-  border-radius: 10px;
-  font-weight: 780;
-  white-space: nowrap;
-}
-
-.multisig-primary-actions .neo-btn--primary {
-  background: var(--ms-brand-strong);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(8, 123, 80, 0.24);
-}
-
-.multisig-primary-actions .neo-btn--primary:hover:not(:disabled) {
-  background: #066542;
-}
-
-.multisig-primary-actions .neo-btn--primary:disabled {
-  border: 1px solid rgba(22, 166, 111, 0.28);
-  background: #d6f1e4;
-  color: #0a6b48;
-  opacity: 1;
-  box-shadow: none;
-}
-
-.multisig-signal-row {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  padding: 10px 0;
-  border-top: 1px solid var(--ms-line);
-}
-
-.multisig-signal-row:first-of-type {
-  border-top: 0;
-}
-
-.multisig-signal-row > span {
-  color: var(--ms-muted);
-  font-size: 12px;
-  font-weight: 720;
-  line-height: 1.3;
-}
-
-.multisig-roster {
-  display: grid;
-  gap: 8px;
-  padding: 10px 0 12px;
-  border-bottom: 1px solid var(--ms-line);
-}
-
-.multisig-roster-row {
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: rgba(255, 255, 255, 0.76);
-}
-
-.multisig-roster-row.is-you {
-  border-color: rgba(22, 166, 111, 0.24);
-  background: var(--ms-brand-soft);
-}
-
-.multisig-roster-hash {
-  color: var(--ms-text);
-  font-family: var(--ns-font-mono, ui-monospace, monospace);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.multisig-roster-you {
-  flex: 0 0 auto;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--ms-brand-strong);
-  font-size: 10px;
-  font-weight: 850;
-}
-
-.multisig-empty-line {
-  margin: 0;
-  padding: 18px 4px;
-  color: var(--ms-muted);
-  font-size: 13px;
-  line-height: 1.45;
-  text-align: center;
-}
-
-.multisig-history-list {
-  display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
-.multisig-history-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px 12px;
-  align-items: center;
-  padding: 13px;
-  border: 1px solid var(--ms-line);
-  border-radius: var(--ms-radius-sm);
-  background: rgba(255, 255, 255, 0.76);
-  color: var(--ms-ink);
-  cursor: pointer;
-  text-align: left;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
-}
-
-.multisig-history-card:hover {
-  border-color: var(--ms-line-strong);
-  box-shadow: var(--ms-shadow-soft);
-  transform: translateY(-1px);
-}
-
-.multisig-history-card span {
+.multisig-approval-card__head strong {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
-  color: var(--ms-ink);
-  font-size: 13px;
-  font-weight: 800;
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px;
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+  font-size: 12px;
+  font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.multisig-history-card strong {
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: var(--ms-brand-soft);
-  color: var(--ms-brand-strong);
-  font-size: 11px;
-  font-weight: 820;
-  white-space: nowrap;
-}
-
-.multisig-history-card em {
-  grid-column: 1 / -1;
-  color: var(--ms-muted);
-  font-size: 12px;
-  font-style: normal;
-  line-height: 1.25;
-}
-
-.multisig-load-box {
+.multisig-approval-meter {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  align-items: end;
 }
 
-.multisig-load-panel .multisig-load-btn {
-  align-self: end;
-  min-height: 38px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 720;
-}
-
-.multisig-route-details {
-  margin-top: 2px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ms-line);
-}
-
-.multisig-route-details > summary {
+.multisig-approval-meter__label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  color: var(--ms-muted);
-  cursor: pointer;
+  gap: 10px;
+  color: var(--mx2-text-2);
   font-size: 12px;
-  font-weight: 800;
-  list-style: none;
-  user-select: none;
+  font-weight: 620;
 }
 
-.multisig-route-details > summary::-webkit-details-marker {
-  display: none;
+.multisig-approval-meter__label strong {
+  color: #092f2b;
+  font-weight: 680;
 }
 
-.multisig-route-details > summary svg {
-  flex: 0 0 auto;
-  color: var(--ms-brand-strong);
-  transition: transform 0.15s ease;
+.multisig-approval-meter__track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--mx2-r-pill);
+  background: #eef2f7;
 }
 
-.multisig-route-details[open] > summary svg {
-  transform: rotate(180deg);
+.multisig-approval-meter__bar {
+  width: var(--approval);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #14b8a6, #22c55e);
+  transition: width var(--mx2-t) var(--mx2-ease-settle);
 }
 
-.multisig-route-details > p {
-  margin: 9px 0 2px;
-  color: var(--ms-text);
-  font-size: 13px;
-  line-height: 1.5;
+.multisig-route {
+  display: grid;
+  gap: 7px;
 }
 
-.multisig-signer-remove:focus-visible,
-.multisig-signer-add:focus-visible,
-.multisig-copy-btn:focus-visible,
-.multisig-history-card:focus-visible,
-.multisig-threshold-chip:focus-visible,
-.multisig-asset-toggle__option:focus-visible,
-.multisig-memo-drawer > summary:focus-visible,
-.multisig-route-details > summary:focus-visible {
+.multisig-route span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(15, 118, 110, 0.1);
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: #fbfffd;
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.multisig-route span.is-current {
+  border-color: var(--mx2-brand-subtle);
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+}
+
+.multisig-load-panel {
+  grid-area: load;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 14px;
+}
+
+.multisig-load-panel label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.multisig-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-bottom: 2px solid var(--mx2-brand-subtle);
+  border-radius: 0;
+  padding: 8px 0 9px;
+  background: transparent;
+  color: #092f2b;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 680;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(22, 166, 111, 0.2);
 }
 
-@media (max-width: 1080px) {
-  .multisig-workspace,
-  .multisig-hero,
-  .multisig-route-stage {
-    grid-template-columns: 1fr;
-  }
+.multisig-input:focus {
+  border-color: var(--mx2-brand-subtle);
+  box-shadow: 0 8px 0 -6px rgba(5, 150, 105, 0.16);
+}
 
-  .multisig-aside {
-    position: static;
+.multisig-input::placeholder {
+  color: #94a3b8;
+}
+
+.multisig-load-panel__button {
+  min-width: 84px;
+  min-height: 42px;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: var(--mx2-r-pill);
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.multisig-load-panel__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.multisig-workbench__notice {
+  grid-column: 1 / -1;
+  margin: 0;
+  border: 1px solid rgba(217, 119, 6, 0.18);
+  border-radius: 14px;
+  padding: 9px 10px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.neo-multisig-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 190px;
+  max-width: 190px;
+  min-height: 52px;
+  border-radius: var(--mx2-r-pill);
+  white-space: nowrap;
+}
+
+.multisig-workbench[data-state="active"] .multisig-approval-meter__bar {
+  animation: multisig-approval-glow 0.9s var(--mx2-ease-snap) infinite alternate;
+}
+
+@keyframes multisig-approval-glow {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(1.18);
   }
 }
 
-@media (max-width: 720px) {
-  .multisig-play-area {
-    padding: 14px 10px 18px;
+@media (max-width: 760px) {
+  .multisig-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "vault"
+      "approval"
+      "load";
+    min-height: 0;
   }
 
-  .multisig-hero {
-    min-height: 520px;
-    padding: 20px;
+  .multisig-vault-card {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding: 16px;
   }
 
-  .multisig-hero h2 {
-    font-size: 26px;
+  .multisig-vault-card__art {
+    min-height: 118px;
   }
 
-  .multisig-hero__copy,
-  .multisig-board__head,
-  .multisig-transfer-console,
-  .multisig-request-details,
-  .multisig-primary-actions--row,
-  .multisig-load-box {
-    grid-template-columns: 1fr;
-  }
-
-  .multisig-asset-toggle {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .multisig-route-stage__nodes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .multisig-request-panel,
-  .multisig-activity-panel,
-  .multisig-signer-panel,
-  .multisig-load-panel {
-    padding: 14px;
-  }
-
-  .multisig-section-heading,
   .multisig-approval-card__head {
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    justify-content: stretch;
   }
 
-  .multisig-primary-actions .neo-btn,
-  .multisig-load-box .neo-btn {
-    width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .multisig-route-stage {
-    padding: 12px;
+  .multisig-approval-card__head strong {
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
   }
 
-  .multisig-route-stage__media {
-    min-height: 176px;
+  .multisig-approval-meter__label {
+    align-items: flex-start;
   }
 
-  .multisig-route-stage__nodes {
-    grid-template-columns: 1fr;
-  }
-}
-
-@keyframes multisig-hero-drift {
-  0% {
-    transform: scale(1.04) translate3d(-6px, -4px, 0);
+  .multisig-load-panel {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  100% {
-    transform: scale(1.08) translate3d(8px, 5px, 0);
-  }
-}
-
-@keyframes multisig-stage-breathe {
-  0%,
-  100% {
-    transform: scale(1.02);
+  .multisig-load-panel__button {
+    justify-self: start;
   }
 
-  50% {
-    transform: scale(1.065);
-  }
-}
-
-@keyframes multisig-route-sheen {
-  0%,
-  48% {
-    transform: translateX(-46%);
-  }
-
-  78%,
-  100% {
-    transform: translateX(46%);
-  }
-}
-
-@keyframes multisig-route-packet {
-  0% {
-    transform: translateX(0) scale(0.78);
-    opacity: 0;
-  }
-
-  12%,
-  78% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateX(74vw) scale(1);
-    opacity: 0;
-  }
-}
-
-@keyframes multisig-route-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(22, 166, 111, 0.28);
-    transform: scale(0.92);
-  }
-
-  70% {
-    box-shadow: 0 0 0 22px rgba(22, 166, 111, 0);
-    transform: scale(1);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(22, 166, 111, 0);
-    transform: scale(0.92);
-  }
-}
-
-@keyframes multisig-route-node-ready {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow: var(--ms-shadow-soft);
-  }
-
-  50% {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(8, 123, 80, 0.18);
-  }
-}
-
-@keyframes multisig-proposal-card-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-
-  50% {
-    transform: translate3d(0, -5px, 0) rotate(-0.4deg);
-  }
-}
-
-@keyframes multisig-progress-flow {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  100% {
-    background-position: 180% 50%;
-  }
-}
-
-@keyframes multisig-route-rail-flow {
-  0% {
-    transform: translateX(-72%);
-  }
-
-  100% {
-    transform: translateX(72%);
+  .neo-multisig-play-area .mx2-action-rail__row .mx2-btn--primary {
+    flex-basis: 176px;
+    max-width: 176px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .multisig-history-card,
-  .multisig-route-details > summary svg,
-  .multisig-route-stage__node {
-    transition: none;
-  }
-
-  .multisig-history-card:hover {
-    transform: none;
-  }
-
-  .multisig-hero__image,
-  .multisig-route-stage::before,
-  .multisig-route-stage__image,
-  .multisig-route-stage__proposal,
-  .multisig-route-stage__pulse,
-  .multisig-route-stage__rail::before,
-  .multisig-route-stage__packet,
-  .multisig-route-stage__node.is-active .multisig-route-stage__icon,
-  .multisig-board__progress span,
-  .multisig-approval-card__track span,
-  .multisig-proposal-preview__art,
-  .multisig-proposal-preview__copy {
-    animation: none;
-  }
-
-  .multisig-hero__image,
-  .multisig-route-stage__image,
-  .multisig-route-stage__proposal,
-  .multisig-route-stage__node.is-active,
-  .multisig-proposal-preview__art,
-  .multisig-proposal-preview__copy {
-    transform: none;
+  .multisig-workbench[data-state="active"] .multisig-approval-meter__bar,
+  .multisig-approval-meter__bar {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }

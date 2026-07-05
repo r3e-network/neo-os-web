@@ -66,6 +66,16 @@ type miniappUpdateTx struct {
 }
 
 var miniappUpdateTargets = []miniappUpdateTarget{
+	{"MiniAppAimMaster", "apps/aim-master/neo-manifest.json", "contracts/build/MiniAppAimMaster.nef", "contracts/build/MiniAppAimMaster.manifest.json"},
+	{"MiniAppColorClash", "apps/color-clash/neo-manifest.json", "contracts/build/MiniAppColorClash.nef", "contracts/build/MiniAppColorClash.manifest.json"},
+	{"MiniAppFlappyDash", "apps/flappy-dash/neo-manifest.json", "contracts/build/MiniAppFlappyDash.nef", "contracts/build/MiniAppFlappyDash.manifest.json"},
+	{"MiniAppGame2048", "apps/game-2048/neo-manifest.json", "contracts/build/MiniAppGame2048.nef", "contracts/build/MiniAppGame2048.manifest.json"},
+	{"MiniAppJumpRush", "apps/jump-rush/neo-manifest.json", "contracts/build/MiniAppJumpRush.nef", "contracts/build/MiniAppJumpRush.manifest.json"},
+	{"MiniAppMergeKingdom", "apps/merge-kingdom/neo-manifest.json", "contracts/build/MiniAppMergeKingdom.nef", "contracts/build/MiniAppMergeKingdom.manifest.json"},
+	{"MiniAppPetPotion", "apps/pet-potion/neo-manifest.json", "contracts/build/MiniAppPetPotion.nef", "contracts/build/MiniAppPetPotion.manifest.json"},
+	{"MiniAppSheepSolitaire", "apps/sheep-solitaire/neo-manifest.json", "contracts/build/MiniAppSheepSolitaire.nef", "contracts/build/MiniAppSheepSolitaire.manifest.json"},
+	{"MiniAppSnakeBounty", "apps/snake-bounty/neo-manifest.json", "contracts/build/MiniAppSnakeBounty.nef", "contracts/build/MiniAppSnakeBounty.manifest.json"},
+	{"MiniAppSudoku", "apps/sudoku/neo-manifest.json", "contracts/build/MiniAppSudoku.nef", "contracts/build/MiniAppSudoku.manifest.json"},
 	{"MiniAppEventTicketPass", "apps/event-ticket-pass/neo-manifest.json", "contracts/build/MiniAppEventTicketPass.nef", "contracts/build/MiniAppEventTicketPass.manifest.json"},
 	{"MiniAppMilestoneEscrow", "apps/milestone-escrow/neo-manifest.json", "contracts/build/MiniAppMilestoneEscrow.nef", "contracts/build/MiniAppMilestoneEscrow.manifest.json"},
 	{"MiniAppQuadraticFunding", "apps/quadratic-funding/neo-manifest.json", "contracts/build/MiniAppQuadraticFunding.nef", "contracts/build/MiniAppQuadraticFunding.manifest.json"},

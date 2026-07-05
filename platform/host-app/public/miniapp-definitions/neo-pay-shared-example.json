@@ -28,8 +28,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-neo-pay-shared-example",
   "media": {
-    "icon": "/miniapp-assets/neo-pay-shared-example/logo.jpg",
-    "banner": "/miniapp-assets/neo-pay-shared-example/banner.jpg"
+    "icon": "/miniapp-assets/neo-pay-shared-example/logo.webp",
+    "banner": "/miniapp-assets/neo-pay-shared-example/banner.webp"
   },
   "permissions": {
     "payments": true

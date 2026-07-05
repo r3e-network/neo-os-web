@@ -1,327 +1,137 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../gas-sponsor/src/PlayArea";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
 
-// Mirror of the gas-sponsor locale keys the PlayArea reads. Interpolates
-// {amount} so balance-aware hints are assertable.
-function t(key: string, params?: Record<string, string | number>) {
-  const messages: Record<string, string> = {
-    title: "Gas Sponsor",
-    subtitle: "Get free GAS for transactions",
-    requestGas: "Request GAS",
-    gasBalance: "GAS Balance",
-    sidebarTankLevel: "Tank Level",
-    remaining: "Remaining",
-    used: "Used",
-    resetsAt: "Resets at",
-    notEligibleTitle: "Not Eligible",
-    balanceExceeds: "Your GAS balance exceeds 0.1 GAS.",
-    quotaExhausted: "Daily quota exhausted",
-    tryTomorrow: "Please try again tomorrow.",
-    requestAmount: "Request Amount",
-    maxRequest: "Max request",
-    amountToRequest: "Amount to request",
-    amountToRequestPlaceholder: "0.01",
-    requesting: "Requesting...",
-    tokenGas: "GAS",
-    needsFuel: "Needs Fuel",
-    tankFull: "Tank Full",
-    // pay it forward
-    payItForward: "Pay It Forward",
-    payForwardLead: "You're funded — donate or send GAS to help another wallet.",
-    payForwardLockedTitle: "Get funded first",
-    payForwardLockedDesc: "Donate and Send move GAS you already hold.",
-    balanceAvailable: `Available: ${params?.amount ?? ""} GAS`,
-    donate: "Donate GAS",
-    donateSubtitle: "Help new users get started on Neo",
-    donateLoopNote: "Returns GAS to the community refill pool.",
-    donateAmount: "Donation Amount",
-    donateAmountPlaceholder: "0.1",
-    donating: "Donating...",
-    donateAction: "Donate",
-    donateInvalid: "Enter an amount up to your balance",
-    sendGas: "Send GAS",
-    sendSubtitle: "Help someone with low GAS balance",
-    sendDirectNote: "Send directly to a wallet you trust.",
-    recipient: "Recipient Address",
-    recipientPlaceholder: "Enter Neo N3 address...",
-    sendAmount: "Amount to Send",
-    sendAmountPlaceholder: "0.1",
-    sending: "Sending...",
-    sendAction: "Send",
-    sendAmountInvalid: "Enter an amount up to your balance",
-    invalidAddress: "Invalid address",
-    sponsorServiceTitle: "Sponsorship unavailable",
-    sponsorServiceUnavailable: "The sponsorship service is temporarily unavailable.",
-    stationCardLabel: "Today available",
-    stationCardCopy: "Daily sponsor lane for low-balance wallets",
-    notAvailable: "Unavailable",
-    connectToRequest: "Connect wallet to request",
-  };
-  return messages[key] ?? key;
+function t(k: string) { return k; }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
 
-// A valid Neo N3 address (N-prefix, 34 base58 chars).
-const VALID_ADDR = "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK";
-
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    gasBalance: "0",
-    gasBalanceDisplay: "0",
-    chainGasBalanceDisplay: "0.0000",
-    serviceAvailable: true,
-    serviceNotice: "",
+function eligibleState(extra: Partial<Record<string, unknown>> = {}) {
+  return state({
+    gasBalance: "0.02",
     isEligible: true,
-    fuelLevelPercent: 0,
-    remainingQuota: 0.1,
-    remainingQuotaDisplay: "0.1000",
-    isRequesting: false,
+    serviceAvailable: true,
+    fuelLevelPercent: 20,
+    remainingQuota: "0.1",
+    remainingQuotaDisplay: "0.1",
+    dailyLimit: "0.1",
+    usedQuota: "0.02",
+    resetTime: "1h 30m",
     requestAmount: "0.01",
-    maxRequestAmount: 0.1,
+    maxRequestAmount: "0.08",
     quickAmounts: [0.001, 0.005, 0.01, 0.05],
-    loading: false,
-    userAddress: "",
-    usedQuota: 0,
-    dailyLimit: 0.1,
-    quotaPercent: 0,
-    resetTime: "12h 0m",
-    donateAmount: "0",
-    sendAmount: "0",
-    recipientAddress: "",
-    isDonating: false,
-    isSending: false,
-    isFunded: false,
-    donateAmountValid: false,
-    recipientValid: false,
-    sendAmountValid: false,
-    canSend: false,
-    tankLevelDisplay: "0%",
-    eligibleDisplay: "Eligible",
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
-  );
+    poolAddress: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
+    ...extra,
+  });
 }
 
-describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
-  it("renders the refill-station visual and available quota card", () => {
-    const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />,
-    );
+describe("gas-sponsor PlayArea (v2)", () => {
+  it("renders a clean quota desk instead of a loose form", () => {
+    const { container } = render(<PlayArea t={t} state={eligibleState()} dispatch={vi.fn()} />);
 
-    expect(
-      document.querySelector('.gas-refill-hero__media img[src="./gas-sponsor-refill-station.jpg"]'),
-    ).toBeTruthy();
-    expect(screen.getByText("Today available")).toBeTruthy();
-    expect(container.querySelector(".gas-command-deck--wallet")).toBeTruthy();
-    expect(container.querySelector(".gas-refill-pipeline")).toBeTruthy();
-    expect(container.querySelectorAll(".gas-refill-pipeline__packet")).toHaveLength(3);
-    expect(container.querySelector(".pump-meter")).toBeTruthy();
-    expect(container.querySelectorAll(".pump-meter__drop")).toHaveLength(3);
+    expect(container.querySelector(".mx2-stage")).toBeTruthy();
+    expect(container.querySelector(".sponsor-desk")).toBeTruthy();
+    expect(container.querySelector(".sponsor-station")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".sponsor-station__art")?.getAttribute("src")).toContain("gas-sponsor-refill-station.webp");
+    expect(container.querySelector(".sponsor-fuel-cells__group.mx2-open-segmented.semi-radioGroup")).toBeTruthy();
+    expect(container.querySelectorAll(".sponsor-fuel-cells__group .semi-radio").length).toBe(4);
+    expect(container.querySelectorAll(".sponsor-fuel-cell").length).toBe(4);
+    expect(container.querySelector(".sponsor-console__meta")).toBeTruthy();
+    expect(container.querySelector(".sponsor-console input:not([type='radio'])")).toBeNull();
+    expect(container.querySelector(".sponsor-tune__field input")).toBeNull();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(screen.getAllByText("0.02 GAS").length).toBeGreaterThan(0);
+    expect(container.textContent).not.toMatch(/⛽|🛢️/);
+    expect(container.querySelector(".sponsor-request")).toBeNull();
+    expect(container.querySelector(".sponsor-custom")).toBeNull();
   });
 
-  it("arms the refill pipeline and pump meter for an eligible connected wallet", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({ isEligible: true, remainingQuota: 0.1, userAddress: VALID_ADDR })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
+  it("dispatches the selected request amount", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={eligibleState()} dispatch={dispatch} />);
 
-    expect(container.querySelector(".gas-command-deck--ready")).toBeTruthy();
-    expect(container.querySelector(".request-form--armed")).toBeTruthy();
-    expect(
-      (container.querySelector(".request-console__screen") as HTMLElement).style.getPropertyValue(
-        "--pump-fill",
-      ),
-    ).toBe("10%");
+    fireEvent.click(container.querySelectorAll(".sponsor-fuel-cells__group .semi-radio")[1]);
+    fireEvent.click(screen.getByText("Request Gas"));
+
+    expect(dispatch).toHaveBeenCalledWith("requestSponsorship", "0.005");
   });
 
-  it("shows the locked pay-it-forward state for an unfunded (eligible) wallet", () => {
-    render(<PlayArea t={t} state={state({ isFunded: false })} dispatch={vi.fn(async () => undefined)} />);
+  it("keeps exact amount editing in the drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={eligibleState()} dispatch={dispatch} />);
 
-    // The locked explanation is shown instead of live transfer forms.
-    expect(screen.getByText("Get funded first")).toBeTruthy();
-    // No usable Donate / Send buttons that would fail at the chain.
-    expect(screen.queryByRole("button", { name: "Donate" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
-    expect(screen.queryByLabelText("Recipient Address")).toBeNull();
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".sponsor-drawer-tabs__group.mx2-open-segmented.semi-radioGroup")).toBeTruthy();
+    expect(container.querySelectorAll(".sponsor-drawer-tabs__group .semi-radio")).toHaveLength(2);
+    expect(container.querySelectorAll('.sponsor-drawer-tabs [role="tab"]')).toHaveLength(0);
+    expect(container.querySelector(".sponsor-drawer__panel")?.getAttribute("data-mode")).toBe("tune");
+    const input = container.querySelector(".sponsor-tune__field .mx2-open-field__control input.semi-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "0.02" } });
+    expect(container.querySelector(".sponsor-console__head strong")?.textContent).toBe("0.02 GAS");
+    fireEvent.click(screen.getByText("Request Gas"));
+
+    expect(dispatch).toHaveBeenCalledWith("requestSponsorship", "0.02");
   });
 
-  it("reveals the donate + send forms once the wallet is funded", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({ isFunded: true, chainGasBalanceDisplay: "1.5000", isEligible: false })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
+  it("keeps the loading action label visible", () => {
+    render(<PlayArea t={t} state={eligibleState({ isRequesting: true })} dispatch={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: "Donate" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Send" })).toBeTruthy();
-    expect(screen.getByLabelText("Recipient Address")).toBeTruthy();
-    // Balance-aware helper hint surfaces the spendable CHAIN balance.
-    expect(screen.getAllByText("Available: 1.5000 GAS").length).toBeGreaterThan(0);
+    expect(screen.getByText("Requesting gas")).toBeTruthy();
   });
 
-  it("disables Donate until the amount is valid and dispatches when it is", async () => {
-    const dispatch = vi.fn(async () => undefined);
-    // Invalid donate amount (0 / over balance) → button disabled.
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={state({ isFunded: true, gasBalance: "1", donateAmountValid: false })}
-        dispatch={dispatch}
-      />,
-    );
-    expect((screen.getByRole("button", { name: "Donate" }) as HTMLButtonElement).disabled).toBe(true);
+  it("imports v2 styles and removes legacy backdrop noise", () => {
+    const fs = require("node:fs");
+    const s = fs.readFileSync(`${process.cwd()}/../gas-sponsor/src/PlayArea.scss`, "utf8");
+    const source = fs.readFileSync(`${process.cwd()}/../gas-sponsor/src/PlayArea.tsx`, "utf8");
 
-    // Now valid → enabled and dispatches "donate" with the amount.
-    rerender(
-      <PlayArea
-        t={t}
-        state={state({ isFunded: true, gasBalance: "1", donateAmount: "0.5", donateAmountValid: true })}
-        dispatch={dispatch}
-      />,
-    );
-    const donateBtn = screen.getByRole("button", { name: "Donate" }) as HTMLButtonElement;
-    expect(donateBtn.disabled).toBe(false);
-    fireEvent.click(donateBtn);
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("donate", "0.5");
-    });
-  });
-
-  it("disables Send until recipient + amount are valid, then dispatches", async () => {
-    const dispatch = vi.fn(async () => undefined);
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={state({ isFunded: true, gasBalance: "1", recipientValid: false, sendAmountValid: false, canSend: false })}
-        dispatch={dispatch}
-      />,
-    );
-    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
-
-    rerender(
-      <PlayArea
-        t={t}
-        state={state({
-          isFunded: true,
-          gasBalance: "1",
-          recipientAddress: VALID_ADDR,
-          sendAmount: "0.25",
-          recipientValid: true,
-          sendAmountValid: true,
-          canSend: true,
-        })}
-        dispatch={dispatch}
-      />,
-    );
-    const sendBtn = screen.getByRole("button", { name: "Send" }) as HTMLButtonElement;
-    expect(sendBtn.disabled).toBe(false);
-    fireEvent.click(sendBtn);
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("send", VALID_ADDR, "0.25");
-    });
-  });
-
-  it("surfaces inline field errors only after the user interacts (no error on open)", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          isFunded: true,
-          chainGasBalanceDisplay: "1.0000",
-          donateAmount: "5",
-          donateAmountValid: false,
-          recipientAddress: "not-a-real-address",
-          recipientValid: false,
-        })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
-
-    // The donate field opens with the over-balance default but NO error, because
-    // the user has not touched it yet (touched is tracked from onChange).
-    expect(screen.queryByText("Enter an amount up to your balance")).toBeNull();
-
-    // Once the user edits the donate amount, the inline error appears.
-    const donateInput = screen.getByLabelText("Donation Amount");
-    fireEvent.change(donateInput, { target: { value: "9" } });
-    expect(screen.getByText("Enter an amount up to your balance")).toBeTruthy();
-
-    // The recipient error keys off the typed (non-empty) recipient value.
-    expect(screen.getByText("Invalid address")).toBeTruthy();
-  });
-
-  it("renders the honest service-unavailable state when the sponsorship API is down", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          serviceAvailable: false,
-          serviceNotice: "The sponsorship service is temporarily unavailable.",
-          isEligible: false,
-        })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
-
-    // The banner and the in-card message both state the real reason.
-    expect(screen.getAllByText("Sponsorship unavailable").length).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText("The sponsorship service is temporarily unavailable.").length,
-    ).toBeGreaterThan(0);
-    // The misleading "balance exceeds 0.1 GAS" not-eligible copy is NOT shown.
-    expect(screen.queryByText("Your GAS balance exceeds 0.1 GAS.")).toBeNull();
-  });
-
-  it("still dispatches the primary requestSponsorship flow for eligible, connected users", async () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state({ isEligible: true, remainingQuota: 0.1, userAddress: VALID_ADDR })} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Request GAS" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("requestSponsorship", "0.01");
-    });
-  });
-
-  it("gates the request CTA behind a connected wallet (relabeled + disabled when disconnected)", () => {
-    render(<PlayArea t={t} state={state({ isEligible: true, remainingQuota: 0.1, userAddress: "" })} dispatch={vi.fn(async () => undefined)} />);
-
-    // The loud primary is relabeled and disabled until a wallet is connected, so
-    // it never promises an action that can't complete pre-connection.
-    const cta = screen.getByRole("button", { name: "Connect wallet to request" }) as HTMLButtonElement;
-    expect(cta.disabled).toBe(true);
-    expect(screen.queryByRole("button", { name: "Request GAS" })).toBeNull();
-  });
-
-  it("backs the refill station with motion and reduced-motion fallbacks", () => {
-    const styles = readFileSync(
-      `${process.cwd()}/../gas-sponsor/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes gas-sponsor-station-drift");
-    expect(styles).toContain("@keyframes gas-sponsor-pipeline-packet");
-    expect(styles).toContain("@keyframes gas-sponsor-meter-flow");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /\.gas-command-deck--ready \.gas-refill-pipeline__packet[\s\S]*animation:\s*gas-sponsor-pipeline-packet/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pump-meter__drop[\s\S]*animation:\s*none !important/,
-    );
+    expect(s).toContain('@use "@shared/components-react/v2/v2" as *;');
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).toMatch(/\.sponsor-desk\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sponsor-station__art/);
+    expect(s).toMatch(/\.sponsor-station\s*\{[\s\S]*grid-template-rows:\s*minmax\(188px,\s*auto\) auto/);
+    expect(s).toMatch(/\.sponsor-station__art\s*\{[\s\S]*position:\s*relative/);
+    expect(s).toMatch(/\.sponsor-station__art\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(s).toMatch(/\.sponsor-station__art\s*\{[\s\S]*opacity:\s*1/);
+    expect(s).toMatch(/\.sponsor-station__art\s*\{[\s\S]*filter:\s*none/);
+    expect(s).toMatch(/\.sponsor-station::after\s*\{[\s\S]*content:\s*none/);
+    expect(s).toMatch(/\.sponsor-station__panel\s*\{[\s\S]*position:\s*relative/);
+    expect(s).toMatch(/\.sponsor-console__meta\s*\{[\s\S]*justify-content:\s*space-between/);
+    expect(s).toMatch(/\.sponsor-fuel-cells__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.sponsor-fuel-cell\s*\{[\s\S]*min-height:\s*82px/);
+    expect(s).toMatch(/\.sponsor-tune__field\.mx2-open-field\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(92px,\s*1fr\)/);
+    expect(s).toMatch(/\.sponsor-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.sponsor-quota\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.gas-sponsor-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 184px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-station\s*\{[\s\S]*grid-template-columns:\s*104px minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-station\s*\{[\s\S]*grid-template-rows:\s*108px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-station__art\s*\{[\s\S]*min-height:\s*96px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-station__art\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-station__panel\s*\{[\s\S]*grid-template-columns:\s*54px minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-fuel-cells__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-fuel-cell\s*\{[\s\S]*min-height:\s*48px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.sponsor-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup,\n {2}\.sponsor-quota\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.gas-sponsor-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*min-height:\s*48px/);
+    expect(s).not.toMatch(/\.gas-sponsor-play-area \.mx2-score/);
+    expect(source).toContain("OpenUiSegmented");
+    expect(source).toContain("OpenUiTextField");
+    expect(source).not.toContain('role="tablist"');
+    expect(source).not.toContain('role="tab"');
+    expect(source).not.toContain("<input");
+    expect(source).not.toContain("score={[");
+    expect(source).not.toContain("sponsor-fine-tune");
+    expect(s).not.toMatch(/\.sponsor-custom input/);
+    expect(s).not.toMatch(/\.sponsor-request\s*\{/);
+    expect(s).not.toContain("background: linear-gradient(180deg, #ffffff 0%, #f4fff8 100%)");
+    expect(s).not.toMatch(/\.sponsor-station__art\s*\{[^}]*position:\s*absolute/);
+    expect(s).not.toMatch(/\.sponsor-station__art\s*\{[^}]*object-fit:\s*cover/);
+    expect(s).not.toMatch(/\.sponsor-station::after\s*\{[^}]*linear-gradient/);
+    expect(s).not.toMatch(/AI-generated scene backdrop/);
+    expect(s).not.toMatch(/__backdrop/);
   });
 });

@@ -34,7 +34,7 @@
     font-weight: $font-weight-bold;
     color: var(--text-primary, #1f2937);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     font-family: $font-family;
   }
 
@@ -107,7 +107,7 @@
     font-size: $font-size-sm;
     font-weight: $font-weight-bold;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     text-align: center;
     cursor: pointer;
     transition: filter 0.15s ease, transform 0.15s ease;

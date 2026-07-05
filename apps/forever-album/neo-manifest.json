@@ -28,8 +28,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/forever-album/index.html",
-    "icon": "/miniapps/forever-album/logo.jpg",
-    "banner": "/miniapps/forever-album/banner.jpg"
+    "icon": "/miniapps/forever-album/logo.webp",
+    "banner": "/miniapps/forever-album/banner.webp"
   },
   "permissions": [
     "invoke:shared-runtime",

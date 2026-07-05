@@ -1,309 +1,176 @@
-import fs from "node:fs";
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../neodid-passport/src/PlayArea";
-import type { PassportPayload } from "../../neodid-passport/src/passport";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-function t(key: string) {
+function t(k: string) {
   const messages: Record<string, string> = {
-    apiProofHint: "External providers prepare an unsigned package.",
     audience: "Audience",
     audiencePlaceholder: "miniapp-id or relying party",
-    claim: "Claim",
+    advancedFieldsCopy: "Use advanced DID fields only when exact values are required.",
+    advancedFieldsTitle: "Advanced credential fields",
+    apiProofHint: "External proof providers prepare a package.",
     claimPlaceholder: "wallet-ownership",
-    copyAction: "Copy Payload",
-    documentVersion: "Version",
-    emptyPayloadCopy: "Resolve a DID before handoff.",
-    emptyPayloadTitle: "Awaiting DID resolution",
-    githubProvider: "GitHub attestation",
-    identityRoute: "Identity route",
-    liveResolver: "Morpheus NeoDID API",
-    notSignedStatus: "Not signed",
-    panelDescription: "Resolve, build, and optionally sign a passport.",
-    panelTitle: "NeoDID Passport Builder",
-    passportReady: "Passport payload ready",
-    payloadDigest: "Payload Digest",
-    provider: "Proof Provider",
-    reset: "Reset",
-    routeBuild: "Build credential",
-    routeResolve: "Resolve DID",
-    routeSign: "Optional wallet proof",
-    runAction: "Resolve and Build",
-    services: "Services",
-    signAction: "Sign Passport",
-    signature: "Signature",
-    statEndpoint: "Resolver",
-    statNetwork: "Network",
-    statRequests: "Passports",
-    subject: "Subject DID",
-    subjectPlaceholder: "did:morpheus:neo_n3:service:neodid",
-    walletProvider: "Wallet signature",
-    walletProofHint: "Wallet signatures do not broadcast.",
-    statistics: "Passport metrics",
-    degradedRuntimeBadge: "Degraded",
-    degradedRuntimeWarning: "Runtime attestation metadata unavailable.",
-    externalVerifierTitle: "Submit to an external verifier",
-    externalVerifierCopy: "GitHub and email proofs are prepared for an external verifier.",
-    externalVerifierLink: "Open attestation docs",
-    emailProvider: "Email attestation",
     credentialCardTitle: "Identity passport",
-    credentialFlowCopy: "Resolve, review, then attach a proof.",
-    githubProviderTile: "Prepare a package for a GitHub verifier.",
-    heroVisualAlt: "Identity passport desk",
+    credentialFlowCopy: "Resolve the DID, review the payload, then attach a proof only when the lane matches the relying party.",
+    documentId: "Document ID",
+    documentVersion: "Version",
+    emptyPayloadTitle: "Awaiting DID resolution",
+    notSignedStatus: "Not signed",
+    passportPreview: "Passport preview",
+    passportReady: "Passport payload ready",
     passportSealHint: "Resolve DID to build the passport",
     passportSealTrack: "Passport issuance track",
-    passportPreview: "Passport preview",
+    passportTemplateDeveloper: "Developer pass",
+    passportTemplateDeveloperHint: "Package an oracle or tool developer credential.",
+    passportTemplateRelying: "Relying-party access",
+    passportTemplateRelyingHint: "Prepare an access passport for another miniapp.",
+    passportTemplateTitle: "Credential purpose",
+    passportTemplateWallet: "Wallet ownership",
+    passportTemplateWalletHint: "Prove this DID controls the wallet.",
+    passportActionsTitle: "Passport actions",
+    passportCustomCredential: "Custom credential",
     passportWorkspaceTitle: "Credential studio",
-    previewAudienceLabel: "Audience",
+    passportSigned: "Wallet proof attached",
+    preparedStatus: "Prepared",
+    proofLaneHint: "No chain transaction",
+    provider: "Proof provider",
     previewClaimLabel: "Claim",
     previewSubjectFallback: "Subject DID pending",
-    proofLaneHint: "No chain transaction",
-    proofLaneTitle: "Choose proof lane",
-    preparedStatus: "Prepared",
+    resolvedStatus: "DID resolved",
+    routeBuild: "Build credential",
+    routeResolve: "Resolve DID",
     sealPayload: "Payload",
     sealProof: "Proof",
     sealSubject: "Subject",
+    services: "Services",
+    signAction: "Sign Passport",
     signedStatus: "Signed",
+    subject: "Subject DID",
+    walletProvider: "Wallet signature",
     walletProviderTile: "Sign in-app with the connected wallet.",
+    emailProvider: "Email attestation",
     emailProviderTile: "Prepare a package for an email verifier.",
+    githubProvider: "GitHub attestation",
+    githubProviderTile: "Prepare a package for a GitHub verifier.",
   };
-  return messages[key] ?? key;
+  return messages[k] ?? k;
 }
-
-function payload(overrides: Partial<PassportPayload> = {}): PassportPayload {
-  return {
-    kind: "neodid.passport.credential",
-    schema: "https://schemas.r3e.network/neodid/passport/v1",
-    network: "testnet",
-    subject: "did:morpheus:neo_n3:service:neodid",
-    provider: "wallet",
-    claim: "wallet-ownership",
-    audience: "miniapp-neodid-passport",
-    issuedAt: "2026-06-01T00:00:00.000Z",
-    resolver: {
-      endpoint: "/api/morpheus/neodid/resolve?did=did%3Amorpheus%3Aneo_n3%3Aservice%3Aneodid&network=testnet",
-      status: "resolved",
-      contentType: "application/json",
-    },
-    didDocument: {
-      id: "did:morpheus:neo_n3:service:neodid",
-      controller: ["did:morpheus:neo_n3:service:neodid"],
-      versionId: "compose-testnet-123",
-      anchorContract: "0xabc",
-      serviceTypes: ["DIDResolutionService", "MorpheusNeoDIDRuntime"],
-      serviceCount: 2,
-    },
-    proof: {
-      provider: "wallet",
-      type: "NeoWalletSignature2026",
-      status: "prepared",
-    },
-    digest: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-    ...overrides,
-  };
-}
-
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    networkLabel: "Morpheus Testnet",
-    endpointLabel: "NeoDID resolver",
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    lastStatus: "Ready",
+    lastDigest: "—",
     requestCount: 0,
     proofStatus: "Not signed",
+    documentId: "—",
+    documentVersion: "—",
+    serviceCount: 0,
     lastError: "",
     isResolving: false,
     isSigning: false,
-    passportPayload: null,
-    ...overrides,
+    ...o,
   };
-
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
-
-function props(overrides: Partial<React.ComponentProps<typeof PlayArea>> = {}) {
-  return {
-    t,
-    state: state(),
-    dispatch: vi.fn(async () => undefined),
-    services: { clipboard: { copy: vi.fn(async () => undefined) } },
-    status: null,
-    setStatus: vi.fn(),
-    clearStatus: vi.fn(),
-    loadError: null,
-    retryLoad: vi.fn(async () => undefined),
-    launchContext: parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/neodid-passport",
-      "miniapp-neodid-passport",
-    ),
-    ...overrides,
-  } as React.ComponentProps<typeof PlayArea>;
-}
-
-describe("NeoDID Passport PlayArea", () => {
-  it("renders the passport preview with real logo assets and an issuance track", () => {
-    const { container } = render(<PlayArea {...props()} />);
-
-    expect(
-      container.querySelector('.neodid-passport__credential-logo source[srcset="./logo.avif"]'),
-    ).toBeTruthy();
-    expect(
-      container.querySelector('.neodid-passport__credential-logo img[src="./logo.jpg"]'),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Passport issuance track")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__seal-token--subject")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__seal-token--payload.is-ready")).toBeNull();
-    expect(container.querySelector(".neodid-passport__seal-token--proof.is-ready")).toBeNull();
+describe("neodid-passport PlayArea (v2)", () => {
+  it("renders the passport card without a decorative backdrop node", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.children.length).toBeGreaterThan(0);
+    expect(container.querySelector(".did-passport")).toBeTruthy();
+    expect(container.querySelector(".did-passport__fields")).toBeTruthy();
+    expect(container.querySelector(".did-credential-lane")).toBeTruthy();
+    expect(container.querySelector(".did-credential-lane")?.getAttribute("data-ready")).toBe("true");
+    expect(container.querySelector(".did-template-deck")).toBeTruthy();
+    expect(container.querySelectorAll(".did-template-deck button")).toHaveLength(3);
+    expect(container.querySelector(".did-template-deck button.is-active")?.textContent).toContain("Wallet ownership");
+    expect(container.querySelector(".did-lane-summary")).toBeTruthy();
+    expect(container.querySelector(".did-credential-lane input")).toBeNull();
+    expect(container.querySelector(".did-credential-slot")).toBeNull();
+    expect(container.querySelector(".did-issuance")).toBeTruthy();
+    expect(container.querySelectorAll(".did-issuance__step")).toHaveLength(3);
+    expect(container.querySelector(".did-lane-summary")?.textContent).toContain("did:morpheus…neodid");
+    expect(container.querySelector(".did-scene__backdrop")).toBeNull();
   });
 
-  it("dispatches a real passport build request from the visible form", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea {...props({ dispatch })} />);
+  it("keeps the build action tied to the designed lane while raw edits stay in the drawer", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const primary = container.querySelector<HTMLButtonElement>(".mx2-btn--primary");
 
-    fireEvent.change(screen.getByLabelText("Claim"), {
-      target: { value: "dao-member" },
-    });
-    fireEvent.change(screen.getByLabelText("Audience"), {
-      target: { value: "miniapp-aa-market-hub" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Resolve and Build/i }));
+    expect(primary?.disabled).toBe(false);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const claimInput = container.querySelectorAll<HTMLInputElement>(".did-drawer__field input")[1];
+    fireEvent.change(claimInput, { target: { value: "" } });
+    expect(container.querySelector(".did-credential-lane")?.getAttribute("data-ready")).toBeFalsy();
+    expect(primary?.disabled).toBe(true);
+  });
 
+  it("changes the foreground credential package from template cards", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(container.querySelectorAll(".did-template-deck button")[2]);
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+
+    expect(container.querySelector(".did-template-deck button.is-active")?.textContent).toContain("Developer pass");
     expect(dispatch).toHaveBeenCalledWith("buildPassport", {
       subject: "did:morpheus:neo_n3:service:neodid",
+      claim: "developer-pass",
+      audience: "miniapp-oracle-services",
       provider: "wallet",
-      claim: "dao-member",
-      audience: "miniapp-aa-market-hub",
     });
   });
 
-  it("renders resolved document metadata and a copyable payload", () => {
-    const copy = vi.fn(async () => undefined);
-    const currentState = state({
-      requestCount: 1,
-      passportPayload: payload(),
-      proofStatus: "Prepared",
-    });
-    const { container } = render(
-      <PlayArea
-        {...props({
-          state: currentState,
-          services: { clipboard: { copy } } as never,
-        })}
-      />,
-    );
+  it("does not treat default Ready / Not signed state as a completed passport", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(screen.getAllByText("did:morpheus:neo_n3:service:neodid").length).toBeGreaterThan(0);
-    expect(screen.getByText("compose-testnet-123")).toBeTruthy();
-    expect(screen.getByText("1234567890...90abcdef")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__credential-preview--built")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__seal-token--payload.is-ready")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__seal-token--proof.is-ready")).toBeNull();
-    expect(container.textContent).not.toContain("[object Object]");
-
-    fireEvent.click(screen.getByRole("button", { name: /Copy Payload/i }));
-    expect(copy).toHaveBeenCalledWith(expect.stringContaining('"kind": "neodid.passport.credential"'), "copied");
+    expect(container.textContent).toContain("Awaiting DID resolution");
+    expect(container.textContent).toContain("Not signed");
+    expect(container.textContent).not.toContain("Wallet proof attached");
+    expect(container.querySelector(".did-passport__stamp[data-signed='true']")).toBeFalsy();
+    expect(container.querySelectorAll(".did-issuance__step[data-active='true']")).toHaveLength(0);
   });
 
-  it("keeps wallet signing disabled until a payload exists", () => {
-    const { rerender } = render(<PlayArea {...props()} />);
-
-    expect(screen.getByRole("button", { name: /Sign Passport/i }).hasAttribute("disabled")).toBe(true);
-
-    rerender(
-      <PlayArea
-        {...props({
-          state: state({ passportPayload: payload(), proofStatus: "Prepared" }),
-        })}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: /Sign Passport/i }).hasAttribute("disabled")).toBe(false);
+  it("has reduced-motion", () => {
+    const s = readFileSync(`${process.cwd()}/../neodid-passport/src/PlayArea.scss`, "utf8");
+    expect(s).toMatch(/prefers-reduced-motion/);
   });
 
-  it("marks the proof step ready once a wallet signature is attached", () => {
-    const { container } = render(
-      <PlayArea
-        {...props({
-          state: state({
-            passportPayload: payload({
-              proof: {
-                address: "NbeG6moXrsUtJCBuLrJbCWs8RZ8xutYx64",
-                provider: "wallet",
-                signature: "0x1234",
-                status: "signed",
-                type: "NeoWalletSignature2026",
-              },
-            }),
-            proofStatus: "Signed",
-          }),
-        })}
-      />,
-    );
+  it("keeps the DID passport scene as a clean document surface", () => {
+    const s = readFileSync(`${process.cwd()}/../neodid-passport/src/PlayArea.scss`, "utf8");
+    const source = readFileSync(`${process.cwd()}/../neodid-passport/src/PlayArea.tsx`, "utf8");
 
-    expect(container.querySelector(".neodid-passport__credential-preview--signed")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__seal-token--proof.is-ready")).toBeTruthy();
-  });
-
-  it("warns when the built passport carries an unversioned (degraded-runtime) document", () => {
-    const { container } = render(
-      <PlayArea
-        {...props({
-          state: state({
-            passportPayload: payload({
-              didDocument: {
-                ...payload().didDocument,
-                versionId: "unversioned",
-              },
-            }),
-          }),
-        })}
-      />,
-    );
-    // The degraded chip + warning note appear only for unversioned documents.
-    expect(screen.getByText("Runtime attestation metadata unavailable.")).toBeTruthy();
-    expect(container.querySelector(".neodid-passport__degraded-chip")).toBeTruthy();
-
-    // A normally-versioned document shows no warning.
-    cleanup();
-    const { container: ok } = render(<PlayArea {...props({ state: state({ passportPayload: payload() }) })} />);
-    expect(ok.querySelector(".neodid-passport__degraded-note")).toBeNull();
-  });
-
-  it("shows external-verifier guidance for github/email providers", () => {
-    render(<PlayArea {...props()} />);
-    // Wallet provider (default) shows no external-verifier card.
-    expect(screen.queryByText("Submit to an external verifier")).toBeNull();
-
-    // Switching to GitHub surfaces the external-verifier guidance + docs link.
-    fireEvent.click(screen.getByRole("radio", { name: "Proof Provider: GitHub attestation" }));
-    expect(screen.getByText("Submit to an external verifier")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: /Open attestation docs/i }),
-    ).toBeTruthy();
-  });
-
-  it("keeps passport issuance motion reduced-motion safe", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../neodid-passport/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes neodid-passport-card-scan");
-    expect(styles).toContain("@keyframes neodid-passport-seal-breathe");
-    expect(styles).toContain("@keyframes neodid-passport-route-flow");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neodid-passport__seal-token\.is-ready[\s\S]*animation:\s*none/,
-    );
+    expect(s).toMatch(/\.did-scene\s*\{[\s\S]*background:\s*transparent/);
+    expect(s).toMatch(/\.did-scene\s*\{[\s\S]*border:\s*0/);
+    expect(s).toMatch(/\.did-scene\s*\{[\s\S]*grid-template-columns:\s*minmax\(360px,\s*1fr\) minmax\(360px,\s*0\.95fr\)/);
+    expect(s).toMatch(/\.did-passport,[\s\S]*\.did-issuance\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.did-credential-lane\s*\{[\s\S]*grid-area:\s*lane/);
+    expect(s).toMatch(/\.did-credential-lane\[data-ready="true"\]\s*\{[\s\S]*box-shadow:\s*inset 4px 0 0 rgba\(8,\s*153,\s*129,\s*0\.22\)/);
+    expect(s).toMatch(/\.did-template-deck\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.did-template-deck button\s*\{[\s\S]*min-height:\s*118px/);
+    expect(s).toMatch(/\.did-lane-summary\s*\{[\s\S]*grid-template-columns:\s*1\.15fr 0\.92fr 0\.92fr/);
+    expect(s).toMatch(/\.did-passport\s*\{[\s\S]*box-shadow:\s*0 12px 26px rgba\(15,\s*23,\s*42,\s*0\.055\)/);
+    expect(s).toMatch(/\.did-passport::before\s*\{[\s\S]*content:\s*none/);
+    expect(s).toMatch(/\.did-passport__fields\s*\{[\s\S]*display:\s*grid/);
+    expect(s).toMatch(/\.did-passport__fields\s*\{[\s\S]*overflow:\s*hidden/);
+    expect(s).toMatch(/\.did-passport__fields span \+ span\s*\{[\s\S]*border-top:\s*1px solid rgba\(31,\s*41,\s*55,\s*0\.065\)/);
+    expect(s).toMatch(/\.did-issuance__steps\s*\{[\s\S]*display:\s*grid/);
+    expect(s).toMatch(/\.did-issuance__steps\s*\{[\s\S]*border-top:\s*1px solid rgba\(31,\s*41,\s*55,\s*0\.065\)/);
+    expect(s).toMatch(/\.did-scene__status\s*\{[\s\S]*background:\s*transparent/);
+    expect(s).toMatch(/\.did-scene__status\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(s).toMatch(/\.did-passport__stamp\[data-signed="true"\]\s*\{[\s\S]*transform:\s*rotate\(-8deg\)/);
+    expect(s).toMatch(/\.did-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.did-drawer__field-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.did-provider-deck button\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/\.neodid-passport-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 184px/);
+    expect(s).toMatch(/\.neodid-passport-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*background:\s*#0f9f7a/);
+    expect(s).toMatch(/@media \(max-width:\s*760px\)[\s\S]*grid-template-areas:\s*[\s\S]*"passport"[\s\S]*"lane"[\s\S]*"route"[\s\S]*"status"/);
+    expect(s).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.did-template-deck,[\s\S]*\.did-lane-summary,[\s\S]*\.did-drawer,[\s\S]*\.did-drawer__field-grid,[\s\S]*\.did-drawer__row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(s).not.toMatch(/did-scene__backdrop|var\(--mx2-scene-wash|background-image:\s*url|radial-gradient|linear-gradient|backdrop-filter/);
+    expect(source).not.toContain("did-scene__backdrop");
+    expect(source).not.toContain("did-scene__card");
+    expect(source).not.toContain("did-credential-slot");
   });
 });

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "contracts": {
+    "neo-n3-testnet": "0xa611f038371f49b6e46c992e9aa95f53d6ac2b38"
+  },
+  "createdAt": "2026-07-03T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "Timed on-chain virtual-pet care game verified inside a Morpheus TEE. Pay a small GAS entry, choose a nursery path, then feed, play, pet, and rest your creature — each care action deterministically adjusts happiness, hunger, and energy inside the enclave. Raise happiness to the target before the deadline to win a fixed GAS reward: 0.1 for Sprout Hatch (reach 50), 0.5 for Glow Garden (reach 70), 1 for Royal Bloom (reach 100). The enclave enforces real-time action spacing so a run cannot be bot-bursted. Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
+  "description_zh": "限时链上虚拟宠物养成游戏，在 Morpheus TEE 中验证。支付少量 GAS 报名费，选择育成路线，然后给你的宠物喂食、玩耍、抚摸和休息——每个照料动作都会在飞地内确定性地调整快乐值、饥饿值和精力值。在截止时间前将快乐值提升到目标即可赢取固定 GAS 奖励：嫩芽孵化 0.1（达到 50）、荧光花园 0.5（达到 70）、皇家绽放 1（达到 100）。飞地强制照料动作之间的实时间隔，使脚本无法瞬间刷分。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": false,
+  "features": {
+    "deeplink": "neomainapp://pet-potion",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-pet-potion",
+  "name": "Pet Potion",
+  "name_zh": "宠物药剂",
+  "operation_panel": {
+    "operations": [
+      {
+        "button_style": "primary",
+        "description": "Pay the entry fee and seal a provably fair pet. Sprout 0.02 GAS entry wins 0.1 (reach 50 happiness); Glow 0.10 wins 0.5 (reach 70); Royal 0.20 wins 1 (reach 100).",
+        "method": "startGame",
+        "name": "Begin Care",
+        "params": [
+          {
+            "default_value": "0",
+            "hidden": true,
+            "label": "Nursery Path",
+            "name": "difficulty",
+            "options": [
+              {
+                "label": "Sprout Hatch — win 0.1 GAS (reach 50)",
+                "value": "0"
+              },
+              {
+                "label": "Glow Garden — win 0.5 GAS (reach 70)",
+                "value": "1"
+              },
+              {
+                "label": "Royal Bloom — win 1 GAS (reach 100)",
+                "value": "2"
+              }
+            ],
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "priority": "primary"
+      },
+      {
+        "button_style": "success",
+        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
+        "method": "withdrawWinnings",
+        "name": "Withdraw Winnings",
+        "params": [],
+        "priority": "secondary"
+      }
+    ],
+    "subtitle": "Deposit the entry, choose a nursery path, care for your TEE-verified pet, and raise happiness to the target before the deadline to win GAS.",
+    "title": "Pet Potion"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain",
+    "compute",
+    "oracle"
+  ],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "pet",
+    "care",
+    "casual",
+    "leaderboard",
+    "gas",
+    "game",
+    "tee"
+  ],
+  "technologies": {
+    "aa": {
+      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+      "enabled": false
+    },
+    "oracle": {
+      "description": "The pet's starting stats are generated inside a Morpheus TEE enclave from a deterministic per-game secret, with only the hash commitment bound on-chain. Each care action's deltas are applied by the enclave, which enforces real-time spacing between actions (no super-human bursts) and replays the recorded action log at settlement to compute and sign the happiness reached after checking the commitment.",
+      "enabled": true
+    },
+    "tee": {
+      "enabled": true,
+      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+    }
+  },
+  "updatedAt": "2026-07-03T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/pet-potion/banner.webp",
+    "entry": "/miniapps/pet-potion/index.html",
+    "icon": "/miniapps/pet-potion/logo.webp"
+  },
+  "version": "1.0.0"
+}

@@ -1,13 +1,15 @@
 /**
  * useSignAnything — Domain logic for the Neo Sign Anything miniapp (React)
  *
- * Receives ChainService + EventBus + ClipboardService from PlatformServices
- * and StorageProxy from OS services. Chain calls target the native GAS
- * contract (external) for broadcast, so they stay on ChainService.
+ * Wallet address, wallet connect, the broadcast invoke, and the transfer arg
+ * builders are routed through the MiniApp framework SDK (ctx.framework). The
+ * broadcast targets the native GAS contract (external). `signMessage` is a raw
+ * wallet capability with no framework surface, so it stays on ChainService.
  * Session sign/broadcast counters are persisted via OS storage.
  */
 
 import { createObservable } from "@shared/react/context";
+import type { MiniAppFramework } from "@shared/react";
 import type { ChainService, EventBus, ClipboardService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -22,6 +24,12 @@ const getMessageBytes = (value: string): number => {
 };
 
 export interface UseSignAnythingOptions {
+  app: MiniAppFramework;
+  /**
+   * Raw chain service — used ONLY for `signMessage`, a wallet capability the
+   * framework SDK does not surface. Address, connect, invoke, and arg builders
+   * all go through `app.chain`.
+   */
   chain: ChainService;
   eventBus: EventBus;
   clipboard: ClipboardService;
@@ -29,7 +37,7 @@ export interface UseSignAnythingOptions {
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSignAnything({ chain, eventBus, clipboard, storage, t }: UseSignAnythingOptions) {
+export function useSignAnything({ app, chain, eventBus, clipboard, storage, t }: UseSignAnythingOptions) {
   const message = createObservable("");
   const signature = createObservable("");
   // The signer's public key, captured alongside the signature so the produced
@@ -124,16 +132,16 @@ export function useSignAnything({ chain, eventBus, clipboard, storage, t }: UseS
     txHash.set("");
     txPending.set(false);
     try {
-      await chain.ensureWallet();
-      const walletAddress = chain.address.get() as string;
+      await app.chain.ensureWallet();
+      const walletAddress = app.chain.address.get() as string;
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: walletAddress },
-          { type: "Hash160", value: walletAddress },
-          { type: "Integer", value: "0" },
-          { type: "String", value: msg },
+          app.chain.arg.hash160(walletAddress),
+          app.chain.arg.hash160(walletAddress),
+          app.chain.arg.integer(0),
+          app.chain.arg.string(msg),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
@@ -210,7 +218,7 @@ export function useSignAnything({ chain, eventBus, clipboard, storage, t }: UseS
   };
 
   return {
-    address: chain.address,
+    address: app.chain.address,
     message,
     signature,
     publicKey,

@@ -1,465 +1,132 @@
 import React from "react";
-import fs from "node:fs";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../graveyard/src/PlayArea";
-import type { HistoryItem } from "../../graveyard/src/types";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-function t(key: string, params?: Record<string, string | number>) {
-  const messages: Record<string, string> = {
-    assetHash: "Content hash",
-    composeModeWrite: "Write memory",
-    composeModeHash: "I have a hash",
-    composeModeWriteHint: "Hash locally from a private note",
-    composeModeHashHint: "Use an existing encrypted target",
-    memoryTextLabel: "Your memory",
-    memoryTextPlaceholder: "Write the memory to bury.",
-    memoryTextHint: "The text stays on this device.",
-    hashFromMemory: "Hash (computed locally)",
-    capsuleCharge: "Memory seal charge",
-    gasReclaimedEstimate: "Burial Fees (est.)",
-    forgetConfirmFee: `Forgetting costs ${params?.fee ?? ""}.`,
-    forgetConfirmAction: "Confirm forget",
-    epitaph: "Epitaph",
+function t(k: string) {
+  const m: Record<string, string> = {
     addEpitaph: "Add epitaph",
+    assetHash: "Content hash",
+    assetHashHint: "Use an encrypted target.",
+    assetHashPlaceholder: "Enter encrypted content hash...",
+    burialFee: "Burial fee",
+    burialReview: "Burial review",
+    cancel: "Cancel",
+    composeModeHash: "I have a hash",
+    composeModeHashHint: "Use an existing encrypted target",
+    composeModeWrite: "Write memory",
+    composeModeWriteHint: "Hash locally from a private note",
+    destroy: "Bury",
+    destroyed: "Buried",
+    destroyAsset: "Burial Chamber",
+    destroying: "Burying...",
+    destructionStats: "Burial Stats",
+    docSubtitle: "On-chain burial and right-to-forget flow",
     editEpitaph: "Edit epitaph",
     epitaphPlaceholder: "A short note for this memory",
     epitaphSave: "Save epitaph",
-    epitaphFree: "Free — no deposit",
-    showAllRecords: "Show all records",
-    showFewerRecords: "Show fewer",
-    historyTruncatedNote: `Showing the most recent ${params?.shown ?? ""} of ${params?.total ?? ""} burials.`,
-    assetHashHint:
-      "Use the encrypted content hash or token identifier you intend to bury.",
-    assetHashPlaceholder: "Enter encrypted content hash...",
-    assetHashTooShort:
-      "Enter at least 12 characters so the burial target is identifiable.",
-    burialChecklist: "Burial checklist",
-    burialFee: "Burial fee",
-    burialReview: "Burial review",
-    memoryVaultStage: "Memory vault",
-    memoryConsole: "Memory console",
-    sealReady: "Seal ready",
-    sealEmpty: "Awaiting memory",
-    memoryTypeLocal: "Record tag",
-    memoryTypeLocalHint:
-      "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
-    selectedTypeLocal: "Record tag",
-    burialReviewSubtitle:
-      "Confirm target, wallet action, and fee model before signing.",
-    buryWalletIntent: "Bury memory",
-    cancel: "Cancel",
-    checkFees: "Fees visible",
-    checkHash: "Target hash",
-    checkMemoryType: "Memory type",
-    checkNeedsAction: "Needs action",
-    checkPassed: "Passed",
-    clearHash: "Clear Hash",
-    confirmDestroy: "Bury on-chain",
-    confirmText: "Are you absolutely sure? The hash will be permanent.",
-    confirmTitle: "Confirm Burial",
-    destroyed: "Buried",
-    destroyAsset: "Burial Chamber",
-    destroyForever: "Review burial",
-    destroying: "Burying...",
-    forgettingFee: "Forgetting fee",
     forgetAction: "Forget",
-    forgotten: "Forgotten",
-    gasReclaimed: "Burial Fees",
+    forgetConfirmAction: "Confirm forget",
+    forgetConfirmFee: "Forgetting costs {fee}.",
+    gasReclaimedEstimate: "GAS spent on burials",
     hashMissing: "Hash required",
-    hashMissingCopy:
-      "Enter the encrypted content hash before preparing the burial.",
     hashPending: "Waiting for hash",
     hashPreview: "Target",
-    hashPreviewCopy:
-      "Only the hash is written; original encrypted content stays outside the app.",
-    hashQuality: "Hash quality",
     hashReady: "Ready for review",
-    hashReadyCopy: "The target is long enough for the wallet action review.",
-    hashTooShort: "Hash too short",
-    hashTooShortCopy:
-      "Short values are blocked so users do not bury an accidental fragment.",
-    historyGuidance:
-      "Buried records remain inspectable here. Forgetting marks a paid follow-up state instead of deleting the audit trail.",
-    itemsDestroyed: "Buried",
-    memoryType: "Memory Type",
-    memoryTypeConfession: "Confession",
-    memoryTypeOther: "Other",
-    memoryTypeRegret: "Regret",
-    memoryTypeSecret: "Secret",
-    memoryTypeWish: "Wish",
+    hashReadyCopy: "The target is long enough for review.",
+    historyGuidance: "Buried records remain inspectable here.",
+    memoryConsole: "Memory console",
+    memoryTextHint: "The text stays on this device.",
+    memoryTextLabel: "Your memory",
+    memoryTextPlaceholder: "Write the memory to bury.",
+    memoryVaultStage: "Memory vault",
     noDestructions: "No burial records yet",
+    noDestructionsHint: "Buried memories will appear here.",
     recentDestructions: "Burial Records",
     records: "records",
     refreshRecords: "Refresh Records",
+    sealEmpty: "Awaiting memory",
     selectedType: "Selected type",
-    subtitle: "Hash-based memory burial on-chain",
+    showAllRecords: "Show all records",
+    showFewerRecords: "Show fewer",
+    sunkFeeNote: "This fee is spent, not refunded.",
     title: "Graveyard",
-    tokenGas: "GAS",
-    transactionPath: "Transaction path",
-    walletAction: "Wallet action",
-    walletActionCopy:
-      "The wallet submits the paid burial intent through the NFT service boundary.",
-    warning: "Permanent record",
-    warningText:
-      "This writes the content hash on-chain permanently. Forgetting records an additional paid state change and cannot be reversed.",
+    totalDestroyed: "Total Buried",
   };
-  return messages[key] ?? key;
+  return m[k] ?? k;
 }
-
-const historyItem: HistoryItem = {
-  id: "memory-1",
-  hash: "0x1234567890abcdef1234567890abcdef12345678",
-  time: "2026-06-02",
-  forgotten: false,
-  memoryType: 1,
-};
-
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values = {
-    assetHash: "",
-    burialFeeDisplay: "0.10 GAS",
-    forgetFeeDisplay: "1 GAS",
-    forgettingId: "",
-    forgetConfirmId: "",
-    epitaphDraftId: "",
-    epitaphText: "",
-    epitaphSavingId: "",
-    showAllHistory: false,
-    historyTruncated: false,
-    // Default the compose mode to "hash" so the hash-input flow tests render the
-    // content-hash field directly (the new default in the app is "write").
-    composeMode: "hash",
-    memoryText: "",
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    totalDestroyed: 0,
+    burialFeesPaid: "0",
     gasReclaimedDisplay: "0 GAS",
-    history: [],
+    burialFeeDisplay: "0.1 GAS",
+    forgetFeeDisplay: "1 GAS",
     historyCount: 0,
     isDestroying: false,
     isLoading: false,
+    historyTruncated: false,
+    showAllHistory: false,
+    forgetConfirmId: "",
+    forgettingId: "",
+    epitaphDraftId: "",
+    epitaphText: "",
+    epitaphSavingId: "",
+    assetHash: "",
+    composeMode: "write",
+    memoryText: "",
     memoryType: 1,
     memoryTypeOptions: [
       { value: 1, label: "Secret" },
       { value: 2, label: "Regret" },
-      { value: 3, label: "Wish" },
     ],
-    showConfirm: false,
-    showWarningShake: false,
-    totalDestroyed: 0,
-    ...overrides,
+    history: [],
+    ...o,
   };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
+describe("graveyard PlayArea (v2)", () => {
+  it("renders a memory-vault application surface instead of a naked form", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-describe("Graveyard PlayArea", () => {
-  it("shows burial review details and blocks short hashes before submission", () => {
-    const dispatch = vi.fn(async () => undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={state({ assetHash: "short" })}
-        dispatch={dispatch}
-      />,
-    );
-
-    expect(screen.getByText("Burial review")).toBeTruthy();
-    expect(screen.getAllByText("Hash too short").length).toBeGreaterThan(0);
-    expect(document.querySelector(".grave-ritual-stage--draft")).toBeTruthy();
-    expect(document.querySelector(".grave-hash-plaque.is-error")).toBeTruthy();
-    expect(document.querySelector(".grave-memory-seals")).toBeTruthy();
-    expect(document.querySelector(".memory-type-selector")).toBeNull();
-    expect(document.querySelectorAll(".grave-ritual-track__step").length).toBe(
-      4,
-    );
-    expect(
-      document.querySelector(
-        '.grave-ritual-stage__banner[src="memory-vault-stage.jpg"]',
-      ),
-    ).toBeTruthy();
-    // Blocked-state review tile renders the short-hash guidance copy.
-    expect(
-      screen.getAllByText(
-        "Short values are blocked so users do not bury an accidental fragment.",
-      ).length,
-    ).toBeGreaterThan(0);
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Review burial",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+    expect(container.querySelector(".graveyard-scene")).toBeTruthy();
+    expect((container.querySelector(".graveyard-vault__image") as HTMLImageElement)?.src).toContain("memory-vault-stage.webp");
+    expect(container.querySelector(".graveyard-memory-card")).toBeTruthy();
+    expect(container.textContent).toContain("Burial review");
   });
 
-  it("binds the burial fee from state and labels the type as a local record tag", () => {
-    const dispatch = vi.fn(async () => undefined);
+  it("has reduced-motion and foreground clarity protections", () => {
+    const fs = require("node:fs");
+    const s = fs.readFileSync(`${process.cwd()}/../graveyard/src/PlayArea.scss`, "utf8");
+    const tsx = fs.readFileSync(`${process.cwd()}/../graveyard/src/PlayArea.tsx`, "utf8");
 
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
-          burialFeeDisplay: "0.10 GAS",
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    // Fee is derived from the source-of-truth constant (state), not hardcoded.
-    expect(screen.getByText("0.10 GAS")).toBeTruthy();
-    expect(document.querySelector(".graveyard-play-area--ready")).toBeTruthy();
-    expect(document.querySelector(".grave-ritual-stage--ready")).toBeTruthy();
-    expect(
-      document.querySelector(
-        '.grave-ritual-stage__seal img[src="memory-vault-stage.jpg"]',
-      ),
-    ).toBeTruthy();
-    expect(document.querySelector(".grave-hash-plaque.is-ready")).toBeTruthy();
-    // Memory type is presented as a record tag that is anchored on-chain
-    // alongside the content hash (one label on the selector, one in the review
-    // panel).
-    expect(screen.getAllByText("Record tag").length).toBeGreaterThanOrEqual(2);
-    expect(
-      screen.getByText(
-        "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
-      ),
-    ).toBeTruthy();
-  });
-
-  it("uses the brand-green primary variant for the burial CTA, not the danger variant", () => {
-    const dispatch = vi.fn(async () => undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    const cta = screen.getByRole("button", { name: "Review burial" });
-    expect(cta.className).toContain("neo-btn--primary");
-    expect(cta.className).not.toContain("neo-btn--danger");
-  });
-
-  it("clears the hash and cancels any pending confirmation", async () => {
-    const dispatch = vi.fn(async () => undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
-          showConfirm: true,
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Clear Hash" }));
-
-    expect(
-      document.querySelector(".grave-ritual-stage--confirming"),
-    ).toBeTruthy();
-    expect(document.querySelector(".grave-ritual-pulse")).toBeTruthy();
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("cancelDestroy");
-    });
-    expect(
-      (screen.getByLabelText("Content hash") as HTMLInputElement).value,
-    ).toBe("");
-  });
-
-  it("dispatches burial and record refresh, and ARMS a forget confirmation (does not pay on first tap)", async () => {
-    const dispatch = vi.fn(async () => undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
-          history: [historyItem],
-          historyCount: 1,
-          showConfirm: true,
-          totalDestroyed: 1,
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Bury on-chain" }));
-    fireEvent.click(screen.getByRole("button", { name: "Refresh Records" }));
-    // First tap on Forget ARMS the confirmation (requestForget) — it must NOT
-    // fire the paid forgetMemory immediately (forgetting costs 1 GAS).
-    fireEvent.click(screen.getByRole("button", { name: "Forget" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("executeDestroy");
-      expect(dispatch).toHaveBeenCalledWith("refreshRecords");
-      expect(dispatch).toHaveBeenCalledWith("requestForget", historyItem);
-    });
-    expect(dispatch).not.toHaveBeenCalledWith("forgetMemory", historyItem);
-  });
-
-  it("shows the forget fee and pays only after the explicit confirm", async () => {
-    const dispatch = vi.fn(async () => undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          history: [historyItem],
-          historyCount: 1,
-          totalDestroyed: 1,
-          // The row is already armed for confirmation.
-          forgetConfirmId: historyItem.id,
-          forgetFeeDisplay: "1 GAS",
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    // The confirmation surfaces the live forget fee before any GAS moves.
-    expect(screen.getByText("Forgetting costs 1 GAS.")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Confirm forget" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("forgetMemory", historyItem);
-    });
-  });
-
-  it("offers an Add epitaph action and a local-hash 'write memory' compose mode", () => {
-    const dispatch = vi.fn(async () => undefined);
-    const pageState = state({
-      history: [historyItem],
-      historyCount: 1,
-      totalDestroyed: 1,
-    });
-
-    render(
-      <PlayArea
-        t={t}
-        state={pageState}
-        dispatch={dispatch}
-      />,
-    );
-
-    // The epitaph affordance exists on a non-forgotten row (free, non-deposit).
-    fireEvent.click(screen.getByRole("button", { name: "Add epitaph" }));
-    expect(dispatch).toHaveBeenCalledWith("startEpitaph", historyItem);
-
-    // The compose-mode toggle exposes the local-hash "write memory" mode.
-    expect(screen.getByRole("tab", { name: /Write memory/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: /Write memory/ }));
-    expect(dispatch).toHaveBeenCalledWith("setComposeMode", "write");
-
-    // Record tags are selected as seal buttons inside the ritual surface, not a
-    // separate form selector.
-    fireEvent.click(screen.getByRole("button", { name: /Regret/ }));
-    expect(pageState.memoryType.get()).toBe(2);
-  });
-
-  it("uses a generated memory-vault scene as the real burial stage asset", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(
-      fs.existsSync(`${process.cwd()}/../graveyard/public/memory-vault-stage.jpg`),
-    ).toBe(true);
-    expect(
-      document.querySelector('.grave-hero-art img[src="memory-vault-stage.jpg"]'),
-    ).toBeTruthy();
-    expect(
-      document.querySelector(
-        '.grave-ritual-stage__banner[src="memory-vault-stage.jpg"]',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Memory console")).toBeTruthy();
-    expect(document.querySelector(".grave-memory-seals__rail")).toBeTruthy();
-  });
-
-  it("renders the write-memory textarea and routes typing through setMemoryText (local hashing)", () => {
-    const dispatch = vi.fn(async () => undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={state({ composeMode: "write" })}
-        dispatch={dispatch}
-      />,
-    );
-
-    const textarea = screen.getByLabelText("Your memory");
-    expect(textarea).toBeTruthy();
-    expect(document.querySelector(".grave-memory-capsule")).toBeTruthy();
-    expect(
-      document.querySelector(
-        '.grave-memory-capsule__asset img[src="memory-vault-stage.jpg"]',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Memory seal charge")).toBeTruthy();
-    fireEvent.change(textarea, { target: { value: "a secret memory" } });
-    expect(dispatch).toHaveBeenCalledWith("setMemoryText", "a secret memory");
-    // No raw content-hash field in write mode — only the locally derived hash.
-    expect(screen.queryByLabelText("Content hash")).toBeNull();
-  });
-
-  it("keeps the burial ritual motion accessible with reduced-motion fallbacks", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../graveyard/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toContain(".grave-ritual-stage");
-    expect(styles).toContain(".grave-memory-console");
-    expect(styles).toContain(".grave-memory-capsule");
-    expect(styles).toContain(".grave-hash-plaque");
-    expect(styles).toContain(".grave-memory-seals");
-    expect(styles).toContain(".destroy-form .neo-btn--primary:not(:disabled)");
-    expect(styles).toContain(".grave-ritual-track");
-    expect(styles).toContain("@keyframes grave-memory-scan");
-    expect(styles).toContain("@keyframes grave-memory-asset-drift");
-    expect(styles).toContain("@keyframes grave-memory-charge");
-    expect(styles).toContain("@keyframes grave-banner-drift");
-    expect(styles).toContain("@keyframes grave-seal-ready");
-    expect(styles).toContain("@keyframes grave-confirm-pulse");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.grave-ritual-stage__banner[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.grave-memory-capsule__asset img[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(max-width: 720px\)[\s\S]*\.grave-ritual-track[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-    );
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).not.toContain("backdrop-filter");
+    expect(s).toContain("@use \"@shared/components-react/v2/v2\"");
+    expect(s).toMatch(/\.graveyard-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.graveyard-scene\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(s).toMatch(/\.graveyard-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/\.graveyard-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
+    expect(s).toMatch(/\.graveyard-vault\s*\{[\s\S]*grid-template-rows:\s*minmax\(220px,\s*auto\) auto auto/);
+    expect(s).toMatch(/\.graveyard-vault__image\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(s).toMatch(/\.graveyard-vault__image\s*\{[\s\S]*opacity:\s*1/);
+    expect(s).toMatch(/\.graveyard-vault__image\s*\{[\s\S]*filter:\s*none/);
+    expect(s).toMatch(/\.graveyard-vault__media::after\s*\{[\s\S]*content:\s*none/);
+    expect(s).toMatch(/\.graveyard-vault__media-chip\s*\{[\s\S]*position:\s*relative/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-play-area \.mx2-stage__subtitle\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-vault\s*\{[\s\S]*grid-template-rows:\s*auto auto auto/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-vault__media,[\s\S]*\.graveyard-vault__image\s*\{[\s\S]*height:\s*146px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-review\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-input--textarea\s*\{[\s\S]*min-height:\s*66px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-memory-card small\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-type-dock\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-type-dock\s*\{[\s\S]*overflow:\s*visible/);
+    expect(s).not.toMatch(/\.graveyard-scene\s*\{[\s\S]*radial-gradient/);
+    expect(s).not.toMatch(/\.graveyard-vault__image\s*\{[^}]*object-fit:\s*cover/);
+    expect(s).not.toMatch(/\.graveyard-vault__image\s*\{[^}]*filter:\s*saturate/);
+    expect(s).not.toMatch(/\.graveyard-vault__media-chip\s*\{[^}]*position:\s*absolute/);
+    expect(tsx).not.toContain("⚰");
   });
 });

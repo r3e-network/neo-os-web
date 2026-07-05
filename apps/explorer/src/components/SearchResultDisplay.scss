@@ -9,7 +9,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   text-shadow: none;
 }
@@ -37,7 +37,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -71,7 +71,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .result-empty-title + .result-empty {

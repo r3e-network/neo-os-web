@@ -16,7 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const tarot = useTarot({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       cache: ctx.services.cache,
       clipboard: ctx.services.clipboard,
       t: ctx.t,
@@ -24,27 +24,27 @@ defineMiniApp({
 
     tarot.setAddress(ctx.services.chain.address.get() ?? null);
 
-    ctx.registerAction("draw", async () => {
+    ctx.framework.actions.register("draw", async () => {
       await ctx.services.notify.guard(() => tarot.draw(), "cardsDrawn");
     });
 
-    ctx.registerAction("reset", async () => {
+    ctx.framework.actions.register("reset", async () => {
       tarot.reset();
     });
 
-    ctx.registerAction("flipCard", async (index: unknown) => {
+    ctx.framework.actions.register("flipCard", async (index: unknown) => {
       tarot.flipCard(Number(index));
     });
 
-    ctx.registerAction("setQuestion", async (value: unknown) => {
+    ctx.framework.actions.register("setQuestion", async (value: unknown) => {
       tarot.question.set(String(value ?? "").slice(0, 200));
     });
 
-    ctx.registerAction("copyReading", async () => {
+    ctx.framework.actions.register("copyReading", async () => {
       await tarot.copyReading();
     });
 
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(async () => {
         const { amount } = await tarot.withdrawCredit();
         if (amount > 0) {

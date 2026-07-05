@@ -34,8 +34,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/aa-relay-console/index.html",
-    "icon": "/miniapps/aa-relay-console/logo.jpg",
-    "banner": "/miniapps/aa-relay-console/banner.jpg"
+    "icon": "/miniapps/aa-relay-console/logo.webp",
+    "banner": "/miniapps/aa-relay-console/banner.webp"
   },
   "permissions": [
     "read:blockchain",

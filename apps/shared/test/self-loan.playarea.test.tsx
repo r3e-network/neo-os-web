@@ -1,213 +1,102 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../self-loan/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-function t(key: string, params?: Record<string, string | number>) {
-  const messages: Record<string, string> = {
-    addCollateral: "Add Collateral",
-    aggressive: "Aggressive",
-    amountToLock: "Lock NEO",
-    borrow: "Borrow",
-    borrowFlowBoard: "Borrow flow board",
-    borrowFlowBorrowing: "Wallet is routing the borrow request",
-    borrowFlowDraft: "Load NEO to preview the draw",
-    borrowFlowKicker: "Collateral route",
-    borrowFlowReady: "Ready to route collateral into GAS",
-    borrowedLabel: "Borrowed",
-    collateralAmount: "Collateral Amount",
-    conservative: "Conservative",
-    connectWalletToUse: "Connect wallet to use Self Loan",
-    custodyBadge: "No third-party voting",
-    custodyTitle: "Collateral custody",
-    custodyValue: "Returned in full",
-    docSubtitle: "Tiered LTV self-loans with auto-repayment",
-    estimatedBorrow: "Estimated Borrow",
-    estimatedBorrowNet: "Estimated Borrow (after fee)",
-    eyebrow: "Self Loan",
-    loanAlreadyActiveHint: "One loan per address",
-    loanStatsTitle: "Loan stats",
-    loanTerms: "Loan terms",
-    ltvLabel: "LTV",
-    ltvTier: "LTV tier",
-    flowNodeBorrow: "Draw",
-    flowNodeCollateral: "Lock",
-    flowNodeLtv: "Risk gate",
-    originationFee: "Origination fee ({percent}%)",
-    poolAvailable: "Pool available",
-    rateFeeNote: "Rate is operator set; the fee stays with the pool.",
-    rateLabel: "Rate",
-    rateValue: "1 NEO = {price}",
-    repay: "Repay",
-    selectedLTV: "LTV Ratio",
-    takeSelfLoan: "Take Self-Loan",
-    title: "SelfLoan",
-    totalBorrowed: "Total Borrowed",
-    totalLoans: "Total Loans",
-    totalRepaid: "Total Repaid",
-    yourBalance: "Your Balance",
-  };
-
-  let value = messages[key] ?? key;
-  for (const [paramKey, paramValue] of Object.entries(params ?? {})) {
-    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
-  }
-  return value;
+function t(k: string) { return k; }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
-
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    addCollateralOkNonce: 0,
-    borrowedDisplay: "0",
-    borrowOkNonce: 0,
-    collateralAmount: "",
-    collateralCreditDisplay: "",
-    collateralDisplay: "0",
-    currentLTV: 0,
-    currentLTVDisplay: "",
-    hasActiveLoan: false,
-    hasCollateralCredit: false,
-    hasLoanDisplay: "No",
-    hasPendingConfirmation: false,
-    hasRepayCredit: false,
-    healthFactor: 0,
-    healthFactorDisplay: "",
-    healthMetricLabel: "",
-    isAddingCollateral: false,
-    isBorrowing: false,
-    isConnected: true,
-    isLoading: false,
-    isProcessing: false,
-    isRepaying: false,
-    loan: null,
-    ltvOptions: [
-      { tier: 1, percent: 20, label: "Conservative" },
-      { tier: 2, percent: 30, label: "Balanced" },
-      { tier: 3, percent: 40, label: "Aggressive" },
-    ],
-    neoBalance: 48,
-    neoBalanceDisplay: "48",
-    neoPrice: 1,
-    neoPriceDisplay: "1 GAS",
-    pendingConfirmation: "",
-    platformStats: {
-      platformFeeBps: 50,
-      totalBorrowed: 180,
-      totalLoans: 9,
-      totalRepaid: 42,
-    },
-    poolDisplay: "250 GAS",
-    repayCreditDisplay: "",
-    repayOkNonce: 0,
-    selectedLtv: 2,
-    selectedLtvPercent: 30,
-    stats: {
-      totalBorrowed: 180,
-      totalLoans: 9,
-      totalRepaid: 42,
-    },
-    totalBorrowedDisplay: "180",
-    totalLoans: 9,
-    totalRepaidDisplay: "42",
-    ...overrides,
-  };
-
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+function appScssPath(app: string) {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return path.join(appsRoot, app, "src/PlayArea.scss");
 }
-
-describe("Self Loan PlayArea", () => {
-  it("renders the vault control desk and keeps borrow actions wired", async () => {
+function repoFilePath(...segments: string[]) {
+  const repoRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..", "..")
+    : process.cwd();
+  const direct = path.join(repoRoot, ...segments);
+  if (existsSync(direct)) return direct;
+  return path.resolve(process.cwd(), ...segments);
+}
+describe("self-loan PlayArea (v2)", () => {
+  it("renders the business-specific scene", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".selfloan-scene")).toBeTruthy();
+    expect(container.querySelector(".selfloan-scene__image")).toBeNull();
+    expect(container.querySelector(".selfloan-scene__wash")).toBeNull();
+    expect(container.querySelector(".selfloan-scene__position")).toBeTruthy();
+    expect(container.querySelector(".selfloan-scene__meter")).toBeTruthy();
+    expect(container.querySelector(".selfloan-desk")).toBeTruthy();
+    expect(container.querySelectorAll(".selfloan-scene .mx2-coin").length).toBeGreaterThanOrEqual(5);
+  });
+  it("keeps borrow submission on the primary action", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    expect(document.querySelector(".selfloan-borrow-desk")).toBeTruthy();
-    expect(document.querySelector(".selfloan-ltv-desk")).toBeTruthy();
-    expect(screen.getByRole("group", { name: "Borrow flow board" })).toBeTruthy();
-    expect(document.querySelector(".selfloan-flow-board--draft")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: /Aggressive\s*40%/ }));
-    expect(dispatch).toHaveBeenCalledWith("setLtvTier", 3);
-
-    fireEvent.change(screen.getByLabelText("Collateral Amount"), {
-      target: { value: "12" },
-    });
-    expect(dispatch).toHaveBeenCalledWith("setCollateralAmount", "12");
-    expect(document.querySelector(".selfloan-flow-board--ready")).toBeTruthy();
-    expect(document.querySelectorAll(".selfloan-flow-node.is-ready")).toHaveLength(3);
-    expect(screen.getAllByText("12 NEO").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("3.58 GAS").length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getByRole("button", { name: "Borrow" }));
-
-    await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("borrow", {
-        collateralAmount: "12",
-      }),
-    );
+    const { container } = render(<PlayArea t={t} state={state({ collateralAmount: "10" })} dispatch={dispatch} />);
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "10" });
   });
-
-  it("renders an active position workspace with repay and collateral controls", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          borrowedDisplay: "12.5",
-          collateralDisplay: "40",
-          currentLTV: 31.25,
-          currentLTVDisplay: "31.25%",
-          hasActiveLoan: true,
-          hasLoanDisplay: "Yes",
-          healthFactor: 2.4,
-          healthFactorDisplay: "2.40",
-          isRepaying: true,
-          loan: {
-            active: true,
-            borrowed: 12.5,
-            collateral: 40,
-          },
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(container.querySelector(".selfloan-play-area--safe")).toBeTruthy();
-    expect(container.querySelector(".selfloan-play-area--repaying")).toBeTruthy();
-    expect(container.querySelector(".selfloan-position-vault")).toBeTruthy();
-    expect(container.querySelector(".selfloan-active-actions")).toBeTruthy();
-    expect(container.querySelector(".selfloan-action-card--repay")).toBeTruthy();
-    expect(
-      container.querySelector(".selfloan-action-card--collateral"),
-    ).toBeTruthy();
+  it("updates collateral with quick actions without changing the contract payload path", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    fireEvent.click(container.querySelector(".selfloan-quick-row button") as Element);
+    expect(dispatch).toHaveBeenCalledWith("setCollateralAmount", "10");
   });
+  it("keeps NEO collateral as a whole-number input before borrow", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const input = container.querySelector(".selfloan-amount-input") as HTMLInputElement;
 
-  it("keeps the DeFi flow board animated and reduced-motion safe", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../self-loan/src/PlayArea.scss"),
-      "utf8",
-    );
+    expect(input.inputMode).toBe("numeric");
+    fireEvent.change(input, { target: { value: "12.75" } });
+    expect(input.value).toBe("12");
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
 
-    expect(styles).toContain(".selfloan-flow-board");
-    expect(styles).toContain(".selfloan-flow-board__packet");
-    expect(styles).toContain("@keyframes selfloan-flow-board-sheen");
-    expect(styles).toContain("@keyframes selfloan-flow-rail");
-    expect(styles).toContain("@keyframes selfloan-flow-packet-neo");
-    expect(styles).toContain("@keyframes selfloan-flow-node-ready");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.selfloan-flow-board__packet/,
-    );
+    expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "12" });
+  });
+  it("has reduced-motion and no global backdrop pollution", () => {
+    const s = readFileSync(appScssPath("self-loan"), "utf8");
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).not.toContain(".tool-scene__backdrop");
+    expect(s).not.toContain(".oracle-console-scene__backdrop");
+  });
+  it("keeps the DeFi desk foreground clean over a quiet background", () => {
+    const s = readFileSync(appScssPath("self-loan"), "utf8");
+    const tokens = readFileSync(repoFilePath("apps/shared/styles/v2/_tokens.scss"), "utf8");
+    const stage = readFileSync(repoFilePath("apps/shared/components-react/v2/Stage.tsx"), "utf8");
+
+    expect(tokens).not.toMatch(/radial-gradient/);
+    expect(tokens).toMatch(/--mx2-scene-bg:\s*#ffffff/);
+    expect(stage).not.toMatch(/radial warm gradient/);
+    expect(s).toMatch(/--mx2-scene-bg:\s*#ffffff/);
+    expect(s).toMatch(/selfloan-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/selfloan-scene__asset-row/);
+    expect(s).toMatch(/selfloan-token-value/);
+    expect(s).toMatch(/selfloan-scene__borrow-token/);
+    expect(s).not.toMatch(/selfloan-scene__image|selfloan-scene__wash|var\(--mx2-scene-art-opacity/);
+    expect(s).not.toMatch(/backdrop-filter/);
+    expect(s).not.toMatch(/radial-gradient/);
+    expect(s).not.toMatch(/--mx2-scene-bg:\s*linear-gradient/);
+    expect(s).not.toMatch(/background:\s*rgba\(255,\s*255,\s*255,\s*0\.[0-8]/);
+    expect(s).toMatch(/selfloan-scene__position[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/selfloan-scene__meter[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/selfloan-scene__route[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/selfloan-scene__meter-ring::before[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/self-loan-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 184px/);
+    expect(s).not.toMatch(/--mx2-ease-standard/);
+  });
+  it("uses the shared official NEO and GAS token art for collateral and borrow resources", () => {
+    const source = readFileSync(repoFilePath("apps/self-loan/src/PlayArea.tsx"), "utf8");
+
+    expect(source).toContain('import { CoinArt, ParticleBurst } from "@shared/art";');
+    expect(source).toContain('variant="neo"');
+    expect(source).toContain('variant="gas"');
+    expect(source).not.toMatch(/neo-icon|gas-icon|<svg|<circle/);
   });
 });

@@ -62,8 +62,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/custom-anchor/index.html",
-    "icon": "/miniapps/custom-anchor/logo.jpg",
-    "banner": "/miniapps/custom-anchor/banner.jpg"
+    "icon": "/miniapps/custom-anchor/logo.webp",
+    "banner": "/miniapps/custom-anchor/banner.webp"
   },
   "permissions": ["invoke:primary", "read:blockchain", "aa:register"],
   "features": {

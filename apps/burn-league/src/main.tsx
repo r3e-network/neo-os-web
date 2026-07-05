@@ -34,7 +34,7 @@ defineMiniApp({
 
   setup(ctx) {
     const burn = useBurnLeague({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t,
       getAddress: () => ctx.services.chain.address.get(),
     });
@@ -51,21 +51,21 @@ defineMiniApp({
     );
     if (launchAmount) burn.burnAmount.set(launchAmount);
 
-    ctx.registerAction("burn", async (amount: unknown) => {
+    ctx.framework.actions.register("burn", async (amount: unknown) => {
       await ctx.services.notify.guard(
         () => burn.burnTokens(String(amount)),
         "burnSuccess",
       );
     });
 
-    ctx.registerAction("settle", async () => {
+    ctx.framework.actions.register("settle", async () => {
       await ctx.services.notify.guard(
         () => burn.settleSeason(),
         "settleSuccess",
       );
     });
 
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(async () => {
         const { amount } = await burn.withdrawCredit();
         if (amount > 0) {
@@ -77,7 +77,7 @@ defineMiniApp({
       });
     });
 
-    ctx.registerAction("setBurnAmount", async (amount: unknown) => {
+    ctx.framework.actions.register("setBurnAmount", async (amount: unknown) => {
       if (typeof amount === "string") burn.burnAmount.set(amount);
     });
 

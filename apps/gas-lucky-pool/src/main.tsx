@@ -64,7 +64,7 @@ defineMiniApp({
 
   setup(ctx) {
     const pool = useGasLuckyPool({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       launchContext: ctx.launchContext,
       t: ctx.t,
     });
@@ -74,7 +74,7 @@ defineMiniApp({
         ctx.launchContext.operation === "claimPool" ||
         ctx.launchContext.operation === "claimOneGateVault");
 
-    ctx.registerAction("createPool", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createPool", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
         totalAmount?: string;
         minClaim?: string;
@@ -134,15 +134,15 @@ defineMiniApp({
       );
     };
 
-    ctx.registerAction("claimPool", handleClaim);
+    ctx.framework.actions.register("claimPool", handleClaim);
     // The host operation_panel "Claim Reward" button dispatches the manifest's
     // declared method name (claimOneGateVault); without this alias the host
     // primary button silently no-ops (MiniAppRoot console.warns on the missing
     // handler). Reuse the exact claimPool body so both entry points behave the
     // same.
-    ctx.registerAction("claimOneGateVault", handleClaim);
+    ctx.framework.actions.register("claimOneGateVault", handleClaim);
 
-    ctx.registerAction("checkClaimStatus", async (...args: unknown[]) => {
+    ctx.framework.actions.register("checkClaimStatus", async (...args: unknown[]) => {
       const first = args[0];
       const params =
         typeof first === "object" && first !== null
@@ -171,7 +171,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("loadPool", async (...args: unknown[]) => {
+    ctx.framework.actions.register("loadPool", async (...args: unknown[]) => {
       const first = args[0];
       const poolId =
         typeof first === "object" && first !== null
@@ -185,7 +185,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("refundPool", async (...args: unknown[]) => {
+    ctx.framework.actions.register("refundPool", async (...args: unknown[]) => {
       const first = args[0];
       const poolId =
         typeof first === "object" && first !== null
@@ -199,7 +199,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("topUpPool", async (...args: unknown[]) => {
+    ctx.framework.actions.register("topUpPool", async (...args: unknown[]) => {
       const first = args[0];
       const poolId =
         typeof first === "object" && first !== null
@@ -217,7 +217,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("loadGasCredit", async () => {
+    ctx.framework.actions.register("loadGasCredit", async () => {
       await ctx.services.notify.guard(
         () => pool.loadGasCredit(),
         "gasCreditLoaded",
@@ -225,7 +225,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("withdrawGasCredit", async () => {
+    ctx.framework.actions.register("withdrawGasCredit", async () => {
       await ctx.services.notify.guard(
         () => pool.withdrawGasCredit(),
         "gasCreditWithdrawn",

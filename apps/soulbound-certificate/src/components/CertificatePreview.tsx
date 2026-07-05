@@ -30,6 +30,8 @@ interface CertificatePreviewProps {
   footer?: ReactNode;
   /** Marks a faded "draft" treatment for the live issue preview. */
   draft?: boolean;
+  /** Real certificate artwork used as the artifact material, not a page backdrop. */
+  textureSrc?: string;
 }
 
 /**
@@ -53,12 +55,23 @@ export default function CertificatePreview({
   status,
   footer,
   draft = false,
+  textureSrc,
 }: CertificatePreviewProps) {
   return (
     <figure
       className={`certificate-artifact${draft ? " certificate-artifact--draft" : ""}`}
     >
       <div className="certificate-artifact__frame">
+        {textureSrc && (
+          <img
+            className="certificate-artifact__texture"
+            src={textureSrc}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            decoding="async"
+          />
+        )}
         <div className="certificate-artifact__head">
           <span className="certificate-artifact__issuer">
             {issuerName.trim() || issuerPlaceholder}

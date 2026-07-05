@@ -1,11 +1,8 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../forever-album/src/PlayArea";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -14,262 +11,213 @@ afterEach(() => cleanup());
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
+    title: "Forever Album",
     albumTab: "Album",
-    albumPhoto: "Album photo",
-    chooseFiles: "Choose images",
-    emptyAction: "Select photos",
-    emptyDesc: "Save your first memory to this device.",
-    emptyTipPublicOrPrivate: "Public or encrypted",
-    emptyTipSizeSafe: "Up to 5 · <60KB",
-    emptyTitle: "No photos yet",
-    encryptPhotos: "Encrypt photos",
-    feature1Desc: "Photos are kept per wallet address on this device, with timestamps.",
-    feature2Desc: "AES-GCM encryption keeps memories private and local.",
-    feature3Desc: "Guards keep uploads within size limits.",
-    localStorageNote:
-      "Photos are saved on this device under your wallet address — not on-chain.",
-    payloadSize: "Payload",
-    readyToSave: "Ready to save to this device.",
-    refreshAlbum: "Refresh album",
-    remove: "Remove",
-    selectedCount: "Selected",
-    sidebarEncrypted: "Encrypted",
-    sidebarPublic: "Public",
-    sizeUnitByte: "B",
-    sizeUnitKbyte: "KB",
-    stageArchiveCopy: "Saved memories stay available on this device for this wallet.",
-    stageArchiveTitle: "Album archive is ready",
-    stageDraftCount: "{count} ready",
-    stageEmptyCopy:
-      "Choose images and the workbench turns them into a wallet-scoped local album.",
-    stageEmptyCount: "No draft",
-    stageEmptyFrameOne: "Pick",
-    stageEmptyFrameThree: "Keep",
-    stageEmptyFrameTwo: "Seal",
-    stageEmptyTitle: "Start with a few light memories",
+    vaultHeroTitle: "Forever Album",
+    vaultHeroSubtitle: "Your memories, sealed.",
+    uploading: "Uploading...",
+    upload: "Upload",
+    emptyTitle: "No photos",
+    emptyDesc: "Select photos to seal.",
+    readyToSave: "Ready to seal",
+    chooseFiles: "Choose files",
+    selectedCount: "{count} selected",
+    encryptPhotos: "Encrypt",
+    startHere: "Add your first memory",
+    selectMore: "Select",
+    uploadHint: "{count} selected · Up to {max}",
     stagePrivateMode: "Private seal",
     stagePublicMode: "Public album",
-    stageReadyCopy: "Frames, privacy, and payload size update live before the save action.",
-    stageReadyTitle: "Preview the album seal before saving",
+    stageDraftCount: "{count} ready",
     stageSavedCount: "{count} saved",
-    stageSealingCopy: "Encrypting when needed, then writing the album to this device.",
+    stageEmptyCount: "No draft",
+    stageEmptyFrameOne: "Pick",
+    stageEmptyFrameTwo: "Seal",
+    stageEmptyFrameThree: "Keep",
+    stageEmptyTitle: "Start with a few light memories",
+    stageEmptyCopy: "Choose images and save them locally.",
+    stageReadyTitle: "Preview the album seal before saving",
+    stageReadyCopy: "Frames and privacy update live.",
     stageSealingTitle: "Sealing this batch locally",
-    step1: "Select up to five photos and verify the payload stays under 60KB.",
-    step2: "Optionally encrypt with a password.",
-    step3: "Save the album to this device — no transaction, no gas.",
-    tapToSelect: "Tap to Select",
-    title: "Forever Album",
-    upload: "Upload",
-    uploadNeedsAttention: "Upload needs attention",
-    vaultHeroSubtitle: "Select photos, choose privacy, and save to this device.",
-    vaultHeroTitle: "Keep memories in a private, wallet-scoped album on your device",
-    vaultPrivacyTitle: "Privacy route",
-    vaultPublicNote: "Public photos are stored in the clear on this device.",
-    vaultRouteTitle: "Save route",
-    vaultSafetyOne: "Wallet scoped",
-    vaultSafetyThree: "Size guarded",
-    vaultSafetyTwo: "Local privacy",
-    vaultStatsTitle: "Album summary",
-    vaultTimelineOne: "Pick compact images",
-    vaultTimelineThree: "Save to device",
-    vaultTimelineTwo: "Encrypt locally",
-    vaultUploadTitle: "Memory upload",
+    stageSealingCopy: "Writing to this device.",
+    stageArchiveTitle: "Album archive is ready",
+    stageArchiveCopy: "Saved memories stay here.",
+    privacyModePrivateHint: "Password-protected local storage",
+    privacyModePublicHint: "Visible on this device",
     galleryStageTitle: "Album sealing workbench",
+    albumMemoryStageLabel: "Memory stage",
+    albumMemoryStageAlt: "Warm album scene",
+    encrypted: "Encrypted",
+    remove: "Remove",
+    passwordPlaceholder: "Password",
+    sidebarEncrypted: "Encrypted",
+    sidebarPublic: "Public",
+    refreshAlbum: "Refresh",
+    vaultPrivacyTitle: "Privacy",
+    localStorageNote: "Photos are saved on your device.",
+    step1: "Step 1",
+    step2: "Step 2",
+    step3: "Step 3",
+    vaultSafetyOne: "Safety",
+    vaultSafetyTwo: "Encrypted",
+    vaultSafetyThree: "Local",
+    photoEncrypted: "Encrypted photo",
+    decrypt: "Decrypt",
+    decrypting: "Decrypting...",
+    decryptTitle: "Enter password",
+    deletePhoto: "Delete",
+    createdAt: "Created",
+    albumPhoto: "Photo",
+    close: "Close",
   };
-  let text = messages[key] ?? key;
-  for (const [name, value] of Object.entries(params ?? {})) {
-    text = text.replace(`{${name}}`, String(value));
-  }
-  return text;
+  let value = messages[key] ?? key;
+  if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
+  return value;
 }
 
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    photos: [],
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    loadingPhotos: false,
+    uploading: false,
+    showViewer: false,
+    showDecrypt: false,
+    decrypting: false,
+    isEncrypted: false,
     photosCount: 0,
     encryptedCount: 0,
     publicCount: 0,
-    loadingPhotos: false,
-    uploading: false,
-    uploadError: "",
-    showViewer: false,
-    viewingPhoto: null,
-    showDecrypt: false,
-    decryptTarget: null,
-    decrypting: false,
-    decryptedPreview: "",
-    showUpload: false,
-    selectedImages: [],
-    isEncrypted: false,
-    password: "",
     totalPayloadSize: 0,
+    maxTotalBytes: 61440,
+    password: "",
+    uploadError: "",
+    decryptedPreview: "",
     decryptError: "",
+    photos: [],
+    viewingPhoto: null,
+    selectedImages: [],
     ...overrides,
   };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
 }
 
-function launch(url: string) {
-  return parseMiniAppLaunchContext(url, "miniapp-forever-album");
-}
-
-describe("Forever Album PlayArea", () => {
-  it("keeps upload failures visible inside the upload panel", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          uploadError: "Image too large for the size limit.",
-          selectedImages: [{ id: "photo-1", size: 68 }],
-          totalPayloadSize: 68,
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("https://neomini.app/miniapps/forever-album")}
-      />,
-    );
-
-    const alertText = screen.getByRole("alert").textContent ?? "";
-    expect(alertText).toContain("Upload needs attention");
-    expect(alertText).toContain("Image too large");
+describe("Forever Album PlayArea (v2 scene-driven)", () => {
+  it("renders a clean album workbench with empty state", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".album-workbench")).toBeTruthy();
+    expect(container.querySelector(".album-workbench__memory-card")).toBeTruthy();
+    expect(container.querySelector(".album-workbench__memory-image")).toBeTruthy();
+    expect(container.querySelector(".album-import")).toBeTruthy();
+    expect(container.querySelector(".album-privacy-toggle")).toBeTruthy();
+    expect(container.querySelector(".album-dropzone")).toBeNull();
+    expect(container.querySelector(".album-workbench__library")).toBeNull();
+    expect(container.textContent).toContain("Start with a few light memories");
+    expect(container.textContent).not.toContain("📷");
+    expect(container.textContent).not.toContain("📎");
   });
 
-  it("applies privacy launch params to the embedded upload workspace", async () => {
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={state()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/forever-album?operation=prepareMiniAppOperation&privacy=encrypted",
-        )}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        (screen.getByLabelText("Encrypt photos") as HTMLInputElement).checked,
-      ).toBe(true);
-    });
-
-    rerender(
-      <PlayArea
-        t={t}
-        state={state({ isEncrypted: true })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/forever-album?operation=prepareMiniAppOperation&privacy=public",
-        )}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        (screen.getByLabelText("Encrypt photos") as HTMLInputElement).checked,
-      ).toBe(false);
-    });
-  });
-
-  it("states honestly that photos are saved on-device, not on-chain", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          selectedImages: [{ id: "photo-1", size: 68 }],
-          totalPayloadSize: 68,
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("https://neomini.app/miniapps/forever-album")}
-      />,
-    );
-
-    expect(
-      screen.getByText(
-        "Photos are saved on this device under your wallet address — not on-chain.",
-      ),
-    ).toBeTruthy();
-  });
-
-  it("renders a private animated sealing workbench for selected photos", () => {
+  it("renders the gallery with saved photos", () => {
     const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          selectedImages: [
-            { id: "photo-1", dataUrl: "data:image/png;base64,a", size: 68 },
-            { id: "photo-2", dataUrl: "data:image/png;base64,b", size: 92 },
-          ],
-          totalPayloadSize: 160,
-          isEncrypted: true,
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/forever-album?operation=prepareMiniAppOperation&privacy=encrypted",
-        )}
-      />,
+      <PlayArea t={t} state={state({ photos: [{ id: "p1", data: "data:image/png;base64,abc", encrypted: false, createdAt: "2026-01-01" }], photosCount: 1, publicCount: 1 })} dispatch={vi.fn()} />,
     );
-
-    const stage = screen.getByLabelText("Album sealing workbench");
-    expect(stage.className).toContain("forever-album-seal-stage--ready");
-    expect(stage.className).toContain("forever-album-seal-stage--private");
-    expect(stage.textContent).toContain("Private seal");
-    expect(stage.textContent).toContain("2 ready");
-    expect(stage.textContent).toContain("Preview the album seal before saving");
-    expect(container.querySelectorAll(".forever-album-seal-stage__frame img")).toHaveLength(2);
+    expect(container.querySelector(".album-gallery")).toBeTruthy();
+    expect(container.querySelectorAll(".album-gallery__item").length).toBe(1);
   });
 
-  it("switches the workbench into sealing motion while uploading", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          selectedImages: [{ id: "photo-1", dataUrl: "data:image/png;base64,a", size: 68 }],
-          totalPayloadSize: 68,
-          uploading: true,
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("https://neomini.app/miniapps/forever-album")}
-      />,
+  it("dispatches viewPhoto on gallery click", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ photos: [{ id: "p1", data: "data:image/png;base64,abc", encrypted: false, createdAt: "2026-01-01" }] })} dispatch={dispatch} />,
     );
-
-    const stage = screen.getByLabelText("Album sealing workbench");
-    expect(stage.className).toContain("forever-album-seal-stage--sealing");
-    expect(stage.textContent).toContain("Sealing this batch locally");
+    fireEvent.click(container.querySelector(".album-gallery__item") as Element);
+    expect(dispatch).toHaveBeenCalledWith("viewPhoto", expect.objectContaining({ id: "p1" }));
   });
 
-  it("surfaces a decrypt error (wrong password) in the decrypt card", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          showDecrypt: true,
-          decryptError: "Decryption failed.",
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("https://neomini.app/miniapps/forever-album")}
-      />,
-    );
-
-    const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("Decryption failed.");
+  it("shows upload error when present", () => {
+    const { container } = render(<PlayArea t={t} state={state({ uploadError: "File too large" })} dispatch={vi.fn()} />);
+    expect(container.querySelector(".album-controls__error[role='alert']")).toBeTruthy();
   });
 
-  it("keeps the gallery workbench animated with reduced-motion coverage", () => {
-    const scss = readFileSync(
-      resolve(process.cwd(), "../forever-album/src/PlayArea.scss"),
-      "utf8",
+  it("shows selected image frames in the sealing workbench", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ selectedImages: [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 1024 }] })} dispatch={vi.fn()} />,
     );
+    expect(container.querySelector('.album-workbench[data-state="ready"]')).toBeTruthy();
+    expect(container.querySelectorAll(".album-workbench__frame").length).toBe(1);
+    expect(container.textContent).toContain("1 ready");
+  });
 
-    expect(scss).toContain(".forever-album-seal-stage--ready");
-    expect(scss).toContain(".forever-album-seal-stage--sealing");
-    expect(scss).toContain("@keyframes forever-album-frame-float");
-    expect(scss).toContain("@keyframes forever-album-rail-flow");
-    expect(scss).toContain("@media (prefers-reduced-motion: reduce)");
+  it("keeps privacy mode as a styled toggle while preserving checkbox behavior", () => {
+    const albumState = state({ isEncrypted: true });
+    const { container } = render(<PlayArea t={t} state={albumState} dispatch={vi.fn()} />);
+    const toggle = container.querySelector(".album-privacy-toggle") as HTMLElement;
+    expect(toggle).toBeTruthy();
+    expect(toggle.dataset.active).toBe("true");
+    expect(container.querySelector(".album-privacy-toggle__input[type='checkbox']")).toBeTruthy();
+  });
+
+  it("keeps import, privacy, and thumbnail actions wired to state and dispatch", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const albumState = state({
+      selectedImages: [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 1024 }],
+    });
+    const { container } = render(<PlayArea t={t} state={albumState} dispatch={dispatch} />);
+
+    const file = new File(["tiny"], "memory.png", { type: "image/png" });
+    fireEvent.change(container.querySelector("input[type='file']") as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("addFiles", [file]));
+
+    fireEvent.click(container.querySelector(".album-privacy-toggle__input") as HTMLInputElement);
+    expect(albumState.isEncrypted.get()).toBe(true);
+
+    fireEvent.click(container.querySelector(".album-controls__thumb-remove") as HTMLButtonElement);
+    expect(dispatch).toHaveBeenCalledWith("removeImage", "s1");
+  });
+
+  it("tucks privacy + how-it-works into the drawer", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.textContent).toContain("device");
+  });
+
+  it("keeps motion backed by reduced-motion fallbacks", () => {
+    const fs = require("node:fs");
+    const styles = fs.readFileSync(`${process.cwd()}/../forever-album/src/PlayArea.scss`, "utf8");
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
+    expect(styles).toMatch(/\.album-workbench\s*\{[\s\S]*grid-template-columns:\s*minmax\(250px,\s*0\.78fr\) minmax\(0,\s*1\.22fr\)/);
+    expect(styles).toMatch(/\.album-workbench__memory-image\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.album-workbench__page\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.album-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 188px/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-workbench__memory-image\s*\{[\s\S]*height:\s*142px/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-workbench__memory-caption small,\n\s*\.album-workbench__memory-strip,\n\s*\.album-workbench__status\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-import,\n\s*\.album-privacy-toggle\s*\{[\s\S]*min-height:\s*54px/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-import__copy small,\n\s*\.album-privacy-toggle__copy small\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-play-area \.mx2-action-rail\s*\{[\s\S]*padding:\s*0 14px/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-play-area \.mx2-action-rail__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*520px\)\s*\{[\s\S]*\.album-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*width:\s*100%/);
+    expect(styles).not.toMatch(/@media \(max-width:\s*520px\)[\s\S]*\.album-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*156px/);
+    expect(styles).not.toContain("album-dropzone");
+    expect(styles).not.toContain("album-workbench__library");
+    expect(styles).not.toContain("linear-gradient(180deg, #ffffff 0%, var(--mx2-surface-2) 100%)");
+    expect(styles).not.toMatch(/\.album-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*300px/);
+  });
+
+  it("uses a warm foreground album asset instead of a decorative background", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
+    const source = fs.readFileSync(path.join(appsRoot, "forever-album/src/PlayArea.tsx"), "utf8");
+    const asset = path.join(appsRoot, "forever-album/public/forever-album-memory-stage.webp");
+
+    expect(source).toContain("./forever-album-memory-stage.webp");
+    expect(fs.existsSync(asset)).toBe(true);
+    expect(fs.statSync(asset).size).toBeGreaterThan(40_000);
   });
 });

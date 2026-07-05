@@ -1,343 +1,99 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../aa-permissions-lab/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
+function t(k: string) { return k; }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
+describe("aa-permissions-lab PlayArea (v2)", () => {
+  it("renders a foreground permission boundary instead of a form-like inspector panel", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      hasInspected: true,
+      currentVerifier: "0x1111111111111111111111111111111111111111",
+      currentHook: "0x2222222222222222222222222222222222222222",
+    })} dispatch={vi.fn()} />);
 
-const ACCOUNT_ID_HASH = "0x1111111111111111111111111111111111111111";
-const VERIFIER_HASH = "0x5be915aea3ce85e4752d522632f0a9520e377aaf";
-const HOOK_HASH = "0x0000000000000000000000000000000000000000";
+    expect(container.querySelector(".perms-boundary")).toBeTruthy();
+    expect(container.querySelector(".perms-boundary__target-bar")).toBeTruthy();
+    expect(container.querySelector(".perms-boundary__target-input.mx2-open-field")).toBeTruthy();
+    expect(container.querySelector(".perms-boundary__target-input .mx2-open-field__control input.semi-input")).toBeTruthy();
+    expect((container.querySelector(".perms-boundary__visual img") as HTMLImageElement)?.src).toContain("permission-console.webp");
+    expect(container.querySelector(".perms-boundary__core")).toBeTruthy();
+    expect(container.querySelector(".perms-boundary__route")).toBeTruthy();
+    expect(container.querySelector(".perms-boundary__guard")).toBeTruthy();
+    expect(container.querySelector(".perms-scene__account-panel")).toBeFalsy();
+    expect(container.querySelector(".perms-scene__route-step")).toBeFalsy();
+    expect(container.querySelector(".perms-scene__backdrop")).toBeFalsy();
+    expect(container.textContent).not.toMatch(/🔒|⏳|✓|✕/u);
+  });
 
-function t(key: string) {
-  const messages: Record<string, string> = {
-    notAvailable: "Not available",
-    accountId: "AccountId Hash",
-    accountIdHint: "Required before reading or writing permission bindings.",
-    accountIdHashPlaceholder: "20-byte hash",
-    inspect: "Refresh State",
-    connectWallet: "Connect Wallet",
-    inspectBlocked: "Enter an AccountId hash before reading live state.",
-    currentVerifier: "Current Verifier",
-    currentHook: "Current Hook",
-    currentBackupOwner: "Current Backup Owner",
-    configured: "configured",
-    verifier: "Verifier Hash",
-    verifierParams: "Verifier Params Hex",
-    verifierParamsHint: "Optional hex.",
-    verifierHashPlaceholder: "0x...",
-    verifierParamsPlaceholder: "hex payload",
-    hook: "Hook Hash",
-    hookHashPlaceholder: "0x...",
-    updateVerifier: "Update Verifier",
-    updateHook: "Update Hook",
-    permissionsHeroTitle: "Permission controls for AA accounts",
-    permissionsHeroCopy: "Inspect and rotate AA verifier and hook bindings.",
-    permissionsHeroChip: "Inspect first. Propose second. Confirm later.",
-    permissionsHeroImageAlt: "AA permission security console",
-    permissionsHeroVisualLabel: "Permission boundary",
-    permissionsMetricsLabel: "AA permission state",
-    permissionsMetricVerifier: "Verifier",
-    permissionsMetricHook: "Hook",
-    permissionsMetricAccount: "Account",
-    permissionsCommandTitle: "Account inspector",
-    permissionsAccountPreview: "Account boundary preview",
-    accountPreviewEmpty: "Paste an AccountId hash to inspect",
-    connectedWallet: "Connected Wallet",
-    permissionsFlowLabel: "Permission update workflow",
-    permissionsFlowInspect: "Inspect account",
-    permissionsFlowInspectDesc: "Load live state first.",
-    permissionsFlowVerifier: "Rotate verifier",
-    permissionsFlowVerifierDesc: "Update authentication logic.",
-    permissionsFlowHook: "Update hook",
-    permissionsFlowHookDesc: "Change policy hook.",
-    writeStagePropose: "Propose rotation",
-    writeStageConfirm: "Confirm or cancel",
-    permissionsRouteStageLabel: "Permission route",
-    permissionsRouteStageTitle:
-      "Route the account through verifier, timelock, and hook",
-    permissionsRouteStageCopy:
-      "Treat every write as a routed permission change.",
-    permissionsRouteStatusLabel: "Route status",
-    permissionsRouteStatusEmpty: "Waiting for an account hash",
-    permissionsRouteStatusArmed: "Account selected — inspect live state",
-    permissionsRouteStatusInspect: "Reading verifier, hook, and owner",
-    permissionsRouteStatusVerifier: "Verifier proposal is in flight",
-    permissionsRouteStatusHook: "Hook proposal is in flight",
-    permissionsRouteStatusPendingVerifier:
-      "Verifier proposal is waiting on the timelock",
-    permissionsRouteStatusPendingHook:
-      "Hook proposal is waiting on the timelock",
-    permissionsRouteStatusReady: "Live permission route loaded",
-    permissionsRouteAccount: "Account",
-    permissionsRouteVerifier: "Verifier",
-    permissionsRouteTimelock: "Timelock",
-    permissionsRouteHook: "Hook",
-    permissionsRoutePending: "Pending update",
-    permissionsRouteGuard: "Safety guard",
-    permissionsStateLabel: "Live state",
-    permissionsStateTitle: "Current permissions",
-    permissionsStateEmpty: "Inspect an account to load its permissions",
-    permissionsRiskTitle: "Writes change permission boundaries",
-    permissionsRiskCopy: "Confirm target contracts before signing.",
-    verifierUpdateBlocked:
-      "Enter an AccountId hash and verifier contract hash before submitting.",
-    hookUpdateBlocked:
-      "Enter an AccountId hash and hook contract hash before submitting.",
-    notInspected: "not inspected",
-    pendingVerifierTitle: "Pending verifier rotation",
-    pendingHookTitle: "Pending hook rotation",
-    pendingUnlockReady: "Timelock elapsed — confirm to finalize.",
-    confirmUpdate: "Confirm",
-    cancelUpdate: "Cancel",
-    notBackupOwner:
-      "Connect the backup-owner wallet to rotate this account's bindings.",
-  };
-  return messages[key] ?? key;
-}
+  it("keeps inspect disabled until the account hash is supplied", () => {
+    const dispatch = vi.fn();
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
 
-function launch(url: string) {
-  return parseMiniAppLaunchContext(url, "miniapp-aa-permissions-lab");
-}
+    expect(primary.disabled).toBe(true);
 
-function baseState(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    isRefreshing: false,
-    isVerifierBusy: false,
-    isHookBusy: false,
-    currentVerifier: "Not available",
-    currentHook: "Not available",
-    currentBackupOwner: "Not available",
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
-}
-
-describe("AA Permissions Lab PlayArea launch flow", () => {
-  it("prefills permission forms from host launch params and dispatches real fields", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?network=testnet&accountIdHash=${ACCOUNT_ID_HASH}&verifierHash=${VERIFIER_HASH}&verifierParamsHex=112233&hookHash=${HOOK_HASH}`,
-        )}
-      />,
-    );
-
-    expect(
-      (screen.getByLabelText("AccountId Hash") as HTMLInputElement).value,
-    ).toBe(ACCOUNT_ID_HASH);
-    expect(
-      (screen.getByLabelText("Verifier Hash") as HTMLInputElement).value,
-    ).toBe(VERIFIER_HASH);
-    expect(
-      (screen.getByLabelText("Verifier Params Hex") as HTMLInputElement).value,
-    ).toBe("112233");
-    expect((screen.getByLabelText("Hook Hash") as HTMLInputElement).value).toBe(
-      HOOK_HASH,
-    );
-    expect(
-      screen.getByRole("region", {
-        name: "Route the account through verifier, timelock, and hook",
-      }),
-    ).toBeTruthy();
-    expect(screen.getByText("Account selected — inspect live state")).toBeTruthy();
-    expect(screen.getByText("Safety guard")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Refresh State" }));
-    fireEvent.click(screen.getByRole("button", { name: "Update Verifier" }));
-    fireEvent.click(screen.getByRole("button", { name: "Update Hook" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("refresh", ACCOUNT_ID_HASH);
-      expect(dispatch).toHaveBeenCalledWith(
-        "submitVerifier",
-        ACCOUNT_ID_HASH,
-        VERIFIER_HASH,
-        "112233",
-      );
-      expect(dispatch).toHaveBeenCalledWith(
-        "submitHook",
-        ACCOUNT_ID_HASH,
-        HOOK_HASH,
-      );
+    fireEvent.change(screen.getByLabelText("accountId"), {
+      target: { value: "0x1111111111111111111111111111111111111111" },
     });
+    expect(primary.disabled).toBe(false);
+
+    fireEvent.click(primary);
+    expect(dispatch).toHaveBeenCalledWith("refresh", "0x1111111111111111111111111111111111111111");
   });
 
-  it("keeps write actions disabled until the required account and target hashes are present", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
-        )}
-      />,
-    );
+  it("keeps verifier and hook write controls tucked into the drawer", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(screen.getByText(/verifier contract hash/i)).toBeTruthy();
-    expect(screen.getByText(/hook contract hash/i)).toBeTruthy();
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Update Verifier",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-    expect(
-      (screen.getByRole("button", { name: "Update Hook" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
+    expect(container.querySelector(".mx2-stage__scene .perms-drawer")).toBeFalsy();
+    expect(container.querySelector(".perms-drawer")).toBeFalsy();
+
+    fireEvent.click(screen.getByRole("button", { name: /permissionsCommandTitle/i }));
+
+    expect(container.querySelector(".perms-drawer")).toBeTruthy();
+    expect(container.querySelector(".mx2-stage__scene .perms-drawer")).toBeFalsy();
+    expect(container.querySelectorAll(".perms-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(container.querySelectorAll(".perms-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toHaveLength(3);
+    expect(container.querySelector(".perms-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".perms-drawer h4")).toBeNull();
   });
 
-  it("shows 'not inspected' until a read completes, then 'configured'", () => {
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
-        )}
-      />,
-    );
-    // Typing an account id alone must NOT assert configured state.
-    expect(screen.getAllByText("not inspected").length).toBeGreaterThan(0);
-    expect(screen.queryByText("configured")).toBeNull();
+  it("keeps styling clean, responsive, and motion guarded", () => {
+    const fs = require("node:fs");
+    const s = fs.readFileSync(`${process.cwd()}/../aa-permissions-lab/src/PlayArea.scss`, "utf8");
+    const source = fs.readFileSync(`${process.cwd()}/../aa-permissions-lab/src/PlayArea.tsx`, "utf8");
 
-    rerender(
-      <PlayArea
-        t={t}
-        state={baseState({ hasInspected: true })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
-        )}
-      />,
-    );
-    expect(screen.getAllByText("configured").length).toBeGreaterThan(0);
-    expect(screen.getByText("Live permission route loaded")).toBeTruthy();
-  });
-
-  it("surfaces a confirm/cancel banner for a pending verifier rotation", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({ hasInspected: true, hasPendingVerifier: true })}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
-        )}
-      />,
-    );
-
-    expect(screen.getByText("Pending verifier rotation")).toBeTruthy();
-    expect(
-      screen.getByText("Verifier proposal is waiting on the timelock"),
-    ).toBeTruthy();
-    expect(screen.getByText("Pending update")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("confirmVerifier", ACCOUNT_ID_HASH);
-    });
-  });
-
-  it("refreshes visible fields when launch params change in the same mount", () => {
-    const nextAccount = "0x2222222222222222222222222222222222222222";
-    const nextVerifier = "0x3333333333333333333333333333333333333333";
-
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}&verifierHash=${VERIFIER_HASH}`,
-        )}
-      />,
-    );
-
-    rerender(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${nextAccount}&verifierHash=${nextVerifier}`,
-        )}
-      />,
-    );
-
-    expect(
-      (screen.getByLabelText("AccountId Hash") as HTMLInputElement).value,
-    ).toBe(nextAccount);
-    expect(
-      (screen.getByLabelText("Verifier Hash") as HTMLInputElement).value,
-    ).toBe(nextVerifier);
-  });
-
-  it("marks the permission route stage as busy while a verifier proposal is in flight", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({ isVerifierBusy: true })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}&verifierHash=${VERIFIER_HASH}`,
-        )}
-      />,
-    );
-
-    const routeStage = screen.getByRole("region", {
-      name: "Route the account through verifier, timelock, and hook",
-    });
-    expect(routeStage.getAttribute("aria-busy")).toBe("true");
-    expect(container.querySelector(".permissions-route-stage--verifier")).toBeTruthy();
-    expect(screen.getByText("Verifier proposal is in flight")).toBeTruthy();
-  });
-
-  it("keeps the permission route stage animated and reduced-motion safe", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../aa-permissions-lab/src/PlayArea.scss"),
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes permissions-route-flow");
-    expect(styles).toContain("@keyframes permissions-scan-frame");
-    expect(styles).toContain("@keyframes permissions-node-active");
-    expect(styles).toContain("@keyframes permissions-node-hold");
-    expect(styles).toContain(".permissions-route-stage--verifier");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.permissions-route-stage__scan/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.permissions-route-map__lane::after[\s\S]*animation:\s*none/,
-    );
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).toMatch(/\.perms-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.perms-boundary__visual\s*\{[\s\S]*background:\s*#f8fcfb/);
+    expect(s).toMatch(/\.perms-boundary__visual img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(s).toMatch(/\.perms-boundary__map\s*\{[\s\S]*grid-template-columns/);
+    expect(s).toMatch(/\.perms-boundary__map\s*\{[\s\S]*grid-template-columns:\s*minmax\(220px,\s*0\.66fr\) minmax\(190px,\s*0\.48fr\) minmax\(360px,\s*1fr\)/);
+    expect(s).toMatch(/\.perms-boundary__target-input\.mx2-open-field\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/\.perms-boundary__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.perms-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 174px/);
+    expect(s).toMatch(/\.perms-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*var\(--mx2-brand-hover\)/);
+    expect(s).toMatch(/\.perms-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.perms-drawer__panel--wide > \.semi-card-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(260px,\s*520px\)\s+minmax\(160px,\s*220px\)/);
+    expect(s).not.toMatch(/\.perms-drawer__field[\s\S]*& input/);
+    expect(source).toContain("OpenUiTextField");
+    expect(source).not.toContain("<input");
+    expect(s).not.toMatch(/\.perms-drawer__section/);
+    expect(s).toMatch(/\.perms-boundary__visual span\s*\{[\s\S]*letter-spacing:\s*0/);
+    expect(s).toMatch(/@media \(max-width:\s*900px\)[\s\S]*\.perms-boundary__map\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__visual\s*\{[\s\S]*height:\s*104px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__core\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__gate\s*\{[\s\S]*min-height:\s*72px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__guard small\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*170px/);
+    expect(s).toMatch(/@keyframes perms-route-flow/);
+    expect(s).toMatch(/@keyframes perms-core-spin/);
+    expect(s).toMatch(/@keyframes perms-pending-breathe/);
+    expect(s).not.toMatch(/perms-scene__account-panel|perms-scene__route-step|perms-scene__backdrop|background-image:\s*url|var\(--mx2-scene-wash/);
   });
 });

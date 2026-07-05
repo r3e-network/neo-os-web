@@ -23,7 +23,7 @@ describe("miniapp coercion", () => {
         category: "defi",
         news_integration: false,
         stats_display: ["tx_count", "daily_active_users"],
-        logo_url: "https://cdn.example.com/logo.png",
+        logo_url: "https://cdn.example.com/logo.webp",
         banner_url: "https://cdn.example.com/banner.png",
         docs_url: "https://docs.example.com/app",
       },
@@ -38,7 +38,7 @@ describe("miniapp coercion", () => {
     expect(app.name).toBe("Manifest Name");
     expect(app.news_integration).toBe(false);
     expect(app.stats_display).toEqual(["total_transactions", "daily_active_users"]);
-    expect(app.logo_url).toBe("https://cdn.example.com/logo.png");
+    expect(app.logo_url).toBe("https://cdn.example.com/logo.webp");
     expect(app.banner_url).toBe("https://cdn.example.com/banner.png");
     expect(app.docs_url).toBe("https://docs.example.com/app");
   });

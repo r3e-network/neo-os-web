@@ -2,9 +2,9 @@
   display: grid;
   width: 100%;
   overflow: hidden;
-  border-color: rgba(22, 199, 132, 0.14) !important;
+  border-color: rgba(8, 145, 178, 0.14) !important;
   background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.72), rgba(255, 255, 255, 0.96) 52%),
+    linear-gradient(135deg, rgba(226, 244, 249, 0.72), rgba(255, 255, 255, 0.96) 52%),
     var(--ns-surface, #ffffff) !important;
 }
 
@@ -27,7 +27,7 @@
   justify-content: center;
   width: 42px;
   height: 42px;
-  border: 1px solid rgba(22, 199, 132, 0.18);
+  border: 1px solid rgba(8, 145, 178, 0.18);
   border-radius: var(--ns-radius-md, 16px);
   background: rgba(255, 255, 255, 0.9);
   color: var(--ns-brand-deep, #0b5e3e);
@@ -72,10 +72,10 @@
   place-items: center;
   min-height: 168px;
   overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.16);
+  border: 1px solid rgba(8, 145, 178, 0.16);
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    radial-gradient(circle at 50% 50%, rgba(22, 199, 132, 0.14), transparent 46%),
+    radial-gradient(circle at 50% 50%, rgba(8, 145, 178, 0.14), transparent 46%),
     rgba(255, 255, 255, 0.76);
 }
 
@@ -110,7 +110,7 @@
   width: 72px;
   height: 72px;
   overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.2);
+  border: 1px solid rgba(8, 145, 178, 0.2);
   border-radius: 22px;
   box-shadow: 0 16px 34px rgba(11, 94, 62, 0.14);
 }
@@ -128,7 +128,7 @@
   z-index: 0;
   width: 14px;
   height: 14px;
-  border: 1px solid rgba(22, 199, 132, 0.28);
+  border: 1px solid rgba(8, 145, 178, 0.28);
   border-radius: 999px;
   opacity: 0;
   transform: translate(-50%, -50%) scale(1);
@@ -204,7 +204,7 @@
 
 .network-option:hover,
 .network-option.is-active {
-  border-color: rgba(22, 199, 132, 0.3);
+  border-color: rgba(8, 145, 178, 0.3);
   background: #ffffff;
   box-shadow: 0 12px 26px rgba(11, 94, 62, 0.1);
   transform: translateY(-1px);
@@ -212,7 +212,7 @@
 
 .network-option:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(8, 145, 178, 0.18));
 }
 
 .network-option__icon {

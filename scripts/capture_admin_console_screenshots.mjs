@@ -27,7 +27,7 @@ async function capturePage(page, { route, viewport, suffix }) {
   await page.setViewportSize(viewport);
   await page.goto(`${baseUrl}${route}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.waitForTimeout(250);
-  const fileName = `admin__${safeFileName(route === "/" ? "root" : route.slice(1))}__${suffix}.png`;
+  const fileName = `admin__${safeFileName(route === "/" ? "root" : route.slice(1))}__${suffix}.webp`;
   const outPath = path.join(outputDir, fileName);
   await page.screenshot({ path: outPath, fullPage: true });
   return { route, outPath };

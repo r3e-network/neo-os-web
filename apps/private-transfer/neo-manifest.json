@@ -29,8 +29,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/private-transfer/index.html",
-    "icon": "/miniapps/private-transfer/logo.jpg",
-    "banner": "/miniapps/private-transfer/banner.jpg"
+    "icon": "/miniapps/private-transfer/logo.webp",
+    "banner": "/miniapps/private-transfer/banner.webp"
   },
   "permissions": [
     "invoke:primary",

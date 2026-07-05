@@ -29,7 +29,7 @@ type SealPhase = "key" | "package" | "store";
 
 const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
 const PRIVATE_TRANSFER_FORM_MESSAGE =
-  "Add a valid Neo N3 recipient and a positive transfer amount in the action console before sealing.";
+  "Recipient and amount are local draft slots until you seal the private intent.";
 
 function isValidNeoAddress(value: string) {
   return /^N[0-9A-Za-z]{33}$/.test(value.trim());
@@ -276,9 +276,9 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
         <div className="space-y-3">
           {!formReady && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
-              <h3 className="m-0 flex items-center gap-2 text-sm font-black">
+              <h3 className="m-0 flex items-center gap-2 text-sm font-semibold">
                 <AlertTriangle className="h-4 w-4 text-amber-700" />
-                Input needed
+                Draft slots
               </h3>
               <p className="mt-2 text-sm leading-6">
                 {PRIVATE_TRANSFER_FORM_MESSAGE}
@@ -287,7 +287,7 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
           )}
 
           <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 text-slate-900">
-            <h3 className="m-0 flex items-center gap-2 text-sm font-black">
+            <h3 className="m-0 flex items-center gap-2 text-sm font-semibold">
               <ShieldCheck className="h-4 w-4 text-teal-700" />
               Privacy flow
             </h3>
@@ -299,7 +299,7 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
                 "Wallet submits release or refund with the signed result.",
               ].map((step, index) => (
                 <div key={step} className="flex gap-3 text-sm text-slate-700">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-teal-700 shadow-sm shadow-teal-950/5">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-xs font-semibold text-teal-700 shadow-sm shadow-teal-950/5">
                     {index + 1}
                   </span>
                   <span>{step}</span>
@@ -323,11 +323,11 @@ function PrivateTransferStatusPanel({
       ? "border-emerald-200 bg-emerald-50 text-emerald-950"
       : result.status === "error"
         ? "border-red-200 bg-red-50 text-red-950"
-        : "border-gray-200 bg-white text-gray-950";
+        : "border-gray-200 bg-white text-gray-900";
 
   return (
     <div className={`rounded-lg border p-4 ${tone}`}>
-      <h3 className="m-0 text-sm font-black">Morpheus confidential compute</h3>
+      <h3 className="m-0 text-sm font-semibold">Morpheus confidential compute</h3>
       <p className="mt-2 text-sm leading-6">{result.message}</p>
       {result.status === "error" && (
         <p className="mt-3 rounded-lg border border-red-200 bg-white/70 px-3 py-2 text-xs font-bold leading-5 text-red-900">

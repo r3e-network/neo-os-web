@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeoQuest — 小程序首页设计原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   Neo v4 Design Language — Miniapp Homepage
+   设计规范: docs/DESIGN_LANGUAGE.md
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Canvas */
+  --canvas: #FAF9F7;
+  --canvas-alt: #F4F2EF;
+  /* Surface */
+  --surface: #FFFFFF;
+  --surface-hover: #F1EFEC;
+  /* Border */
+  --border: #E8E6E1;
+  --border-strong: #D4D0C9;
+  /* Ink */
+  --ink: #1A1A19;
+  --ink-secondary: #5C5A56;
+  --ink-tertiary: #8B8984;
+  --ink-inverse: #FFFFFF;
+  /* Brand */
+  --brand: #16C784;
+  --brand-hover: #0EA371;
+  --brand-light: #E8F8F1;
+  /* Semantic */
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  /* Category — Game */
+  --cat: #F59E0B;
+  --cat-light: #FEF3C7;
+  --cat-glow: rgba(245,158,11,0.08);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-brand: 0 2px 8px rgba(22,199,132,0.25);
+
+  /* Typography */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-normal: 250ms;
+
+  /* Game ambiance */
+  --scene-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245,158,11,0.06), transparent);
+}
+
+/* ═══════ Dark Theme ═══════ */
+[data-theme="dark"] {
+  --canvas: #0D0D0C;
+  --canvas-alt: #141412;
+  --surface: #1A1A18;
+  --surface-hover: #22221F;
+  --border: #2A2A27;
+  --border-strong: #3A3A36;
+  --ink: #EDEDEB;
+  --ink-secondary: #9B9994;
+  --ink-tertiary: #6B6964;
+  --ink-inverse: #0D0D0C;
+  --brand: #19D894;
+  --brand-hover: #22E89C;
+  --brand-light: rgba(25,216,148,0.10);
+  --cat-light: rgba(245,158,11,0.10);
+  --cat-glow: rgba(245,158,11,0.10);
+  --shadow-card: none;
+  --shadow-card-hover: 0 0 0 1px var(--border-strong);
+  --scene-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245,158,11,0.08), transparent);
+}
+
+/* ═══════ Reset ═══════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: var(--font-sans);
+  background: var(--canvas);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex; justify-content: center; align-items: flex-start;
+  min-height: 100vh; padding: 40px 16px;
+}
+
+/* ═══════ Miniapp Shell ═══════ */
+.miniapp-shell {
+  width: 100%; max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ═══════ Miniapp Header ═══════ */
+.miniapp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 10;
+}
+.miniapp-header-left {
+  display: flex; align-items: center; gap: 10px; text-decoration: none;
+}
+.miniapp-header-icon {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  background: var(--cat-light); display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.miniapp-header-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+.miniapp-header-actions { display: flex; gap: 4px; }
+.miniapp-header-btn {
+  width: 32px; height: 32px; border-radius: var(--radius-sm); border: none; background: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-tertiary); font-size: 14px;
+  transition: all var(--dur-fast) var(--ease-smooth);
+}
+.miniapp-header-btn:hover { background: var(--canvas-alt); color: var(--ink-secondary); }
+
+/* ═══════ Page Content ═══════ */
+.page-content {
+  background:
+    var(--scene-glow),
+    var(--canvas);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 1 — Hero
+   ═══════════════════════════════════════════════════════════ */
+.hero {
+  padding: 48px 24px 32px;
+  text-align: center;
+  position: relative;
+}
+.hero-icon-wrap {
+  width: 72px; height: 72px; margin: 0 auto 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  box-shadow: 0 8px 24px rgba(245,158,11,0.20);
+  position: relative;
+}
+.hero-icon-wrap::after {
+  content: "";
+  position: absolute; inset: -4px; border-radius: 24px;
+  border: 2px solid rgba(245,158,11,0.15);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: var(--radius-full);
+  background: var(--cat-light); color: var(--cat);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 16px;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--cat);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+.hero-title {
+  font-size: 36px; font-weight: 800; color: var(--ink);
+  line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 12px;
+}
+.hero-title-accent {
+  background: linear-gradient(135deg, var(--cat), #D97706);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-desc {
+  font-size: 15px; color: var(--ink-secondary); line-height: 1.6;
+  max-width: 300px; margin: 0 auto 28px;
+}
+.hero-actions {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px;
+}
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 32px; border-radius: var(--radius-full);
+  background: var(--brand); color: var(--ink-inverse);
+  font-weight: 700; font-size: 15px; border: none; cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all var(--dur-fast) var(--ease-out);
+  box-shadow: var(--shadow-brand);
+  text-decoration: none;
+}
+.btn-primary:hover {
+  background: var(--brand-hover); transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(22,199,132,0.30);
+}
+.btn-primary:active { transform: translateY(0) scale(0.98); }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-full);
+  background: none; color: var(--ink-secondary);
+  font-weight: 500; font-size: 13px; border: none; cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all var(--dur-fast) var(--ease-smooth);
+  text-decoration: none;
+}
+.btn-ghost:hover { color: var(--ink); background: var(--surface-hover); }
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 2 — Live Stats
+   ═══════════════════════════════════════════════════════════ */
+.stats-strip {
+  display: flex; justify-content: center; gap: 0;
+  margin: 0 24px; padding: 24px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stat-item {
+  flex: 1; text-align: center; position: relative;
+}
+.stat-item + .stat-item::before {
+  content: ""; position: absolute; left: 0; top: 20%; height: 60%;
+  width: 1px; background: var(--border);
+}
+.stat-value {
+  font-size: 24px; font-weight: 800; color: var(--ink);
+  letter-spacing: -0.02em; line-height: 1; margin-bottom: 6px;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  font-size: 11px; font-weight: 600; color: var(--ink-tertiary);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.stat-trend {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600; color: var(--success); margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 3 — Feature Showcase (Asymmetric Layout)
+   ═══════════════════════════════════════════════════════════ */
+.features {
+  padding: 48px 24px 32px;
+}
+.features-eyebrow {
+  font-size: 11px; font-weight: 700; color: var(--ink-tertiary);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+}
+.features-title {
+  font-size: 24px; font-weight: 700; color: var(--ink);
+  line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 32px;
+}
+
+/* Large feature card */
+.feature-primary {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  box-shadow: var(--shadow-card); margin-bottom: 12px;
+  transition: all var(--dur-normal) var(--ease-smooth);
+  cursor: pointer;
+}
+.feature-primary:hover {
+  box-shadow: var(--shadow-card-hover); transform: translateY(-2px);
+}
+.feature-primary-visual {
+  height: 120px; background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 40%, #F59E0B 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56px; position: relative; overflow: hidden;
+}
+.feature-primary-visual::after {
+  content: ""; position: absolute; right: -30px; top: -30px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: rgba(255,255,255,0.25); pointer-events: none;
+}
+.feature-primary-body { padding: 20px; }
+.feature-primary-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.feature-primary-desc { font-size: 13px; color: var(--ink-secondary); line-height: 1.5; }
+
+/* Two smaller cards */
+.feature-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 20px;
+  box-shadow: var(--shadow-card); cursor: pointer;
+  transition: all var(--dur-normal) var(--ease-smooth);
+}
+.feature-card:hover {
+  box-shadow: var(--shadow-card-hover); transform: translateY(-2px);
+}
+.feature-card-icon {
+  width: 40px; height: 40px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 12px;
+}
+.feature-card-icon.battle { background: #FEF3C7; }
+.feature-card-icon.craft { background: #E8F8F1; }
+.feature-card-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.feature-card-desc { font-size: 12px; color: var(--ink-secondary); line-height: 1.4; }
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 4 — Leaderboard
+   ═══════════════════════════════════════════════════════════ */
+.leaderboard {
+  padding: 0 24px 16px;
+}
+.leaderboard-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.leaderboard-eyebrow {
+  font-size: 11px; font-weight: 700; color: var(--ink-tertiary);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+}
+.leaderboard-title {
+  font-size: 24px; font-weight: 700; color: var(--ink);
+  line-height: 1.2; letter-spacing: -0.02em;
+}
+.leaderboard-view-all {
+  font-size: 12px; font-weight: 600; color: var(--ink-tertiary);
+  text-decoration: none; padding-bottom: 2px;
+  transition: color var(--dur-fast);
+}
+.leaderboard-view-all:hover { color: var(--ink-secondary); }
+
+.leaderboard-list {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.leaderboard-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.leaderboard-item:hover { background: var(--surface-hover); }
+.leaderboard-item + .leaderboard-item { border-top: 1px solid var(--border); }
+.leaderboard-rank {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--ink-tertiary);
+  flex-shrink: 0;
+}
+.leaderboard-item:nth-child(1) .leaderboard-rank { background: #FEF3C7; color: #B45309; }
+.leaderboard-item:nth-child(2) .leaderboard-rank { background: #E5E7EB; color: #4B5563; }
+.leaderboard-item:nth-child(3) .leaderboard-rank { background: #FEF2F2; color: #991B1B; }
+.leaderboard-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.leaderboard-avatar.av2 { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); }
+.leaderboard-avatar.av3 { background: linear-gradient(135deg, #EDE9FE, #DDD6FE); }
+.leaderboard-avatar.av4 { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); }
+.leaderboard-avatar.av5 { background: linear-gradient(135deg, #FCE7F3, #FBCFE8); }
+.leaderboard-info { flex: 1; min-width: 0; }
+.leaderboard-name {
+  font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.leaderboard-addr {
+  font-size: 11px; color: var(--ink-tertiary);
+  font-family: var(--font-mono);
+}
+.leaderboard-score {
+  text-align: right; flex-shrink: 0;
+}
+.leaderboard-score-val {
+  font-size: 15px; font-weight: 700; color: var(--ink);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.leaderboard-score-label {
+  font-size: 10px; color: var(--ink-tertiary); font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 5 — Teaser / Coming Soon
+   ═══════════════════════════════════════════════════════════ */
+.teaser {
+  margin: 16px 24px 0; padding: 20px 24px;
+  background: var(--canvas-alt); border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg); text-align: center;
+}
+.teaser-icon { font-size: 28px; margin-bottom: 8px; }
+.teaser-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.teaser-desc { font-size: 12px; color: var(--ink-secondary); }
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 6 — Bottom CTA
+   ═══════════════════════════════════════════════════════════ */
+.cta-section {
+  padding: 48px 24px 40px; text-align: center;
+}
+.cta-title {
+  font-size: 22px; font-weight: 700; color: var(--ink);
+  line-height: 1.3; letter-spacing: -0.02em; margin-bottom: 8px;
+}
+.cta-desc {
+  font-size: 14px; color: var(--ink-secondary); margin-bottom: 24px;
+  max-width: 260px; margin-left: auto; margin-right: auto;
+}
+.cta-trust {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 16px;
+}
+.cta-trust-text { font-size: 12px; color: var(--ink-tertiary); }
+.cta-trust-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border-strong); }
+
+/* ═══════════════════════════════════════════════════════════
+   Theme Toggle
+   ═══════════════════════════════════════════════════════════ */
+.theme-toggle {
+  position: fixed; top: 20px; right: 20px;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-secondary); box-shadow: var(--shadow-card);
+  transition: all var(--dur-fast) var(--ease-smooth); z-index: 999;
+}
+.theme-toggle:hover { transform: scale(1.1); color: var(--ink); }
+
+/* ═══════════════════════════════════════════════════════════
+   Category Switcher (for demo)
+   ═══════════════════════════════════════════════════════════ */
+.demo-switcher {
+  position: fixed; top: 68px; right: 20px;
+  display: flex; flex-direction: column; gap: 4px; z-index: 999;
+}
+.demo-switch {
+  padding: 6px 12px; border-radius: var(--radius-full);
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; font-size: 11px; font-weight: 600; color: var(--ink-secondary);
+  font-family: var(--font-sans); white-space: nowrap;
+  transition: all var(--dur-fast); box-shadow: var(--shadow-card);
+}
+.demo-switch:hover { border-color: var(--border-strong); color: var(--ink); }
+.demo-switch.active { border-color: var(--brand); color: var(--brand); background: var(--brand-light); }
+
+/* ═══════════════════════════════════════════════════════════
+   DeFi Variant Overrides
+   ═══════════════════════════════════════════════════════════ */
+[data-category="defi"] {
+  --cat: #3B82F6; --cat-light: #DBEAFE;
+  --cat-glow: rgba(59,130,246,0.08);
+  --scene-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.06), transparent);
+}
+[data-category="defi"] .hero-icon-wrap { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); box-shadow: 0 8px 24px rgba(59,130,246,0.20); }
+[data-category="defi"] .hero-icon-wrap::after { border-color: rgba(59,130,246,0.15); }
+[data-category="defi"] .hero-title-accent { background: linear-gradient(135deg, #3B82F6, #1D4ED8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+[data-category="defi"] .hero-badge { background: #DBEAFE; color: #3B82F6; }
+[data-category="defi"] .hero-badge-dot { background: #3B82F6; }
+[data-category="defi"] .feature-primary-visual { background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 40%, #3B82F6 100%); }
+[data-category="defi"] .leaderboard-item:nth-child(1) .leaderboard-rank { background: #DBEAFE; color: #1E40AF; }
+
+/* ═══════════════════════════════════════════════════════════
+   NFT Variant Overrides
+   ═══════════════════════════════════════════════════════════ */
+[data-category="nft"] {
+  --cat: #8B5CF6; --cat-light: #EDE9FE;
+  --cat-glow: rgba(139,92,246,0.08);
+  --scene-glow: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.06), transparent);
+}
+[data-category="nft"] .hero-icon-wrap { background: linear-gradient(135deg, #EDE9FE, #DDD6FE); box-shadow: 0 8px 24px rgba(139,92,246,0.20); }
+[data-category="nft"] .hero-icon-wrap::after { border-color: rgba(139,92,246,0.15); }
+[data-category="nft"] .hero-title-accent { background: linear-gradient(135deg, #8B5CF6, #6D28D9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+[data-category="nft"] .hero-badge { background: #EDE9FE; color: #8B5CF6; }
+[data-category="nft"] .hero-badge-dot { background: #8B5CF6; }
+[data-category="nft"] .feature-primary-visual { background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 40%, #8B5CF6 100%); }
+[data-category="nft"] .leaderboard-item:nth-child(1) .leaderboard-rank { background: #EDE9FE; color: #5B21B6; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌗</button>
+
+<div class="demo-switcher">
+  <button class="demo-switch active" onclick="switchCategory('game', this)">🎮 游戏</button>
+  <button class="demo-switch" onclick="switchCategory('defi', this)">💰 DeFi</button>
+  <button class="demo-switch" onclick="switchCategory('nft', this)">🖼 NFT</button>
+</div>
+
+<!-- ═══════════════ Miniapp Shell ═══════════════ -->
+<div class="miniapp-shell">
+  <!-- Header -->
+  <div class="miniapp-header">
+    <a href="#" class="miniapp-header-left">
+      <div class="miniapp-header-icon">🎮</div>
+      <span class="miniapp-header-name" id="headerName">NeoQuest</span>
+    </a>
+    <div class="miniapp-header-actions">
+      <button class="miniapp-header-btn" title="分享">↗</button>
+      <button class="miniapp-header-btn" title="更多">⋯</button>
+    </div>
+  </div>
+
+  <!-- Page Content -->
+  <div class="page-content">
+
+    <!-- ═══════ Hero ═══════ -->
+    <section class="hero">
+      <div class="hero-icon-wrap" id="heroIcon">🗺️</div>
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        <span id="heroBadge">多人冒险</span>
+      </div>
+      <h1 class="hero-title" id="heroTitle">
+        探索<span class="hero-title-accent">奇幻</span>世界
+      </h1>
+      <p class="hero-desc" id="heroDesc">
+        在 Neo N3 区块链上展开史诗级冒险。完成任务、收集战利品、与全球玩家竞技。
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary" id="primaryCta">▶ 开始冒险</button>
+        <button class="btn-ghost">📖 查看指南</button>
+      </div>
+    </section>
+
+    <!-- ═══════ Stats Strip ═══════ -->
+    <div class="stats-strip">
+      <div class="stat-item">
+        <div class="stat-value">1,280</div>
+        <div class="stat-label">在线玩家</div>
+        <div class="stat-trend">↑ 12%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statCenter">42,000</div>
+        <div class="stat-label" id="statCenterLabel">完成任务</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">250</div>
+        <div class="stat-label">NEO 奖池</div>
+      </div>
+    </div>
+
+    <!-- ═══════ Features ═══════ -->
+    <section class="features">
+      <div class="features-eyebrow" id="featuresEyebrow">核心玩法</div>
+      <div class="features-title" id="featuresTitle">开启你的冒险之旅</div>
+
+      <!-- Large -->
+      <div class="feature-primary">
+        <div class="feature-primary-visual" id="featurePrimaryVisual">🌍</div>
+        <div class="feature-primary-body">
+          <div class="feature-primary-title" id="featurePrimaryTitle">探索未知大陆</div>
+          <div class="feature-primary-desc" id="featurePrimaryDesc">
+            穿越 7 个神秘领域，发现隐藏宝藏，解锁稀有成就徽章。每一片土地都有独特的秘密等待揭晓。
+          </div>
+        </div>
+      </div>
+
+      <!-- Two smaller -->
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="feature-card-icon battle">⚔️</div>
+          <div class="feature-card-title" id="featureCardTitle1">实时战斗</div>
+          <div class="feature-card-desc" id="featureCardDesc1">策略回合制对战，每场战斗上链验证</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon craft">🛡️</div>
+          <div class="feature-card-title" id="featureCardTitle2">装备锻造</div>
+          <div class="feature-card-desc" id="featureCardDesc2">收集材料，打造独一无二的 NFT 装备</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ Leaderboard ═══════ -->
+    <section class="leaderboard">
+      <div class="leaderboard-header">
+        <div>
+          <div class="leaderboard-eyebrow" id="lbEyebrow">排行榜</div>
+          <div class="leaderboard-title" id="lbTitle">顶尖冒险者</div>
+        </div>
+        <a href="#" class="leaderboard-view-all">查看全部 →</a>
+      </div>
+
+      <div class="leaderboard-list">
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank">1</div>
+          <div class="leaderboard-avatar">🦊</div>
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">CryptoFox</div>
+            <div class="leaderboard-addr">0x7a3f...b21e</div>
+          </div>
+          <div class="leaderboard-score">
+            <div class="leaderboard-score-val">12,450</div>
+            <div class="leaderboard-score-label">积分</div>
+          </div>
+        </div>
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank">2</div>
+          <div class="leaderboard-avatar av2">🐉</div>
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">DragonMaster</div>
+            <div class="leaderboard-addr">0x2e8d...c94a</div>
+          </div>
+          <div class="leaderboard-score">
+            <div class="leaderboard-score-val">11,230</div>
+            <div class="leaderboard-score-label">积分</div>
+          </div>
+        </div>
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank">3</div>
+          <div class="leaderboard-avatar av3">⭐</div>
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">StarGazer</div>
+            <div class="leaderboard-addr">0x5f1a...d73c</div>
+          </div>
+          <div class="leaderboard-score">
+            <div class="leaderboard-score-val">10,890</div>
+            <div class="leaderboard-score-label">积分</div>
+          </div>
+        </div>
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank">4</div>
+          <div class="leaderboard-avatar av4">🌿</div>
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">NeoWanderer</div>
+            <div class="leaderboard-addr">0x9c4b...e82f</div>
+          </div>
+          <div class="leaderboard-score">
+            <div class="leaderboard-score-val">9,560</div>
+            <div class="leaderboard-score-label">积分</div>
+          </div>
+        </div>
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank">5</div>
+          <div class="leaderboard-avatar av5">🌸</div>
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">SakuraWind</div>
+            <div class="leaderboard-addr">0x3d7e...a15b</div>
+          </div>
+          <div class="leaderboard-score">
+            <div class="leaderboard-score-val">8,720</div>
+            <div class="leaderboard-score-label">积分</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ Teaser ═══════ -->
+    <div class="teaser" id="teaser">
+      <div class="teaser-icon" id="teaserIcon">🏰</div>
+      <div class="teaser-title" id="teaserTitle">新大陆即将开放</div>
+      <div class="teaser-desc" id="teaserDesc">暗影城堡正在开发中，即将上线</div>
+    </div>
+
+    <!-- ═══════ Bottom CTA ═══════ -->
+    <section class="cta-section">
+      <div class="cta-title" id="ctaTitle">准备好开始你的冒险了吗？</div>
+      <div class="cta-desc" id="ctaDesc">连接钱包，立即加入数万名冒险者的行列</div>
+      <button class="btn-primary" id="bottomCta">▶ 立即开始 — 免费</button>
+      <div class="cta-trust">
+        <span class="cta-trust-text">🔒 Neo N3 链上验证</span>
+        <span class="cta-trust-dot"></span>
+        <span class="cta-trust-text">Gas 赞助模式</span>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+function switchCategory(cat, btn) {
+  document.querySelectorAll('.demo-switch').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.documentElement.setAttribute('data-category', cat);
+
+  const data = {
+    game: {
+      headerName: 'NeoQuest', heroIcon: '🗺️', heroBadge: '多人冒险',
+      heroTitle: '探索<span class="hero-title-accent">奇幻</span>世界',
+      heroDesc: '在 Neo N3 区块链上展开史诗级冒险。完成任务、收集战利品、与全球玩家竞技。',
+      primaryCta: '▶ 开始冒险', bottomCta: '▶ 立即开始 — 免费',
+      statCenter: '42,000', statCenterLabel: '完成任务',
+      featuresEyebrow: '核心玩法', featuresTitle: '开启你的冒险之旅',
+      featurePrimaryVisual: '🌍', featurePrimaryTitle: '探索未知大陆',
+      featurePrimaryDesc: '穿越 7 个神秘领域，发现隐藏宝藏，解锁稀有成就徽章。每一片土地都有独特的秘密等待揭晓。',
+      featureCardTitle1: '实时战斗', featureCardDesc1: '策略回合制对战，每场战斗上链验证',
+      featureCardTitle2: '装备锻造', featureCardDesc2: '收集材料，打造独一无二的 NFT 装备',
+      lbEyebrow: '排行榜', lbTitle: '顶尖冒险者',
+      teaserIcon: '🏰', teaserTitle: '新大陆即将开放', teaserDesc: '暗影城堡正在开发中，即将上线',
+      ctaTitle: '准备好开始你的冒险了吗？', ctaDesc: '连接钱包，立即加入数万名冒险者的行列',
+    },
+    defi: {
+      headerName: 'Neo Swap', heroIcon: '💱', heroBadge: '实时交易',
+      heroTitle: '极速<span class="hero-title-accent">兑换</span>资产',
+      heroDesc: 'N3 生态最流畅的去中心化交易所。低滑点、零 Gas、毫秒级确认。',
+      primaryCta: '💰 开始交易', bottomCta: '💰 立即交易',
+      statCenter: '$2.4M', statCenterLabel: '24h 交易量',
+      featuresEyebrow: '产品功能', featuresTitle: '一站式 DeFi 工具',
+      featurePrimaryVisual: '📊', featurePrimaryTitle: '流动性挖矿',
+      featurePrimaryDesc: '提供流动性，赚取交易手续费和额外 NEO 代币奖励。APY 最高可达 120%。',
+      featureCardTitle1: '智能路由', featureCardDesc1: '自动寻找最优交易路径，最低滑点',
+      featureCardTitle2: '限价单', featureCardDesc2: '设定目标价格，自动执行挂单交易',
+      lbEyebrow: '热门池', lbTitle: '流动资金池',
+      teaserIcon: '🔮', teaserTitle: '永续合约即将上线', teaserDesc: '杠杆交易功能正在开发中',
+      ctaTitle: '准备好开始交易了吗？', ctaDesc: '连接钱包，体验最流畅的去中心化交易',
+    },
+    nft: {
+      headerName: 'Neo Gallery', heroIcon: '🎨', heroBadge: '独家收藏',
+      heroTitle: '发现<span class="hero-title-accent">数字</span>艺术',
+      heroDesc: '浏览、收藏、交易 Neo N3 生态最精美的 NFT 作品。每一次铸造都是链上永恒的记录。',
+      primaryCta: '🖼 浏览藏品', bottomCta: '🖼 开始收藏',
+      statCenter: '8,520', statCenterLabel: '总藏品数',
+      featuresEyebrow: '平台特色', featuresTitle: '你的数字画廊',
+      featurePrimaryVisual: '🏛️', featurePrimaryTitle: '精选特展',
+      featurePrimaryDesc: '每周精选 10 位创作者的独家作品。限量发行，链上确权，永久收藏。',
+      featureCardTitle1: '一键铸造', featureCardDesc1: '上传作品，自动部署 NFT 智能合约',
+      featureCardTitle2: '二级市场', featureCardDesc2: '自由挂单买卖，极低手续费交易',
+      lbEyebrow: '热门藏品', lbTitle: '销量排行',
+      teaserIcon: '🎭', teaserTitle: '虚拟展厅即将开放', teaserDesc: '3D 沉浸式数字画廊体验',
+      ctaTitle: '准备好发现艺术了吗？', ctaDesc: '连接钱包，开启你的数字收藏之旅',
+    }
+  };
+
+  const d = data[cat];
+  document.getElementById('headerName').textContent = d.headerName;
+  document.getElementById('heroIcon').textContent = d.heroIcon;
+  document.getElementById('heroBadge').innerHTML = `<span class="hero-badge-dot"></span>${d.heroBadge}`;
+  document.getElementById('heroTitle').innerHTML = d.heroTitle;
+  document.getElementById('heroDesc').textContent = d.heroDesc;
+  document.getElementById('primaryCta').innerHTML = d.primaryCta;
+  document.getElementById('bottomCta').innerHTML = d.bottomCta;
+  document.getElementById('statCenter').textContent = d.statCenter;
+  document.getElementById('statCenterLabel').textContent = d.statCenterLabel;
+  document.getElementById('featuresEyebrow').textContent = d.featuresEyebrow;
+  document.getElementById('featuresTitle').textContent = d.featuresTitle;
+  document.getElementById('featurePrimaryVisual').textContent = d.featurePrimaryVisual;
+  document.getElementById('featurePrimaryTitle').textContent = d.featurePrimaryTitle;
+  document.getElementById('featurePrimaryDesc').textContent = d.featurePrimaryDesc;
+  document.getElementById('featureCardTitle1').textContent = d.featureCardTitle1;
+  document.getElementById('featureCardDesc1').textContent = d.featureCardDesc1;
+  document.getElementById('featureCardTitle2').textContent = d.featureCardTitle2;
+  document.getElementById('featureCardDesc2').textContent = d.featureCardDesc2;
+  document.getElementById('lbEyebrow').textContent = d.lbEyebrow;
+  document.getElementById('lbTitle').textContent = d.lbTitle;
+  document.getElementById('teaserIcon').textContent = d.teaserIcon;
+  document.getElementById('teaserTitle').textContent = d.teaserTitle;
+  document.getElementById('teaserDesc').textContent = d.teaserDesc;
+  document.getElementById('ctaTitle').textContent = d.ctaTitle;
+  document.getElementById('ctaDesc').textContent = d.ctaDesc;
+}
+</script>
+
+</body>
+</html>

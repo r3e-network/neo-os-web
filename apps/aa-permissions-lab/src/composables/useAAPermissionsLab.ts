@@ -6,7 +6,8 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService, ContractArg } from "@shared/services";
+import type { ChainService } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import {
   addressToScriptHash,
@@ -20,12 +21,15 @@ import {
 } from "@shared/constants/rpc";
 
 export interface UseAAPermissionsLabOptions {
+  app: MiniAppFramework;
+  // The framework SDK does not expose the connection flag, so the raw chain is
+  // kept solely for `chain.isConnected` (gates the OS-storage cache write).
   chain: ChainService;
   storageService: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissionsLabOptions) {
+export function useAAPermissionsLab({ app, chain, storageService, t }: UseAAPermissionsLabOptions) {
   const network = getNetwork();
   const aaCore = getExternalIntegrationConfig(network).contracts.aaCore;
 
@@ -68,7 +72,7 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
 
   // The connected wallet as a bare lowercase script hash, "" when disconnected.
   const connectedWalletHash = (): string => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) return "";
     try {
       const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
@@ -85,7 +89,7 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
       return hash ? `0x${hash}` : "";
     },
     set: () => {},
-    subscribe: (fn: () => void) => chain.address.subscribe(fn),
+    subscribe: (fn: () => void) => app.chain.address.subscribe(fn),
   };
 
   // 20-byte script hash, optional 0x prefix (e.g. 0x + 40 hex chars).
@@ -116,7 +120,7 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
       isRefreshing.set(true);
       requireScriptHash(form.accountIdHash);
       const accountId = normalizeScriptHash(form.accountIdHash).replace(/^0x/, "");
-      const idArg: ContractArg[] = [{ type: "Hash160", value: `0x${accountId}` }];
+      const idArg = [app.chain.arg.hash160(`0x${accountId}`)];
       const [
         verifier,
         hook,
@@ -126,13 +130,13 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
         pendingVerifierTime,
         pendingHookTime,
       ] = await Promise.all([
-        chain.read("getVerifier", idArg, { scriptHash: aaCore }),
-        chain.read("getHook", idArg, { scriptHash: aaCore }),
-        chain.read("getBackupOwner", idArg, { scriptHash: aaCore }),
-        chain.read("hasPendingVerifierUpdate", idArg, { scriptHash: aaCore }),
-        chain.read("hasPendingHookUpdate", idArg, { scriptHash: aaCore }),
-        chain.read("getPendingVerifierUpdateTime", idArg, { scriptHash: aaCore }),
-        chain.read("getPendingHookUpdateTime", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("getVerifier", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("getHook", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("getBackupOwner", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("hasPendingVerifierUpdate", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("hasPendingHookUpdate", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("getPendingVerifierUpdateTime", idArg, { scriptHash: aaCore }),
+        app.chain.readRaw("getPendingHookUpdateTime", idArg, { scriptHash: aaCore }),
       ]);
       currentVerifier.set(formatPermissionValue(verifier));
       currentHook.set(formatPermissionValue(hook));
@@ -179,10 +183,10 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
       requireScriptHash(form.verifierHash);
       requireHexBytes(form.verifierParamsHex);
       assertAuthorized();
-      await chain.invoke("updateVerifier", [
-        { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
-        { type: "Hash160", value: normalizeScriptHash(form.verifierHash) },
-        { type: "ByteArray", value: form.verifierParamsHex.trim().replace(/^0x/, "") },
+      await app.chain.invoke("updateVerifier", [
+        app.chain.arg.hash160(form.accountIdHash),
+        app.chain.arg.hash160(form.verifierHash),
+        app.chain.arg.byteArray(form.verifierParamsHex.trim().replace(/^0x/, "")),
       ], { scriptHash: aaCore });
       await refreshState();
     } catch (error: unknown) {
@@ -198,9 +202,9 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
       requireScriptHash(form.accountIdHash);
       requireScriptHash(form.hookHash);
       assertAuthorized();
-      await chain.invoke("updateHook", [
-        { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
-        { type: "Hash160", value: normalizeScriptHash(form.hookHash) },
+      await app.chain.invoke("updateHook", [
+        app.chain.arg.hash160(form.accountIdHash),
+        app.chain.arg.hash160(form.hookHash),
       ], { scriptHash: aaCore });
       await refreshState();
     } catch (error: unknown) {
@@ -219,8 +223,8 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
     try {
       busy.set(true);
       requireScriptHash(form.accountIdHash);
-      await chain.invoke(operation, [
-        { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
+      await app.chain.invoke(operation, [
+        app.chain.arg.hash160(form.accountIdHash),
       ], { scriptHash: aaCore });
       await refreshState();
     } catch (error: unknown) {

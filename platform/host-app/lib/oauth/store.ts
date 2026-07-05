@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createClient } from "@supabase/supabase-js";
 
+const OAUTH_STORAGE_KEY = "oauth-accounts";
+
 const getSupabase = () =>
   createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -119,10 +121,33 @@ export const useOAuthStore = create<OAuthStore>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: "oauth-accounts",
+      name: OAUTH_STORAGE_KEY,
     },
   ),
 );
+
+/**
+ * Keep the linked-accounts view in sync across tabs.
+ *
+ * Linking/unlinking an OAuth identity in one tab persists to localStorage, but
+ * `persist` only re-reads on the originating tab's load. Without this listener a
+ * second tab keeps rendering a stale linked-accounts list until reload. The
+ * `storage` event fires in every other same-origin tab, so rehydrating here
+ * converges the account-settings UI across tabs. This is display-only state
+ * (the auth session itself lives in sessionStorage), so a plain rehydrate is
+ * safe — it never affects wallet/network truth.
+ */
+let crossTabOAuthSyncInstalled = false;
+function installCrossTabOAuthSync(): void {
+  if (crossTabOAuthSyncInstalled || typeof window === "undefined") return;
+  crossTabOAuthSyncInstalled = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== OAUTH_STORAGE_KEY) return;
+    void useOAuthStore.persist.rehydrate();
+  });
+}
+
+installCrossTabOAuthSync();
 
 /** Wait for OAuth popup callback */
 function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<OAuthAccount> {

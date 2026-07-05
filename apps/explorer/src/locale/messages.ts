@@ -94,6 +94,7 @@ title: { en: "Neo Explorer", zh: "Neo 浏览器" },
     sidebarNetwork: { en: "Network", zh: "网络" },
     sidebarRecentTxs: { en: "Recent TXs", zh: "最近交易" },
   explorerReadOnly: { en: "Read-only chain lookup", zh: "只读链上查询" },
+  explorerLiveScanner: { en: "Live chain scanner", zh: "实时链上扫描台" },
   explorerHeroAlt: { en: "Neo blockchain explorer scanner", zh: "Neo 区块链浏览器扫描台" },
   explorerSignalReady: { en: "Signal ready", zh: "信号就绪" },
   explorerDataPending: { en: "Sync pending", zh: "等待同步" },
@@ -107,6 +108,14 @@ title: { en: "Neo Explorer", zh: "Neo 浏览器" },
   explorerSearchDeckCopy: {
     en: "Paste an on-chain identifier, choose the network lane, then inspect the public record without signing.",
     zh: "粘贴链上标识符，选择网络通道，无需签名即可检查公开记录。",
+  },
+  explorerNoSignature: {
+    en: "No signature required",
+    zh: "无需签名",
+  },
+  explorerScannerTargetEmpty: {
+    en: "Paste a tx, address, contract, or block",
+    zh: "粘贴交易、地址、合约或区块",
   },
   explorerSearchHint: {
     en: "Paste any Neo N3 identifier and inspect it without signing.",

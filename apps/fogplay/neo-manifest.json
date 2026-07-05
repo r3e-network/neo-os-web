@@ -34,8 +34,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/fogplay/index.html",
-    "icon": "/miniapps/fogplay/logo.jpg",
-    "banner": "/miniapps/fogplay/banner.jpg"
+    "icon": "/miniapps/fogplay/logo.webp",
+    "banner": "/miniapps/fogplay/banner.webp"
   },
   "permissions": [
     "invoke:primary",

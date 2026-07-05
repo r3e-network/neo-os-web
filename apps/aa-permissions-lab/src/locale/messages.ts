@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "aa-permissions-lab", zh: "aa-permissions-lab" },
   appName: { en: "AA Permissions Lab", zh: "AA 权限实验室" },
   accountId: { en: "AccountId Hash", zh: "AccountId Hash" },
   verifier: { en: "Verifier Hash", zh: "Verifier Hash" },
@@ -24,7 +25,7 @@ const appMessages = {
     en: "The timelock is a safety window: it gives the real owner time to Cancel a malicious or mistaken rotation before it takes effect.",
     zh: "锁定期是一个安全窗口：它让真正的所有者有时间在恶意或错误的轮换生效前将其取消。",
   },
-  inspect: { en: "Refresh State", zh: "刷新状态" },
+  inspect: { en: "Inspect Account", zh: "检查账户" },
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   currentVerifier: { en: "Current Verifier", zh: "当前 Verifier" },
   currentHook: { en: "Current Hook", zh: "当前 Hook" },
@@ -190,6 +191,7 @@ const appMessages = {
     zh: "实时权限路由已加载",
   },
   permissionsRouteAccount: { en: "Account", zh: "账户" },
+  permissionsRouteAccountEmpty: { en: "Waiting for hash", zh: "等待哈希" },
   permissionsRouteVerifier: { en: "Verifier", zh: "Verifier" },
   permissionsRouteTimelock: { en: "Timelock", zh: "锁定期" },
   permissionsRouteHook: { en: "Hook", zh: "Hook" },

@@ -1,0 +1,527 @@
+/**
+ * Neo v3 — 次世代设计令牌系统
+ *
+ * 在 Neo Soft (v1) 和 Miniapp OS v2 基础上全面升级，面向终端消费者的
+ * Web3 平台体验设计。保留品牌色 #16C784，引入更丰富的色彩层次、
+ * 场景化氛围变量和增强的动效系统。
+ *
+ * 命名空间: --n3-* (不覆盖旧的 --ns-* 和 --mx2-*)
+ * 兼容性: 老小程序通过旧令牌继续工作，新设计 opt-in 使用 --n3-*
+ */
+
+/* ============================================================
+ * 浅色主题 (默认)
+ * ============================================================ */
+:root,
+[data-theme="light"] {
+  /* ── 画布与表面 ─────────────────────────────────────── */
+
+  /* 画布色 (暖灰白基调，比 v1 的 #F4F5F7 更温暖) */
+  --n3-bg: #faf9f7;
+  --n3-bg-alt: #f3f1ee;
+  --n3-bg-inset: #eeebe6;
+
+  /* 表面色 (纯白浮动卡片) */
+  --n3-surface: #ffffff;
+  --n3-surface-hover: #fafaf9;
+  --n3-surface-raised: #ffffff;
+
+  /* 玻璃态 (毛玻璃效果表面) */
+  --n3-glass-bg: rgba(255, 255, 255, 0.72);
+  --n3-glass-border: rgba(20, 22, 38, 0.06);
+  --n3-glass-blur: blur(20px);
+
+  /* ── 文本层级 ────────────────────────────────────────── */
+
+  --n3-ink: #141626;           /* 主文本 - 近黑墨水 */
+  --n3-text: #1e2036;          /* 正文 */
+  --n3-text-secondary: #515572; /* 次要 */
+  --n3-text-muted: #787e9b;    /* 弱化 */
+  --n3-text-faint: #a5a9bd;    /* 禁用水印 */
+  --n3-text-on-brand: #ffffff; /* 品牌色上文字 */
+
+  /* ── 品牌色彩体系 ────────────────────────────────────── */
+
+  /* Neo Green 主品牌色 */
+  --n3-brand: #16c784;
+  --n3-brand-hover: #0fb174;
+  --n3-brand-active: #0c9c66;
+  --n3-brand-soft: #e4f8f0;
+  --n3-brand-subtle: #f2fcf7;
+  --n3-brand-glow: rgba(22, 199, 132, 0.25);
+
+  /* 品牌渐变色系 */
+  --n3-brand-gradient: linear-gradient(135deg, #16c784 0%, #0fb174 100%);
+  --n3-brand-gradient-soft: linear-gradient(135deg, #22d892 0%, #16c784 100%);
+  --n3-brand-gradient-warm: linear-gradient(135deg, #16c784 0%, #34d399 50%, #a7f3d0 100%);
+
+  /* 次要强调色 - 深海蓝 */
+  --n3-accent: #2563eb;
+  --n3-accent-hover: #1d4ed8;
+  --n3-accent-soft: #eff6ff;
+  --n3-accent-glow: rgba(37, 99, 235, 0.25);
+
+  /* 功能色彩 */
+  --n3-success: #16c784;
+  --n3-success-soft: #e4f8f0;
+  --n3-warning: #f59e0b;
+  --n3-warning-soft: #fef3c7;
+  --n3-danger: #ef4444;
+  --n3-danger-soft: #fef2f2;
+  --n3-info: #3b82f6;
+  --n3-info-soft: #eff6ff;
+
+  /* 分类专属色 (用于小程序卡片和 PlayArea 氛围) */
+  --n3-cat-game: #f59e0b;
+  --n3-cat-game-soft: #fef7ed;
+  --n3-cat-game-gradient: linear-gradient(135deg, #f59e0b, #f97316);
+
+  --n3-cat-defi: #2563eb;
+  --n3-cat-defi-soft: #eff6ff;
+  --n3-cat-defi-gradient: linear-gradient(135deg, #2563eb, #7c3aed);
+
+  --n3-cat-nft: #a855f7;
+  --n3-cat-nft-soft: #faf5ff;
+  --n3-cat-nft-gradient: linear-gradient(135deg, #a855f7, #ec4899);
+
+  --n3-cat-tool: #0d9488;
+  --n3-cat-tool-soft: #f0fdfa;
+  --n3-cat-tool-gradient: linear-gradient(135deg, #0d9488, #06b6d4);
+
+  --n3-cat-social: #ec4899;
+  --n3-cat-social-soft: #fdf2f8;
+  --n3-cat-social-gradient: linear-gradient(135deg, #ec4899, #f43f5e);
+
+  /* ── 边框 ───────────────────────────────────────────── */
+
+  --n3-border: rgba(20, 26, 38, 0.06);
+  --n3-border-strong: rgba(20, 26, 38, 0.10);
+  --n3-border-focus: rgba(22, 199, 132, 0.50);
+  --n3-border-brand: rgba(22, 199, 132, 0.30);
+
+  /* ── 圆角 ───────────────────────────────────────────── */
+
+  --n3-radius-xs: 6px;
+  --n3-radius-sm: 10px;
+  --n3-radius-md: 14px;
+  --n3-radius-lg: 20px;
+  --n3-radius-xl: 28px;
+  --n3-radius-2xl: 36px;
+  --n3-radius-full: 9999px;
+
+  /* ── 阴影系统 ────────────────────────────────────────── */
+
+  --n3-shadow-xs: 0 1px 2px rgba(20, 26, 38, 0.04);
+  --n3-shadow-sm: 0 2px 8px rgba(20, 26, 38, 0.04), 0 1px 2px rgba(20, 26, 38, 0.02);
+  --n3-shadow-md: 0 4px 16px rgba(20, 26, 38, 0.05), 0 1px 4px rgba(20, 26, 38, 0.03);
+  --n3-shadow-lg: 0 12px 32px rgba(20, 26, 38, 0.07), 0 4px 8px rgba(20, 26, 38, 0.04);
+  --n3-shadow-xl: 0 24px 56px rgba(20, 26, 38, 0.10), 0 8px 16px rgba(20, 26, 38, 0.04);
+  --n3-shadow-2xl: 0 40px 80px rgba(20, 26, 38, 0.14);
+
+  /* 品牌光晕 */
+  --n3-shadow-brand: 0 8px 32px rgba(22, 199, 132, 0.18);
+  --n3-shadow-brand-lg: 0 16px 48px rgba(22, 199, 132, 0.24);
+
+  /* ── 排版 ───────────────────────────────────────────── */
+
+  --n3-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --n3-font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Consolas, monospace;
+  --n3-font-display: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* 字号梯度 */
+  --n3-text-xs: 0.75rem;      /* 12px */
+  --n3-text-sm: 0.875rem;     /* 14px */
+  --n3-text-base: 1rem;       /* 16px */
+  --n3-text-lg: 1.125rem;     /* 18px */
+  --n3-text-xl: 1.25rem;      /* 20px */
+  --n3-text-2xl: 1.5rem;      /* 24px */
+  --n3-text-3xl: 2rem;        /* 32px */
+  --n3-text-4xl: 3rem;        /* 48px */
+
+  /* 字重 */
+  --n3-font-normal: 400;
+  --n3-font-medium: 500;
+  --n3-font-semibold: 600;
+  --n3-font-bold: 700;
+  --n3-font-extrabold: 800;
+
+  /* 行高 */
+  --n3-leading-tight: 1.15;
+  --n3-leading-snug: 1.35;
+  --n3-leading-normal: 1.55;
+  --n3-leading-relaxed: 1.7;
+
+  /* 字母间距 */
+  --n3-tracking-tight: 0;
+  --n3-tracking-normal: 0;
+  --n3-tracking-wide: 0;
+  --n3-tracking-eyebrow: 0;
+
+  /* ── 间距系统 ────────────────────────────────────────── */
+
+  --n3-space-1: 0.25rem;   /* 4px */
+  --n3-space-2: 0.5rem;    /* 8px */
+  --n3-space-3: 0.75rem;   /* 12px */
+  --n3-space-4: 1rem;      /* 16px */
+  --n3-space-5: 1.25rem;   /* 20px */
+  --n3-space-6: 1.5rem;    /* 24px */
+  --n3-space-8: 2rem;      /* 32px */
+  --n3-space-10: 2.5rem;   /* 40px */
+  --n3-space-12: 3rem;     /* 48px */
+  --n3-space-16: 4rem;     /* 64px */
+  --n3-space-20: 5rem;     /* 80px */
+  --n3-space-24: 6rem;     /* 96px */
+
+  /* ── 动效系统 ────────────────────────────────────────── */
+
+  /* 持续时间 */
+  --n3-duration-instant: 80ms;
+  --n3-duration-fast: 150ms;
+  --n3-duration-normal: 250ms;
+  --n3-duration-slow: 400ms;
+  --n3-duration-glacial: 700ms;
+
+  /* 缓动函数 */
+  --n3-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --n3-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --n3-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --n3-ease-snappy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --n3-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-Index 层级 ────────────────────────────────────── */
+
+  --n3-z-dropdown: 100;
+  --n3-z-sticky: 200;
+  --n3-z-navbar: 300;
+  --n3-z-overlay: 400;
+  --n3-z-modal: 500;
+  --n3-z-toast: 600;
+  --n3-z-tooltip: 700;
+
+  /* ── 场景化背景氛围 (用于小程序 PlayArea) ──────────────── */
+
+  /* 场景色调叠加 */
+  --n3-scene-tint: transparent;
+  --n3-scene-texture: none;
+  --n3-scene-gradient: none;
+}
+
+/* ============================================================
+ * 暗色主题
+ * ============================================================ */
+[data-theme="dark"],
+.theme-dark {
+  color-scheme: dark;
+
+  /* 画布与表面 */
+  --n3-bg: #0a0b10;
+  --n3-bg-alt: #0f1119;
+  --n3-bg-inset: #141722;
+  --n3-surface: #1a1d2b;
+  --n3-surface-hover: #1f2232;
+  --n3-surface-raised: #222637;
+  --n3-glass-bg: rgba(26, 29, 43, 0.72);
+  --n3-glass-border: rgba(255, 255, 255, 0.06);
+  --n3-glass-blur: blur(24px);
+
+  /* 文本 */
+  --n3-ink: #f2f3f7;
+  --n3-text: #e4e6ef;
+  --n3-text-secondary: #a8aec4;
+  --n3-text-muted: #7e849c;
+  --n3-text-faint: #5e6480;
+
+  /* 品牌色 (暗色下略微提亮) */
+  --n3-brand: #1dd48e;
+  --n3-brand-hover: #22e89c;
+  --n3-brand-active: #16c784;
+  --n3-brand-soft: rgba(22, 199, 132, 0.12);
+  --n3-brand-subtle: rgba(22, 199, 132, 0.06);
+  --n3-brand-glow: rgba(22, 199, 132, 0.35);
+
+  /* 边框 */
+  --n3-border: rgba(255, 255, 255, 0.06);
+  --n3-border-strong: rgba(255, 255, 255, 0.10);
+  --n3-border-focus: rgba(22, 199, 132, 0.50);
+
+  /* 阴影 (暗色模式下更重) */
+  --n3-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --n3-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --n3-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --n3-shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.55);
+  --n3-shadow-2xl: 0 40px 80px rgba(0, 0, 0, 0.65);
+  --n3-shadow-brand: 0 8px 32px rgba(22, 199, 132, 0.25);
+}
+
+/* ============================================================
+ * 分类氛围覆盖 (小程序 PlayArea 专用)
+ * ============================================================ */
+.n3-scene-game {
+  --n3-scene-tint: rgba(245, 158, 11, 0.04);
+  --n3-scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.06), transparent 70%);
+}
+
+.n3-scene-defi {
+  --n3-scene-tint: rgba(37, 99, 235, 0.04);
+  --n3-scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.06), transparent 70%);
+}
+
+.n3-scene-nft {
+  --n3-scene-tint: rgba(168, 85, 247, 0.04);
+  --n3-scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.06), transparent 70%);
+}
+
+.n3-scene-tool {
+  --n3-scene-tint: rgba(13, 148, 136, 0.04);
+  --n3-scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(13, 148, 136, 0.06), transparent 70%);
+}
+
+.n3-scene-social {
+  --n3-scene-tint: rgba(236, 72, 153, 0.04);
+  --n3-scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(236, 72, 153, 0.06), transparent 70%);
+}
+
+/* ============================================================
+ * 通用工具类
+ * ============================================================ */
+
+/* 卡片 */
+.n3-card {
+  background: var(--n3-surface);
+  border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-lg);
+  box-shadow: var(--n3-shadow-sm);
+  transition:
+    box-shadow var(--n3-duration-normal) var(--n3-ease-out-expo),
+    transform var(--n3-duration-normal) var(--n3-ease-out-expo);
+
+  &:hover {
+    box-shadow: var(--n3-shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+/* 主要按钮 */
+.n3-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--n3-brand-gradient);
+  color: #ffffff;
+  font-weight: var(--n3-font-semibold);
+  font-size: var(--n3-text-sm);
+  border: none;
+  border-radius: var(--n3-radius-full);
+  padding: 10px 24px;
+  cursor: pointer;
+  transition:
+    box-shadow var(--n3-duration-fast) var(--n3-ease-out-expo),
+    transform var(--n3-duration-fast) var(--n3-ease-out-expo),
+    filter var(--n3-duration-fast) var(--n3-ease-out-expo);
+  white-space: nowrap;
+
+  &:hover {
+    box-shadow: var(--n3-shadow-brand);
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+
+  &:active {
+    transform: translateY(0);
+    filter: brightness(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--n3-border-focus);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    filter: none;
+  }
+}
+
+/* 次要按钮 */
+.n3-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--n3-surface);
+  color: var(--n3-ink);
+  font-weight: var(--n3-font-medium);
+  font-size: var(--n3-text-sm);
+  border: 1px solid var(--n3-border-strong);
+  border-radius: var(--n3-radius-full);
+  padding: 10px 24px;
+  cursor: pointer;
+  transition:
+    background var(--n3-duration-fast) var(--n3-ease-out-expo),
+    border-color var(--n3-duration-fast) var(--n3-ease-out-expo);
+
+  &:hover {
+    background: var(--n3-surface-hover);
+    border-color: rgba(20, 26, 38, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--n3-border-focus);
+    outline-offset: 3px;
+  }
+}
+
+/* 幽灵按钮 */
+.n3-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--n3-text-secondary);
+  font-weight: var(--n3-font-medium);
+  font-size: var(--n3-text-sm);
+  border: none;
+  border-radius: var(--n3-radius-full);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition:
+    background var(--n3-duration-fast) var(--n3-ease-out-expo),
+    color var(--n3-duration-fast) var(--n3-ease-out-expo);
+
+  &:hover {
+    background: var(--n3-bg-alt);
+    color: var(--n3-ink);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--n3-border-focus);
+    outline-offset: 3px;
+  }
+}
+
+/* Glass 容器 */
+.n3-glass {
+  background: var(--n3-glass-bg);
+  backdrop-filter: var(--n3-glass-blur);
+  -webkit-backdrop-filter: var(--n3-glass-blur);
+  border: 1px solid var(--n3-glass-border);
+}
+
+/* 输入框 */
+.n3-input {
+  background: var(--n3-surface);
+  color: var(--n3-ink);
+  border: 1px solid var(--n3-border-strong);
+  border-radius: var(--n3-radius-md);
+  padding: 10px 14px;
+  font-size: var(--n3-text-base);
+  font-family: var(--n3-font-sans);
+  transition:
+    border-color var(--n3-duration-fast) var(--n3-ease-out-expo),
+    box-shadow var(--n3-duration-fast) var(--n3-ease-out-expo);
+
+  &::placeholder {
+    color: var(--n3-text-faint);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--n3-brand);
+    box-shadow: 0 0 0 4px var(--n3-brand-glow);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+/* 装饰性品牌渐变文字 */
+.n3-text-gradient {
+  background: var(--n3-brand-gradient-warm);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 品牌徽章 */
+.n3-badge-brand {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: var(--n3-brand-soft);
+  color: var(--n3-brand-active);
+  font-size: var(--n3-text-xs);
+  font-weight: var(--n3-font-semibold);
+  border-radius: var(--n3-radius-full);
+}
+
+/* 状态点 */
+.n3-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+
+  &.n3-status--online {
+    background: var(--n3-success);
+    box-shadow: 0 0 8px var(--n3-brand-glow);
+  }
+
+  &.n3-status--warning {
+    background: var(--n3-warning);
+  }
+
+  &.n3-status--offline {
+    background: var(--n3-text-faint);
+  }
+}
+
+/* Eyebrow 标签 */
+.n3-eyebrow {
+  font-size: 11px;
+  font-weight: var(--n3-font-bold);
+  letter-spacing: var(--n3-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--n3-text-muted);
+}
+
+/* 滚动条美化 */
+.n3-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--n3-border-strong) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--n3-border-strong);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(20, 26, 38, 0.16);
+    }
+  }
+}
+
+/* 无障碍 - 减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --n3-duration-instant: 0ms;
+    --n3-duration-fast: 0ms;
+    --n3-duration-normal: 0ms;
+    --n3-duration-slow: 0ms;
+    --n3-duration-glacial: 0ms;
+  }
+}

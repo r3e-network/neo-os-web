@@ -78,6 +78,9 @@ export function deriveSchedulePreview(
   duration: string,
   token: "GAS" | "NEO",
 ): SchedulePreview {
+  if (token === "NEO" && !/^[1-9]\d*$/.test(String(amount ?? "").trim())) {
+    return null;
+  }
   const total = Number.parseFloat(amount);
   const days = Number.parseInt(duration, 10);
   if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(days) || days <= 0) {

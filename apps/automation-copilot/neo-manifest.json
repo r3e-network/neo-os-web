@@ -28,8 +28,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/automation-copilot/index.html",
-    "icon": "/miniapps/automation-copilot/logo.jpg",
-    "banner": "/miniapps/automation-copilot/banner.jpg"
+    "icon": "/miniapps/automation-copilot/logo.webp",
+    "banner": "/miniapps/automation-copilot/banner.webp"
   },
   "permissions": [
     "read:blockchain",

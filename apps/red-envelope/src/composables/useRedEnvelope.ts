@@ -2,7 +2,8 @@
  * useRedEnvelope — Domain logic for the Red Envelope miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppRedEnvelope)
- * via ctx.services.chain. The earlier path routed create/claim through the OS
+ * via the MiniApp framework chain layer (ctx.framework.chain). The earlier path
+ * routed create/claim through the OS
  * game/payment/storage/badge kernel proxies, which never actually distributed
  * packets — envelopes funded GAS that was never paid out to claimers. This
  * composable now drives the dedicated contract, which splits a funded GAS total
@@ -59,7 +60,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { fromFixed8, formatHash } from "@shared/utils/format";
@@ -134,8 +135,8 @@ export interface ClaimItem {
 }
 
 export interface UseRedEnvelopeOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -193,7 +194,7 @@ const mapWithConcurrency = async <T, R>(
 // Composable
 // ============================================================================
 
-export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
+export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const envelopes = createObservable<EnvelopeItem[]>([]);
   const claims = createObservable<ClaimItem[]>([]);
@@ -215,7 +216,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   const openingId = createObservable<string | null>(null);
 
   // Connected wallet address (synced from main.tsx / chain).
-  const address = createObservable<string | null>(chain.address.get() ?? null);
+  const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
@@ -366,16 +367,16 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     id: string,
     claimerHash: string | null,
   ): Promise<EnvelopeItem | null> => {
-    const raw = await chain.read("getEnvelope", [
-      { type: "Integer", value: id },
+    const raw = await app.chain.readRaw("getEnvelope", [
+      app.chain.arg.integer(id),
     ]);
 
     let claimedByMe = false;
     if (claimerHash) {
       try {
-        const claimed = await chain.read("hasClaimed", [
-          { type: "Integer", value: id },
-          { type: "Hash160", value: claimerHash },
+        const claimed = await app.chain.readRaw("hasClaimed", [
+          app.chain.arg.integer(id),
+          app.chain.arg.hash160(claimerHash),
         ]);
         claimedByMe = Boolean(claimed);
       } catch {
@@ -404,7 +405,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       const claimerAddr = address.get();
       const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || null : null;
 
-      const lastRaw = await chain.read("lastEnvelopeId", []);
+      const lastRaw = await app.chain.readRaw("lastEnvelopeId", []);
       const last = toFinite(lastRaw);
 
       // Scan newest-first, one page, so a long history never reads more than
@@ -459,10 +460,10 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
    */
   const loadClaims = async (claimerHash: string) => {
     try {
-      const idsRaw = await chain.readArray("getClaimerEnvelopes", [
-        { type: "Hash160", value: claimerHash },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: String(LIST_PAGE_LIMIT) },
+      const idsRaw = await app.chain.readArray("getClaimerEnvelopes", [
+        app.chain.arg.hash160(claimerHash),
+        app.chain.arg.integer(0),
+        app.chain.arg.integer(LIST_PAGE_LIMIT),
       ]);
 
       const ids = (Array.isArray(idsRaw) ? idsRaw : [])
@@ -471,9 +472,9 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
 
       const items = await mapWithConcurrency(ids, MAX_CONCURRENT_READS, async (envelopeId) => {
         try {
-          const shareRaw = await chain.read("claimedAmount", [
-            { type: "Integer", value: envelopeId },
-            { type: "Hash160", value: claimerHash },
+          const shareRaw = await app.chain.readRaw("claimedAmount", [
+            app.chain.arg.integer(envelopeId),
+            app.chain.arg.hash160(claimerHash),
           ]);
           const share = parseBigInt(shareRaw);
           const claim: ClaimItem = {
@@ -579,8 +580,8 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
    */
   const loadCredit = async (accountHash: string) => {
     try {
-      const raw = await chain.read("creditOf", [
-        { type: "Hash160", value: accountHash },
+      const raw = await app.chain.readRaw("creditOf", [
+        app.chain.arg.hash160(accountHash),
       ]);
       prepaidCredit.set(fromFixed8(parseBigInt(raw)));
     } catch (e) {
@@ -598,7 +599,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
    * demand; here we just ensure an address is on hand and refresh.
    */
   const handleConnect = async () => {
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     setAddress(addr ?? null);
     await loadEnvelopes();
   };
@@ -647,12 +648,12 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       // the per-packet >= 0.01 GAS guard above already implies this.
       if (totalBase < BigInt(packetCount)) throw new Error(t("invalidPerPacket"));
 
-      const creatorAddr = address.get() || (await chain.ensureWallet());
+      const creatorAddr = address.get() || (await app.chain.ensureWallet());
       const creatorHash = addressToScriptHash(creatorAddr || "");
       if (!creatorAddr || !creatorHash) throw new Error(t("walletNotConnected"));
       setAddress(creatorAddr);
 
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("envelopeNotReady"));
 
       const durationSeconds = Math.round(expiryValue * 3600);
@@ -663,7 +664,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: creatorHash }]),
+          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(creatorHash)]),
         );
       } catch {
         credit = 0n;
@@ -674,13 +675,13 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
         // in a block before createEnvelope consumes it — an unconfirmed deposit
         // lets the create execute first and fault on "insufficient deposit
         // credit" with the funds already in flight.
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: creatorHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: (totalBase - credit).toString() },
-            { type: "String", value: CREATE_MEMO },
+            app.chain.arg.hash160(creatorHash),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer((totalBase - credit).toString()),
+            app.chain.arg.string(CREATE_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
@@ -690,13 +691,13 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       // envelope. If this fails the credit persists on the contract under the
       // creator and is reusable on the next create (or withdrawable).
       try {
-        const result = await chain.invoke(
+        const result = await app.chain.invoke(
           "createEnvelope",
           [
-            { type: "Hash160", value: creatorHash },
-            { type: "Integer", value: totalBase.toString() },
-            { type: "Integer", value: String(Math.trunc(packetCount)) },
-            { type: "Integer", value: String(durationSeconds) },
+            app.chain.arg.hash160(creatorHash),
+            app.chain.arg.integer(totalBase.toString()),
+            app.chain.arg.integer(Math.trunc(packetCount)),
+            app.chain.arg.integer(durationSeconds),
           ],
           { waitForEvent: "EnvelopeCreated" },
         );
@@ -737,7 +738,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     const id = String(envelopeId ?? "").trim();
     if (!id) throw new Error(t("envelopeIdRequired"));
 
-    const claimerAddr = address.get() || (await chain.ensureWallet());
+    const claimerAddr = address.get() || (await app.chain.ensureWallet());
     const claimerHash = addressToScriptHash(claimerAddr || "");
     if (!claimerAddr || !claimerHash) throw new Error(t("walletNotConnected"));
     setAddress(claimerAddr);
@@ -745,9 +746,9 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     // Re-claim guard: one claim per address per envelope (the contract enforces
     // this too, but surface a clean message before prompting the wallet).
     try {
-      const already = await chain.read("hasClaimed", [
-        { type: "Integer", value: id },
-        { type: "Hash160", value: claimerHash },
+      const already = await app.chain.readRaw("hasClaimed", [
+        app.chain.arg.integer(id),
+        app.chain.arg.hash160(claimerHash),
       ]);
       if (already) throw new Error(t("alreadyOpened"));
     } catch (e) {
@@ -756,11 +757,11 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       if (e instanceof Error && e.message === t("alreadyOpened")) throw e;
     }
 
-    const result = await chain.invoke(
+    const result = await app.chain.invoke(
       "claim",
       [
-        { type: "Integer", value: id },
-        { type: "Hash160", value: claimerHash },
+        app.chain.arg.integer(id),
+        app.chain.arg.hash160(claimerHash),
       ],
       { waitForEvent: "Claimed" },
     );
@@ -771,9 +772,9 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       // Event unavailable / unparsed — read the recorded share back.
       try {
         shareBase = parseBigInt(
-          await chain.read("claimedAmount", [
-            { type: "Integer", value: id },
-            { type: "Hash160", value: claimerHash },
+          await app.chain.readRaw("claimedAmount", [
+            app.chain.arg.integer(id),
+            app.chain.arg.hash160(claimerHash),
           ]),
         );
       } catch {
@@ -850,16 +851,16 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
 
     isLoading.set(true);
     try {
-      const creatorAddr = address.get() || (await chain.ensureWallet());
+      const creatorAddr = address.get() || (await app.chain.ensureWallet());
       const creatorHash = addressToScriptHash(creatorAddr || "");
       if (!creatorAddr || !creatorHash) throw new Error(t("walletNotConnected"));
       setAddress(creatorAddr);
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "reclaim",
         [
-          { type: "Integer", value: id },
-          { type: "Hash160", value: creatorHash },
+          app.chain.arg.integer(id),
+          app.chain.arg.hash160(creatorHash),
         ],
         { waitForEvent: "Reclaimed" },
       );
@@ -888,7 +889,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
 
     isLoading.set(true);
     try {
-      const accountAddr = address.get() || (await chain.ensureWallet());
+      const accountAddr = address.get() || (await app.chain.ensureWallet());
       const accountHash = addressToScriptHash(accountAddr || "");
       if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
       setAddress(accountAddr);
@@ -898,16 +899,16 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
         );
       } catch {
         credit = 0n;
       }
       if (credit <= 0n) throw new Error(t("noCredit"));
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: accountHash }],
+        [app.chain.arg.hash160(accountHash)],
         { waitForEvent: "CreditWithdrawn" },
       );
 
@@ -925,7 +926,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
-    setAddress(chain.address.get() ?? null);
+    setAddress(app.chain.address.get() ?? null);
     await loadEnvelopes();
   };
 

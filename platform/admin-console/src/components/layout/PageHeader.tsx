@@ -32,7 +32,7 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   const Heading = as;
-  const headingClass = cn("text-xl font-black text-gray-900 sm:text-2xl");
+  const headingClass = cn("text-xl font-black tracking-tight text-ink sm:text-2xl");
 
   const titleNode = highlightLastWord ? renderHighlighted(title) : title;
 
@@ -46,7 +46,7 @@ export function PageHeader({
       <div>
         <Heading className={headingClass}>{titleNode}</Heading>
         {description && (
-          <p className="mt-1 max-w-2xl text-sm text-gray-600">
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
             {description}
           </p>
         )}
@@ -63,13 +63,13 @@ function renderHighlighted(title: string): ReactNode {
   const lastSpace = trimmed.lastIndexOf(" ");
   if (lastSpace === -1) {
     return (
-      <span className="text-emerald-600">{trimmed}</span>
+      <span className="text-neo-600">{trimmed}</span>
     );
   }
   return (
     <>
       {trimmed.slice(0, lastSpace)}{" "}
-      <span className="text-emerald-600">
+      <span className="text-neo-600">
         {trimmed.slice(lastSpace + 1)}
       </span>
     </>

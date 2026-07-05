@@ -2,7 +2,7 @@
  * useLastSurvivor — Domain logic for the Last Survivor (doomsday clock) miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract
- * (MiniAppLastSurvivor) via ctx.services.chain. The earlier path routed
+ * (MiniAppLastSurvivor) via ctx.framework.chain. The earlier path routed
  * buy/settle through the OS game/payment/leaderboard/storage/badge kernel
  * proxies, which never actually held a pot or paid a winner — buys funded GAS
  * that was never distributed and "rollover" was a no-op. This composable now
@@ -13,7 +13,7 @@
  *
  * Contract interaction model (verified against MiniAppLastSurvivor.cs / ABI):
  *
- *   READS (chain.read / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     currentRoundId()                 -> Integer (rounds are 1-based)
  *     creditOf(player)                 -> Integer (prepaid GAS credit, base units)
  *     playerKeys(roundId, player)      -> Integer (keys held by the player)
@@ -24,7 +24,7 @@
  *                                           remainingTime(seconds)}
  *     getRound(id)                     -> Map{...same...}
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT (fund a buy) — a GAS transfer to the contract with the memo
  *        "miniapp-lastsurvivor:buy" so OnNEP17Payment credits the sender's
  *        prepaid balance:
@@ -60,7 +60,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { formatNumber, formatAddress, fromFixed8 } from "@shared/utils/format";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
@@ -132,8 +132,8 @@ const isZeroAddress = (value: string): boolean => {
 // ============================================================================
 
 export interface UseLastSurvivorOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework (chain args / reads / invokes). */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -158,7 +158,7 @@ interface RoundSnapshot {
 // ============================================================================
 
 /**
- * Map a getCurrentRound / getRound Map (returned by chain.read as a plain
+ * Map a getCurrentRound / getRound Map (returned by app.chain.readRaw as a plain
  * object) into a RoundSnapshot. Returns null for an unknown / empty result.
  */
 function parseRound(raw: unknown): RoundSnapshot | null {
@@ -181,7 +181,7 @@ function parseRound(raw: unknown): RoundSnapshot | null {
 // Composable
 // ============================================================================
 
-export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
+export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
   // ── Game State ──────────────────────────────────────────────────────
   const roundId = createObservable(0);
   const totalPot = createObservable(0);
@@ -201,7 +201,7 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   const prepaidCredit = createObservable(0);
 
   // Connected wallet address (synced from main.tsx / chain).
-  const address = createObservable<string | null>(chain.address.get() ?? null);
+  const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
@@ -323,7 +323,7 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
    */
   const loadRoundData = async (): Promise<number> => {
     try {
-      const raw = await chain.read("getCurrentRound", []);
+      const raw = await app.chain.readRaw("getCurrentRound", []);
       const round = parseRound(raw);
       if (round) {
         roundId.set(round.roundId);
@@ -362,9 +362,9 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       return;
     }
     try {
-      const keys = await chain.read("playerKeys", [
-        { type: "Integer", value: String(currentRound) },
-        { type: "Hash160", value: walletHash },
+      const keys = await app.chain.readRaw("playerKeys", [
+        app.chain.arg.integer(currentRound),
+        app.chain.arg.hash160(walletHash),
       ]);
       userKeys.set(Number(parseBigInt(keys)));
     } catch (e) {
@@ -387,8 +387,8 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       return;
     }
     try {
-      const raw = await chain.read("creditOf", [
-        { type: "Hash160", value: walletHash },
+      const raw = await app.chain.readRaw("creditOf", [
+        app.chain.arg.hash160(walletHash),
       ]);
       prepaidCredit.set(fromFixed8(parseBigInt(raw)));
     } catch (e) {
@@ -419,8 +419,8 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       const results = await Promise.all(
         ids.map(async (id) => {
           try {
-            const raw = await chain.read("getRound", [
-              { type: "Integer", value: String(id) },
+            const raw = await app.chain.readRaw("getRound", [
+              app.chain.arg.integer(id),
             ]);
             return parseRound(raw);
           } catch (e) {
@@ -472,7 +472,7 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   const loadAll = async () => {
     isLoading.set(true);
     try {
-      setAddress(chain.address.get() ?? address.get() ?? null);
+      setAddress(app.chain.address.get() ?? address.get() ?? null);
       const remainingSeconds = await loadRoundData();
       const endTimeMs = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
       endTime.set(endTimeMs);
@@ -525,12 +525,12 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       throw new Error(t("settleBeforeBuy"));
     }
 
-    const playerAddr = address.get() || (await chain.ensureWallet());
+    const playerAddr = address.get() || (await app.chain.ensureWallet());
     const playerHash = addressToScriptHash(playerAddr || "");
     if (!playerAddr || !playerHash) throw new Error(t("walletNotConnected"));
     setAddress(playerAddr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     isBuyingKeys.set(true);
@@ -541,8 +541,8 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       let costBase = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.get());
       try {
         const onChain = parseBigInt(
-          await chain.read("currentKeyCost", [
-            { type: "Integer", value: String(numKeys) },
+          await app.chain.readRaw("currentKeyCost", [
+            app.chain.arg.integer(numKeys),
           ]),
         );
         if (onChain > 0n) costBase = onChain;
@@ -558,7 +558,7 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(playerHash)]),
         );
       } catch {
         credit = 0n;
@@ -570,13 +570,13 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
         // buy execute first and fault on "insufficient deposit credit" with the
         // funds already in flight (the shared invokeWithPayment path exists
         // precisely because intra-block ordering is fee/hash-based).
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: playerHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: (costBase - credit).toString() },
-            { type: "String", value: BUY_MEMO },
+            app.chain.arg.hash160(playerHash),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(costBase - credit),
+            app.chain.arg.string(BUY_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
@@ -586,11 +586,11 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       // persists on the contract under the player and is reusable on the next
       // buy (or withdrawable via withdrawCredit; funds are not lost).
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "buyKeys",
           [
-            { type: "Hash160", value: playerHash },
-            { type: "Integer", value: String(numKeys) },
+            app.chain.arg.hash160(playerHash),
+            app.chain.arg.integer(numKeys),
           ],
           { waitForEvent: "KeysBought" },
         );
@@ -628,17 +628,17 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   const settleRound = async () => {
     if (isSettling.get()) return;
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     // The signer just triggers the settle; ensure a wallet is available to sign.
-    const callerAddr = address.get() || (await chain.ensureWallet());
+    const callerAddr = address.get() || (await app.chain.ensureWallet());
     if (!callerAddr) throw new Error(t("walletNotConnected"));
     setAddress(callerAddr);
 
     isSettling.set(true);
     try {
-      await chain.invoke("settle", [], { waitForEvent: "RoundSettled" });
+      await app.chain.invoke("settle", [], { waitForEvent: "RoundSettled" });
       await loadAll();
     } finally {
       isSettling.set(false);
@@ -655,7 +655,7 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   const withdrawCredit = async (): Promise<{ amount: number }> => {
     if (isLoading.get()) return { amount: 0 };
 
-    const accountAddr = address.get() || (await chain.ensureWallet());
+    const accountAddr = address.get() || (await app.chain.ensureWallet());
     const accountHash = addressToScriptHash(accountAddr || "");
     if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
     setAddress(accountAddr);
@@ -667,16 +667,16 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
         );
       } catch {
         credit = 0n;
       }
       if (credit <= 0n) throw new Error(t("noCredit"));
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: accountHash }],
+        [app.chain.arg.hash160(accountHash)],
         { waitForEvent: "CreditWithdrawn" },
       );
 

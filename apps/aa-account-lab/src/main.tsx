@@ -19,7 +19,7 @@ defineMiniApp({
 
   setup(ctx) {
     const lab = useAAAccountLab({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       storageService: ctx.os.storage,
       t: ctx.t,
     });
@@ -44,7 +44,7 @@ defineMiniApp({
       lab.registerForm.escapeTimelock = launchDefaults.escapeTimelock;
     }
 
-    ctx.registerAction("inspect", async (accountIdInput: unknown) => {
+    ctx.framework.actions.register("inspect", async (accountIdInput: unknown) => {
       lab.inspectForm.accountIdInput = String(accountIdInput);
       await ctx.services.notify.guard(
         () => lab.inspectAccount(),
@@ -53,7 +53,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "register",
       async (
         accountIdInput: unknown,
@@ -77,7 +77,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction("connect", () =>
+    ctx.framework.actions.register("connect", () =>
       ctx.services.notify.guard(
         () => ctx.services.chain.ensureWallet(),
         "walletConnected",

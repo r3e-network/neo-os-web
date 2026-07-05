@@ -114,7 +114,7 @@
       "onegateExport": "OneGate dApp 내보내기"
     },
     "hero": {
-      "title": "Yiwu MiniApps, 모든 Neo 시나리오를 위한 작은 도구.",
+      "title": "Neo Miniapps, 모든 Neo 시나리오를 위한 세련된 앱.",
       "body": "게임, 결제, 오라클 도구, 계정 추상화, 브리지, 평점, 댓글, 컨트랙트 상태, 지갑 안전 작업을 하나의 프로덕션 인터페이스로 제공합니다.",
       "catalogCta": "미니앱 카탈로그 열기",
       "developerCta": "개발자 콘솔"
@@ -140,6 +140,11 @@
     },
     "catalog": {
       "description": "카테고리별로 정제된 앱을 둘러보고 전용 플레이 영역과 공용 액션 콘솔을 여세요.",
+      "previewEyebrow": "빠른 탐색",
+      "previewTitle": "목록표 대신 목적별로 선택",
+      "previewBody": "홈에서는 선택한 카테고리의 핵심 앱만 짧게 보여줍니다. 전체 라이브러리는 전체 카탈로그에서 확인하세요.",
+      "previewCta": "전체 카탈로그 열기",
+      "moreCount": "전체 카탈로그에 앱 {count}개가 더 있습니다.",
       "searchPlaceholder": "앱, 카테고리 또는 ID 검색",
       "ecosystems": "생태계",
       "shownCount": "{shown}개 표시",

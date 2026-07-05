@@ -1,1913 +1,311 @@
 /**
- * PlayArea.tsx -- GasBox
- *
- * Interactive market console for machines, on-chain prize escrow, and pulls.
+ * PlayArea.tsx — GasBox Studio (v2 scene-driven rebuild)
+ * Game/tool identity. The slot machine IS the scene: a GasBox machine with
+ * pull/reveal animation. Pull is primary; machine list + studio + revenue tucked
+ * in drawer. Full state + all 11 dispatch actions preserved.
  */
-
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import {
-  Bot,
-  Coins,
-  Gem,
-  Gift,
-  LockKeyhole,
-  Minus,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Ticket,
-  Trash2,
-  Trophy,
-  type LucideIcon,
-} from "lucide-react";
-import { NeoButton, NeoCard } from "@shared/components-react";
+import { useState, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import { amountToBaseUnits } from "@shared/utils/amounts";
-import { ownerMatchesAddress } from "@shared/utils/neo";
-import type { Machine, MachineItem } from "./types";
+import type { ObservableState } from "@shared/react/context";
+import { ParticleBurst } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
+import { addressToScriptHash } from "@shared/utils/neo";
+import machineArtUrl from "./gasbox-capsule-machine-cutout.webp";
+import prizeCapsuleUrl from "./gasbox-prize-capsule-cutout.webp";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface P { t: (k: string, p?: Record<string, string|number>) => string; state: ObservableState; dispatch: (n: string, ...a: unknown[]) => Promise<void>; }
+interface MachineItem { name?: string; rarity?: string; displayProbability?: number; amountDisplay?: string; available?: boolean; [k: string]: unknown; }
+interface Machine { id: string; name?: string; active?: boolean; inventoryReady?: boolean; poolReady?: boolean; price?: string; plays?: number; items?: MachineItem[]; topPrize?: string; poolBalance?: string; maxPrize?: string; creatorHash?: string; revenue?: string; revenueRaw?: number; [k: string]: unknown; }
+interface PullResult { id?: string; name?: string; rarity?: string; amountDisplay?: string; [k: string]: unknown; }
+
+function translation(t: P["t"], key: string, fallback: string): string {
+  const value = t(key);
+  return value && value !== key ? value : fallback;
 }
 
-interface PullResult {
-  item: string;
-  name?: string;
-  rarity: string;
-  description?: string;
-  amountDisplay?: string;
-  icon?: string;
+function prizeLabel(item: MachineItem | PullResult | null | undefined, fallback: string): string {
+  if (!item) return fallback;
+  return String(item.name || item.rarity || item.amountDisplay || fallback);
 }
 
-/**
- * Local create-form prize item (string-typed for controlled inputs).
- *
- * There is intentionally no `rarity` here: the contract stores only name +
- * weight + amount, and the displayed tier is derived from each item's weight
- * share on read-back. A creator-chosen rarity would be silently overwritten, so
- * the form shows a live weight-derived tier preview instead of a dead dropdown.
- */
-interface StudioItem {
-  name: string;
-  /** Relative draw weight (positive integer). */
-  weight: string;
-  /** Prize amount in the machine's prize asset (GAS decimal / NEO integer). */
-  amount: string;
+function probabilityLabel(item: MachineItem | null | undefined): string {
+  const probability = Number(item?.displayProbability ?? item?.probability);
+  return Number.isFinite(probability) && probability > 0
+    ? `${probability.toFixed(probability < 1 ? 2 : 1)}%`
+    : "";
 }
 
-const PRIZE_ASSET_OPTIONS = ["GAS", "NEO"] as const;
-type PrizeAsset = (typeof PRIZE_ASSET_OPTIONS)[number];
-const PRIZE_ASSET_META: Record<
-  PrizeAsset,
-  { icon: LucideIcon; hintKey: string }
-> = {
-  GAS: { icon: Coins, hintKey: "prizeAssetGasHint" },
-  NEO: { icon: Gem, hintKey: "prizeAssetNeoHint" },
-};
-const WEIGHT_PRESETS = ["5", "10", "25", "50"] as const;
-const PRIZE_AMOUNT_PRESETS: Record<PrizeAsset, readonly string[]> = {
-  GAS: ["0.1", "0.5", "1", "5"],
-  NEO: ["1", "5", "10", "20"],
-};
-const GASBOX_MACHINE_ASSET = "gasbox-capsule-machine.png";
-const GASBOX_CAPSULE_ASSET = "gasbox-prize-capsule.png";
-
-const emptyStudioItem = (): StudioItem => ({
-  name: "",
-  weight: "10",
-  amount: "0.1",
-});
-
-/**
- * Weight-derived rarity tier — mirrors rarityFromShare() in useGasBox so the
- * Studio preview matches exactly what players see on read-back. share is the
- * item's percent of the machine's total weight.
- */
-const rarityFromShare = (share: number): string => {
-  if (!Number.isFinite(share) || share <= 0) return "COMMON";
-  if (share <= 5) return "LEGENDARY";
-  if (share <= 15) return "EPIC";
-  if (share <= 35) return "RARE";
-  return "COMMON";
-};
-
-const formatCount = (value: number, pendingLabel: string) =>
-  value > 0 ? value.toLocaleString() : pendingLabel;
-
-const formatPercent = (value: number, pendingLabel: string) => {
-  if (!Number.isFinite(value) || value <= 0) return pendingLabel;
-  const rounded = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
-  return `${rounded}%`;
-};
-
-const formatStudioAmount = (value: number, asset: PrizeAsset) => {
-  const normalized = Math.max(0, value);
-  if (asset === "NEO") return String(Math.round(normalized));
-  return String(Math.round(normalized * 10_000) / 10_000);
-};
-
-const isPositiveAssetAmount = (value: string, asset: PrizeAsset) =>
-  amountToBaseUnits(String(value ?? "").trim(), asset) > 0n;
-
-/**
- * Gachapon / blind-box mark from the shared icon library. Replaces bare
- * letter avatars without introducing handcrafted SVG art.
- */
-function GachaMark({ className }: { className?: string }) {
-  return <Bot className={className} aria-hidden="true" strokeWidth={1.8} />;
-}
-
-/**
- * Prize mark from the shared icon library, used for machines that already
- * advertise a top prize.
- */
-function PrizeMark({ className }: { className?: string }) {
-  return <Gift className={className} aria-hidden="true" strokeWidth={1.8} />;
-}
-
-/**
- * Small rarity gem/star badge. Legendary reads as a star; the lower tiers read
- * as a gem. The tier colour class is applied directly to the icon so it stays
- * robust against host wrappers that force `li/span { color: inherit }`.
- */
-function RarityMark({
-  rarity,
-  className,
-}: {
-  rarity?: string;
-  className?: string;
-}) {
-  const tier = rarity?.toLowerCase();
-  const cls = `${rarityClassName(rarity)}${className ? ` ${className}` : ""}`;
-  const Icon = tier === "legendary" ? Star : Gem;
-  if (tier === "legendary") {
-    return (
-      <Icon
-        className={cls}
-        width="14"
-        height="14"
-        fill="currentColor"
-        aria-hidden="true"
-        strokeWidth={1.8}
-      />
-    );
-  }
-  return (
-    <Icon
-      className={cls}
-      width="14"
-      height="14"
-      aria-hidden="true"
-      strokeWidth={2}
-    />
-  );
-}
-
-/**
- * Module-level rarity → tier-colour class (shared by RarityMark and the
- * component's rarityClass). Kept outside the component so the gem helper can use
- * it without prop drilling.
- */
-function rarityClassName(rarity: string | undefined): string {
-  switch (rarity?.toLowerCase()) {
-    case "legendary":
-      return "gasbox-rarity--legendary";
-    case "epic":
-      return "gasbox-rarity--epic";
-    case "rare":
-      return "gasbox-rarity--rare";
-    case "uncommon":
-      return "gasbox-rarity--uncommon";
-    default:
-      return "gasbox-rarity--common";
-  }
-}
-
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
-
-  const isLoading = bool("isLoading");
-  const isPulling = bool("isPulling");
-  const isCreating = bool("isCreating");
+  const machines = (val("machines") ?? []) as Machine[];
+  const selectedMachine = val<Machine | null>("selectedMachine", null);
+  const isLoading = bool("isLoading"); const isPulling = bool("isPulling");
+  const pullResult = val<PullResult | null>("pullResult", null);
   const machineCount = num("machineCount");
-  const userPulls = num("userPulls");
   const totalPulls = num("totalPulls");
+  const userPulls = num("userPulls");
   const selectedMachineName = str("selectedMachineName", "");
-  const machines = val<Machine[]>("machines") ?? [];
-  const selectedMachine = val<Machine>("selectedMachine");
-  const pullResult = val<PullResult>("pullResult");
-  const studioOpen = bool("studioOpen");
-  const walletAddress = str("walletAddress", "");
+  const showResult = bool("showResult");
   const hasPlayCredit = bool("hasPlayCredit");
-  const formattedPlayCredit = str("formattedPlayCredit", "");
-  // Commit/reveal (two-step) state. The pending betId lives in the composable
-  // observable (the resume handle the Reveal action settles against); the view
-  // only needs the phase + reveal affordance flags.
-  const betPhase = str("betPhase", "idle");
-  const canReveal = bool("canReveal");
+  const formattedPlayCredit = str("formattedPlayCredit", "0");
+  const betPhase = str("betPhase", "");
   const isAwaitingReveal = bool("isAwaitingReveal");
+  const walletAddress = str("walletAddress");
 
-  const [showResult, setShowResult] = useState(false);
-  const [leverPulled, setLeverPulled] = useState(false);
   const [pullPreview, setPullPreview] = useState(false);
-  const [revealPreview, setRevealPreview] = useState(false);
-  const pullPreviewTimeout = useRef<number | null>(null);
-  const revealPreviewTimeout = useRef<number | null>(null);
-  const [topUpAmount, setTopUpAmount] = useState("");
+  const pullPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (pullPreviewTimeout.current) clearTimeout(pullPreviewTimeout.current); }, []);
+  const startPullPreview = () => { if (pullPreviewTimeout.current) clearTimeout(pullPreviewTimeout.current); setPullPreview(true); pullPreviewTimeout.current = setTimeout(() => { setPullPreview(false); pullPreviewTimeout.current = null; }, 1400); };
 
-  const [machineName, setMachineName] = useState("");
-  const [machinePrice, setMachinePrice] = useState("");
-  const [prizeAsset, setPrizeAsset] = useState<PrizeAsset>("GAS");
-  const [studioItems, setStudioItems] = useState<StudioItem[]>([
-    { name: "", weight: "50", amount: "0.1" },
-  ]);
-  const [studioError, setStudioError] = useState<string | null>(null);
+  const isConnected = walletAddress.length > 0;
+  const pulling = isPulling || pullPreview;
+  const connectedScriptHash = addressToScriptHash(walletAddress).toLowerCase();
+  const selectedName = selectedMachineName.trim();
+  const hasDisplayName =
+    selectedName.length > 0 &&
+    !["-", "n/a", "none", "null", "undefined", "无"].includes(selectedName.toLowerCase());
+  const displayMachineName = selectedMachine && hasDisplayName ? selectedName : "";
 
-  const selectedMachineReady = Boolean(
-    selectedMachine?.active && selectedMachine?.inventoryReady,
-  );
-  const revealAnimating = betPhase === "settling" || revealPreview;
-  const pullAnimating =
-    isPulling ||
-    leverPulled ||
-    pullPreview ||
-    betPhase === "committing" ||
-    revealAnimating;
-  // Creator earnings flow: surface Withdraw Revenue only to the machine's
-  // creator (connected wallet matches creatorHash) and only when there is
-  // accrued, withdrawable revenue. Otherwise the control stays hidden.
-  const isSelectedMachineCreator = Boolean(
-    selectedMachine &&
-    walletAddress &&
-    ownerMatchesAddress(selectedMachine.creatorHash, walletAddress),
-  );
-  const selectedRevenueRaw = selectedMachine?.revenueRaw ?? 0;
-  const canWithdrawRevenue = isSelectedMachineCreator && selectedRevenueRaw > 0;
-  const canTopUpSelectedPool = Boolean(
-    selectedMachine &&
-    isPositiveAssetAmount(topUpAmount, selectedMachine.prizeAsset ?? "GAS"),
-  );
-  const machineCountDisplay =
-    machineCount > 0 ? machineCount.toLocaleString() : "—";
-  const userPullsDisplay = formatCount(userPulls, "0");
-  const totalPullsDisplay = formatCount(totalPulls, "0");
-  const signalLabel = isCreating
-    ? t("publishing")
-    : selectedMachineReady
-      ? t("readyToPlay")
-      : t("gasboxLiveStatus");
-  const selectedItems = selectedMachine?.items ?? [];
-  const availableItems = selectedItems.filter(
-    (item: MachineItem) => item.available,
-  );
-  const unavailableItems = selectedItems.filter(
-    (item: MachineItem) => !item.available,
-  );
-  const oddsCoverage = availableItems.reduce(
-    (sum: number, item: MachineItem) => sum + item.displayProbability,
-    0,
-  );
-  const rarestAvailableItem = availableItems.reduce<MachineItem | undefined>(
-    (candidate, item) => {
-      if (!candidate) return item;
-      if (item.displayProbability <= 0) return candidate;
-      if (candidate.displayProbability <= 0) return item;
-      return item.displayProbability < candidate.displayProbability
-        ? item
-        : candidate;
-    },
-    undefined,
-  );
-  const prizeFocusLabel =
-    selectedMachine?.topPrize ||
-    rarestAvailableItem?.name ||
-    t("gasboxNoAvailablePrize");
-  const prizeFocusOddsLabel = rarestAvailableItem
-    ? formatPercent(rarestAvailableItem.displayProbability, t("gasboxPending"))
-    : t("gasboxPending");
-  const inventoryRatio = selectedMachine
-    ? `${availableItems.length}/${Math.max(selectedItems.length, selectedMachine.itemCount)}`
-    : t("gasboxPending");
-  const pullReadinessTitle = selectedMachineReady
-    ? t("gasboxPullReadyTitle")
-    : t("gasboxPullBlockedTitle");
-  const blockedKeyBase =
-    selectedMachine?.active === false
-      ? "gasboxPullBlockedInactive"
-      : "gasboxPullBlockedInventory";
-  const pullReadinessCopy = selectedMachineReady
-    ? t("gasboxPullReadyCopy")
-    : // The creator can re-fund / re-activate inline (controls below); everyone
-      // else just sees that the machine isn't currently playable.
-      t(isSelectedMachineCreator ? `${blockedKeyBase}Creator` : blockedKeyBase);
-  const oddsReadable = oddsCoverage > 0;
-  const reelItems = (
-    availableItems.length > 0 ? availableItems : selectedItems
-  ).slice(0, 6);
-  const reelTrackItems =
-    reelItems.length > 0 ? [...reelItems, ...reelItems, ...reelItems] : [];
-  const pullChecklist = [
-    {
-      label: t("gasboxChecklistActive"),
-      passed: Boolean(selectedMachine?.active),
-    },
-    {
-      label: t("gasboxChecklistInventory"),
-      passed: Boolean(selectedMachine?.inventoryReady),
-    },
-    { label: t("gasboxChecklistOdds"), passed: oddsReadable },
-  ];
-  const handleSelectMachine = async (id: string) => {
-    await dispatch("selectMachine", id);
-  };
+  const machineId = selectedMachine?.id || machines[0]?.id || "";
+  const selectedItems = Array.isArray(selectedMachine?.items) ? selectedMachine.items : [];
+  const availableItems = selectedItems.filter((item) => item.available !== false);
+  const focusPrize = availableItems[0] ?? null;
+  const selectedReady = Boolean(selectedMachine && selectedMachine.active !== false && selectedMachine.inventoryReady !== false && selectedMachine.poolReady !== false);
+  const canPull = Boolean(selectedMachine && selectedReady && (isConnected || hasPlayCredit));
+  const selectedMachineId = selectedMachine?.id || "";
+  const creatorHash = String(selectedMachine?.creatorHash || "").toLowerCase();
+  const isCreator = Boolean(selectedMachine && connectedScriptHash && creatorHash && connectedScriptHash === creatorHash);
+  const selectedRevenueRaw = Number(selectedMachine?.revenueRaw ?? 0);
+  const hasWithdrawableRevenue = isCreator && Number.isFinite(selectedRevenueRaw) && selectedRevenueRaw > 0;
+  const hasMachines = machines.length > 0;
+  const sceneState = pulling ? "pulling" : showResult ? "result" : isAwaitingReveal ? "pending" : isLoading && !selectedMachine ? "syncing" : selectedMachine ? "ready" : "empty";
 
-  useEffect(
-    () => () => {
-      if (pullPreviewTimeout.current !== null) {
-        window.clearTimeout(pullPreviewTimeout.current);
-      }
-      if (revealPreviewTimeout.current !== null) {
-        window.clearTimeout(revealPreviewTimeout.current);
-      }
-    },
-    [],
-  );
-
-  const startPullPreview = () => {
-    if (pullPreviewTimeout.current !== null) {
-      window.clearTimeout(pullPreviewTimeout.current);
+  const machineStatusLabel = (machine: Machine | null | undefined) => {
+    if (!machine) return translation(t, "gasboxPending", "Sync pending");
+    if (machine.active === false) return translation(t, "inactive", "Inactive");
+    if (machine.inventoryReady === false || machine.poolReady === false) {
+      return translation(t, "gasboxMachineNeedsFunding", "Needs funding");
     }
-    setPullPreview(true);
-    pullPreviewTimeout.current = window.setTimeout(() => {
-      setPullPreview(false);
-      pullPreviewTimeout.current = null;
-    }, 1400);
+    return translation(t, "gasboxMachineLive", "Live");
   };
 
-  const startRevealPreview = () => {
-    if (revealPreviewTimeout.current !== null) {
-      window.clearTimeout(revealPreviewTimeout.current);
-    }
-    setRevealPreview(true);
-    revealPreviewTimeout.current = window.setTimeout(() => {
-      setRevealPreview(false);
-      revealPreviewTimeout.current = null;
-    }, 1200);
-  };
-
-  const handlePull = async () => {
-    const machineId = selectedMachine?.id;
-    if (
-      !machineId ||
-      !selectedMachineReady ||
-      pullAnimating ||
-      isAwaitingReveal
-    )
-      return;
+  const handlePull = () => {
+    if (!canPull || !machineId) return;
     startPullPreview();
-    setLeverPulled(true);
-    // Two-step: commit → wait one block → settle. The dispatch resolves after
-    // the whole flow; the result overlay is gated on the settled result, so a
-    // committed-but-unrevealed bet shows the pending panel + Reveal button below
-    // instead of a (non-existent) result.
-    try {
-      await dispatch("pull", machineId);
-      setShowResult(true);
-    } finally {
-      setTimeout(() => setLeverPulled(false), 600);
-    }
+    void dispatch("pull", machineId);
+  };
+  const handleReveal = () => void dispatch("reveal");
+  const handlePrimaryEmpty = () => void dispatch("refreshMachines");
+  const handleWithdrawRevenue = () => {
+    if (!hasWithdrawableRevenue || !selectedMachineId) return;
+    void dispatch("withdrawRevenue", selectedMachineId);
   };
 
-  // Reveal-retry: finish a committed bet whose settle timed out. Permissionless
-  // and safe to retry — the contract pays exactly once.
-  const handleReveal = async () => {
-    if (revealAnimating) return;
-    startRevealPreview();
-    await dispatch("reveal");
-    setShowResult(true);
-  };
+  const statusText = (() => {
+    if (betPhase === "committing") return translation(t, "gasboxCommitting", "Placing bet...");
+    if (betPhase === "settling") return translation(t, "gasboxRevealing", "Revealing your prize...");
+    if (pulling) return translation(t, "pulling", "Pulling...");
+    if (showResult) return translation(t, "pullSuccess", "Reveal complete. Your prize is shown below.");
+    if (isAwaitingReveal) return translation(t, "gasboxCommitted", "Bet placed - reveal on the next block.");
+    if (isLoading && !selectedMachine) return translation(t, "gasboxSyncingMachines", "Syncing live machines and escrowed capsules...");
+    if (!selectedMachine) return translation(t, "gasboxEmptyStageHint", "Live capsules appear here after the market syncs.");
+    if (!selectedReady) return translation(t, "gasboxPullBlockedTitle", "Pull unavailable");
+    return translation(t, "gasboxPullReadyTitle", "Ready for pull");
+  })();
 
-  const dismissResult = () => {
-    setShowResult(false);
-    void dispatch("resetResult");
-  };
+  const prizeName = showResult
+    ? prizeLabel(pullResult, translation(t, "unknownPrize", "Unknown prize"))
+    : focusPrize
+      ? prizeLabel(focusPrize, selectedMachine?.topPrize || translation(t, "unknownPrize", "Unknown prize"))
+      : selectedMachine
+        ? translation(t, "gasboxPrizeDeckPending", "Prize reel syncing")
+        : translation(t, "gasboxMarketSyncTitle", "Market sync in progress");
+  const prizeOdds = probabilityLabel(focusPrize);
+  const prizeCopy = (() => {
+    if (showResult) return translation(t, "gasboxOnChainPrizeNote", "The prize was drawn and paid on-chain.");
+    if (focusPrize) return prizeOdds ? `${translation(t, "gasboxPrizeFocusOdds", "Drop chance")} ${prizeOdds}` : translation(t, "gasboxReelHint", "Ready to spin");
+    if (selectedMachine) return translation(t, "gasboxPrizeDeckPendingCopy", "This machine needs escrow-ready prizes before players can pull.");
+    return translation(t, "gasboxMarketSyncCopy", "Refreshing checks live machines, escrowed inventory, and readable odds.");
+  })();
+  const scoreItems = (selectedMachine || hasMachines || machineCount > 0 || totalPulls > 0 || userPulls > 0 || hasPlayCredit)
+    ? [
+        { label: t("totalMachines"), value: String(machineCount), accent: true },
+        { label: translation(t, "yourPulls", "Your Pulls"), value: String(userPulls) },
+        { label: translation(t, "totalPulls", "Total Pulls"), value: String(totalPulls) },
+        { label: t("collect") || "Credit", value: formattedPlayCredit },
+      ]
+    : undefined;
 
-  // Player-facing label for the current commit/reveal phase.
-  const pendingPhaseLabel =
-    betPhase === "committing"
-      ? t("gasboxCommitting")
-      : revealAnimating
-        ? t("gasboxRevealing")
-        : t("gasboxCommitted");
-  const pullMotionLabel =
-    betPhase === "idle" && pullAnimating ? t("pulling") : pendingPhaseLabel;
-  const pullButtonLabel =
-    betPhase === "committing"
-      ? t("gasboxCommitting")
-      : betPhase === "settling"
-        ? t("gasboxRevealing")
-        : pullAnimating
-          ? t("pulling")
-          : t("pull");
-
-  const handleWithdrawRevenue = async () => {
-    const machineId = selectedMachine?.id;
-    if (!machineId || !canWithdrawRevenue) return;
-    await dispatch("withdrawRevenue", machineId);
-  };
-
-  const handleTopUpPool = async () => {
-    const machineId = selectedMachine?.id;
-    const asset = selectedMachine?.prizeAsset ?? "GAS";
-    if (!machineId || !isPositiveAssetAmount(topUpAmount, asset)) return;
-    await dispatch("topUpPool", machineId, topUpAmount.trim());
-    setTopUpAmount("");
-  };
-
-  const handleToggleActive = async () => {
-    const machineId = selectedMachine?.id;
-    if (!machineId) return;
-    await dispatch("setMachineActive", machineId, !selectedMachine?.active);
-  };
-
-  const updateStudioItem = (index: number, patch: Partial<StudioItem>) => {
-    setStudioItems((items) =>
-      items.map((item, i) => (i === index ? { ...item, ...patch } : item)),
-    );
-  };
-
-  const addStudioItem = () => {
-    setStudioItems((items) => [...items, emptyStudioItem()]);
-  };
-
-  const removeStudioItem = (index: number) => {
-    setStudioItems((items) =>
-      items.length > 1 ? items.filter((_, i) => i !== index) : items,
-    );
-  };
-
-  const adjustStudioWeight = (index: number, delta: number) => {
-    const current = Number(studioItems[index]?.weight);
-    const base = Number.isFinite(current) && current > 0 ? current : 10;
-    updateStudioItem(index, {
-      weight: String(Math.max(1, Math.round(base + delta))),
-    });
-  };
-
-  const adjustStudioAmount = (index: number, delta: number) => {
-    const current = Number(studioItems[index]?.amount);
-    const base = Number.isFinite(current) && current > 0 ? current : 0;
-    updateStudioItem(index, {
-      amount: formatStudioAmount(base + delta, prizeAsset),
-    });
-  };
-
-  const studioTotalWeight = studioItems.reduce(
-    (sum, item) => sum + (Number(item.weight) || 0),
-    0,
-  );
-  const studioMachineLabel =
-    machineName.trim() || t("studioPreviewMachineName");
-  const studioPriceLabel = machinePrice.trim()
-    ? `${machinePrice.trim()} GAS`
-    : t("studioPreviewPriceUnset");
-  const studioPrizePreview = studioItems.map((item, index) => {
-    const itemWeight = Number(item.weight) || 0;
-    const share =
-      studioTotalWeight > 0 ? (itemWeight / studioTotalWeight) * 100 : 0;
-    const derivedRarity = rarityFromShare(share);
-    const rarityKey = `rarity${derivedRarity.charAt(0)}${derivedRarity
-      .slice(1)
-      .toLowerCase()}`;
-    return {
-      item,
-      index,
-      itemWeight,
-      share,
-      derivedRarity,
-      rarityKey,
-      label: item.name.trim() || t("studioCapsuleFallback"),
-      amountLabel: item.amount.trim()
-        ? `${item.amount.trim()} ${prizeAsset}`
-        : t("studioAmountUnset"),
-    };
-  });
-  const studioHasMachineName = machineName.trim().length > 0;
-  const studioHasPublishablePrize = studioPrizePreview.some(
-    ({ item, itemWeight }) => item.name.trim().length > 0 && itemWeight > 0,
-  );
-  const studioReadyToPublish =
-    studioHasMachineName && studioHasPublishablePrize;
-  const studioLaunchCopy = !studioHasMachineName
-    ? t("studioLaunchNeedsMachine")
-    : !studioHasPublishablePrize
-      ? t("studioLaunchNeedsPrize")
-      : t("studioLaunchReadyCopy");
-
-  const resetStudioForm = () => {
-    setMachineName("");
-    setMachinePrice("");
-    setPrizeAsset("GAS");
-    setStudioItems([emptyStudioItem()]);
-    setStudioError(null);
-  };
-
-  const handleCloseStudio = async () => {
-    setStudioError(null);
-    await dispatch("closeStudio");
-  };
-
-  const handlePublishMachine = async () => {
-    if (!machineName.trim()) {
-      setStudioError(t("createNameRequired"));
-      return;
-    }
-    const validItems = studioItems.filter(
-      (item) => item.name.trim().length > 0 && (Number(item.weight) || 0) > 0,
-    );
-    if (validItems.length === 0) {
-      setStudioError(t("createNeedsItem"));
-      return;
-    }
-    setStudioError(null);
-
-    // The publishMachine action is wrapped in notify.guard, which swallows the
-    // error and resolves regardless of outcome. Gate the form reset on the
-    // action's confirmed-success flag so a failed publish (transient chain /
-    // wallet error) keeps the user's input instead of wiping the whole table.
-    // dispatch is typed Promise<void> but returns the action payload at runtime.
-    const published: unknown = await dispatch("publishMachine", {
-      name: machineName.trim(),
-      price: machinePrice.trim() || "0",
-      prizeAsset,
-      items: validItems.map((item) => ({
-        name: item.name.trim(),
-        weight: item.weight.trim() || "0",
-        amount: item.amount.trim() || "0",
-      })),
-    });
-    if (published === true) {
-      resetStudioForm();
-    }
-  };
-
-  const rarityClass = rarityClassName;
-
-  // Real machine iconography (replaces the bare "G"/"P"/"N" letter fallbacks
-  // that read as broken image assets): a prize capsule for machines that
-  // advertise a top prize, otherwise the gachapon mark. The wrapper carries the
-  // single brand-hue badge styling.
-  const machineMark = (machine?: Machine | null) =>
-    machine?.topPrize ? <PrizeMark /> : <GachaMark />;
-
-  if (isLoading) {
-    return (
-      <div className="gasbox-play-area">
-        <div className="gasbox-loading" role="status" aria-live="polite">
-          <div className="gasbox-loading-spinner" />
-          <span>{t("loadingMachines")}</span>
+  const scene = (
+    <div className="gasbox-scene" data-state={sceneState} data-ready={selectedReady ? "true" : "false"}>
+      <div className="gasbox-scene__cabinet" aria-label={translation(t, "title", "GasBox")}>
+        <img className="gasbox-scene__machine-art" src={machineArtUrl} alt={translation(t, "title", "GasBox")} />
+        <div className="gasbox-scene__capsule-track" aria-hidden="true">
+          {[0, 1, 2, 3].map((index) => (
+            <img
+              key={index}
+              className="gasbox-scene__capsule gasbox-scene__capsule--rolling"
+              src={prizeCapsuleUrl}
+              alt=""
+              style={{
+                "--gasbox-capsule-index": String(index),
+                "--gasbox-capsule-left": `${index * 20}%`,
+                "--gasbox-capsule-top": `${(index % 2) * 24}px`,
+              } as CSSProperties}
+            />
+          ))}
+        </div>
+        <div className="gasbox-scene__chute" aria-hidden={!pulling && !showResult}>
+          {(pulling || showResult) && (
+            <img className="gasbox-scene__capsule gasbox-scene__capsule--drop" src={prizeCapsuleUrl} alt="" />
+          )}
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="gasbox-play-area">
-      <section className="gasbox-hero" aria-label={t("title")}>
-        <div className="gasbox-hero__copy">
-          <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
-          <h2>{t("gasboxHeroTitle")}</h2>
-          <p className="gasbox-hero__status">
-            <span className="gasbox-hero__dot" aria-hidden="true" />
-            {signalLabel}
-          </p>
-          <p>{t("gasboxHeroCopy")}</p>
-          <div
-            className="gasbox-hero__pills"
-            aria-label={t("gasboxHeroProofs")}
-          >
-            <span>
-              <ShieldCheck aria-hidden="true" />
-              {t("gasboxHeroEscrow")}
-            </span>
-            <span>
-              <Sparkles aria-hidden="true" />
-              {t("gasboxHeroReveal")}
-            </span>
-            <span>
-              <Trophy aria-hidden="true" />
-              {t("gasboxHeroPrize")}
-            </span>
-          </div>
-        </div>
-        <picture className="gasbox-hero__art" aria-hidden="true">
-          <source srcSet="banner.avif" type="image/avif" />
-          <source srcSet="banner.webp" type="image/webp" />
-          <img src="banner.jpg" alt="" loading="eager" decoding="async" />
-        </picture>
-        <div
-          className="gasbox-hero__metrics"
-          aria-label={t("gasboxLiveStatus")}
-        >
-          <div className="gasbox-metric">
-            <span>{t("machines")}</span>
-            <strong>{machineCountDisplay}</strong>
-          </div>
-          <div className="gasbox-metric">
-            <span>{t("yourPulls")}</span>
-            <strong>{userPullsDisplay}</strong>
-          </div>
-          <div className="gasbox-metric" title={t("estPlaysHint")}>
-            <span>{t("estPlays")}</span>
-            <strong>{totalPullsDisplay}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className={`gasbox-machines-card${machines.length === 0 ? " gasbox-machines-card--empty" : ""}`}
-      >
-        <div className="gasbox-section-header gasbox-section-header--with-action">
-          <div className="gasbox-section-header__copy">
-            <span>{t("market")}</span>
-            <strong>{t("selectMachine")}</strong>
-          </div>
-          <NeoButton
-            variant={studioOpen ? "secondary" : "primary"}
-            size="sm"
-            onClick={() => dispatch(studioOpen ? "closeStudio" : "openStudio")}
-          >
-            <Sparkles aria-hidden="true" />
-            {studioOpen ? t("studioCloseAction") : t("createMachineAction")}
-          </NeoButton>
-        </div>
-        {machines.length === 0 ? (
-          <div className="gasbox-market-empty">
-            <div className="gasbox-empty-stage" aria-hidden="true">
-              <picture className="gasbox-empty-stage__machine">
-                <img
-                  src={GASBOX_MACHINE_ASSET}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-              </picture>
-              <span className="gasbox-empty-stage__lock">
-                <LockKeyhole aria-hidden="true" />
+      {showResult && <ParticleBurst coins count={10} />}
+      <div className="gasbox-scene__panel" aria-live="polite">
+        {selectedMachine ? (
+          <div className="gasbox-scene__result">
+            <img className="gasbox-scene__result-art" src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+            <div>
+              <span className="gasbox-scene__result-kicker">
+                {showResult ? translation(t, "congratulations", "Prize revealed") : translation(t, "gasboxPrizeFocus", "Prize focus")}
               </span>
-              <div className="gasbox-empty-stage__caption">
-                <span>{t("gasboxEmptyStageLabel")}</span>
-                <strong>{t("gasboxEmptyStageHint")}</strong>
-              </div>
-              <ul className="gasbox-empty-stage__odds">
-                {(["legendary", "epic", "rare", "common"] as const).map(
-                  (tier) => (
-                    <li
-                      key={tier}
-                      className={`gasbox-empty-stage__tier ${rarityClass(tier)}`}
-                    >
-                      <RarityMark
-                        rarity={tier}
-                        className="gasbox-empty-stage__gem"
-                      />
-                      <span>
-                        {t(
-                          `rarity${tier.charAt(0).toUpperCase()}${tier.slice(1)}`,
-                        )}
-                      </span>
-                      <strong>?</strong>
-                    </li>
-                  ),
-                )}
-              </ul>
-            </div>
-            <div className="gasbox-market-empty__content">
-              <div className="gasbox-market-empty__copy">
-                <span>{t("gasboxMarketEmptyTitle")}</span>
-                <strong>{t("gasboxMarketEmptyTeaser")}</strong>
-              </div>
-              <ol
-                className="gasbox-empty-route"
-                aria-label={t("gasboxPlayerRoute")}
-              >
-                <li>{t("gasboxEmptyRouteRefresh")}</li>
-                <li>{t("gasboxEmptyRoutePick")}</li>
-                <li>{t("gasboxEmptyRouteReveal")}</li>
-              </ol>
-              <div className="gasbox-empty-button-row">
-                <NeoButton
-                  variant="primary"
-                  size="md"
-                  onClick={() => dispatch("refreshMachines")}
-                >
-                  <RefreshCw aria-hidden="true" />
-                  {t("refreshMachines")}
-                </NeoButton>
-              </div>
-              <p className="gasbox-empty-creator-line">
-                {t("gasboxEmptyForCreators")}{" "}
-                <button
-                  type="button"
-                  className="gasbox-empty-creator-link"
-                  onClick={() => dispatch("openStudio")}
-                >
-                  {t("openStudio")}
-                </button>
-              </p>
+              <strong>{prizeName}</strong>
+              <small>{prizeCopy}</small>
             </div>
           </div>
         ) : (
-          <div className="gasbox-machine-grid">
-            {machines.map((machine) => {
-              const isSelected = selectedMachine?.id === machine.id;
-              return (
-                <NeoCard
-                  key={machine.id}
-                  variant="erobo"
-                  hoverable
-                  className={`gasbox-machine-item${isSelected ? " gasbox-machine-item--selected" : ""}${!machine.active ? " gasbox-machine-item--inactive" : ""}`}
-                  onClick={() => handleSelectMachine(machine.id)}
-                >
-                  <div className="gasbox-machine-window">
-                    <div className="gasbox-machine-icon" aria-hidden="true">
-                      {machineMark(machine)}
-                    </div>
-                    <span
-                      className={`gasbox-machine-state${machine.active && machine.inventoryReady ? " is-live" : ""}`}
-                    >
-                      {machine.active && machine.inventoryReady
-                        ? t("gasboxMachineLive")
-                        : t("gasboxMachineNeedsFunding")}
-                    </span>
-                  </div>
-                  <div className="gasbox-machine-info">
-                    <span className="gasbox-machine-name">{machine.name}</span>
-                    {machine.description && (
-                      <span className="gasbox-machine-desc">
-                        {machine.description}
-                      </span>
-                    )}
-                    <div className="gasbox-machine-meta">
-                      <span>
-                        {machine.itemCount} {t("items")}
-                      </span>
-                      <span>
-                        {machine.topPrize || t("gasboxNoAvailablePrize")}
-                      </span>
-                    </div>
-                    <div className="gasbox-machine-foot">
-                      <span className="gasbox-machine-cost">
-                        {machine.price} GAS
-                      </span>
-                      <span title={t("estPlaysHint")}>
-                        {machine.plays} {t("estPlays").toLowerCase()}
-                      </span>
-                    </div>
-                  </div>
-                </NeoCard>
-              );
-            })}
+          <div className="gasbox-scene__sync-card">
+            <div className="gasbox-scene__sync-capsules" aria-hidden="true">
+              {[0, 1, 2, 3, 4].map((index) => (
+                <img key={index} src={prizeCapsuleUrl} alt="" style={{ "--gasbox-sync-index": String(index) } as CSSProperties} />
+              ))}
+            </div>
+            <span className="gasbox-scene__result-kicker">{translation(t, "gasboxCapsuleStation", "Capsule station")}</span>
+            <strong>{prizeName}</strong>
+            <p>{prizeCopy}</p>
+            <ol className="gasbox-scene__route" aria-label={translation(t, "gasboxPlayerRoute", "Player route")}>
+              <li>{translation(t, "gasboxEmptyRouteRefresh", "Refresh market")}</li>
+              <li>{translation(t, "gasboxEmptyRoutePick", "Pick a machine")}</li>
+              <li>{translation(t, "gasboxEmptyRouteReveal", "Reveal prize")}</li>
+            </ol>
           </div>
         )}
-      </section>
+        <div className="gasbox-scene__shelf" aria-hidden="true">
+          {[0, 1, 2].map((index) => (
+            <img key={index} src={prizeCapsuleUrl} alt="" style={{ "--gasbox-shelf-index": String(index) } as CSSProperties} />
+          ))}
+        </div>
+      </div>
+      <p className="gasbox-scene__status" aria-live="polite">{statusText}</p>
+    </div>
+  );
 
-      {studioOpen && (
-        <NeoCard
-          variant="erobo"
-          className={`gasbox-studio-card${studioReadyToPublish ? " gasbox-studio-card--ready" : ""}`}
-        >
-          <div className="gasbox-studio-header">
-            <div className="gasbox-studio-header__copy">
-              <span>{t("studioTitle")}</span>
-              <strong>{t("studioSubtitle")}</strong>
-              <p>{t("createPanelHint")}</p>
-            </div>
-            <NeoButton variant="ghost" size="sm" onClick={handleCloseStudio}>
-              {t("backToMarket")}
-            </NeoButton>
-          </div>
-
-          <div
-            className="gasbox-studio-summary"
-            aria-label={t("gasboxStudioSummary")}
-          >
-            <span>
-              <Gift aria-hidden="true" />
-              {t("gasboxStudioPrizeCount", { count: studioItems.length })}
-            </span>
-            <span>
-              <Coins aria-hidden="true" />
-              {t("totalWeightLabel")}: {studioTotalWeight}
-            </span>
-            <span>
-              <ShieldCheck aria-hidden="true" />
-              {t("gasboxStudioSafety")}
-            </span>
-          </div>
-
-          <ol className="gasbox-studio-flow" aria-label={t("studioFlowLabel")}>
-            <li className={machineName.trim() ? "is-ready" : ""}>
-              <Bot aria-hidden="true" />
-              <span>
-                <strong>{t("studioFlowMachine")}</strong>
-                <small>{t("studioFlowMachineHint")}</small>
-              </span>
-            </li>
-            <li className={studioTotalWeight > 0 ? "is-ready" : ""}>
-              <Gem aria-hidden="true" />
-              <span>
-                <strong>{t("studioFlowPrizes")}</strong>
-                <small>{t("studioFlowPrizesHint")}</small>
-              </span>
-            </li>
-            <li className={studioReadyToPublish ? "is-ready" : ""}>
-              <ShieldCheck aria-hidden="true" />
-              <span>
-                <strong>{t("studioFlowPublish")}</strong>
-                <small>{t("studioFlowPublishHint")}</small>
-              </span>
-            </li>
-          </ol>
-
-          <div
-            className="gasbox-studio-blueprint"
-            aria-label={t("studioBlueprintLabel")}
-          >
-            <figure className="gasbox-studio-machine-preview">
-              <picture aria-hidden="true">
-                <img
-                  src={GASBOX_MACHINE_ASSET}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-              </picture>
-              <div
-                className="gasbox-studio-machine-preview__lights"
-                aria-hidden="true"
-              >
-                <span />
-                <span />
-                <span />
-              </div>
-              <figcaption>
-                <span>{t("studioBlueprintLabel")}</span>
-                <strong>{studioMachineLabel}</strong>
-                <small>{studioPriceLabel}</small>
-              </figcaption>
-            </figure>
-            <div className="gasbox-studio-blueprint__console">
-              <p>{t("studioPreviewHint")}</p>
-              <div className="gasbox-studio-blueprint__stats">
-                <span>
-                  <Gem aria-hidden="true" />
-                  <small>{t("studioBlueprintAsset")}</small>
-                  <strong>{prizeAsset}</strong>
-                </span>
-                <span>
-                  <Gift aria-hidden="true" />
-                  <small>{t("studioBlueprintPrizes")}</small>
-                  <strong>{studioItems.length}</strong>
-                </span>
-                <span>
-                  <Coins aria-hidden="true" />
-                  <small>{t("studioBlueprintWeight")}</small>
-                  <strong>{studioTotalWeight}</strong>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="gasbox-studio-odds-rail"
-            aria-label={t("studioOddsRailTitle")}
-          >
-            <div className="gasbox-studio-odds-rail__head">
-              <span>{t("studioOddsRailTitle")}</span>
-              <strong>{t("studioOddsRailHint")}</strong>
-            </div>
-            <div className="gasbox-studio-odds-track" role="list">
-              {studioPrizePreview.map((preview) => (
-                <article
-                  key={preview.index}
-                  className={`gasbox-studio-odds-token ${rarityClass(preview.derivedRarity)}`}
-                  role="listitem"
-                  style={
-                    { "--gasbox-token-order": preview.index } as CSSProperties
-                  }
-                >
-                  <span
-                    className="gasbox-studio-odds-token__capsule"
-                    aria-hidden="true"
-                  >
-                    <RarityMark rarity={preview.derivedRarity} />
-                  </span>
-                  <span className="gasbox-studio-odds-token__copy">
-                    <strong>{preview.label}</strong>
-                    <small>
-                      {formatPercent(preview.share, "—")} ·{" "}
-                      {preview.amountLabel}
-                    </small>
-                  </span>
-                </article>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={`gasbox-studio-conveyor${studioReadyToPublish ? " is-ready" : ""}`}
-            aria-label={t("studioConveyorLabel")}
-          >
-            <div className="gasbox-studio-conveyor__head">
-              <span>{t("studioConveyorLabel")}</span>
-              <strong>{t("studioConveyorHint")}</strong>
-            </div>
-            <div className="gasbox-studio-conveyor__belt" role="list">
-              {studioPrizePreview.map((preview) => (
-                <article
-                  key={preview.index}
-                  className={`gasbox-studio-conveyor__capsule ${rarityClass(preview.derivedRarity)}`}
-                  role="listitem"
-                  style={
-                    {
-                      "--gasbox-conveyor-order": preview.index,
-                      "--gasbox-share": `${Math.max(8, Math.min(100, preview.share || 8))}%`,
-                    } as CSSProperties
-                  }
-                >
-                  <span
-                    className="gasbox-studio-conveyor__orb"
-                    aria-hidden="true"
-                  >
-                    <img
-                      src={GASBOX_CAPSULE_ASSET}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <RarityMark rarity={preview.derivedRarity} />
-                  </span>
-                  <span className="gasbox-studio-conveyor__copy">
-                    <strong>{preview.label}</strong>
-                    <small>
-                      {formatPercent(preview.share, "—")} ·{" "}
-                      {preview.amountLabel}
-                    </small>
-                  </span>
-                  <span
-                    className="gasbox-studio-conveyor__weight"
-                    aria-hidden="true"
-                  />
-                </article>
-              ))}
-            </div>
-          </div>
-
-          <div className="gasbox-studio-cabinet">
-            <div className="gasbox-cabinet-card gasbox-cabinet-card--identity">
-              <div className="gasbox-cabinet-card__head">
-                <span aria-hidden="true">
-                  <GachaMark />
-                </span>
-                <div>
-                  <small>{t("studioBlueprintLabel")}</small>
-                  <strong>{studioMachineLabel}</strong>
-                </div>
-              </div>
-              <div className="gasbox-cabinet-controls">
-                <label className="gasbox-field gasbox-field--plaque">
-                  <span>{t("machineNameLabel")}</span>
-                  <input
-                    type="text"
-                    value={machineName}
-                    placeholder={t("machineNamePlaceholder")}
-                    onChange={(e) => setMachineName(e.target.value)}
-                  />
-                </label>
-                <label className="gasbox-field gasbox-field--price">
-                  <span>{t("pricePerPlayLabel")}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.0001"
-                    value={machinePrice}
-                    placeholder={t("pricePlaceholder")}
-                    onChange={(e) => setMachinePrice(e.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="gasbox-cabinet-card gasbox-cabinet-card--asset">
-              <div className="gasbox-cabinet-card__head">
-                <span aria-hidden="true">
-                  <Gem />
-                </span>
-                <div>
-                  <small>{t("prizeAssetLabel")}</small>
-                  <strong>{prizeAsset}</strong>
-                </div>
-              </div>
-              <div
-                className="gasbox-asset-choice-list"
-                role="radiogroup"
-                aria-label={t("prizeAssetLabel")}
-              >
-                {PRIZE_ASSET_OPTIONS.map((asset) => (
-                  <button
-                    key={asset}
-                    type="button"
-                    className={`gasbox-asset-choice${prizeAsset === asset ? " is-selected" : ""}`}
-                    role="radio"
-                    aria-checked={prizeAsset === asset}
-                    onClick={() => setPrizeAsset(asset)}
-                  >
-                    <span
-                      className="gasbox-asset-choice__icon"
-                      aria-hidden="true"
-                    >
-                      {(() => {
-                        const Icon = PRIZE_ASSET_META[asset].icon;
-                        return <Icon />;
-                      })()}
-                    </span>
-                    <span className="gasbox-asset-choice__copy">
-                      <strong>{asset}</strong>
-                      <span>{t(PRIZE_ASSET_META[asset].hintKey)}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="gasbox-studio-items">
-            <div className="gasbox-studio-items__header">
-              <span>{t("inventoryAndOdds")}</span>
-              <strong>
-                {t("totalWeightLabel")}: {studioTotalWeight}
-              </strong>
-            </div>
-            <p className="gasbox-studio-items__hint">
-              {t("derivedTierExplain")}
-            </p>
-
-            {studioPrizePreview.map((preview) => {
-              const {
-                item,
-                index,
-                itemWeight,
-                share,
-                derivedRarity,
-                rarityKey,
-              } = preview;
-              const amountStep = prizeAsset === "NEO" ? 1 : 0.1;
-              return (
-                <div key={index} className="gasbox-studio-item">
-                  <div className="gasbox-studio-item__header">
-                    <span
-                      className={`gasbox-studio-item__asset ${rarityClass(derivedRarity)}`}
-                      aria-hidden="true"
-                    >
-                      <picture className="gasbox-studio-item__machine">
-                        <img
-                          src={GASBOX_CAPSULE_ASSET}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </picture>
-                      <span className="gasbox-studio-item__capsule">
-                        <RarityMark rarity={derivedRarity} />
-                      </span>
-                    </span>
-                    <span className="gasbox-studio-item__title">
-                      <small>
-                        {t("studioCapsuleLabel", { index: index + 1 })}
-                      </small>
-                      <strong>
-                        {item.name.trim() || t("studioCapsuleFallback")}
-                      </strong>
-                    </span>
-                    <span className="gasbox-derived-tier gasbox-studio-item__tier">
-                      <small>{t("derivedTierLabel")}</small>
-                      <strong
-                        className={`gasbox-derived-tier__value ${rarityClass(derivedRarity)}`}
-                        aria-label={t("derivedTierHint")}
-                      >
-                        {t(rarityKey) || derivedRarity}
-                        {itemWeight > 0 && (
-                          <span className="gasbox-derived-tier__share">
-                            {" "}
-                            {formatPercent(share, "—")}
-                          </span>
-                        )}
-                      </strong>
-                    </span>
-                  </div>
-                  <div className="gasbox-capsule-editor">
-                    <label className="gasbox-field gasbox-capsule-name-field">
-                      <span>{t("itemNamePlaceholder")}</span>
-                      <input
-                        type="text"
-                        value={item.name}
-                        placeholder={t("itemNamePlaceholder")}
-                        onChange={(e) =>
-                          updateStudioItem(index, { name: e.target.value })
-                        }
-                      />
-                    </label>
-                    <div className="gasbox-capsule-dials">
-                      <section
-                        className="gasbox-capsule-dial-panel"
-                        aria-label={t("weightLabel")}
-                      >
-                        <div className="gasbox-capsule-dial-head">
-                          <span>{t("weightLabel")}</span>
-                          <strong>
-                            {item.weight || t("weightPlaceholder")}
-                          </strong>
-                        </div>
-                        <div className="gasbox-dial-control">
-                          <button
-                            type="button"
-                            className="gasbox-dial-step"
-                            aria-label={`${t("weightLabel")} -`}
-                            onClick={() => adjustStudioWeight(index, -1)}
-                          >
-                            <Minus aria-hidden="true" />
-                          </button>
-                          <label className="gasbox-field gasbox-capsule-dial">
-                            <input
-                              type="number"
-                              min="1"
-                              step="1"
-                              value={item.weight}
-                              placeholder={t("weightPlaceholder")}
-                              onChange={(e) =>
-                                updateStudioItem(index, {
-                                  weight: e.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="gasbox-dial-step"
-                            aria-label={`${t("weightLabel")} +`}
-                            onClick={() => adjustStudioWeight(index, 1)}
-                          >
-                            <Plus aria-hidden="true" />
-                          </button>
-                        </div>
-                        <div
-                          className="gasbox-capsule-preset-row"
-                          aria-label={t("weightLabel")}
-                        >
-                          {WEIGHT_PRESETS.map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              className={
-                                item.weight === preset ? "is-selected" : ""
-                              }
-                              onClick={() =>
-                                updateStudioItem(index, { weight: preset })
-                              }
-                            >
-                              {preset}
-                            </button>
-                          ))}
-                        </div>
-                      </section>
-                      <section
-                        className="gasbox-capsule-dial-panel gasbox-capsule-dial-panel--amount"
-                        aria-label={`${t("prizePerWinLabel")} (${prizeAsset})`}
-                      >
-                        <div className="gasbox-capsule-dial-head">
-                          <span>
-                            {t("prizePerWinLabel")} ({prizeAsset})
-                          </span>
-                          <strong>
-                            {item.amount || t("tokenAmountPlaceholder")}
-                          </strong>
-                        </div>
-                        <div className="gasbox-dial-control">
-                          <button
-                            type="button"
-                            className="gasbox-dial-step"
-                            aria-label={`${t("prizePerWinLabel")} -`}
-                            onClick={() =>
-                              adjustStudioAmount(index, -amountStep)
-                            }
-                          >
-                            <Minus aria-hidden="true" />
-                          </button>
-                          <label className="gasbox-field gasbox-capsule-dial">
-                            <input
-                              type="number"
-                              min="0"
-                              step={prizeAsset === "NEO" ? "1" : "0.0001"}
-                              value={item.amount}
-                              placeholder={t("tokenAmountPlaceholder")}
-                              onChange={(e) =>
-                                updateStudioItem(index, {
-                                  amount: e.target.value,
-                                })
-                              }
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="gasbox-dial-step"
-                            aria-label={`${t("prizePerWinLabel")} +`}
-                            onClick={() =>
-                              adjustStudioAmount(index, amountStep)
-                            }
-                          >
-                            <Plus aria-hidden="true" />
-                          </button>
-                        </div>
-                        <div
-                          className="gasbox-capsule-preset-row"
-                          aria-label={t("prizePerWinLabel")}
-                        >
-                          {PRIZE_AMOUNT_PRESETS[prizeAsset].map((preset) => (
-                            <button
-                              key={preset}
-                              type="button"
-                              className={
-                                item.amount === preset ? "is-selected" : ""
-                              }
-                              onClick={() =>
-                                updateStudioItem(index, { amount: preset })
-                              }
-                            >
-                              {preset} {prizeAsset}
-                            </button>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
-                    <NeoButton
-                      variant="ghost"
-                      size="sm"
-                      disabled={studioItems.length <= 1}
-                      aria-label={t("removeItem", { index: index + 1 })}
-                      onClick={() => removeStudioItem(index)}
-                    >
-                      <Trash2 aria-hidden="true" />
-                      <span className="gasbox-remove-label">
-                        {t("removeItem", { index: index + 1 })}
-                      </span>
-                    </NeoButton>
-                  </div>
-                </div>
-              );
-            })}
-
-            <NeoButton variant="secondary" size="sm" onClick={addStudioItem}>
-              <Gift aria-hidden="true" />
-              {t("addItem")}
-            </NeoButton>
-          </div>
-
-          <p className="gasbox-inventory-note">{t("inventoryNote")}</p>
-
-          {studioError && (
-            <p className="gasbox-studio-error" role="alert">
-              {studioError}
-            </p>
-          )}
-
-          <div
-            className={`gasbox-studio-launch-pad${studioReadyToPublish ? " is-ready" : ""}`}
-            aria-label={t("studioLaunchPadLabel")}
-          >
-            <picture
-              className="gasbox-studio-launch-pad__machine"
-              aria-hidden="true"
-            >
-              <img
-                src={GASBOX_MACHINE_ASSET}
-                alt=""
-                loading="eager"
-                decoding="sync"
-              />
-            </picture>
-            <div className="gasbox-studio-launch-pad__copy">
-              <span>{t("studioLaunchPadLabel")}</span>
-              <strong>
-                {studioReadyToPublish
-                  ? t("studioLaunchReadyTitle")
-                  : t("studioLaunchDraftTitle")}
-              </strong>
-              <p>{studioLaunchCopy}</p>
-              <div className="gasbox-studio-launch-pad__signals">
-                <span className={studioHasMachineName ? "is-ready" : ""}>
-                  <Bot aria-hidden="true" />
-                  {t("studioFlowMachine")}
-                </span>
-                <span className={studioHasPublishablePrize ? "is-ready" : ""}>
-                  <Gift aria-hidden="true" />
-                  {t("studioFlowPrizes")}
-                </span>
-                <span className={studioReadyToPublish ? "is-ready" : ""}>
-                  <ShieldCheck aria-hidden="true" />
-                  {t("studioFlowPublish")}
-                </span>
-              </div>
-            </div>
-            <NeoButton
-              variant="primary"
-              size="lg"
-              loading={isCreating}
-              disabled={isCreating || !studioReadyToPublish}
-              onClick={handlePublishMachine}
-            >
-              {isCreating ? t("publishing") : t("createMachineAction")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      )}
-
-      {selectedMachine && (
-        <NeoCard variant="erobo" className="gasbox-pull-card">
-          <div className="gasbox-selected-display">
-            <div
-              className="gasbox-pull-stage"
-              aria-busy={pullAnimating || undefined}
-            >
-              <figure
-                className={`gasbox-stage-art${pullAnimating ? " gasbox-stage-art--pulling" : ""}`}
-              >
-                <picture aria-hidden="true">
-                  <img
-                    src={GASBOX_MACHINE_ASSET}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <div
-                  className={`gasbox-stage-art__slot${pullAnimating ? " is-active" : ""}${selectedMachineReady ? " is-ready" : " is-locked"}`}
-                  aria-hidden="true"
-                >
-                  <span className="gasbox-stage-art__slot-light" />
-                  <span className="gasbox-stage-art__slot-capsule">
-                    <img src={GASBOX_CAPSULE_ASSET} alt="" loading="lazy" />
-                  </span>
-                </div>
-                {pullAnimating && (
-                  <div
-                    className="gasbox-stage-art__capsules"
-                    aria-hidden="true"
-                  >
-                    {Array.from({ length: 3 }).map((_, index) => (
-                      <picture
-                        key={index}
-                        className={`gasbox-stage-art__capsule gasbox-stage-art__capsule--${index + 1}`}
-                      >
-                        <img
-                          src={GASBOX_CAPSULE_ASSET}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </picture>
-                    ))}
-                  </div>
-                )}
-                <figcaption>
-                  <span>{t("gasboxPrizeFocus")}</span>
-                  <strong>{prizeFocusLabel}</strong>
-                  <small>
-                    {t("gasboxPrizeFocusOdds")}: {prizeFocusOddsLabel}
-                  </small>
-                </figcaption>
-              </figure>
-
-              <div className="gasbox-play-console">
-                <div className="gasbox-selected-header">
-                  <div className="gasbox-selected-icon" aria-hidden="true">
-                    {machineMark(selectedMachine)}
-                  </div>
-                  <div className="gasbox-selected-info">
-                    <h3 className="gasbox-selected-name">
-                      {selectedMachineName || selectedMachine.name}
-                    </h3>
-                    {selectedMachine.description && (
-                      <p className="gasbox-selected-desc">
-                        {selectedMachine.description}
-                      </p>
-                    )}
-                    <div className="gasbox-selected-tags">
-                      {selectedMachine.category && (
-                        <span className="gasbox-tag">
-                          {selectedMachine.category}
-                        </span>
-                      )}
-                      {selectedMachine.tagsList?.map((tag) => (
-                        <span key={tag} className="gasbox-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className={`gasbox-status-banner${selectedMachineReady ? " is-ready" : " is-blocked"}`}
-                  aria-label={t("gasboxReadinessTitle")}
-                >
-                  <strong>{pullReadinessTitle}</strong>
-                  <p>{pullReadinessCopy}</p>
-                </div>
-
-                <div
-                  className="gasbox-pull-intent"
-                  aria-label={t("gasboxPullIntent")}
-                >
-                  <span>
-                    <Coins aria-hidden="true" />
-                    {selectedMachine.price} GAS
-                  </span>
-                  <span>
-                    <ShieldCheck aria-hidden="true" />
-                    {t("gasboxIntentEscrow")}
-                  </span>
-                  <span>
-                    <Sparkles aria-hidden="true" />
-                    {t("gasboxIntentReveal")}
-                  </span>
-                </div>
-
-                <div
-                  className={`gasbox-prize-reel${pullAnimating ? " gasbox-prize-reel--active" : ""}${selectedMachineReady ? " gasbox-prize-reel--ready" : " gasbox-prize-reel--locked"}`}
-                  aria-label={t("gasboxReelTitle")}
-                  aria-busy={pullAnimating || undefined}
-                  aria-live={pullAnimating ? "polite" : "off"}
-                >
-                  <div className="gasbox-reel-head">
-                    <span>
-                      <Sparkles aria-hidden="true" />
-                      {t("gasboxReelTitle")}
-                    </span>
-                    <strong>
-                      {pullAnimating ? pullMotionLabel : t("gasboxReelHint")}
-                    </strong>
-                  </div>
-                  <div className="gasbox-reel-window">
-                    <div className="gasbox-reel-marker" aria-hidden="true">
-                      <Ticket />
-                    </div>
-                    {reelTrackItems.length > 0 ? (
-                      <div className="gasbox-reel-strip">
-                        {reelTrackItems.map((item, index) => (
-                          <span
-                            key={`${item.name || item.rarity}-${index}`}
-                            className={`gasbox-reel-card ${rarityClass(item.rarity)}${item.name === prizeFocusLabel ? " is-focus" : ""}`}
-                          >
-                            <RarityMark
-                              rarity={item.rarity}
-                              className="gasbox-reel-card__gem"
-                            />
-                            <span className="gasbox-reel-card__copy">
-                              <strong>{item.name || item.rarity}</strong>
-                              <small>
-                                {formatPercent(
-                                  item.displayProbability,
-                                  t("gasboxPending"),
-                                )}
-                              </small>
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="gasbox-reel-empty">
-                        {t("gasboxReelEmpty")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}
-                >
-                  <div
-                    className={`gasbox-control-deck${pullAnimating ? " gasbox-control-deck--active" : ""}${selectedMachineReady ? " gasbox-control-deck--ready" : " gasbox-control-deck--locked"}`}
-                    aria-busy={pullAnimating || undefined}
-                  >
-                    <div
-                      className={`gasbox-cabinet-lever${pullAnimating ? " is-active" : ""}${selectedMachineReady ? " is-ready" : " is-locked"}`}
-                      aria-hidden="true"
-                    >
-                      <span className="gasbox-cabinet-lever__lights">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                      <span className="gasbox-cabinet-lever__slot" />
-                      <span className="gasbox-cabinet-lever__handle" />
-                    </div>
-                    <div className="gasbox-pull-command">
-                      <NeoButton
-                        variant="primary"
-                        size="lg"
-                        block
-                        loading={pullAnimating}
-                        disabled={
-                          pullAnimating ||
-                          isAwaitingReveal ||
-                          !selectedMachineReady
-                        }
-                        aria-label={pullButtonLabel}
-                        className={`gasbox-pull-btn${pullAnimating ? " gasbox-pull-btn--active" : ""}`}
-                        onClick={handlePull}
-                      >
-                        <div className="gasbox-pull-btn-content">
-                          <Ticket aria-hidden="true" />
-                          <span className="gasbox-pull-btn-text">
-                            {pullButtonLabel}
-                          </span>
-                          <span className="gasbox-pull-btn-cost">
-                            {selectedMachine.price} GAS
-                          </span>
-                        </div>
-                      </NeoButton>
-                      <div
-                        className="gasbox-selected-actions"
-                        aria-label={t("gasboxSelectedActions")}
-                      >
-                        <NeoButton
-                          variant="secondary"
-                          size="sm"
-                          disabled={isPulling}
-                          onClick={() => dispatch("refreshMachines")}
-                        >
-                          <RefreshCw aria-hidden="true" />
-                          {t("refreshMachines")}
-                        </NeoButton>
-                        <NeoButton
-                          variant="ghost"
-                          size="sm"
-                          disabled={isPulling}
-                          onClick={() => dispatch("openStudio")}
-                        >
-                          <Sparkles aria-hidden="true" />
-                          {t("openStudio")}
-                        </NeoButton>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {(isAwaitingReveal || canReveal) && (
-              <section
-                className={`gasbox-pending${revealAnimating ? " gasbox-pending--revealing" : ""}`}
-                role="status"
-                aria-live="polite"
-                aria-label={t("gasboxPendingTitle")}
-              >
-                <div className="gasbox-pending__head">
-                  <span
-                    className={`gasbox-pending__spinner${betPhase === "committed" && !revealAnimating ? " is-waiting" : ""}`}
-                    aria-hidden="true"
-                  />
-                  <div className="gasbox-pending__copy">
-                    <strong>{pendingPhaseLabel}</strong>
-                    <p>{t("gasboxPendingDesc")}</p>
-                  </div>
-                </div>
-                {/* Reveal-retry: shown once the bet is committed so a timed-out
-                    or not-yet-ready settle can be re-fired. Hidden mid-commit. */}
-                {canReveal && betPhase !== "committing" && (
-                  <div className="gasbox-pending__actions">
-                    <NeoButton
-                      variant="primary"
-                      size="md"
-                      loading={revealAnimating}
-                      disabled={revealAnimating}
-                      aria-label={
-                        revealAnimating
-                          ? t("gasboxRevealing")
-                          : t("gasboxRevealAction")
-                      }
-                      onClick={handleReveal}
-                    >
-                      {revealAnimating
-                        ? t("gasboxRevealing")
-                        : t("gasboxRevealAction")}
-                    </NeoButton>
-                    <span className="gasbox-pending__hint">
-                      {t("gasboxRevealHint")}
-                    </span>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {hasPlayCredit && (
-              <div className="gasbox-play-credit" role="status">
-                <span className="gasbox-play-credit__label">
-                  {t("gasboxPlayCreditLabel")}
-                </span>
-                <span className="gasbox-play-credit__value">
-                  {formattedPlayCredit}
-                </span>
-                <span className="gasbox-play-credit__hint">
-                  {t("gasboxPlayCreditHint")}
-                </span>
-              </div>
-            )}
-
-            {isSelectedMachineCreator && (
-              <section
-                className="gasbox-creator-revenue"
-                aria-label={t("gasboxCreatorEarningsTitle")}
-              >
-                <div className="gasbox-creator-revenue__copy">
-                  <span className="gasbox-eyebrow">
-                    {t("gasboxCreatorEarningsTitle")}
-                  </span>
-                  {/* Revenue accrues from the play price, which is always GAS. */}
-                  <strong>{selectedMachine.revenue} GAS</strong>
-                  <p>
-                    {canWithdrawRevenue
-                      ? t("gasboxRevenueAvailable")
-                      : t("gasboxRevenueNone")}
-                  </p>
-                </div>
-                <NeoButton
-                  variant="primary"
-                  size="md"
-                  disabled={isPulling || !canWithdrawRevenue}
-                  onClick={handleWithdrawRevenue}
-                >
-                  {t("withdrawRevenue")}
-                </NeoButton>
-              </section>
-            )}
-
-            {isSelectedMachineCreator && (
-              <section
-                className="gasbox-creator-controls"
-                aria-label={t("gasboxMachineControlsTitle")}
-              >
-                <div className="gasbox-creator-controls__head">
-                  <span className="gasbox-eyebrow">
-                    {t("gasboxMachineControlsTitle")}
-                  </span>
-                  <p>{t("gasboxMachineControlsDesc")}</p>
-                </div>
-                <div className="gasbox-creator-controls__pool">
-                  <span>{t("gasboxPoolBalance")}</span>
-                  <strong>
-                    {selectedMachine.poolBalance} {selectedMachine.prizeAsset} /{" "}
-                    {selectedMachine.maxPrize} {selectedMachine.prizeAsset}
-                  </strong>
-                </div>
-                <div className="gasbox-creator-controls__row">
-                  <label className="gasbox-field">
-                    <span>
-                      {t("gasboxTopUpLabel", {
-                        asset: selectedMachine.prizeAsset ?? "GAS",
-                      })}
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*[.]?[0-9]*"
-                      value={topUpAmount}
-                      placeholder={t("gasboxTopUpPlaceholder")}
-                      onChange={(e) => setTopUpAmount(e.target.value)}
-                    />
-                  </label>
-                  <NeoButton
-                    variant="secondary"
-                    size="md"
-                    disabled={isPulling || !canTopUpSelectedPool}
-                    onClick={handleTopUpPool}
-                  >
-                    {t("gasboxTopUpAction")}
-                  </NeoButton>
-                </div>
-                <NeoButton
-                  variant={selectedMachine.active ? "ghost" : "primary"}
-                  size="md"
-                  block
-                  disabled={isPulling}
-                  onClick={handleToggleActive}
-                >
-                  {selectedMachine.active
-                    ? t("gasboxDeactivateAction")
-                    : t("gasboxActivateAction")}
-                </NeoButton>
-              </section>
-            )}
-
-            <section
-              className="gasbox-decision"
-              aria-label={t("gasboxDecisionTitle")}
-            >
-              <div className="gasbox-decision-head">
-                <strong>{t("gasboxDecisionTitle")}</strong>
-                <span>{t("gasboxDecisionSubtitle")}</span>
-              </div>
-              <div className="gasbox-decision-strip">
-                <div className="gasbox-decision-cell">
-                  <span>{t("pullCost")}</span>
-                  <strong>{selectedMachine.price} GAS</strong>
-                </div>
-                <div className="gasbox-decision-cell">
-                  <span>{t("inventoryAndOdds")}</span>
-                  <strong>
-                    {inventoryRatio} {t("items")}
-                  </strong>
-                  <p className="gasbox-decision-note">
-                    {selectedMachine.inventoryReady
-                      ? t("gasboxInventoryReady")
-                      : t("gasboxInventoryActionRequired")}
-                  </p>
-                </div>
-                <div className="gasbox-decision-cell">
-                  <span>{t("gasboxPrizeFocus")}</span>
-                  <strong>{prizeFocusLabel}</strong>
-                </div>
-                <div className="gasbox-decision-cell">
-                  <span>{t("gasboxOddsCoverage")}</span>
-                  <strong>
-                    {formatPercent(oddsCoverage, t("gasboxPending"))}
-                  </strong>
-                </div>
-              </div>
-
-              <ul
-                className="gasbox-checklist"
-                aria-label={t("gasboxPullChecklist")}
-              >
-                {pullChecklist.map((check) => (
-                  <li
-                    key={check.label}
-                    className={`gasbox-check${check.passed ? " is-passed" : " is-blocked"}`}
-                  >
-                    <span className="gasbox-check__label">{check.label}</span>
-                    <span className="gasbox-check__status">
-                      {check.passed
-                        ? t("gasboxCheckPassed")
-                        : t("gasboxCheckNeedsAction")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            {unavailableItems.length > 0 && (
-              <p className="gasbox-inventory-note">
-                {t("gasboxUnavailableInventory", {
-                  count: unavailableItems.length,
-                })}
-              </p>
-            )}
-
-            {selectedMachine.items && selectedMachine.items.length > 0 && (
-              <details className="gasbox-rarity-distribution">
-                <summary className="gasbox-rarity-title">
-                  {t("rarityDistribution")}
-                </summary>
-                <div className="gasbox-rarity-bars">
-                  {selectedMachine.items
-                    .filter((item: MachineItem) => item.available)
-                    .map((item: MachineItem, idx: number) => (
-                      <div key={idx} className="gasbox-rarity-bar-row">
-                        <span
-                          className={`gasbox-rarity-bar-label ${rarityClass(item.rarity)}`}
-                        >
-                          <RarityMark
-                            rarity={item.rarity}
-                            className="gasbox-rarity-bar-gem"
-                          />
-                          <span className="gasbox-rarity-bar-name">
-                            {item.name || item.rarity}
-                          </span>
-                        </span>
-                        <div className="gasbox-rarity-bar-track">
-                          <div
-                            className={`gasbox-rarity-bar-fill ${rarityClass(item.rarity)}`}
-                            style={{
-                              width: `${Math.min(item.displayProbability, 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="gasbox-rarity-bar-pct">
-                          {item.displayProbability}%
-                        </span>
-                      </div>
-                    ))}
-                </div>
-              </details>
-            )}
-          </div>
-        </NeoCard>
-      )}
-
-      {!selectedMachine && machines.length > 0 && (
-        <NeoCard variant="erobo" className="gasbox-select-prompt">
-          <div className="gasbox-prompt-content">
-            <span className="gasbox-prompt-icon" aria-hidden="true">
-              <GachaMark />
-            </span>
-            <p className="gasbox-prompt-text">{t("selectMachinePrompt")}</p>
-          </div>
-        </NeoCard>
-      )}
-
-      {showResult && pullResult && (
-        <div
-          className="gasbox-result-overlay"
-          onClick={dismissResult}
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Win celebration — confetti is purely decorative and only mounts on
-              the settled-result edge (showResult && pullResult), so it fires
-              exactly once per reveal and never on idle. */}
-          <div className="gasbox-confetti" aria-hidden="true">
-            {Array.from({ length: 14 }).map((_, i) => (
-              <span
-                key={i}
-                className={`gasbox-confetti__bit gasbox-confetti__bit--${i % 7}`}
-              />
-            ))}
-          </div>
-          <div
-            className={`gasbox-result-content ${rarityClass(pullResult.rarity)}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="gasbox-result-theater" aria-hidden="true">
-              <picture className="gasbox-result-theater__machine">
-                <img
-                  src={GASBOX_MACHINE_ASSET}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-              </picture>
-              <span className="gasbox-result-theater__beam" />
-              <span
-                className={`gasbox-result-theater__capsule ${rarityClass(pullResult.rarity)}`}
-              >
-                <img src={GASBOX_CAPSULE_ASSET} alt="" loading="eager" />
-                <RarityMark
-                  rarity={pullResult.rarity}
-                  className="gasbox-result-theater__gem"
-                />
-              </span>
-            </div>
-            <span className="gasbox-result-burst" aria-hidden="true">
-              <RarityMark
-                rarity={pullResult.rarity}
-                className="gasbox-result-gem"
-              />
-            </span>
-            <span className="gasbox-result-won">{t("congratulations")}</span>
-            <span
-              className={`gasbox-result-rarity ${rarityClass(pullResult.rarity)}`}
-            >
-              {pullResult.rarity}
-            </span>
-            <h2 className="gasbox-result-item">
-              {pullResult.name || pullResult.item}
-            </h2>
-            {pullResult.description && (
-              <p className="gasbox-result-desc">{pullResult.description}</p>
-            )}
-            {pullResult.amountDisplay && (
-              <span className="gasbox-result-amount">
-                {pullResult.amountDisplay}
-              </span>
-            )}
-            <p className="gasbox-result-note">{t("gasboxOnChainPrizeNote")}</p>
-            <NeoButton
-              variant="primary"
-              size="md"
-              block
-              onClick={dismissResult}
-            >
-              {t("dismiss")}
-            </NeoButton>
-          </div>
+  const controls = (
+    <div className="gasbox-controls">
+      {machines.length > 0 && (
+        <div className="gasbox-controls__machines">
+          {machines.slice(0, 5).map((m) => (
+            <button key={m.id} type="button" className={["gasbox-machine-chip", selectedMachine?.id === m.id ? "gasbox-machine-chip--active" : null].filter(Boolean).join(" ")} onClick={() => void dispatch("selectMachine", m.id)} disabled={pulling}>
+              <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+              <span>{m.name || m.id}</span>
+            </button>
+          ))}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="gasbox-play-area mx2 mx2-cat-game">
+      <PlayStage category="game" stage={{ eyebrow: t("title"), title: displayMachineName || translation(t, "gasboxHeroTitle", "Pick a GasBox machine"), subtitle: selectedMachine ? translation(t, "gasboxWalletIntent", "The wallet confirms the GAS bet; the prize reveals on the next block.") : translation(t, "docSubtitle", "On-chain blind boxes with escrowed prizes"), badges: (
+        <>
+          <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {machineCount} {translation(t, "totalMachines", "Machines").toLowerCase()}</span>
+          {hasPlayCredit && <span className="mx2-badge">{formattedPlayCredit} GAS</span>}
+          {selectedMachine && <span className="mx2-badge">{selectedReady ? translation(t, "readyToPlay", "Ready") : translation(t, "inactive", "Inactive")}</span>}
+        </>
+      ) }}
+        scene={<div className="gasbox-stage-stack">{scene}{controls}</div>}
+        score={scoreItems}
+        actions={{
+          primary: isAwaitingReveal
+            ? { label: translation(t, "gasboxRevealAction", "Reveal result"), onClick: () => void handleReveal(), loading: isPulling, hint: translation(t, "gasboxRevealHint", "Safe to retry - the reveal pays exactly once.") }
+            : selectedMachine
+              ? { label: pulling ? translation(t, "pulling", "Pulling...") : translation(t, "pull", "Pull"), onClick: () => void handlePull(), disabled: pulling || !canPull, loading: pulling, hint: selectedReady ? translation(t, "gasboxTwoStepNote", "Pulls are two steps: place the bet, then reveal on the next block.") : translation(t, "gasboxInventoryActionRequired", "Inventory needs funding before players can pull.") }
+              : { label: isLoading ? translation(t, "loadingMachines", "Loading machines...") : translation(t, "gasboxFindMachines", "Find Machines"), onClick: () => void handlePrimaryEmpty(), disabled: isLoading, loading: isLoading, hint: translation(t, "gasboxMarketEmptyTeaser", "Active capsule machines land here. Refresh to pull one.") },
+          secondary: [
+            ...(selectedMachine ? [{ label: translation(t, "refreshMachines", "Refresh Machines"), onClick: () => void dispatch("refreshMachines"), hint: translation(t, "gasboxMachineLive", "Live") }] : []),
+          ],
+        }}
+        drawerToggleLabel={t("allMachines")} drawer={{ title: t("allMachines"), children: (
+          <div className="gasbox-drawer">
+            <section className="gasbox-drawer-card gasbox-drawer-card--machines">
+              <div className="gasbox-drawer-card__head">
+                <div>
+                  <h4>{translation(t, "gasboxDrawerMarketTitle", "Machine counter")}</h4>
+                  <p>{translation(t, "gasboxDrawerMarketCopy", "Pick a live machine or refresh the market before pulling.")}</p>
+                </div>
+                <span>{hasMachines ? `${machines.length}` : "0"}</span>
+              </div>
+              {hasMachines ? (
+                <ul className="gasbox-machine-list">{machines.slice(0, 10).map((m) => (
+                  <li key={m.id} className="gasbox-machine-list__item" data-active={selectedMachine?.id === m.id ? "true" : undefined}>
+                    <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                    <div>
+                      <strong>{m.name || m.id}</strong>
+                      <small>{machineStatusLabel(m)}</small>
+                    </div>
+                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("selectMachine", m.id)}>{t("tapToPlay")}</button>
+                  </li>
+                ))}</ul>
+              ) : (
+                <div className="gasbox-drawer-empty">
+                  <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                  <p>{translation(t, "gasboxDrawerMarketEmpty", "No active machines are loaded yet. Refresh the market to fill the counter.")}</p>
+                </div>
+              )}
+            </section>
+
+            <section className="gasbox-drawer-card">
+              <div className="gasbox-drawer-card__head">
+                <div>
+                  <h4>{t("createMachineAction")}</h4>
+                  <p>{t("createPanelHint")}</p>
+                </div>
+              </div>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("openStudio")}>{t("create")}</button>
+            </section>
+
+            {hasPlayCredit && (
+              <section className="gasbox-drawer-card">
+                <h4>{translation(t, "gasboxPlayCreditLabel", "Prepaid credit")}</h4>
+                <p>{formattedPlayCredit} GAS. {translation(t, "gasboxPlayCreditHint", "Your next pull uses it automatically.")}</p>
+              </section>
+            )}
+            {selectedMachine && isCreator && (
+              <section className="gasbox-creator-panel" aria-label={translation(t, "gasboxCreatorEarningsTitle", "Creator earnings")}>
+                <div>
+                  <h4>{translation(t, "gasboxCreatorEarningsTitle", "Creator earnings")}</h4>
+                  <p>
+                    {hasWithdrawableRevenue
+                      ? translation(t, "gasboxRevenueAvailable", "Accrued play revenue is available to withdraw to your wallet.")
+                      : translation(t, "gasboxRevenueNone", "No withdrawable revenue yet. Earnings accrue as players pull this machine.")}
+                  </p>
+                </div>
+                <div className="gasbox-creator-panel__row">
+                  <strong>{selectedMachine.revenue || "0"} GAS</strong>
+                  <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleWithdrawRevenue} disabled={!hasWithdrawableRevenue}>
+                    {translation(t, "withdrawRevenue", "Withdraw Revenue")}
+                  </button>
+                </div>
+              </section>
+            )}
+          </div>
+        ) }}
+      />
     </div>
   );
 }

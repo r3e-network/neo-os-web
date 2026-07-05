@@ -1,24 +1,25 @@
+/**
+ * PlayArea.tsx -- OneGate Vault (gas-lucky-pool) v2 scene-driven rebuild
+ *
+ * Two modes share one warm DeFi/social identity: a claim screen (recipient scans
+ * a key → backend pays GAS) and a creator workspace (fund a vault). The vault IS
+ * the scene: a glowing vault that fills as you set the pool, with a charge→
+ * split→scan→unwrap reward route. Create/claim are primary; manage (inspect/
+ * top-up/refund) and gas-credit are tucked into a drawer. Chain logic untouched.
+ */
 import { useEffect, useRef, useState } from "react";
-import {
-  Clock3,
-  Coins,
-  Gift,
-  Minus,
-  Plus,
-  Sparkles,
-  Users,
-  WalletCards,
-} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
 import { formatGas } from "@shared/utils/format";
-import {
-  getLaunchParam,
-  type MiniAppLaunchContext,
-} from "@shared/utils/launch-params";
+import { getLaunchParam, type MiniAppLaunchContext } from "@shared/utils/launch-params";
 import { normalizeClaimKey } from "./composables/useGasLuckyPool";
 import { explorerTxUrl } from "./utils/explorer";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { Clock3, Info, Search, ShieldCheck, SlidersHorizontal, WalletCards } from "lucide-react";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
+
+const vaultArtUrl = new URL("../public/gas-vault-stage.webp", import.meta.url).href;
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -30,37 +31,17 @@ interface PlayAreaProps {
 function maskClaimKey(value: string): string {
   const key = normalizeClaimKey(value);
   if (!key) return "";
-  if (key.length <= 12) return `${key.slice(0, 4)}...`;
-  return `${key.slice(0, 7)}...${key.slice(-4)}`;
+  if (key.length <= 12) return `${key.slice(0, 4)}…`;
+  return `${key.slice(0, 7)}…${key.slice(-4)}`;
 }
 
-/**
- * Split a claim error into its human-readable message and the optional
- * bracketed `[ogvdiag ...]` diagnostics line. Diagnostics are appended by the
- * OneGate bridge as `"<message>\n[ogvdiag ...]"` so they can be surfaced
- * separately from the user-facing message.
- */
-function splitClaimError(error: string): {
-  message: string;
-  diagnostics: string;
-} {
+function splitClaimError(error: string): { message: string; diagnostics: string } {
   if (!error) return { message: "", diagnostics: "" };
   const match = error.match(/\n?(\[ogvdiag[^\]]*\])\s*$/);
-  if (!match || match.index === undefined || !match[1]) {
-    return { message: error.trim(), diagnostics: "" };
-  }
-  return {
-    message: error.slice(0, match.index).trim(),
-    diagnostics: match[1].trim(),
-  };
+  if (!match || match.index === undefined || !match[1]) return { message: error.trim(), diagnostics: "" };
+  return { message: error.slice(0, match.index).trim(), diagnostics: match[1].trim() };
 }
 
-const CLAIM_PROGRESS_STEPS = [
-  { key: "wallet", label: "claimProgressWallet" },
-  { key: "submitting", label: "claimProgressSubmitting" },
-  { key: "confirming", label: "claimProgressConfirming" },
-  { key: "paid", label: "claimProgressPaid" },
-] as const;
 const TOTAL_AMOUNT_PRESETS = ["20", "50", "100"];
 const CLAIM_SLOT_PRESETS = ["10", "25", "50"];
 const CLAIM_RANGE_PRESETS = [
@@ -68,142 +49,60 @@ const CLAIM_RANGE_PRESETS = [
   { key: "balanced", min: "1", max: "5", label: "claimRangeBalanced" },
   { key: "jackpot", min: "5", max: "20", label: "claimRangeJackpot" },
 ] as const;
+const REWARD_PLAN_PRESETS = [
+  { key: "small", label: "claimRangeSmall", amount: "20", min: "1", max: "3", slots: "10", expiry: "24" },
+  { key: "balanced", label: "claimRangeBalanced", amount: "50", min: "1", max: "5", slots: "25", expiry: "72" },
+  { key: "jackpot", label: "claimRangeJackpot", amount: "100", min: "5", max: "20", slots: "10", expiry: "168" },
+] as const;
+const EXPIRY_PRESETS = ["24", "72", "168"];
+const VAULT_ART = vaultArtUrl;
+type DrawerMode = "plan" | "pool" | "credit" | "guide";
 
 function stepDecimal(value: string, delta: number, min: number): string {
   const current = Number.parseFloat(value);
   const base = Number.isFinite(current) ? current : min;
-  const next = Math.max(min, base + delta);
-  return String(Math.round(next * 100) / 100).replace(/\.0+$/, "");
+  return String(Math.round(Math.max(min, base + delta) * 100) / 100).replace(/\.0+$/, "");
 }
-
 function stepInteger(value: string, delta: number, min: number): string {
   const current = Number.parseInt(value, 10);
   const base = Number.isFinite(current) ? current : min;
   return String(Math.max(min, base + delta));
 }
 
-function resolveClaimProgress(
-  progress: string,
-  status: string,
-  claiming: boolean,
-): string {
-  if (progress) return progress;
-  if (status === "paid" || status === "failed") return status;
-  if (status === "submitted") return "confirming";
-  return claiming ? "wallet" : "";
-}
-
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-}: PlayAreaProps) {
+export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { str, val } = useStateBindings(state as ObservableState);
-  const currentClaimKey = str(
-    "currentClaimKey",
-    launchContext.params.claimKey ?? "",
-  );
+  const currentClaimKey = str("currentClaimKey", launchContext.params.claimKey ?? "");
   const currentPoolId = str("currentPoolId");
   const currentRange = str("currentRange", t("rewardRangeDefault"));
-  const vaultName = t("vaultName");
   const lastTxid = str("lastTxid");
   const lastClaimAmount = val<bigint>("lastClaimAmount", 0n) ?? 0n;
   const lastClaimKey = str("lastClaimKey", currentClaimKey);
   const lastClaimLuckPercent = str("lastClaimLuckPercent");
   const claimStatus = str("claimStatus");
-  const claimProgress = str("claimProgress");
   const isClaiming = Boolean(val<boolean>("isClaiming", false));
   const isCreating = Boolean(val<boolean>("isCreating", false));
   const isLoading = Boolean(val<boolean>("isLoading", false));
   const isFunding = Boolean(val<boolean>("isFunding", false));
   const isRefunding = Boolean(val<boolean>("isRefunding", false));
   const isCreditLoading = Boolean(val<boolean>("isCreditLoading", false));
-  const isWithdrawingCredit = Boolean(
-    val<boolean>("isWithdrawingCredit", false),
-  );
+  const isWithdrawingCredit = Boolean(val<boolean>("isWithdrawingCredit", false));
   const gasCredit = val<bigint>("gasCredit", 0n) ?? 0n;
   const lastSuccessType = str("lastSuccessType");
   const lastError = str("lastError");
-  // The claim key that arrived via the OneGate launch URL. This must come from
-  // the launch context only (no app-state fallback): a claim key entered in the
-  // creator workspace is *not* a OneGate claim launch and must keep the full
-  // creator UI visible.
-  const launchClaimKey = normalizeClaimKey(
-    getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], ""),
-  );
-  const isClaimOperation =
-    !launchContext.operation ||
-    launchContext.operation === "claimPool" ||
-    launchContext.operation === "claimOneGateVault";
-  const isOneGateClaimLaunch = isClaimOperation && Boolean(launchClaimKey);
-  const launchPoolId = getLaunchParam(
-    launchContext,
-    ["poolId", "pool", "campaignId"],
-    "",
-  );
-  const launchOneGateAppId = getLaunchParam(
-    launchContext,
-    ["oneGateAppId", "oneGateId", "onegateAppId"],
-    "",
-  );
-  const claimSucceeded =
-    lastSuccessType === "claim" &&
-    claimStatus === "paid" &&
-    Boolean(lastTxid) &&
-    !lastError;
-  const preloadedLaunchKeyRef = useRef("");
-  const claimActionPreviewTimeout = useRef<number | null>(null);
-  const createActionPreviewTimeout = useRef<number | null>(null);
-  const [claimKey, setClaimKey] = useState(currentClaimKey || launchClaimKey);
-  const [claimActionPreview, setClaimActionPreview] = useState(false);
-  const [createActionPreview, setCreateActionPreview] = useState(false);
-  const displayClaimKey = maskClaimKey(lastClaimKey || claimKey);
-  const claimError = splitClaimError(lastError);
-  const claimIsAnimating = isClaiming || claimActionPreview;
-  const activeClaimProgress = resolveClaimProgress(
-    claimProgress,
-    claimStatus,
-    claimIsAnimating,
-  );
-  const activeClaimProgressIndex = CLAIM_PROGRESS_STEPS.findIndex(
-    (step) => step.key === activeClaimProgress,
-  );
-  const showClaimProgress =
-    !claimSucceeded &&
-    !lastError &&
-    Boolean(claimKey) &&
-    Boolean(activeClaimProgress);
-  const claimNetworkLabel =
-    launchContext.network === "testnet"
-      ? t("networkTestnet")
-      : t("networkMainnet");
-  const claimReceiptItems = [
-    {
-      label: t("claimKeyLabel"),
-      value: displayClaimKey || t("claimKeyPending"),
-      muted: !displayClaimKey,
-    },
-    {
-      label: t("claimNetworkLabel"),
-      value: claimNetworkLabel,
-    },
-    {
-      label: t("contractGuarded"),
-      value: t("perAddressOnce"),
-    },
-  ];
-  const claimVisualState = claimSucceeded
-    ? "success"
-    : lastError
-      ? "error"
-      : showClaimProgress || claimIsAnimating
-        ? "claiming"
-        : claimKey
-          ? "ready"
-          : "empty";
 
-  // ── Creator workspace form state ──
+  const launchClaimKey = normalizeClaimKey(getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], ""));
+  const isClaimOperation = !launchContext.operation || launchContext.operation === "claimPool" || launchContext.operation === "claimOneGateVault";
+  const isOneGateClaimLaunch = isClaimOperation && Boolean(launchClaimKey);
+  const launchOneGateAppId = getLaunchParam(launchContext, ["oneGateAppId", "oneGateId", "onegateAppId"], "");
+  const claimSucceeded = lastSuccessType === "claim" && claimStatus === "paid" && Boolean(lastTxid) && !lastError;
+
+  const [claimKey, setClaimKey] = useState(currentClaimKey || launchClaimKey);
+  const [claimPreview, setClaimPreview] = useState(false);
+  const [createPreview, setCreatePreview] = useState(false);
+  const claimPreviewTimeout = useRef<number | null>(null);
+  const createPreviewTimeout = useRef<number | null>(null);
+
+  // Creator form
   const [totalAmount, setTotalAmount] = useState("");
   const [minClaim, setMinClaim] = useState("1");
   const [maxClaim, setMaxClaim] = useState("5");
@@ -211,991 +110,489 @@ export default function PlayArea({
   const [expiryHours, setExpiryHours] = useState("24");
   const [poolId, setPoolId] = useState(currentPoolId);
   const [topUpAmount, setTopUpAmount] = useState("");
-  const displayTotalAmount = totalAmount.trim()
-    ? `${totalAmount.trim()} GAS`
-    : t("rewardPoolUnset");
-  const displayRewardRange = `${minClaim || "1"}-${maxClaim || "5"} GAS`;
-  const displayClaimSlots = maxClaims.trim()
-    ? t("rewardSlotsCount", { count: maxClaims.trim() })
-    : t("rewardSlotsUnset");
-  const displayExpiry = t("rewardExpiryHours", { hours: expiryHours || "24" });
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("plan");
+
+  useEffect(() => {
+    if (launchClaimKey && !claimKey) setClaimKey(launchClaimKey);
+  }, [claimKey, launchClaimKey]);
+
+  useEffect(() => () => {
+    if (claimPreviewTimeout.current) window.clearTimeout(claimPreviewTimeout.current);
+    if (createPreviewTimeout.current) window.clearTimeout(createPreviewTimeout.current);
+  }, []);
+
   const totalAmountNumber = Number.parseFloat(totalAmount);
   const minClaimNumber = Number.parseFloat(minClaim);
   const maxClaimNumber = Number.parseFloat(maxClaim || "5");
   const slotCountNumber = Number.parseInt(maxClaims, 10);
-  const rewardRangeReady =
-    Number.isFinite(minClaimNumber) &&
-    Number.isFinite(maxClaimNumber) &&
-    minClaimNumber > 0 &&
-    maxClaimNumber >= minClaimNumber;
-  const previewTicketCount = Number.isFinite(slotCountNumber)
-    ? Math.min(Math.max(slotCountNumber, 3), 7)
-    : 4;
-  const rewardPlanReady =
-    totalAmount.trim() !== "" &&
-    maxClaims.trim() !== "" &&
-    Number.isFinite(totalAmountNumber) &&
-    Number.isFinite(slotCountNumber) &&
-    totalAmountNumber > 0 &&
-    slotCountNumber > 0 &&
-    rewardRangeReady;
-  const createMachineAnimating = isCreating || createActionPreview;
-  const rewardPlanState =
-    rewardRangeReady || (!minClaim.trim() && !maxClaim.trim())
-      ? rewardPlanReady
-        ? "ready"
-        : "draft"
-      : "invalid";
-  const rewardMachineLabel = createMachineAnimating
-    ? t("creatingPool")
-    : rewardPlanReady
-      ? t("rewardMachineReady")
-      : t("rewardMachineDraft");
-  const createHint = !rewardRangeReady
-    ? t("rewardPlanInvalidRange")
-    : rewardPlanReady
-      ? t("rewardPlanReadyHint")
-      : t("rewardPlanIncomplete");
-  const poolFillPercent =
-    Number.isFinite(totalAmountNumber) &&
-    Number.isFinite(maxClaimNumber) &&
-    Number.isFinite(slotCountNumber) &&
-    totalAmountNumber > 0 &&
-    maxClaimNumber > 0 &&
-    slotCountNumber > 0
-      ? Math.min(
-          Math.max((totalAmountNumber / (maxClaimNumber * slotCountNumber)) * 100, 10),
-          100,
-        )
-      : 18;
+  const rewardRangeReady = Number.isFinite(minClaimNumber) && Number.isFinite(maxClaimNumber) && minClaimNumber > 0 && maxClaimNumber >= minClaimNumber;
+  const rewardPlanReady = totalAmount.trim() !== "" && maxClaims.trim() !== "" && Number.isFinite(totalAmountNumber) && Number.isFinite(slotCountNumber) && totalAmountNumber > 0 && slotCountNumber > 0 && rewardRangeReady;
+  const claimIsAnimating = isClaiming || claimPreview;
+  const createAnimating = isCreating || createPreview;
 
-  useEffect(() => {
-    const nextKey = currentClaimKey || launchClaimKey;
-    if (nextKey) setClaimKey(nextKey);
-  }, [currentClaimKey, launchClaimKey]);
+  const displayClaimKey = maskClaimKey(lastClaimKey || claimKey);
+  const claimError = splitClaimError(lastError);
+  const claimNetworkLabel = launchContext.network === "testnet" ? t("networkTestnet") : t("networkMainnet");
 
-  useEffect(() => {
-    if (!isOneGateClaimLaunch || !launchClaimKey) return;
-    if (preloadedLaunchKeyRef.current === launchClaimKey) return;
-    preloadedLaunchKeyRef.current = launchClaimKey;
-    setClaimKey(launchClaimKey);
-  }, [isOneGateClaimLaunch, launchClaimKey]);
+  const startClaimPreview = () => {
+    if (claimPreviewTimeout.current) window.clearTimeout(claimPreviewTimeout.current);
+    setClaimPreview(true);
+    claimPreviewTimeout.current = window.setTimeout(() => { setClaimPreview(false); claimPreviewTimeout.current = null; }, 1400);
+  };
+  const startCreatePreview = () => {
+    if (createPreviewTimeout.current) window.clearTimeout(createPreviewTimeout.current);
+    setCreatePreview(true);
+    createPreviewTimeout.current = window.setTimeout(() => { setCreatePreview(false); createPreviewTimeout.current = null; }, 1200);
+  };
 
-  useEffect(() => {
-    if (currentPoolId) setPoolId(currentPoolId);
-  }, [currentPoolId]);
-
-  useEffect(
-    () => () => {
-      if (claimActionPreviewTimeout.current !== null) {
-        window.clearTimeout(claimActionPreviewTimeout.current);
-      }
-      if (createActionPreviewTimeout.current !== null) {
-        window.clearTimeout(createActionPreviewTimeout.current);
-      }
-    },
-    [],
+  const handleClaim = async () => {
+    if (!claimKey.trim() || claimIsAnimating) return;
+    startClaimPreview();
+    await dispatch("claimPool", {
+      claimKey: claimKey.trim(),
+      poolId: currentPoolId || undefined,
+      oneGateAppId: launchOneGateAppId || undefined,
+      appId: "miniapp-gas-lucky-pool",
+    });
+  };
+  const handleCreate = async () => {
+    if (!rewardPlanReady || createAnimating) return;
+    startCreatePreview();
+    await dispatch("createPool", {
+      totalAmount: totalAmount.trim(),
+      minClaim: minClaim.trim() || "1",
+      maxClaim: maxClaim.trim() || "5",
+      maxClaims: maxClaims.trim(),
+      expiryHours: expiryHours.trim() || "24",
+    });
+  };
+  const handleManage = async (action: "loadPool" | "topUpPool" | "refundPool", id?: string, amount?: string) => {
+    if (action === "topUpPool") {
+      await dispatch("topUpPool", { poolId: (id ?? poolId).trim(), amount: (amount ?? topUpAmount).trim() });
+      setTopUpAmount("");
+    } else {
+      await dispatch(action, { poolId: (id ?? poolId).trim() });
+    }
+  };
+  const applyRewardPlan = (plan: typeof REWARD_PLAN_PRESETS[number]) => {
+    if (createAnimating) return;
+    setTotalAmount(plan.amount);
+    setMinClaim(plan.min);
+    setMaxClaim(plan.max);
+    setMaxClaims(plan.slots);
+    setExpiryHours(plan.expiry);
+  };
+  const adjustTotalAmount = (delta: number) => {
+    if (!createAnimating) setTotalAmount(stepDecimal(totalAmount || "20", delta, 1));
+  };
+  const adjustMaxClaims = (delta: number) => {
+    if (!createAnimating) setMaxClaims(stepInteger(maxClaims || "10", delta, 1));
+  };
+  const setDrawerModeSafe = (value: string) => {
+    if (value === "plan" || value === "pool" || value === "credit" || value === "guide") {
+      setDrawerMode(value);
+    }
+  };
+  const applyClaimRangePreset = (key: string) => {
+    if (createAnimating) return;
+    const preset = CLAIM_RANGE_PRESETS.find((item) => item.key === key);
+    if (!preset) return;
+    setMinClaim(preset.min);
+    setMaxClaim(preset.max);
+  };
+  const setExpiryPreset = (hours: string) => {
+    if (EXPIRY_PRESETS.includes(hours)) {
+      setExpiryHours(hours);
+    }
+  };
+  const infoDrawer = (
+    <OpenUiProvider>
+      <div className="vault-info-drawer">
+        <OpenUiPanel
+          className="vault-info-drawer__panel"
+          icon={<Info size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("howItWorks")}
+          subtitle={t("oneGateReady")}
+        >
+          <p>{t("docHowItWorks")}</p>
+        </OpenUiPanel>
+        <OpenUiPanel
+          className="vault-info-drawer__panel"
+          icon={<ShieldCheck size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("safetyModel")}
+          subtitle={t("contractGuarded")}
+        >
+          <p>{t("docSafetyModel")}</p>
+        </OpenUiPanel>
+        <OpenUiPanel
+          className="vault-info-drawer__panel"
+          icon={<WalletCards size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("oneGateFlow")}
+          subtitle={t("shareQr")}
+        >
+          <p>{t("docOneGateFlow")}</p>
+        </OpenUiPanel>
+      </div>
+    </OpenUiProvider>
   );
 
-  const startClaimActionPreview = () => {
-    if (claimActionPreviewTimeout.current !== null) {
-      window.clearTimeout(claimActionPreviewTimeout.current);
-    }
-    setClaimActionPreview(true);
-    claimActionPreviewTimeout.current = window.setTimeout(() => {
-      setClaimActionPreview(false);
-      claimActionPreviewTimeout.current = null;
-    }, 1400);
-  };
+  // ============ CLAIM SCREEN ============
+  if (isOneGateClaimLaunch) {
+    const scene = (
+      <div className="vault-scene" data-state={claimSucceeded ? "success" : claimIsAnimating ? "claiming" : lastError ? "error" : "ready"}>
+        <div className={["vault-scene__vault-shell", claimIsAnimating ? "vault-scene__vault-shell--claiming" : null, claimSucceeded ? "vault-scene__vault-shell--success" : null].filter(Boolean).join(" ")}>
+          <img className="vault-scene__vault-art" src={VAULT_ART} alt="" aria-hidden="true" draggable={false} decoding="async" />
+          <div className="vault-scene__vault-badge" aria-hidden="true">
+            <CoinArt size={30} variant="gas" />
+          </div>
+        </div>
+        {claimIsAnimating && (
+          <div className="vault-scene__coin-stream" aria-hidden="true">
+            {Array.from({ length: 5 }, (_, i) => <CoinArt key={i} size={20} variant="gas" className={`vault-scene__coin vault-scene__coin--${i + 1}`} />)}
+          </div>
+        )}
+        {claimSucceeded && <ParticleBurst coins count={14} />}
+        <div className="vault-scene__ticket" aria-hidden={!displayClaimKey}>
+          <span>{t("claimKeyLabel")}</span>
+          <strong>{displayClaimKey || t("claimKeyPending")}</strong>
+        </div>
+        <p className="vault-scene__status" aria-live="polite">
+          {claimSucceeded ? t("claimCongratsTitle") : claimIsAnimating ? t("claimProgressSubmitting") : lastError ? claimError.message : t("claimPoolDescription")}
+        </p>
+      </div>
+    );
 
-  const startCreateActionPreview = () => {
-    if (createActionPreviewTimeout.current !== null) {
-      window.clearTimeout(createActionPreviewTimeout.current);
-    }
-    setCreateActionPreview(true);
-    createActionPreviewTimeout.current = window.setTimeout(() => {
-      setCreateActionPreview(false);
-      createActionPreviewTimeout.current = null;
-    }, 1200);
-  };
+    return (
+      <div className="gas-pool-playarea mx2 mx2-cat-defi">
+        <PlayStage
+          category="defi"
+          className="gas-pool-playstage gas-pool-playstage--claim"
+          stage={{
+            eyebrow: t("vaultName"),
+            title: claimSucceeded ? t("claimCongratsTitle") : t("claimPoolTitle"),
+            subtitle: claimSucceeded ? t("claimCongratsBody") : t("claimPoolDescription"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {currentRange}</span>,
+          }}
+          scene={scene}
+          score={
+            claimSucceeded
+              ? [
+                  { label: t("claimAmountLabel"), value: formatGas(lastClaimAmount), accent: true },
+                  { label: t("luckPercentLabel"), value: lastClaimLuckPercent || "—" },
+                  { label: t("claimNetworkLabel"), value: claimNetworkLabel },
+                ]
+              : [
+                  { label: t("claimKeyLabel"), value: displayClaimKey || "—" },
+                  { label: t("rewardRange"), value: currentRange },
+                  { label: t("claimNetworkLabel"), value: claimNetworkLabel },
+                ]
+          }
+          actions={{
+            primary: {
+              label: claimSucceeded ? t("viewOnExplorer") : claimIsAnimating ? t("claimProgressSubmitting") : t("claimReward"),
+              onClick: () => void (claimSucceeded ? window.open(explorerTxUrl(lastTxid, launchContext.network), "_blank") : handleClaim()),
+              disabled: !claimSucceeded && (!claimKey.trim() || claimIsAnimating),
+              loading: claimIsAnimating,
+            },
+          }}
+          drawerToggleLabel={t("howItWorks")}
+          drawer={{ title: t("howItWorks"), children: infoDrawer }}
+        />
+      </div>
+    );
+  }
 
-  const submitClaim = () => {
-    if (!claimKey || claimIsAnimating) return;
-    startClaimActionPreview();
-    void dispatch("claimPool", {
-      claimKey,
-      poolId: launchPoolId,
-      oneGateAppId: launchOneGateAppId,
-      appId: launchContext.appId ?? "miniapp-gas-lucky-pool",
-    });
-  };
+  // ============ CREATOR WORKSPACE ============
+  const displayTotal = totalAmount.trim() ? `${totalAmount.trim()} GAS` : t("rewardPoolUnset");
+  const displayRange = `${minClaim || "1"}-${maxClaim || "5"} GAS`;
+  const displaySlots = maxClaims.trim() ? t("rewardSlotsCount", { count: maxClaims.trim() }) : t("rewardSlotsUnset");
+  const fillPct = rewardPlanReady ? Math.min(100, Math.round((slotCountNumber / 50) * 100)) : 0;
+  const activePlan = REWARD_PLAN_PRESETS.find((plan) => plan.amount === totalAmount && plan.min === minClaim && plan.max === maxClaim && plan.slots === maxClaims && plan.expiry === expiryHours)?.key ?? "";
+  const drawerModeOptions: Array<{ label: string; value: DrawerMode }> = [
+    { label: t("rewardPlanTitle"), value: "plan" },
+    { label: t("poolControlsTitle"), value: "pool" },
+    { label: t("gasCreditTitle"), value: "credit" },
+    { label: t("howItWorks"), value: "guide" },
+  ];
+  const creatorDrawer = (
+    <OpenUiProvider>
+      <div className="vault-drawer-grid" data-mode={drawerMode}>
+        <OpenUiSegmented
+          className="vault-drawer-tabs"
+          segmentedClassName="vault-drawer-tabs__group"
+          label={t("manageExistingTitle")}
+          value={drawerMode}
+          onChange={setDrawerModeSafe}
+          options={drawerModeOptions.map((option) => ({
+            value: option.value,
+            label: <span className="vault-drawer-tab">{option.label}</span>,
+          }))}
+        />
 
-  const submitCreatePool = () => {
-    if (createMachineAnimating || !rewardPlanReady) return;
-    startCreateActionPreview();
-    void dispatch("createPool", {
-      totalAmount,
-      minClaim,
-      maxClaim,
-      maxClaims,
-      expiryHours,
-    });
-  };
-
-  const effectivePoolId = (poolId || currentPoolId).trim();
-  const hasPoolTarget = Boolean(effectivePoolId);
-
-  const inspectPool = () => {
-    if (isLoading || !hasPoolTarget) return;
-    void dispatch("loadPool", { poolId: effectivePoolId });
-  };
-
-  const submitTopUp = () => {
-    if (isFunding || !hasPoolTarget) return;
-    void dispatch("topUpPool", {
-      poolId: effectivePoolId,
-      amount: topUpAmount,
-    });
-  };
-
-  const submitRefund = () => {
-    if (isRefunding || !hasPoolTarget) return;
-    void dispatch("refundPool", { poolId: effectivePoolId });
-  };
-
-  const checkGasCredit = () => {
-    if (isCreditLoading) return;
-    void dispatch("loadGasCredit");
-  };
-
-  const withdrawGasCredit = () => {
-    if (isWithdrawingCredit) return;
-    void dispatch("withdrawGasCredit");
-  };
-
-  const creatorStatusLabel = claimStatus
-    ? claimStatus === "paid"
-      ? t("claimPaid")
-      : claimStatus === "failed"
-        ? t("claimFailed")
-        : t("claimSubmitted")
-    : "";
-
-  return (
-    <div
-      className={`gas-pool-playarea${isOneGateClaimLaunch ? " gas-pool-playarea--claim-only" : ""}`}
-    >
-      {isOneGateClaimLaunch ? (
-        <section
-          className={`gas-pool-claim-only gas-pool-claim-only--${claimVisualState}`}
-          aria-label={t("claimPoolTitle")}
-          aria-busy={claimIsAnimating}
-        >
-          {claimSucceeded ? (
-            <div
-              className="gas-pool-claim-only__success"
-              role="status"
-              aria-live="polite"
-            >
-              <div className="gas-pool-prize-burst" aria-hidden="true">
-                <img src="./gas-vault-stage.jpg" alt="" />
-                <div className="gas-pool-prize-burst__amount">
-                  <span>{t("claimAmountLabel")}</span>
-                  <strong>
-                    {lastClaimAmount > 0n
-                      ? `${formatGas(lastClaimAmount, 4)} GAS`
-                      : vaultName}
-                  </strong>
+        {drawerMode === "plan" && (
+          <OpenUiPanel
+            className="vault-drawer-panel vault-drawer-panel--plan"
+            icon={<SlidersHorizontal size={18} strokeWidth={2.35} aria-hidden="true" />}
+            title={t("rewardPlanTitle")}
+            subtitle={t("createPoolDescription")}
+          >
+            <div className="vault-drawer__advanced">
+              <div className="vault-tuner">
+                <span className="vault-controls__label">{t("totalAmount")}</span>
+                <div className="vault-stepper" role="group" aria-label={t("totalAmount")}>
+                  <button type="button" onClick={() => adjustTotalAmount(-5)} disabled={createAnimating} aria-label={t("decreaseTotalAmount")}>-</button>
+                  <output>{displayTotal}</output>
+                  <button type="button" onClick={() => adjustTotalAmount(5)} disabled={createAnimating} aria-label={t("increaseTotalAmount")}>+</button>
                 </div>
-                <div className="gas-pool-prize-burst__coin gas-pool-prize-burst__coin--one">
-                  <Coins size={18} />
-                </div>
-                <div className="gas-pool-prize-burst__coin gas-pool-prize-burst__coin--two">
-                  <Sparkles size={18} />
-                </div>
-              </div>
-              <div>
-                <h2>{t("claimCongratsTitle")}</h2>
-                <p>
-                  {lastClaimAmount > 0n
-                    ? t("claimCongratsBody", {
-                        amount: formatGas(lastClaimAmount, 4),
-                        claimKey: displayClaimKey,
-                        poolId: vaultName,
-                      })
-                    : t("claimCongratsPending", {
-                        claimKey: displayClaimKey,
-                        poolId: vaultName,
-                      })}
-                </p>
-                {lastClaimLuckPercent && (
-                  <p className="gas-pool-congrats__luck">
-                    {t("luckPercentLabel", { percent: lastClaimLuckPercent })}
-                  </p>
-                )}
-                <dl
-                  className="gas-pool-claim-only__summary"
-                  aria-label={t("claimReceiptTitle")}
-                >
-                  {lastClaimAmount > 0n && (
-                    <div>
-                      <dt>{t("claimAmountLabel")}</dt>
-                      <dd>{formatGas(lastClaimAmount, 8)} GAS</dd>
-                    </div>
-                  )}
-                  {displayClaimKey && (
-                    <div>
-                      <dt>{t("claimKeyLabel")}</dt>
-                      <dd>{displayClaimKey}</dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt>{t("claimNetworkLabel")}</dt>
-                    <dd>{claimNetworkLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("contractGuarded")}</dt>
-                    <dd>{t("perAddressOnce")}</dd>
-                  </div>
-                  <div className="gas-pool-claim-only__summary-row--txid">
-                    <dt>{t("transactionIdLabel")}</dt>
-                    <dd>
-                      {/* The server decides + pays the amount, so an explorer
-                          link is the recipient's independent verification of the
-                          GAS transfer. */}
-                      {explorerTxUrl(lastTxid, launchContext.network) ? (
-                        <a
-                          className="gas-pool-claim-only__explorer-link"
-                          href={explorerTxUrl(lastTxid, launchContext.network)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <code>{lastTxid}</code>
-                          <span className="gas-pool-claim-only__explorer-cta">
-                            {t("viewOnExplorer")}
-                          </span>
-                        </a>
-                      ) : (
-                        <code>{lastTxid}</code>
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="gas-pool-claim-only__top">
-                <div className="gas-pool-congrats__badge">GAS</div>
-                <div>
-                  <span className="gas-pool-claim-only__eyebrow">
-                    {claimKey ? t("scanClaimReady") : t("oneGateReady")}
-                  </span>
-                  <h2>{claimKey ? t("claimReward") : vaultName}</h2>
-                </div>
-              </div>
-              <div
-                className={`gas-pool-claim-stage gas-pool-claim-stage--${claimVisualState}`}
-                aria-hidden="true"
-              >
-                <img src="./gas-vault-stage.jpg" alt="" />
-                <div className="gas-pool-claim-stage__wash" />
-                <div className="gas-pool-claim-stage__ticket">
-                  <span>
-                    <img src="./onegate-logo.png" alt="" />
-                    {vaultName}
-                  </span>
-                  <strong>{currentRange}</strong>
-                  <small>{displayClaimKey || t("claimKeyPending")}</small>
-                </div>
-                <div className="gas-pool-claim-stage__coin gas-pool-claim-stage__coin--one">
-                  <Coins size={17} />
-                </div>
-                <div className="gas-pool-claim-stage__coin gas-pool-claim-stage__coin--two">
-                  <Gift size={17} />
-                </div>
-                <div className="gas-pool-claim-stage__beam" />
-              </div>
-              <p className="gas-pool-claim-only__copy">
-                {claimKey ? t("scanClaimReview") : t("docOneGateFlow")}
-              </p>
-              <div className="gas-pool-claim-only__range">
-                <span>{t("rewardRange")}</span>
-                <strong>{currentRange}</strong>
-              </div>
-              <p className="gas-pool-claim-only__server-note">
-                {t("serverPaysNote")}
-              </p>
-              <dl
-                className="gas-pool-claim-only__receipt"
-                aria-label={t("claimReceiptTitle")}
-              >
-                {claimReceiptItems.map((item) => (
-                  <div key={item.label}>
-                    <dt>{item.label}</dt>
-                    <dd className={item.muted ? "is-pending" : undefined}>
-                      {item.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="gas-pool-claim-only__note">
-                {t("claimConsoleHint")}
-              </p>
-              {!claimKey && (
-                <div className="gas-pool-claim-only__action-hint">
-                  <span
-                    className="gas-pool-claim-only__action-hint-icon"
-                    aria-hidden="true"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="18"
-                      height="18"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                      <path d="M14 14h3v3M21 14v7M14 21h3" />
-                    </svg>
-                  </span>
-                  <span>{t("noPoolSelected")}</span>
-                </div>
-              )}
-              {claimKey && !claimSucceeded && (
-                <button
-                  type="button"
-                  className="gas-pool-claim-only__button"
-                  onClick={submitClaim}
-                  disabled={claimIsAnimating}
-                  aria-busy={claimIsAnimating}
-                >
-                  {t("claimReward")}
-                </button>
-              )}
-              {claimError.message ? (
-                <div
-                  className="gas-pool-claim-only__error"
-                  role="alert"
-                  aria-live="assertive"
-                >
-                  <p className="gas-pool-claim-only__error-message">
-                    {claimError.message}
-                  </p>
-                  {claimError.diagnostics && (
-                    <code className="gas-pool-claim-only__error-diagnostics">
-                      {claimError.diagnostics}
-                    </code>
-                  )}
-                </div>
-              ) : showClaimProgress ? (
-                <div
-                  className={`gas-pool-claim-progress gas-pool-claim-progress--${activeClaimProgress}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div className="gas-pool-claim-progress__header">
-                    <span>{t("claimProgressTitle")}</span>
-                    <strong>
-                      {activeClaimProgress === "failed"
-                        ? t("claimProgressFailed")
-                        : activeClaimProgress === "paid"
-                          ? t("claimProgressPaid")
-                          : activeClaimProgress === "confirming"
-                            ? t("claimProgressConfirming")
-                            : activeClaimProgress === "submitting"
-                              ? t("claimProgressSubmitting")
-                              : t("claimProgressWallet")}
-                    </strong>
-                  </div>
-                  <ol className="gas-pool-claim-progress__steps">
-                    {CLAIM_PROGRESS_STEPS.map((step, index) => {
-                      const isFailed = activeClaimProgress === "failed";
-                      const isDone =
-                        !isFailed &&
-                        activeClaimProgressIndex >= 0 &&
-                        index < activeClaimProgressIndex;
-                      const isActive =
-                        !isFailed &&
-                        (index === activeClaimProgressIndex ||
-                          (activeClaimProgressIndex < 0 && index === 0));
-                      return (
-                        <li
-                          key={step.key}
-                          className={`gas-pool-claim-progress__step${
-                            isDone ? " gas-pool-claim-progress__step--done" : ""
-                          }${
-                            isActive
-                              ? " gas-pool-claim-progress__step--active"
-                              : ""
-                          }${
-                            isFailed && index === 2
-                              ? " gas-pool-claim-progress__step--failed"
-                              : ""
-                          }`}
-                        >
-                          <span className="gas-pool-claim-progress__dot" />
-                          <span>{t(step.label)}</span>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-              ) : claimStatus ? (
-                <div
-                  className={`gas-pool-claim-status gas-pool-claim-status--${claimStatus}`}
-                >
-                  {claimStatus === "paid"
-                    ? t("claimPaid")
-                    : claimStatus === "failed"
-                      ? t("claimFailed")
-                      : t("claimSubmitted")}
-                </div>
-              ) : null}
-            </>
-          )}
-        </section>
-      ) : (
-        <section
-          className="gas-pool-workspace"
-          aria-label={t("ownerWorkspaceTitle")}
-        >
-          {/* On-system hero: opening the app directly (no claim QR) lands on this
-              campaign-builder, so lead with the app identity (logo badge) plus
-              warm, gifting-framed copy so the default screen reads as a social
-              gift, not an admin console. */}
-          <header className="gas-pool-workspace-hero">
-            <div className="gas-pool-workspace-hero__copy">
-              <div className="gas-pool-workspace-hero__brand">
-                <img
-                  className="gas-pool-workspace-hero__logo"
-                  src={`${import.meta.env.BASE_URL}onegate-logo.png`}
-                  alt=""
-                  aria-hidden="true"
-                  width={52}
-                  height={52}
+                <OpenUiSegmented
+                  className="vault-preset-field"
+                  segmentedClassName="vault-controls__presets vault-controls__presets--amount"
+                  label={t("totalAmount")}
+                  value={TOTAL_AMOUNT_PRESETS.includes(totalAmount) ? totalAmount : ""}
+                  onChange={setTotalAmount}
+                  disabled={createAnimating}
+                  options={TOTAL_AMOUNT_PRESETS.map((preset) => ({
+                    value: preset,
+                    label: <span className="vault-preset">{preset}</span>,
+                  }))}
                 />
-                <span className="gas-pool-workspace-hero__eyebrow">
-                  {t("workspaceHeroEyebrow")}
-                </span>
               </div>
-              <h2>{t("workspaceHeroTitle")}</h2>
-              <p>{t("workspaceHeroSubtitle")}</p>
-              <div className="gas-pool-workspace-hero__proofs">
-                <span>
-                  <Gift size={15} aria-hidden="true" />
-                  {t("heroProofGift")}
-                </span>
-                <span>
-                  <WalletCards size={15} aria-hidden="true" />
-                  {t("heroProofOneGate")}
-                </span>
-                <span>
-                  <Sparkles size={15} aria-hidden="true" />
-                  {t("heroProofRandom")}
-                </span>
+
+              <div className="vault-tuner">
+                <span className="vault-controls__label">{t("maxClaims")}</span>
+                <div className="vault-stepper" role="group" aria-label={t("maxClaims")}>
+                  <button type="button" onClick={() => adjustMaxClaims(-5)} disabled={createAnimating} aria-label={t("decreaseMaxClaims")}>-</button>
+                  <output>{displaySlots}</output>
+                  <button type="button" onClick={() => adjustMaxClaims(5)} disabled={createAnimating} aria-label={t("increaseMaxClaims")}>+</button>
+                </div>
+                <OpenUiSegmented
+                  className="vault-preset-field"
+                  segmentedClassName="vault-controls__presets vault-controls__presets--slots"
+                  label={t("maxClaims")}
+                  value={CLAIM_SLOT_PRESETS.includes(maxClaims) ? maxClaims : ""}
+                  onChange={setMaxClaims}
+                  disabled={createAnimating}
+                  options={CLAIM_SLOT_PRESETS.map((preset) => ({
+                    value: preset,
+                    label: <span className="vault-preset">{preset}</span>,
+                  }))}
+                />
+              </div>
+
+              <div className="vault-controls__group vault-controls__group--range">
+                <span className="vault-controls__label">{t("claimRangeHint")}</span>
+                <OpenUiSegmented
+                  className="vault-preset-field vault-preset-field--range"
+                  segmentedClassName="vault-controls__presets vault-controls__presets--range"
+                  label={t("claimRangeHint")}
+                  value={CLAIM_RANGE_PRESETS.find((preset) => minClaim === preset.min && maxClaim === preset.max)?.key ?? ""}
+                  onChange={applyClaimRangePreset}
+                  disabled={createAnimating}
+                  options={CLAIM_RANGE_PRESETS.map((preset) => ({
+                    value: preset.key,
+                    label: (
+                      <span className="vault-preset vault-preset--range">
+                        <span>{t(preset.label)}</span>
+                        <small>{preset.min}-{preset.max} GAS</small>
+                      </span>
+                    ),
+                  }))}
+                />
+              </div>
+
+              <div className="vault-drawer__setting">
+                <span>{t("expiryHours")}</span>
+                <OpenUiSegmented
+                  className="vault-drawer__chips-field"
+                  segmentedClassName="vault-drawer__chips"
+                  label={t("expiryHours")}
+                  value={expiryHours}
+                  onChange={setExpiryPreset}
+                  options={EXPIRY_PRESETS.map((hours) => ({
+                    value: hours,
+                    label: <span className="vault-drawer__chip">{t("rewardExpiryHours", { hours })}</span>,
+                  }))}
+                />
+                <p>{t("expiryHoursHint")}</p>
               </div>
             </div>
-            <figure className="gas-pool-vault-stage" aria-label={t("vaultStageAria")}>
-              <img
-                src="./gas-vault-stage.jpg"
-                alt=""
-                loading="eager"
-                decoding="async"
+          </OpenUiPanel>
+        )}
+
+        {drawerMode === "pool" && (
+          <OpenUiPanel
+            className="vault-drawer-panel vault-drawer-panel--pool"
+            icon={<Search size={18} strokeWidth={2.35} aria-hidden="true" />}
+            title={t("poolControlsTitle")}
+            subtitle={t("poolControlsHint")}
+          >
+            <div className="vault-drawer-field-row">
+              <OpenUiTextField
+                className="vault-drawer-field vault-drawer-field--pool"
+                label={t("poolIdLabel")}
+                value={poolId}
+                onChange={(e) => setPoolId(e.target.value)}
+                placeholder={t("poolIdPlaceholder")}
               />
-              <figcaption>
-                <span>{t("samplePreviewTitle")}</span>
-                <strong>{t("sampleCongratsTitle")}</strong>
-                <small>{t("sampleRewardLabel")}: 12.40 GAS</small>
-              </figcaption>
-            </figure>
-          </header>
-
-          <div className="gas-pool-grid">
-            <div className="gas-pool-form gas-pool-form--primary">
-              <div className="gas-pool-form__head gas-pool-form__head--vault">
-                <div>
-                  <span>{t("createPoolTitle")}</span>
-                  <h2>{t("createPoolDeskTitle")}</h2>
-                </div>
-                <p className="gas-pool-form__description">
-                  {t("createPoolDescription")}
-                </p>
-              </div>
-              <div className="gas-pool-create-console">
-                <aside
-                  className={[
-                    "gas-pool-create-summary",
-                    `gas-pool-create-summary--${rewardPlanState}`,
-                    createMachineAnimating &&
-                      "gas-pool-create-summary--launching",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-label={t("rewardPlanTitle")}
-                  aria-busy={createMachineAnimating}
-                >
-                  <span className="gas-pool-create-summary__eyebrow">
-                    {t("rewardPlanTitle")}
-                  </span>
-                  <span
-                    className="gas-pool-create-summary__state"
-                    aria-live="polite"
-                  >
-                    <Gift size={15} aria-hidden="true" />
-                    {rewardMachineLabel}
-                  </span>
-                  <strong className="gas-pool-create-summary__amount">
-                    {displayTotalAmount}
-                  </strong>
-                  <p>
-                    {displayRewardRange} · {displayClaimSlots} · {displayExpiry}
-                  </p>
-                  <div
-                    className="gas-pool-create-summary__stage"
-                    aria-hidden="true"
-                  >
-                    <img src="./gas-vault-stage.jpg" alt="" />
-                    <div className="gas-pool-create-summary__wash" />
-                    <div className="gas-pool-create-summary__reels">
-                      <span>{displayRewardRange}</span>
-                      <span>{displayClaimSlots}</span>
-                      <span>{displayExpiry}</span>
-                    </div>
-                    <div className="gas-pool-create-summary__fill">
-                      <span style={{ width: `${poolFillPercent}%` }} />
-                    </div>
-                    <div className="gas-pool-create-summary__tickets">
-                      {Array.from({ length: previewTicketCount }).map(
-                        (_, index) => (
-                          <span key={index} />
-                        ),
-                      )}
-                    </div>
-                    <div className="gas-pool-create-summary__prize">
-                      <Coins size={17} aria-hidden="true" />
-                    </div>
-                    <div className="gas-pool-create-summary__scan" />
-                  </div>
-                  <div
-                    className="gas-pool-create-summary__route"
-                    aria-label={t("rewardRouteTitle")}
-                  >
-                    <span
-                      className={
-                        totalAmountNumber > 0 ? "is-active" : undefined
-                      }
-                    >
-                      <Coins size={14} aria-hidden="true" />
-                      {t("rewardRouteCharge")}
-                    </span>
-                    <span
-                      className={
-                        rewardRangeReady && slotCountNumber > 0
-                          ? "is-active"
-                          : undefined
-                      }
-                    >
-                      <Users size={14} aria-hidden="true" />
-                      {t("rewardRouteSplit")}
-                    </span>
-                    <span className={rewardPlanReady ? "is-active" : undefined}>
-                      <WalletCards size={14} aria-hidden="true" />
-                      {t("rewardRouteScan")}
-                    </span>
-                    <span
-                      className={
-                        createMachineAnimating ? "is-active" : undefined
-                      }
-                    >
-                      <Gift size={14} aria-hidden="true" />
-                      {t("rewardRouteUnwrap")}
-                    </span>
-                  </div>
-                  <div className="gas-pool-create-summary__tiles">
-                    <span>
-                      <Sparkles size={16} aria-hidden="true" />
-                      <small>{t("rewardRange")}</small>
-                      <strong>{displayRewardRange}</strong>
-                    </span>
-                    <span>
-                      <Users size={16} aria-hidden="true" />
-                      <small>{t("maxClaims")}</small>
-                      <strong>{displayClaimSlots}</strong>
-                    </span>
-                    <span>
-                      <Clock3 size={16} aria-hidden="true" />
-                      <small>{t("expiryHours")}</small>
-                      <strong>{displayExpiry}</strong>
-                    </span>
-                  </div>
-                </aside>
-
-                <div className="gas-pool-create-controls">
-                  <div className="gas-pool-control-card gas-pool-control-card--amount">
-                    <div className="gas-pool-control-card__topline">
-                      <span>
-                        <Coins size={15} aria-hidden="true" />
-                        {t("totalAmount")}
-                      </span>
-                      <small>{t("totalAmountHint")}</small>
-                    </div>
-                    <div className="gas-pool-stepper">
-                      <button
-                        type="button"
-                        aria-label={t("decreaseTotalAmount")}
-                        onClick={() =>
-                          setTotalAmount(stepDecimal(totalAmount, -5, 1))
-                        }
-                      >
-                        <Minus size={15} aria-hidden="true" />
-                      </button>
-                      <label className="gas-pool-inline-input">
-                        <span className="gas-pool-sr-only">
-                          {t("totalAmount")}
-                        </span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          pattern="[0-9]*[.]?[0-9]*"
-                          aria-label={t("totalAmount")}
-                          value={totalAmount}
-                          onChange={(event) =>
-                            setTotalAmount(event.target.value)
-                          }
-                        />
-                        <em>GAS</em>
-                      </label>
-                      <button
-                        type="button"
-                        aria-label={t("increaseTotalAmount")}
-                        onClick={() =>
-                          setTotalAmount(stepDecimal(totalAmount, 5, 1))
-                        }
-                      >
-                        <Plus size={15} aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div
-                      className="gas-pool-quick-picks"
-                      aria-label={t("totalAmountHint")}
-                    >
-                      {TOTAL_AMOUNT_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          className={totalAmount === preset ? "is-active" : ""}
-                          onClick={() => setTotalAmount(preset)}
-                        >
-                          {preset} GAS
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="gas-pool-control-card gas-pool-control-card--range">
-                    <div className="gas-pool-control-card__topline">
-                      <span>
-                        <Sparkles size={15} aria-hidden="true" />
-                        {t("rewardRange")}
-                      </span>
-                      <small>{t("claimRangeHint")}</small>
-                    </div>
-                    <div className="gas-pool-range-editor">
-                      <label>
-                        <span>{t("minClaim")}</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          pattern="[0-9]*[.]?[0-9]*"
-                          aria-label={t("minClaim")}
-                          value={minClaim}
-                          onChange={(event) => setMinClaim(event.target.value)}
-                        />
-                      </label>
-                      <label>
-                        <span>{t("maxClaim")}</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          pattern="[0-9]*[.]?[0-9]*"
-                          aria-label={t("maxClaim")}
-                          value={maxClaim}
-                          onChange={(event) => setMaxClaim(event.target.value)}
-                        />
-                      </label>
-                    </div>
-                    <div
-                      className="gas-pool-range-presets"
-                      aria-label={t("claimRangeHint")}
-                    >
-                      {CLAIM_RANGE_PRESETS.map((preset) => (
-                        <button
-                          key={preset.key}
-                          type="button"
-                          className={
-                            minClaim === preset.min && maxClaim === preset.max
-                              ? "is-active"
-                              : ""
-                          }
-                          onClick={() => {
-                            setMinClaim(preset.min);
-                            setMaxClaim(preset.max);
-                          }}
-                        >
-                          {t(preset.label)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="gas-pool-control-card">
-                    <div className="gas-pool-control-card__topline">
-                      <span>
-                        <Users size={15} aria-hidden="true" />
-                        {t("maxClaims")}
-                      </span>
-                      <small>{t("maxClaimsHint")}</small>
-                    </div>
-                    <label className="gas-pool-inline-input">
-                      <span className="gas-pool-sr-only">
-                        {t("maxClaims")}
-                      </span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        aria-label={t("maxClaims")}
-                        min="1"
-                        value={maxClaims}
-                        onChange={(event) => setMaxClaims(event.target.value)}
-                      />
-                      <em>
-                        {t("rewardSlotsCount", { count: "" }).trim()}
-                      </em>
-                    </label>
-                    <div className="gas-pool-stepper gas-pool-stepper--compact">
-                      <button
-                        type="button"
-                        aria-label={t("decreaseMaxClaims")}
-                        onClick={() =>
-                          setMaxClaims(stepInteger(maxClaims, -1, 1))
-                        }
-                      >
-                        <Minus size={14} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={t("increaseMaxClaims")}
-                        onClick={() =>
-                          setMaxClaims(stepInteger(maxClaims, 1, 1))
-                        }
-                      >
-                        <Plus size={14} aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div
-                      className="gas-pool-quick-picks"
-                      aria-label={t("maxClaimsHint")}
-                    >
-                      {CLAIM_SLOT_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          className={maxClaims === preset ? "is-active" : ""}
-                          onClick={() => setMaxClaims(preset)}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="gas-pool-control-card">
-                    <div className="gas-pool-control-card__topline">
-                      <span>
-                        <Clock3 size={15} aria-hidden="true" />
-                        {t("expiryHours")}
-                      </span>
-                      <small>{t("expiryHoursHint")}</small>
-                    </div>
-                    <label className="gas-pool-inline-input">
-                      <span className="gas-pool-sr-only">
-                        {t("expiryHours")}
-                      </span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        aria-label={t("expiryHours")}
-                        min="1"
-                        value={expiryHours}
-                        onChange={(event) => setExpiryHours(event.target.value)}
-                      />
-                      <em>h</em>
-                    </label>
-                    <div className="gas-pool-stepper gas-pool-stepper--compact">
-                      <button
-                        type="button"
-                        aria-label={t("decreaseExpiryHours")}
-                        onClick={() =>
-                          setExpiryHours(stepInteger(expiryHours, -1, 1))
-                        }
-                      >
-                        <Minus size={14} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={t("increaseExpiryHours")}
-                        onClick={() =>
-                          setExpiryHours(stepInteger(expiryHours, 1, 1))
-                        }
-                      >
-                        <Plus size={14} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="gas-pool-claim-only__button gas-pool-create-submit"
-                onClick={submitCreatePool}
-                disabled={createMachineAnimating || !rewardPlanReady}
-                aria-busy={createMachineAnimating}
-              >
-                {createMachineAnimating ? t("creatingPool") : t("createPool")}
-              </button>
-              <p
-                className={`gas-pool-create-submit-hint${
-                  rewardPlanReady ? " is-ready" : ""
-                }`}
-              >
-                {createHint}
-              </p>
+              <OpenUiTextField
+                className="vault-drawer-field vault-drawer-field--topup"
+                label={t("topUpAmount")}
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+                placeholder={t("topUpAmount")}
+                inputMode="decimal"
+              />
             </div>
+            <div className="vault-drawer__actions">
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void handleManage("loadPool")} disabled={!poolId.trim() || isLoading}>{t("inspectPool")}</button>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void handleManage("refundPool")} disabled={!poolId.trim() || isRefunding}>{t("refundPool")}</button>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void handleManage("topUpPool", undefined, topUpAmount)} disabled={!poolId.trim() || !topUpAmount.trim() || isFunding}>{t("topUpPool")}</button>
+            </div>
+            <OpenUiNotice className="vault-drawer-notice" icon={<Info size={16} aria-hidden="true" />} title={t("distributionPathsTitle")}>
+              {t("pathOnChain")}
+            </OpenUiNotice>
+          </OpenUiPanel>
+        )}
 
-            <details className="gas-pool-manage-drawer">
-              <summary>
-                <span>{t("manageExistingTitle")}</span>
-                <strong>{t("poolControlsTitle")}</strong>
-              </summary>
-              <div className="gas-pool-form gas-pool-form--manage">
-                <label className="gas-pool-form__field">
-                  <span>{t("poolIdLabel")}</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={poolId}
-                    placeholder={t("poolIdPlaceholder")}
-                    onChange={(event) => setPoolId(event.target.value)}
-                  />
-                </label>
-                <label className="gas-pool-form__field">
-                  <span>{t("topUpAmount")}</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.]?[0-9]*"
-                    value={topUpAmount}
-                    onChange={(event) => setTopUpAmount(event.target.value)}
-                  />
-                </label>
-                {!hasPoolTarget && (
-                  <p className="gas-pool-form__hint">{t("poolControlsHint")}</p>
-                )}
-                <div className="gas-pool-actions">
-                  <button
-                    type="button"
-                    className="gas-pool-claim-only__button"
-                    onClick={inspectPool}
-                    disabled={isLoading || !hasPoolTarget}
-                  >
-                    {isLoading ? t("loadingPool") : t("inspectPool")}
-                  </button>
-                  <button
-                    type="button"
-                    className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
-                    onClick={submitTopUp}
-                    disabled={isFunding || !hasPoolTarget}
-                  >
-                    {isFunding ? t("addingGas") : t("topUpPool")}
-                  </button>
-                  <button
-                    type="button"
-                    className="gas-pool-claim-only__button gas-pool-claim-only__button--outline gas-pool-actions__recover"
-                    onClick={submitRefund}
-                    disabled={isRefunding || !hasPoolTarget}
-                  >
-                    {isRefunding ? t("recoveringGas") : t("refundPool")}
-                  </button>
-                </div>
+        {drawerMode === "credit" && (
+          <OpenUiPanel
+            className="vault-drawer-panel vault-drawer-panel--credit"
+            icon={<WalletCards size={18} strokeWidth={2.35} aria-hidden="true" />}
+            title={t("gasCreditTitle")}
+            subtitle={t("gasCreditDescription")}
+          >
+            <dl className="vault-drawer-credit">
+              <div><dt>{t("gasCredit")}</dt><dd>{formatGas(gasCredit)}</dd></div>
+            </dl>
+            <div className="vault-drawer__actions">
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("loadGasCredit")} disabled={isCreditLoading}>{t("checkGasCredit")}</button>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("withdrawGasCredit")} disabled={isWithdrawingCredit || gasCredit <= 0n}>{t("withdrawGasCredit")}</button>
+            </div>
+          </OpenUiPanel>
+        )}
 
-                <div className="gas-pool-credit">
-                  <span>{t("gasCredit")}</span>
-                  <strong>{formatGas(gasCredit, 4)} GAS</strong>
-                  <div className="gas-pool-credit__actions">
-                    <button
-                      type="button"
-                      className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
-                      onClick={checkGasCredit}
-                      disabled={isCreditLoading}
-                    >
-                      {isCreditLoading
-                        ? t("checkingGasCredit")
-                        : t("checkGasCredit")}
-                    </button>
-                    <button
-                      type="button"
-                      className="gas-pool-claim-only__button gas-pool-claim-only__button--outline"
-                      onClick={withdrawGasCredit}
-                      disabled={isWithdrawingCredit}
-                    >
-                      {isWithdrawingCredit
-                        ? t("withdrawingGasCredit")
-                        : t("withdrawGasCredit")}
-                    </button>
-                  </div>
-                </div>
+        {drawerMode === "guide" && (
+          <OpenUiPanel
+            className="vault-drawer-panel vault-drawer-panel--docs"
+            icon={<Clock3 size={18} strokeWidth={2.35} aria-hidden="true" />}
+            title={t("howItWorks")}
+            subtitle={t("oneGateFlow")}
+          >
+            <div className="vault-drawer-docs">
+              <OpenUiNotice className="vault-drawer-notice" icon={<Info size={16} aria-hidden="true" />} title={t("howItWorks")}>{t("docHowItWorks")}</OpenUiNotice>
+              <OpenUiNotice className="vault-drawer-notice" icon={<ShieldCheck size={16} aria-hidden="true" />} title={t("safetyModel")}>{t("docSafetyModel")}</OpenUiNotice>
+              <OpenUiNotice className="vault-drawer-notice" icon={<WalletCards size={16} aria-hidden="true" />} title={t("oneGateFlow")}>{t("docOneGateFlow")}</OpenUiNotice>
+            </div>
+          </OpenUiPanel>
+        )}
+      </div>
+    </OpenUiProvider>
+  );
 
-                {creatorStatusLabel && (
-                  <div
-                    className={`gas-pool-claim-status gas-pool-claim-status--${claimStatus}`}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {creatorStatusLabel}
-                  </div>
-                )}
-              </div>
-            </details>
-          </div>
-        </section>
-      )}
-
-      {!isOneGateClaimLaunch && (
-        <details className="gas-pool-secondary">
-          <summary>{t("campaignOwnerTitle")}</summary>
-          <div className="gas-pool-owner-note">
-            <span>{t("campaignOwnerStep1")}</span>
-            <span>{t("campaignOwnerStep2")}</span>
-            <span>{t("campaignOwnerStep3")}</span>
-          </div>
-        </details>
-      )}
-
-      {!isOneGateClaimLaunch && lastError && (
-        <div
-          className="gas-pool-toast gas-pool-toast--error"
-          role="alert"
-          aria-live="assertive"
-        >
-          {claimError.message || lastError}
+  const scene = (
+    <div className="vault-scene" data-state={createAnimating ? "funding" : rewardPlanReady ? "ready" : "draft"}>
+      <div className={["vault-scene__vault-shell", createAnimating ? "vault-scene__vault-shell--funding" : null, rewardPlanReady ? "vault-scene__vault-shell--ready" : null].filter(Boolean).join(" ")}>
+        <img className="vault-scene__vault-art" src={VAULT_ART} alt="" aria-hidden="true" draggable={false} decoding="async" />
+        <div className="vault-scene__vault-badge" aria-hidden="true">
+          <CoinArt size={30} variant="gas" />
+        </div>
+      </div>
+      <div className="vault-scene__hud">
+        <div className="vault-scene__readout">
+          <span>{t("totalAmount")}</span>
+          <strong>{displayTotal}</strong>
+        </div>
+        <div className="vault-scene__readout">
+          <span>{t("maxClaims")}</span>
+          <strong>{displaySlots}</strong>
+        </div>
+      </div>
+      <div className="vault-scene__meter" aria-hidden="true">
+        <span style={{ width: `${Math.max(8, fillPct)}%` }} />
+      </div>
+      {createAnimating && <ParticleBurst coins count={8} />}
+      {createAnimating && (
+        <div className="vault-scene__coin-stream" aria-hidden="true">
+          {Array.from({ length: 5 }, (_, i) => <CoinArt key={i} size={20} variant="gas" className={`vault-scene__coin vault-scene__coin--${i + 1}`} />)}
         </div>
       )}
+      {/* reward route */}
+      <div className="vault-scene__route">
+        <span>{t("rewardRouteCharge")}</span>
+        <span>→</span>
+        <span>{t("rewardRouteSplit")}</span>
+        <span>→</span>
+        <span>{t("rewardRouteScan")}</span>
+        <span>→</span>
+        <span>{t("rewardRouteUnwrap")}</span>
+      </div>
+      <p className="vault-scene__status" aria-live="polite">
+        {createAnimating ? t("creatingPool") : rewardPlanReady ? t("rewardMachineReady") : t("rewardMachineDraft")}
+      </p>
+    </div>
+  );
+
+  const controls = (
+    <div className="vault-controls">
+      <div className="vault-controls__intro">
+        <span>{t("rewardPlanTitle")}</span>
+        <strong>{rewardPlanReady ? displayTotal : t("rewardPresetCta")}</strong>
+        <small>{rewardPlanReady ? `${displaySlots} · ${displayRange}` : t("rewardPresetHint")}</small>
+      </div>
+      <div className="vault-plan-grid" role="list" aria-label={t("rewardPlanTitle")}>
+        {REWARD_PLAN_PRESETS.map((plan) => (
+          <button
+            key={plan.key}
+            type="button"
+            className={["vault-plan-card", activePlan === plan.key ? "vault-plan-card--active" : null].filter(Boolean).join(" ")}
+            onClick={() => applyRewardPlan(plan)}
+            disabled={createAnimating}
+          >
+            <span className="vault-plan-card__coin" aria-hidden="true">
+              <CoinArt size={34} variant="gas" decorative />
+            </span>
+            <span className="vault-plan-card__copy">
+              <span className="vault-plan-card__label">{t(plan.label)}</span>
+              <strong>{plan.amount} GAS</strong>
+              <span>{t("rewardSlotsCount", { count: plan.slots })} · {plan.min}-{plan.max} GAS</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="gas-pool-playarea mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        className="gas-pool-playstage gas-pool-playstage--creator"
+        stage={{
+          eyebrow: t("workspaceHeroEyebrow"),
+          title: t("createPoolTitle"),
+          subtitle: t("createPoolDescription"),
+          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {displayRange}</span>,
+        }}
+        scene={<div className="vault-workspace">{scene}{controls}</div>}
+        score={[
+          { label: t("totalAmount"), value: displayTotal, accent: true },
+          { label: t("rewardRange"), value: displayRange },
+          { label: t("maxClaims"), value: displaySlots },
+        ]}
+        actions={{
+          primary: {
+            label: createAnimating ? t("creatingPool") : t("createPool"),
+            onClick: () => void handleCreate(),
+            disabled: createAnimating || !rewardPlanReady,
+            loading: createAnimating,
+          },
+        }}
+        drawerToggleLabel={t("managePoolShort")}
+        drawer={{
+          title: t("manageExistingTitle"),
+          children: creatorDrawer,
+        }}
+      />
     </div>
   );
 }

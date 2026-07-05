@@ -6,18 +6,16 @@ import React, {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
-  type ComponentType,
 } from "react";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { logger } from "@/lib/logger";
-import { cn } from "@/lib/utils";
+import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import {
-  partitionMiniApps,
   buildCategoryCounts,
   filterMiniAppsByCategory,
+  partitionMiniApps,
   sortMiniApps,
 } from "@/lib/miniapp-showcase";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
@@ -28,51 +26,108 @@ import {
   getLocalizedMiniAppName,
   getNetworkLabel,
 } from "@/lib/i18n/miniapp-display";
-import { interpolate } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
-import { BRAND } from "@/lib/brand";
-import { CategoryFilterButton } from "@/components/features/home/CategoryFilterButton";
-import { PlatformStatusPanel } from "@/components/features/home/PlatformStatusPanel";
-import { FeaturedAppsAside } from "@/components/features/home/FeaturedAppsAside";
-import { OperatorToolsSection } from "@/components/features/home/OperatorToolsSection";
-import { FeaturesGridSection } from "@/components/features/home/FeaturesGridSection";
-import { HomeCtaSection } from "@/components/features/home/HomeCtaSection";
-import { HomeMiniAppRow } from "@/components/features/home/HomeMiniAppRow";
+import { buildMiniAppDetailHref } from "@/lib/miniapp-routes";
 import {
-  Rocket,
-  LayoutGrid,
-  Filter,
-  Gamepad2,
+  buildMiniAppBannerSources,
+  buildModernImageSources,
+} from "@/lib/miniapp-media";
+import { BRAND } from "@/lib/brand";
+import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
+import {
+  ArrowRight,
+  ChevronRight,
+  Code2,
   Coins,
-  Users,
+  Database,
+  Gamepad2,
   Image as ImageIcon,
+  LayoutGrid,
+  Search,
+  Users,
   Vote,
   Wrench,
-  Code2,
-  Search,
+  type LucideIcon,
 } from "lucide-react";
+import styles from "@/styles/home-sci-fi.module.css";
 
-// Category definitions with icons
-const CATEGORY_ICONS: Record<
-  string,
-  ComponentType<{ size?: number | string; className?: string; style?: React.CSSProperties }>
-> = {
-  all: LayoutGrid,
-  gaming: Gamepad2,
-  defi: Coins,
-  social: Users,
-  nft: ImageIcon,
-  governance: Vote,
-  utility: Wrench,
-};
+type HomeNetwork = "mainnet" | "testnet";
+
+const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
+const HOME_FEATURED_LIMIT = 6;
+const HOME_DISCOVERY_LIMIT = 9;
+
+const CATEGORY_CONFIG: Array<{
+  id: "all" | MiniAppInfo["category"];
+  icon: LucideIcon;
+  swatch: string;
+  dot: string;
+  active: string;
+}> = [
+  {
+    id: "all",
+    icon: LayoutGrid,
+    swatch: "bg-surface-secondary text-ink-secondary",
+    dot: "bg-ink-muted",
+    active: "border-ink bg-surface text-ink",
+  },
+  {
+    id: "gaming",
+    icon: Gamepad2,
+    swatch: "bg-cat-game/10 text-cat-game",
+    dot: "bg-cat-game",
+    active: "border-cat-game bg-cat-game/10 text-ink",
+  },
+  {
+    id: "defi",
+    icon: Coins,
+    swatch: "bg-cat-defi/10 text-cat-defi",
+    dot: "bg-cat-defi",
+    active: "border-cat-defi bg-cat-defi/10 text-ink",
+  },
+  {
+    id: "social",
+    icon: Users,
+    swatch: "bg-cat-social/10 text-cat-social",
+    dot: "bg-cat-social",
+    active: "border-cat-social bg-cat-social/10 text-ink",
+  },
+  {
+    id: "nft",
+    icon: ImageIcon,
+    swatch: "bg-cat-nft/10 text-cat-nft",
+    dot: "bg-cat-nft",
+    active: "border-cat-nft bg-cat-nft/10 text-ink",
+  },
+  {
+    id: "governance",
+    icon: Vote,
+    swatch: "bg-cat-governance/10 text-cat-governance",
+    dot: "bg-cat-governance",
+    active: "border-cat-governance bg-cat-governance/10 text-ink",
+  },
+  {
+    id: "utility",
+    icon: Wrench,
+    swatch: "bg-cat-tool/10 text-cat-tool",
+    dot: "bg-cat-tool",
+    active: "border-cat-tool bg-cat-tool/10 text-ink",
+  },
+  {
+    id: "data",
+    icon: Database,
+    swatch: "bg-info-50 text-info-600",
+    dot: "bg-info-500",
+    active: "border-info-500 bg-info-50 text-ink",
+  },
+];
 
 export type LandingPageProps = {
   initialApps?: MiniAppInfo[];
 };
-
-const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
-type HomeNetwork = "mainnet" | "testnet";
 
 function readNetworkParam(value: string | string[] | undefined): HomeNetwork | null {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -87,6 +142,14 @@ function withNetworkQuery(href: string, network: HomeNetwork): string {
   return `${href}${separator}network=${network}`;
 }
 
+function miniAppHref(app: MiniAppInfo, network: HomeNetwork): string {
+  return buildMiniAppDetailHref(app.app_id, { network });
+}
+
+function getCategoryVisual(category: MiniAppInfo["category"]) {
+  return CATEGORY_CONFIG.find((item) => item.id === category) || CATEGORY_CONFIG[0];
+}
+
 function isExpectedCatalogRefreshAbort(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const name = err.name.toLowerCase();
@@ -98,6 +161,260 @@ function isExpectedCatalogRefreshAbort(err: unknown): boolean {
     message.includes("operation was aborted")
   );
 }
+
+// ─── Scroll Reveal ──────────────────────────────────────────────────────────
+
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, visible };
+}
+
+// ─── Image/Banner Handling ──────────────────────────────────────────────────
+
+function useBannerSource(app: MiniAppInfo | null) {
+  const bannerSources = useMemo(
+    () =>
+      app
+        ? buildMiniAppBannerSources({
+            appID: app.app_id,
+            entryURL: app.entry_url,
+            bannerURL: app.banner_url,
+            manifest: app.manifest || null,
+          })
+        : [],
+    [app],
+  );
+  const [bannerIndex, setBannerIndex] = useState(0);
+
+  useEffect(() => {
+    setBannerIndex(0);
+  }, [bannerSources]);
+
+  const source = bannerSources[bannerIndex] || "";
+  return {
+    source,
+    modernSources: buildModernImageSources(source),
+    onError: () => {
+      setBannerIndex((prev) =>
+        prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length,
+      );
+    },
+  };
+}
+
+function AppArtwork({
+  app,
+  className,
+  imageClassName,
+}: {
+  app: MiniAppInfo;
+  className?: string;
+  imageClassName?: string;
+}) {
+  const { source, modernSources, onError } = useBannerSource(app);
+
+  return (
+    <div
+      className={cn(
+        styles.artworkSurface,
+        "relative overflow-hidden bg-surface-secondary",
+        className,
+      )}
+    >
+      {source ? (
+        <picture className="block h-full w-full">
+          {modernSources.avif && (
+            <source srcSet={modernSources.avif} type="image/avif" />
+          )}
+          {modernSources.webp && (
+            <source srcSet={modernSources.webp} type="image/webp" />
+          )}
+          <img
+            src={source}
+            alt={`${app.name} banner`}
+            className={cn("h-full w-full object-cover", imageClassName)}
+            loading="lazy"
+            decoding="async"
+            onError={onError}
+          />
+        </picture>
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <MiniAppLogo
+            appId={app.app_id}
+            category={app.category}
+            entryUrl={app.entry_url}
+            logoUrl={app.logo_url}
+            manifest={app.manifest || null}
+            size="lg"
+            alt={app.name}
+          />
+        </div>
+      )}
+      {source && (
+        <span className={styles.artworkLogo} aria-hidden="true">
+          <MiniAppLogo
+            appId={app.app_id}
+            category={app.category}
+            entryUrl={app.entry_url}
+            logoUrl={app.logo_url}
+            manifest={app.manifest || null}
+            size="lg"
+            alt=""
+          />
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── Sci-Fi Featured Card ───────────────────────────────────────────────────
+
+function FeatureCard({
+  app,
+  categoryLabel,
+  locale,
+  openLabel,
+  targetNetwork,
+  priority = false,
+}: {
+  app: MiniAppInfo;
+  categoryLabel: string;
+  locale: Locale;
+  openLabel: string;
+  targetNetwork: HomeNetwork;
+  priority?: boolean;
+}) {
+  const appName = getLocalizedMiniAppName(app, locale);
+  const appDescription = getLocalizedMiniAppDescription(app, locale) || app.description;
+
+  return (
+    <Link
+      href={miniAppHref(app, targetNetwork)}
+      className={cn(
+        styles.featureCard,
+        "group block text-left v4-focus",
+        priority ? "lg:col-span-2" : "",
+      )}
+    >
+      <AppArtwork
+        app={app}
+        className={cn(priority ? "h-64" : "h-44", "border-b border-border")}
+        imageClassName="transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+      />
+      <div className="p-6 relative">
+        <div className="mb-4 flex items-center gap-3">
+          <MiniAppLogo
+            appId={app.app_id}
+            category={app.category}
+            entryUrl={app.entry_url}
+            logoUrl={app.logo_url}
+            manifest={app.manifest || null}
+            size="md"
+            alt=""
+          />
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold leading-snug text-ink">
+              {appName}
+            </p>
+            <p className="text-sm text-ink-muted">
+              {categoryLabel}
+            </p>
+          </div>
+        </div>
+        <p className="line-clamp-2 text-sm leading-6 text-ink-secondary">
+          {appDescription}
+        </p>
+        <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-ink transition-colors group-hover:text-neo-600">
+          {openLabel}
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Sci-Fi Catalog Card ────────────────────────────────────────────────────
+
+function CatalogCard({
+  app,
+  locale,
+  targetNetwork,
+  categoryLabel,
+}: {
+  app: MiniAppInfo;
+  locale: Locale;
+  targetNetwork: HomeNetwork;
+  categoryLabel: string;
+}) {
+  const appName = getLocalizedMiniAppName(app, locale);
+  const appDescription = getLocalizedMiniAppDescription(app, locale) || app.description;
+  const categoryVisual = getCategoryVisual(app.category);
+
+  return (
+    <Link
+      href={miniAppHref(app, targetNetwork)}
+      className={cn(styles.catalogCard, "group text-left v4-focus")}
+    >
+      <div className={styles.catalogCardAccent} />
+      <div className="flex items-start gap-3">
+        <MiniAppLogo
+          appId={app.app_id}
+          category={app.category}
+          entryUrl={app.entry_url}
+          logoUrl={app.logo_url}
+          manifest={app.manifest || null}
+          size="md"
+          alt=""
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-base font-semibold leading-snug text-ink">
+            {appName}
+          </h3>
+          <p className="mt-1 truncate font-mono text-xs text-ink-muted">
+            {app.app_id}
+          </p>
+        </div>
+        <ArrowRight
+          className="mt-1 h-4 w-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5"
+          aria-hidden="true"
+        />
+      </div>
+      <p className="mt-4 line-clamp-2 flex-1 text-sm leading-6 text-ink-secondary">
+        {appDescription}
+      </p>
+      <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
+        <span
+          className={cn("h-2 w-2 rounded-full", categoryVisual.dot)}
+          aria-hidden="true"
+        />
+        <span className="text-xs font-medium text-ink-muted">
+          {categoryLabel}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+// ─── SSR ────────────────────────────────────────────────────────────────────
 
 export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
@@ -114,6 +431,8 @@ export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
   };
 };
 
+// ─── Main Landing Page ──────────────────────────────────────────────────────
+
 export default function LandingPage({
   initialApps = EMPTY_INITIAL_APPS,
 }: LandingPageProps = {}) {
@@ -126,105 +445,66 @@ export default function LandingPage({
   const [catalogLoading, setCatalogLoading] = useState(initialApps.length === 0);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const [catalogApps, setCatalogApps] = useState<MiniAppInfo[]>(() => {
-    return sortMiniApps(initialApps, "featured");
-  });
-  const [featuredApps, setFeaturedApps] = useState<MiniAppInfo[]>(() => {
-    const partitions = partitionMiniApps(initialApps);
-    return partitions.flagship;
-  });
-  const [toolApps, setToolApps] = useState<MiniAppInfo[]>(() => {
-    const partitions = partitionMiniApps(initialApps);
-    return partitions.tools;
-  });
+  const [catalogApps, setCatalogApps] = useState<MiniAppInfo[]>(() =>
+    sortMiniApps(initialApps, "featured"),
+  );
+  const [featuredApps, setFeaturedApps] = useState<MiniAppInfo[]>(() =>
+    partitionMiniApps(initialApps).flagship,
+  );
   const targetNetwork = useMemo(
     () => readNetworkParam(router.query.network) ?? getRpcNetwork(),
     [router.query.network],
   );
   const networkLabel = getNetworkLabel(targetNetwork, t);
 
-  // The scope=all catalog body is network-independent (it returns the full
-  // definition set, not a per-network view), so this fetch runs once on mount.
-  // targetNetwork is intentionally NOT a dependency — switching the network
-  // query must not refetch an identical catalog.
+  // Scroll reveal for sections
+  const featuredReveal = useScrollReveal();
+  const catalogReveal = useScrollReveal();
+
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 10_000);
+
     (async () => {
       try {
         const res = await fetch("/api/miniapps/catalog?scope=all", {
-          signal: AbortSignal.timeout(10_000),
+          signal: controller.signal,
         });
-        if (!active) return;
-        if (!res.ok) return;
+        if (!active || !res.ok) return;
         const data = await res.json();
         if (!active) return;
         const allApps = Array.isArray(data?.apps)
           ? sortMiniApps(data.apps as MiniAppInfo[], "featured")
           : [];
-        const partitions = partitionMiniApps(allApps as MiniAppInfo[]);
         setCatalogApps(allApps);
-        setFeaturedApps(partitions.flagship);
-        setToolApps(partitions.tools);
+        setFeaturedApps(partitionMiniApps(allApps).flagship);
       } catch (err) {
-        if (!isExpectedCatalogRefreshAbort(err)) {
+        if (active && !isExpectedCatalogRefreshAbort(err)) {
           logger.error("Failed to fetch miniapp catalog:", err);
         }
       } finally {
+        window.clearTimeout(timeoutId);
         if (active) setCatalogLoading(false);
       }
     })();
     return () => {
       active = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const categories = useMemo(() => {
     const counts = buildCategoryCounts(catalogApps);
-    return [
-      {
-        id: "all",
-        label: t("home.categories.all", "host"),
-        icon: CATEGORY_ICONS.all,
-        count: counts.all,
-      },
-      {
-        id: "gaming",
-        label: getCategoryLabel("gaming", t),
-        icon: CATEGORY_ICONS.gaming,
-        count: counts.gaming || 0,
-      },
-      {
-        id: "defi",
-        label: getCategoryLabel("defi", t),
-        icon: CATEGORY_ICONS.defi,
-        count: counts.defi || 0,
-      },
-      {
-        id: "social",
-        label: getCategoryLabel("social", t),
-        icon: CATEGORY_ICONS.social,
-        count: counts.social || 0,
-      },
-      {
-        id: "nft",
-        label: getCategoryLabel("nft", t),
-        icon: CATEGORY_ICONS.nft,
-        count: counts.nft || 0,
-      },
-      {
-        id: "governance",
-        label: getCategoryLabel("governance", t),
-        icon: CATEGORY_ICONS.governance,
-        count: counts.governance || 0,
-      },
-      {
-        id: "utility",
-        label: getCategoryLabel("utility", t),
-        icon: CATEGORY_ICONS.utility,
-        count: counts.utility || 0,
-      },
-    ];
+    return CATEGORY_CONFIG.map((cfg) => ({
+      ...cfg,
+      label:
+        cfg.id === "all"
+          ? t("home.categories.all", "host")
+          : getCategoryLabel(cfg.id, t),
+      count: counts[cfg.id] || 0,
+    })).filter((item) => item.id === "all" || item.count > 0);
   }, [catalogApps, t]);
 
   const filteredApps = useMemo(() => {
@@ -256,234 +536,376 @@ export default function LandingPage({
     featuredApps.length > 0
       ? featuredApps
       : partitionMiniApps(initialApps).flagship;
-  const platformStats = [
-    {
-      label: t("home.stats.enabledApps", "host"),
-      value: catalogApps.length || initialApps.length,
-    },
-    {
-      label: t("home.stats.featured", "host"),
-      value: featuredList.length,
-    },
-    {
-      label: t("home.stats.operatorTools", "host"),
-      value: toolApps.length,
-    },
-  ];
+  const heroApp = featuredList[0] || catalogApps[0] || initialApps[0] || null;
+  const homepageFeaturedApps = featuredList
+    .filter((app) => app.app_id !== heroApp?.app_id)
+    .slice(0, HOME_FEATURED_LIMIT);
+  const heroQuickApps = [heroApp, ...homepageFeaturedApps]
+    .filter((app): app is MiniAppInfo => Boolean(app))
+    .slice(0, 4);
+  const highlightedAppIds = new Set(
+    [heroApp, ...homepageFeaturedApps]
+      .filter((app): app is MiniAppInfo => Boolean(app))
+      .map((app) => app.app_id),
+  );
+  const discoveryApps = filteredApps.filter(
+    (app) => !highlightedAppIds.has(app.app_id),
+  );
+  const catalogPreviewApps = discoveryApps.slice(0, HOME_DISCOVERY_LIMIT);
+  const hiddenCatalogCount = Math.max(
+    discoveryApps.length - catalogPreviewApps.length,
+    0,
+  );
+  const fullCatalogHref = withNetworkQuery("/miniapps", targetNetwork);
+  const hiddenCatalogText = t("home.catalog.moreCount", "host").replace(
+    "{count}",
+    hiddenCatalogCount.toLocaleString(locale),
+  );
 
   return (
     <Layout>
       <Head>
         <title>{BRAND.title}</title>
-        <meta
-          name="description"
-          content={BRAND.description}
-        />
+        <meta name="description" content={BRAND.description} />
       </Head>
 
-      <section className="border-b border-gray-200 bg-[#f6f8fb] px-4 pb-10 pt-28 sm:px-6">
-        <div className="mx-auto grid max-w-[1500px] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-gray-500">
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
-                {networkLabel}
-              </span>
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
-                {t("home.badges.nep21Ready", "host")}
-              </span>
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
-                {t("home.badges.onegateExport", "host")}
-              </span>
-            </div>
+      <div className={styles.sciFiCanvas}>
+        <section className={cn(styles.heroSection, "relative px-4 pt-24 sm:px-6 lg:pt-28 pb-10")}>
+          <div className="mx-auto grid max-w-[1152px] gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center relative z-[1]">
+            <div className="order-2 lg:order-1">
+              <div className={cn(styles.staggerEnter, styles.stagger1)}>
+                <div className={styles.glowBadge}>
+                  <span className={styles.glowDot} aria-hidden="true" />
+                  {networkLabel}
+                </div>
+              </div>
 
-            <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end">
-              <div>
-                <img
-                  src="/brand/neo-mascot.svg"
-                  alt=""
-                  aria-hidden="true"
-                  width={72}
-                  height={72}
-                  className="mb-4 h-14 w-14 animate-float-slow sm:h-16 sm:w-16"
-                />
-                <h1 className="m-0 max-w-xl text-[1.75rem] font-extrabold leading-[1.16] tracking-tight text-balance [word-break:keep-all] text-gray-950 sm:text-[2.1rem] lg:text-[2.5rem]">
+              <div className={cn(styles.staggerEnter, styles.stagger2)}>
+                <h1 className={styles.heroTitle}>
                   {t("home.hero.title", "host")}
                 </h1>
-                <p className="mt-4 max-w-xl text-[0.95rem] leading-7 text-gray-600 sm:text-base">
+              </div>
+
+              <div className={cn(styles.staggerEnter, styles.stagger3)}>
+                <p className={styles.heroSubtitle}>
                   {t("home.hero.body", "host")}
                 </p>
-                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                  <Link href={withNetworkQuery("/miniapps", targetNetwork)}>
-                    <Button className="h-12 rounded-lg bg-emerald-700 px-5 text-sm font-bold text-white hover:bg-emerald-800">
-                      {t("home.hero.catalogCta", "host")}
-                      <Rocket className="ml-2 h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </Link>
-                  <Link href={withNetworkQuery("/developer", targetNetwork)}>
-                    <Button
-                      variant="outline"
-                      className="h-12 rounded-lg border-gray-200 bg-white px-5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+              </div>
+
+              {heroQuickApps.length > 0 && (
+                <div
+                  className={cn(
+                    styles.staggerEnter,
+                    styles.stagger4,
+                    styles.quickLaunchRail,
+                  )}
+                  aria-label="Featured MiniApps"
+                >
+                  {heroQuickApps.map((app) => (
+                    <Link
+                      key={app.app_id}
+                      href={miniAppHref(app, targetNetwork)}
+                      className={cn(styles.quickLaunchItem, "v4-focus")}
                     >
-                      {t("home.hero.developerCta", "host")}
-                      <Code2 className="ml-2 h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              <PlatformStatusPanel platformStats={platformStats} t={t} />
-            </div>
-          </div>
-
-          <FeaturedAppsAside
-            featuredList={featuredList}
-            targetNetwork={targetNetwork}
-            locale={locale}
-            catalogLoading={catalogLoading}
-            t={t}
-          />
-        </div>
-      </section>
-
-      {/* Main Content Section */}
-      <section className="bg-[#f6f8fb] px-4 py-10 sm:px-6">
-        <div className="mx-auto max-w-[1600px]">
-          <div className="mb-6 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_420px]">
-            <div>
-              <h2 className="m-0 text-2xl font-black text-gray-900">
-                {t("catalog.title", "host")}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                {t("home.catalog.description", "host")}
-              </p>
-            </div>
-            <label className="relative block self-end">
-              <span className="sr-only">
-                {t("catalog.searchLabel", "host")}
-              </span>
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                aria-hidden="true"
-              />
-              <input
-                id="catalog-search"
-                name="q"
-                type="search"
-                autoComplete="off"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("home.catalog.searchPlaceholder", "host")}
-                className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-              />
-            </label>
-          </div>
-
-          <div
-            className="flex flex-col gap-6 lg:flex-row"
-            data-testid="homepage-catalog"
-          >
-            {/* Sidebar Filters */}
-            <aside className="hidden w-72 shrink-0 space-y-8 lg:block">
-              <div className="sticky top-24">
-                <h2 className="flex items-center gap-3 font-extrabold text-xl text-gray-900 mb-6 px-2">
-                  <Filter size={20} aria-hidden="true" className="text-emerald-700" />
-                  {t("home.catalog.ecosystems", "host")}
-                </h2>
-                <div className="space-y-2">
-                  {categories.map((cat) => {
-                    const isActive = selectedCategory === cat.id;
-                    return (
-                      <CategoryFilterButton
-                        key={cat.id}
-                        category={cat}
-                        isActive={isActive}
-                        onSelect={() => setSelectedCategory(cat.id)}
+                      <MiniAppLogo
+                        appId={app.app_id}
+                        category={app.category}
+                        entryUrl={app.entry_url}
+                        logoUrl={app.logo_url}
+                        manifest={app.manifest || null}
+                        size="sm"
+                        alt=""
                       />
-                    );
-                  })}
+                      <span className="min-w-0 flex-1 truncate">
+                        {getLocalizedMiniAppName(app, locale)}
+                      </span>
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <div className={cn(styles.staggerEnter, styles.stagger5, "mt-6 flex flex-wrap gap-3")}>
+                <Link
+                  href={withNetworkQuery("/miniapps", targetNetwork)}
+                  className={cn(styles.ctaPrimary, "v4-focus")}
+                >
+                  {t("home.hero.catalogCta", "host")}
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  href={withNetworkQuery("/developer", targetNetwork)}
+                  className={cn(styles.ctaGhost, "v4-focus")}
+                >
+                  <Code2 className="h-4 w-4" aria-hidden="true" />
+                  {t("home.hero.developerCta", "host")}
+                </Link>
+              </div>
+            </div>
+
+            {heroApp && (
+              <div className={cn(styles.staggerEnter, styles.stagger4, "order-1 lg:order-2")}>
+                <div className={styles.card3D}>
+                    <Link
+                      href={miniAppHref(heroApp, targetNetwork)}
+                      className="block v4-focus"
+                    >
+                      <AppArtwork
+                        app={heroApp}
+                        className="hidden aspect-[16/10] border-b border-border sm:block"
+                        imageClassName="transition-transform duration-300 ease-out group-hover:scale-[1.02]"
+                      />
+                      <div className="flex items-start gap-4 p-4 sm:p-6">
+                        <MiniAppLogo
+                          appId={heroApp.app_id}
+                          category={heroApp.category}
+                          entryUrl={heroApp.entry_url}
+                          logoUrl={heroApp.logo_url}
+                          manifest={heroApp.manifest || null}
+                          size="lg"
+                          alt=""
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-ink-muted">
+                            {t("home.featured.eyebrow", "host")}
+                          </p>
+                          <h2 className="mt-1 truncate text-2xl font-semibold text-ink">
+                            {getLocalizedMiniAppName(heroApp, locale)}
+                          </h2>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-ink-secondary">
+                            {getLocalizedMiniAppDescription(heroApp, locale) ||
+                              heroApp.description}
+                          </p>
+                        </div>
+                        <ChevronRight
+                          className="mt-2 h-5 w-5 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </Link>
                 </div>
               </div>
-            </aside>
+            )}
+          </div>
+        </section>
 
-            {/* Main Content */}
-            <div className="flex-1">
-              <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2 overflow-x-auto p-1 no-scrollbar w-full sm:w-auto">
-                  {(["featured", "recent", "name"] as const).map((opt) => (
-                    <Button
-                      key={opt}
-                      variant="ghost"
-                      onClick={() => setSortBy(opt)}
+        <section className="relative z-[1] px-4 pb-12 sm:px-6">
+          <div className="mx-auto max-w-[1152px]">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+              <div>
+                <span className={styles.sectionEyebrow}>
+                  {t("home.catalog.ecosystems", "host")}
+                </span>
+                <p className="mt-2 text-sm leading-6 text-ink-secondary max-w-[640px]">
+                  {t("home.catalog.description", "host")}
+                </p>
+              </div>
+              <Link
+                href={withNetworkQuery("/miniapps", targetNetwork)}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-ink transition-colors hover:text-neo-600 v4-focus"
+              >
+                {t("actions.viewAll")}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              {categories.map((category) => {
+                const Icon = category.icon;
+                const selected = selectedCategory === category.id;
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={cn(
+                      styles.catPill,
+                      selected && styles.catPillActive,
+                      "v4-focus",
+                    )}
+                    aria-pressed={selected}
+                  >
+                    <span className={cn(styles.catPillIcon, !selected && category.swatch)}>
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold">
+                        {category.label}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {homepageFeaturedApps.length > 0 && (
+          <section
+            className="relative bg-canvas-alt px-4 py-16 sm:px-6 z-[1]"
+            data-testid="homepage-featured-apps"
+            ref={featuredReveal.ref}
+          >
+            <div className="mx-auto max-w-[1152px]">
+              <div
+                className={cn(
+                  styles.revealOnScroll,
+                  featuredReveal.visible && styles.revealVisible,
+                  "mb-8",
+                )}
+              >
+                <span className={styles.sectionEyebrow}>
+                  {t("home.featured.eyebrow", "host")}
+                </span>
+                <h2 className={styles.sectionTitle}>
+                  {t("home.featured.title", "host")}
+                </h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {homepageFeaturedApps.map((app, index) => (
+                  <div
+                    key={app.app_id}
+                    className={cn(
+                      styles.revealOnScroll,
+                      featuredReveal.visible && styles.revealVisible,
+                      (styles as Record<string, string>)[`revealChild${index + 1}`],
+                    )}
+                  >
+                    <FeatureCard
+                      app={app}
+                      categoryLabel={getCategoryLabel(String(app.category), t)}
+                      locale={locale}
+                      openLabel={t("catalog.openApp", "host")}
+                      targetNetwork={targetNetwork}
+                      priority={index === 0}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section
+          className="relative px-4 py-16 sm:px-6 z-[1]"
+          data-testid="homepage-catalog"
+          ref={catalogReveal.ref}
+        >
+          <div className="mx-auto max-w-[1152px]">
+            <div
+              className={cn(
+                styles.revealOnScroll,
+                catalogReveal.visible && styles.revealVisible,
+                "mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between",
+              )}
+            >
+              <div>
+                <span className={styles.sectionEyebrow}>
+                  {t("home.catalog.previewEyebrow", "host")}
+                </span>
+                <h2 className={styles.sectionTitle}>
+                  {t("home.catalog.previewTitle", "host")}
+                </h2>
+                <p className={styles.sectionDesc}>
+                  {t("home.catalog.previewBody", "host")}
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className={styles.sortBar}>
+                  {(["featured", "recent", "name"] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setSortBy(option)}
                       className={cn(
-                        "h-10 rounded-xl text-sm font-bold px-6 capitalize transition-all",
-                        sortBy === opt
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
+                        styles.sortOption,
+                        sortBy === option && styles.sortOptionActive,
+                        "v4-focus",
                       )}
                     >
-                      {t(`home.sort.${opt}`, "host")}
-                    </Button>
+                      {t(`home.sort.${option}`, "host")}
+                    </button>
                   ))}
                 </div>
 
-                <div className="px-3 text-sm font-semibold text-gray-500">
-                  {interpolate(t("home.catalog.shownCount", "host"), {
-                    shown: filteredApps.length,
-                  })}
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {catalogLoading ? (
-                  Array.from({ length: 6 }, (_, index) => (
-                    <div
-                      key={index}
-                      className="h-28 animate-pulse rounded-xl border border-gray-200 bg-white"
-                    >
-                    </div>
-                  ))
-                ) : filteredApps.length > 0 ? (
-                  filteredApps.map((app) => (
-                    <HomeMiniAppRow
-                      key={app.app_id}
-                      app={app}
-                      targetNetwork={targetNetwork}
-                      locale={locale}
-                      t={t}
-                      spacious
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-gray-500">
-                    <LayoutGrid className="mb-4 h-12 w-12 text-gray-300" />
-                    <p className="text-xl font-semibold">
-                      {t("home.catalog.emptyTitle", "host")}
-                    </p>
-                    <p className="text-sm mt-2">
-                      {t("home.catalog.emptyBody", "host")}
-                    </p>
-                  </div>
-                )}
+                <label className="relative block sm:w-72">
+                  <span className="sr-only">
+                    {t("catalog.searchLabel", "host")}
+                  </span>
+                  <Search
+                    className={styles.searchIcon}
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    autoComplete="off"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t("home.catalog.searchPlaceholder", "host")}
+                    className={styles.searchInput}
+                  />
+                </label>
               </div>
             </div>
+
+            {catalogLoading ? (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: HOME_DISCOVERY_LIMIT }, (_, index) => (
+                  <div key={index} className={cn(styles.skeletonCard)} />
+                ))}
+              </div>
+            ) : filteredApps.length > 0 ? (
+              <>
+                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {catalogPreviewApps.map((app, index) => (
+                    <div
+                      key={app.app_id}
+                      className={cn(
+                        styles.revealOnScroll,
+                        catalogReveal.visible && styles.revealVisible,
+                        (styles as Record<string, string>)[`revealChild${Math.min(index + 1, 9)}`],
+                      )}
+                    >
+                      <CatalogCard
+                        app={app}
+                        locale={locale}
+                        targetNetwork={targetNetwork}
+                        categoryLabel={getCategoryLabel(String(app.category), t)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {hiddenCatalogCount > 0 && (
+                  <div className={styles.catalogMore}>
+                    <p className="m-0 text-sm leading-6 text-ink-secondary">
+                      {hiddenCatalogText}
+                    </p>
+                    <Link
+                      href={fullCatalogHref}
+                      className={cn(styles.ctaGhost, "v4-focus")}
+                    >
+                      {t("home.catalog.previewCta", "host")}
+                      <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyStateIcon}>
+                  <LayoutGrid className="h-full w-full" aria-hidden="true" />
+                </div>
+                <p className={styles.emptyStateTitle}>
+                  {t("home.catalog.emptyTitle", "host")}
+                </p>
+                <p className={styles.emptyStateBody}>
+                  {t("home.catalog.emptyBody", "host")}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
-
-      {/* Account & Oracle Tools */}
-      <OperatorToolsSection
-        toolApps={toolApps}
-        catalogLoading={catalogLoading}
-        targetNetwork={targetNetwork}
-        locale={locale}
-        t={t}
-      />
-
-      {/* Features Grid */}
-      <FeaturesGridSection t={t} />
-
-      {/* Hero CTA Section */}
-      <HomeCtaSection t={t} targetNetwork={targetNetwork} />
+        </section>
+      </div>
     </Layout>
   );
 }

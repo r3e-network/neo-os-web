@@ -35,8 +35,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/daily-checkin/index.html",
-    "icon": "/miniapps/daily-checkin/logo.jpg",
-    "banner": "/miniapps/daily-checkin/banner.jpg"
+    "icon": "/miniapps/daily-checkin/logo.webp",
+    "banner": "/miniapps/daily-checkin/banner.webp"
   },
   "permissions": [
     "invoke:primary",

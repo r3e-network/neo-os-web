@@ -1,6 +1,5 @@
 import React from "react";
-import fs from "node:fs";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -10,52 +9,68 @@ import PlayArea from "../../quadratic-funding/src/PlayArea";
 
 afterEach(() => cleanup());
 
-// Minimal identity translator: the PlayArea only needs stable, distinct strings
-// per key, so returning the key itself is sufficient for label/role queries.
-function t(key: string) {
-  const overrides: Record<string, string> = {
-    registerProject: "Register Project",
-    registeringProject: "Registering...",
-    projectName: "Project name",
-    projectDescription: "Project description",
-    projectLink: "Project link",
-    contribute: "Contribute",
+function t(key: string, params?: Record<string, string | number>) {
+  const messages: Record<string, string> = {
+    qfHeroTitle: "Quadratic Funding",
+    qfHeroSubtitle: "Crowd-funded matching pool.",
+    qfDonorDeskTitle: "Donor desk",
+    qfGasPoolLabel: "Matching pool",
+    qfPickProject: "Project",
+    qfDonationTicket: "Donation ticket",
+    qfDonationDeskReady: "Ready to contribute",
+    qfDonationDeskWaiting: "Waiting...",
+    qfNoProjectsTitle: "No projects yet",
+    qfFundingGateEyebrow: "Funding launchpad",
+    qfFundingNeedsRoundTitle: "Load or create a round before donation",
+    qfFundingNeedsRoundBody: "A contribution needs an active round.",
+    qfFundingNeedsProjectsTitle: "Projects needed",
+    qfFundingNeedsProjectsBody: "Register a project to start funding.",
+    qfSetupStatus: "Desk status",
+    qfSetupLaneLabel: "Funding setup path",
+    qfAmplifyCopy: "Many small donations are amplified.",
+    qfAmplifyTitle: "Small gifts become a matched grant",
+    selectRoundFirst: "Select a round first",
     contributing: "Contributing...",
-    contributionProjectId: "Project ID",
-    contributionAmount: "Amount",
-    contributionMemo: "Memo (optional)",
+    quickContribute: "Contribute",
+    matchingRemaining: "Matching pool",
+    projectCount: "Projects",
+    qfSelectedRound: "Round",
     tabRounds: "Rounds",
+    qfAmountPresets: "Contribution amount",
+    contributionAmount: "Contribution amount",
+    contributionAmountPlaceholder: "Amount",
+    contributionMemo: "Memo",
+    contributionMemoPlaceholder: "Optional memo",
+    qfProjectMatchHint: "Raised",
     tabProjects: "Projects",
-    tabContribute: "Contribute",
-    finalizeRound: "Finalize",
-    finalizeSuggested: "Finalize with suggested matches",
-    finalizeProjectsJson: "Project IDs (JSON)",
-    finalizeMatchesJson: "Matched amounts (JSON)",
-    finalizeKnownProjects: "Projects in this round",
-    finalizePrefill: "Use these",
-    addMatching: "Add matching",
+    qfDonationDetails: "Donation details",
+    qfDonationDetailsHint: "Advanced project id and memo controls.",
+    registerProject: "Register project",
+    qfRegisterProjectHint: "Project intake for this round.",
+    registeringProject: "Registering...",
+    projectNamePlaceholder: "Name",
+    projectDescriptionPlaceholder: "Description",
+    projectLinkPlaceholder: "Link",
+    projectsList: "Projects",
+    emptyProjects: "No projects.",
+    claimProject: "Claim",
+    finalizeSuggested: "Finalize suggested",
+    adminTools: "Admin tools",
     claimUnused: "Claim unused",
-    adminTools: "Round Ops",
-    matchTableDonors: "Donors",
-    matchTableSuggested: "Suggested match",
+    cancelRound: "Cancel round",
+    refresh: "Refresh",
+    contributionRoundId: "Round",
   };
-  return overrides[key] ?? key;
+  let value = messages[key] ?? key;
+  if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
+  return value;
 }
 
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const round = {
-    id: "1",
-    title: "Public Goods",
-    creator: "0xcreator",
-    status: "active",
-    matchingPool: "5000000000",
-    assetSymbol: "GAS",
-  };
-  const values: Record<string, unknown> = {
-    address: "0xcreator",
-    rounds: [round],
-    selectedRoundId: "1",
-    selectedRound: round,
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    rounds: [],
+    selectedRound: null,
+    selectedRoundId: "",
     isRefreshingRounds: false,
     isCreatingRound: false,
     isRegisteringProject: false,
@@ -63,238 +78,204 @@ function baseState(overrides: Partial<Record<string, unknown>> = {}): Observable
     isAddingMatching: false,
     isFinalizing: false,
     isClaimingUnused: false,
-    canManageSelectedRound: true,
-    canFinalizeSelectedRound: true,
+    isCancelling: false,
+    isAdmin: false,
+    canManageSelectedRound: false,
+    canFinalizeSelectedRound: false,
     canClaimUnused: false,
-    roundsStatus: null,
-    projects: [
-      { id: "7", name: "Alpha", active: true },
-      { id: "9", name: "Beta", active: true },
-    ],
-    isRefreshingProjects: false,
-    claimingProjectId: "",
+    canCancelSelectedRound: false,
+    suggestedMatches: [],
+    projects: [],
     claimableProjectIds: [],
-    activeTab: "projects",
+    claimingProjectId: "",
+    activeTab: "contribute",
+    matchingPoolDisplay: "100 GAS",
+    selectedRoundDisplay: "Round #1",
     roundCount: 1,
-    activeRoundCount: 1,
-    projectCount: 2,
-    selectedRoundDisplay: "Public Goods",
-    matchingPoolDisplay: "50 GAS",
+    projectCount: 0,
+    roundsStatus: null,
     ...overrides,
   };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
 }
 
-describe("Quadratic Funding PlayArea", () => {
-  it("clears project inputs after a successful registerProject dispatch", async () => {
-    // dispatch resolves truthy → success → fields should clear.
-    const dispatch = vi.fn(async () => true as unknown as void);
-    render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
-
-    const nameInput = screen.getByLabelText("Project name") as HTMLInputElement;
-    const descInput = screen.getByLabelText("Project description") as HTMLInputElement;
-    const linkInput = screen.getByLabelText("Project link") as HTMLInputElement;
-    expect(document.querySelector(".qf-project-launch-stage")).toBeTruthy();
-    expect(
-      document.querySelector('.qf-project-launch-stage__image[src="./funding-desk.jpg"]'),
-    ).toBeTruthy();
-
-    fireEvent.change(nameInput, { target: { value: "My Project" } });
-    fireEvent.change(descInput, { target: { value: "Does good" } });
-    fireEvent.change(linkInput, { target: { value: "https://example.com" } });
-    expect(nameInput.value).toBe("My Project");
-
-    await waitFor(() => {
-      expect(document.querySelector(".qf-project-launch-stage")?.className).toContain(
-        "is-ready",
-      );
-      expect(document.querySelector(".qf-project-field--name")?.className).toContain(
-        "is-active",
-      );
-      expect(
-        document.querySelector(".qf-project-field--description")?.className,
-      ).toContain("is-active");
-      expect(document.querySelector(".qf-project-field--link")?.className).toContain(
-        "is-active",
-      );
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Register Project" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("registerProject", {
-        name: "My Project",
-        description: "Does good",
-        link: "https://example.com",
-      });
-    });
-    await waitFor(() => {
-      expect((screen.getByLabelText("Project name") as HTMLInputElement).value).toBe("");
-      expect((screen.getByLabelText("Project description") as HTMLInputElement).value).toBe("");
-      expect((screen.getByLabelText("Project link") as HTMLInputElement).value).toBe("");
-    });
+describe("Quadratic Funding PlayArea (v2 scene-driven)", () => {
+  it("renders the amplification flow scene", () => {
+    const { container } = render(<PlayArea t={t} state={state({ selectedRound: { id: 1, title: "R1" }, projects: [{ id: "p1", name: "Proj" }] })} dispatch={vi.fn()} />);
+    expect(container.querySelector(".qf-scene")).toBeTruthy();
+    expect(container.querySelector(".qf-scene__image")).toBeNull();
+    expect(container.querySelector(".qf-scene__shade")).toBeNull();
+    expect(container.querySelectorAll(".qf-scene__node").length).toBe(2);
+    expect(container.querySelector(".qf-scene__pool")).toBeTruthy();
   });
 
-  it("keeps project inputs when registerProject dispatch reports failure", async () => {
-    const dispatch = vi.fn(async () => false as unknown as void);
-    render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
+  it("shows a funding setup card instead of donation controls before the desk is ready", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    const nameInput = screen.getByLabelText("Project name") as HTMLInputElement;
-    fireEvent.change(nameInput, { target: { value: "Sticky" } });
-    fireEvent.click(screen.getByRole("button", { name: "Register Project" }));
-
-    await waitFor(() => expect(dispatch).toHaveBeenCalled());
-    // No success → input must retain the value so the user can retry/edit.
-    expect((screen.getByLabelText("Project name") as HTMLInputElement).value).toBe("Sticky");
+    expect(container.querySelector(".qf-setup-card")).toBeTruthy();
+    expect(container.querySelector(".qf-scene--setup")).toBeTruthy();
+    expect((container.querySelector(".qf-setup-card img") as HTMLImageElement)?.src).toContain("funding-desk.webp");
+    expect(container.querySelector(".qf-setup-card__lane")).toBeTruthy();
+    expect(container.querySelectorAll(".qf-setup-card__step")).toHaveLength(3);
+    expect(container.querySelector(".qf-scene__desk")).toBeNull();
+    expect(container.querySelector(".qf-scene__pool")).toBeNull();
+    expect(container.querySelector(".qf-project-board")).toBeNull();
+    expect(container.querySelector(".qf-pledge")).toBeNull();
+    expect(container.textContent).toContain("Load or create a round before donation");
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    expect(dispatch).toHaveBeenCalledWith("refreshRounds");
   });
 
-  it("clears contribute inputs after a successful contribute dispatch", async () => {
-    const dispatch = vi.fn(async () => true as unknown as void);
-    render(<PlayArea t={t} state={baseState({ activeTab: "contribute" })} dispatch={dispatch} />);
-
-    expect(document.querySelector(".qf-flow-stage")).toBeTruthy();
-    expect(
-      document.querySelector('.qf-flow-stage__image[src="./funding-desk.jpg"]'),
-    ).toBeTruthy();
-    expect(document.querySelectorAll(".qf-flow-node")).toHaveLength(3);
-
-    const idInput = screen.getByLabelText("Project ID") as HTMLInputElement;
-    const amountInput = screen.getByLabelText("Amount") as HTMLInputElement;
-    fireEvent.change(idInput, { target: { value: "7" } });
-    fireEvent.change(amountInput, { target: { value: "2" } });
-
-    await waitFor(() => {
-      expect(document.querySelector(".qf-flow-stage")?.className).toContain(
-        "is-project-selected",
-      );
-      expect(document.querySelector(".qf-flow-stage")?.className).toContain(
-        "is-funded",
-      );
-      expect(screen.getAllByText("2 GAS").length).toBeGreaterThanOrEqual(1);
-    });
-
-    // "Contribute" also names the tab button; the submit CTA is the last match.
-    const contributeButtons = screen.getAllByRole("button", { name: "Contribute" });
-    fireEvent.click(contributeButtons[contributeButtons.length - 1]);
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("contribute", {
-        projectId: "7",
-        amount: "2",
-        memo: "",
-      });
-    });
-    await waitFor(() => {
-      expect((screen.getByLabelText("Project ID") as HTMLInputElement).value).toBe("");
-      expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe("");
-    });
-  });
-
-  it("renders the status banner from the status msg field", () => {
-    const state = baseState({
-      activeTab: "rounds",
-      roundsStatus: { msg: "Round created", type: "success" },
-    });
-    render(<PlayArea t={t} state={state} dispatch={vi.fn(async () => undefined)} />);
-    expect(screen.getByText("Round created")).toBeTruthy();
-  });
-
-  it("keeps the funding-flow stage animated with reduced-motion support", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../quadratic-funding/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toContain(".qf-flow-stage");
-    expect(styles).toContain(".qf-project-launch-stage");
-    expect(styles).toContain("@keyframes qf-flow-river");
-    expect(styles).toContain("@keyframes qf-flow-node-ready");
-    expect(styles).toContain("@keyframes qf-project-launch-scan");
-    expect(styles).toContain("@keyframes qf-project-field-ready");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /@media \(max-width: 980px\)[\s\S]*\.qf-flow-stage__nodes[\s\S]*grid-template-columns:\s*1fr/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.qf-project-launch-stage\.is-ready::after[\s\S]*animation:\s*none/,
-    );
-  });
-
-  it("shows the round's known project IDs and prefills them into the advanced finalize inputs", () => {
-    render(<PlayArea t={t} state={baseState({ activeTab: "rounds" })} dispatch={vi.fn(async () => undefined)} />);
-
-    // The hand-typed JSON path is now an advanced fallback behind a toggle.
-    expect(screen.queryByLabelText("Project IDs (JSON)")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "finalizeShowAdvanced" }));
-
-    // Known IDs surfaced as guidance for the admin once advanced is open.
-    expect(screen.getByText("7, 9")).toBeTruthy();
-
-    const projectIdsInput = screen.getByLabelText("Project IDs (JSON)") as HTMLInputElement;
-    expect(projectIdsInput.value).toBe("");
-
-    fireEvent.click(screen.getByRole("button", { name: "Use these" }));
-    expect((screen.getByLabelText("Project IDs (JSON)") as HTMLInputElement).value).toBe("[7,9]");
-  });
-
-  it("renders round ops as an app-like control room instead of flat admin form groups", async () => {
-    const dispatch = vi.fn(async () => undefined);
+  it("dispatches contribute with selected project + custom amount", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
     const { container } = render(
       <PlayArea
         t={t}
-        state={baseState({
-          activeTab: "rounds",
-          isAdmin: true,
-          canFinalizeSelectedRound: true,
-          canClaimUnused: true,
-          suggestedMatches: [
-            {
-              id: "7",
-              name: "Alpha",
-              contributedDisplay: "12 GAS",
-              donors: "4",
-              matchDisplay: "8 GAS",
-              matchBaseUnits: "800000000",
-            },
-            {
-              id: "9",
-              name: "Beta",
-              contributedDisplay: "3 GAS",
-              donors: "2",
-              matchDisplay: "2 GAS",
-              matchBaseUnits: "200000000",
-            },
-          ],
-        })}
+        state={state({ selectedRound: { id: 1 }, projects: [{ id: "p1", name: "Proj" }] })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(container.querySelector(".qf-project-card") as Element);
+    const amountInput = container.querySelector(".qf-pledge-stepper__amount input") as HTMLInputElement;
+    fireEvent.change(amountInput, { target: { value: ".5" } });
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("contribute", expect.objectContaining({ projectId: "p1", amount: ".5" })));
+  });
+
+  it("keeps NEO round contributions as whole-number inputs", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ selectedRound: { id: 1, assetSymbol: "NEO" }, projects: [{ id: "p1", name: "Proj" }], matchingPoolDisplay: "100 NEO" })}
         dispatch={dispatch}
       />,
     );
 
-    expect(container.querySelector(".qf-admin-console")).toBeTruthy();
-    expect(container.querySelector(".qf-ops-module--reserve")).toBeTruthy();
-    expect(container.querySelector(".qf-ops-module--finalize")).toBeTruthy();
-    expect(container.querySelectorAll(".qf-match-card")).toHaveLength(2);
-    expect(container.querySelector(".qf-ops-secondary-grid")).toBeTruthy();
-    expect(container.querySelector(".qf-admin-group")).toBeNull();
+    fireEvent.click(container.querySelector(".qf-project-card") as Element);
+    const amountInput = container.querySelector(".qf-pledge-stepper__amount input") as HTMLInputElement;
+    expect(amountInput.inputMode).toBe("numeric");
+    fireEvent.change(amountInput, { target: { value: "3.75" } });
+    expect(amountInput.value).toBe("3");
+    expect(container.textContent).toContain("3 NEO");
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
 
-    fireEvent.click(screen.getByRole("button", { name: "10 GAS" }));
-    expect(
-      (container.querySelector(".qf-reserve-input input") as HTMLInputElement)
-        .value,
-    ).toBe("10");
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("contribute", expect.objectContaining({ projectId: "p1", amount: "3" })));
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Add matching" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("addMatching", "10");
+  it("reselects a valid project when the project list changes", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const appState = state({ selectedRound: { id: 1 }, projects: [{ id: "p1", name: "Proj" }] });
+    const { container } = render(<PlayArea t={t} state={appState} dispatch={dispatch} />);
+
+    await waitFor(() => expect(container.textContent).toContain("Proj"));
+    act(() => {
+      appState.projects.set([{ id: "p2", name: "New project" }]);
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Finalize with suggested matches" }),
+    await waitFor(() => expect(container.textContent).toContain("New project"));
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("contribute", expect.objectContaining({ projectId: "p2" })));
+  });
+
+  it("dispatches registerProject from the drawer", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <PlayArea t={t} state={state({ selectedRound: { id: 1 } })} dispatch={dispatch} />,
     );
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("finalizeSuggested");
-    });
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".qf-drawer-shell")).toBeTruthy();
+    expect(container.querySelector(".qf-drawer-panel--register")).toBeTruthy();
+    expect(container.querySelectorAll(".qf-drawer-panel.mx2-open-panel.semi-card").length).toBe(3);
+    expect(container.querySelectorAll(".qf-drawer-panel h4")).toHaveLength(0);
+    expect(container.querySelector(".qf-drawer__input")).toBeNull();
+    expect(container.querySelector(".qf-drawer-panel__head")).toBeNull();
+    expect(container.querySelectorAll(".qf-project-form .qf-drawer-field.mx2-open-field")).toHaveLength(3);
+    expect(container.querySelector(".qf-project-form textarea.semi-input-textarea")).toBeTruthy();
+    const inputs = container.querySelectorAll(".qf-project-form input.semi-input");
+    expect(inputs).toHaveLength(2);
+    fireEvent.change(inputs[0], { target: { value: "MyProject" } });
+    const regBtn = Array.from(container.querySelectorAll(".mx2-drawer button")).find((b) => b.textContent?.includes("Register project"));
+    fireEvent.click(regBtn as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("registerProject", expect.objectContaining({ name: "MyProject" })));
+  });
+
+  it("shows the match table + finalize for admin in the drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          isAdmin: true,
+          canFinalizeSelectedRound: true,
+          selectedRound: { id: 1 },
+          suggestedMatches: [{ id: "p1", name: "Proj", contributedDisplay: "10", donors: "3", matchDisplay: "5 GAS" }],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".qf-drawer-panel--admin")).toBeTruthy();
+    expect(container.querySelector(".qf-drawer-list")).toBeTruthy();
+    expect(container.textContent).toContain("Proj");
+    expect(container.textContent).toContain("5 GAS");
+  });
+
+  it("renders a status banner when roundsStatus is set", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ selectedRound: { id: 1 }, roundsStatus: { msg: "Round ended", type: "info" } })} dispatch={vi.fn()} />,
+    );
+    expect(container.textContent).toContain("Round ended");
+    expect(container.querySelector(".qf-setup-card__notice")?.textContent).toContain("Round ended");
+  });
+
+  it("keeps motion and clean funding hierarchy backed by tests", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
+    const styles = fs.readFileSync(path.join(appsRoot, "quadratic-funding/src/PlayArea.scss"), "utf8");
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
+    expect(styles).toMatch(/\.qf-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 168px/);
+    expect(styles).toMatch(/\.qf-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.qf-scene\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(styles).toMatch(/\.qf-scene--setup\s*\{[\s\S]*grid-template-rows:\s*1fr/);
+    expect(styles).not.toMatch(/qf-scene__image|qf-scene__shade|var\(--mx2-scene-art-opacity|background-image:\s*url/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).toMatch(/\.qf-setup-card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.qf-setup-card\s*\{[\s\S]*box-shadow:\s*0 2px 8px rgba\(31,\s*41,\s*55,\s*0\.035\)/);
+    expect(styles).toMatch(/\.qf-setup-card img\s*\{[\s\S]*height:\s*clamp\(132px,\s*18vw,\s*168px\)/);
+    expect(styles).toMatch(/\.qf-setup-card img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.qf-setup-card img\s*\{[\s\S]*object-position:\s*center/);
+    expect(styles).toMatch(/\.qf-setup-card img\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).toMatch(/\.qf-setup-card img\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/\.qf-setup-card img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).not.toMatch(/\.qf-setup-card img\s*\{[^}]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.qf-setup-card__notice[\s\S]*background:\s*#fff7ed/);
+    expect(styles).toMatch(/\.qf-setup-card__lane[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.qf-setup-card__step--ready[\s\S]*background:\s*#ecfdf5/);
+    expect(styles).toMatch(/\.qf-pledge[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.qf-drawer-shell\s*\{[\s\S]*grid-template-columns:\s*repeat\(12,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.qf-drawer-panel--donation\s*\{[\s\S]*grid-column:\s*span 5/);
+    expect(styles).toMatch(/\.qf-drawer-panel--register\s*\{[\s\S]*grid-column:\s*span 7/);
+    expect(styles).not.toContain("qf-drawer-panel__head");
+    expect(styles).not.toContain("qf-drawer__input");
+    expect(styles).toMatch(/\.qf-drawer-field \.mx2-open-field__control\s*\{[\s\S]*min-height:\s*40px/);
+    expect(styles).toMatch(/\.qf-drawer-field\.mx2-open-field--textarea \.mx2-open-field__control--textarea\s*\{[\s\S]*min-height:\s*70px/);
+    expect(styles).toMatch(/\.qf-drawer-list__item\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-scene\s*\{[\s\S]*min-height:\s*230px/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-scene__desk\s*\{[\s\S]*grid-template-columns:\s*minmax\(70px,\s*0\.9fr\) 18px minmax\(82px,\s*1\.1fr\) 18px minmax\(70px,\s*0\.9fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-setup-card\s*\{[\s\S]*grid-template-columns:\s*104px minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-setup-card img\s*\{[\s\S]*height:\s*98px/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-project-board\s*\{[\s\S]*display:\s*flex/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-project-card\s*\{[\s\S]*flex:\s*0 0 154px/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-pledge__tiles\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*min-height:\s*48px/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.qf-drawer-shell\s*\{[\s\S]*grid-template-columns:\s*1fr/);
   });
 });

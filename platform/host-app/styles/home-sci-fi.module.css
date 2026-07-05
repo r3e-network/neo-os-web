@@ -1,0 +1,458 @@
+.sciFiCanvas {
+  position: relative;
+  overflow: hidden;
+  background: #faf9f7;
+}
+
+.heroSection {
+  position: relative;
+  z-index: 1;
+}
+
+.glowBadge {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 999px;
+  background: rgba(22, 199, 132, 0.08);
+  color: #0b825a;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.glowDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #16c784;
+}
+
+.staggerEnter,
+.revealOnScroll,
+.revealVisible {
+  opacity: 1;
+  transform: none;
+}
+
+.stagger1,
+.stagger2,
+.stagger3,
+.stagger4,
+.stagger5,
+.revealChild1,
+.revealChild2,
+.revealChild3,
+.revealChild4,
+.revealChild5,
+.revealChild6,
+.revealChild7,
+.revealChild8,
+.revealChild9 {
+  transition-delay: 0ms;
+}
+
+.heroTitle {
+  max-width: 44rem;
+  color: #1a1a19;
+  font-size: 29px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.heroTitleAccent {
+  color: #0ea371;
+}
+
+.heroSubtitle {
+  max-width: 34rem;
+  color: #5c5a56;
+  font-size: 16px;
+  line-height: 1.58;
+}
+
+.card3D {
+  overflow: hidden;
+  border: 1px solid #e8e6e1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(20, 22, 38, 0.07);
+}
+
+.quickLaunchRail {
+  display: grid;
+  max-width: 38rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.quickLaunchItem {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e8e6e1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1a1a19;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(20, 22, 38, 0.04);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.quickLaunchItem:hover {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow: 0 10px 24px rgba(20, 22, 38, 0.07);
+  transform: translateY(-1px);
+}
+
+.catPill {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid #e8e6e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #5c5a56;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.catPill:hover {
+  border-color: rgba(22, 199, 132, 0.26);
+  background: #f8fffb;
+  color: #1a1a19;
+}
+
+.catPillActive {
+  border-color: rgba(22, 199, 132, 0.36);
+  background: rgba(22, 199, 132, 0.1);
+  color: #1a1a19;
+}
+
+.catPillIcon {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.catPillActive .catPillIcon {
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.featureCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e8e6e1;
+  border-radius: 8px;
+  background: #ffffff;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.featureCard:hover {
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow: 0 12px 32px rgba(20, 22, 38, 0.08);
+  transform: translateY(-1px);
+}
+
+.artworkSurface {
+  background:
+    radial-gradient(circle at 72% 28%, rgba(22, 199, 132, 0.08), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #f4f2ef 100%);
+}
+
+.artworkSurface::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 44%;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.86) 100%);
+  content: "";
+  pointer-events: none;
+}
+
+.artworkLogo {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 1px solid rgba(232, 230, 225, 0.86);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 1px 3px rgba(20, 22, 38, 0.04);
+  backdrop-filter: blur(10px);
+}
+
+.catalogCard {
+  position: relative;
+  display: flex;
+  min-height: 164px;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid #e8e6e1;
+  border-radius: 8px;
+  background: #ffffff;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.catalogCard:hover {
+  border-color: rgba(22, 199, 132, 0.22);
+  box-shadow: 0 10px 28px rgba(20, 22, 38, 0.07);
+}
+
+.catalogCardAccent {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  left: 20px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: rgba(22, 199, 132, 0.36);
+}
+
+.catalogMore {
+  display: flex;
+  margin-top: 28px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid #e8e6e1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.sectionEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #0ea371;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.sectionEyebrow::after {
+  display: block;
+  width: 24px;
+  height: 1px;
+  border-radius: 999px;
+  background: rgba(22, 199, 132, 0.3);
+  content: "";
+}
+
+.sectionTitle {
+  margin-top: 8px;
+  color: #1a1a19;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.sectionDesc {
+  max-width: 40rem;
+  margin-top: 8px;
+  color: #5c5a56;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.sortBar {
+  display: flex;
+  padding: 4px;
+  border: 1px solid #e8e6e1;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.sortOption {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8b8984;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.sortOption:hover {
+  color: #5c5a56;
+}
+
+.sortOptionActive {
+  background: rgba(22, 199, 132, 0.1);
+  color: #1a1a19;
+}
+
+.searchInput {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px 0 40px;
+  border: 1px solid #d4d0c9;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1a1a19;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.searchInput::placeholder {
+  color: #8b8984;
+}
+
+.searchInput:focus {
+  border-color: rgba(22, 199, 132, 0.42);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.1);
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  color: #8b8984;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+@media (min-width: 1024px) {
+  .heroTitle {
+    font-size: 42px;
+    font-weight: 620;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroSubtitle {
+    font-size: 15px;
+  }
+
+  .quickLaunchRail {
+    grid-template-columns: 1fr;
+  }
+}
+
+.skeletonCard {
+  height: 164px;
+  border: 1px solid #e8e6e1;
+  border-radius: 8px;
+  background: #f4f2ef;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  border: 1px dashed rgba(22, 199, 132, 0.22);
+  border-radius: 8px;
+  background: rgba(22, 199, 132, 0.04);
+  text-align: center;
+}
+
+.emptyStateIcon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(22, 199, 132, 0.08);
+  color: #16c784;
+}
+
+.emptyStateTitle {
+  color: #1a1a19;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.emptyStateBody {
+  max-width: 320px;
+  margin-top: 8px;
+  color: #8b8984;
+  font-size: 14px;
+}
+
+.ctaPrimary,
+.ctaGhost {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-decoration: none;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.ctaPrimary {
+  border: 1px solid transparent;
+  background: #16c784;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(22, 199, 132, 0.2);
+}
+
+.ctaPrimary:hover {
+  background: #0ea371;
+}
+
+.ctaGhost {
+  border: 1px solid #d4d0c9;
+  background: #ffffff;
+  color: #1a1a19;
+}
+
+.ctaGhost:hover {
+  border-color: rgba(22, 199, 132, 0.3);
+  background: #f8fffb;
+}
+
+@media (max-width: 760px) {
+  .heroTitle {
+    font-size: 29px;
+  }
+
+  .heroSubtitle {
+    font-size: 15px;
+  }
+
+  .sectionTitle {
+    font-size: 24px;
+  }
+
+  .catalogMore {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

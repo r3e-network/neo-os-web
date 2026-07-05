@@ -3,7 +3,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   title: { en: "Burn League", zh: "燃烧联盟" },
-  subtitle: { en: "Burn tokens, earn rewards", zh: "燃烧代币，赚取奖励" },
+  subtitle: { en: "Feed the arena, climb the pool", zh: "点燃竞技场，冲上奖池榜首" },
   arenaAlt: {
     en: "Golden Burn League arena with GAS tokens flowing into a prize brazier",
     zh: "金色燃烧联盟竞技场，GAS 代币流向奖池燃烧台",
@@ -15,7 +15,7 @@ const appMessages = {
   rank: { en: "Rank", zh: "排名" },
   yourRank: { en: "Your Rank", zh: "你的排名" },
   outOf: { en: "of {total} players", zh: "共 {total} 名玩家" },
-  burnTokens: { en: "Burn Tokens", zh: "燃烧代币" },
+  burnTokens: { en: "Ignite GAS into the arena pool", zh: "将 GAS 点燃进竞技场奖池" },
   amount: { en: "Amount", zh: "数量" },
   enterAmount: { en: "Amount to burn", zh: "燃烧数量" },
   amountPlaceholder: { en: "Amount to burn", zh: "燃烧数量" },
@@ -24,17 +24,19 @@ const appMessages = {
   entryAmount: { en: "Entry amount", zh: "参赛燃烧量" },
   projectedTotal: { en: "Projected total", zh: "预计总燃烧量" },
   projectedRank: { en: "Projected rank", zh: "预计排名" },
-  burnPresets: { en: "Burn amount presets", zh: "燃烧金额快捷选项" },
+  burnPresets: { en: "Fuel capsules", zh: "燃料胶囊" },
   burnRange: {
-    en: "Burn range: {min}-{max} GAS",
-    zh: "燃烧范围：{min}-{max} GAS",
+    en: "Allowed charge {min}-{max} GAS",
+    zh: "可装填 {min}-{max} GAS",
   },
   burnRangeError: {
     en: "Enter a burn amount from {min} to {max} GAS.",
     zh: "请输入 {min} 到 {max} GAS 的燃烧数量。",
   },
-  fuelConsole: { en: "Fuel console", zh: "燃料控制台" },
-  fuelDialLabel: { en: "Burn fuel", zh: "燃烧燃料" },
+  fuelConsole: { en: "Fuel rack", zh: "燃料装填台" },
+  fuelCore: { en: "Fuel core", zh: "燃料核心" },
+  fuelLoadHint: { en: "Capsules tune the next ignition", zh: "胶囊用于调节下一次点燃" },
+  fuelDialLabel: { en: "Fuel tuner", zh: "燃料调节器" },
   fuelMeter: { en: "Burn fuel meter", zh: "燃烧燃料仪表" },
   arenaConsoleLabel: {
     en: "Arena burn console",
@@ -43,8 +45,8 @@ const appMessages = {
   decreaseBurn: { en: "Decrease burn amount", zh: "减少燃烧数量" },
   increaseBurn: { en: "Increase burn amount", zh: "增加燃烧数量" },
   scoreboardEyebrow: { en: "Next burn", zh: "下一次燃烧" },
-  readyToBurn: { en: "Fuel loaded", zh: "燃料已装载" },
-  chooseFuel: { en: "Choose fuel", zh: "选择燃料" },
+  readyToBurn: { en: "Core armed", zh: "核心已装填" },
+  chooseFuel: { en: "Fuel core", zh: "燃料核心" },
   seasonStatus: { en: "Season status", zh: "赛季状态" },
   liveLeague: { en: "Live league", zh: "实时联赛" },
   heroFirstBurnPrompt: {
@@ -138,8 +140,8 @@ const appMessages = {
   },
   burnServiceUnavailableTitle: { en: "Burn league data unavailable", zh: "燃烧联赛数据暂不可用" },
   burnServiceUnavailable: {
-    en: "Live burn stats could not be read from the chain right now. You can still prepare a burn, but the pool and ranking refresh once the node responds.",
-    zh: "暂时无法从链上读取实时燃烧统计。你仍可准备燃烧，但奖池和排名将在节点恢复后刷新。",
+    en: "Stats unavailable; you can still prepare a burn. Pool and rank refresh later.",
+    zh: "统计暂不可用；仍可准备燃烧。奖池和排名稍后刷新。",
   },
   burnActionUnavailable: {
     en: "The burn could not be submitted to the contract. Please try again.",

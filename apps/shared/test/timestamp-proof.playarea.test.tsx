@@ -1,319 +1,227 @@
-import fs from "node:fs";
 import React from "react";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../timestamp-proof/src/PlayArea";
-import type { TimestampProof } from "../../timestamp-proof/src/composables/useTimestampProof";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-const proof: TimestampProof = {
-  id: 3,
-  content: "release-notes.pdf v1.2.0",
-  contentHash:
-    "7f83b1657ff1fc53b92dc18148a1d65dfa13583b2d4f4f6bdad4f3f4f7c2e6aa",
-  timestamp: 1780300000000,
-  creator: "local",
-  anchorTxid: "",
-  anchored: false,
-};
-
 function t(key: string) {
   const messages: Record<string, string> = {
-    title: "Timestamp Proof",
-    docSubtitle: "SHA-256 proof journal with optional on-chain anchor",
-    docDescription:
-      "Create local SHA-256 proof entries and optionally anchor them on Neo N3.",
-    proofWorkspace: "Timestamp proof workspace",
-    proofWorkflow: "Proof workflow",
-    proofPrivacy:
-      "Your source content stays local; only the digest is saved or anchored.",
-    proofStageKicker: "Proof desk",
-    proofStageTitle:
-      "Hash locally, save a proof record, then anchor the digest.",
-    step2: "Hash it locally in the browser",
-    step3: "Optionally anchor the proof on-chain for third-party verification",
-    totalProofs: "Total Proofs",
+    anchorCostNote: "Anchoring writes the digest into a public Neo transaction.",
+    anchoredOnChain: "Anchored on-chain",
     anchoredProofs: "Anchored",
-    latestId: "Latest ID",
-    proofStats: "Proof Stats",
-    createProof: "Create Proof",
+    anchorOnChain: "Anchor on-chain",
+    anchorShort: "Anchor",
+    contentChars: "Characters",
+    contentPlaceholder: "Paste your text, document hash, or idea...",
     createPanelKicker: "Create",
+    createPanelBody: "Place source material on the proof sheet.",
     createPanelTitle: "Prepare a timestamp certificate",
-    createPanelBody:
-      "Paste content and review the certificate preview before saving.",
-    creating: "Creating...",
-    enterContent: "Enter content to timestamp",
-    contentPlaceholder: "Paste text, a document hash, or a release note...",
-    documentPreviewLabel: "Certificate preview",
+    createProof: "Create Proof",
     documentPreviewEmptyTitle: "Ready for content",
-    documentPreviewEmpty:
-      "Your proof preview will appear here as soon as you add content.",
-    proofPressLabel: "Animated proof press",
-    proofPressKicker: "Document fingerprint",
-    proofPressEmptyTitle: "Drop in a document, note, or digest to wake the press.",
-    proofPressEmptyBody:
-      "The workbench stays idle until there is source content to hash locally.",
-    proofPressReadyTitle: "Fingerprint queued. Review the sheet, then seal the proof.",
-    proofPressReadyBody:
-      "One tap hashes the content on this device and saves a timestamp certificate.",
-    proofPressStampingTitle: "Stamping the local certificate.",
-    proofPressStampingBody:
-      "The source stays private while the digest is sealed into your local journal.",
-    proofPressRailLabel: "Proof press status",
-    proofPressAnchorLocal: "Local rail",
-    proofPressAnchorAnchoring: "Anchoring",
-    proofPressAnchorAnchored: "On-chain",
     documentTypeHash: "SHA-256 digest",
     documentTypeText: "Source content",
-    contentChars: "Characters",
+    enterContent: "Enter content to timestamp",
+    latestId: "Latest ID",
+    localOnly: "Local only",
+    noProofsHint: "Saved proof entries will appear here.",
     pendingDigest: "After save",
-    proofRouteLabel: "Proof route",
-    proofRouteHash: "Local hash",
-    proofRouteSave: "Device proof",
+    proofDigest: "SHA-256 digest",
+    proofId: "Proof ID",
+    proofPressAnchorAnchoring: "Anchoring",
+    proofDeskAlt: "Timestamp proof desk with a sealed certificate",
+    proofPressEmptyBody: "Nothing leaves this device.",
+    proofPressEmptyTitle: "Proof press standing by.",
+    proofPressKicker: "Document fingerprint",
+    proofPressLabel: "Animated proof press",
+    proofPressReadyBody: "One tap hashes the content on this device and saves a timestamp certificate.",
+    proofPressReadyTitle: "Fingerprint queued. Review the sheet, then seal the proof.",
+    proofPressStampingTitle: "Stamping the local certificate.",
+    proofPrivacy: "Your source content stays local; only the digest is saved or anchored.",
     proofRouteAnchor: "Public anchor",
+    proofRouteHash: "Local hash",
+    proofRouteLabel: "Proof route",
     proofRouteReady: "Ready",
+    proofRouteSave: "Device proof",
     proofRouteWaiting: "Waiting",
-    proofTemplatesLabel: "Proof templates",
-    proofTemplateRelease: "Release note",
-    proofTemplateReleaseBody: "Version or artifact note",
+    proofSheetLabel: "Proof sheet",
+    proofStageKicker: "Proof desk",
+    proofStageTitle: "Timestamp proof press",
     proofTemplateAudit: "Audit seal",
     proofTemplateAuditBody: "Review result or report",
     proofTemplateDigest: "Known digest",
     proofTemplateDigestBody: "Paste a SHA-256 hash",
-    verifyProof: "Verify Proof",
-    verifyPanelKicker: "Verify",
-    verifyPanelTitle: "Inspect an existing proof",
-    verifyPanelBody: "Search by proof ID, digest, or original content.",
-    verifying: "Verifying...",
-    proofLookup: "Proof lookup",
-    verifyPlaceholder: "Proof ID, SHA-256 digest, or original content",
-    validProof: "Proof Found",
-    invalidProof: "Invalid Proof",
-    verifyEmpty: "No proof selected",
-    proofId: "Proof ID",
-    proofDigest: "SHA-256 digest",
-    timestamp: "Timestamp",
-    contentPreview: "Content preview",
+    proofTemplateRelease: "Release note",
+    proofTemplateReleaseBody: "Version or artifact note",
+    proofTemplatesLabel: "Proof templates",
+    proofWorkspace: "Timestamp proof workspace",
     recentProofs: "Recent Proofs",
-    proofs: "Proofs",
-    clearAllProofs: "Clear all",
-    noProofs: "No proofs yet",
-    noProofsHint: "Saved proof entries will appear here.",
-    copyDigest: "Copy digest",
-    copyReference: "Copy proof reference",
-    deleteProof: "Delete proof",
+    timestamp: "Timestamp",
+    totalProofs: "Total Proofs",
+    validProof: "Proof Found",
     verify: "Verify",
-    anchorStatus: "Status",
-    anchorOnChain: "Anchor on-chain",
-    anchorShort: "Anchor",
-    anchoredOnChain: "Anchored on-chain",
-    localOnly: "Local only",
-    anchorTxid: "Anchor transaction",
-    notAvailable: "N/A",
+    verifyFailed: "Verification failed",
+    verifyPlaceholder: "Proof ID, SHA-256 digest, or original content",
+    verifyProof: "Verify Proof",
+    verifying: "Verifying...",
   };
   return messages[key] ?? key;
 }
 
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    totalProofs: 1,
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
     anchoredProofs: 0,
+    isAnchoring: false,
     isCreating: false,
     isVerifying: false,
-    isAnchoring: false,
-    anchoringId: 0,
-    proofs: [proof],
-    verifiedProof: proof,
+    latestId: "N/A",
+    proofs: [],
+    totalProofs: 0,
+    verifiedProof: null,
     verifyError: false,
-    latestId: "#3",
-    lastMessage: "",
-    lastMessageType: "info",
-    ...overrides,
+    ...o,
   };
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
+    Object.entries(base).map(([key, value]) => [key, createObservable(value)]),
   );
 }
 
-describe("Timestamp Proof PlayArea", () => {
-  it("exposes create, verify, copy, delete, and clear proof actions", () => {
-    const dispatch = vi.fn(async () => undefined);
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
+}
+
+describe("timestamp-proof PlayArea (v2)", () => {
+  it("renders a foreground proof desk instead of the old empty backdrop scene", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".tsp-workbench")).toBeTruthy();
+    expect(container.querySelector(".tsp-document-card")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet__surface")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet__seal")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet__seal-row")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet__privacy")).toBeTruthy();
+    expect(container.querySelector(".tsp-press-card")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".tsp-press-card__media img")?.getAttribute("src")).toContain("proof-desk.webp");
+    expect(container.querySelectorAll(".tsp-route li")).toHaveLength(3);
+    expect(screen.getByText("Timestamp proof press")).toBeTruthy();
+    expect(container.querySelector(".tool-scene")).toBeNull();
+    expect(container.querySelector(".tsp-scene__backdrop")).toBeNull();
+    expect(container.querySelector(".tsp-template-row")).toBeNull();
+    expect(container.textContent).not.toContain("wake the press");
+  });
+
+  it("uses the document proof creation flow as the primary action", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    expect(screen.getByText("Timestamp Proof")).toBeTruthy();
-    expect(screen.getByLabelText("Timestamp proof workspace")).toBeTruthy();
-    expect(screen.getByLabelText("Certificate preview")).toBeTruthy();
-    expect(
-      document.querySelector('.proof-hero__stage img[src="./proof-desk.jpg"]'),
-    ).toBeTruthy();
-    expect(screen.getByLabelText("Animated proof press")).toBeTruthy();
-    expect(
-      document.querySelector(
-        '.proof-press-stage__media img[src="./proof-desk.jpg"]',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText("Recent Proofs")).toBeTruthy();
-    expect(screen.getByText("Proof Found")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: /Known digest/ }));
-    expect(
-      (
-        screen.getByLabelText(
-          "Enter content to timestamp",
-        ) as HTMLTextAreaElement
-      ).value,
-    ).toMatch(/^[0-9a-f]{64}$/);
-
-    fireEvent.change(screen.getByLabelText("Enter content to timestamp"), {
-      target: { value: "audit artifact" },
+    fireEvent.change(screen.getByLabelText("Paste your text, document hash, or idea..."), {
+      target: { value: "release artifact v2" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Create Proof" }));
-    expect(dispatch).toHaveBeenCalledWith("createProof", "audit artifact");
+    fireEvent.click(screen.getByRole("button", { name: /Create Proof/ }));
 
-    fireEvent.change(screen.getByLabelText("Proof lookup"), {
-      target: { value: "3" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Verify Proof" }));
-    expect(dispatch).toHaveBeenCalledWith("verifyProof", "3");
-
-    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-    expect(dispatch).toHaveBeenCalledWith("verifyProof", "3");
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy digest" }));
-    expect(dispatch).toHaveBeenCalledWith("copyProofDigest", 3);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Copy proof reference" }),
-    );
-    expect(dispatch).toHaveBeenCalledWith("copyProofReference", 3);
-
-    fireEvent.click(screen.getByRole("button", { name: "Delete proof" }));
-    expect(dispatch).toHaveBeenCalledWith("deleteProof", 3);
-
-    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
-    expect(dispatch).toHaveBeenCalledWith("clearProofs");
+    expect(dispatch).toHaveBeenCalledWith("createProof", "release artifact v2");
   });
 
-  it("turns the proof press from idle to animated-ready instead of a static form", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({ proofs: [], verifiedProof: null, totalProofs: 0 })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    const stage = screen.getByLabelText("Animated proof press");
-    expect(stage.className).toContain("proof-press-stage--empty");
-    expect(
-      screen.getByText("Drop in a document, note, or digest to wake the press."),
-    ).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText("Enter content to timestamp"), {
-      target: { value: "signed release artifact" },
-    });
-
-    expect(stage.className).toContain("proof-press-stage--ready");
-    expect(
-      screen.getByText(
-        "Fingerprint queued. Review the sheet, then seal the proof.",
-      ),
-    ).toBeTruthy();
-  });
-
-  it("shows a stamping state while the certificate is being created", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({ isCreating: true })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    const stage = screen.getByLabelText("Animated proof press");
-    expect(stage.className).toContain("proof-press-stage--stamping");
-    expect(screen.getByText("Stamping the local certificate.")).toBeTruthy();
-  });
-
-  it("offers an on-chain anchor for an unanchored proof and marks it local", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    // The honest status badge tells the verifier this proof is device-local.
-    expect(screen.getAllByText("Local only").length).toBeGreaterThan(0);
-
-    // Anchoring the proof is one click away (the namesake third-party journey).
-    // The affordance appears on both the verified-result card and the list row.
-    const anchorButtons = screen.getAllByRole("button", {
-      name: "Anchor on-chain",
-    });
-    expect(anchorButtons.length).toBeGreaterThan(0);
-    fireEvent.click(anchorButtons[0]);
-    expect(dispatch).toHaveBeenCalledWith("anchorProof", 3);
-  });
-
-  it("shows an anchored proof's on-chain status instead of an anchor button", () => {
-    const anchoredProof: TimestampProof = {
-      ...proof,
-      anchored: true,
-      anchorTxid: "0xabc123",
+  it("keeps anchoring as a secondary action for an existing local proof", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const proof = {
+      id: 7,
+      content: "audit artifact",
+      contentHash: "a".repeat(64),
+      timestamp: Date.now(),
+      anchored: false,
     };
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          proofs: [anchoredProof],
-          verifiedProof: anchoredProof,
-          anchoredProofs: 1,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
+    render(<PlayArea t={t} state={state({ proofs: [proof], latestId: "#7" })} dispatch={dispatch} />);
 
-    expect(screen.getAllByText("Anchored on-chain").length).toBeGreaterThan(0);
-    expect(
-      screen.queryByRole("button", { name: "Anchor on-chain" }),
-    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Anchor$/ }));
+
+    expect(dispatch).toHaveBeenCalledWith("anchorProof", 7);
   });
 
-  it("keeps raw action keys out of the rendered workspace", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({ proofs: [], verifiedProof: null, totalProofs: 0 })}
-        dispatch={vi.fn()}
-      />,
-    );
+  it("uses Open UI panels for secondary proof workspace controls", () => {
+    const { container } = render(<PlayArea t={t} state={state({ verifyError: true })} dispatch={vi.fn()} />);
 
-    expect(container.textContent).not.toContain("contractMissing");
-    expect(container.textContent).not.toContain("anchorProof");
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+
+    expect(container.querySelectorAll(".tsp-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(container.querySelector(".tsp-drawer__panel--wide")).toBeTruthy();
+    expect(container.querySelector(".tsp-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toBeTruthy();
+    expect(container.querySelectorAll(".tsp-drawer__actions .mx2-btn.mx2-btn--ghost")).toHaveLength(2);
+    expect(container.querySelector(".tsp-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".tsp-drawer__section")).toBeNull();
+    expect(container.querySelector(".tsp-drawer__list")).toBeNull();
+    expect(container.querySelector(".tsp-drawer h4")).toBeNull();
   });
 
-  it("keeps active timestamp CTAs visually distinct from disabled styling", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../timestamp-proof/src/PlayArea.scss`,
-      "utf8",
-    );
+  it("keeps the scene scoped, clean, and motion-accessible", () => {
+    const styles = playAreaStyles("timestamp-proof");
 
-    expect(styles).toMatch(
-      /\.proof-cta\.neo-btn--primary,\s*\.verify-result \.neo-btn--primary\s*\{[\s\S]*color:\s*#ffffff/,
-    );
-    expect(styles).toMatch(
-      /\.proof-cta\.neo-btn--primary:disabled:not\(\.neo-btn--loading\),\s*\.verify-result \.neo-btn--primary:disabled:not\(\.neo-btn--loading\)/,
-    );
-    expect(styles).toMatch(/background:\s*var\(--ns-surface-subtle/);
-    expect(styles).toMatch(/@keyframes proof-scan-sweep/);
-    expect(styles).toMatch(/@keyframes proof-seal-stamp/);
-    expect(styles).toMatch(/prefers-reduced-motion:\s*reduce/);
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/animation-duration:\s*0\.001ms/);
+    expect(styles).toMatch(/\.timestamp-proof-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
+    expect(styles).toMatch(/\.tsp-workbench\s*\{[\s\S]*grid-template-areas:\s*"press document"/);
+    expect(styles).toMatch(/\.tsp-workbench\s*\{[\s\S]*align-items:\s*start/);
+    expect(styles).toMatch(/\.tsp-workbench\s*\{[\s\S]*border:\s*0/);
+    expect(styles).toMatch(/\.tsp-workbench\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.tsp-document-card\s*\{[\s\S]*grid-area:\s*document/);
+    expect(styles).toMatch(/\.tsp-proof-sheet\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.tsp-proof-sheet\s*\{[\s\S]*border-radius:\s*22px/);
+    expect(styles).toMatch(/\.tsp-proof-sheet\s*\{[\s\S]*box-shadow:\s*0 6px 16px rgba\(15,\s*23,\s*42,\s*0\.035\)/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__surface\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__surface\s*\{[\s\S]*padding:\s*13px 58px 13px 14px/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__seal\s*\{[\s\S]*position:\s*absolute/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__seal-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__privacy\s*\{[\s\S]*background:\s*var\(--mx2-brand-light\)/);
+    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*border:\s*0/);
+    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*min-height:\s*56px/);
+    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*max-height:\s*72px/);
+    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*resize:\s*none/);
+    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__digest\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).toMatch(/\.tsp-template-dock\s*\{[\s\S]*display:\s*flex/);
+    expect(styles).toMatch(/\.tsp-document-card__facts dd\s*\{[\s\S]*white-space:\s*normal/);
+    expect(styles).toMatch(/\.tsp-press-card\s*\{[\s\S]*grid-area:\s*press/);
+    expect(styles).toMatch(/\.tsp-press-card\s*\{[\s\S]*grid-template-areas:\s*"media"[\s\S]*"status"[\s\S]*"route"/);
+    expect(styles).toMatch(/\.tsp-press-card__media\s*\{[\s\S]*border:\s*1px solid rgba\(15,\s*23,\s*42,\s*0\.08\)/);
+    expect(styles).toMatch(/\.tsp-press-card__media img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.tsp-press-card__media img\s*\{[\s\S]*aspect-ratio:\s*1\.62 \/\s*1/);
+    expect(styles).toMatch(/\.tsp-press-card__media img\s*\{[\s\S]*max-height:\s*292px/);
+    expect(styles).toMatch(/\.tsp-press-card__media img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.tsp-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.tsp-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.tsp-drawer__panel--wide\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
+    expect(styles).toMatch(/\.tsp-drawer__notice\.mx2-open-notice\.semi-banner\s*\{[\s\S]*min-height:\s*78px/);
+    expect(styles).toMatch(/@media \(max-width:\s*860px\)[\s\S]*grid-template-areas:\s*"press"[\s\S]*"document"/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.timestamp-proof-play-area \.mx2-stage\s*\{[\s\S]*padding:\s*14px 14px 16px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-workbench\s*\{[\s\S]*grid-template-areas:\s*"document"[\s\S]*"press"/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-document-card__facts\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-template-dock\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-proof-sheet__seal-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-press-card\s*\{[\s\S]*grid-template-columns:\s*72px minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-press-card__media img\s*\{[\s\S]*max-height:\s*72px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-drawer\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.tsp-route li\[data-active="true"\]\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).not.toMatch(/\.tsp-document-card__input\s*\{[\s\S]*resize:\s*vertical/);
+    expect(styles).not.toMatch(/\.tsp-document-card__input\s*\{[^}]*min-height:\s*(?:9[0-9]|1[0-9]{2})px/);
+    expect(styles).not.toMatch(/\.tsp-document-card__input\s*\{[^}]*border:\s*1px/);
+    expect(styles).not.toMatch(/\.tsp-drawer__section|\.tsp-drawer__list|\.tsp-drawer__section input|\.tsp-drawer__section-title/);
+    expect(styles).not.toMatch(/#fffdf8/);
+    expect(styles).not.toMatch(/tsp-template-row/);
+    expect(styles).not.toMatch(/repeating-linear-gradient/);
+    expect(styles).not.toMatch(/linear-gradient\(#ffffff 0 0\) padding-box/);
+    expect(styles).not.toMatch(/__backdrop/);
+    expect(styles).not.toMatch(/tool-scene/);
+    expect(styles).not.toMatch(/--mx2-ink-soft/);
   });
 });

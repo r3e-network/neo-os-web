@@ -65,7 +65,7 @@ defineMiniApp({
     // (which matters inside the sandboxed iframe) and its standardized toast
     // channel, instead of a raw navigator.clipboard call that throws when
     // unavailable. The successKey localizes the toast per copy kind.
-    ctx.registerAction("copy", async (...args: unknown[]) => {
+    ctx.framework.actions.register("copy", async (...args: unknown[]) => {
       const text = typeof args[0] === "string" ? args[0] : "";
       const successKey = typeof args[1] === "string" ? args[1] : "copied";
       if (!text) return false;

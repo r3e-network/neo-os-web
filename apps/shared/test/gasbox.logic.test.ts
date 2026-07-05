@@ -6,6 +6,7 @@ import type { ChainService, ContractArg, TxResult } from "../services/ChainServi
 import { DepositConfirmedActionFailedError } from "../composables/useContractInteraction";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
+import { createMiniAppFramework } from "@shared/react";
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const CREATOR = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -247,7 +248,15 @@ function makeChain(
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
   const { chain, invoke, prepayAndInvoke, read, listAllEvents } = makeChain(opts);
-  const app = useGasBox({ chain, t });
+  // The composable routes reads/invokes/address/contractAddress/ensureWallet
+  // through the framework chain layer (a behavior-preserving passthrough) and
+  // keeps the raw chain for prepayAndInvoke + listAllEvents. Wrapping the same
+  // mock chain leaves every recorded call and its arg shapes unchanged.
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-gasbox" },
+  );
+  const app = useGasBox({ app: framework, chain, t });
   app.setAddress(PLAYER);
   return { app, chain, invoke, prepayAndInvoke, read, listAllEvents };
 }

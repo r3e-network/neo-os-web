@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "aa-market-hub", zh: "aa-market-hub" },
   appName: { en: "AA Market Hub", zh: "AA 地址市场" },
   marketHash: { en: "Market Hash", zh: "市场合约哈希" },
   loadListings: { en: "Load Listings", zh: "加载列表" },
@@ -40,9 +41,56 @@ const appMessages = {
     en: "Escrow settlement",
     zh: "托管结算",
   },
+  marketDeskLabel: {
+    en: "AA market escrow desk",
+    zh: "AA 市场托管台",
+  },
+  marketDeskTitle: {
+    en: "Live address desk",
+    zh: "实时地址交易台",
+  },
+  marketDeskCaption: {
+    en: "Review listings, confirm the buyer route, and settle the AA shell through GAS escrow.",
+    zh: "查看挂单、确认买方路径，并通过 GAS 托管结算 AA 外壳。",
+  },
   marketMetricsLabel: { en: "Market overview", zh: "市场概览" },
   marketMetricListings: { en: "Listings", zh: "挂单" },
   marketMetricActive: { en: "Active", zh: "活跃" },
+  marketRouteTitle: { en: "Escrow route", zh: "托管动线" },
+  marketRouteEyebrow: { en: "Market route", zh: "市场动线" },
+  marketRouteCopy: {
+    en: "Follow the trade from wallet session to market read, listing draft, and escrow settlement.",
+    zh: "从钱包会话、市场读取、挂单草稿到托管结算，按交易动线推进。",
+  },
+  marketRouteStepsLabel: { en: "Escrow route steps", zh: "托管动线步骤" },
+  marketRouteWallet: { en: "Wallet", zh: "钱包" },
+  marketRouteRead: { en: "Read", zh: "读取" },
+  marketRouteList: { en: "List", zh: "挂单" },
+  marketRouteSettle: { en: "Settle", zh: "结算" },
+  marketRouteWorking: {
+    en: "Processing market action",
+    zh: "正在处理市场操作",
+  },
+  marketRouteSelected: {
+    en: "Listing selected for settlement",
+    zh: "已选择待结算挂单",
+  },
+  marketRouteListings: {
+    en: "Listings loaded and ready",
+    zh: "挂单已加载，可继续操作",
+  },
+  marketRouteReady: {
+    en: "Market ready for listing",
+    zh: "市场已就绪，可创建挂单",
+  },
+  marketRouteNeedsWallet: {
+    en: "Connect wallet to start",
+    zh: "连接钱包后开始",
+  },
+  marketRouteDraft: {
+    en: "Choose a market to begin",
+    zh: "选择市场开始",
+  },
   marketStepsLabel: { en: "Trading steps", zh: "交易步骤" },
   marketStepConnect: { en: "Connect wallet", zh: "连接钱包" },
   marketStepConnectDesc: {

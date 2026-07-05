@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMiniAppFramework } from "../../../framework";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
@@ -70,8 +71,24 @@ function buildCtx(appId: string): TestCtx {
     signMessage: vi.fn(async () => ({ publicKey: "02abcd", data: "signature-bytes" })),
   };
   const setStatus = vi.fn();
+  const notify = {
+    success: vi.fn((key: string) => setStatus(key, "success")),
+    error: vi.fn((error: unknown, fallbackKey = "error") => {
+      setStatus(error instanceof Error ? error.message : fallbackKey, "error");
+    }),
+    guardResult: vi.fn(async (fn: () => Promise<unknown>, successKey?: string, errorKey?: string) => {
+      try {
+        const value = await fn();
+        if (successKey) notify.success(successKey);
+        return { ok: true as const, value };
+      } catch (error) {
+        notify.error(error, errorKey);
+        return { ok: false as const, error };
+      }
+    }),
+  };
   const ctx = {
-    services: { chain },
+    services: { chain, notify },
     os: {},
     state: {},
     t: (key: string) => key,
@@ -85,6 +102,9 @@ function buildCtx(appId: string): TestCtx {
       actions.set(key, handler);
     },
   };
+  Object.assign(ctx, {
+    framework: createMiniAppFramework(ctx as never, { appId }),
+  });
   return { ctx, actions, chain, setStatus };
 }
 
@@ -181,7 +201,7 @@ describe("factory runtime setup", () => {
   it("refuses to execute artifact-less deploy templates with the honest blocked reason", async () => {
     harness.presence = "missing";
     const { createFactorySetup } = await loadRuntime();
-    const { ctx, actions, chain } = buildCtx("miniapp-asset-factory");
+    const { ctx, actions, chain, setStatus } = buildCtx("miniapp-asset-factory");
     const result = createFactorySetup("nep17", "miniapp-asset-factory")(
       ctx as never,
     ) as { state?: Record<string, TestObservable> };
@@ -196,18 +216,23 @@ describe("factory runtime setup", () => {
     expect(plan.execution.available).toBe(false);
     expect(plan.templateArtifact.status).toBe("metadata-only");
 
-    await expect(actions.get("executePlan")!()).rejects.toThrow("artifactNotRegistered");
+    await expect(actions.get("executePlan")!()).resolves.toBeUndefined();
+    expect(setStatus).toHaveBeenCalledWith("artifactNotRegistered", "error");
     expect(chain.invoke).not.toHaveBeenCalled();
   });
 
   it("guards against double-submitting the same package", async () => {
     const { createFactorySetup } = await loadRuntime();
-    const { ctx, actions, chain } = buildCtx("miniapp-asset-factory");
-    createFactorySetup("nep17", "miniapp-asset-factory")(ctx as never);
+    const { ctx, actions, chain, setStatus } = buildCtx("miniapp-asset-factory");
+    const result = createFactorySetup("nep17", "miniapp-asset-factory")(
+      ctx as never,
+    ) as { state?: Record<string, TestObservable> };
 
     await actions.get("generatePlan")!(NEP17_FORM);
     await actions.get("executePlan")!();
-    await expect(actions.get("executePlan")!()).rejects.toThrow("alreadyExecuted");
+    await expect(actions.get("executePlan")!()).resolves.toBeUndefined();
+    expect(readState(result, "lastError")).toBe("");
+    expect(setStatus).toHaveBeenCalledWith("alreadyExecuted", "error");
     expect(chain.invoke).toHaveBeenCalledTimes(1);
   });
 

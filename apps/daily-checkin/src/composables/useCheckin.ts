@@ -1,10 +1,10 @@
 /**
  * useCheckin — Domain logic for the Daily Check-in miniapp.
  *
- * Talks DIRECTLY to the app's standalone on-chain contract via
- * ctx.services.chain. The earlier path routed through the Morpheus OS check-in
- * proxy (ctx.os.checkin -> EdgeClient -> /api/edge -> Morpheus kernel), which is
- * non-operational, so the app was broken at runtime.
+ * Talks DIRECTLY to the app's standalone on-chain contract via the MiniApp
+ * framework chain layer (ctx.framework.chain). The earlier path routed through
+ * the Morpheus OS check-in proxy (ctx.os.checkin -> EdgeClient -> /api/edge ->
+ * Morpheus kernel), which is non-operational, so the app was broken at runtime.
  *
  * Contract interaction model (verified against the self-contained, owner-
  * fundable MiniAppDailyCheckin deployed + live-validated on testnet
@@ -52,7 +52,7 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { formatGas } from "@shared/utils/format";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { eventValue } from "@shared/utils/chain-events";
@@ -116,8 +116,8 @@ export interface WorkflowEvidence {
 }
 
 export interface UseCheckinOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -186,7 +186,7 @@ interface ChainCheckinState {
   paused: boolean;
 }
 
-export function useCheckin({ chain, t }: UseCheckinOptions) {
+export function useCheckin({ app, t }: UseCheckinOptions) {
   const currentStreak = createObservable(0);
   const highestStreak = createObservable(0);
   const lastCheckInDay = createObservable(0);
@@ -419,12 +419,12 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
    * Returns "" when no wallet is available so callers can surface a clean error.
    */
   const resolveUserHash = async (prompt = true): Promise<string> => {
-    let addr = chain.address.get();
+    let addr = app.chain.address.get();
     if (!addr && prompt) {
       try {
-        addr = await chain.ensureWallet();
+        addr = await app.chain.ensureWallet();
       } catch {
-        addr = chain.address.get();
+        addr = app.chain.address.get();
       }
     }
     return addr ? addressToScriptHash(addr) : "";
@@ -432,24 +432,25 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
 
   /** Read the full on-chain state for a user into a normalized snapshot. */
   const readChainState = async (userHash: string): Promise<ChainCheckinState> => {
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
+    const userArg = app.chain.arg.hash160(userHash);
     const [frontend, status, details, platform, paused, poolReported, poolBalance] =
       await Promise.all([
-        chain.read("getCheckInStateForFrontend", [{ type: "Hash160", value: userHash }]),
-        chain.read("getCheckinStatus", [{ type: "Hash160", value: userHash }]),
-        chain.read("getUserStatsDetails", [{ type: "Hash160", value: userHash }]),
-        chain.read("getPlatformStats", []),
+        app.chain.readRaw("getCheckInStateForFrontend", [userArg]),
+        app.chain.readRaw("getCheckinStatus", [userArg]),
+        app.chain.readRaw("getUserStatsDetails", [userArg]),
+        app.chain.readRaw("getPlatformStats", []),
         // Pause flag — best-effort; an older ABI without isPaused just returns
         // unpaused (false) so the UI degrades to the prior behaviour.
-        chain.read("isPaused", []).catch(() => false),
+        app.chain.readRaw("isPaused", []).catch(() => false),
         // The reward pool claimRewards pays from. The contract exposes it
         // directly via rewardPool(); read that as the authoritative value.
-        chain.read("rewardPool", []).catch(() => null),
+        app.chain.readRaw("rewardPool", []).catch(() => null),
         // Fallback: the contract's own GAS balance equals the reward pool (the
         // contract holds the backing GAS), used only if rewardPool() is absent.
         contractHash
-          ? chain
-              .read("balanceOf", [{ type: "Hash160", value: contractHash }], {
+          ? app.chain
+              .readRaw("balanceOf", [app.chain.arg.hash160(contractHash)], {
                 scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
               })
               .catch(() => 0)
@@ -530,8 +531,8 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     if (!address) return;
     try {
       const [checkins, claims] = await Promise.all([
-        chain.listEvents("CheckedIn", { limit: HISTORY_EVENT_LIMIT }),
-        chain.listEvents("RewardsClaimed", { limit: HISTORY_EVENT_LIMIT }),
+        app.chain.events("CheckedIn", { limit: HISTORY_EVENT_LIMIT }),
+        app.chain.events("RewardsClaimed", { limit: HISTORY_EVENT_LIMIT }),
       ]);
 
       const hydrated: CheckinHistoryItem[] = [];
@@ -616,7 +617,7 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       hasLoadedStatus.set(true);
       // Hydrate the activity history from the on-chain event log so a fresh
       // open shows real past check-ins/claims (best-effort, address-scoped).
-      await hydrateHistory(chain.address.get() ?? "");
+      await hydrateHistory(app.chain.address.get() ?? "");
       if (shouldRecord) {
         recordSuccess("refreshStatus", t("statusLoaded"), {
           currentStreak: currentStreak.get(),
@@ -684,7 +685,7 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
         }
       }
 
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("contractNotReady"));
 
       const feeBase = Math.max(0, Math.trunc(checkInFee.get()) || DEFAULT_CHECKIN_FEE);
@@ -692,13 +693,13 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       // Deposit-then-act in ONE transfer: the GAS deposit carrying the
       // "miniapp-dailycheckin:checkin" memo IS the check-in. OnNEP17Payment
       // records it and emits CheckedIn(user, streak, reward, nextEligibleTs).
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: userHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: String(feeBase) },
-          { type: "String", value: CHECKIN_MEMO },
+          app.chain.arg.hash160(userHash),
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(feeBase),
+          app.chain.arg.string(CHECKIN_MEMO),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "CheckedIn" },
       );
@@ -777,9 +778,9 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
 
       // Direct call — the contract pays the accrued reward to the user from its
       // own balance and emits RewardsClaimed(user, amount, totalClaimed).
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "claimRewards",
-        [{ type: "Hash160", value: userHash }],
+        [app.chain.arg.hash160(userHash)],
         { waitForEvent: "RewardsClaimed" },
       );
 

@@ -7,13 +7,14 @@
  * (VITE_PLATFORM_API). That API is optional and can be unreachable; when it is,
  * the SDK silently returns a fabricated zero balance. This module never presents
  * those zeros as fact — it raises an honest service-unavailable notice and falls
- * back to the REAL on-chain GAS balance (read via ChainService/BalanceService)
- * to gate the donate/send "pay it forward" transfers, which are pure on-chain
- * GAS transfers and work independently of the API.
+ * back to the REAL on-chain GAS balance (read via the framework chain layer /
+ * BalanceService) to gate the donate/send "pay it forward" transfers, which are
+ * pure on-chain GAS transfers and work independently of the API.
  */
 
 import { createObservable, createDerived, refToObservable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
+import type { EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import type { BalanceService } from "@shared/services/BalanceService";
 import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 import { useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
@@ -49,14 +50,14 @@ function gasAmountFitsBalance(amount: string, balance: number): boolean {
 }
 
 export interface UseGasSponsorAppOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   balance: BalanceService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
   network?: MiniAppLaunchNetwork | null;
 }
 
-export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGasSponsorAppOptions) {
+export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasSponsorAppOptions) {
   const gasSponsorSDK = useGasSponsorSDK();
   const isRequesting = refToObservable(gasSponsorSDK.isRequestingSponsorship);
   const { checkEligibility, requestSponsorship: apiRequest } = gasSponsorSDK;
@@ -201,8 +202,8 @@ export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGa
   const loadUserData = async () => {
     loading.set(true);
     try {
-      await chain.ensureWallet();
-      const address = chain.address.get() || "";
+      await app.chain.ensureWallet();
+      const address = app.chain.address.get() || "";
       userAddress.set(address);
 
       // Always read the real chain balance — drives donate/send regardless of
@@ -288,9 +289,9 @@ export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGa
     }
     isDonating.set(true);
     try {
-      await chain.ensureWallet();
-      const sender = chain.address.get() as string;
-      await chain.invoke(
+      await app.chain.ensureWallet();
+      const sender = app.chain.address.get() as string;
+      await app.chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: sender },
@@ -325,9 +326,9 @@ export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGa
     }
     isSending.set(true);
     try {
-      await chain.ensureWallet();
-      const sender = chain.address.get() as string;
-      await chain.invoke(
+      await app.chain.ensureWallet();
+      const sender = app.chain.address.get() as string;
+      await app.chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: sender },

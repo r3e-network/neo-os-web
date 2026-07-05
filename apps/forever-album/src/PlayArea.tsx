@@ -1,587 +1,272 @@
-import { useEffect, useMemo } from "react";
-import { ImagePlus, LockKeyhole, Sparkles, UploadCloud } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+/**
+ * PlayArea.tsx — Forever Album (v2 scene-driven rebuild)
+ *
+ * NFT/social identity (gallery-elegant, platinum/ink, warm-bright). The album IS
+ * the scene: a clean album workbench for imports, privacy, and saved memories.
+ * Upload is the primary action; viewer/decrypt modals overlay; how-it-works
+ * stays tucked into a drawer. Verified logic (useForeverAlbum — local storage +
+ * AES-GCM) is untouched.
+ */
+import { useState } from "react";
+import { ImagePlus, Images, LockKeyhole, ShieldCheck, UnlockKeyhole, X } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
-import AlbumGrid from "./components/AlbumGrid";
-import { getForeverAlbumLaunchDefaults } from "./launch";
+import { PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext: MiniAppLaunchContext;
 }
 
-type PhotoView = {
-  id: string;
-  data: string;
-  encrypted: boolean;
-  createdAt: number;
-};
+interface PhotoView { id: string; data: string; encrypted: boolean; createdAt: string; }
+interface SelectedImage { id: string; dataUrl: string; size: number; }
 
-type SelectedImage = {
-  id: string;
-  dataUrl?: string;
-  size?: number;
-};
-
-function formatBytes(value: number, t: PlayAreaProps["t"]) {
-  if (!Number.isFinite(value) || value <= 0) return `0 ${t("sizeUnitByte")}`;
-  if (value < 1024) return `${value} ${t("sizeUnitByte")}`;
-  return `${(value / 1024).toFixed(1)} ${t("sizeUnitKbyte")}`;
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-}: PlayAreaProps) {
-  const { num, bool, str, val } = useStateBindings(state);
-  const launchDefaults = useMemo(
-    () => getForeverAlbumLaunchDefaults(launchContext),
-    [launchContext],
-  );
-
-  const photosCount = num("photosCount");
-  const encryptedCount = num("encryptedCount");
-  const publicCount = num("publicCount");
-  const loadingPhotos = bool("loadingPhotos");
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+  const { bool, str, num, val } = useStateBindings(state);
   const uploading = bool("uploading");
   const showViewer = bool("showViewer");
   const showDecrypt = bool("showDecrypt");
   const decrypting = bool("decrypting");
   const isEncrypted = bool("isEncrypted");
+  const photosCount = num("photosCount");
+  const encryptedCount = num("encryptedCount");
+  const publicCount = num("publicCount");
+  const totalPayloadSize = num("totalPayloadSize");
+  const maxTotalBytes = num("maxTotalBytes") || 61440;
   const password = str("password", "");
   const uploadError = str("uploadError", "");
   const decryptedPreview = str("decryptedPreview", "");
   const decryptError = str("decryptError", "");
-  const totalPayloadSize = num("totalPayloadSize");
-  const photos = val<PhotoView[]>("photos") ?? [];
+  const photos = (val("photos") ?? []) as PhotoView[];
   const viewingPhoto = val<PhotoView | null>("viewingPhoto", null);
-  const selectedImages = val<SelectedImage[]>("selectedImages") ?? [];
-  // Source the disable gate from the composable's hard limit (MAX_TOTAL_BYTES,
-  // bound as `maxTotalBytes`) so the Upload button and meter agree exactly with
-  // uploadPhotos()'s `totalSize > MAX_TOTAL_BYTES` check. Falls back to 60000
-  // (the composable default) when the binding is absent, never the old 61440.
-  const boundLimit = num("maxTotalBytes");
-  const uploadLimit = Number.isFinite(boundLimit) && boundLimit > 0
-    ? boundLimit
-    : 60000;
-  const uploadPct = Math.min(
-    100,
-    Math.round((totalPayloadSize / uploadLimit) * 100),
-  );
-  const passwordMissing = isEncrypted && password.trim().length === 0;
-  const payloadTooLarge = totalPayloadSize > uploadLimit;
-  const uploadDisabled =
-    selectedImages.length === 0 ||
-    uploading ||
-    passwordMissing ||
-    payloadTooLarge;
-  const hasSelection = selectedImages.length > 0;
-  const uploadReadiness = uploading
-    ? t("uploading")
-    : passwordMissing
-      ? t("passwordRequired")
-      : payloadTooLarge
-        ? t("totalTooLarge")
-        : selectedImages.length > 0
-          ? t("readyToSave")
-          : isEncrypted
-            ? t("encryptionNote")
-            : t("vaultPublicNote");
-  const stagePhase = uploading
-    ? "sealing"
-    : hasSelection
-      ? "ready"
+  const selectedImages = (val("selectedImages") ?? []) as SelectedImage[];
+
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    void dispatch("addFiles", Array.from(files));
+  };
+  const handleUpload = () => { void dispatch("uploadPhotos"); };
+
+  const draftStatusTitle = uploading
+    ? t("stageSealingTitle")
+    : selectedImages.length > 0
+      ? t("stageReadyTitle")
       : photos.length > 0
-        ? "archive"
-        : "empty";
-  const stageFrames = selectedImages.length > 0
-    ? selectedImages
-        .slice(0, 4)
-        .map((image) => ({
-          id: image.id,
-          src: image.dataUrl,
-          label: image.size ? formatBytes(image.size, t) : t("albumPhoto"),
-          encrypted: isEncrypted,
-        }))
-    : photos
-        .slice(0, 4)
-        .map((photo) => ({
-          id: photo.id,
-          src: photo.encrypted ? undefined : photo.data,
-          label: photo.encrypted ? t("encrypted") : t("albumPhoto"),
-          encrypted: photo.encrypted,
-        }));
-  const hasStageFrames = stageFrames.length > 0;
-  const stageCountLabel = hasSelection
-    ? t("stageDraftCount", { count: selectedImages.length })
-    : photos.length > 0
-      ? t("stageSavedCount", { count: photos.length })
-      : t("stageEmptyCount");
-  const stagePrivacyLabel = isEncrypted
-    ? t("stagePrivateMode")
-    : t("stagePublicMode");
+        ? t("stageArchiveTitle")
+        : t("stageEmptyTitle");
+  const draftStatusCopy = uploading
+    ? t("stageSealingCopy")
+    : selectedImages.length > 0
+      ? t("stageReadyCopy")
+      : photos.length > 0
+        ? t("stageArchiveCopy")
+        : t("stageEmptyCopy");
+  const privacyModeLabel = isEncrypted ? t("stagePrivateMode") : t("stagePublicMode");
+  const PrivacyIcon = isEncrypted ? LockKeyhole : UnlockKeyhole;
+  const previewFrames = selectedImages.slice(0, 4);
+  const frameLabels = [t("stageEmptyFrameOne"), t("stageEmptyFrameTwo"), t("stageEmptyFrameThree")];
 
-  useEffect(() => {
-    state.isEncrypted?.set(launchDefaults.isEncrypted);
-  }, [launchContext.signature, launchDefaults.isEncrypted, state.isEncrypted]);
+  // ----- The scene: a clean album workbench, not a textured background -----
+  const scene = (
+    <div className="album-workbench" data-state={uploading ? "sealing" : selectedImages.length > 0 ? "ready" : photos.length > 0 ? "archive" : "empty"} data-private={isEncrypted ? "true" : undefined}>
+      <figure className="album-workbench__memory-card" aria-label={t("albumMemoryStageLabel")}>
+        <img className="album-workbench__memory-image" src="./forever-album-memory-stage.webp" alt={t("albumMemoryStageAlt")} />
+        <figcaption className="album-workbench__memory-caption">
+          <span>{t("albumTab")}</span>
+          <strong>{draftStatusTitle}</strong>
+          <small>{draftStatusCopy}</small>
+        </figcaption>
+        <div className="album-workbench__memory-strip">
+          <span><Images size={15} strokeWidth={2.2} /> {photosCount} {t("albumTab").toLowerCase()}</span>
+          <span><PrivacyIcon size={15} strokeWidth={2.2} /> {privacyModeLabel}</span>
+        </div>
+      </figure>
+      <div className="album-workbench__page">
+        <div className="album-workbench__frames" aria-label={t("galleryStageTitle")}>
+          {previewFrames.map((img, i) => (
+            <div key={img.id} className={`album-workbench__frame album-workbench__frame--${i}`} style={{ backgroundImage: `url(${img.dataUrl})` }}>
+              {isEncrypted && (
+                <span className="album-workbench__lock" aria-label={t("encrypted")}>
+                  <LockKeyhole size={14} strokeWidth={2.4} />
+                </span>
+              )}
+            </div>
+          ))}
+          {previewFrames.length === 0 && frameLabels.map((label, i) => (
+            <div key={label} className={`album-workbench__slot album-workbench__slot--${i}`}>
+              {i === 0 ? <ImagePlus size={22} strokeWidth={1.8} /> : <span />}
+              <strong>{label}</strong>
+            </div>
+          ))}
+        </div>
+        <aside className="album-workbench__status" aria-live="polite">
+          <span className="album-workbench__mode">
+            <PrivacyIcon size={15} strokeWidth={2.2} />
+            {privacyModeLabel}
+          </span>
+          <h3>{draftStatusTitle}</h3>
+          <p>{draftStatusCopy}</p>
+          <div className="album-workbench__facts">
+            <span>{selectedImages.length > 0 ? t("stageDraftCount", { count: selectedImages.length }) : t("stageEmptyCount")}</span>
+            <span>{formatBytes(totalPayloadSize)} / {formatBytes(maxTotalBytes)}</span>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
 
-  const setPassword = (value: string) => {
-    state.password?.set(value);
-  };
+  // ----- Upload controls -----
+  const controls = (
+    <div className="album-controls">
+      {uploadError && <p className="album-controls__error" role="alert">{uploadError}</p>}
+      <label
+        className={["album-import", dragOver ? "album-import--over" : null].filter(Boolean).join(" ")}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFileSelect(e.dataTransfer.files); }}
+      >
+        <input type="file" multiple accept="image/*" onChange={(e) => handleFileSelect(e.target.files)} hidden />
+        <span className="album-import__icon" aria-hidden="true"><ImagePlus size={20} strokeWidth={2.1} /></span>
+        <span className="album-import__copy">
+          <strong>{selectedImages.length > 0 ? t("selectMore") : t("startHere")}</strong>
+          <small>{t("uploadHint", { count: selectedImages.length, max: 5 })}</small>
+        </span>
+      </label>
+      {selectedImages.length > 0 && (
+        <div className="album-controls__preview">
+          {selectedImages.map((img) => (
+            <div key={img.id} className="album-controls__thumb" style={{ backgroundImage: `url(${img.dataUrl})` }}>
+              <button type="button" className="album-controls__thumb-remove" onClick={() => void dispatch("removeImage", img.id)} aria-label={t("remove")}>
+                <X size={12} strokeWidth={2.6} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <label className="album-privacy-toggle" data-active={isEncrypted ? "true" : undefined}>
+        <input className="album-privacy-toggle__input" type="checkbox" checked={isEncrypted} onChange={(e) => state.isEncrypted?.set(e.target.checked)} disabled={uploading} />
+        <span className="album-privacy-toggle__icon" aria-hidden="true">
+          <ShieldCheck size={18} strokeWidth={2.1} />
+        </span>
+        <span className="album-privacy-toggle__copy">
+          <strong>{privacyModeLabel}</strong>
+          <small>{isEncrypted ? t("privacyModePrivateHint") : t("privacyModePublicHint")}</small>
+        </span>
+      </label>
+      {isEncrypted && (
+        <input className="album-controls__input" type="password" value={password} onChange={(e) => state.password?.set(e.target.value)} placeholder={t("passwordPlaceholder")} disabled={uploading} />
+      )}
+      {selectedImages.length > 0 && (
+        <p className="album-controls__meta">{t("selectedCount", { count: selectedImages.length })} · {formatBytes(totalPayloadSize)} / {formatBytes(maxTotalBytes)}</p>
+      )}
+    </div>
+  );
 
-  const setIsEncrypted = (value: boolean) => {
-    state.isEncrypted?.set(value);
-  };
-
-  const selectFiles = (files: FileList | null) => {
-    if (files && files.length > 0) {
-      void dispatch("addFiles", Array.from(files));
-    }
-  };
-
-  const openFilePicker = () => {
-    document
-      .querySelector<HTMLInputElement>(".forever-album-file-picker input")
-      ?.click();
-  };
-
-  // The gallery empty state should not duplicate the dropzone as a second
-  // file-open affordance — instead it guides the eye to the single canonical
-  // entry point (the "Choose images" dropzone) and gently highlights it.
-  const focusDropzone = () => {
-    const dropzone = document.querySelector<HTMLElement>(
-      ".forever-album-file-picker",
-    );
-    if (!dropzone) {
-      openFilePicker();
-      return;
-    }
-    dropzone.scrollIntoView({ behavior: "smooth", block: "center" });
-    dropzone.classList.add("is-pulsing");
-    window.setTimeout(() => dropzone.classList.remove("is-pulsing"), 1200);
-    dropzone.querySelector<HTMLInputElement>("input")?.focus();
-  };
+  // Photo grid (gallery) — rendered inside the scene area when photos exist
+  const gallery = photos.length > 0 ? (
+    <div className="album-gallery">
+      {photos.map((photo) => (
+        <button key={photo.id} type="button" className="album-gallery__item" onClick={() => void dispatch("viewPhoto", { id: photo.id, data: photo.data, encrypted: photo.encrypted, createdAt: photo.createdAt })}>
+          {photo.encrypted ? (
+            <span className="album-gallery__locked" aria-label={t("encrypted")}>
+              <LockKeyhole size={24} strokeWidth={1.9} />
+            </span>
+          ) : (
+            <img src={photo.data} alt={t("albumPhoto")} loading="lazy" />
+          )}
+        </button>
+      ))}
+    </div>
+  ) : null;
 
   return (
-    <div className="album-play-area">
-      <div className="forever-album-shell">
-        <section
-          className="forever-album-hero"
-          aria-labelledby="forever-album-title"
-        >
-          <div className="forever-album-hero-head">
-            <span className="forever-album-hero-icon" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <circle cx="8.5" cy="8.5" r="1.6" />
-                <path d="m21 15-5-5L5 21" />
-              </svg>
-            </span>
-            <div className="forever-album-hero-copy">
-              <span className="forever-album-kicker">{t("title")}</span>
-              <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
-              <p>{t("vaultHeroSubtitle")}</p>
-              {/* Durability is acknowledged in the title (kept on this device),
-                  so the disclaimer reads as a calm secondary note rather than a
-                  loud warning that collides with the keepsake promise. */}
-              <p className="forever-album-durability-chip" role="note">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 9v4" />
-                  <path d="M12 17h.01" />
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-                </svg>
-                <span>{t("durabilityNote")}</span>
-              </p>
-              <div className="forever-album-hero-facts">
-                <span>
-                  {t("vaultTimelineOne")} » {t("vaultTimelineTwo")} »{" "}
-                  {t("vaultTimelineThree")}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="forever-album-actions">
-            <NeoButton variant="primary" onClick={openFilePicker}>
-              {t("emptyAction")}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              disabled={loadingPhotos}
-              onClick={() => dispatch("refreshPhotos")}
-            >
-              {t("refreshAlbum")}
-            </NeoButton>
-          </div>
-        </section>
+    <div className="album-play-area mx2 mx2-cat-nft">
+      <PlayStage
+        category="nft"
+        stage={{
+          eyebrow: t("title"),
+          title: uploading ? t("uploading") : t("vaultHeroTitle"),
+          subtitle: t("vaultHeroSubtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {photosCount} {t("albumTab").toLowerCase()}</span>
+              {encryptedCount > 0 && <span className="mx2-badge"><LockKeyhole size={12} strokeWidth={2.3} /> {encryptedCount}</span>}
+            </>
+          ),
+        }}
+        scene={<div className="album-stage-stack">{scene}{controls}{gallery}</div>}
+        score={[
+          { label: t("albumTab"), value: String(photosCount), accent: true },
+          { label: t("sidebarEncrypted"), value: String(encryptedCount) },
+          { label: t("sidebarPublic"), value: String(publicCount) },
+        ]}
+        actions={{
+          primary: {
+            label: uploading ? t("uploading") : t("upload"),
+            onClick: () => void handleUpload(),
+            disabled: uploading || selectedImages.length === 0,
+            loading: uploading,
+          },
+          secondary: [{ label: t("refreshAlbum"), onClick: () => void dispatch("refreshPhotos"), hint: t("refreshAlbum") }],
+        }}
+        drawerToggleLabel={t("vaultPrivacyTitle")}
+        drawer={{ title: t("vaultPrivacyTitle"), children: (
+          <>
+            <h4>{t("vaultPrivacyTitle")}</h4>
+            <p>{t("localStorageNote")}</p>
+            <p>{t("step1")}</p>
+            <p>{t("step2")}</p>
+            <p>{t("step3")}</p>
+            <h4>{t("vaultSafetyOne")}</h4>
+            <p>{t("vaultSafetyTwo")}</p>
+            <p>{t("vaultSafetyThree")}</p>
+          </>
+        ) }}
+      />
 
-        <div
-          className="forever-album-vault-strip"
-          aria-label={t("vaultStatsTitle")}
-        >
-          <div className="forever-album-vault-item">
-            <span>{t("albumTab")}</span>
-            <strong>{photosCount}</strong>
-          </div>
-          <div className="forever-album-vault-item">
-            <span>{t("sidebarEncrypted")}</span>
-            <strong>{encryptedCount}</strong>
-          </div>
-          <div className="forever-album-vault-item">
-            <span>{t("sidebarPublic")}</span>
-            <strong>{publicCount}</strong>
-          </div>
-          <div className="forever-album-vault-item">
-            <span>{t("payloadSize")}</span>
-            <strong>{formatBytes(totalPayloadSize, t)}</strong>
+      {/* Viewer modal */}
+      {showViewer && viewingPhoto && (
+        <div className="album-modal" role="dialog" aria-modal="true" onClick={() => void dispatch("closeViewer")}>
+          <div className="album-modal__card" onClick={(e) => e.stopPropagation()}>
+            {viewingPhoto.encrypted && !decryptedPreview ? (
+              <div className="album-modal__encrypted">
+                <span><LockKeyhole size={34} strokeWidth={1.8} /></span>
+                <p>{t("photoEncrypted")}</p>
+                <button type="button" className="mx2-btn mx2-btn--primary" onClick={() => void dispatch("openDecrypt")}>{t("decrypt")}</button>
+              </div>
+            ) : (
+              <img className="album-modal__img" src={decryptedPreview || viewingPhoto.data} alt={t("albumPhoto")} />
+            )}
+            <div className="album-modal__meta">
+              <span>{t("createdAt")}: {viewingPhoto.createdAt}</span>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => { if (window.confirm(t("deletePhoto"))) void dispatch("deletePhoto", viewingPhoto.id); }}>{t("deletePhoto")}</button>
+            </div>
+            <button type="button" className="album-modal__close" onClick={() => void dispatch("closeViewer")} aria-label={t("close")}>
+              <X size={18} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
-
-        <NeoCard
-          title={t("vaultUploadTitle")}
-          className={`forever-album-workspace${
-            photos.length === 0 && !loadingPhotos ? " forever-album-workspace--empty" : ""
-          }`}
-        >
-          <AlbumGrid
-            t={t}
-            photos={photos}
-            loading={loadingPhotos}
-            onView={(photo) => dispatch("viewPhoto", photo)}
-            onUpload={focusDropzone}
-          />
-
-          <div className="forever-album-uploader">
-            <figure
-              className={`forever-album-seal-stage forever-album-seal-stage--${stagePhase}${
-                isEncrypted ? " forever-album-seal-stage--private" : ""
-              }`}
-              aria-label={t("galleryStageTitle")}
-            >
-              <picture className="forever-album-seal-stage__backdrop" aria-hidden="true">
-                <source srcSet="./banner.avif" type="image/avif" />
-                <source srcSet="./banner.webp" type="image/webp" />
-                <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
-              </picture>
-              <div className="forever-album-seal-stage__wash" aria-hidden="true" />
-              <div className="forever-album-seal-stage__content">
-                <div className="forever-album-seal-stage__header">
-                  <span>
-                    <Sparkles size={13} aria-hidden="true" />
-                    {stagePrivacyLabel}
-                  </span>
-                  <strong>{stageCountLabel}</strong>
-                </div>
-                <div className="forever-album-seal-stage__gallery" aria-hidden="true">
-                  {hasStageFrames ? (
-                    stageFrames.map((frame, index) => (
-                      <div
-                        key={frame.id}
-                        className={`forever-album-seal-stage__frame forever-album-seal-stage__frame--${index + 1}${
-                          frame.encrypted ? " is-encrypted" : ""
-                        }`}
-                      >
-                        {frame.src ? (
-                          <img src={frame.src} alt="" />
-                        ) : (
-                          <span>
-                            <LockKeyhole size={18} aria-hidden="true" />
-                          </span>
-                        )}
-                        <small>{frame.label}</small>
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <div className="forever-album-seal-stage__frame forever-album-seal-stage__frame--1 is-placeholder">
-                        <ImagePlus size={22} aria-hidden="true" />
-                        <small>{t("stageEmptyFrameOne")}</small>
-                      </div>
-                      <div className="forever-album-seal-stage__frame forever-album-seal-stage__frame--2 is-placeholder">
-                        <LockKeyhole size={20} aria-hidden="true" />
-                        <small>{t("stageEmptyFrameTwo")}</small>
-                      </div>
-                      <div className="forever-album-seal-stage__frame forever-album-seal-stage__frame--3 is-placeholder">
-                        <UploadCloud size={21} aria-hidden="true" />
-                        <small>{t("stageEmptyFrameThree")}</small>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="forever-album-seal-stage__rail" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <figcaption className="forever-album-seal-stage__caption">
-                  <strong>
-                    {stagePhase === "sealing"
-                      ? t("stageSealingTitle")
-                      : stagePhase === "ready"
-                        ? t("stageReadyTitle")
-                        : stagePhase === "archive"
-                          ? t("stageArchiveTitle")
-                          : t("stageEmptyTitle")}
-                  </strong>
-                  <span>
-                    {stagePhase === "sealing"
-                      ? t("stageSealingCopy")
-                      : stagePhase === "ready"
-                        ? t("stageReadyCopy")
-                        : stagePhase === "archive"
-                          ? t("stageArchiveCopy")
-                          : t("stageEmptyCopy")}
-                  </span>
-                </figcaption>
-              </div>
-            </figure>
-
-            <label className="forever-album-file-picker">
-              <span>{t("chooseFiles")}</span>
-              <small>{t("tapToSelect")}</small>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) => {
-                  selectFiles(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-            </label>
-
-            <p className="forever-album-uploader-cap">
-              {t("sizeHint", {
-                size: formatBytes(totalPayloadSize, t),
-                max: "60 KB",
-              })}
-            </p>
-
-            {(hasSelection || totalPayloadSize > 0) && (
-              <>
-                <div className="forever-album-upload-meta">
-                  <span>
-                    {t("selectedCount")}: {selectedImages.length}
-                  </span>
-                  <span>
-                    {t("payloadSize")}: {formatBytes(totalPayloadSize, t)}
-                  </span>
-                </div>
-
-                <div className="forever-album-upload-meter">
-                  <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
-                </div>
-              </>
-            )}
-
-            {uploadError && (
-              <div
-                className="forever-album-upload-error"
-                role="alert"
-                aria-live="polite"
-              >
-                <strong>{t("uploadNeedsAttention")}</strong>
-                <span>{uploadError}</span>
-              </div>
-            )}
-
-            <label className="forever-album-encrypt-toggle">
-              <input
-                type="checkbox"
-                checked={isEncrypted}
-                onChange={(event) => setIsEncrypted(event.target.checked)}
-              />
-              <span>{t("encryptPhotos")}</span>
-            </label>
-
-            {isEncrypted && (
-              <NeoInput
-                value={password}
-                type="password"
-                label={t("password")}
-                placeholder={t("encryptionPassword")}
-                onChange={setPassword}
-              />
-            )}
-
-            {hasSelection && (
-              <div className="forever-album-selected-preview">
-                {selectedImages.map((image) => (
-                  <div key={image.id} className="forever-album-preview-thumb">
-                    {image.dataUrl ? (
-                      <img src={image.dataUrl} alt={t("albumPhoto")} />
-                    ) : (
-                      <span>{formatBytes(image.size ?? 0, t)}</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => dispatch("removeImage", image.id)}
-                      aria-label={t("remove")}
-                    >
-                      {t("remove")}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="forever-album-panel-footer">
-              <span>{uploadReadiness}</span>
-              <NeoButton
-                variant="primary"
-                disabled={uploadDisabled}
-                loading={uploading}
-                onClick={() => dispatch("uploadPhotos")}
-              >
-                {t("upload")}
-              </NeoButton>
-            </div>
-
-            <p className="forever-album-storage-note">{t("localStorageNote")}</p>
-          </div>
-        </NeoCard>
-
-        <details className="forever-album-howto">
-          <summary>{t("vaultPrivacyTitle")}</summary>
-          <div className="forever-album-howto-body">
-            <div className="forever-album-howto-steps">
-              <div>
-                <strong>{t("vaultTimelineOne")}</strong>
-                <span>{t("step1")}</span>
-              </div>
-              <div>
-                <strong>{t("vaultTimelineTwo")}</strong>
-                <span>{t("step2")}</span>
-              </div>
-              <div>
-                <strong>{t("vaultTimelineThree")}</strong>
-                <span>{t("step3")}</span>
-              </div>
-            </div>
-            <div className="forever-album-safety-strip">
-              <div>
-                <strong>{t("vaultSafetyOne")}</strong>
-                <span>{t("feature1Desc")}</span>
-              </div>
-              <div>
-                <strong>{t("vaultSafetyTwo")}</strong>
-                <span>{t("feature2Desc")}</span>
-              </div>
-              <div>
-                <strong>{t("vaultSafetyThree")}</strong>
-                <span>{t("feature3Desc")}</span>
-              </div>
-            </div>
-          </div>
-        </details>
-      </div>
-
-      {showViewer && viewingPhoto && (
-        <NeoCard variant="erobo" className="viewer-card">
-          <div className="viewer-header">
-            <span className="viewer-title">{t("photoViewer")}</span>
-            <NeoButton
-              variant="secondary"
-              onClick={() => dispatch("closeViewer")}
-              aria-label={t("close")}
-            >
-              {t("close")}
-            </NeoButton>
-          </div>
-          {viewingPhoto.encrypted ? (
-            <div className="encrypted-notice">
-              <span>{t("photoEncrypted")}</span>
-              <NeoButton
-                variant="primary"
-                onClick={() => dispatch("openDecrypt")}
-                aria-label={t("decrypt")}
-              >
-                {t("decrypt")}
-              </NeoButton>
-            </div>
-          ) : (
-            <img
-              src={viewingPhoto.data}
-              className="viewer-img"
-              alt={t("albumPhoto")}
-            />
-          )}
-          <div className="viewer-meta">
-            <span className="meta-label">
-              {t("photoId")}: {viewingPhoto.id}
-            </span>
-            <span className="meta-label">
-              {t("createdAt")}:{" "}
-              {new Date(viewingPhoto.createdAt).toLocaleDateString()}
-            </span>
-          </div>
-          <div className="viewer-footer">
-            <NeoButton
-              variant="danger"
-              onClick={() => dispatch("deletePhoto", viewingPhoto.id)}
-              aria-label={t("deletePhoto")}
-            >
-              {t("deletePhoto")}
-            </NeoButton>
-          </div>
-        </NeoCard>
       )}
 
+      {/* Decrypt modal */}
       {showDecrypt && (
-        <NeoCard variant="erobo" className="decrypt-card">
-          <div className="decrypt-header">
-            <span className="decrypt-title">{t("decryptTitle")}</span>
-            <NeoButton
-              variant="secondary"
-              onClick={() => dispatch("closeDecrypt")}
-              aria-label={t("close")}
-            >
-              {t("close")}
-            </NeoButton>
+        <div className="album-modal" role="dialog" aria-modal="true" onClick={() => void dispatch("closeDecrypt")}>
+          <div className="album-modal__card" onClick={(e) => e.stopPropagation()}>
+            <h3>{t("decryptTitle")}</h3>
+            <input className="album-controls__input" type="password" value={password} onChange={(e) => state.password?.set(e.target.value)} placeholder={t("passwordPlaceholder")} disabled={decrypting} />
+            {decryptError && <p className="album-controls__error" role="alert">{decryptError}</p>}
+            <button type="button" className="mx2-btn mx2-btn--primary" onClick={() => void dispatch("handleDecrypt", password)} disabled={decrypting || !password}>{decrypting ? t("decrypting") : t("decrypt")}</button>
           </div>
-          <NeoInput
-            value={password}
-            type="password"
-            label={t("password")}
-            placeholder={t("passwordPlaceholder")}
-            onChange={setPassword}
-          />
-          <NeoButton
-            variant="primary"
-            loading={decrypting}
-            onClick={() => dispatch("handleDecrypt", password)}
-            aria-label={t("decrypt")}
-          >
-            {t("decrypt")}
-          </NeoButton>
-          {decryptError && (
-            <p className="forever-album-decrypt-error" role="alert">
-              {decryptError}
-            </p>
-          )}
-          {decryptedPreview && (
-            <img
-              src={decryptedPreview}
-              className="decrypted-img"
-              alt={t("decryptedPhoto")}
-            />
-          )}
-        </NeoCard>
+        </div>
       )}
     </div>
   );

@@ -7,7 +7,8 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { AAService, ChainService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { AAService, EventBus } from "@shared/services";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
@@ -50,14 +51,15 @@ type SessionConfiguration = {
 
 export interface UseAASessionKeyLabOptions {
   aa: AAService;
-  chain: ChainService;
+  /** MiniApp framework SDK (ctx.framework) — verifier reads + contract-arg builders. */
+  app: MiniAppFramework;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 export function useAASessionKeyLab({
   aa,
-  chain,
+  app,
   eventBus,
   t,
 }: UseAASessionKeyLabOptions) {
@@ -84,6 +86,7 @@ export function useAASessionKeyLab({
 
   const sponsorState = createObservable<Record<string, unknown> | null>(null);
   const generatedPrivateKey = createObservable("");
+  const generatedPublicKey = createObservable("");
   const lastConfigured = createObservable<SessionConfiguration | null>(null);
   const isSubmitting = createObservable(false);
   const isRevoking = createObservable(false);
@@ -306,6 +309,7 @@ export function useAASessionKeyLab({
   function generateSessionKey() {
     const pair = generateAASessionKeyPair();
     form.sessionPublicKey = pair.publicKey;
+    generatedPublicKey.set(pair.publicKey);
     generatedPrivateKey.set(pair.privateKey);
     eventBus.emit("sessionKey:generated", {});
   }
@@ -361,15 +365,15 @@ export function useAASessionKeyLab({
     description: string;
   }) {
     const base = [
-      { type: "Hash160", value: `0x${params.accountIdHash}` },
-      { type: "ByteArray", value: params.publicKey },
-      { type: "Hash160", value: params.targetContract },
-      { type: "String", value: params.allowedMethod },
-      { type: "Integer", value: String(params.expiresAt) },
+      app.chain.arg.hash160(`0x${params.accountIdHash}`),
+      app.chain.arg.byteArray(params.publicKey),
+      app.chain.arg.hash160(params.targetContract),
+      app.chain.arg.string(params.allowedMethod),
+      app.chain.arg.integer(params.expiresAt),
     ];
     if (network === "mainnet") {
-      base.push({ type: "Integer", value: params.spendingLimit });
-      base.push({ type: "String", value: params.description });
+      base.push(app.chain.arg.integer(params.spendingLimit));
+      base.push(app.chain.arg.string(params.description));
     }
     return base;
   }
@@ -401,9 +405,9 @@ export function useAASessionKeyLab({
     for (let attempt = 0; attempt < 4; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 4000 : 5000));
       try {
-        const read = await chain.read(
+        const read = await app.chain.readRaw(
           "getSessionKey",
-          [{ type: "Hash160", value: accountId }],
+          [app.chain.arg.hash160(accountId)],
           { scriptHash: sessionVerifier },
         );
         const text = JSON.stringify(read ?? "").toLowerCase();
@@ -435,11 +439,10 @@ export function useAASessionKeyLab({
         scriptHash: aaCore,
         operation: "callVerifier",
         args: [
-          { type: "Hash160", value: `0x${accountIdHash}` },
-          { type: "String", value: "setSessionKey" },
-          {
-            type: "Array",
-            value: buildSessionKeyArgs({
+          app.chain.arg.hash160(`0x${accountIdHash}`),
+          app.chain.arg.string("setSessionKey"),
+          app.chain.arg.array(
+            buildSessionKeyArgs({
               accountIdHash,
               publicKey,
               targetContract,
@@ -448,7 +451,7 @@ export function useAASessionKeyLab({
               spendingLimit,
               description: form.description.trim(),
             }),
-          },
+          ),
         ],
       });
 
@@ -486,9 +489,9 @@ export function useAASessionKeyLab({
     if (!sessionVerifier) throw new Error(t("sessionVerifierMissing"));
     const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
     const accountId = `0x${accountIdHash}`;
-    const read = await chain.read(
+    const read = await app.chain.readRaw(
       "getSessionKey",
-      [{ type: "Hash160", value: accountId }],
+      [app.chain.arg.hash160(accountId)],
       { scriptHash: sessionVerifier },
     );
     const present =
@@ -506,9 +509,9 @@ export function useAASessionKeyLab({
       const decoded = decodeSessionKey(read);
       let spentGas = "";
       try {
-        const spentRaw = await chain.read(
+        const spentRaw = await app.chain.readRaw(
           "getSpentAmount",
-          [{ type: "Hash160", value: accountId }],
+          [app.chain.arg.hash160(accountId)],
           { scriptHash: sessionVerifier },
         );
         spentGas = formatGasBaseUnits(spentRaw);
@@ -535,12 +538,9 @@ export function useAASessionKeyLab({
         scriptHash: aaCore,
         operation: "callVerifier",
         args: [
-          { type: "Hash160", value: `0x${accountIdHash}` },
-          { type: "String", value: "clearSessionKey" },
-          {
-            type: "Array",
-            value: [{ type: "Hash160", value: `0x${accountIdHash}` }],
-          },
+          app.chain.arg.hash160(`0x${accountIdHash}`),
+          app.chain.arg.string("clearSessionKey"),
+          app.chain.arg.array([app.chain.arg.hash160(`0x${accountIdHash}`)]),
         ],
       });
       onChainSession.set(null);
@@ -563,6 +563,7 @@ export function useAASessionKeyLab({
   return {
     form,
     generatedPrivateKey,
+    generatedPublicKey,
     lastConfigured,
     isSubmitting,
     isRevoking,

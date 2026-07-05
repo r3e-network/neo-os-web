@@ -29,8 +29,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/on-chain-tarot/index.html",
-    "icon": "/miniapps/on-chain-tarot/logo.jpg",
-    "banner": "/miniapps/on-chain-tarot/banner.jpg"
+    "icon": "/miniapps/on-chain-tarot/logo.webp",
+    "banner": "/miniapps/on-chain-tarot/banner.webp"
   },
   "permissions": [
     "invoke:primary",

@@ -116,6 +116,7 @@ const appMessages = {
   feature3Name: { en: "Actionable Tips", zh: "可执行建议" },
   feature3Desc: { en: "Next-step recommendations for better security.", zh: "提供下一步安全建议。" },
   healthSummary: { en: "Health Summary", zh: "健康概览" },
+  riskLabel: { en: "Risk", zh: "风险" },
   tokenNeo: { en: "NEO", zh: "NEO" },
 } as const;
 

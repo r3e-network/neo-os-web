@@ -18,14 +18,12 @@
 
 .neo-swap-token-icon img {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 116%;
+  height: 116%;
+  object-fit: contain;
 }
 
 .neo-swap-token-icon.has-image img {
-  width: 112%;
-  height: 112%;
   max-width: none;
 }
 

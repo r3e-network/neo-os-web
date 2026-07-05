@@ -114,7 +114,7 @@
       "onegateExport": "OneGate dApp エクスポート"
     },
     "hero": {
-      "title": "Yiwu MiniApps、あらゆる Neo シナリオの小さなツール。",
+      "title": "Neo Miniapps、あらゆる Neo シナリオのための洗練されたアプリ。",
       "body": "ゲーム、決済、オラクル、アカウント抽象化、ブリッジ、評価、コメント、コントラクト状態、ウォレット安全操作を単一の本番インターフェースにまとめます。",
       "catalogCta": "ミニアプリカタログを開く",
       "developerCta": "開発者コンソール"
@@ -140,6 +140,11 @@
     },
     "catalog": {
       "description": "カテゴリ別に洗練されたアプリを探し、専用プレイエリアと共有アクションコンソールを開けます。",
+      "previewEyebrow": "クイック発見",
+      "previewTitle": "一覧表ではなく、目的から選ぶ",
+      "previewBody": "ホームでは選択カテゴリの重要なアプリだけを短く表示します。全体を見たい場合はフルカタログを開いてください。",
+      "previewCta": "フルカタログを開く",
+      "moreCount": "フルカタログにはさらに {count} 件のアプリがあります。",
       "searchPlaceholder": "アプリ、カテゴリ、ID を検索",
       "ecosystems": "エコシステム",
       "shownCount": "{shown} 件表示",

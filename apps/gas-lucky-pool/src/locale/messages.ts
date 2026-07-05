@@ -79,6 +79,11 @@ const appMessagesBase = {
     zh: "幸运 GAS 奖励金库预览",
   },
   rewardPlanTitle: { en: "Reward plan", zh: "奖励计划" },
+  rewardPresetCta: { en: "Choose a reward package", zh: "选择奖励方案" },
+  rewardPresetHint: {
+    en: "Pick a preset now. Fine-tune amount, slots, range, and expiry in Manage.",
+    zh: "先选择一个方案。金额、名额、范围和过期时间可在管理里细调。",
+  },
   rewardMachineDraft: {
     en: "Set amount and slots to charge the vault",
     zh: "设置金额和名额后装填金库",
@@ -165,6 +170,10 @@ const appMessagesBase = {
   manageExistingTitle: {
     en: "Manage a pool you created",
     zh: "管理你创建的奖池",
+  },
+  managePoolShort: {
+    en: "Manage",
+    zh: "管理",
   },
   distributionPathsTitle: {
     en: "Two ways to distribute",
@@ -417,6 +426,9 @@ const jaMessages = {
   heroProofRandom: "ランダムGAS",
   vaultStageAria: "幸運GAS報酬金庫のプレビュー",
   rewardPlanTitle: "報酬プラン",
+  rewardPresetCta: "報酬パッケージを選択",
+  rewardPresetHint:
+    "まずプリセットを選び、詳細設定で金額、枠数、範囲、有効期限を調整できます。",
   rewardMachineDraft: "金額と枠数を設定して金庫にチャージ",
   rewardMachineReady: "金庫の準備ができ、開始できます",
   rewardPlanIncomplete:
@@ -458,6 +470,7 @@ const jaMessages = {
   sampleRewardLabel: "あなたの報酬",
   sampleLuckLabel: "かなりの幸運",
   manageExistingTitle: "作成したプールを管理",
+  managePoolShort: "管理",
   distributionPathsTitle: "2つの配布方法",
   pathOnChain:
     "オンチェーンプール — 受取人はここで資金提供したプールに対して claimRangeGasPool を呼び出します。",

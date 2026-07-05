@@ -202,7 +202,7 @@ export function NotificationDropdown({
             <h3 className="font-bold text-[15px] text-gray-900 flex items-center gap-2">
               Notifications
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-neo/20 text-neo text-[10px] font-black uppercase ">
+                <span className="px-2 py-0.5 rounded-full bg-neo/20 text-neo text-[10px] font-semibold uppercase ">
                   {unreadCount} New
                 </span>
               )}

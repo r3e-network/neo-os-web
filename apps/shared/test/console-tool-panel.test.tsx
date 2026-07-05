@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -105,6 +107,13 @@ function makeServices() {
   } as unknown as PlatformServices;
 }
 
+function sharedStyle(...segments: string[]) {
+  const sharedRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? process.cwd()
+    : path.resolve(process.cwd(), "apps/shared");
+  return readFileSync(path.join(sharedRoot, ...segments), "utf8");
+}
+
 function renderPanel({
   config = makeConfig(),
   state = makeState(),
@@ -127,11 +136,16 @@ function renderPanel({
   return { view, state, setStatus };
 }
 
+function openRequestDetails() {
+  fireEvent.click(screen.getByText(baseMessages.consoleParametersEdit.en));
+}
+
 afterEach(() => cleanup());
 
 describe("ConsoleToolPanel reset", () => {
   it("re-applies deep-link launch params instead of falling back to field defaults", () => {
     renderPanel({ launchContext: makeLaunchContext({ topic: "deep-link-topic" }) });
+    openRequestDetails();
 
     const input = screen.getByLabelText("Topic") as HTMLInputElement;
     expect(input.value).toBe("deep-link-topic");
@@ -148,6 +162,7 @@ describe("ConsoleToolPanel reset", () => {
 
   it("restores field defaults on reset when the app was not deep-linked", () => {
     renderPanel({ launchContext: makeLaunchContext() });
+    openRequestDetails();
 
     const input = screen.getByLabelText("Topic") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "edited-by-user" } });
@@ -203,6 +218,7 @@ describe("ConsoleToolPanel choice fields", () => {
     });
 
     expect(view.container.querySelector("select")).toBeNull();
+    openRequestDetails();
     expect(screen.getByRole("radio", { name: "Mode: GET" })).toBeTruthy();
     expect(screen.getByRole("radio", { name: "Mode: POST" })).toBeTruthy();
 
@@ -213,6 +229,54 @@ describe("ConsoleToolPanel choice fields", () => {
       { mode: "POST" },
       expect.any(Function),
     );
+  });
+});
+
+describe("ConsoleToolPanel visual density", () => {
+  it("keeps console configuration from becoming a heavy survey form", () => {
+    const styles = sharedStyle("components-react/ConsoleToolPanel.scss");
+    const rootBlock = styles.match(/\.console-tool\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const parametersBlock = styles.match(/\.console-tool__parameters\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const parametersSummaryBlock = styles.match(/\.console-tool__parameters > summary\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const choiceOptionsBlock = styles.match(/\.console-tool__choice-options\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const choiceButtonBlock = styles.match(/\.console-tool__choice-button\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const inputGridBlock = styles.match(/\.console-tool__input-grid\s*\{[\s\S]*?grid-template-columns[\s\S]*?\n\}/)?.[0] ?? "";
+    const wideCellBlock = styles.match(/\.console-tool__input-cell--wide\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+    const wideTextareaBlock = styles.match(/\.console-tool__input-cell--wide \.neo-input__textarea\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
+
+    expect(rootBlock).toContain("background: #ffffff;");
+    expect(rootBlock).not.toContain("linear-gradient");
+    expect(parametersBlock).toContain("background: rgba(255, 255, 255, 0.82)");
+    expect(parametersSummaryBlock).toContain("min-height: 58px");
+    expect(parametersSummaryBlock).toContain("cursor: pointer");
+    expect(styles).toMatch(/\.console-tool__parameters-body\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).not.toMatch(/font-weight:\s*(?:8\d\d|9\d\d|bold|bolder)\s*;/);
+    expect(choiceOptionsBlock).toContain("display: flex");
+    expect(choiceOptionsBlock).toContain("width: fit-content");
+    expect(choiceOptionsBlock).not.toContain("grid-template-columns");
+    expect(choiceButtonBlock).toContain("min-height: 38px");
+    expect(choiceButtonBlock).toContain("border-radius: var(--ns-radius-full)");
+    expect(choiceButtonBlock).not.toContain("min-height: 58px");
+    expect(inputGridBlock).toContain("grid-template-columns: repeat(auto-fit, minmax(220px, 320px));");
+    expect(inputGridBlock).toContain("justify-content: start");
+    expect(wideCellBlock).toContain("width: min(100%, 680px)");
+    expect(wideTextareaBlock).toContain("min-height: 88px");
+    expect(wideTextareaBlock).toContain("max-height: 148px");
+  });
+
+  it("keeps editable request parameters collapsed behind the summary by default", () => {
+    const { view } = renderPanel();
+    const details = view.container.querySelector(
+      ".console-tool__parameters",
+    ) as HTMLDetailsElement;
+
+    expect(details).toBeTruthy();
+    expect(details.open).toBe(false);
+    expect(screen.getByText(baseMessages.consoleParametersHint.en)).toBeTruthy();
+
+    fireEvent.click(screen.getByText(baseMessages.consoleParametersEdit.en));
+    expect(details.open).toBe(true);
+    expect(screen.getByLabelText("Topic")).toBeTruthy();
   });
 });
 

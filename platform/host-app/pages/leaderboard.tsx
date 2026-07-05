@@ -14,7 +14,7 @@ export default function LeaderboardPage() {
   return (
     <Layout>
       <Head>
-        <title>Leaderboard - Yiwu</title>
+        <title>Leaderboard - Neo Miniapps</title>
       </Head>
       <div className="pb-16 pt-20">
         <PageHero

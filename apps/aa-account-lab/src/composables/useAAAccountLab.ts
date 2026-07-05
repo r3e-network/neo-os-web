@@ -7,7 +7,7 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import {
   addressToScriptHash,
@@ -26,12 +26,12 @@ import {
 } from "@shared/constants/rpc";
 
 export interface UseAAAccountLabOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   storageService: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOptions) {
+export function useAAAccountLab({ app, storageService, t }: UseAAAccountLabOptions) {
   const network = getNetwork();
   const integration = getExternalIntegrationConfig(network);
   const aaCore = integration.contracts.aaCore;
@@ -92,7 +92,7 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
       return hash ? `0x${hash}` : "";
     },
     set: () => {},
-    subscribe: (fn) => chain.address.subscribe(fn),
+    subscribe: (fn) => app.chain.address.subscribe(fn),
   };
 
   // Helpers
@@ -126,7 +126,7 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
   // unless the backup owner signs, so the backup owner must equal the connected
   // wallet.
   function connectedWalletHash(): string {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) return "";
     try {
       const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
@@ -187,14 +187,15 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
       isInspecting.set(true);
       const accountIdHash = normalizeAccountIdHash(inspectForm.accountIdInput);
       const accountId = `0x${accountIdHash}`;
+      const accountIdArg = app.chain.arg.hash160(accountId);
 
       const [verifierResult, hookResult, backupResult, timelockResult, escapeActiveResult] =
         await Promise.all([
-          chain.read("getVerifier", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-          chain.read("getHook", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-          chain.read("getBackupOwner", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-          chain.read("getEscapeTimelock", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-          chain.read("isEscapeActive", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+          app.chain.readRaw("getVerifier", [accountIdArg], { scriptHash: aaCore }),
+          app.chain.readRaw("getHook", [accountIdArg], { scriptHash: aaCore }),
+          app.chain.readRaw("getBackupOwner", [accountIdArg], { scriptHash: aaCore }),
+          app.chain.readRaw("getEscapeTimelock", [accountIdArg], { scriptHash: aaCore }),
+          app.chain.readRaw("isEscapeActive", [accountIdArg], { scriptHash: aaCore }),
         ]);
 
       currentVerifier.set(formatHash160Read(verifierResult));
@@ -251,15 +252,15 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
         escapeTimelock,
       });
 
-      await chain.invoke(
+      await app.chain.invoke(
         "registerAccount",
         [
-          { type: "Hash160", value: `0x${accountIdHash}` },
-          { type: "Hash160", value: verifierHash },
-          { type: "ByteArray", value: verifierParams },
-          { type: "Hash160", value: hookHash },
-          { type: "Hash160", value: backupOwner },
-          { type: "Integer", value: String(escapeTimelock) },
+          app.chain.arg.hash160(`0x${accountIdHash}`),
+          app.chain.arg.hash160(verifierHash),
+          app.chain.arg.byteArray(verifierParams),
+          app.chain.arg.hash160(hookHash),
+          app.chain.arg.hash160(backupOwner),
+          app.chain.arg.integer(escapeTimelock),
         ],
         { scriptHash: aaCore },
       );
@@ -292,9 +293,9 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     for (let attempt = 0; attempt < 4; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 4000 : 5000));
       try {
-        const verifier = await chain.read(
+        const verifier = await app.chain.readRaw(
           "getVerifier",
-          [{ type: "Hash160", value: accountId }],
+          [app.chain.arg.hash160(accountId)],
           { scriptHash: aaCore },
         );
         const display = parseHash160(verifier);

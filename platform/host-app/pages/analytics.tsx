@@ -5,7 +5,7 @@ export default function AnalyticsPage() {
   return (
     <Layout>
       <Head>
-        <title>Analytics Unavailable - Yiwu</title>
+        <title>Analytics Unavailable - Neo Miniapps</title>
       </Head>
       <PageNotice
         eyebrow="Frontend policy"

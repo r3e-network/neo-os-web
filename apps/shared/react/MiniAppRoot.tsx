@@ -45,6 +45,9 @@ import { StandardAppShell } from "../templates/StandardAppShell";
 import { MiniAppPage } from "../components/MiniAppPage";
 import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { GameHomePage } from "../components-react/GameHomePage";
+import { createMiniAppFramework } from "../../../framework";
+import type { MiniAppFramework } from "../../../framework";
 import type { TranslationMap } from "../utils/i18n";
 import {
   readMiniAppLaunchContext,
@@ -93,6 +96,7 @@ export interface MiniAppSetupContext {
   setStatus: (msg: string, type: StatusType) => void;
   clearStatus: () => void;
   launchContext: MiniAppLaunchContext;
+  framework: MiniAppFramework;
   registerAction: (
     key: string,
     handler: (...args: unknown[]) => Promise<unknown>,
@@ -251,6 +255,21 @@ export function MiniAppRoot({
     [],
   );
 
+  const frameworkRef = useRef<MiniAppFramework | null>(null);
+  if (frameworkRef.current === null) {
+    frameworkRef.current = createMiniAppFramework({
+      services,
+      os: services.os,
+      t: tFn,
+      state: appStateRef.current,
+      setStatus: setStatusWithFireworks,
+      clearStatus,
+      launchContext,
+      registerAction,
+    }, { appId });
+  }
+  const framework = frameworkRef.current;
+
   // --------------------------------------------------------------------------
   // Context
   // --------------------------------------------------------------------------
@@ -264,6 +283,7 @@ export function MiniAppRoot({
       state: appStateRef.current,
       setStatus: setStatusWithFireworks,
       clearStatus,
+      framework,
       registerAction,
     };
   }
@@ -271,6 +291,7 @@ export function MiniAppRoot({
   // Keep mutable fields up to date
   ctxRef.current.setStatus = setStatusWithFireworks;
   ctxRef.current.clearStatus = clearStatus;
+  ctxRef.current.framework = framework;
 
   // --------------------------------------------------------------------------
   // Setup Hook Execution & Lifecycle
@@ -344,6 +365,7 @@ export function MiniAppRoot({
             setStatus: setStatusWithFireworks,
             clearStatus,
             launchContext,
+            framework,
             registerAction,
           };
 
@@ -493,6 +515,8 @@ export function MiniAppRoot({
   const sidebarTitle = tFn(manifest.sidebar?.titleKey ?? "overview");
   const hasOperations = (manifest.operations?.length ?? 0) > 0;
   const standaloneDappMode = isStandaloneDappLaunch(launchContext);
+  const shouldShowGameHomePage = manifest.shell === "game";
+  const oneGateDirectPlay = launchContext.source.trim().toLowerCase() === "onegate";
 
   const handleBoundaryError = useCallback(
     (error: Error) => {
@@ -528,6 +552,19 @@ export function MiniAppRoot({
       />
     </ErrorBoundary>
   );
+  const gameSurface = shouldShowGameHomePage ? (
+    <GameHomePageWrapper
+      manifest={manifest}
+      appState={appStateRef.current}
+      t={tFn}
+      stateVersion={stateVersion}
+      skipLaunchPage={oneGateDirectPlay}
+    >
+      {playArea}
+    </GameHomePageWrapper>
+  ) : (
+    playArea
+  );
 
   // --------------------------------------------------------------------------
   // Render
@@ -543,7 +580,7 @@ export function MiniAppRoot({
                 status={status}
                 fireworksActive={fireworksActive}
               >
-                {playArea}
+                {gameSurface}
               </StandaloneDappSurface>
             ) : (
               <StandardAppShell>
@@ -576,7 +613,7 @@ export function MiniAppRoot({
                       : undefined
                   }
                 >
-                  {playArea}
+                  {gameSurface}
                 </MiniAppPage>
               </StandardAppShell>
             )}
@@ -596,29 +633,111 @@ function StandaloneDappSurface({
   fireworksActive: boolean;
   children: React.ReactNode;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || window.parent === window) {
+      return undefined;
+    }
+
+    let animationFrame = 0;
+    const postHeight = () => {
+      const root = rootRef.current;
+      if (!root) return;
+      const rootRect = root.getBoundingClientRect();
+      const contentHeight = Array.from(root.children).reduce((max, child) => {
+        if (!(child instanceof HTMLElement) || child.tagName === "STYLE") {
+          return max;
+        }
+        const rect = child.getBoundingClientRect();
+        return Math.max(max, rect.bottom - rootRect.top);
+      }, 0);
+      const height = Math.ceil(contentHeight || rootRect.height);
+      if (!Number.isFinite(height) || height <= 0) return;
+      window.parent.postMessage(
+        {
+          type: "neo-miniapp:resize",
+          height,
+        },
+        "*",
+      );
+    };
+    const schedulePostHeight = () => {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0;
+        postHeight();
+      });
+    };
+
+    schedulePostHeight();
+    const root = rootRef.current;
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && root
+        ? new ResizeObserver(schedulePostHeight)
+        : null;
+    if (root && resizeObserver) {
+      resizeObserver.observe(root);
+    }
+    window.addEventListener("load", schedulePostHeight);
+
+    return () => {
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("load", schedulePostHeight);
+    };
+  }, []);
+
   return (
     <div
+      ref={rootRef}
       className={`standalone-dapp-root${fireworksActive ? " standalone-dapp-root--celebrating" : ""}`}
       data-testid="standalone-dapp-root"
       style={{
         minHeight: "100vh",
-        background: "#ffffff",
-        color: "#18181b",
+        background: "var(--sd-canvas, #FAF9F7)",
+        color: "var(--sd-ink, #1A1A19)",
         fontFamily:
           "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
       }}
     >
-      {/* Polymarket-light reset — cascades inside every embedded dApp iframe
-          so the platform doesn't have to redesign each dApp individually.
-          Targets the most common dark-mode offenders by attribute/class
-          patterns. Per-dApp SCSS still wins via specificity when needed. */}
+      {/* Neo v4 Design Language reset — cascades inside every embedded dApp iframe.
+          Uses warm canvas (#FAF9F7) instead of pure white. See docs/DESIGN_LANGUAGE.md.
+          Per-dApp SCSS still wins via specificity when needed. */}
       <style>{`
+        /* ── v4 Design Tokens ─────────────────────────── */
+        .standalone-dapp-root {
+          --sd-canvas: #FAF9F7;
+          --sd-canvas-alt: #F4F2EF;
+          --sd-surface: #FFFFFF;
+          --sd-surface-hover: #F1EFEC;
+          --sd-border: #E8E6E1;
+          --sd-border-strong: #D4D0C9;
+          --sd-ink: #1A1A19;
+          --sd-ink-secondary: #5C5A56;
+          --sd-ink-tertiary: #8B8984;
+          --sd-brand: #16C784;
+          --sd-brand-hover: #0EA371;
+          --sd-brand-light: #E8F8F1;
+          --sd-success: #22C55E;
+          --sd-warning: #F59E0B;
+          --sd-error: #EF4444;
+          --sd-radius-sm: 8px;
+          --sd-radius-md: 12px;
+          --sd-radius-lg: 16px;
+          --sd-radius-full: 9999px;
+          --sd-shadow-card: 0 1px 3px rgba(0,0,0,0.04);
+          --sd-shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06);
+          --sd-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+          --sd-dur-fast: 150ms;
+          line-height: 1.55;
+        }
         .standalone-dapp-root,
         .standalone-dapp-root body {
-          background: #ffffff !important;
-          color: #18181b !important;
+          background: var(--sd-canvas) !important;
+          color: var(--sd-ink) !important;
         }
         .standalone-dapp-root .play-area,
         .standalone-dapp-root [class*="-play-area"],
@@ -626,8 +745,8 @@ function StandaloneDappSurface({
         .standalone-dapp-root .checkin-stat-item,
         .standalone-dapp-root .NeoCard,
         .standalone-dapp-root .neo-card {
-          background-color: #ffffff !important;
-          color: #18181b;
+          background-color: var(--sd-surface) !important;
+          color: var(--sd-ink);
         }
         /* Neutralize common dark surface patterns inside dApps. */
         .standalone-dapp-root [class*="-bg-slate"],
@@ -639,20 +758,23 @@ function StandaloneDappSurface({
         .standalone-dapp-root [style*="background: #1"],
         .standalone-dapp-root [style*="background-color: #0"],
         .standalone-dapp-root [style*="background-color: #1"] {
-          /* leave alone if dApp explicitly opted in — but make sure text reads */
           color: inherit;
         }
-        /* Light cards by default for any element using common card class names. */
+        /* Light cards for any element using common card class names. */
         .standalone-dapp-root [class*="card-"]:not([class*="dark"]):not([class*="brand"]) {
-          color: #18181b;
+          background: var(--sd-surface) !important;
+          border: 1px solid var(--sd-border);
+          border-radius: var(--sd-radius-md);
+          box-shadow: var(--sd-shadow-card);
+          color: var(--sd-ink);
         }
-        /* Headings — readable on white bg. */
+        /* Headings. */
         .standalone-dapp-root h1,
         .standalone-dapp-root h2,
         .standalone-dapp-root h3,
         .standalone-dapp-root h4,
         .standalone-dapp-root h5 {
-          color: #18181b;
+          color: var(--sd-ink);
         }
         /* Body text default. */
         .standalone-dapp-root p,
@@ -662,11 +784,11 @@ function StandaloneDappSurface({
         .standalone-dapp-root th {
           color: inherit;
         }
-        /* Polymarket-light status toast styling. */
+        /* ── Status Toast v4 ──────────────────────────── */
         .standalone-dapp-root .status-toast {
           position: fixed;
           top: auto;
-          bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+          bottom: calc(16px + env(safe-area-inset-bottom, 0px));
           left: 50%;
           transform: translateX(-50%);
           z-index: 1000;
@@ -675,11 +797,11 @@ function StandaloneDappSurface({
           justify-content: center;
           gap: 8px;
           width: max-content;
-          max-width: min(calc(100vw - 32px), 680px);
+          max-width: min(calc(100vw - 32px), 520px);
           padding: 11px 14px;
-          border-radius: 14px;
-          background: #ffffff !important;
-          color: #18181b !important;
+          border-radius: 12px;
+          background: var(--sd-surface) !important;
+          color: var(--sd-ink) !important;
           font-size: 13px;
           font-weight: 600;
           line-height: 1.4;
@@ -687,11 +809,9 @@ function StandaloneDappSurface({
           white-space: normal;
           opacity: 1 !important;
           pointer-events: none;
-          border: 1px solid #dfe4ea;
-          box-shadow:
-            0 20px 46px -18px rgba(15, 23, 42, 0.42),
-            0 1px 2px rgba(15, 23, 42, 0.08);
-          animation: standalone-toast-enter 180ms ease-out both !important;
+          border: 1px solid var(--sd-border-strong);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+          animation: standalone-toast-enter 200ms var(--sd-ease-out) both !important;
         }
         .standalone-dapp-root .status-toast > span:last-child {
           color: inherit !important;
@@ -700,10 +820,10 @@ function StandaloneDappSurface({
           width: 6px;
           height: 6px;
           border-radius: 999px;
-          background: #00b87a;
+          background: var(--sd-brand);
         }
         .standalone-dapp-root .status-toast.success {
-          background: #f0fdf4 !important;
+          background: var(--sd-brand-light) !important;
           color: #065f46 !important;
           border-color: #bbf7d0;
         }
@@ -713,37 +833,37 @@ function StandaloneDappSurface({
           border-color: #fde68a;
         }
         .standalone-dapp-root .status-toast.info {
-          background: #f0f9ff !important;
-          color: #075985 !important;
-          border-color: #bae6fd;
+          background: #eff6ff !important;
+          color: #1e40af !important;
+          border-color: #bfdbfe;
         }
         .standalone-dapp-root .status-toast.error,
         .standalone-dapp-root .status-toast.danger {
-          background: #fff6f6 !important;
-          color: #7f1d1d !important;
+          background: #fef2f2 !important;
+          color: #991b1b !important;
           border-color: #fecaca;
         }
         .standalone-dapp-root .status-toast.error .toast-dot,
         .standalone-dapp-root .status-toast.danger .toast-dot {
-          background: #d93f3f;
+          background: var(--sd-error);
         }
         @keyframes standalone-toast-enter {
           from {
             opacity: 0;
-            transform: translateX(-50%) translateY(8px) scale(0.98);
+            transform: translateX(-50%) translateY(8px) scale(0.97);
           }
           to {
             opacity: 1;
             transform: translateX(-50%) translateY(0) scale(1);
           }
         }
-        /* Scrollbar styling for consistency. */
+        /* Scrollbar — warm style. */
         .standalone-dapp-root ::-webkit-scrollbar {
           width: 6px;
           height: 6px;
         }
         .standalone-dapp-root ::-webkit-scrollbar-thumb {
-          background: #cad1d9;
+          background: var(--sd-border-strong);
           border-radius: 999px;
         }
         .standalone-dapp-root ::-webkit-scrollbar-track {
@@ -776,4 +896,170 @@ const MINIAPP_PLATFORM_SOURCES = new Set([
 function isStandaloneDappLaunch(launchContext: MiniAppLaunchContext): boolean {
   const source = launchContext.source.trim().toLowerCase();
   return !MINIAPP_PLATFORM_SOURCES.has(source);
+}
+
+function compactGameLaunchCopy(value: string, maxLength = 138): string {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (clean.length <= maxLength) return clean;
+  const firstSentence = clean.match(/^.+?[.!?](\s|$)/)?.[0]?.trim();
+  if (firstSentence && firstSentence.length >= 24 && firstSentence.length <= maxLength) {
+    return firstSentence;
+  }
+  const truncated = clean.slice(0, maxLength + 1);
+  const lastSpace = truncated.lastIndexOf(" ");
+  const boundary = lastSpace > 72 ? lastSpace : maxLength;
+  return `${clean.slice(0, boundary).trim()}...`;
+}
+
+// ============================================================================
+// GameHomePageWrapper — auto-renders a focused launch page for game miniapps
+// ============================================================================
+
+/**
+ * Wraps a game miniapp's PlayArea with a landing page when the game is idle.
+ * The landing page is built from `gamePage` when provided, otherwise from
+ * the manifest's name, description, and docs.
+ * That keeps all shell="game" apps from falling back to a form-first screen.
+ */
+function GameHomePageWrapper({
+  manifest,
+  appState,
+  t,
+  stateVersion,
+  skipLaunchPage = false,
+  children,
+}: {
+  manifest: MiniAppManifest;
+  appState: Record<string, Observable>;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  stateVersion: number;
+  skipLaunchPage?: boolean;
+  children: React.ReactNode;
+}) {
+  const gamePage = manifest.gamePage;
+  const [showGame, setShowGame] = useState(false);
+  const _sv = stateVersion; // re-render when observables change
+
+  // ── Auto-switch to game when gameStatus leaves idle ──
+  const gameStatusObs = appState["gameStatus"];
+  const gameStatus =
+    typeof gameStatusObs?.get === "function"
+      ? (gameStatusObs.get() as string | undefined)
+      : undefined;
+
+  useEffect(() => {
+    if (!gameStatusObs || typeof gameStatusObs.subscribe !== "function") return;
+    const unsub = gameStatusObs.subscribe(() => {
+      const s = gameStatusObs.get() as string | undefined;
+      if (s && s !== "idle") setShowGame(true);
+    });
+    return unsub;
+  }, [gameStatusObs]);
+
+  const translate = useCallback(
+    (key: string | undefined, fallback = "") => {
+      if (!key) return fallback;
+      const value = t(key);
+      return value && value !== key ? value : fallback;
+    },
+    [t],
+  );
+
+  // In OneGate the native wallet already owns the container and app listing.
+  // Open directly into the dApp so users see the game itself, not host chrome.
+  if (skipLaunchPage || showGame || (gameStatus && gameStatus !== "idle")) {
+    return <>{children}</>;
+  }
+
+  const rulesDoc = manifest.docs?.find(
+    (d) => d.type === "steps" || d.titleKey.toLowerCase().includes("rules") || d.titleKey.toLowerCase().includes("rule"),
+  );
+  const rulesPreview = rulesDoc
+    ? { title: translate(rulesDoc.titleKey), content: translate(rulesDoc.contentKey) }
+    : undefined;
+
+  const heroTitle = gamePage
+    ? translate(gamePage.heroTitleKey, manifest.name)
+    : manifest.name;
+  const heroDesc = compactGameLaunchCopy(
+    gamePage
+      ? translate(gamePage.heroDescKey, manifest.description ?? "")
+      : manifest.description ?? "Play the game, connect your wallet, and submit verified results when the run is complete.",
+  );
+  const primaryLabel = gamePage
+    ? translate(gamePage.primaryLabelKey, translate("startAction", "Start game"))
+    : translate("startAction", "Start game");
+  const features =
+    gamePage?.features?.map((feature) => ({
+      icon: feature.icon,
+      title: translate(feature.titleKey),
+      desc: compactGameLaunchCopy(translate(feature.descKey), 180),
+      large: feature.large,
+      gradient: feature.gradient,
+    })) ?? [];
+  const ctaTitle = gamePage?.ctaTitleKey
+    ? translate(gamePage.ctaTitleKey)
+    : "";
+  const ctaDesc = gamePage?.ctaDescKey
+    ? compactGameLaunchCopy(translate(gamePage.ctaDescKey), 160)
+    : "";
+  const ctaLabel = gamePage?.ctaLabelKey
+    ? translate(gamePage.ctaLabelKey, primaryLabel)
+    : gamePage
+      ? primaryLabel
+      : undefined;
+  const heroTitleAccent = gamePage?.heroTitleAccent
+    ? translate(gamePage.heroTitleAccent, gamePage.heroTitleAccent)
+    : undefined;
+
+  return (
+    <GameHomePage
+      appLogoUrl="./logo.webp"
+      appBannerUrl="./banner.webp"
+      appIcon={gamePage?.appIcon}
+      appName={manifest.name}
+      categoryColor={gamePage?.categoryColor ?? manifest.theme?.accentColor ?? "#10B981"}
+      heroBadge={gamePage ? translate(gamePage.heroBadgeKey, translate("playTab", "Game")) : translate("playTab", "Game")}
+      heroTitle={heroTitle}
+      heroTitleAccent={heroTitleAccent}
+      heroDesc={heroDesc}
+      primaryLabel={primaryLabel}
+      ghostLabel={
+        gamePage?.ghostLabelKey
+          ? translate(gamePage.ghostLabelKey, translate("rulesTitle", "How to play"))
+          : rulesPreview
+            ? translate("rulesTitle", "How to play")
+            : undefined
+      }
+      onPrimaryClick={() => setShowGame(true)}
+      onGhostClick={() => setShowGame(true)}
+      stats={[]}
+      featuresEyebrow={
+        gamePage?.featuresEyebrowKey
+          ? translate(gamePage.featuresEyebrowKey)
+          : undefined
+      }
+      featuresTitle={
+        gamePage?.featuresTitleKey
+          ? translate(gamePage.featuresTitleKey)
+          : undefined
+      }
+      features={features}
+      lbEyebrow={
+        gamePage?.lbEyebrowKey ? translate(gamePage.lbEyebrowKey) : undefined
+      }
+      lbTitle={
+        gamePage?.lbTitleKey ? translate(gamePage.lbTitleKey) : translate("ranksTab", "Leaderboard")
+      }
+      leaderboard={[]}
+      ctaTitle={ctaTitle}
+      ctaDesc={ctaDesc}
+      ctaLabel={ctaLabel}
+      trustBadges={
+        gamePage?.trustBadgeKeys?.map((key) => translate(key)).filter(Boolean) ??
+        ["Neo N3", "Wallet signed", "Verified result"]
+      }
+      rulesPreview={rulesPreview}
+    />
+  );
 }

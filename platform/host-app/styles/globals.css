@@ -4,177 +4,87 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --neo: 160 100% 45%;
-    --electric-purple: 266 100% 50%;
-    --font-inter: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-outfit: Outfit, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
-    /* Neo Soft canonical tokens — see docs/DESIGN_SYSTEM.md */
-    --ns-bg: #f4f5f7;
-    --ns-bg-2: #eceef2;
-    --ns-surface: #ffffff;
-    --ns-surface-subtle: #f7f8fa;
-    --ns-border: rgba(20, 22, 38, 0.06);
-    --ns-border-strong: rgba(20, 22, 38, 0.1);
-    --ns-ink: #1e1e2e;
-    --ns-text: #2a2d3d;
-    --ns-text-2: #5b6478;
-    --ns-text-muted: #8a92a6;
-    --ns-text-faint: #aeb4c2;
-    --ns-brand: #16c784;
-    --ns-brand-strong: #0fb174;
-    --ns-brand-soft: #e4f8f0;
-    --ns-violet: #7b61ff;
-    --ns-violet-strong: #6a4df4;
-    --ns-violet-soft: #eeeaff;
-    --ns-down: #ea3943;
-    --ns-gradient-hero: linear-gradient(135deg, #8b7bf0 0%, #a99cf5 100%);
-    --ns-gradient-brand: linear-gradient(135deg, #16c784 0%, #7b61ff 100%);
-    --ns-radius-lg: 20px;
-    --ns-radius-xl: 24px;
-    --ns-shadow-sm: 0 2px 8px rgba(20, 22, 38, 0.05);
-    --ns-shadow-md: 0 8px 24px rgba(20, 22, 38, 0.06);
-    --ns-shadow-lg: 0 16px 40px rgba(20, 22, 38, 0.1);
-    --ns-focus-ring: 0 0 0 4px rgba(123, 97, 255, 0.18);
-
-    /* Neo Soft tokens (legacy pm-* aliases mapped onto Neo Soft) */
-    --pm-bg: #ffffff;
-    --pm-surface: #f7f8fa;
-    --pm-surface-2: #f4f5f7;
-    --pm-border: rgba(20, 22, 38, 0.06);
-    --pm-border-strong: rgba(20, 22, 38, 0.1);
-    --pm-text: #1e1e2e;
-    --pm-text-2: #5b6478;
-    --pm-text-muted: #8a92a6;
-    --pm-text-faint: #aeb4c2;
-    --pm-shadow-card: 0 8px 24px rgba(20, 22, 38, 0.06);
+    --canvas-primary: #faf9f7;
+    --canvas-secondary: #f4f2ef;
+    --canvas-tertiary: #eeece9;
+    --surface-primary: #ffffff;
+    --surface-secondary: #f8f7f5;
+    --surface-hover: #f1efec;
+    --border-primary: #e8e6e1;
+    --border-secondary: #e0ddd7;
+    --border-strong: #d4d0c9;
+    --ink-primary: #1a1a19;
+    --ink-secondary: #5c5a56;
+    --ink-tertiary: #8b8984;
+    --brand-primary: #16c784;
+    --brand-hover: #0ea371;
   }
 
   * {
-    @apply border-gray-200;
+    border-color: var(--border-primary);
   }
 
   html {
     @apply scroll-smooth;
     scrollbar-gutter: stable;
-    /* Inter as primary. Outfit kept as a fallback for headings that opt in. */
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   body {
-    background: var(--ns-bg);
-    @apply text-gray-900 antialiased;
+    background: var(--canvas-primary);
+    color: var(--ink-primary);
+    @apply antialiased;
+  }
+
+  ::selection {
+    background: rgba(22, 199, 132, 0.16);
+    color: var(--ink-primary);
   }
 }
 
 @layer components {
-  .glass-panel {
-    background: var(--ns-surface);
-    border: 1px solid var(--ns-border);
-    border-radius: var(--ns-radius-lg);
-    box-shadow: var(--ns-shadow-sm);
-  }
-
-  /* Polymarket-style "live" pulse — a soft 1.6s ease-in-out glow used on
-     status dots next to LIVE labels. Falls back to no animation when the
-     user requests reduced motion. */
-  .animate-pulse-dot {
-    animation: pm-pulse-dot 1.6s ease-in-out infinite;
-  }
-
-  @keyframes pm-pulse-dot {
-    0%, 100% {
-      opacity: 1;
-      box-shadow: 0 0 0 0 rgba(22, 199, 132, 0.5);
-    }
-    50% {
-      opacity: 0.7;
-      box-shadow: 0 0 0 4px rgba(22, 199, 132, 0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .animate-pulse-dot {
-      animation: none;
-    }
-  }
-
-  /* Neo Soft card: solid white, hairline border, soft floating shadow.
-     Hover lifts the card with a deeper soft shadow. */
-  .glass-card {
-    background: var(--ns-surface);
-    border: 1px solid var(--ns-border);
-    border-radius: var(--ns-radius-lg);
-    box-shadow: var(--ns-shadow-md);
+  .v4-card {
+    background: var(--surface-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     transition:
-      transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      transform 150ms ease-out,
+      box-shadow 150ms ease-out,
+      border-color 150ms ease-out,
+      background-color 150ms ease-out;
   }
-  .glass-card:hover {
+
+  .v4-card:hover {
+    border-color: var(--border-secondary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     transform: translateY(-2px);
-    box-shadow: var(--ns-shadow-lg);
   }
 
-  .neo-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#16C784] via-[#3E8CFF] to-[#7B61FF];
+  .v4-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
 
-  .neo-glow {
-    @apply relative after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[0_0_20px_rgba(22,199,132,0.3)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 after:z-[-1];
+  .page-transition {
+    animation: page-enter 200ms ease-out both;
   }
 
-  .miniapp-stable-scroll,
-  .miniapp-stable-scroll * {
-    overflow-anchor: none;
-  }
-
-  .focus-mode-layout {
-    align-items: start;
-  }
-
-  .focus-mode-canvas {
-    overflow: hidden;
-    border: 1px solid var(--ns-border);
-    border-radius: 24px;
-    background: var(--ns-surface);
-    box-shadow: var(--ns-shadow-md);
-  }
-
-  .focus-mode-action-panel {
-    box-shadow: 0 18px 46px rgba(20, 22, 38, 0.08);
-  }
-
-  .focus-mode-reference {
-    color: var(--ns-text);
-  }
-
-  .focus-play-shell {
-    min-height: min(780px, calc(100vh - 132px));
-    color: var(--ns-text);
-  }
-
-  .focus-play-shell iframe {
-    background: var(--ns-bg);
-  }
-
-  @media (min-width: 1280px) {
-    .focus-mode-action-panel {
-      min-height: 520px;
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
     }
-  }
 
-  .animated-gradient-bg {
-    background: linear-gradient(-45deg, #16c784, #3e8cff, #7b61ff, #16c784);
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -182,94 +92,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+  @apply rounded-full bg-border-strong transition-colors hover:bg-ink-muted;
 }
 
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Route enter transition — a CSS-only replacement for the framer-motion page
-   wrapper that previously shipped in the shared `_app` bundle. Keyed off
-   `router.asPath` via React `key`, so each navigation remounts the main element
-   and replays this animation. The global prefers-reduced-motion block above
-   collapses it to ~0ms for users who opt out. */
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-transition {
-  animation: page-enter 0.2s ease-in-out both;
-}
-
-/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* Focus-visible ring utility for interactive elements */
-@layer utilities {
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
-  }
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- Docs Page — Professional Typography
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-/* Inline code pills within prose sections */
-.prose code:not(pre code) {
-  @apply rounded-md px-1.5 py-0.5 text-[0.85em] font-semibold;
-  background: rgba(22, 199, 132, 0.06);
-  color: rgb(15, 177, 116);
-  border: 1px solid rgba(22, 199, 132, 0.12);
-  font-family: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
-}
-
-/* Blockquote callout style in prose */
-.prose blockquote {
-  @apply rounded-r-lg border-l-[3px] border-neo/50 bg-neo/[0.03] px-5 py-4;
-}
-
-.prose blockquote p {
-  @apply !mb-0;
-}
-
-/* Strong in prose docs */
-.prose strong {
-  @apply font-bold text-gray-900;
-}
-
-/* HR dividers */
-.prose hr {
-  @apply !my-10 border-none;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(22, 199, 132, 0.15),
-    transparent
-  );
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -278,7 +110,7 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

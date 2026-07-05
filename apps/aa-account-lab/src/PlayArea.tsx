@@ -1,565 +1,411 @@
 /**
- * PlayArea.tsx - AA Account Lab
+ * PlayArea.tsx -- AA Account Lab (v2 scene-driven rebuild)
  *
- * Wallet-style AA account registration and inspection workspace.
+ * Tool identity (graphite + emerald, clean/technical). The account shell IS the
+ * scene: an assembly diagram (verifier + hook + backup owner + escape window)
+ * that lights up segment by segment as the draft is completed, plus a live AA
+ * Core readout once inspected. Inspect is the primary read; Register is the
+ * primary write (guarded). The register form + timelock explainer + mainnet
+ * caution are tucked into a drawer so the stage stays clean and primary.
+ *
+ * Real domain state from useAAAccountLab is bound throughout; the generic
+ * "Execute/Ready" template is gone.
  */
-
-import { useEffect, useMemo, useRef, useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { StateView } from "@shared/components";
-import {
-  ChevronDown,
-  Fingerprint,
-  KeyRound,
-  Link2,
-  Search,
-  ShieldCheck,
-  TriangleAlert,
-  Wallet,
-} from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Clock3, KeyRound, Search, ShieldCheck, Wallet } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
-import { deriveRegistrationAccountIdHash } from "@shared/utils/aa-account";
-import { DEFAULT_ESCAPE_TIMELOCK, getAccountLabLaunchDefaults } from "./launch";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext: MiniAppLaunchContext;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-const DASH = "—";
-type AccountActionPreview = "inspect" | "register" | "connect";
+function compactHash(value: string): string {
+  const v = String(value || "").trim();
+  if (!v) return "—";
+  if (v.length <= 14) return v;
+  return `${v.slice(0, 8)}…${v.slice(-6)}`;
+}
 
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-}: PlayAreaProps) {
+const ACCOUNT_PLANS = [
+  { key: "daily", label: "accountPlanDaily", copy: "accountPlanDailyCopy", timelock: "2592000" },
+  { key: "fast", label: "accountPlanFast", copy: "accountPlanFastCopy", timelock: "604800" },
+  { key: "cold", label: "accountPlanCold", copy: "accountPlanColdCopy", timelock: "7776000" },
+] as const;
+
+const TIMELOCK_PRESETS = [
+  { key: "7d", seconds: "604800" },
+  { key: "30d", seconds: "2592000" },
+  { key: "90d", seconds: "7776000" },
+] as const;
+const ACCOUNT_ART = "account-control-center.webp";
+
+function formatTimelockDays(value: string): string {
+  const seconds = Number.parseInt(value, 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  const days = seconds / 86400;
+  return Number.isInteger(days) ? `${days}d` : `${days.toFixed(1)}d`;
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool } = useStateBindings(state);
-  const launchDefaults = getAccountLabLaunchDefaults(launchContext);
 
-  const notAvailable = t("notAvailable");
-
+  // Live AA Core read state
+  const currentVerifier = str("currentVerifier");
+  const currentHook = str("currentHook");
+  const currentBackupOwner = str("currentBackupOwner");
+  const currentEscapeActive = str("currentEscapeActive");
+  const hasInspected = bool("hasInspected");
   const isInspecting = bool("isInspecting");
   const isSubmitting = bool("isSubmitting");
-  const currentVerifier = str("currentVerifier", notAvailable);
-  const currentHook = str("currentHook", notAvailable);
-  const currentBackupOwner = str("currentBackupOwner", notAvailable);
-  const currentEscapeTimelock = str("currentEscapeTimelock", notAvailable);
-  const currentEscapeActive = str("currentEscapeActive", notAvailable);
-  const aaCoreDisplay = str("aaCoreDisplay");
-  const defaultVerifierDisplay = str("defaultVerifierDisplay");
+  const connectedWallet = str("connectedWalletDisplay");
   const networkDisplay = str("networkDisplay");
-  // Connected wallet script hash (0x form, "" when disconnected). The backup
-  // owner must witness registerAccount, so it has to equal this value.
-  const connectedWalletHash = str("connectedWalletDisplay");
+  const aaCoreDisplay = str("aaCoreDisplay");
+  const defaultVerifier = str("defaultVerifierDisplay");
 
-  // The inspect AccountId is the literal id stored on-chain (a registration
-  // hash). Register derives its own id from the parameters below.
-  const [accountId, setAccountId] = useState(launchDefaults.accountIdInput);
-  const [verifierHash, setVerifierHash] = useState(
-    launchDefaults.verifierHash || defaultVerifierDisplay || "",
-  );
-  const [verifierParamsHex, setVerifierParamsHex] = useState(
-    launchDefaults.verifierParamsHex,
-  );
-  const [hookHash, setHookHash] = useState(launchDefaults.hookHash);
-  const [backupOwner, setBackupOwner] = useState(launchDefaults.backupOwner);
-  const [backupOwnerTouched, setBackupOwnerTouched] = useState(false);
-  const [escapeTimelock, setEscapeTimelock] = useState(
-    launchDefaults.escapeTimelock || DEFAULT_ESCAPE_TIMELOCK,
-  );
-  const [actionPreview, setActionPreview] =
-    useState<AccountActionPreview | null>(null);
-  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  // Draft shell fields (local UI state — the real form lives in the composable,
+  // populated by dispatch args; this mirrors it for the assembly preview).
+  const [draftAccountId, setDraftAccountId] = useState("");
+  const [draftVerifier, setDraftVerifier] = useState(defaultVerifier);
+  const [draftHook, setDraftHook] = useState("");
+  const [draftBackupOwner, setDraftBackupOwner] = useState("");
+  const [draftTimelock, setDraftTimelock] = useState("2592000");
+  const [activePlan, setActivePlan] = useState<(typeof ACCOUNT_PLANS)[number]["key"]>("daily");
 
-  useEffect(
-    () => () => {
-      if (actionPreviewTimeout.current !== null) {
-        clearTimeout(actionPreviewTimeout.current);
+  useEffect(() => {
+    if (defaultVerifier && !draftVerifier.trim()) setDraftVerifier(defaultVerifier);
+  }, [defaultVerifier, draftVerifier]);
+
+  useEffect(() => {
+    if (connectedWallet && !draftBackupOwner.trim()) setDraftBackupOwner(connectedWallet);
+  }, [connectedWallet, draftBackupOwner]);
+
+  // Assembly pulse: lights up each shell segment in sequence on register.
+  const [assemblyStep, setAssemblyStep] = useState(0);
+  const assemblyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (assemblyTimeout.current) clearTimeout(assemblyTimeout.current); }, []);
+
+  // Readiness of each shell segment — drives the lit/unlit assembly diagram.
+  const seg = useMemo(() => {
+    const hasVerifier = /^0x[0-9a-f]{40}$/i.test(draftVerifier.trim()) || draftVerifier.trim().length >= 10;
+    const hasHook = draftHook.trim().length === 0 || /^0x[0-9a-f]{40}$/i.test(draftHook.trim()) || draftHook.trim().length >= 10;
+    const hasBackup = draftBackupOwner.trim().length >= 6;
+    const tl = Number(draftTimelock);
+    const hasTimelock = Number.isInteger(tl) && tl > 0;
+    return { hasVerifier, hasHook, hasBackup, hasTimelock };
+  }, [draftVerifier, draftHook, draftBackupOwner, draftTimelock]);
+
+  const filledCount = [seg.hasVerifier, seg.hasBackup, seg.hasTimelock].filter(Boolean).length;
+  const shellReady = filledCount >= 3;
+  const shellCharge = Math.max(10, Math.round((filledCount / 3) * 100));
+  const escapeActive = /active|进行中/i.test(currentEscapeActive) && !/inactive|未触发|not available/i.test(currentEscapeActive);
+  const activePlanDef = ACCOUNT_PLANS.find((plan) => plan.key === activePlan) ?? ACCOUNT_PLANS[0];
+
+  const handleInspect = () => {
+    void dispatch("inspect", draftAccountId);
+  };
+  const handleConnect = () => { void dispatch("connect"); };
+  const applyPlan = (plan: typeof ACCOUNT_PLANS[number]) => {
+    if (busy) return;
+    setActivePlan(plan.key);
+    setDraftTimelock(plan.timelock);
+    if (defaultVerifier && !draftVerifier.trim()) setDraftVerifier(defaultVerifier);
+    if (connectedWallet && !draftBackupOwner.trim()) setDraftBackupOwner(connectedWallet);
+  };
+  const applyTimelockPreset = (seconds: string) => {
+    if (busy) return;
+    setDraftTimelock(seconds);
+    const matchingPlan = ACCOUNT_PLANS.find((plan) => plan.timelock === seconds);
+    if (matchingPlan) setActivePlan(matchingPlan.key);
+  };
+  const useConnectedWalletAsOwner = () => {
+    if (connectedWallet) setDraftBackupOwner(connectedWallet);
+  };
+  const handleRegister = () => {
+    if (!shellReady) return;
+    // Sequential assembly pulse, then fire the real register dispatch.
+    if (assemblyTimeout.current) clearTimeout(assemblyTimeout.current);
+    setAssemblyStep(1);
+    const step = (n: number) => {
+      setAssemblyStep(n);
+      if (n < 4) {
+        assemblyTimeout.current = setTimeout(() => step(n + 1), 320);
+      } else {
+        assemblyTimeout.current = setTimeout(() => {
+          setAssemblyStep(0);
+          void dispatch(
+            "register",
+            draftAccountId,
+            draftVerifier,
+            "",
+            draftHook,
+            draftBackupOwner,
+            draftTimelock,
+          );
+        }, 360);
       }
-    },
-    [],
-  );
-
-  const startActionPreview = (action: AccountActionPreview) => {
-    if (actionPreviewTimeout.current !== null) {
-      clearTimeout(actionPreviewTimeout.current);
-    }
-    setActionPreview(action);
-    actionPreviewTimeout.current = setTimeout(() => {
-      setActionPreview(null);
-      actionPreviewTimeout.current = null;
-    }, 1300);
+    };
+    step(1);
   };
 
-  // Prefill the backup owner with the connected wallet once (until the user
-  // edits it). registerAccount requires the backup owner to sign, so the
-  // connected wallet is the only value that will not abort the transaction.
-  useEffect(() => {
-    if (
-      !backupOwnerTouched &&
-      !backupOwner.trim() &&
-      connectedWalletHash.trim()
-    ) {
-      setBackupOwner(connectedWalletHash.trim());
-    }
-  }, [connectedWalletHash, backupOwnerTouched, backupOwner]);
-
-  // Derive the only accountId registerAccount will accept, mirroring the
-  // contract's computeRegistrationAccountId. Recomputed live from the form so
-  // the user sees the exact id before paying. Empty until the required fields
-  // (verifier, backup owner, valid timelock) are present.
-  const derivedRegistrationId = useMemo(() => {
-    if (!verifierHash.trim() || !backupOwner.trim() || !escapeTimelock.trim()) {
-      return "";
-    }
-    try {
-      return `0x${deriveRegistrationAccountIdHash({
-        verifierContractHash: verifierHash,
-        verifierParamsHex: verifierParamsHex,
-        hookContractHash: hookHash,
-        backupOwnerAddress: backupOwner,
-        escapeTimelock: Number.parseInt(escapeTimelock.trim(), 10),
-      })}`;
-    } catch {
-      return "";
-    }
-  }, [verifierHash, verifierParamsHex, hookHash, backupOwner, escapeTimelock]);
-
-  // The backup owner must equal the connected wallet (it witnesses the tx).
-  // Compare bare lowercase hashes; only meaningful once a wallet is connected
-  // and a backup owner is entered.
-  const backupOwnerNormalized = backupOwner
-    .trim()
-    .replace(/^0x/i, "")
-    .toLowerCase();
-  const walletNormalized = connectedWalletHash
-    .trim()
-    .replace(/^0x/i, "")
-    .toLowerCase();
-  const backupOwnerMismatch =
-    Boolean(walletNormalized) &&
-    Boolean(backupOwnerNormalized) &&
-    backupOwnerNormalized !== walletNormalized;
-
-  const canInspect = Boolean(accountId.trim()) && !isInspecting;
-  const registerReady =
-    Boolean(verifierHash.trim()) &&
-    Boolean(backupOwner.trim()) &&
-    Boolean(escapeTimelock.trim()) &&
-    Boolean(derivedRegistrationId) &&
-    !backupOwnerMismatch;
-  const canRegister =
-    registerReady &&
-    !isSubmitting;
-
-  // Explicit flag set by the composable after a successful read, so an account
-  // with no verifier still renders the detail grid (not the empty placeholder).
-  const hasInspected = bool("hasInspected");
-  const verifierUnset = currentVerifier === notAvailable;
-
-  // registerAccount is a real write transaction that follows the host/?network
-  // param (defaults to mainnet). Surface an explicit mainnet caution near the
-  // Register CTA so the "lab" framing + docs don't imply a low-stakes testnet.
-  const networkIsMainnet = networkDisplay.trim().toLowerCase() === "mainnet";
-  // After a successful inspect, if the entered account already has a verifier
-  // set, a re-register would revert on-chain. Warn before the user pays.
-  const alreadyRegistered = hasInspected && !verifierUnset;
-  const isInspectPreview = actionPreview === "inspect";
-  const isRegisterPreview = actionPreview === "register";
-  const isConnectPreview = actionPreview === "connect";
-  const isFlowActive =
-    isInspecting || isSubmitting || isInspectPreview || isRegisterPreview;
-  const accountFlowStatus = isRegisterPreview || isSubmitting
-      ? t("accountStageRegistering")
-      : isInspectPreview || isInspecting
-        ? t("accountStageInspecting")
-        : isConnectPreview
-          ? t("accountStageConnecting")
-          : registerReady
-            ? t("accountStageReady")
+  const busy = isInspecting || isSubmitting;
+  const shellStatusText = busy
+    ? isInspecting ? t("accountStageInspecting") : t("accountStageRegistering")
+    : shellReady
+      ? t("accountStageReady")
+      : !seg.hasVerifier
+        ? t("accountStageNeedVerifier")
+        : !seg.hasBackup
+          ? t("accountStageNeedOwner")
+          : !seg.hasTimelock
+            ? t("accountStageNeedTimelock")
             : t("accountStageIdle");
-  const accountFlowClassName = [
-    "account-flow-stage",
-    registerReady ? "account-flow-stage--ready" : "",
-    isInspectPreview || isInspecting ? "account-flow-stage--inspecting" : "",
-    isRegisterPreview || isSubmitting ? "account-flow-stage--registering" : "",
-    isConnectPreview ? "account-flow-stage--connecting" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
 
-  const fmt = (value: string) =>
-    !value || value === notAvailable ? DASH : value;
+  // Assembly diagram: four segments (id, verifier, backup owner, escape window)
+  // arranged around a central shell core. Each lights up when its field is set.
+  const renderSegment = (
+    label: string,
+    value: string,
+    lit: boolean,
+    accent: "id" | "verifier" | "backup" | "escape",
+    pulseActive: boolean,
+  ) => (
+    <div
+      className={["aa-scene__seg", `aa-scene__seg--${accent}`, lit ? "is-lit" : "", pulseActive ? "is-pulsing" : ""].filter(Boolean).join(" ")}
+      data-ready={lit ? "true" : undefined}
+    >
+      <span className="aa-scene__seg-label">{label}</span>
+      <span className="aa-scene__seg-value">{value || "—"}</span>
+    </div>
+  );
 
-  const detailItems = [
-    { label: t("currentVerifier"), value: fmt(currentVerifier) },
-    { label: t("currentHook"), value: fmt(currentHook) },
-    {
-      label: t("currentBackupOwner"),
-      value: fmt(currentBackupOwner),
-    },
-    {
-      label: t("currentEscapeTimelock"),
-      value: fmt(currentEscapeTimelock),
-    },
-    {
-      label: t("currentEscapeStatus"),
-      value: fmt(currentEscapeActive),
-    },
-    { label: t("aaCore"), value: fmt(aaCoreDisplay) },
+  const scene = (
+    <div className="aa-scene" data-state={busy ? "busy" : hasInspected ? "inspected" : shellReady ? "ready" : "idle"}>
+      <div className="aa-scene__diagram" aria-label={t("accountStageEyebrow")}>
+        <div className="aa-scene__core">
+          <div className={["aa-scene__core-ring", busy ? "is-spinning" : ""].filter(Boolean).join(" ")} />
+          <CoinArt size={30} variant="gas" />
+          <span className="aa-scene__core-label">{t("accountShellLabel")}</span>
+          <strong>{shellStatusText}</strong>
+        </div>
+        <div className="aa-scene__segments">
+          {renderSegment(t("verifier"), compactHash(draftVerifier), seg.hasVerifier, "verifier", assemblyStep === 1)}
+          {renderSegment(t("hook"), draftHook ? compactHash(draftHook) : t("noHook"), seg.hasHook, "id", assemblyStep === 2)}
+          {renderSegment(t("backupOwner"), compactHash(draftBackupOwner), seg.hasBackup, "backup", assemblyStep === 3)}
+          {renderSegment(t("timelock"), formatTimelockDays(draftTimelock), seg.hasTimelock, "escape", assemblyStep === 4)}
+        </div>
+      </div>
+      <div className="aa-scene__status">
+        <div>
+          <span>{t("accountShellLabel")}</span>
+          <strong>{t("accountShellProgress", { count: filledCount })}</strong>
+        </div>
+        <div className="aa-scene__meter" aria-hidden="true">
+          <span style={{ width: `${shellCharge}%` }} />
+        </div>
+        <p>
+          {shellStatusText}
+        </p>
+      </div>
+    </div>
+  );
+
+  // Live AA Core readout — the inspected verifier/hook/owner/escape state.
+  const readout = hasInspected ? [
+    { label: t("currentVerifier"), value: compactHash(currentVerifier), accent: true },
+    { label: t("currentHook"), value: compactHash(currentHook) },
+    { label: t("currentBackupOwner"), value: compactHash(currentBackupOwner) },
+    { label: t("currentEscapeStatus"), value: escapeActive ? `⚠ ${currentEscapeActive}` : currentEscapeActive, accent: escapeActive },
+  ] : [
+    { label: t("network"), value: networkDisplay || "—" },
+    { label: t("aaCore"), value: compactHash(aaCoreDisplay) },
+    { label: t("walletConnected"), value: connectedWallet ? compactHash(connectedWallet) : t("notConnected") },
+    { label: t("accountShellLabel"), value: t("accountShellProgress", { count: filledCount }) },
   ];
 
-  return (
-    <div
-      className={[
-        "aa-account-play-area",
-        isFlowActive ? "aa-account-play-area--active" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <section className="account-hero">
-        <div className="account-hero__copy">
-          <div className="account-hero__intro">
-            <span className="account-hero__badge" aria-hidden="true">
-              <ShieldCheck />
-            </span>
-            <div className="account-hero__heading">
-              <span className="account-hero__eyebrow">
-                {t("accountHeroEyebrow")}
-              </span>
-              <h2>{t("accountHeroTitle")}</h2>
-            </div>
+  const controls = (
+    <div className="aa-controls">
+      <figure className="aa-visual-card">
+        <img src={ACCOUNT_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
+        <figcaption>
+          <span>{t("accountHeroEyebrow")}</span>
+          <strong>{t("accountHeroTitle")}</strong>
+        </figcaption>
+      </figure>
+      <section className="aa-plan-panel" aria-label={t("accountPlanTitle")}>
+        <header className="aa-plan-panel__head">
+          <div>
+            <span>{t("accountPlanTitle")}</span>
+            <strong>{t(activePlanDef.label)}</strong>
           </div>
-          <p>{t("accountHeroCopy")}</p>
-          <div
-            className="account-hero__meta"
-            aria-label={t("accountMetricsLabel")}
-          >
-            <div className="account-hero__stat">
-              <span>{t("network")}</span>
-              <strong>{networkDisplay || DASH}</strong>
-            </div>
-            <div className="account-hero__stat account-hero__stat--wide">
-              <span>{t("defaultVerifier")}</span>
-              <strong title={defaultVerifierDisplay || undefined}>
-                {defaultVerifierDisplay || DASH}
-              </strong>
-            </div>
-          </div>
-        </div>
-        <div
-          className="account-hero__visual"
-          role="img"
-          aria-label={t("accountHeroVisualAlt")}
-        >
-          <img
-            src="./account-control-center.jpg"
-            alt=""
-            loading="eager"
-            decoding="async"
-          />
-          <span>
-            <Fingerprint aria-hidden="true" />
-            {t("accountHeroVisualBadge")}
-          </span>
+          <em>{formatTimelockDays(activePlanDef.timelock)}</em>
+        </header>
+        <p>{t(activePlanDef.copy)}</p>
+        <div className="aa-plan-grid" role="list" aria-label={t("accountPlanTitle")}>
+          {ACCOUNT_PLANS.map((plan) => (
+            <button
+              key={plan.key}
+              type="button"
+              className={["aa-plan-card", activePlan === plan.key ? "aa-plan-card--active" : null].filter(Boolean).join(" ")}
+              onClick={() => applyPlan(plan)}
+              disabled={busy}
+            >
+              <span className="aa-plan-card__label">{t(plan.label)}</span>
+              <strong>{formatTimelockDays(plan.timelock)}</strong>
+              <em>{t(plan.copy)}</em>
+            </button>
+          ))}
         </div>
       </section>
+      <div className="aa-controls__recovery">
+        <div className="aa-owner-card">
+          <span>{t("backupOwner")}</span>
+          <strong>{draftBackupOwner ? compactHash(draftBackupOwner) : t("ownerNotSet")}</strong>
+          <button type="button" onClick={useConnectedWalletAsOwner} disabled={!connectedWallet || busy}>
+            {t("useConnectedWallet")}
+          </button>
+        </div>
+        <div className="aa-timelock-strip" aria-label={t("recoveryWindow")}>
+          <span>{t("recoveryWindow")}</span>
+          <div>
+            {TIMELOCK_PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                className={draftTimelock === preset.seconds ? "aa-timelock-chip aa-timelock-chip--active" : "aa-timelock-chip"}
+                onClick={() => applyTimelockPreset(preset.seconds)}
+                disabled={busy}
+              >
+                {preset.key}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-      <section
-        className={accountFlowClassName}
-        aria-label={t("accountFlowLabel")}
-        aria-live="polite"
+  // Register form lives in the drawer so the stage stays primary/clean. The
+  // fields mirror the composable form; dispatch carries them to the chain.
+  const drawer = (
+    <div className="aa-drawer">
+      <OpenUiPanel
+        className="aa-drawer__panel aa-drawer__panel--wide"
+        icon={<Search size={16} />}
+        title={t("advancedAccountFields")}
+        subtitle={t("advancedAccountFieldsHint")}
+        titleId="aa-drawer-identity"
       >
-        <img
-          className="account-flow-stage__media"
-          src="./account-control-center.jpg"
-          alt=""
-          loading="lazy"
-          decoding="async"
-          aria-hidden="true"
+        <OpenUiTextField
+          className="aa-drawer__field"
+          label={`${t("accountId")} · ${t("inspect")}`}
+          value={draftAccountId}
+          onChange={(e) => setDraftAccountId(e.target.value)}
+          placeholder={t("accountIdPlaceholder")}
+          hint={t("accountIdHint")}
+          mono
         />
-        <div className="account-flow-stage__shade" aria-hidden="true" />
-        <div className="account-flow-stage__rail" aria-hidden="true">
-          <span className="account-flow-stage__node account-flow-stage__node--wallet">
-            <Wallet />
-          </span>
-          <span className="account-flow-stage__route account-flow-stage__route--one" />
-          <span className="account-flow-stage__node account-flow-stage__node--verifier">
-            <KeyRound />
-          </span>
-          <span className="account-flow-stage__route account-flow-stage__route--two" />
-          <span className="account-flow-stage__node account-flow-stage__node--shell">
-            <Fingerprint />
-          </span>
-          <span className="account-flow-stage__packet">
-            <ShieldCheck />
-          </span>
-        </div>
-        <div className="account-flow-stage__copy">
-          <small>{t("accountStageEyebrow")}</small>
-          <strong>{accountFlowStatus}</strong>
-          <span>{t("accountStageCopy")}</span>
-        </div>
-        <div className="account-flow-stage__steps">
-          <span>
-            <Search aria-hidden="true" />
-            <strong>{t("accountFlowInspect")}</strong>
-          </span>
-          <span>
-            <Link2 aria-hidden="true" />
-            <strong>{t("accountFlowRegister")}</strong>
-          </span>
-          <span>
-            <ShieldCheck aria-hidden="true" />
-            <strong>{t("accountFlowRecovery")}</strong>
-          </span>
-        </div>
-      </section>
+        {!connectedWallet && (
+          <button type="button" className="aa-drawer__connect mx2-btn mx2-btn--ghost" onClick={handleConnect}>
+            <Wallet size={15} /> {t("connectWallet")}
+          </button>
+        )}
+      </OpenUiPanel>
 
-      <section className="account-workspace">
-        <NeoCard
-          variant="erobo"
-          title={t("accountInspectorTitle") || t("inspectorTitle")}
-          className="account-command"
-        >
-          <div className="account-form">
-            <NeoInput
-              value={accountId}
-              label={t("accountId")}
-              hint={t("accountIdHint")}
-              placeholder={t("accountIdPlaceholder")}
-              onChange={(v) => setAccountId(v)}
-            />
-            {!canInspect && (
-              <p className="account-hint">{t("inspectBlocked")}</p>
-            )}
-            <div className="account-action-grid">
-              <NeoButton
-                variant="primary"
-                loading={isInspecting}
-                disabled={!canInspect}
-                aria-label={t("inspect")}
-                onClick={() => {
-                  startActionPreview("inspect");
-                  void dispatch("inspect", accountId);
-                }}
-              >
-                <Search aria-hidden="true" />
-                {t("inspect")}
-              </NeoButton>
-              <NeoButton
-                variant="secondary"
-                aria-label={t("connectWallet")}
-                onClick={() => {
-                  startActionPreview("connect");
-                  void dispatch("connect");
-                }}
-              >
-                <Wallet aria-hidden="true" />
-                {t("connectWallet")}
-              </NeoButton>
-            </div>
+      <OpenUiPanel
+        className="aa-drawer__panel"
+        icon={<ShieldCheck size={16} />}
+        title={t("accountShellLabel")}
+        subtitle={t("accountShellProgress", { count: filledCount })}
+        titleId="aa-drawer-shell"
+      >
+        <OpenUiTextField
+          className="aa-drawer__field"
+          label={t("verifier")}
+          value={draftVerifier}
+          onChange={(e) => setDraftVerifier(e.target.value)}
+          placeholder={t("verifierPlaceholder")}
+          mono
+        />
+        <OpenUiTextField
+          className="aa-drawer__field"
+          label={t("hook")}
+          value={draftHook}
+          onChange={(e) => setDraftHook(e.target.value)}
+          placeholder={t("hookPlaceholder")}
+          mono
+        />
+      </OpenUiPanel>
 
-            {hasInspected ? (
-              <>
-                <div className="account-detail-grid">
-                  {detailItems.map((item) => (
-                    <div key={item.label} className="account-detail-card">
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-                <p className="account-note account-note--muted">
-                  {t("escapeStatusExplainer")}
-                </p>
-                {verifierUnset && (
-                  <p className="account-hint">{t("noVerifierRegistered")}</p>
-                )}
-              </>
-            ) : (
-              <StateView
-                kind="empty"
-                icon={null}
-                className="account-empty"
-                title={t("accountStateTitle")}
-                hint={t("inspectBlocked")}
-              />
-            )}
-          </div>
-        </NeoCard>
+      <OpenUiPanel
+        className="aa-drawer__panel"
+        icon={<KeyRound size={16} />}
+        title={t("backupOwner")}
+        subtitle={formatTimelockDays(draftTimelock)}
+        titleId="aa-drawer-recovery"
+      >
+        <OpenUiTextField
+          className="aa-drawer__field"
+          label={t("backupOwner")}
+          value={draftBackupOwner}
+          onChange={(e) => setDraftBackupOwner(e.target.value)}
+          placeholder={t("backupOwnerPlaceholder")}
+          mono
+        />
+        <OpenUiTextField
+          className="aa-drawer__field"
+          label={`${t("timelock")} (s)`}
+          value={draftTimelock}
+          onChange={(e) => setDraftTimelock(e.target.value)}
+          placeholder={t("timelockPlaceholder")}
+          hint={t("timelockExplainer")}
+          inputMode="numeric"
+          mono
+        />
+      </OpenUiPanel>
 
-        <NeoCard
-          variant="erobo"
-          title={t("registerTitle")}
-          className="account-register-card"
-        >
-          <div className="account-form account-register-form">
-            <div className="account-register-intro">
-              <p className="account-note">{t("registerPermanentNote")}</p>
-            </div>
+      <OpenUiNotice
+        className="aa-drawer__caution"
+        icon={<Clock3 size={16} />}
+        title={t("mainnetCaution")}
+        type="warning"
+      />
+    </div>
+  );
 
-            <div className="account-register-layout">
-              <div className="account-register-fields">
-                <section
-                  className="account-field-group"
-                  aria-label={t("accountFlowRegister")}
-                >
-                  <div className="account-field-group__head">
-                    <span>{t("accountFlowRegister")}</span>
-                    <p>{t("accountFlowRegisterDesc")}</p>
-                  </div>
-                  <NeoInput
-                    value={verifierHash}
-                    label={t("verifier")}
-                    hint={t("verifierHint")}
-                    placeholder={t("verifierPlaceholder")}
-                    onChange={(v) => setVerifierHash(v)}
-                  />
-                  <NeoInput
-                    value={backupOwner}
-                    label={t("backupOwner")}
-                    hint={t("backupOwnerHint")}
-                    placeholder={t("backupOwnerPlaceholder")}
-                    onChange={(v) => {
-                      setBackupOwnerTouched(true);
-                      setBackupOwner(v);
-                    }}
-                  />
-                  {backupOwnerMismatch && (
-                    <p
-                      className="account-caution account-caution--danger"
-                      role="alert"
-                    >
-                      {t("backupOwnerMustSign")}
-                    </p>
-                  )}
-                  <NeoInput
-                    value={escapeTimelock}
-                    label={t("timelock")}
-                    hint={t("timelockHint")}
-                    placeholder={t("timelockPlaceholder")}
-                    onChange={(v) => setEscapeTimelock(v)}
-                  />
-                  <p className="account-note account-note--muted account-note--compact">
-                    {t("timelockExplainer")}
-                  </p>
-                </section>
-
-                <details className="account-optional">
-                  <summary>
-                    <span>{t("optionalFieldsSummary")}</span>
-                    <ChevronDown
-                      className="account-optional__chevron"
-                      aria-hidden="true"
-                    />
-                  </summary>
-                  <div className="account-optional__body">
-                    <NeoInput
-                      value={verifierParamsHex}
-                      label={t("verifierParams")}
-                      hint={t("verifierParamsHint")}
-                      placeholder={t("verifierParamsPlaceholder")}
-                      onChange={(v) => setVerifierParamsHex(v)}
-                    />
-                    <NeoInput
-                      value={hookHash}
-                      label={t("hook")}
-                      hint={t("hookHint")}
-                      placeholder={t("hookPlaceholder")}
-                      onChange={(v) => setHookHash(v)}
-                    />
-                  </div>
-                </details>
-              </div>
-
-              <aside
-                className="account-register-review"
-                aria-label={t("accountRiskTitle")}
-              >
-                <div className="account-register-review__head">
-                  <span>{t("accountRiskTitle")}</span>
-                  <p>{t("accountRiskCopy")}</p>
-                </div>
-                {/* Read-only preview of the deterministic accountId the contract
-                    computes from these parameters — the only id registerAccount
-                    accepts (a free seed would always revert). */}
-                <div
-                  className="account-derived"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <span className="account-derived__label">
-                    {t("derivedAccountIdLabel")}
-                  </span>
-                  <code className="account-derived__value">
-                    {derivedRegistrationId || DASH}
-                  </code>
-                  <span className="account-derived__hint">
-                    {t("derivedAccountIdHint")}
-                  </span>
-                </div>
-                {!registerReady && (
-                  <p className="account-hint">{t("registerBlocked")}</p>
-                )}
-                {alreadyRegistered && (
-                  <p className="account-caution" role="status">
-                    {t("alreadyRegisteredCaution")}
-                  </p>
-                )}
-                {networkIsMainnet && (
-                  <p
-                    className="account-caution account-caution--danger"
-                    role="alert"
-                  >
-                    <TriangleAlert
-                      className="account-caution__glyph"
-                      aria-hidden="true"
-                    />
-                    <span className="account-caution__text">
-                      {t("mainnetCautionLead")}
-                      <strong>{t("mainnetCautionEmphasis")}</strong>
-                      {t("mainnetCautionTail")}
-                    </span>
-                  </p>
-                )}
-                <NeoButton
-                  variant="primary"
-                  className="account-register-cta"
-                  loading={isSubmitting}
-                  disabled={!canRegister}
-                  aria-label={t("register")}
-                  onClick={() => {
-                    startActionPreview("register");
-                    void dispatch(
-                      "register",
-                      accountId,
-                      verifierHash,
-                      verifierParamsHex,
-                      hookHash,
-                      backupOwner,
-                      escapeTimelock,
-                    );
-                  }}
-                >
-                  <ShieldCheck aria-hidden="true" />
-                  {t("register")}
-                </NeoButton>
-              </aside>
-            </div>
-          </div>
-        </NeoCard>
-      </section>
+  return (
+    <div className="aa-play-area mx2 mx2-cat-tool">
+      <OpenUiProvider>
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t("accountHeroEyebrow"),
+            title: t("accountHeroTitle"),
+            subtitle: t("accountStageCopy"),
+          }}
+          scene={<div className="aa-workspace">{scene}{controls}</div>}
+          score={readout}
+          actions={{
+            primary: {
+              label: busy
+                ? (isInspecting ? "…" : t("accountStageRegistering"))
+                : !connectedWallet ? t("connectWallet") : t("register"),
+              onClick: !connectedWallet ? handleConnect : handleRegister,
+              disabled: Boolean(connectedWallet) && !shellReady,
+              loading: busy,
+              hint: shellReady || !connectedWallet ? undefined : t("registerBlocked"),
+            },
+            secondary: [{ label: t("inspect"), onClick: handleInspect, disabled: !draftAccountId.trim() || busy }],
+          }}
+          drawerToggleLabel={t("registerTitle")}
+          drawer={{ title: t("registerTitle"), children: drawer }}
+        />
+      </OpenUiProvider>
     </div>
   );
 }

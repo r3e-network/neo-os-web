@@ -1,1793 +1,1194 @@
 /**
- * LastSurvivor PlayArea — Polymarket-light treatment.
+ * Last Survivor -- v2 scene-driven PlayArea styles.
  *
- * Mirrors the platform-wide Polymarket-light aesthetic: white canvas,
- * hairline cards, Inter, big tabular-num hero, restrained accents. The
- * platform Action Console (outside the iframe) owns the primary
- * "Buy Keys" action; this surface is data-first.
+ * The player acts inside a real arena shot: the background provides warm
+ * atmosphere, while the tappable timer relic, key stack, and loadout rail stay
+ * crisp, foregrounded, and readable.
  */
-
-@use "@shared/styles/pm-light" as pm;
-@use "@shared/styles/playarea-base";
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
 .survivor-play-area {
-  @include pm.pm-canvas;
+  display: block;
+}
+
+.survivor-play-area .mx2-stage__scene {
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+.survivor-play-area .mx2-action-rail {
+  --mx2-action-rail-width: 360px;
+  margin-top: 10px;
+}
+
+.survivor-play-area .mx2-action-rail__row {
+  justify-content: center;
+}
+
+.survivor-play-area .mx2-action-rail__row .mx2-btn--primary {
+  display: none;
+}
+
+.survivor-play-area .mx2-action-rail__drawer-toggle {
+  min-width: 176px;
+  justify-content: center;
+}
+
+.survivor-play-area .mx2-score {
+  display: none;
 }
 
 /* ============================================================
- *  1. Game stage — art, countdown, pot, and key press console
+ * Survival vault scene
  * ============================================================ */
-
-.survivor-stage {
+.survivor-scene {
   position: relative;
-  isolation: isolate;
-  min-height: 620px;
+  min-height: 500px;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 18px;
   overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  background: #f8f3df;
-  box-shadow:
-    0 24px 70px rgba(20, 64, 50, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
-  transition:
-    border-color 220ms ease,
-    box-shadow 220ms ease,
-    transform 220ms ease;
+  isolation: isolate;
+  border: 1px solid rgba(20, 83, 45, 0.09);
+  border-radius: 30px;
+  background: #f7fbf4;
+  box-shadow: var(--mx2-shadow);
 }
 
-.survivor-stage::before {
-  content: "";
+.survivor-scene__arena-art,
+.survivor-scene__shade {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    112deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255, 255, 255, 0.42) 50%,
-    transparent 64%,
-    transparent 100%
-  );
-  opacity: 0;
   pointer-events: none;
-  transform: translateX(-70%);
-  animation: survivor-stage-sweep 7.2s ease-in-out infinite;
 }
 
-.survivor-stage.survivor-play-area--live {
-  border-color: rgba(22, 199, 132, 0.22);
-  box-shadow:
-    0 26px 74px rgba(20, 64, 50, 0.16),
-    0 0 0 4px rgba(22, 199, 132, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
-}
-
-.survivor-stage.survivor-play-area--settlement {
-  border-color: rgba(245, 166, 35, 0.34);
-  box-shadow:
-    0 26px 74px rgba(20, 64, 50, 0.15),
-    0 0 0 4px rgba(245, 166, 35, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
-}
-
-.survivor-stage.survivor-play-area--buying {
-  border-color: rgba(22, 199, 132, 0.42);
-  animation: survivor-stage-buying 920ms ease-in-out infinite;
-  box-shadow:
-    0 28px 78px rgba(20, 64, 50, 0.18),
-    0 0 0 5px rgba(22, 199, 132, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.survivor-stage.survivor-play-area--settling {
-  border-color: rgba(245, 166, 35, 0.52);
-  animation: survivor-stage-settling 980ms ease-in-out infinite;
-  box-shadow:
-    0 30px 82px rgba(96, 61, 7, 0.18),
-    0 0 0 5px rgba(245, 166, 35, 0.13),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
-}
-
-.survivor-stage__image {
-  position: absolute;
-  inset: 0;
+.survivor-scene__arena-art {
+  z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transform-origin: 54% 50%;
-  animation: survivor-arena-drift 18s ease-in-out infinite alternate;
+  opacity: 0.78;
+  filter: saturate(1.06) contrast(0.98) brightness(1.05);
 }
 
-.survivor-stage__shade {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 252, 242, 0.94) 0%,
-      rgba(255, 252, 242, 0.72) 34%,
-      rgba(255, 252, 242, 0.18) 58%,
-      rgba(255, 252, 242, 0.78) 100%
-    ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(16, 82, 61, 0.12));
-}
-
-.survivor-stage__content {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(330px, 0.95fr);
-  gap: 24px;
-  align-items: stretch;
-  min-height: 620px;
-  padding: 24px;
-}
-
-.survivor-stage__left,
-.survivor-stage__right {
-  min-width: 0;
-}
-
-.survivor-stage__left {
-  display: grid;
-  align-content: start;
-  gap: 18px;
-}
-
-.survivor-stage__right {
-  display: flex;
-  align-items: stretch;
-}
-
-.survivor-action-console {
-  width: 100%;
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 20px 52px rgba(21, 76, 57, 0.14);
-  backdrop-filter: blur(14px);
-}
-
-.survivor-action-console__head {
-  display: grid;
-  gap: 5px;
-
-  strong {
-    font-size: 25px;
-    font-weight: 900;
-    letter-spacing: 0;
-    line-height: 1.08;
-    color: #0b6b49;
-  }
-
-  span:last-child {
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.45;
-    color: pm.$text-2;
-  }
-}
-
-.survivor-action-console__eyebrow {
-  @include pm.section-eyebrow;
-  font-size: 10px;
-  color: #0b6b49;
-}
-
-.survivor-arena-lane {
-  --survivor-danger-progress: 10%;
-  --survivor-player-progress: 8%;
-  --survivor-pot-progress: 8%;
-
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.74);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
-}
-
-.survivor-arena-lane__head {
-  display: grid;
-  gap: 4px;
-
-  span {
-    @include pm.section-eyebrow;
-    color: #0b6b49;
-  }
-
-  strong {
-    color: pm.$ink;
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1.25;
-  }
-}
-
-.survivor-arena-lane__track {
-  position: relative;
-  min-height: 56px;
-  overflow: hidden;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 999px;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(11, 107, 73, 0.1),
-      rgba(22, 199, 132, 0.2),
-      rgba(245, 166, 35, 0.12)
-    ),
-    rgba(248, 250, 252, 0.86);
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 18px;
-    right: 18px;
-    height: 2px;
-    border-radius: 999px;
-    transform: translateY(-50%);
-  }
-
-  &::before {
-    background: rgba(20, 22, 38, 0.1);
-  }
-
-  &::after {
-    width: calc(var(--survivor-danger-progress) - 8%);
-    right: auto;
-    background: linear-gradient(90deg, #0b6b49, #16c784, #f5a623);
-    box-shadow: 0 0 18px rgba(22, 199, 132, 0.25);
-    animation: survivor-lane-progress 2.4s ease-in-out infinite;
-  }
-}
-
-.survivor-arena-lane__pulse {
-  position: absolute;
-  inset: 9px auto 9px 18px;
-  width: 72px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.72),
-    rgba(255, 255, 255, 0)
-  );
-  mix-blend-mode: screen;
-  opacity: 0.72;
-  animation: survivor-lane-scan 2.8s linear infinite;
-}
-
-.survivor-play-area--buying .survivor-arena-lane {
-  border-color: rgba(22, 199, 132, 0.32);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 0 0 4px rgba(22, 199, 132, 0.08);
-}
-
-.survivor-play-area--buying .survivor-arena-lane__track::after {
-  animation: survivor-lane-buy-charge 740ms ease-in-out infinite;
-}
-
-.survivor-play-area--buying .survivor-arena-lane__pulse {
-  width: 96px;
-  opacity: 0.92;
-  animation: survivor-lane-scan 1.05s linear infinite;
-}
-
-.survivor-play-area--settling .survivor-arena-lane {
-  border-color: rgba(245, 166, 35, 0.34);
-  background:
-    linear-gradient(135deg, rgba(245, 166, 35, 0.18), rgba(255, 255, 255, 0)),
-    rgba(255, 255, 255, 0.78);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 0 0 4px rgba(245, 166, 35, 0.1);
-}
-
-.survivor-play-area--settling .survivor-arena-lane__track::after {
-  background: linear-gradient(90deg, #f5a623, #16c784, #f5a623);
-  animation: survivor-lane-settle-charge 780ms ease-in-out infinite;
-}
-
-.survivor-play-area--settling .survivor-arena-lane__pulse {
-  width: 112px;
-  opacity: 0.96;
-  animation: survivor-lane-scan 920ms linear infinite;
-}
-
-.survivor-arena-lane__marker {
-  position: absolute;
-  top: 50%;
-  left: var(--survivor-danger-progress);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: 2px solid rgba(255, 255, 255, 0.92);
-  border-radius: 999px;
-  background: pm.$surface;
-  color: pm.$text-muted;
-  box-shadow: 0 10px 24px rgba(20, 64, 50, 0.16);
-  transform: translate(-50%, -50%);
-  transition:
-    left 360ms var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background 180ms ease,
-    color 180ms ease,
-    box-shadow 180ms ease;
-
-  svg {
-    display: block;
-    stroke-width: 2.5;
-  }
-
-  &.is-live {
-    background: #ffffff;
-    color: #0b6b49;
-    animation: survivor-lane-marker-ready 2.2s ease-in-out infinite;
-  }
-}
-
-.survivor-arena-lane__marker--leader {
-  left: var(--survivor-danger-progress);
-}
-
-.survivor-arena-lane__marker--player {
-  left: var(--survivor-player-progress);
-}
-
-.survivor-arena-lane__marker--pot {
-  left: var(--survivor-pot-progress);
-}
-
-.survivor-arena-lane__marker--leader.is-live {
-  color: #a96700;
-  box-shadow:
-    0 10px 24px rgba(20, 64, 50, 0.16),
-    0 0 0 6px rgba(245, 166, 35, 0.12);
-}
-
-.survivor-arena-lane__labels {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-
-  span {
-    display: grid;
-    gap: 3px;
-    min-width: 0;
-    padding: 10px;
-    border: 1px solid rgba(20, 22, 38, 0.06);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.72);
-  }
-
-  small {
-    @include pm.section-eyebrow;
-    font-size: 9.5px;
-  }
-
-  strong {
-    overflow: hidden;
-    color: pm.$ink;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.15;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.survivor-seat-strip {
-  position: relative;
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 18px;
-  background:
-    radial-gradient(
-      circle at 18% 20%,
-      rgba(245, 166, 35, 0.16),
-      transparent 34%
-    ),
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.86),
-      rgba(242, 255, 249, 0.82)
-    );
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 14px 30px rgba(20, 64, 50, 0.08);
-}
-
-.survivor-key-burst {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.survivor-key-burst span {
-  position: absolute;
-  left: var(--survivor-key-burst-x, 50%);
-  bottom: 12px;
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 999px;
-  background:
-    radial-gradient(
-      circle at 32% 24%,
-      rgba(255, 255, 255, 0.95),
-      transparent 38%
-    ),
-    linear-gradient(145deg, #fff7df, #dff9ee);
-  color: #0b6b49;
-  opacity: 0;
-  box-shadow:
-    0 12px 24px rgba(20, 64, 50, 0.18),
-    0 0 0 4px rgba(22, 199, 132, 0.08);
-  transform: translate3d(-50%, 20px, 0) scale(0.72) rotate(-10deg);
-}
-
-.survivor-key-burst--active span {
-  animation: survivor-key-burst-flight 760ms ease-out both;
-  animation-delay: var(--survivor-key-burst-delay, 0ms);
-}
-
-.survivor-seat-strip__head {
-  display: grid;
-  gap: 4px;
-
-  span {
-    @include pm.section-eyebrow;
-    color: #0b6b49;
-  }
-
-  strong {
-    color: pm.$text-2;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-}
-
-.survivor-seat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.survivor-seat {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  min-width: 0;
-  min-height: 96px;
-  padding: 12px 8px;
-  overflow: hidden;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.74);
-  color: pm.$text-muted;
-  text-align: center;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  animation: survivor-seat-enter 360ms ease-out both;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: linear-gradient(
-      115deg,
-      transparent 26%,
-      rgba(255, 255, 255, 0.58) 48%,
-      transparent 68%
-    );
-    opacity: 0;
-    transform: translateX(-88%);
-    pointer-events: none;
-  }
-
-  &.is-live {
-    border-color: rgba(22, 199, 132, 0.22);
-    background: rgba(255, 255, 255, 0.9);
-    color: #0b6b49;
-    animation:
-      survivor-seat-enter 360ms ease-out both,
-      survivor-seat-breathe 2.8s ease-in-out 360ms infinite;
-
-    &::after {
-      animation: survivor-seat-scan 3.6s ease-in-out infinite;
-    }
-  }
-}
-
-.survivor-seat > * {
-  position: relative;
+.survivor-scene__shade {
   z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(255, 255, 255, 0.54) 100%),
+    linear-gradient(180deg, rgba(247, 251, 244, 0.72) 0%, rgba(247, 251, 244, 0.12) 42%, rgba(247, 251, 244, 0.78) 100%);
 }
 
-.survivor-seat__icon {
-  display: inline-grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  background: pm.$surface;
-  color: currentColor;
-  box-shadow:
-    0 10px 20px rgba(20, 64, 50, 0.08),
-    inset 0 0 0 1px rgba(20, 22, 38, 0.06);
-}
-
-.survivor-seat--leader.is-live .survivor-seat__icon {
-  color: #a96700;
-  background: pm.$amber-soft;
-}
-
-.survivor-seat--pot.is-live .survivor-seat__icon {
-  color: #0b6b49;
-  background: pm.$neo-soft;
-}
-
-.survivor-play-area--buying .survivor-seat--player {
-  border-color: rgba(22, 199, 132, 0.36);
-  background: rgba(255, 255, 255, 0.94);
-  color: #0b6b49;
-  animation: survivor-seat-buy-press 780ms ease-in-out infinite;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 0 0 5px rgba(22, 199, 132, 0.09);
-}
-
-.survivor-play-area--buying .survivor-seat--player .survivor-seat__icon {
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  animation: survivor-key-icon-turn 780ms ease-in-out infinite;
-}
-
-.survivor-play-area--settling .survivor-seat--leader {
-  border-color: rgba(245, 166, 35, 0.42);
-  background: rgba(255, 251, 235, 0.94);
-  color: #a96700;
-  animation: survivor-seat-settle-award 820ms ease-in-out infinite;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 0 0 5px rgba(245, 166, 35, 0.12);
-}
-
-.survivor-play-area--settling .survivor-seat--leader .survivor-seat__icon {
-  background: pm.$amber-soft;
-  color: pm.$amber;
-  animation: survivor-settle-crown-turn 820ms ease-in-out infinite;
-}
-
-.survivor-seat small {
-  @include pm.section-eyebrow;
-  min-width: 0;
-  font-size: 9px;
-}
-
-.survivor-seat strong {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  color: pm.$ink;
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.hero-container {
-  display: grid;
-  gap: 16px;
-  padding: 22px;
-  @include pm.card;
-}
-
-.hero-container :where(.danger-pulse, .pulse-bg) {
-  display: none !important;
-}
-
-.hero-heading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 420px;
-}
-
-.hero-badge {
-  display: inline-grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  font-size: 22px;
-  line-height: 1;
-  flex-shrink: 0;
-  animation: survivor-badge-breathe 4s ease-in-out infinite;
-}
-
-.hero-heading-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.hero-eyebrow {
-  @include pm.section-eyebrow;
-  font-size: 12px;
-  color: #0b6b49;
-}
-
-.hero-title {
-  margin: 0;
-  font-size: 34px;
-  font-weight: 900;
-  line-height: 1.04;
-  letter-spacing: 0;
-  color: pm.$ink;
-}
-
-/* Inline facts: Round #00 · Active */
-.hero-facts {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: pm.$text;
-  font-variant-numeric: tabular-nums;
-}
-
-.hero-fact-sep {
-  color: pm.$text-faint;
-  font-weight: 400;
-}
-
-.hero-fact-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-weight: 700;
-
-  &.status-active {
-    color: pm.$green-text;
-  }
-
-  &.status-ended {
-    color: pm.$text-muted;
-  }
-}
-
-/* Non-color status cue (shape + ring) for colorblind accessibility */
-.status-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-
-.status-active .status-dot {
-  background: pm.$green;
-  box-shadow: 0 0 0 3px pm.$green-soft;
-  animation: survivor-status-pulse 1.8s ease-in-out infinite;
-}
-
-.status-ended .status-dot {
-  background: transparent;
-  border: 2px solid pm.$text-faint;
-}
-
-/* ============================================================
- *  2b. Service notice
- * ============================================================ */
-
-.survivor-service-notice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  border: 0;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 14px 36px rgba(20, 64, 50, 0.11);
-  color: pm.$text;
+.survivor-scene__hud {
   position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: pm.$amber;
-  }
-}
-
-.survivor-service-notice__copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: pm.$text-2;
-}
-
-.survivor-service-notice__title {
-  font-size: 12px;
-  font-weight: 800;
-  color: pm.$amber;
-}
-
-.survivor-stage .danger-ring-hero {
-  align-items: flex-start;
-  text-align: left;
-  max-width: 340px;
-}
-
-.survivor-stage .hero-prize-pool {
-  align-items: flex-start;
-}
-
-.survivor-stage .danger-meter {
-  max-width: 380px;
-}
-
-/* ============================================================
- *  3. Current leader badge
- * ============================================================ */
-
-.last-buyer-badge {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
-  @include pm.card;
-  animation: survivor-leader-in 360ms ease-out both;
-}
-
-.last-buyer-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1;
-  flex-shrink: 0;
-  animation: survivor-leader-crown 2.4s ease-in-out infinite;
-}
-
-.last-buyer-info {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.last-buyer-label {
-  @include pm.section-eyebrow;
-}
-
-.last-buyer-address {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  font-weight: 600;
-  color: pm.$text;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.last-buyer-hint {
-  font-size: 11px;
-  color: pm.$text-muted;
-  text-align: right;
-}
-
-/* ============================================================
- *  4. Participation strip — Your Keys · Total Keys · Your Share
- * ============================================================ */
-
-.participation-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  padding: 18px 22px;
-  @include pm.card;
-}
-
-.participation-share-hint {
-  margin: 8px 2px 0;
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.5;
-  color: pm.$text-muted;
-}
-
-.participation-divider {
-  display: none;
-}
-
-.participation-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
+  z-index: 5;
+  width: min(100% - 28px, 680px);
+  margin-top: 0;
+  display: flex;
+  justify-content: space-between;
   gap: 10px;
 }
 
-.participation-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1;
-  flex-shrink: 0;
+.survivor-scene__pot,
+.survivor-scene__timer,
+.survivor-scene__leader,
+.survivor-scene__cost,
+.survivor-scene__status,
+.survivor-scene__notice {
+  border: 1px solid rgba(148, 116, 70, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 30px rgba(22, 101, 52, 0.1);
 }
 
-.survivor-play-area--live .participation-icon {
-  animation: survivor-token-pop 2.8s ease-in-out infinite;
-}
-
-.participation-item:nth-child(3) .participation-icon {
-  animation-delay: 120ms;
-}
-
-.participation-item:nth-child(5) .participation-icon {
-  animation-delay: 240ms;
-}
-
-@keyframes survivor-stage-sweep {
-  0%,
-  58% {
-    opacity: 0;
-    transform: translateX(-70%);
-  }
-
-  72% {
-    opacity: 0.42;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(70%);
-  }
-}
-
-@keyframes survivor-arena-drift {
-  from {
-    transform: scale(1);
-  }
-
-  to {
-    transform: scale(1.035) translate3d(1%, -1%, 0);
-  }
-}
-
-@keyframes survivor-stage-buying {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes survivor-stage-settling {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes survivor-badge-breathe {
-  0%,
-  100% {
-    box-shadow: none;
-    transform: translateY(0);
-  }
-
-  50% {
-    box-shadow: 0 0 0 7px rgba(22, 199, 132, 0.08);
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes survivor-status-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 3px pm.$green-soft;
-  }
-
-  50% {
-    box-shadow: 0 0 0 7px rgba(22, 199, 132, 0.12);
-  }
-}
-
-@keyframes survivor-leader-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes survivor-leader-crown {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  50% {
-    transform: translateY(-2px) rotate(-4deg);
-  }
-}
-
-@keyframes survivor-token-pop {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes survivor-lane-progress {
-  0%,
-  100% {
-    opacity: 0.78;
-  }
-
-  50% {
-    opacity: 1;
-    box-shadow: 0 0 22px rgba(22, 199, 132, 0.34);
-  }
-}
-
-@keyframes survivor-lane-buy-charge {
-  0%,
-  100% {
-    opacity: 0.82;
-    box-shadow: 0 0 14px rgba(22, 199, 132, 0.24);
-  }
-
-  50% {
-    opacity: 1;
-    box-shadow: 0 0 28px rgba(22, 199, 132, 0.42);
-  }
-}
-
-@keyframes survivor-lane-settle-charge {
-  0%,
-  100% {
-    opacity: 0.82;
-    box-shadow: 0 0 16px rgba(245, 166, 35, 0.24);
-  }
-
-  50% {
-    opacity: 1;
-    box-shadow: 0 0 30px rgba(245, 166, 35, 0.46);
-  }
-}
-
-@keyframes survivor-lane-scan {
-  from {
-    transform: translateX(-96px);
-  }
-
-  to {
-    transform: translateX(360px);
-  }
-}
-
-@keyframes survivor-lane-marker-ready {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  50% {
-    transform: translate(-50%, -54%) scale(1.06);
-  }
-}
-
-@keyframes survivor-seat-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes survivor-seat-breathe {
-  0%,
-  100% {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.78),
-      0 0 0 0 rgba(22, 199, 132, 0);
-  }
-
-  50% {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 0 0 5px rgba(22, 199, 132, 0.08);
-  }
-}
-
-@keyframes survivor-seat-buy-press {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.018);
-  }
-}
-
-@keyframes survivor-key-icon-turn {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(-8deg) scale(1.08);
-  }
-}
-
-@keyframes survivor-seat-settle-award {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.018);
-  }
-}
-
-@keyframes survivor-settle-crown-turn {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(6deg) scale(1.08);
-  }
-}
-
-@keyframes survivor-seat-scan {
-  0%,
-  48% {
-    opacity: 0;
-    transform: translateX(-88%);
-  }
-
-  62% {
-    opacity: 0.82;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(88%);
-  }
-}
-
-@keyframes survivor-key-burst-flight {
-  0% {
-    opacity: 0;
-    transform: translate3d(-50%, 20px, 0) scale(0.72) rotate(-10deg);
-  }
-
-  18% {
-    opacity: 1;
-  }
-
-  62% {
-    opacity: 0.92;
-    transform: translate3d(
-        -50%,
-        calc(var(--survivor-key-burst-y, 48px) * -0.82),
-        0
-      )
-      scale(1.02) rotate(7deg);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(
-        -50%,
-        calc(var(--survivor-key-burst-y, 48px) * -1),
-        0
-      )
-      scale(0.66) rotate(16deg);
-  }
-}
-
-.participation-detail {
-  display: grid;
-  gap: 2px;
-}
-
-.participation-label {
-  @include pm.section-eyebrow;
-}
-
-.participation-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: pm.$text;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ============================================================
- *  5. Buy Keys / Claim cards
- * ============================================================ */
-
-.claim-card,
-.round-control-card,
-.survivor-recovery-card {
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-.claim-card > *,
-.round-control-card > *,
-.survivor-recovery-card > * {
-  @include pm.card;
-  padding: 20px 22px;
-}
-
-.survivor-action-console .buy-keys-card {
-  display: grid;
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.96),
-    rgba(247, 251, 246, 0.92)
-  );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
-}
-
-.survivor-play-area--buying .survivor-action-console .buy-keys-card {
-  border-color: rgba(22, 199, 132, 0.28);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 14px 32px rgba(22, 199, 132, 0.1);
-}
-
-.round-control-card__body,
-.survivor-recovery-card__body {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  justify-content: space-between;
-}
-
-.round-control-card__copy,
-.survivor-recovery-card__copy {
-  display: grid;
-  gap: 4px;
+.survivor-scene__pot {
   min-width: 0;
-}
-
-.round-control-card__title,
-.survivor-recovery-card__title {
-  font-size: 13px;
-  font-weight: 700;
-  color: pm.$text;
-}
-
-.round-control-card__text,
-.survivor-recovery-card__text {
-  font-size: 12px;
-  line-height: 1.45;
-  color: pm.$text-muted;
-}
-
-.claim-card-inner {
-  position: relative;
   display: grid;
-  justify-items: center;
-  gap: 8px;
-  text-align: center;
-  overflow: hidden;
-  border-radius: 18px;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "coin label"
+    "coin value";
+  column-gap: 9px;
+  align-items: center;
+  padding: 10px 13px;
+  border-radius: 16px;
 }
 
-.claim-card-inner > * {
-  position: relative;
-  z-index: 1;
+.survivor-scene__pot svg,
+.survivor-scene__pot > :first-child {
+  grid-area: coin;
 }
 
-.claim-card-inner.is-settling {
-  border: 1px solid rgba(245, 166, 35, 0.22);
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(245, 166, 35, 0.18),
-      transparent 48%
-    ),
-    rgba(255, 255, 255, 0.82);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 16px 38px rgba(96, 61, 7, 0.12);
-}
-
-.claim-card-inner.is-settling::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.72) 42%,
-    rgba(245, 166, 35, 0.24) 50%,
-    transparent 66%
-  );
-  transform: translateX(-115%);
-  animation: survivor-claim-settle-sweep 1.08s ease-out infinite;
-}
-
-.claim-card-inner.is-settling .claim-card-trophy {
-  animation: claim-trophy-settle 760ms ease-in-out infinite;
-}
-
-.claim-card-inner.is-settling .claim-payout-amount {
-  animation: claim-payout-counting 760ms ease-in-out infinite;
-}
-
-.claim-card-trophy {
-  display: inline-grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  background: pm.$amber-soft;
-  color: pm.$amber;
-  line-height: 1;
-  margin-bottom: 2px;
-  /* One-shot pop on mount — the payout reveal lands with energy, then settles. */
-  animation: claim-trophy-pop var(--ns-t-slow, 480ms)
-    cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes claim-trophy-pop {
-  0% {
-    transform: scale(0.4) rotate(-12deg);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.12) rotate(4deg);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes claim-trophy-settle {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) rotate(5deg) scale(1.06);
-  }
-}
-
-@keyframes claim-payout-counting {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes survivor-claim-settle-sweep {
-  0% {
-    opacity: 0;
-    transform: translateX(-115%);
-  }
-
-  18%,
-  72% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(115%);
-  }
-}
-
-.claim-card-eyebrow {
-  @include pm.section-eyebrow;
+.survivor-scene__pot span {
+  grid-area: label;
+  min-width: 0;
+  color: var(--mx2-text-muted);
   font-size: 11px;
-  color: pm.$amber;
+  font-weight: 620;
 }
 
-/* Payout reveal — the GAS prize is the largest thing on the card. */
-.claim-payout {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.claim-payout-amount {
-  font-size: 40px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: pm.$neo-strong;
-  font-variant-numeric: tabular-nums;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.claim-payout-token {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: pm.$text-muted;
-}
-
-.claim-winner-address {
-  max-width: 100%;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  font-weight: 700;
-  color: pm.$text;
+.survivor-scene__pot strong {
+  grid-area: value;
+  min-width: 0;
   overflow: hidden;
+  color: var(--mx2-accent-strong);
+  font-size: 18px;
+  font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.claim-card-text {
-  font-size: 13px;
-  color: pm.$text-2;
-  line-height: 1.5;
-  margin-top: 2px;
-  margin-bottom: 6px;
+.survivor-scene__timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 124px;
+  justify-content: center;
+  padding: 11px 13px;
+  border-radius: var(--mx2-r-pill);
+  color: var(--mx2-ink);
+  font-size: 15px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
 }
 
-/* When the connected wallet IS the winner, lift the whole card with a brand
-   glow + a winning-green prize so the personal win reads as a celebration. */
-.claim-card-inner.is-winner {
+.survivor-scene__timer svg {
+  color: #047857;
+}
+
+.survivor-scene__timer[data-danger="medium"] svg {
+  color: var(--mx2-warning);
+}
+
+.survivor-scene__timer[data-danger="high"] svg,
+.survivor-scene__timer[data-danger="critical"] svg {
+  color: var(--mx2-danger);
+}
+
+.survivor-scene__timer[data-pulse="true"] {
+  animation: survivor-timer-beat 1.1s var(--mx2-ease) infinite;
+}
+
+.survivor-scene__relic {
   position: relative;
-  padding: 18px;
-  margin: -18px;
-  border-radius: 18px;
-  background: linear-gradient(
-    180deg,
-    pm.$neo-soft 0%,
-    rgba(228, 248, 240, 0) 70%
-  );
-  animation: claim-winner-glow var(--ns-t-slow, 520ms) ease-out both;
+  z-index: 4;
+  width: min(330px, calc(100vw - 72px));
+  display: block;
+  min-height: 374px;
+  align-self: end;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 34px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  background: #ffffff;
+  box-shadow:
+    0 26px 58px rgba(22, 101, 52, 0.18),
+    0 0 0 9px rgba(255, 255, 255, 0.86),
+    0 0 0 14px rgba(250, 204, 21, 0.12);
+  transform: translateY(2px);
+  transition:
+    box-shadow var(--mx2-t-fast) var(--mx2-ease),
+    filter var(--mx2-t-fast) var(--mx2-ease),
+    transform var(--mx2-t-fast) var(--mx2-ease-snap);
+}
 
-  .claim-card-trophy {
-    background: pm.$neo-soft;
-    color: pm.$neo-strong;
+.survivor-scene__relic:hover:not(:disabled),
+.survivor-scene__relic:focus-visible {
+  box-shadow:
+    0 32px 68px rgba(22, 101, 52, 0.22),
+    0 0 0 10px rgba(255, 255, 255, 0.9),
+    0 0 0 16px rgba(250, 204, 21, 0.18);
+  transform: translateY(-5px) rotate(-0.5deg);
+}
+
+.survivor-scene__relic:focus-visible {
+  outline: none;
+}
+
+.survivor-scene__relic:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.88);
+  opacity: 0.78;
+}
+
+.survivor-scene[data-state="buying"] .survivor-scene__relic {
+  animation: survivor-relic-charge 1.15s var(--mx2-ease) infinite;
+}
+
+.survivor-scene__relic-art {
+  width: 100%;
+  height: 100%;
+  min-height: 374px;
+  border: 0;
+  border-radius: 34px;
+  object-fit: cover;
+  object-position: center;
+  opacity: 1;
+  filter: saturate(1.04) contrast(1.03);
+  pointer-events: none;
+}
+
+.survivor-scene__relic-scrim {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(11, 18, 32, 0.04) 0%, rgba(11, 18, 32, 0.16) 44%, rgba(255, 251, 235, 0.97) 72%, rgba(255, 255, 255, 0.98) 100%);
+  pointer-events: none;
+}
+
+.survivor-scene__danger-track {
+  position: absolute;
+  z-index: 2;
+  left: 18px;
+  right: 18px;
+  bottom: 104px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--mx2-r-pill);
+  background: #fff7ed;
+  box-shadow: inset 0 0 0 1px rgba(148, 116, 70, 0.16);
+}
+
+.survivor-scene__danger-fill {
+  display: block;
+  width: var(--survivor-danger-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #34d399 0%, #f59e0b 58%, #fb7185 100%);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.42);
+  transition: width var(--mx2-t-slow) var(--mx2-ease-settle);
+}
+
+.survivor-scene__relic-copy {
+  position: absolute;
+  z-index: 3;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  color: #7c2d12;
+  text-align: left;
+  text-shadow: none;
+  pointer-events: none;
+}
+
+.survivor-scene__relic-copy span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.survivor-scene__relic-copy strong {
+  color: #92400e;
+  font-size: 40px;
+  font-weight: 680;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.survivor-scene__relic-copy em {
+  color: #7c2d12;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 680;
+}
+
+.survivor-scene__beats {
+  position: relative;
+  z-index: 5;
+  width: min(100% - 28px, 520px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  pointer-events: none;
+}
+
+.survivor-scene__beats span {
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(148, 116, 70, 0.13);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.93);
+  color: var(--mx2-text-muted);
+  box-shadow: 0 10px 22px rgba(31, 41, 55, 0.06);
+}
+
+.survivor-scene__beats span[data-active="true"] {
+  border-color: rgba(245, 158, 11, 0.34);
+  background: #fff7ed;
+  color: #92400e;
+  animation: survivor-beat-glow 1.8s var(--mx2-ease) infinite;
+}
+
+.survivor-scene__beats svg {
+  flex: 0 0 auto;
+}
+
+.survivor-scene__beats em {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.survivor-scene__key-stack {
+  position: absolute;
+  z-index: 5;
+  left: calc(50% + 174px);
+  right: auto;
+  bottom: 246px;
+  width: 156px;
+  height: 118px;
+  pointer-events: none;
+  filter: drop-shadow(0 16px 28px rgba(146, 64, 14, 0.22));
+}
+
+.survivor-scene__key-token,
+.survivor-scene__key-spark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(148, 116, 70, 0.18);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff7ed 0%, #fde68a 100%);
+  color: #b45309;
+  box-shadow: 0 14px 28px rgba(146, 64, 14, 0.18), inset 0 1px 0 #ffffff;
+}
+
+.survivor-scene__key-token {
+  left: 54px;
+  bottom: 8px;
+  animation: survivor-key-pop var(--mx2-t-slow) var(--mx2-ease-snap) both;
+}
+
+.survivor-scene__key-token--0 { transform: translate(0, 0) rotate(-8deg); }
+.survivor-scene__key-token--1 { transform: translate(-40px, -20px) rotate(6deg); animation-delay: 35ms; }
+.survivor-scene__key-token--2 { transform: translate(38px, -28px) rotate(11deg); animation-delay: 70ms; }
+.survivor-scene__key-token--3 { transform: translate(-10px, -58px) rotate(-4deg); animation-delay: 105ms; }
+.survivor-scene__key-token--4 { transform: translate(-54px, -72px) rotate(-14deg); animation-delay: 140ms; }
+.survivor-scene__key-token--5 { transform: translate(48px, -82px) rotate(16deg); animation-delay: 175ms; }
+
+.survivor-scene__key-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.survivor-scene__key-spark {
+  top: 45%;
+  left: 43%;
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+}
+
+.survivor-scene__key-spark--0 { --mx2-burst-angle: 24deg; --mx2-burst-dist: 116px; }
+.survivor-scene__key-spark--1 { --mx2-burst-angle: 68deg; --mx2-burst-dist: 132px; }
+.survivor-scene__key-spark--2 { --mx2-burst-angle: 118deg; --mx2-burst-dist: 122px; }
+.survivor-scene__key-spark--3 { --mx2-burst-angle: 168deg; --mx2-burst-dist: 108px; }
+.survivor-scene__key-spark--4 { --mx2-burst-angle: 218deg; --mx2-burst-dist: 124px; }
+.survivor-scene__key-spark--5 { --mx2-burst-angle: 266deg; --mx2-burst-dist: 112px; }
+.survivor-scene__key-spark--6 { --mx2-burst-angle: 308deg; --mx2-burst-dist: 132px; }
+.survivor-scene__key-spark--7 { --mx2-burst-angle: 346deg; --mx2-burst-dist: 118px; }
+
+.survivor-scene__readout {
+  position: relative;
+  z-index: 5;
+  width: min(100% - 28px, 680px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.survivor-scene__leader,
+.survivor-scene__cost {
+  min-width: 142px;
+  display: grid;
+  gap: 2px;
+  padding: 10px 13px;
+  border-radius: 16px;
+}
+
+.survivor-scene__leader span,
+.survivor-scene__cost span {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.survivor-scene__leader code,
+.survivor-scene__cost strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.survivor-scene__status,
+.survivor-scene__notice {
+  position: relative;
+  z-index: 5;
+  width: min(100% - 28px, 560px);
+  margin: 0;
+  padding: 9px 13px;
+  border-radius: 16px;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 620;
+  text-align: center;
+}
+
+.survivor-scene__notice {
+  color: var(--mx2-warning);
+  display: none;
+}
+
+/* ============================================================
+ * Key loadout controls
+ * ============================================================ */
+.survivor-controls {
+  width: min(960px, 100%);
+  margin: 14px auto 0;
+  display: grid;
+}
+
+.survivor-controls__dock {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(176px, 0.56fr) minmax(384px, 1fr) minmax(218px, 0.58fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(148, 116, 70, 0.14);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 245, 0.98), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+  box-shadow: 0 16px 36px rgba(22, 101, 52, 0.08);
+}
+
+.survivor-controls__dock::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: 0;
+  border: 1px solid rgba(245, 158, 11, 0.14);
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.survivor-controls__dock > * {
+  position: relative;
+  z-index: 1;
+}
+
+.survivor-controls__core {
+  min-height: 70px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 10px 13px;
+  border-radius: 20px;
+  background: #fff8ed;
+  color: #92400e;
+}
+
+.survivor-controls__core span {
+  color: #b45309;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.survivor-controls__core strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #92400e;
+  font-size: 24px;
+  font-weight: 680;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.survivor-controls__core em {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 620;
+  line-height: 1.22;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.survivor-controls__presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.survivor-preset {
+  min-width: 0;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-items: start;
+  gap: 7px;
+  border: 1.5px solid rgba(148, 116, 70, 0.12);
+  border-radius: 20px;
+  padding: 10px;
+  background: #ffffff;
+  color: #92400e;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition:
+    background var(--mx2-t-fast) var(--mx2-ease),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease),
+    transform var(--mx2-t-fast) var(--mx2-ease-snap);
+}
+
+.survivor-preset:hover:not(:disabled) {
+  border-color: rgba(245, 158, 11, 0.48);
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 158, 11, 0.1),
+    0 12px 24px rgba(146, 64, 14, 0.1);
+  transform: translateY(-2px);
+}
+
+.survivor-preset--active {
+  border-color: rgba(245, 158, 11, 0.58);
+  background: #fff7ed;
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 158, 11, 0.18),
+    0 10px 22px rgba(245, 158, 11, 0.12);
+}
+
+.survivor-preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.survivor-preset__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff8ed;
+  color: #b45309;
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.14);
+}
+
+.survivor-preset span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.survivor-preset strong {
+  color: #92400e;
+  font-size: 20px;
+  font-weight: 680;
+  line-height: 1;
+}
+
+.survivor-preset em {
+  overflow: hidden;
+  color: #b45309;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
+.survivor-controls__stepper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  display: inline-grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid rgba(148, 116, 70, 0.14);
+  border-radius: var(--mx2-r-pill);
+  background: #fff8ed;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.74);
+}
+
+.survivor-stepper__btn {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--mx2-accent-soft);
+  color: var(--mx2-accent-strong);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 680;
+  line-height: 1;
+  transition:
+    background var(--mx2-t-fast) var(--mx2-ease),
+    color var(--mx2-t-fast) var(--mx2-ease),
+    transform var(--mx2-t-fast) var(--mx2-ease-snap);
+}
+
+.survivor-stepper__btn:hover:not(:disabled) {
+  background: var(--mx2-accent);
+  color: #ffffff;
+  transform: scale(1.04);
+}
+
+.survivor-stepper__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.survivor-stepper__output {
+  min-width: 0;
+  display: grid;
+  justify-content: center;
+  row-gap: 2px;
+  color: var(--mx2-ink);
+  text-align: center;
+}
+
+.survivor-stepper__track {
+  width: min(126px, 100%);
+  height: 5px;
+  overflow: hidden;
+  border-radius: var(--mx2-r-pill);
+  background: rgba(148, 116, 70, 0.14);
+}
+
+.survivor-stepper__track-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #f59e0b;
+  transition: width var(--mx2-t-slow) var(--mx2-ease-settle);
+}
+
+.survivor-stepper__output strong {
+  max-width: 96px;
+  overflow: hidden;
+  font-size: 21px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.survivor-stepper__output span {
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.survivor-controls__hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+  text-align: center;
+}
+
+.survivor-controls__error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--mx2-danger);
+  font-size: 13px;
+  font-weight: 620;
+  text-align: center;
+}
+
+/* ============================================================
+ * Settle climax overlay
+ * ============================================================ */
+.survivor-climax {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--mx2-overlay);
+}
+
+.survivor-climax__card {
+  position: relative;
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 28px 24px 24px;
+  border: 1px solid rgba(148, 116, 70, 0.16);
+  border-radius: var(--mx2-r-lg);
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-lg);
+  text-align: center;
+}
+
+.survivor-climax__medal {
+  position: relative;
+  width: 118px;
+  height: 118px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 116, 70, 0.16);
+  border-radius: 32px;
+  background: #ffffff;
+  color: #b45309;
+  box-shadow: 0 12px 24px rgba(146, 64, 14, 0.12);
+}
+
+.survivor-climax__medal img {
+  position: absolute;
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  border-radius: 24px;
+  background: #ffffff;
+  object-fit: contain;
+  object-position: center;
+  opacity: 1;
+  filter: none;
+}
+
+.survivor-climax__medal::after {
+  content: none;
+}
+
+.survivor-climax__medal svg {
+  position: relative;
+  z-index: 1;
+  box-sizing: content-box;
+  border: 1px solid rgba(148, 116, 70, 0.16);
+  border-radius: 50%;
+  padding: 8px;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(146, 64, 14, 0.12);
+  filter: none;
+}
+
+.survivor-climax__card h3 {
+  margin: 4px 0 0;
+  color: var(--mx2-ink);
+  font-size: 22px;
+  font-weight: 680;
+}
+
+.survivor-climax__pot {
+  margin: 0;
+  color: var(--mx2-accent-strong);
+  font-size: 28px;
+  font-weight: 680;
+}
+
+.survivor-climax__winner {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.survivor-climax__card .mx2-burst {
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes survivor-relic-charge {
+  0%, 100% {
+    transform: translateY(2px) scale(1);
   }
-
-  .claim-card-eyebrow {
-    color: pm.$neo-strong;
+  50% {
+    transform: translateY(-7px) scale(1.025);
   }
 }
 
-@keyframes claim-winner-glow {
+@keyframes survivor-key-pop {
   0% {
-    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
-  }
-  40% {
-    box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.18);
+    opacity: 0;
+    transform: translate(0, 14px) scale(0.76) rotate(0deg);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes survivor-timer-beat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+@keyframes survivor-beat-glow {
+  0%, 100% {
+    box-shadow: 0 10px 22px rgba(31, 41, 55, 0.06);
+  }
+  50% {
+    box-shadow: 0 12px 28px rgba(245, 158, 11, 0.18);
+  }
+}
+
+@media (max-width: 640px) {
+  .survivor-play-area .mx2-stage {
+    padding: 13px 14px 14px;
+  }
+
+  .survivor-play-area .mx2-stage__head {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .survivor-play-area .mx2-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  .survivor-play-area .mx2-stage__title {
+    margin-top: 2px;
+    font-size: 21px;
+    line-height: 1.08;
+  }
+
+  .survivor-play-area .mx2-stage__subtitle {
+    display: none;
+  }
+
+  .survivor-play-area .mx2-stage__badges {
+    max-width: 136px;
+    justify-content: flex-end;
+  }
+
+  .survivor-scene {
+    min-height: 456px;
+    grid-template-rows: auto auto auto auto auto;
+    gap: 7px;
+    padding: 11px 0 12px;
+    border-radius: 24px;
+  }
+
+  .survivor-scene__arena-art {
+    object-position: 36% center;
+    opacity: 0.72;
+  }
+
+  .survivor-scene__shade {
+    background:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.28) 48%, rgba(255, 255, 255, 0.64) 100%),
+      linear-gradient(180deg, rgba(247, 251, 244, 0.78) 0%, rgba(247, 251, 244, 0.18) 42%, rgba(247, 251, 244, 0.82) 100%);
+  }
+
+  .survivor-scene__hud {
+    width: min(100% - 18px, 680px);
+    margin-top: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .survivor-scene__pot {
+    flex: 1 1 auto;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .survivor-scene__pot span {
+    font-size: 10px;
+  }
+
+  .survivor-scene__pot strong {
+    font-size: 16px;
+  }
+
+  .survivor-scene__timer {
+    flex: 0 0 auto;
+    align-self: auto;
+    min-width: 112px;
+    padding: 9px 10px;
+    font-size: 14px;
+  }
+
+  .survivor-scene__relic {
+    width: min(252px, calc(100vw - 92px));
+    min-height: 296px;
+    border-radius: 28px;
+    padding: 0;
+    box-shadow:
+      0 16px 36px rgba(22, 101, 52, 0.16),
+      0 0 0 7px rgba(255, 255, 255, 0.88),
+      0 0 0 11px rgba(250, 204, 21, 0.12);
+    transform: none;
+  }
+
+  .survivor-scene__relic:hover:not(:disabled),
+  .survivor-scene__relic:focus-visible,
+  .survivor-scene[data-state="buying"] .survivor-scene__relic {
+    transform: translateY(-3px);
+  }
+
+  .survivor-scene__relic-art {
+    min-height: 296px;
+    height: 296px;
+    border-radius: 28px;
+  }
+
+  .survivor-scene__relic-scrim {
+    background:
+      linear-gradient(180deg, rgba(11, 18, 32, 0.04) 0%, rgba(11, 18, 32, 0.16) 42%, rgba(255, 251, 235, 0.98) 70%, rgba(255, 255, 255, 0.98) 100%);
+  }
+
+  .survivor-scene__danger-track {
+    left: 14px;
+    right: 14px;
+    bottom: 88px;
+  }
+
+  .survivor-scene__relic-copy {
+    gap: 2px;
+    left: 14px;
+    right: 14px;
+    bottom: 13px;
+  }
+
+  .survivor-scene__relic-copy span {
+    font-size: 10px;
+  }
+
+  .survivor-scene__relic-copy strong {
+    font-size: 30px;
+  }
+
+  .survivor-scene__relic-copy em {
+    font-size: 12px;
+  }
+
+  .survivor-scene__danger-track {
+    height: 7px;
+  }
+
+  .survivor-scene__key-stack {
+    left: auto;
+    right: 6px;
+    bottom: 218px;
+    transform: scale(0.62);
+    transform-origin: right bottom;
+  }
+
+  .survivor-scene__beats {
+    width: min(100% - 18px, 324px);
+    gap: 5px;
+  }
+
+  .survivor-scene__beats span {
+    min-height: 34px;
+    padding: 5px 6px;
+  }
+
+  .survivor-scene__beats em {
+    font-size: 9px;
+    white-space: normal;
+  }
+
+  .survivor-scene__readout {
+    width: min(100% - 18px, 680px);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .survivor-scene__leader,
+  .survivor-scene__cost {
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .survivor-scene__leader span,
+  .survivor-scene__cost span {
+    font-size: 10px;
+  }
+
+  .survivor-scene__leader code,
+  .survivor-scene__cost strong {
+    font-size: 13px;
+  }
+
+  .survivor-scene__status,
+  .survivor-scene__notice {
+    width: min(100% - 18px, 560px);
+    padding: 7px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    line-height: 1.2;
+    box-shadow: 0 5px 12px rgba(31, 41, 55, 0.045);
+  }
+
+  .survivor-controls {
+    margin-top: 8px;
+  }
+
+  .survivor-controls__dock {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 9px;
+    border-radius: 23px;
+  }
+
+  .survivor-controls__dock::before {
+    inset: 7px;
+    border-radius: 18px;
+  }
+
+  .survivor-controls__core {
+    min-height: 0;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "label value"
+      "hint hint";
+    align-items: baseline;
+    padding: 8px 10px;
+  }
+
+  .survivor-controls__core span {
+    grid-area: label;
+  }
+
+  .survivor-controls__core strong {
+    grid-area: value;
+    font-size: 21px;
+    text-align: right;
+  }
+
+  .survivor-controls__core em {
+    grid-area: hint;
+  }
+
+  .survivor-controls__presets {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .survivor-preset {
+    min-height: 54px;
+    grid-template-columns: 1fr;
+    justify-content: center;
+    justify-items: center;
+    gap: 5px;
+    border-radius: 16px;
+    padding: 7px 5px;
+    text-align: center;
+  }
+
+  .survivor-preset__icon {
+    display: none;
+  }
+
+  .survivor-preset strong {
+    font-size: 18px;
+  }
+
+  .survivor-preset em {
+    font-size: 9px;
+  }
+
+  .survivor-controls__stepper {
+    grid-template-columns: 36px minmax(0, 1fr) 36px;
+    gap: 5px;
+    padding: 4px;
+  }
+
+  .survivor-stepper__btn {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
+  .survivor-stepper__output {
+    min-width: 0;
+  }
+
+  .survivor-stepper__output strong {
+    max-width: 92px;
+    font-size: 19px;
+  }
+
+  .survivor-stepper__track {
+    width: min(132px, 100%);
+  }
+
+  .survivor-play-area .mx2-action-rail__row .mx2-btn--primary {
+    display: none;
+  }
+
+  .survivor-play-area .mx2-action-rail__drawer-toggle {
+    min-width: 168px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .survivor-stage::before,
-  .survivor-stage.survivor-play-area--buying,
-  .survivor-stage.survivor-play-area--settling,
-  .survivor-stage__image,
-  .hero-badge,
-  .status-active .status-dot,
-  .last-buyer-badge,
-  .last-buyer-icon,
-  .survivor-arena-lane__track::after,
-  .survivor-arena-lane__pulse,
-  .survivor-arena-lane__marker.is-live,
-  .survivor-seat,
-  .survivor-seat.is-live,
-  .survivor-seat.is-live::after,
-  .survivor-play-area--buying .survivor-seat--player,
-  .survivor-play-area--buying .survivor-seat--player .survivor-seat__icon,
-  .survivor-play-area--settling .survivor-seat--leader,
-  .survivor-play-area--settling .survivor-seat--leader .survivor-seat__icon,
-  .survivor-key-burst--active span,
-  .survivor-play-area--live .participation-icon,
-  .claim-card-trophy,
-  .claim-card-inner.is-winner,
-  .claim-card-inner.is-settling::before,
-  .claim-card-inner.is-settling .claim-card-trophy,
-  .claim-card-inner.is-settling .claim-payout-amount {
-    animation: none;
-  }
-
-  .survivor-key-burst span {
-    opacity: 0;
-  }
-
-  .survivor-stage,
-  .survivor-arena-lane__marker {
-    transition: none;
-  }
-}
-
-/* ============================================================
- *  6. Rules — How It Works
- * ============================================================ */
-
-.rules-card {
-  @include pm.card;
-  padding: 4px 22px;
-  overflow: hidden;
-}
-
-.rules-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 0;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-
-  &::-webkit-details-marker {
-    display: none;
-  }
-  &:focus-visible {
-    outline: none;
-    box-shadow: pm.$focus-ring;
-    border-radius: 12px;
-  }
-}
-
-.rules-title {
-  @include pm.section-eyebrow;
-  font-size: 12px;
-}
-
-.rules-chevron {
-  width: 9px;
-  height: 9px;
-  border-right: 2px solid pm.$text-muted;
-  border-bottom: 2px solid pm.$text-muted;
-  transform: rotate(45deg);
-  transition: transform var(--ns-t-fast, 150ms)
-    var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-  flex-shrink: 0;
-  margin-top: -3px;
-}
-
-.rules-card[open] .rules-chevron {
-  transform: rotate(-135deg);
-  margin-top: 3px;
-}
-
-.rules-grid {
-  display: grid;
-  gap: 16px;
-  padding-bottom: 20px;
-}
-
-.rule-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 14px;
-  align-items: start;
-}
-
-.rule-number {
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.rule-text {
-  display: grid;
-  gap: 3px;
-
-  strong {
-    font-size: 14px;
-    font-weight: 700;
-    color: pm.$text;
-  }
-
-  span {
-    font-size: 13px;
-    line-height: 1.55;
-    color: pm.$text-2;
-  }
-}
-
-/* ============================================================
- *  7. History section
- * ============================================================ */
-
-.history-section {
-  display: grid;
-  gap: 14px;
-  padding: 20px 22px;
-  @include pm.card;
-}
-
-.history-section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.history-section-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.history-section-title {
-  @include pm.section-eyebrow;
-  font-size: 12px;
-}
-
-/* ============================================================
- *  Status toast (StandaloneDappSurface)
- * ============================================================ */
-
-.standalone-dapp-root .status-toast {
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: pm.$bg;
-  color: pm.$text;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid pm.$border;
-  box-shadow: 0 12px 28px -10px rgba(20, 22, 38, 0.18);
-}
-
-@media (max-width: 640px) {
-  .survivor-stage {
-    min-height: auto;
-    border-radius: 22px;
-  }
-
-  .survivor-stage__image {
-    height: 42%;
-    object-position: 30% 0;
-  }
-
-  .survivor-stage__shade {
-    background:
-      linear-gradient(
-        180deg,
-        rgba(255, 252, 242, 0.56) 0%,
-        rgba(255, 252, 242, 0.88) 34%,
-        rgba(255, 252, 242, 0.96) 100%
-      ),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(16, 82, 61, 0.12));
-  }
-
-  .survivor-stage__content {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    min-height: auto;
-    padding: 14px;
-  }
-
-  .survivor-stage__left {
-    gap: 10px;
-  }
-
-  .survivor-service-notice {
-    padding: 12px 14px;
-    gap: 10px;
-  }
-
-  .hero-heading {
-    max-width: none;
-  }
-
-  .hero-title {
-    font-size: 27px;
-  }
-
-  .survivor-stage .danger-ring-hero {
-    align-items: center;
-    text-align: center;
-    max-width: none;
-    gap: 12px;
-  }
-
-  .survivor-stage .danger-ring {
-    width: 178px;
-    height: 178px;
-  }
-
-  .survivor-stage .ring-inner {
-    width: 150px;
-    height: 150px;
-  }
-
-  .survivor-stage .countdown-digits {
-    font-size: 25px;
-  }
-
-  .survivor-stage .hero-prize-pool {
-    align-items: center;
-    padding: 10px 20px;
-  }
-
-  .survivor-stage .prize-amount {
-    font-size: 24px;
-  }
-
-  .survivor-action-console {
-    padding: 12px;
-    border-radius: 18px;
-  }
-
-  .survivor-action-console__head strong {
-    font-size: 22px;
-  }
-
-  .survivor-action-console .buy-keys-card {
-    padding: 12px;
-  }
-
-  .survivor-arena-lane {
-    padding: 12px;
-  }
-
-  .survivor-arena-lane__labels {
-    grid-template-columns: 1fr;
-  }
-
-  .survivor-arena-lane__track {
-    min-height: 50px;
-  }
-
-  .survivor-arena-lane__marker {
-    width: 31px;
-    height: 31px;
-  }
-
-  .survivor-seat-strip {
-    padding: 12px;
-  }
-
-  .survivor-seat-grid {
-    grid-template-columns: 1fr;
-    gap: 7px;
-  }
-
-  .survivor-seat {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    justify-items: start;
-    align-items: center;
-    min-height: 58px;
-    padding: 10px 12px;
-    text-align: left;
-  }
-
-  .survivor-seat strong {
-    justify-self: end;
-    text-align: right;
-  }
-
-  .participation-bar {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .participation-item {
-    min-width: 0;
-  }
-
-  .last-buyer-badge,
-  .survivor-service-notice,
-  .round-control-card__body,
-  .survivor-recovery-card__body {
-    display: grid;
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-
-  .last-buyer-hint {
-    text-align: left;
+  .survivor-scene__timer[data-pulse="true"],
+  .survivor-scene[data-state="buying"] .survivor-scene__relic,
+  .survivor-scene__beats span[data-active="true"],
+  .survivor-scene__key-token,
+  .survivor-climax__medal {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

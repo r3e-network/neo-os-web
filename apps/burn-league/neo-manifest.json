@@ -33,8 +33,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/burn-league/index.html",
-    "icon": "/miniapps/burn-league/logo.jpg",
-    "banner": "/miniapps/burn-league/banner.jpg"
+    "icon": "/miniapps/burn-league/logo.webp",
+    "banner": "/miniapps/burn-league/banner.webp"
   },
   "permissions": [
     "invoke:primary",

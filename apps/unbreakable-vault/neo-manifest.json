@@ -29,8 +29,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/unbreakable-vault/index.html",
-    "icon": "/miniapps/unbreakable-vault/logo.jpg",
-    "banner": "/miniapps/unbreakable-vault/banner.jpg"
+    "icon": "/miniapps/unbreakable-vault/logo.webp",
+    "banner": "/miniapps/unbreakable-vault/banner.webp"
   },
   "permissions": [
     "invoke:primary",

@@ -19,3 +19,18 @@ export type {
   ConsoleToolConfig,
   ConsoleToolPanelProps,
 } from "./ConsoleToolPanel";
+
+export { MiniAppHomeShell } from "./MiniAppHomeShell";
+export type {
+  HomeShellStat,
+  HomeShellFeature,
+  HomeShellLeaderboardItem,
+  HomeShellTeaser,
+  MiniAppHomeShellProps,
+} from "./MiniAppHomeShell";
+
+export { GameHomePage } from "./GameHomePage";
+export type {
+  GameHomePageProps,
+  GameHomePageRulesPreview,
+} from "./GameHomePage";

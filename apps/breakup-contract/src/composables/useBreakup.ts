@@ -2,7 +2,7 @@
  * useBreakup — Domain logic for the Breakup Contract miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppBreakupPact)
- * via ctx.services.chain. The earlier path routed create/sign/break through the
+ * via the MiniApp framework (ctx.framework). The earlier path routed create/sign/break through the
  * OS escrow/storage/badge kernel proxies, which never actually held the stakes
  * or paid anyone — the kernel escrow id never even materialized (the earlier
  * audit's "revise"). This composable now drives the dedicated contract, a
@@ -20,7 +20,7 @@
  *
  * Contract interaction model (verified against MiniAppBreakupPact.cs / ABI):
  *
- *   READS (chain.read / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw / app.chain.readArray, default app contract script hash):
  *     lastPactId()                          -> Integer (pacts are ids 1..last)
  *     creditOf(who)                         -> Integer (prepaid stake credit)
  *     getPact(id)                           -> Map{id,party1,party2,stake,
@@ -30,7 +30,7 @@
  *     getPartyPacts(who, off, limit)        -> Integer[] (pacts where who is
  *                                              party1 OR party2)
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT (fund a stake) — a GAS transfer to the contract with the memo
  *        "miniapp-breakup:stake" so OnNEP17Payment credits the sender:
  *          transfer(party, CONTRACT, stakeBaseUnits, "miniapp-breakup:stake")
@@ -65,12 +65,9 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
-import {
-  GAS_DECIMALS_MULTIPLIER,
-  gasToBaseUnits as toBaseUnits,
-} from "@shared/utils/amounts";
+import { GAS_DECIMALS_MULTIPLIER } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -114,11 +111,12 @@ const STATUS_CANCELLED = 4;
 
 export interface UseBreakupOptions {
   /**
-   * ChainService from ctx.services.chain. Used for every on-chain read/write
-   * (stake deposit + createPact/signPact/breakPact/settlePact) and to read the
-   * connected wallet so the list and hero counts scope to the current user.
+   * MiniApp framework (ctx.framework). Its chain layer drives every on-chain
+   * read/write (stake deposit + createPact/signPact/breakPact/settlePact) and
+   * exposes the connected wallet so the list and hero counts scope to the
+   * current user; its amount layer scales human GAS to base units.
    */
-  chain: ChainService;
+  app: MiniAppFramework;
   /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
@@ -155,7 +153,7 @@ const toIdString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
+export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
   // -- Form state -----------------------------------------------------------
   const partnerAddress = createObservable("");
   const stakeAmount = createObservable("");
@@ -221,7 +219,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
   // -- Pact mapping (from getPact Map) -------------------------------------
 
   /**
-   * Map a getPact Map (returned by chain.read as a plain object) into the
+   * Map a getPact Map (returned by app.chain.readRaw as a plain object) into the
    * RelationshipContractView the UI consumes. Returns null for an unknown /
    * empty pact (no party1 key).
    *
@@ -317,7 +315,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     metaStore: Record<string, PactMeta>,
   ): Promise<RelationshipContractView | null> => {
     try {
-      const raw = await chain.read("getPact", [{ type: "Integer", value: id }]);
+      const raw = await app.chain.readRaw("getPact", [app.chain.arg.integer(id)]);
       return mapPact(raw, id, metaStore[id]);
     } catch (e) {
       console.warn("[useBreakup] getPact failed for", id, ":", e instanceof Error ? e.message : String(e));
@@ -343,10 +341,10 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
         return;
       }
 
-      const idsRaw = await chain.readArray("getPartyPacts", [
-        { type: "Hash160", value: partyHash },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: String(PARTY_PAGE_LIMIT) },
+      const idsRaw = await app.chain.readArray("getPartyPacts", [
+        app.chain.arg.hash160(partyHash),
+        app.chain.arg.integer(0),
+        app.chain.arg.integer(PARTY_PAGE_LIMIT),
       ]);
       const ids = (Array.isArray(idsRaw) ? idsRaw : [])
         .map(toIdString)
@@ -388,7 +386,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       return;
     }
     try {
-      const raw = await chain.read("creditOf", [{ type: "Hash160", value: partyHash }]);
+      const raw = await app.chain.readRaw("creditOf", [app.chain.arg.hash160(partyHash)]);
       const base = parseBigInt(raw);
       creditBalanceRaw.set(base.toString());
       creditBalance.set(base > 0n ? String(parseGas(base)) : "0");
@@ -406,7 +404,9 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
    * wallet-required error. Centralizes the connect-on-demand path.
    */
   const requireWallet = async (): Promise<{ addr: string; hash: string }> => {
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
+    // addressToScriptHash here is a validity-check + the comparison key used for
+    // the self-partner guard below — kept as-is (not a contract-arg builder).
     const hash = addressToScriptHash(addr || "");
     if (!addr || !hash) throw new Error(t("contractWalletUnavailable"));
     address.set(addr);
@@ -466,7 +466,10 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     if (titleValue.length > TITLE_MAX) throw new Error(t("titleTooLong"));
     if (termsValue.length > TERMS_MAX) throw new Error(t("termsTooLong"));
 
-    const stakeBase = toBaseUnits(stakeAmount.get());
+    // GAS → base units via the framework amount layer (Fixed8, ×1e8 — the same
+    // scaling the prior gasToBaseUnits helper applied). The stake was already
+    // validated as a finite amount >= MIN_STAKE_GAS above.
+    const stakeBase = app.amount.gasToFixed8(stakeAmount.get());
     if (stakeBase < MIN_STAKE_GAS * Number(GAS_DECIMALS_MULTIPLIER)) {
       throw new Error(t("stakeOrDurationInvalid"));
     }
@@ -478,13 +481,15 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       const { addr: creatorAddr, hash: creatorHash } = await requireWallet();
       // The creator must not name themselves as the partner (the contract
       // rejects party1 == party2; surface a clean message pre-submit).
+      // addressToScriptHash here is a validity-check + the comparison key, not
+      // a contract-arg builder — the arg is built via app.chain.arg.hash160.
       const partnerHash = addressToScriptHash(partnerValue);
       if (!partnerHash) throw new Error(t("partnerInvalid"));
       if (partnerHash.toLowerCase() === creatorHash.toLowerCase()) {
         throw new Error(t("partnerSelf"));
       }
 
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("contractUnavailable"));
 
       const durationSeconds = durationDays * 86_400;
@@ -497,13 +502,13 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       // stake credit" — surfacing the scary depositPrepaidNoContract error
       // spuriously. waitForEvent resolves null on timeout (best-effort, never
       // throws), so a slow indexer degrades to the prior behavior, not a hang.
-      await chain.invoke(
+      await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: creatorHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: stakeBase.toString() },
-          { type: "String", value: STAKE_MEMO },
+          app.chain.arg.hash160(creatorHash),
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(stakeBase),
+          app.chain.arg.string(STAKE_MEMO),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
       );
@@ -512,20 +517,20 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       // opens the pact. Read the new id from the PactCreated event (state[0]).
       let pactId = "";
       try {
-        const result = await chain.invoke(
+        const result = await app.chain.invoke(
           "createPact",
           [
-            { type: "Hash160", value: creatorHash },
-            { type: "Hash160", value: partnerHash },
-            { type: "Integer", value: stakeBase.toString() },
-            { type: "Integer", value: String(durationSeconds) },
+            app.chain.arg.hash160(creatorHash),
+            app.chain.arg.hash160(partnerHash),
+            app.chain.arg.integer(stakeBase),
+            app.chain.arg.integer(durationSeconds),
           ],
           { waitForEvent: "PactCreated" },
         );
         pactId = toIdString(eventValue(result.event, 0));
         if (!pactId) {
           // Event slot unavailable / unparsed — fall back to lastPactId().
-          pactId = toIdString(await chain.read("lastPactId", []));
+          pactId = toIdString(await app.chain.readRaw("lastPactId", []));
         }
       } catch (createErr) {
         console.error(
@@ -588,12 +593,12 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     isLoading.set(true);
     try {
       const { hash: party2Hash } = await requireWallet();
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("contractUnavailable"));
 
       // Read the pact's exact stake (base units) so party2's deposit matches
       // party1's lock precisely, independent of any human-rounded view value.
-      const raw = await chain.read("getPact", [{ type: "Integer", value: pactId }]);
+      const raw = await app.chain.readRaw("getPact", [app.chain.arg.integer(pactId)]);
       const pactParty2 = parseHash160((raw as Record<string, unknown> | null)?.party2);
       // Only the NAMED partner can sign: signPact asserts p.Party2 == party2, so
       // a non-partner (e.g. the creator) tapping Sign would deposit a full
@@ -613,24 +618,24 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       // Step 1: DEPOSIT — matching stake with the stake memo (credits party2).
       // Wait for the Credited event so signPact (step 2) never races ahead of the
       // credit landing (best-effort; resolves null on timeout, never throws).
-      await chain.invoke(
+      await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: party2Hash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: matchBase.toString() },
-          { type: "String", value: STAKE_MEMO },
+          app.chain.arg.hash160(party2Hash),
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(matchBase),
+          app.chain.arg.string(STAKE_MEMO),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
       );
 
       // Step 2: signPact — consumes the matching credit and activates the pact.
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "signPact",
           [
-            { type: "Integer", value: pactId },
-            { type: "Hash160", value: party2Hash },
+            app.chain.arg.integer(pactId),
+            app.chain.arg.hash160(party2Hash),
           ],
           { waitForEvent: "PactSigned" },
         );
@@ -670,11 +675,11 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     try {
       const { hash: breakerHash } = await requireWallet();
 
-      await chain.invoke(
+      await app.chain.invoke(
         "breakPact",
         [
-          { type: "Integer", value: pactId },
-          { type: "Hash160", value: breakerHash },
+          app.chain.arg.integer(pactId),
+          app.chain.arg.hash160(breakerHash),
         ],
         { waitForEvent: "PactBroken" },
       );
@@ -709,9 +714,9 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       // available to submit the transaction.
       await requireWallet();
 
-      await chain.invoke(
+      await app.chain.invoke(
         "settlePact",
-        [{ type: "Integer", value: pactId }],
+        [app.chain.arg.integer(pactId)],
         { waitForEvent: "PactSettled" },
       );
 
@@ -743,9 +748,9 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     isLoading.set(true);
     try {
       const { hash: accountHash } = await requireWallet();
-      await chain.invoke(
+      await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: accountHash }],
+        [app.chain.arg.hash160(accountHash)],
         { waitForEvent: "CreditWithdrawn" },
       );
       eventBus.emit("breakup:credit-recovered", { action: t("creditRecovered") });

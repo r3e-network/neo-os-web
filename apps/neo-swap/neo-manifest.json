@@ -30,8 +30,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/neo-swap/index.html",
-    "icon": "/miniapps/neo-swap/logo.jpg",
-    "banner": "/miniapps/neo-swap/banner.jpg"
+    "icon": "/miniapps/neo-swap/logo.webp",
+    "banner": "/miniapps/neo-swap/banner.webp"
   },
   "permissions": [
     "read:blockchain"

@@ -215,6 +215,7 @@ const appMessages = {
   tabCompute: { en: "Compute", zh: "计算" },
   panelEyebrow: { en: "Morpheus compute", zh: "Morpheus 计算" },
   panelTitle: { en: "Compute Preview Builder", zh: "计算预览构建器" },
+  buildRequest: { en: "Build Request", zh: "构建请求" },
   panelDescription: {
     en: "Shape compute work into a deterministic preview. Sealed mode keeps raw input out of visible payloads.",
     zh: "把计算任务整理为确定性预览；加密封装模式不会在可见载荷中暴露原始输入。",
@@ -261,6 +262,7 @@ const appMessages = {
   inputValid: { en: "Input is valid JSON", zh: "输入为有效 JSON" },
   inputDigest: { en: "Input Digest", zh: "输入摘要" },
   computeReady: { en: "Compute preview ready", zh: "计算预览已准备" },
+  computeBuildActive: { en: "Building preview...", zh: "正在生成预览..." },
   computeInvalidJson: {
     en: "Enter a valid JSON input payload",
     zh: "请输入有效的 JSON 输入载荷",
@@ -290,6 +292,7 @@ const appMessages = {
     en: "Build a small, reviewable compute package with an explicit privacy boundary.",
     zh: "构建简洁、可审阅、隐私边界明确的计算包。",
   },
+  computeControlsLabel: { en: "Compute package controls", zh: "计算包控制区" },
   computePipelineLabel: { en: "Compute request pipeline", zh: "计算请求管线" },
   computePipelineKicker: { en: "Service pipeline", zh: "服务管线" },
   computePipelineDraft: {
@@ -317,6 +320,7 @@ const appMessages = {
     en: "Assemble workflow, privacy, and input as one package before reviewing the digest.",
     zh: "把工作流、隐私和输入组装成一个包，再审阅摘要。",
   },
+  computePreviewOnly: { en: "Review mode", zh: "复核模式" },
   computeWorkflowTitle: { en: "Compute workflow", zh: "计算工作流" },
   computeWorkflowCopy: {
     en: "Choose the operation shape that downstream dispatch should execute.",
@@ -355,6 +359,14 @@ const appMessages = {
   computeEmptyCopy: {
     en: "The receipt will show workflow, privacy mode, input digest, and the exact copyable payload without leaking sealed input.",
     zh: "回执会显示工作流、隐私模式、输入摘要和准确可复制 payload，同时不泄漏密封输入。",
+  },
+  computeDrawerNoDigest: {
+    en: "Build a preview to generate an auditable digest.",
+    zh: "生成预览后会出现可审计摘要。",
+  },
+  computeDrawerRouteTitle: {
+    en: "Preview route",
+    zh: "预览路由",
   },
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },

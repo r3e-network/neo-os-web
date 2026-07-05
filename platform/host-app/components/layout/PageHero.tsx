@@ -96,7 +96,7 @@ export function PageHero({
                   <div className="text-xs uppercase text-gray-500">
                     {stat.label}
                   </div>
-                  <div className="mt-2 text-2xl font-black text-gray-900">
+                  <div className="mt-2 text-2xl font-semibold text-gray-900">
                     {stat.value}
                   </div>
                   {stat.hint && (

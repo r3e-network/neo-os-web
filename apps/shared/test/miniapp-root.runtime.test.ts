@@ -23,6 +23,52 @@ const manifest = {
   },
 } as const;
 
+const gameManifest = {
+  ...manifest,
+  name: "Runtime Game",
+  description: "A standalone runtime game should still start from its launch page.",
+  category: "game",
+  shell: "game",
+  docs: [
+    { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
+    { titleKey: "fairnessTitle", contentKey: "fairnessCopy", type: "text" },
+  ],
+  stats: [
+    { labelKey: "scoreWon", valueKey: "wins", format: "text" },
+  ],
+} as const;
+
+const configuredGameManifest = {
+  ...gameManifest,
+  gamePage: {
+    categoryColor: "#10B981",
+    heroBadgeKey: "playTab",
+    heroTitleKey: "playTab",
+    heroTitleAccent: "playTab",
+    heroDescKey: "rulesCopy",
+    primaryLabelKey: "startAction",
+    ghostLabelKey: "rulesTitle",
+    featuresEyebrowKey: "playTab",
+    featuresTitleKey: "fairnessTitle",
+    features: [
+      {
+        titleKey: "fairnessTitle",
+        descKey: "fairnessCopy",
+        large: true,
+        gradient: "linear-gradient(135deg, #F0FDF4 0%, #86EFAC 100%)",
+      },
+      {
+        titleKey: "rulesTitle",
+        descKey: "rulesCopy",
+      },
+    ],
+    ctaTitleKey: "rulesTitle",
+    ctaDescKey: "rulesCopy",
+    ctaLabelKey: "startAction",
+    trustBadgeKeys: ["neoN3", "fairnessTitle"],
+  },
+} as const;
+
 const messages = mergeMessages({
   title: { en: "Runtime Test App", zh: "Runtime Test App" },
   neoN3: { en: "Neo N3", zh: "Neo N3" },
@@ -41,6 +87,14 @@ const messages = mergeMessages({
   stats: { en: "Stats", zh: "Stats" },
   play: { en: "Play", zh: "Play" },
   actionComplete: { en: "Action complete", zh: "Action complete" },
+  playTab: { en: "Game", zh: "Game" },
+  startAction: { en: "Start game", zh: "Start game" },
+  rulesTitle: { en: "How to play", zh: "How to play" },
+  rulesCopy: { en: "Start, play, and submit the verified result.", zh: "Start, play, and submit the verified result." },
+  fairnessTitle: { en: "Verified settlement", zh: "Verified settlement" },
+  fairnessCopy: { en: "The result is checked before rewards settle.", zh: "The result is checked before rewards settle." },
+  ranksTab: { en: "Leaderboard", zh: "Leaderboard" },
+  scoreWon: { en: "Total won", zh: "Total won" },
 });
 
 describe("MiniAppRoot runtime-owned services", () => {
@@ -150,6 +204,94 @@ describe("MiniAppRoot runtime-owned services", () => {
     await vi.waitFor(() => {
       expect(container.querySelector(".page-grid--no-operation")).not.toBeNull();
       expect(container.querySelector(".sidebar-right")).toBeNull();
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("opens OneGate game dapps directly into the play area", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: DummyPlayArea as any,
+        manifest: gameManifest,
+        messages,
+        setupFn: async () => ({
+          state: {
+            wins: { value: "0 GAS" },
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area"]')).not.toBeNull();
+      expect(container.innerHTML).not.toContain("Start game");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps configured game launch details secondary for direct browser opens", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: DummyPlayArea as any,
+        manifest: configuredGameManifest,
+        messages,
+        setupFn: async () => ({
+          state: {
+            wins: { value: "0 GAS" },
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".n3h-shell")).not.toBeNull();
+      expect(container.querySelector(".n3h-features")).toBeNull();
+      expect(container.querySelector(".n3h-cta")).toBeNull();
+      expect(container.querySelector(".n3gh-feature-grid")).toBeNull();
+      expect(container.querySelector(".n3gh-note")).toBeNull();
+      expect(container.querySelector(".n3gh-rules-body")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area"]')).toBeNull();
+    });
+
+    const detailsButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("How to play"),
+    );
+    expect(detailsButton).toBeTruthy();
+    detailsButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".n3gh-details--open")).not.toBeNull();
+      expect(container.innerHTML).toContain("Verified settlement");
+      expect(container.innerHTML).toContain("Start, play, and submit the verified result.");
+      expect(container.querySelectorAll(".n3gh-note-action")).toHaveLength(0);
     });
 
     root.unmount();

@@ -108,8 +108,15 @@ const appMessages = {
   loanPackageRoute: { en: "Route rehearsal", zh: "路径排练" },
   loanPackageScale: { en: "Scale execution", zh: "规模执行" },
   callbackContractPlaceholder: {
-    en: "Enter callback contract address",
-    zh: "输入回调合约地址",
+    en: "Contract hash or address",
+    zh: "合约哈希或地址",
+  },
+  callbackSocketLabel: { en: "Callback socket", zh: "回调插槽" },
+  callbackSocketReady: { en: "Socket target locked", zh: "插槽目标已锁定" },
+  callbackSocketOpen: { en: "Socket awaiting contract", zh: "插槽等待合约" },
+  callbackSocketHint: {
+    en: "Target receives principal and must repay inside this transaction.",
+    zh: "目标接收本金，并必须在本笔交易内归还。",
   },
   callbackMethodPlaceholder: { en: "onFlashLoan", zh: "onFlashLoan" },
   callbackMethodFixed: {
@@ -119,6 +126,17 @@ const appMessages = {
   duration: { en: "Duration", zh: "持续时间" },
   enterDuration: { en: "Enter duration in days", zh: "输入持续时间（天）" },
   loanCalculator: { en: "Loan Calculator", zh: "贷款计算器" },
+  toolsDockEyebrow: { en: "Execution tools", zh: "执行工具" },
+  toolsDockTitle: { en: "Open the desk you need", zh: "按需打开操作台" },
+  toolsDockHint: {
+    en: "Keep the signing path focused. Calculator, liquidity, lookup, and history stay one tap away.",
+    zh: "保持签名路径清爽。计算器、流动性、查询和历史只需点一次即可打开。",
+  },
+  executionSetup: { en: "Execution setup", zh: "执行设置" },
+  executionSetupHint: {
+    en: "Set the callback target in this drawer before signing.",
+    zh: "签名前在此抽屉中设置回调目标。",
+  },
   estimatedFee: { en: "Estimated Fee", zh: "预估手续费" },
   totalRepayment: { en: "Total Repayment", zh: "总还款额" },
   flashloanInfo: {
@@ -143,6 +161,8 @@ const appMessages = {
     en: "Principal routed atomically through the callback",
     zh: "本金通过回调合约原子路由",
   },
+  customAmount: { en: "Custom", zh: "自定义" },
+  exactAmount: { en: "Exact amount", zh: "精确金额" },
   capitalRouteTitle: { en: "Atomic capital route", zh: "原子资金路径" },
   capitalRouteHint: {
     en: "Follow principal, callback execution, and repayment guard before signing.",
@@ -153,7 +173,7 @@ const appMessages = {
   readinessWalletAction: { en: "Connect before signing", zh: "签名前连接钱包" },
   readinessCallback: { en: "Callback", zh: "回调合约" },
   readinessCallbackReady: { en: "Contract target set", zh: "合约目标已设置" },
-  readinessCallbackMissing: { en: "Add callback contract", zh: "填写回调合约" },
+  readinessCallbackMissing: { en: "Socket awaiting contract", zh: "插槽等待合约" },
   readinessRepayment: { en: "Repayment guard", zh: "还款守卫" },
   readinessRepaymentGuard: {
     en: "Principal + fee must return in one tx",
@@ -170,8 +190,8 @@ const appMessages = {
     zh: "闪电贷交易已提交。",
   },
   flashloanFormIncomplete: {
-    en: "Enter amount and callback contract.",
-    zh: "请输入金额和回调合约。",
+    en: "Choose capital and connect the callback socket before signing.",
+    zh: "签名前请选择资金包并连接回调插槽。",
   },
   latestTx: { en: "Latest Tx", zh: "最新交易" },
   noRequestYet: {

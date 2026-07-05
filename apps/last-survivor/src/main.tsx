@@ -21,7 +21,7 @@ defineMiniApp({
 
   setup(ctx) {
     const game = useLastSurvivor({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t,
     });
 
@@ -30,25 +30,25 @@ defineMiniApp({
     // Start the countdown ticker
     const tickerInterval = setInterval(() => game.updateNow(), 1000);
 
-    ctx.registerAction("buyKeys", async (keyCount: unknown) => {
+    ctx.framework.actions.register("buyKeys", async (keyCount: unknown) => {
       await ctx.services.notify.guard(
         () => game.buyKeys(String(keyCount)),
         "keysPurchased",
       );
     });
 
-    ctx.registerAction("settleRound", async () => {
+    ctx.framework.actions.register("settleRound", async () => {
       await ctx.services.notify.guard(
         () => game.settleRound(),
         "roundSettled",
       );
     });
 
-    ctx.registerAction("refreshRound", async () => {
+    ctx.framework.actions.register("refreshRound", async () => {
       await game.loadAll();
     });
 
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(async () => {
         const { amount } = await game.withdrawCredit();
         if (amount > 0) {
@@ -60,7 +60,7 @@ defineMiniApp({
       });
     });
 
-    ctx.registerAction("setKeyCount", async (value: unknown) => {
+    ctx.framework.actions.register("setKeyCount", async (value: unknown) => {
       game.keyCount.set(String(value));
     });
 

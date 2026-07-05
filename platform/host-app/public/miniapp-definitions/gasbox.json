@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-gasbox",
   "media": {
-    "icon": "/miniapp-assets/gasbox/logo.jpg",
-    "banner": "/miniapp-assets/gasbox/banner.jpg"
+    "icon": "/miniapp-assets/gasbox/logo.webp",
+    "banner": "/miniapp-assets/gasbox/banner.webp"
   },
   "permissions": {
     "payments": true,

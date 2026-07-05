@@ -15,6 +15,8 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void GameRegisteredHandler(string appId, BigInteger gameType, UInt160 appAdmin);
     public delegate void GamePausedHandler(string appId, bool paused);
     public delegate void AdminTimelockProposedHandler(UInt160 proposed, BigInteger executeAfter);
+    public delegate void AdminChangedHandler(UInt160 previousAdmin, UInt160 newAdmin);
+    public delegate void ContractUpgradedHandler(UInt160 triggeredBy, ByteString nefHash, ByteString manifestHash);
 
     // ===================================================================
     //  PlatformGameContract
@@ -105,5 +107,11 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("AdminTimelockProposed")]
         public static event AdminTimelockProposedHandler OnAdminTimelockProposed;
+
+        [DisplayName("AdminChanged")]
+        public static event AdminChangedHandler OnAdminChanged;
+
+        [DisplayName("ContractUpgraded")]
+        public static event ContractUpgradedHandler OnContractUpgraded;
     }
 }

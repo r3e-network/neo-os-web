@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useLastSurvivor } from "../../last-survivor/src/composables/useLastSurvivor";
+import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -125,7 +126,11 @@ function makeChain(opts: ChainOpts = {}) {
 
 function setup(opts: ChainOpts = {}) {
   const { chain, invoke, read } = makeChain(opts);
-  const app = useLastSurvivor({ chain, t });
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-last-survivor" },
+  );
+  const app = useLastSurvivor({ app: framework, t });
   app.setAddress(PLAYER);
   return { app, chain, invoke, read };
 }
@@ -189,7 +194,11 @@ describe("useLastSurvivor (direct MiniAppLastSurvivor contract)", () => {
       if (op === "getCurrentRound") throw new Error("rpc unavailable");
       return {};
     });
-    const app = useLastSurvivor({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-last-survivor" },
+    );
+    const app = useLastSurvivor({ app: framework, t });
     app.setAddress(PLAYER);
 
     await expect(app.loadAll()).resolves.toBeUndefined();

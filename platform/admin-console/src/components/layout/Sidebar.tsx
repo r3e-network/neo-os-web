@@ -1,5 +1,5 @@
 // =============================================================================
-// Sidebar Navigation Component
+// Sidebar Navigation Component — Neo v3
 // =============================================================================
 
 "use client";
@@ -25,21 +25,24 @@ export function Sidebar() {
   }));
 
   return (
-    <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-gray-200 bg-white md:flex">
-      <div className="flex h-20 items-center gap-3 border-b border-gray-100 px-5">
-        <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-black text-emerald-700">
+    <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface md:flex">
+      {/* Logo */}
+      <div className="flex h-20 items-center gap-3 border-b border-border px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-500 text-sm font-black text-white shadow-brand-sm">
           N
         </div>
         <div className="min-w-0">
-          <h1 className="truncate text-sm font-black text-gray-950">
+          <h1 className="truncate text-sm font-black tracking-tight text-ink">
             {ta("dashboard.title")}
           </h1>
-          <p className="mt-0.5 text-[11px] font-semibold uppercase text-gray-500">
-            Operator OS
+          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-neo-600">
+            Admin Console
           </p>
         </div>
       </div>
-      <nav aria-label="Admin navigation" className="flex-1 px-3 py-4">
+
+      {/* Navigation */}
+      <nav aria-label="Admin navigation" className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
@@ -48,10 +51,11 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
+                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/40",
                     isActive
-                      ? "bg-emerald-50 text-emerald-700 shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-950",
+                      ? "bg-neo-50 text-neo-700"
+                      : "text-ink-secondary hover:bg-canvas-alt hover:text-ink",
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
@@ -63,11 +67,13 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
-      <div className="border-t border-gray-200 px-5 py-4">
-        <p className="text-[10px] font-semibold uppercase text-gray-500">
+
+      {/* Footer */}
+      <div className="border-t border-border px-5 py-4">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
           Neo Platform
         </p>
-        <p className="mt-0.5 font-mono text-xs text-gray-400">v0.1.0-alpha</p>
+        <p className="mt-0.5 font-mono text-[11px] text-ink-faint">v3.0.0</p>
       </div>
     </aside>
   );

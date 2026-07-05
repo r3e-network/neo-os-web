@@ -7,7 +7,8 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
+import type { EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import {
   buyAddressListing,
   cancelAddressListing,
@@ -34,12 +35,12 @@ const MARKET_HASH_STORAGE_KEY = "aa-market-hub:market-hash";
 const AA_HASH_STORAGE_KEY = "aa-market-hub:aa-contract-hash";
 
 export interface UseAAMarketHubOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
+export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
   const wallet = useWallet() as WalletSDK;
 
   // Form state
@@ -66,9 +67,9 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   const isWalletConnecting = createObservable(false);
 
   const walletAddress: Observable<string> = {
-    get: () => chain.address.get() || "",
+    get: () => app.chain.address.get() || "",
     set: () => {},
-    subscribe: (fn) => chain.address.subscribe(fn),
+    subscribe: (fn) => app.chain.address.subscribe(fn),
   };
 
   const selectedListing: Observable<MarketListing | null> = {
@@ -303,7 +304,7 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
     try {
       isSubmitting.set(true);
       actionFlag?.set(true);
-      const address = await chain.ensureWallet();
+      const address = await app.chain.ensureWallet();
       const result = await action(address);
       eventBus.emit("action:success", {
         message: successMessage,
@@ -328,7 +329,11 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   async function assertCreatable(sellerAddress: string) {
     const id = accountIdHash.get().trim();
     const accountId = normalizeScriptHash(id);
-    const owner = await chain.read(
+    // Route the read through the framework passthrough. The Hash160 arg is kept
+    // as a literal (not app.chain.arg.hash160) because `accountId` comes from
+    // normalizeScriptHash — a validity-agnostic normalizer — and arg.hash160
+    // throws on malformed input, which would change this pre-check's error path.
+    const owner = await app.chain.readRaw(
       "getBackupOwner",
       [{ type: "Hash160", value: accountId }],
       { scriptHash: aaContractHash.get() || getDefaultAAContractHash() },

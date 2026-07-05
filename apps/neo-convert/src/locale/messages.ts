@@ -374,7 +374,38 @@ const appMessages = {
     // with purposeful guidance instead of leaving a large blank canvas.
     formatsTitle: { en: "What you can paste", zh: "可粘贴的格式" },
     formatRailTitle: { en: "Supported formats", zh: "支持的格式" },
+    sourceMaterialLabel: { en: "Source material", zh: "源材料" },
+    autoDetectShort: { en: "Auto-detect", zh: "自动识别" },
+    sourceCredentialLabel: { en: "Paste one Neo credential", zh: "粘贴一个 Neo 凭证" },
+    sourceCredentialPlaceholder: {
+        en: "N address / WIF / public key / script hex",
+        zh: "N 地址 / WIF / 公钥 / 脚本 Hex"
+    },
+    offlineBenchTitle: { en: "Offline key bench", zh: "离线密钥台" },
+    localOnlyShort: { en: "No server call", zh: "不调用服务器" },
     formatWifLabel: { en: "WIF", zh: "WIF" },
+    formatAddressHint: {
+        en: "N3 address",
+        zh: "N3 地址"
+    },
+    formatWifShortHint: {
+        en: "Import key",
+        zh: "导入密钥"
+    },
+    formatPublicKeyShortHint: {
+        en: "02 / 03 key",
+        zh: "02 / 03 公钥"
+    },
+    scriptHashShortLabel: { en: "Script hash", zh: "脚本哈希" },
+    formatScriptHashHint: {
+        en: "Contract id",
+        zh: "合约标识"
+    },
+    formatOpcodesLabel: { en: "Opcodes", zh: "操作码" },
+    formatOpcodesHint: {
+        en: "VM script",
+        zh: "虚拟机脚本"
+    },
     formatWifDesc: {
         en: "Wallet Import Format private key (starts with K/L).",
         zh: "钱包导入格式私钥（以 K/L 开头）。"
@@ -451,6 +482,33 @@ const appMessages = {
         en: "Unknown or malformed input will show a clear status instead of filling this panel with noise.",
         zh: "未知或格式错误的输入会显示清晰状态，不会把这里塞满无意义内容。"
     },
+    conversionOutputLabel: { en: "Output", zh: "输出" },
+    convertStatusConverting: { en: "Converting", zh: "正在转换" },
+    convertStatusReady: { en: "Result ready", zh: "结果就绪" },
+    convertStatusAttention: { en: "Needs attention", zh: "需要处理" },
+    convertStatusIdle: { en: "Ready", zh: "就绪" },
+    checkingFormat: { en: "Checking format...", zh: "正在检查格式..." },
+    generatedAccountStatus: {
+        en: "Generated {address}",
+        zh: "已生成 {address}"
+    },
+    localConversionNote: {
+        en: "All conversion runs locally.",
+        zh: "所有转换均在本地完成。"
+    },
+    conversionDrawerEmpty: {
+        en: "Convert a key, address, or script to inspect derived values.",
+        zh: "转换密钥、地址或脚本后，可在这里检查派生值。"
+    },
+    generatedAccount: { en: "Generated account", zh: "已生成账户" },
+    generatedAccountPrivacy: {
+        en: "Private fields stay hidden outside the explicit export flow.",
+        zh: "私密字段只会在明确导出流程中显示。"
+    },
+    conversionResultLabel: { en: "Result", zh: "结果" },
+    readyShort: { en: "Ready", zh: "就绪" },
+    inspectDetails: { en: "Inspect", zh: "检查" },
+    conversionDetails: { en: "Conversion details", zh: "转换详情" },
     // Inline caveat on the balance tiles: this is the one feature that talks to
     // a node, in contrast to the fully on-device key tooling.
     balanceRpcNote: {

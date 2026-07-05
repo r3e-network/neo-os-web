@@ -37,7 +37,7 @@ defineMiniApp({
       if (message) ctx.setStatus(message, type);
     };
 
-    ctx.registerAction("createProof", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createProof", async (...args: unknown[]) => {
       const content = String(args[0] ?? "");
       await proofContract.createProof(
         content,
@@ -46,37 +46,37 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("verifyProof", async (...args: unknown[]) => {
+    ctx.framework.actions.register("verifyProof", async (...args: unknown[]) => {
       const query = String(args[0] ?? "");
       await proofContract.verifyProof(query);
       reportLastMessage(proofContract.verifyError.get() ? "error" : "success");
     });
 
-    ctx.registerAction("copyProofDigest", async (...args: unknown[]) => {
+    ctx.framework.actions.register("copyProofDigest", async (...args: unknown[]) => {
       const ok = await proofContract.copyProofDigest(Number(args[0] ?? 0));
       reportLastMessage(ok ? "success" : "error");
     });
 
-    ctx.registerAction("copyProofReference", async (...args: unknown[]) => {
+    ctx.framework.actions.register("copyProofReference", async (...args: unknown[]) => {
       const ok = await proofContract.copyProofReference(Number(args[0] ?? 0));
       reportLastMessage(ok ? "success" : "error");
     });
 
-    ctx.registerAction("deleteProof", async (...args: unknown[]) => {
+    ctx.framework.actions.register("deleteProof", async (...args: unknown[]) => {
       await proofContract.deleteProof(Number(args[0] ?? 0));
       reportLastMessage("success");
     });
 
-    ctx.registerAction("clearProofs", async () => {
+    ctx.framework.actions.register("clearProofs", async () => {
       await proofContract.clearProofs();
       reportLastMessage("success");
     });
 
-    ctx.registerAction("clearVerifyError", async () => {
+    ctx.framework.actions.register("clearVerifyError", async () => {
       proofContract.clearVerifyError();
     });
 
-    ctx.registerAction("anchorProof", async (...args: unknown[]) => {
+    ctx.framework.actions.register("anchorProof", async (...args: unknown[]) => {
       await proofContract.anchorProof(Number(args[0] ?? 0), (msg, type) =>
         ctx.setStatus(msg, type === "success" ? "success" : type === "error" ? "error" : "info"),
       );

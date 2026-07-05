@@ -21,34 +21,34 @@ defineMiniApp({
     const { notify } = ctx.services;
 
     const swap = useSwapEngine({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       balance: ctx.services.balance,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       await notify.guard(async () => {
         await ctx.services.chain.ensureWallet();
         await swap.refreshBalances();
       });
     });
-    ctx.registerAction("executeSwap", async () => {
+    ctx.framework.actions.register("executeSwap", async () => {
       await notify.guard(() => swap.executeSwap(), "swapSuccess");
     });
-    ctx.registerAction("swapTokens", async () => { swap.swapTokens(); });
-    ctx.registerAction("setFromAmount", async (value: unknown) => { swap.setFromAmount(String(value ?? "")); });
-    ctx.registerAction("setSlippage", async (value: unknown) => { swap.setSlippage(value as string | number); });
-    ctx.registerAction("setMaxAmount", async () => { swap.setMaxAmount(); });
-    ctx.registerAction("refreshRate", async () => { await swap.loadExchangeRate(); });
-    ctx.registerAction("openFromSelector", async () => { swap.openFromSelector(); });
-    ctx.registerAction("openToSelector", async () => { swap.openToSelector(); });
-    ctx.registerAction("closeSelector", async () => { swap.closeSelector(); });
-    ctx.registerAction("selectToken", async (token: unknown) => {
+    ctx.framework.actions.register("swapTokens", async () => { swap.swapTokens(); });
+    ctx.framework.actions.register("setFromAmount", async (value: unknown) => { swap.setFromAmount(String(value ?? "")); });
+    ctx.framework.actions.register("setSlippage", async (value: unknown) => { swap.setSlippage(value as string | number); });
+    ctx.framework.actions.register("setMaxAmount", async () => { swap.setMaxAmount(); });
+    ctx.framework.actions.register("refreshRate", async () => { await swap.loadExchangeRate(); });
+    ctx.framework.actions.register("openFromSelector", async () => { swap.openFromSelector(); });
+    ctx.framework.actions.register("openToSelector", async () => { swap.openToSelector(); });
+    ctx.framework.actions.register("closeSelector", async () => { swap.closeSelector(); });
+    ctx.framework.actions.register("selectToken", async (token: unknown) => {
       swap.selectToken(token as { symbol: string; hash: string; balance: number; decimals: number });
     });
 
-    ctx.registerAction("selectPair", async (...args: unknown[]) => {
+    ctx.framework.actions.register("selectPair", async (...args: unknown[]) => {
       const pairId = String(args[0] ?? "").toLowerCase();
       const [fromSym = "", toSym = ""] = pairId.split("-");
       const tokens = swap.availableTokens.get();

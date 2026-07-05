@@ -2,6 +2,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  CATALOG_CATEGORIES,
+  normalizeCatalogCategory,
+} from "./lib/miniapp-category.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -145,6 +149,13 @@ function validateCatalog(sourceApps) {
     addCheck(`catalog.${source.slug}.manifest_url`, asString(app.manifest_url) === `/miniapps/${source.slug}/neo-manifest.json`, {
       manifestUrl: asString(app.manifest_url),
     });
+    const category = asString(app.category);
+    const expectedCategory = normalizeCatalogCategory(source.manifest.category);
+    addCheck(`catalog.${source.slug}.category_normalized`, CATALOG_CATEGORIES.has(category) && category === expectedCategory, {
+      category,
+      sourceCategory: asString(source.manifest.category),
+      expectedCategory,
+    });
 
     const matchingOnegateDapp = onegateDapps.find((entry) => asString(entry.id) === onegateId);
     addCheck(`onegate_catalog.${source.slug}.mirrors_catalog`, Boolean(matchingOnegateDapp) && asString(matchingOnegateDapp.url) === onegateUrl, {
@@ -183,12 +194,12 @@ function validateWalletPath() {
   validateSourceContains("platform/host-app/lib/wallet/adapters/onegate.ts", [
     { name: "prefers_onegate_nep21", pattern: 'new Nep21Adapter("onegate")' },
     { name: "checks_nep21_first", pattern: "this.nep21.isInstalled()" },
-    { name: "connects_nep21_first", pattern: "return this.nep21.connect()" },
+    { name: "connects_nep21_first", pattern: /return\s+await\s+this\.nep21\.connect\(\)/ },
   ]);
   validateSourceContains("platform/host-app/lib/wallet/adapters/neoline.ts", [
     { name: "prefers_neoline_nep21", pattern: 'new Nep21Adapter("neoline")' },
     { name: "checks_nep21_first", pattern: "this.nep21.isInstalled()" },
-    { name: "connects_nep21_first", pattern: "return this.nep21.connect()" },
+    { name: "connects_nep21_first", pattern: /return\s+await\s+this\.nep21\.connect\(\)/ },
   ]);
   validateSourceContains("platform/host-app/lib/wallet/store.ts", [
     { name: "has_nep21_provider", pattern: /WalletProvider = "nep21".*"onegate"/s },

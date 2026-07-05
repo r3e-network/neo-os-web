@@ -31,6 +31,9 @@ export function deriveSchedule(
   }
 
   if (asset === "NEO") {
+    if (!/^[1-9]\d*$/.test(String(amount ?? "").trim())) {
+      return { rate: "0", intervalDays: "1" };
+    }
     const totalNeo = Math.trunc(total);
     const perDay = Math.trunc(totalNeo / days);
     if (perDay >= 1) {

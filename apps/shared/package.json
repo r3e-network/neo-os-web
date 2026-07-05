@@ -9,6 +9,8 @@
     "./components": "./components/index.ts",
     "./components/*": "./components/*",
     "./composables/*": "./composables/*",
+    "./gamefi": "./gamefi/index.ts",
+    "./gamefi/*": "./gamefi/*",
     "./utils/*": "./utils/*",
     "./styles/*": "./styles/*"
   },

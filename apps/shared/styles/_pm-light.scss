@@ -75,7 +75,7 @@ $focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
 @mixin section-eyebrow {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: $text-muted;
 }
@@ -84,7 +84,7 @@ $focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
   font-size: 64px;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: $text;
   font-variant-numeric: tabular-nums;
 }
@@ -100,7 +100,7 @@ $focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   border: 0;
   cursor: pointer;
   transition:
@@ -173,7 +173,7 @@ $focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   color: $color;
 }
 

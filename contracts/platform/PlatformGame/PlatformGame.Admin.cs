@@ -26,8 +26,14 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ContractManagement.Update(nef, manifest, new object[0]);
-            // Audit fix H-13: declare a typed `ContractUpgraded` event on this
-            // contract and raise it here once added.
+            // Audit fix H-13: emit typed event so off-chain monitors can
+            // observe contract upgrades. The nef/manifest hashes are captured
+            // before the upgrade since Runtime.ExecutingScriptHash still
+            // refers to the old contract at this point.
+            UInt160 caller = Runtime.ExecutingScriptHash;
+            OnContractUpgraded(caller,
+                CryptoLib.Sha256(nef),
+                CryptoLib.Sha256((ByteString)manifest));
         }
 
         // ===================================================================
@@ -132,14 +138,16 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger changeTime = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PLATFORM_ADMIN_CHANGE_TIME);
             ExecutionEngine.Assert(Runtime.Time >= changeTime, "timelock active");
 
-            // Audit fix M-6 / H-13: declare a typed `AdminChanged` event on this
-            // contract so off-chain monitors can see the actual switch (the prior
-            // implementation only signaled on `ProposeAdmin`, leaving subscribers
-            // blind to the moment the admin actually rotated).
+            UInt160 previousAdmin = Admin();
             UInt160 newAdmin = (UInt160)pending;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
             Storage.Delete(Storage.CurrentContext, PREFIX_PENDING_PLATFORM_ADMIN);
             Storage.Delete(Storage.CurrentContext, PREFIX_PLATFORM_ADMIN_CHANGE_TIME);
+
+            // Audit fix M-6 / H-13: emit AdminChanged so off-chain monitors can
+            // observe the actual rotation (the prior implementation only signaled
+            // on ProposeAdmin, leaving subscribers blind to the actual switch).
+            OnAdminChanged(previousAdmin, newAdmin);
         }
 
         /// <summary>

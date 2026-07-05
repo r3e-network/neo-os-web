@@ -67,8 +67,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/last-survivor/index.html",
-    "icon": "/miniapps/last-survivor/logo.jpg",
-    "banner": "/miniapps/last-survivor/banner.jpg"
+    "icon": "/miniapps/last-survivor/logo.webp",
+    "banner": "/miniapps/last-survivor/banner.webp"
   },
   "permissions": [
     "invoke:primary",

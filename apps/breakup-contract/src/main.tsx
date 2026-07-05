@@ -16,7 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const breakup = useBreakup({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -29,7 +29,7 @@ defineMiniApp({
       breakup.address.set(ctx.services.chain.address?.get?.() ?? "");
     });
 
-    ctx.registerAction("createContract", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createContract", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
         partnerAddress?: string;
         stakeAmount?: string;
@@ -51,19 +51,19 @@ defineMiniApp({
       );
       return result === true;
     });
-    ctx.registerAction("signContract", (contract: unknown) =>
+    ctx.framework.actions.register("signContract", (contract: unknown) =>
       ctx.services.notify.guard(
         () => breakup.signContract(contract as { id?: number; pactId?: string; stake?: number; stakeRaw?: string }),
         "contractSigned",
       ),
     );
-    ctx.registerAction("breakContract", (contract: unknown) =>
+    ctx.framework.actions.register("breakContract", (contract: unknown) =>
       ctx.services.notify.guard(
         () => breakup.breakContract(contract as { id?: number; pactId?: string }),
         "contractBroken",
       ),
     );
-    ctx.registerAction("settleContract", (contract: unknown) =>
+    ctx.framework.actions.register("settleContract", (contract: unknown) =>
       ctx.services.notify.guard(
         () => breakup.settleContract(contract as { id?: number; pactId?: string }),
         "contractSettled",
@@ -71,18 +71,21 @@ defineMiniApp({
     );
     // breakPact handles BOTH the active-break and the pending-cancel cases on the
     // contract, so the pending-cancel affordance reuses breakContract.
-    ctx.registerAction("cancelContract", (contract: unknown) =>
+    ctx.framework.actions.register("cancelContract", (contract: unknown) =>
       ctx.services.notify.guard(
         () => breakup.breakContract(contract as { id?: number; pactId?: string }),
         "contractCancelled",
       ),
     );
-    ctx.registerAction("withdrawCredit", () =>
+    ctx.framework.actions.register("withdrawCredit", () =>
       ctx.services.notify.guard(
         () => breakup.withdrawCredit(),
         "creditRecovered",
       ),
     );
+    ctx.framework.actions.register("refreshContracts", async () => {
+      await breakup.loadContracts();
+    });
 
     return {
       state: refsToObservables({

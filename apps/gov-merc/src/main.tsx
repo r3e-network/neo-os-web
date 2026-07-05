@@ -27,7 +27,7 @@ defineMiniApp({
 
   setup(ctx) {
     const pool = useGovMerc({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
     });
 
@@ -113,33 +113,33 @@ defineMiniApp({
     // Onboarding: explicitly connect a wallet (the stake/bid actions also connect
     // lazily, but a disconnected user gets a clear next-step CTA up front). This
     // only links the wallet and re-propagates the address — no economic logic.
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       const addr = await ctx.services.chain.ensureWallet();
       pool.setAddress(addr ?? ctx.services.chain.address.get() ?? "");
       await pool.loadData();
     });
-    ctx.registerAction("depositNeo", async () => {
+    ctx.framework.actions.register("depositNeo", async () => {
       await ctx.services.notify.guard(() => pool.depositNeo(), "depositSuccess");
     });
-    ctx.registerAction("withdrawNeo", async () => {
+    ctx.framework.actions.register("withdrawNeo", async () => {
       await ctx.services.notify.guard(() => pool.withdrawNeo(), "withdrawSuccess");
     });
-    ctx.registerAction("placeBid", async () => {
+    ctx.framework.actions.register("placeBid", async () => {
       await ctx.services.notify.guard(() => pool.placeBid(), "bidSuccess");
     });
-    ctx.registerAction("settleEpoch", async () => {
+    ctx.framework.actions.register("settleEpoch", async () => {
       await ctx.services.notify.guard(() => pool.settleEpoch(), "settleSuccess");
     });
-    ctx.registerAction("claimRewards", async () => {
+    ctx.framework.actions.register("claimRewards", async () => {
       await ctx.services.notify.guard(() => pool.claimRewards(), "claimSuccess");
     });
-    ctx.registerAction("reclaimBid", async (epoch: unknown) => {
+    ctx.framework.actions.register("reclaimBid", async (epoch: unknown) => {
       await ctx.services.notify.guard(
         () => pool.reclaimBid(Number(epoch)),
         "reclaimSuccess",
       );
     });
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(() => pool.withdrawCredit(), "creditWithdrawSuccess");
     });
 

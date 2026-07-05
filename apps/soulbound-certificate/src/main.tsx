@@ -21,32 +21,32 @@ defineMiniApp({
       badgeService: ctx.os.badge,
       clipboard: ctx.services.clipboard,
       eventBus: ctx.services.events,
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t,
     });
 
-    ctx.registerAction("refreshTemplates", async () => { await soulbound.refreshTemplates(); });
-    ctx.registerAction("connectWallet", async () => { await soulbound.connectWallet(); });
-    ctx.registerAction("createTemplate", (form: unknown) =>
+    ctx.framework.actions.register("refreshTemplates", async () => { await soulbound.refreshTemplates(); });
+    ctx.framework.actions.register("connectWallet", async () => { await soulbound.connectWallet(); });
+    ctx.framework.actions.register("createTemplate", (form: unknown) =>
       ctx.services.notify.guard(() => soulbound.createTemplate(form as never)),
     );
-    ctx.registerAction("issueCertificate", (form: unknown) =>
+    ctx.framework.actions.register("issueCertificate", (form: unknown) =>
       ctx.services.notify.guard(() => soulbound.issueCertificate(form as never)),
     );
-    ctx.registerAction("toggleTemplate", (template: unknown) =>
+    ctx.framework.actions.register("toggleTemplate", (template: unknown) =>
       ctx.services.notify.guard(() => soulbound.toggleTemplate(template)),
     );
-    ctx.registerAction("verifyCertificate", (form: unknown) =>
+    ctx.framework.actions.register("verifyCertificate", (form: unknown) =>
       ctx.services.notify.guard(() => soulbound.verifyCertificate(form as never)),
     );
-    ctx.registerAction("revokeCertificate", (form: unknown) =>
+    ctx.framework.actions.register("revokeCertificate", (form: unknown) =>
       ctx.services.notify.guard(() => soulbound.revokeCertificate(form as never)),
     );
-    ctx.registerAction("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
-    ctx.registerAction("copyVerifyLink", async (tokenId: unknown) => { await soulbound.copyVerifyLink(tokenId); });
-    ctx.registerAction("shareVerifyLink", async (tokenId: unknown) => { await soulbound.shareVerifyLink(tokenId); });
-    ctx.registerAction("consumeDeepLink", async () => { soulbound.consumeDeepLink(); });
-    ctx.registerAction("consumeVerifyDeepLink", async () => { soulbound.consumeVerifyDeepLink(); });
+    ctx.framework.actions.register("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
+    ctx.framework.actions.register("copyVerifyLink", async (tokenId: unknown) => { await soulbound.copyVerifyLink(tokenId); });
+    ctx.framework.actions.register("shareVerifyLink", async (tokenId: unknown) => { await soulbound.shareVerifyLink(tokenId); });
+    ctx.framework.actions.register("consumeDeepLink", async () => { soulbound.consumeDeepLink(); });
+    ctx.framework.actions.register("consumeVerifyDeepLink", async () => { soulbound.consumeVerifyDeepLink(); });
 
     return {
       state: refsToObservables({

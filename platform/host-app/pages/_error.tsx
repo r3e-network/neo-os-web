@@ -23,7 +23,7 @@ function Error({ statusCode }: ErrorProps) {
   return (
     <>
       <Head>
-        <title>{headline} · Yiwu MiniApps</title>
+        <title>{headline} · Neo Miniapps</title>
       </Head>
       <main
         className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-800"
@@ -39,7 +39,7 @@ function Error({ statusCode }: ErrorProps) {
           </p>
           <h1
             id="error-heading"
-            className="mt-3 text-5xl font-black text-gray-900 sm:text-6xl"
+            className="mt-3 text-5xl font-semibold text-gray-900 sm:text-6xl"
           >
             {headline}
           </h1>

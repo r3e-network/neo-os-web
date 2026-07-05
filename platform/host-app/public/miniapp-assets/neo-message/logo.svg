@@ -1,0 +1,12 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Neo Message">
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <rect x="26" y="38" width="76" height="52" rx="12" fill="#ffffff"/>
+  <path d="M30 46 L64 70 L98 46" stroke="#5b6ef5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="98" cy="40" r="13" fill="#4453d6" stroke="#ffffff" stroke-width="4"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6d7df7"/>
+      <stop offset="1" stop-color="#4453d6"/>
+    </linearGradient>
+  </defs>
+</svg>

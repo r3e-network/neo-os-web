@@ -1,0 +1,116 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "contracts": {
+    "neo-n3-testnet": "0x7541e13629eb35ec54181be2772bff34e39d3c35"
+  },
+  "createdAt": "2026-07-02T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "Pick cards from a 3-layer pile into your 7-slot bar. Three matching cards auto-eliminate. Clear the board before the deadline to win GAS! Tools: Undo (3 max, -30% each), Shuffle (1/game), Remove 3 (1/game). Every card layout is sealed inside a Morpheus TEE — only its hash commitment goes on-chain, so the full layout cannot be searched or scripted.",
+  "description_zh": "从三层牌堆中选取卡片放入 7 格卡槽。三张相同卡片自动消除。在截止时间前清空所有卡片即可赢得 GAS！工具：撤回（最多 3 次，每次 -30%）、洗牌（每局 1 次）、移出三张（每局 1 次）。每局牌面都在 Morpheus TEE 内密封——链上仅记录哈希承诺，完整牌面无法被搜索或脚本化。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": false,
+  "features": {
+    "deeplink": "neomainapp://sheep-solitaire",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-sheep-solitaire",
+  "name": "Sheep Solitaire",
+  "name_zh": "羊了个羊",
+  "operation_panel": {
+    "operations": [
+      {
+        "button_style": "primary",
+        "description": "Pay the entry fee and start a beacon-seeded game. Easy: 0.02 GAS entry wins 0.1; Medium: 0.10 wins 0.5; Hard: 0.20 wins 1.",
+        "method": "startGame",
+        "name": "Start Game",
+        "params": [
+          {
+            "default_value": "0",
+            "label": "Difficulty",
+            "name": "difficulty",
+            "options": [
+              {
+                "label": "Easy (8 types, 5 min) — win 0.1 GAS",
+                "value": "0"
+              },
+              {
+                "label": "Medium (12 types, 8 min) — win 0.5 GAS",
+                "value": "1"
+              },
+              {
+                "label": "Hard (15 types, 12 min) — win 1 GAS",
+                "value": "2"
+              }
+            ],
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "priority": "primary"
+      },
+      {
+        "button_style": "success",
+        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
+        "method": "withdrawWinnings",
+        "name": "Withdraw Winnings",
+        "params": [],
+        "priority": "secondary"
+      }
+    ],
+    "subtitle": "Deposit the entry, clear the 3-layer card pile before the deadline, and win GAS.",
+    "title": "Sheep Solitaire"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain",
+    "compute",
+    "oracle"
+  ],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "sheep",
+    "solitaire",
+    "puzzle",
+    "matching",
+    "leaderboard",
+    "gas",
+    "game"
+  ],
+  "technologies": {
+    "aa": {
+      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+      "enabled": false
+    },
+    "oracle": {
+      "description": "The game opens a Morpheus runtime session to seal the hidden card layout and verify the recorded picks before settlement. No callback is required; the contract verifies the TEE signer directly on-chain.",
+      "enabled": true
+    },
+    "tee": {
+      "description": "Morpheus TEE signs the hidden puzzle commitment and final settlement digest; the contract verifies the enclave signer directly without a Morpheus oracle callback.",
+      "enabled": true
+    }
+  },
+  "updatedAt": "2026-07-02T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/sheep-solitaire/banner.webp",
+    "entry": "/miniapps/sheep-solitaire/index.html",
+    "icon": "/miniapps/sheep-solitaire/logo.webp"
+  },
+  "version": "1.0.0"
+}

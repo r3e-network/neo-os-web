@@ -35,10 +35,9 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
-import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
+import type { MiniAppFramework } from "@shared/react";
+import type { EventBus } from "@shared/services";
 import { eventValue } from "@shared/utils/chain-events";
-import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
@@ -56,12 +55,12 @@ const MAX_ROLE_LEN = 64;
 const TIP_MEMO = "miniapp-devtipping:tip";
 
 export interface UseDevTippingWalletOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletOptions) {
+export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOptions) {
   const isLoading = createObservable(false);
   const isRegistering = createObservable(false);
   const isWithdrawing = createObservable(false);
@@ -98,18 +97,20 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
         throw new Error(t("minTip"));
       }
 
-      const amountBase = toBaseUnits(tipAmount);
+      // GAS → base units via the framework amount layer (Fixed8; validates the
+      // decimal). Already guarded as a positive amount >= MIN_TIP above.
+      const amountBase = app.amount.gasToFixed8(tipAmount);
       if (amountBase < MIN_TIP_BASE) {
         throw new Error(t("minTip"));
       }
 
-      const tipperAddr = chain.address.get() || (await chain.ensureWallet());
-      const tipperHash = addressToScriptHash(tipperAddr || "");
-      if (!tipperAddr || !tipperHash) {
+      const tipperAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!tipperAddr) {
         throw new Error(t("walletNotConnected"));
       }
+      const tipperArg = app.chain.arg.hash160(tipperAddr);
 
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) {
         throw new Error(t("contractNotReady"));
       }
@@ -119,22 +120,20 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
       // nothing; the amount is already in BASE UNITS here.
       let credit = 0n;
       try {
-        credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: tipperHash }]),
-        );
+        credit = parseBigInt(await app.chain.readRaw("creditOf", [tipperArg]));
       } catch {
         credit = 0n;
       }
 
       let depositSettled = false;
       if (credit < amountBase) {
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: tipperHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: amountBase.toString() },
-            { type: "String", value: TIP_MEMO },
+            tipperArg,
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(amountBase),
+            app.chain.arg.string(TIP_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
         );
@@ -146,13 +145,13 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
       // reverts, the credit persists as reusable prepaid credit (reclaimable via
       // withdraw); surface that distinctly when the deposit settled this round.
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "tip",
           [
-            { type: "Hash160", value: tipperHash },
-            { type: "Integer", value: String(Math.trunc(selectedDevId)) },
-            { type: "Integer", value: amountBase.toString() },
-            { type: "Boolean", value: anonymous },
+            tipperArg,
+            app.chain.arg.integer(Math.trunc(selectedDevId)),
+            app.chain.arg.integer(amountBase),
+            app.chain.arg.boolean(anonymous),
           ],
           { waitForEvent: "Tipped" },
         );
@@ -201,18 +200,17 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
         throw new Error(t("invalidDevRole"));
       }
 
-      const walletAddr = chain.address.get() || (await chain.ensureWallet());
-      const walletHash = addressToScriptHash(walletAddr || "");
-      if (!walletAddr || !walletHash) {
+      const walletAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!walletAddr) {
         throw new Error(t("walletNotConnected"));
       }
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "registerDeveloper",
         [
-          { type: "Hash160", value: walletHash },
-          { type: "String", value: trimmedName },
-          { type: "String", value: trimmedRole },
+          app.chain.arg.hash160(walletAddr),
+          app.chain.arg.string(trimmedName),
+          app.chain.arg.string(trimmedRole),
         ],
         { waitForEvent: "DeveloperRegistered" },
       );
@@ -247,11 +245,11 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
     try {
       // The contract checks the witness against the developer's registered
       // wallet; ensure a wallet is connected before prompting.
-      await chain.ensureWallet();
+      await app.chain.ensureWallet();
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "withdrawTips",
-        [{ type: "Integer", value: String(Math.trunc(devId)) }],
+        [app.chain.arg.integer(Math.trunc(devId))],
         { waitForEvent: "TipsWithdrawn" },
       );
 
@@ -283,13 +281,12 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
 
     isWithdrawing.set(true);
     try {
-      const addr = chain.address.get() || (await chain.ensureWallet());
-      const hash = addressToScriptHash(addr || "");
-      if (!addr || !hash) throw new Error(t("walletNotConnected"));
+      const addr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!addr) throw new Error(t("walletNotConnected"));
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: hash }],
+        [app.chain.arg.hash160(addr)],
         { waitForEvent: "CreditWithdrawn" },
       );
 
@@ -311,7 +308,7 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
   };
 
   return {
-    address: chain.address,
+    address: app.chain.address,
     isLoading,
     isRegistering,
     isWithdrawing,

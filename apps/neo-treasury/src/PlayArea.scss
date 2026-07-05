@@ -1,1427 +1,963 @@
-.treasury-play-area {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+/**
+ * Neo Treasury — v2 scene-driven PlayArea styles.
+ *
+ * DeFi/tool identity: bright, clean, trustworthy. The dashboard IS the scene: a
+ * live balance gauge, a treasury vault resource, token breakdown, and a
+ * disbursement flow. Watchlist details + policy stay tucked into a drawer.
+ */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
+
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #0f766e;
+  --mx2-brand-hover: #0c5f58;
+  --mx2-brand-light: #e6f2f0;
+  --mx2-brand-subtle: #b3d9d3;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #0369a1;
+  --mx2-accent-strong: #075985;
+  --mx2-accent-soft: #e6f1fa;
+  --mx2-accent-ink: #0b3a56;
+}
+
+
+.treasury-play-area { display: block; }
+
+.treasury-play-area .mx2-score {
+  display: none;
+}
+
+.treasury-play-area .mx2-action-rail,
+.treasury-play-area .mx2-drawer {
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+/* ============================================================
+ * Foreground workspace: balance vault + payout ticket
+ * ============================================================ */
+.treasury-workspace {
   width: 100%;
-  gap: 20px;
-  padding: 20px 16px 28px;
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-bg, #f4f5f7);
-  color: var(--ns-ink, #1e1e2e);
-  letter-spacing: 0;
-}
-
-.treasury-play-area *,
-.treasury-play-area *::before,
-.treasury-play-area *::after {
-  box-sizing: border-box;
-  letter-spacing: 0;
-}
-
-.treasury-play-area .neo-btn:disabled {
-  opacity: 1;
-  background: #e5e7eb;
-  border-color: #d1d5db;
-  color: #6b7280;
-  cursor: not-allowed;
-}
-
-.treasury-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
-  gap: 24px;
-  align-items: stretch;
-  padding: 24px;
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.treasury-hero__copy {
-  display: grid;
-  align-content: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.treasury-hero__heading {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.treasury-hero__badge {
-  display: inline-flex;
-  flex: 0 0 46px;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  font-size: 1.3rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.treasury-hero__titles {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.treasury-eyebrow {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.treasury-hero h2 {
-  margin: 0;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1.5rem;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.treasury-hero p {
-  max-width: 42rem;
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.9375rem;
-  line-height: 1.55;
-}
-
-.treasury-hero__signal {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  color: var(--ns-text-muted, #8a92a6) !important;
-  font-size: 0.8125rem !important;
-  font-weight: 600;
-  line-height: 1.4 !important;
-}
-
-.treasury-hero__signal-text {
-  min-width: 0;
-}
-
-/* Compact refresh — the single refresh affordance, sitting next to the live
-   status it controls. Quiet by default (chrome accent on hover/focus). */
-.treasury-hero__refresh {
-  display: inline-flex;
-  align-items: center;
-  margin-left: auto;
-  padding: 5px 12px;
-  border: 1px solid var(--ns-border, #e4e7ec);
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface, #ffffff);
-  // Darker green text: brand-strong #0fb174 is ~3:1 on white (fails AA);
-  // #086a45 is ~4.8:1 on white and holds on the brand-soft hover background.
-  color: #086a45;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.treasury-hero__refresh:hover:not(:disabled),
-.treasury-hero__refresh:focus-visible {
-  outline: none;
-  border-color: rgba(15, 177, 116, 0.4);
-  background: var(--ns-brand-soft, #e4f8f0);
-}
-
-.treasury-hero__refresh:disabled {
-  color: var(--ns-text-muted, #8a92a6);
-  cursor: progress;
-}
-
-.treasury-hero__dot {
-  flex: 0 0 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-text-muted, #8a92a6);
-}
-
-.treasury-hero__dot--live {
-  background: var(--ns-brand-strong, #0fb174);
-}
-
-.treasury-hero__dot--stale {
-  background: var(--ns-warning, #f5a623);
-}
-
-.treasury-hero__warning {
-  margin: 6px 0 0 !important;
-  // Darker amber so the small warning text meets AA (#b9791a is ~3.4:1 on white).
-  color: #8a5a0a !important;
-  font-size: 0.75rem !important;
-  font-weight: 700 !important;
-  line-height: 1.4 !important;
-}
-
-// Neutral info note (not amber): a paused USD feed with native balances still
-// shown is an informational state, not a warning/error.
-.treasury-hero__notice {
-  margin: 6px 0 0 !important;
-  color: var(--ns-text-2, #5b6478) !important;
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-}
-
-.treasury-hero__metrics {
-  display: grid;
-  gap: 12px;
-}
-
-.treasury-metric {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  padding: 14px 16px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.treasury-metric span,
-.treasury-readonly-note span,
-.treasury-group-card span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.treasury-metric strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9375rem;
-  font-weight: 800;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.treasury-ops {
-  display: grid;
-  gap: 20px;
-}
-
-.treasury-operation-card {
-  width: 100%;
-  max-width: 1060px;
-  min-width: 0;
-}
-
-.treasury-operation-card .neo-card__body {
-  display: grid;
-  gap: 20px;
-}
-
-.treasury-section-heading {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.treasury-section-heading span,
-.treasury-wallet-strip span,
-.treasury-tx-receipt span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 750;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.treasury-section-heading strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1.125rem;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.treasury-section-heading p {
-  max-width: 46rem;
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.treasury-flow-stage {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-  overflow: hidden;
-  padding: 18px;
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(228, 248, 240, 0.88)),
-    var(--ns-surface, #ffffff);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.64),
-    0 16px 34px rgba(20, 22, 38, 0.08);
-}
-
-.treasury-flow-stage__media {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  display: block;
-}
-
-.treasury-flow-stage__media img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 62% center;
-  opacity: 0.18;
-  filter: saturate(1.05) brightness(1.08);
-}
-
-.treasury-flow-stage::before,
-.treasury-flow-stage::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-}
-
-.treasury-flow-stage::before {
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.64)),
-    radial-gradient(circle at 18% 20%, rgba(22, 199, 132, 0.18), transparent 34%),
-    radial-gradient(circle at 88% 82%, rgba(245, 166, 35, 0.16), transparent 32%);
-}
-
-.treasury-flow-stage::after {
-  inset: -45% -34%;
-  z-index: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.24) 46%,
-    rgba(22, 199, 132, 0.14) 52%,
-    transparent 66%
-  );
-  opacity: 0;
-  transform: translateX(-42%);
-}
-
-.treasury-flow-stage--ready::after,
-.treasury-flow-stage--signing::after {
-  animation: treasury-flow-sweep 4.4s ease-in-out infinite;
-}
-
-.treasury-flow-stage__head,
-.treasury-flow-rail,
-.treasury-flow-checks {
-  position: relative;
-  z-index: 1;
-}
-
-.treasury-flow-stage__head {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.treasury-flow-stage__head span {
-  color: #086a45;
-  font-size: 0.6875rem;
-  font-weight: 850;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.treasury-flow-stage__head strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1.1rem;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.treasury-flow-stage__head small {
-  max-width: 52rem;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  font-weight: 650;
-  line-height: 1.45;
-}
-
-.treasury-flow-rail {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(128px, 0.9fr) auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-width: 0;
-  padding: 8px;
-}
-
-.treasury-flow-rail__line {
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  top: 50%;
-  z-index: 0;
-  height: 3px;
-  border-radius: 999px;
-  background:
-    linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.7), rgba(245, 166, 35, 0.64), transparent);
-  background-size: 180px 100%;
-  opacity: 0.54;
-  transform: translateY(-50%);
-}
-
-.treasury-flow-stage--ready .treasury-flow-rail__line,
-.treasury-flow-stage--signing .treasury-flow-rail__line {
-  animation: treasury-flow-line 1.9s linear infinite;
-}
-
-.treasury-flow-node,
-.treasury-flow-transfer,
-.treasury-flow-arrow {
-  position: relative;
-  z-index: 1;
-}
-
-.treasury-flow-node,
-.treasury-flow-transfer {
-  display: grid;
-  justify-items: start;
-  gap: 5px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow:
-    0 12px 26px rgba(20, 22, 38, 0.08),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.62);
-  backdrop-filter: blur(10px);
-}
-
-.treasury-flow-node svg {
-  color: #086a45;
-}
-
-.treasury-flow-node span,
-.treasury-flow-transfer span,
-.treasury-flow-checks span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 850;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.treasury-flow-node strong,
-.treasury-flow-transfer strong {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9rem;
-  font-weight: 900;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.treasury-flow-node.is-ready {
-  border-color: rgba(22, 199, 132, 0.26);
-  background: rgba(244, 255, 250, 0.92);
-}
-
-.treasury-flow-transfer {
-  justify-items: center;
-  text-align: center;
-  border-color: rgba(245, 166, 35, 0.24);
-  background:
-    linear-gradient(180deg, rgba(255, 250, 240, 0.94), rgba(255, 255, 255, 0.88)),
-    #ffffff;
-}
-
-.treasury-flow-transfer.is-ready {
-  animation: treasury-flow-transfer-ready 2.8s ease-in-out infinite;
-}
-
-.treasury-flow-transfer img {
-  display: block;
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  object-fit: cover;
-  box-shadow:
-    0 10px 20px rgba(20, 22, 38, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.68);
-}
-
-.treasury-flow-transfer small {
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.72rem;
-  font-weight: 750;
-  line-height: 1.2;
-}
-
-.treasury-flow-arrow {
-  color: #086a45;
-  filter: drop-shadow(0 3px 8px rgba(22, 199, 132, 0.18));
-}
-
-.treasury-flow-checks {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.treasury-flow-checks span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.74);
-  color: var(--ns-text-2, #5b6478);
-}
-
-.treasury-flow-checks span.is-ready {
-  border-color: rgba(22, 199, 132, 0.22);
-  background: rgba(228, 248, 240, 0.86);
-  color: #086a45;
-}
-
-.treasury-flow-checks svg {
-  flex: 0 0 auto;
-}
-
-.treasury-flow-stage--error {
-  border-color: rgba(200, 30, 42, 0.2);
-}
-
-.treasury-flow-stage--error .treasury-flow-stage__head strong {
-  color: #b42318;
-}
-
-.treasury-flow-stage--signing .treasury-flow-transfer img {
-  animation: treasury-flow-signing 1s ease-in-out infinite;
-}
-
-.treasury-wallet-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.treasury-wallet-strip > div,
-.treasury-tx-receipt {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding: 14px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.treasury-wallet-strip strong,
-.treasury-tx-receipt strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.treasury-execution-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.72fr);
+  grid-template-columns: minmax(480px, 1.35fr) minmax(260px, 0.65fr);
   gap: 16px;
   align-items: start;
-  min-width: 0;
 }
 
-.treasury-composer,
-.treasury-signing-panel {
-  display: grid;
+.treasury-scene {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 14px;
-  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.06);
+  border-radius: var(--mx2-r-lg);
+  background: #ffffff;
+  background-image: none;
+  box-shadow: none;
+  overflow: hidden;
+  padding: 18px;
+}
+.treasury-scene__pulse {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--mx2-surface);
+  padding: 5px 14px;
+  border-radius: var(--mx2-r-pill);
+  border: 1px solid var(--mx2-border);
+  box-shadow: none;
+}
+.treasury-scene__pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mx2-success);
+  animation: mx2-float 1.6s var(--mx2-ease) infinite;
+}
+.treasury-scene__pulse[data-stale="true"] .treasury-scene__pulse-dot {
+  background: var(--mx2-warning);
+}
+.treasury-scene__pulse-label {
+  font-size: 12px;
+  font-weight: 620;
+  color: var(--mx2-text-muted);
 }
 
-.treasury-signing-panel {
-  padding: 14px;
-  border: 1px solid var(--ns-border, #e4e7ec);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
+.treasury-scene__art {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(21, 128, 61, 0.12);
+  border-radius: 18px;
+  background: #f8fcfb;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 }
 
-.treasury-signing-panel .treasury-wallet-strip {
-  grid-template-columns: 1fr;
-  gap: 10px;
+.treasury-scene__art img {
+  display: block;
+  width: 100%;
+  height: 178px;
+  object-fit: cover;
+  object-position: center;
 }
 
-.treasury-asset-switch {
+.treasury-scene__gauge {
+  position: relative;
+  z-index: 2;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
   gap: 10px;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
+  width: 100%;
 }
-
-.treasury-asset-switch legend {
-  grid-column: 1 / -1;
-  margin: 0 0 2px;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 800;
+.treasury-scene__gauge div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.treasury-scene__gauge div > span {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+.treasury-scene__gauge-usd {
+  overflow: hidden;
+  font-size: 34px;
+  font-weight: 680;
+  color: var(--mx2-accent-strong);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.04;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.treasury-scene__tokens {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.treasury-scene__token {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+.treasury-scene__token strong {
+  grid-column: 1 / -1;
+  color: var(--mx2-ink);
+  font-size: 16px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.treasury-scene__notice {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 680;
+  color: var(--mx2-warning);
+  background: var(--mx2-warning-soft);
+  padding: 6px 14px;
+  border-radius: 14px;
+  text-align: left;
+}
+
+/* ============================================================
+ * Payout ticket
+ * ============================================================ */
+.treasury-ticket {
+  position: relative;
+  width: 100%;
+  min-height: 318px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  border: 1px solid rgba(29, 78, 216, 0.13);
+  border-radius: var(--mx2-r-lg);
+  padding: 20px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(31, 41, 55, 0.045);
+}
+
+.treasury-ticket[data-state="ready"] {
+  border-color: rgba(21, 128, 61, 0.24);
+  box-shadow: inset 4px 0 0 rgba(21, 128, 61, 0.22), 0 14px 28px rgba(31, 41, 55, 0.045);
+}
+
+.treasury-ticket[data-state="error"] {
+  border-color: rgba(220, 38, 38, 0.24);
+  box-shadow: inset 4px 0 0 rgba(220, 38, 38, 0.18), 0 14px 28px rgba(31, 41, 55, 0.045);
+}
+
+.treasury-ticket__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.treasury-ticket__icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid rgba(29, 78, 216, 0.16);
+  background: var(--mx2-accent-soft);
+  color: var(--mx2-accent-strong);
+}
+
+.treasury-ticket__head div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.treasury-ticket__head span,
+.treasury-ticket__amount-head > span,
+.treasury-ticket__recipient > span {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.treasury-ticket__head strong {
+  color: var(--mx2-ink);
+  font-size: 24px;
+  font-weight: 680;
+  line-height: 1.05;
+}
+
+.treasury-ticket__head em {
+  justify-self: end;
+  max-width: 180px;
+  overflow: hidden;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px;
+  color: var(--mx2-accent-strong);
+  background: var(--mx2-surface-2);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treasury-ticket__flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.45fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 22px;
+  padding: 12px;
+  background: var(--mx2-surface-2);
+}
+
+.treasury-ticket__node {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  align-items: center;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 18px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: var(--mx2-text-muted);
+}
+
+.treasury-ticket__node[data-ready="true"] {
+  color: var(--mx2-success);
+  border-color: rgba(21, 128, 61, 0.2);
+  background: var(--mx2-success-soft);
+}
+
+.treasury-ticket__node span,
+.treasury-ticket__node strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.treasury-ticket__node span {
+  color: inherit;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.treasury-ticket__node strong {
+  grid-column: 1 / -1;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.treasury-ticket__rail {
+  position: relative;
+  min-width: 0;
+  height: 42px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 5px;
+}
+
+.treasury-ticket__rail span {
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(29, 78, 216, 0.2);
+}
+
+.treasury-ticket__rail-coin {
+  position: relative;
+  z-index: 2;
+}
+
+.treasury-ticket__rail-coin.is-moving {
+  animation: mx2-float 1.2s var(--mx2-ease) infinite;
+}
+
+.treasury-ticket__amount {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(29, 78, 216, 0.12);
+  border-radius: 24px;
+  padding: 14px;
+  background: linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+}
+
+.treasury-ticket__amount[data-ready="true"] {
+  background: #ffffff;
+  border-color: rgba(29, 78, 216, 0.2);
+}
+
+.treasury-ticket__amount-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.treasury-ticket__asset {
+  margin: 0;
+}
+
+.treasury-ticket__asset > .mx2-open-field__label,
+.treasury-ticket__presets > .mx2-open-field__label,
+.treasury-amount-field > .mx2-open-field__label,
+.treasury-recipient-field > .mx2-open-field__label,
+.treasury-memo-field > .mx2-open-field__label,
+.treasury-drawer-tabs > .mx2-open-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.treasury-ticket__asset-group.mx2-open-segmented.semi-radioGroup {
+  display: inline-flex;
+  gap: 4px;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  padding: 4px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.treasury-ticket__asset-group .semi-radio,
+.treasury-ticket__presets-group .semi-radio,
+.treasury-drawer-tabs__group .semi-radio {
+  min-width: 0;
+  width: auto !important;
+  flex: 1 1 0 !important;
+  margin: 0;
+  padding: 0;
+}
+
+.treasury-ticket__asset-group .semi-radio-inner-buttonRadio,
+.treasury-ticket__presets-group .semi-radio-inner-buttonRadio,
+.treasury-drawer-tabs__group .semi-radio-inner-buttonRadio {
+  display: none;
+}
+
+.treasury-ticket__asset-group .semi-radio-content,
+.treasury-ticket__presets-group .semi-radio-content,
+.treasury-drawer-tabs__group .semi-radio-content {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  place-items: stretch;
+  padding: 0;
+}
+
+.treasury-ticket__asset-group .semi-radio-addon-buttonRadio,
+.treasury-ticket__presets-group .semi-radio-addon-buttonRadio,
+.treasury-drawer-tabs__group .semi-radio-addon-buttonRadio {
+  min-width: 0;
+  height: auto;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
+  background: transparent !important;
+  color: inherit;
+  box-shadow: none !important;
 }
 
 .treasury-asset-option {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 62px;
-  min-width: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface, #ffffff);
-  color: var(--ns-text-2, #5b6478);
+  gap: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: var(--mx2-r-pill);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  color: var(--mx2-text-muted);
   cursor: pointer;
-  text-align: left;
   transition:
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+    background var(--mx2-t-fast) var(--mx2-ease),
+    color var(--mx2-t-fast) var(--mx2-ease),
+    transform var(--mx2-t-fast) var(--mx2-ease-snap);
 }
 
-.treasury-asset-option > span {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
+.treasury-ticket__asset-group .semi-radio-checked .treasury-asset-option {
+  background: var(--mx2-accent);
+  color: #ffffff;
 }
 
-.treasury-asset-option strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9375rem;
-  font-weight: 900;
-  line-height: 1.15;
-}
-
-.treasury-asset-option small,
-.treasury-asset-option em {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-style: normal;
-  font-weight: 750;
-  line-height: 1.3;
-}
-
-.treasury-asset-option em {
-  flex: 0 0 auto;
-  max-width: 92px;
-  text-align: right;
-}
-
-.treasury-asset-option:hover,
-.treasury-asset-option:focus-visible {
-  outline: none;
+.treasury-ticket__asset-group .semi-radio:hover .treasury-asset-option {
   transform: translateY(-1px);
-  border-color: rgba(22, 199, 132, 0.35);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
 
-.treasury-asset-option.is-active {
-  border-color: rgba(22, 199, 132, 0.44);
-  background: var(--ns-brand-soft, #e4f8f0);
-}
-
-.treasury-asset-option.is-active strong,
-.treasury-asset-option.is-active small,
-.treasury-asset-option.is-active em {
-  color: #086a45;
-}
-
-.treasury-amount-stage {
+.treasury-ticket__amount-input {
   display: grid;
-  gap: 12px;
-  min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--ns-border, #e4e7ec);
-  border-radius: var(--ns-radius-lg, 20px);
-  background:
-    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 58%),
-    var(--ns-surface-subtle, #f7f8fa);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 18px;
+  padding: 2px 0 4px;
+  background: transparent;
 }
 
-.treasury-amount-input .neo-input__wrapper {
-  min-height: 66px;
-  border: none;
-  border-radius: 0;
+.treasury-amount-field,
+.treasury-recipient-field,
+.treasury-memo-field {
+  min-width: 0;
+  margin: 0;
+}
+
+.treasury-input-control.mx2-open-field__control {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 0;
   background: transparent;
   box-shadow: none;
 }
 
-.treasury-amount-input .neo-input__field {
-  min-height: 66px;
-  padding: 0 0.2rem;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 2.4rem;
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-.treasury-amount-input .neo-input__suffix {
-  padding-right: 0.2rem;
-  color: #086a45;
-  font-size: 0.875rem;
-  font-weight: 900;
-}
-
-.treasury-route-fields {
-  display: grid;
-  gap: 12px;
+.treasury-input-control .semi-input {
   min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--mx2-ink);
+  font-family: inherit;
+  font-weight: 620;
+  outline: none;
 }
 
-.treasury-route-fields > div {
+.treasury-input-control--amount .semi-input {
+  min-width: 0;
+  height: 58px;
+  font-size: 46px;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+}
+
+.treasury-input-control .semi-input::placeholder {
+  color: #737b88;
+}
+
+.treasury-ticket__presets {
+  margin: 0;
+}
+
+.treasury-ticket__presets-group.mx2-open-segmented.semi-radioGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.treasury-preset-option {
+  min-width: 0;
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 680;
+  color: var(--mx2-text);
+  cursor: pointer;
+  transition: all var(--mx2-t-fast) var(--mx2-ease-snap);
+}
+.treasury-ticket__presets-group .semi-radio:hover .treasury-preset-option {
+  transform: translateY(-2px);
+  border-color: var(--mx2-accent);
+}
+.treasury-ticket__presets-group .semi-radio-checked .treasury-preset-option {
+  background: var(--mx2-accent);
+  border-color: var(--mx2-accent);
+  color: #ffffff;
+}
+
+.treasury-input-control--memo.mx2-open-field__control {
+  width: 100%;
+  min-width: 0;
+  border: 1.5px solid var(--mx2-border-strong);
+  border-radius: var(--mx2-r);
+  padding: 12px 16px;
+  background: var(--mx2-surface);
+}
+
+.treasury-input-control--memo .semi-input {
+  font-size: 15px;
+}
+
+.treasury-input-control--memo.mx2-open-field__control:focus-within {
+  border-color: var(--mx2-accent);
+  box-shadow: var(--mx2-shadow-glow);
+}
+
+.treasury-ticket__recipient {
   display: grid;
   gap: 7px;
-  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 20px;
+  padding: 12px 14px;
+  background: var(--mx2-surface-2);
 }
 
-.treasury-memo-panel {
-  min-width: 0;
-  border: 1px solid var(--ns-border, #e4e7ec);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface, #ffffff);
+.treasury-ticket__recipient[data-ready="true"] {
+  border-color: rgba(21, 128, 61, 0.22);
+  box-shadow: inset 4px 0 0 rgba(21, 128, 61, 0.2);
 }
 
-.treasury-memo-panel summary {
-  display: flex;
+.treasury-ticket__recipient > span {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0 14px;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  cursor: pointer;
-  list-style: none;
+  gap: 6px;
 }
 
-.treasury-memo-panel summary::-webkit-details-marker {
-  display: none;
-}
-
-.treasury-memo-panel summary::after {
-  content: "+";
-  color: #086a45;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.treasury-memo-panel[open] {
-  padding-bottom: 12px;
-}
-
-.treasury-memo-panel[open] summary::after {
-  content: "-";
-}
-
-.treasury-memo-panel summary:focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-}
-
-.treasury-memo-panel .neo-input {
-  padding: 0 14px;
-}
-
-.treasury-intent-panel {
-  display: grid;
-  gap: 12px;
+.treasury-input-control--recipient.mx2-open-field__control {
   min-width: 0;
+  width: 100%;
+  height: 38px;
+  border: 0;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.1);
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.treasury-input-control--recipient .semi-input {
+  color: var(--mx2-ink);
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.treasury-input-control--recipient.mx2-open-field__control:focus-within {
+  border-color: var(--mx2-accent);
+  box-shadow: none;
+}
+
+.treasury-ticket__recipient small {
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.treasury-ticket__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.treasury-ticket__summary-card {
+  min-width: 0;
+  min-height: 104px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 20px;
   padding: 14px;
-  border: 1px solid var(--ns-border, #e4e7ec);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+  font: inherit;
+  text-align: left;
   transition:
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+    background var(--mx2-t-fast) var(--mx2-ease),
+    border-color var(--mx2-t-fast) var(--mx2-ease);
 }
 
-.treasury-intent-panel--error {
-  border-color: rgba(200, 30, 42, 0.24);
-  background: var(--ns-danger-soft, #fde7e9);
+.treasury-ticket__summary-card[data-ready="true"] {
+  border-color: rgba(21, 128, 61, 0.22);
+  background: var(--mx2-success-soft);
 }
 
-.treasury-intent-panel--ready {
-  border-color: rgba(22, 199, 132, 0.24);
-  background:
-    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 52%),
-    var(--ns-surface, #ffffff);
-}
-
-.treasury-intent-panel__head {
-  display: grid;
-  gap: 4px;
+.treasury-ticket__summary-card span {
   min-width: 0;
-}
-
-.treasury-intent-panel__head > span {
-  color: #086a45;
-  font-size: 0.6875rem;
-  font-weight: 850;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.treasury-intent-panel__head strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.treasury-intent-panel p {
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  line-height: 1.45;
-}
-
-.treasury-intent-panel dl {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-}
-
-.treasury-intent-panel dl div {
-  display: grid;
-  gap: 5px;
+.treasury-ticket__summary-card strong,
+.treasury-ticket__summary-card small {
   min-width: 0;
-  padding: 12px 14px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.treasury-intent-panel dt {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.treasury-intent-panel dd {
-  min-width: 0;
-  margin: 0;
   overflow: hidden;
-  color: var(--ns-ink, #1e1e2e);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.75rem;
-  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 
-.treasury-presets {
+.treasury-ticket__summary-card strong {
+  color: var(--mx2-ink);
+  font-size: 18px;
+  font-weight: 680;
+}
+
+.treasury-ticket__summary-card small {
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.treasury-ticket__route {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.treasury-presets button {
-  min-width: 78px;
+.treasury-ticket__route span {
+  min-width: 0;
   min-height: 34px;
-  padding: 7px 13px;
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface, #ffffff);
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.78rem;
-  font-weight: 800;
-  cursor: pointer;
-  font-variant-numeric: tabular-nums;
-  transition:
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.treasury-presets button:hover,
-.treasury-presets button.is-active {
-  border-color: rgba(22, 199, 132, 0.32);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: #086a45;
-}
-
-.treasury-presets button:focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-}
-
-.treasury-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: inline-flex;
   align-items: center;
-}
-
-.treasury-actions .op-btn.neo-btn--primary:not(:disabled):not([aria-disabled="true"]) {
-  border: 1px solid #0a7a52;
-  background: #0a7a52;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(22, 199, 132, 0.2);
-}
-
-.treasury-actions .op-btn.neo-btn--primary:not(:disabled):not([aria-disabled="true"]):hover {
-  border-color: #086d49;
-  background: #086d49;
-}
-
-/* Subordinate "change wallet" affordance shown only once connected — a quiet
-   text button so it never competes with the primary sign CTA. */
-.treasury-reconnect {
-  padding: 6px 4px;
-  border: none;
-  background: none;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  transition: color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.treasury-reconnect:hover,
-.treasury-reconnect:focus-visible {
-  outline: none;
-  color: var(--ns-brand-strong, #0fb174);
-}
-
-.treasury-tx-receipt {
-  background: var(--ns-brand-soft, #e4f8f0) !important;
-}
-
-.treasury-tx-receipt p {
-  margin: 0;
-  overflow-wrap: anywhere;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  line-height: 1.4;
-}
-
-/* Resting/pre-load reference card — a compact, scannable summary of the watched
-   groups that fills the lower viewport before live balances resolve. */
-.treasury-reference-card {
-  min-width: 0;
-}
-
-.treasury-reference-card .neo-card__body {
-  display: grid;
-  gap: 16px;
-}
-
-.treasury-reference-card__head {
-  display: grid;
+  justify-content: center;
   gap: 6px;
-  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: var(--mx2-r-pill);
+  padding: 0 9px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.treasury-reference-card__head > span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
+.treasury-ticket__route span[data-ready="true"] {
+  color: var(--mx2-success);
+  background: var(--mx2-success-soft);
+  border-color: rgba(21, 128, 61, 0.18);
 }
 
-.treasury-reference-card__head strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1.0625rem;
-  font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: 0;
+.treasury-ticket__memo {
+  width: 100%;
 }
 
-.treasury-reference-card__head p {
-  max-width: 46rem;
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  line-height: 1.45;
+.treasury-ticket__memo summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--mx2-text-muted);
 }
 
-.treasury-reference-card__groups {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0;
+.treasury-ticket__memo .treasury-memo-field {
+  margin-top: 8px;
 }
 
-.treasury-reference-card__groups div {
-  display: flex;
+.treasury-ticket__error {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 7px;
+  margin: 0;
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: var(--mx2-danger-soft);
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--mx2-danger);
+}
+
+.treasury-ticket__tx {
+  margin: 0;
+  font-size: 12px;
+  color: var(--mx2-text-faint);
+}
+.treasury-ticket__tx code {
+  font-family: ui-monospace, monospace;
+}
+
+.treasury-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 210px;
+  max-width: min(100%, 210px);
+}
+
+/* ============================================================
+ * Drawer
+ * ============================================================ */
+.treasury-drawer {
+  display: grid;
   gap: 12px;
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.treasury-reference-card__groups dt {
+.treasury-drawer-tabs {
   margin: 0;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.875rem;
-  font-weight: 750;
 }
 
-.treasury-reference-card__groups dd {
-  margin: 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.treasury-watchlist {
+.treasury-drawer-tabs__group.mx2-open-segmented.semi-radioGroup {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  padding: 5px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 18px;
+  background: var(--mx2-surface-2);
 }
 
-.treasury-watchlist__tag {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.treasury-group-warning {
-  color: var(--ns-warning-strong, #b9791a);
-  font-size: 0.6875rem;
-  font-weight: 700;
-}
-
-.treasury-group-card {
-  display: grid;
-  gap: 16px;
+.treasury-drawer-tab {
   min-width: 0;
-}
-
-.treasury-group-header {
-  display: flex;
+  min-height: 42px;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-.treasury-group-header > span {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9375rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.treasury-group-header strong {
-  text-align: right;
-}
-
-.treasury-group-card strong,
-.treasury-readonly-note strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.3;
-  font-variant-numeric: tabular-nums;
-}
-
-.treasury-group-header strong {
-  font-weight: 800;
-}
-
-.treasury-group-card dl {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.treasury-group-card dl div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.treasury-group-card dt {
-  margin: 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.treasury-group-card dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.treasury-wallet-list {
-  display: grid;
-  gap: 10px;
-  max-height: 248px;
-  overflow: auto;
-  padding: 2px 2px 0;
-}
-
-.treasury-wallet-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  min-width: 0;
-  padding: 12px 14px;
+  justify-content: center;
+  gap: 6px;
   border: 1px solid transparent;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  transition:
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.treasury-wallet-row:hover {
-  border-color: var(--ns-border, #e4e7ec);
-  background: var(--ns-surface, #ffffff);
-}
-
-.treasury-wallet-row div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.treasury-wallet-row strong {
-  overflow: hidden;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.75rem;
-  font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.treasury-wallet-row code {
-  overflow: hidden;
-  color: var(--ns-text-muted, #8a92a6);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.6875rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.treasury-wallet-row > span {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Right column: balance line + "Use as recipient" affordance. Overrides the
-   generic `.treasury-wallet-row div { display: grid }` for right alignment. */
-.treasury-wallet-row__right {
-  justify-items: end;
-  gap: 6px !important;
-  text-align: right;
-
-  > span {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 0.75rem;
-    font-weight: 700;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.treasury-use-recipient {
-  padding: 4px 10px;
-  border: 1px solid var(--ns-border, #e4e7ec);
-  border-radius: 999px;
-  background: var(--ns-surface, #ffffff);
-  // Darker green text for AA: brand-strong #0fb174 is ~2.8:1 on white;
-  // #086a45 is ~4.8:1 on white and holds on the brand-soft hover background.
-  color: #086a45;
-  font-size: 0.6875rem;
-  font-weight: 700;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--mx2-text-muted);
   cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 620;
+  padding: 8px 10px;
   transition:
-    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-
-  &:hover,
-  &:focus-visible {
-    border-color: rgba(15, 177, 116, 0.4);
-    background: var(--ns-brand-soft, #e4f8f0);
-  }
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    background var(--mx2-t-fast) var(--mx2-ease),
+    color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
 }
 
-/* Recipient caption + price-source note — muted helper text. */
-.treasury-recipient-caption {
-  margin: -6px 0 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.75rem;
-  line-height: 1.45;
+.treasury-drawer-tabs__group .semi-radio-checked .treasury-drawer-tab,
+.treasury-drawer-tabs__group .semi-radio:hover .treasury-drawer-tab {
+  border-color: rgba(21, 128, 61, 0.2);
+  background: #ffffff;
+  color: var(--mx2-accent-strong);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.045);
 }
 
-.treasury-hero__source {
-  margin: 6px 0 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.7rem;
-  line-height: 1.4;
+.treasury-drawer-tab span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.treasury-action-card .neo-card__body {
-  display: grid;
-  gap: 8px;
+.treasury-drawer-tab em {
+  flex: 0 0 auto;
+  border-radius: var(--mx2-r-pill);
+  padding: 2px 6px;
+  background: var(--mx2-success-soft);
+  color: var(--mx2-success);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 680;
 }
 
-.treasury-readonly-note {
-  display: grid;
-  gap: 6px;
+.treasury-drawer__panel,
+.treasury-drawer__payout {
   min-width: 0;
 }
 
-.treasury-readonly-note p {
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.45;
+.treasury-drawer__payout {
+  display: grid;
+  gap: 12px;
 }
 
-.treasury-error {
-  color: #c81e2a !important;
-  font-weight: 600;
+.treasury-drawer__group {
+  margin-bottom: 16px;
 }
-
-.op-btn {
-  min-width: 170px;
+.treasury-drawer__group-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--mx2-text-2);
+  margin-bottom: 6px;
 }
-
-@keyframes treasury-flow-sweep {
-  0%,
-  48% {
-    opacity: 0;
-    transform: translateX(-42%);
-  }
-
-  64% {
-    opacity: 0.86;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(42%);
-  }
+.treasury-drawer__group-stats strong {
+  color: var(--mx2-accent-strong);
 }
-
-@keyframes treasury-flow-line {
-  from {
-    background-position: 0 0;
-  }
-
-  to {
-    background-position: 180px 0;
-  }
+.treasury-drawer__wallet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--mx2-text-muted);
+  border-bottom: 1px solid var(--mx2-border);
 }
-
-@keyframes treasury-flow-transfer-ready {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow:
-      0 12px 26px rgba(20, 22, 38, 0.08),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.62);
-  }
-
-  50% {
-    transform: translateY(-3px);
-    box-shadow:
-      0 18px 34px rgba(22, 199, 132, 0.13),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.72);
-  }
+.treasury-drawer__wallet code {
+  font-family: ui-monospace, monospace;
+  color: var(--mx2-ink);
 }
-
-@keyframes treasury-flow-signing {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(-3deg) scale(1.04);
-  }
+.treasury-drawer__wallet em {
+  font-style: normal;
+  color: var(--mx2-text-faint);
 }
-
-@media (max-width: 760px) {
-  .treasury-play-area {
-    padding: 16px 12px 22px;
-  }
-
-  .treasury-hero,
-  .treasury-execution-grid,
-  .treasury-action-card .neo-card__body {
-    grid-template-columns: 1fr;
-  }
-
-  .treasury-hero {
-    padding: 20px;
-  }
-
-  .treasury-hero h2 {
-    font-size: 1.375rem;
-  }
-
-  .treasury-watchlist,
-  .treasury-reference-card__groups {
-    grid-template-columns: 1fr;
-  }
-
-  .treasury-asset-switch,
-  .treasury-wallet-strip,
-  .treasury-intent-panel dl,
-  .treasury-flow-checks {
-    grid-template-columns: 1fr;
-  }
-
-  .treasury-flow-stage {
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .treasury-flow-rail {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 0;
-  }
-
-  .treasury-flow-rail__line,
-  .treasury-flow-arrow {
-    display: none;
-  }
-
-  .treasury-flow-node,
-  .treasury-flow-transfer {
-    padding: 12px;
-  }
-
-  .treasury-flow-transfer {
-    justify-items: start;
-    grid-template-columns: auto minmax(0, 1fr);
-    text-align: left;
-  }
-
-  .treasury-flow-transfer img {
-    grid-row: span 3;
-    width: 44px;
-    height: 44px;
-  }
-
-  .treasury-hero__refresh {
-    margin-left: 0;
-  }
-
-  .treasury-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .treasury-wallet-row {
-    grid-template-columns: 1fr;
-  }
-
-  .treasury-wallet-row > span {
-    text-align: left;
-    white-space: normal;
-  }
-
-  .treasury-wallet-row__right {
-    justify-items: start;
-    text-align: left;
-
-    > span {
-      white-space: normal;
-    }
-  }
-
-  .op-btn {
-    width: 100%;
-    min-width: 0;
-  }
+.treasury-drawer__source {
+  font-size: 12px;
+  color: var(--mx2-text-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .treasury-flow-stage::after,
-  .treasury-flow-stage--ready .treasury-flow-rail__line,
-  .treasury-flow-stage--signing .treasury-flow-rail__line,
-  .treasury-flow-transfer.is-ready,
-  .treasury-flow-stage--signing .treasury-flow-transfer img {
-    animation: none;
+  .treasury-scene__pulse-dot,
+  .treasury-ticket__rail-coin.is-moving,
+  .treasury-ticket__summary-card {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .treasury-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .treasury-scene__art img {
+    height: 220px;
+  }
+}
+
+@media (max-width: 560px) {
+  .treasury-ticket {
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .treasury-scene {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  .treasury-scene__art img {
+    height: 170px;
+  }
+
+  .treasury-scene__tokens,
+  .treasury-ticket__flow {
+    grid-template-columns: 1fr;
+  }
+
+  .treasury-ticket__summary-grid,
+  .treasury-drawer-tabs__group.mx2-open-segmented.semi-radioGroup {
+    grid-template-columns: 1fr;
+  }
+
+  .treasury-ticket__rail {
+    width: 100%;
+    height: 66px;
+    grid-template-rows: 1fr auto 1fr;
+    grid-template-columns: auto;
+    justify-content: center;
+    transform: none;
+  }
+
+  .treasury-ticket__rail span {
+    width: 2px;
+    height: 100%;
+    justify-self: center;
+  }
+
+  .treasury-ticket__head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .treasury-ticket__head em {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .treasury-ticket__amount-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .treasury-input-control--amount .semi-input {
+    font-size: 39px;
+  }
+
+  .treasury-ticket__asset {
+    width: 100%;
+  }
+
+  .treasury-ticket__asset-group.mx2-open-segmented.semi-radioGroup {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .treasury-asset-option {
+    justify-content: center;
   }
 }

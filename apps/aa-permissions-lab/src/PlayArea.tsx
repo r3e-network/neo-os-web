@@ -1,561 +1,306 @@
 /**
- * PlayArea.tsx - AA Permissions Lab
+ * PlayArea.tsx -- AA Permissions Lab (v2 scene-driven rebuild)
  *
- * Wallet-style control room for inspecting and rotating AA verifier/hook policy.
+ * Tool identity. The permission boundary IS the scene: the live verifier + hook
+ * + backup owner bindings for the inspected account, with pending two-phase
+ * rotations shown as a propose → timelock → confirm/cancel route. Refresh
+ * (inspect) is the primary read; the propose/confirm/cancel controls live in a
+ * drawer so the stage shows the current boundary, not a form. Real state from
+ * useAAPermissionsLab is bound throughout.
  */
-
-import { useEffect, useMemo, useState } from "react";
-import {
-  BadgeCheck,
-  Clock3,
-  Fingerprint,
-  KeyRound,
-  Link2,
-  RefreshCw,
-  ShieldCheck,
-  SlidersHorizontal,
-  WalletCards,
-} from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { StateView } from "@shared/components";
+import { useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
-import { getPermissionsLaunchDefaults } from "./launch";
+import type { ObservableState } from "@shared/react/context";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { AlertTriangle, CircleCheckBig, KeyRound, LoaderCircle, PlugZap, ShieldCheck, Timer, WalletCards } from "lucide-react";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext: MiniAppLaunchContext;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-}: PlayAreaProps) {
-  const { str, bool, num } = useStateBindings(state);
-  const launchDefaults = useMemo(
-    () => getPermissionsLaunchDefaults(launchContext),
-    [launchContext],
-  );
+function compactHash(value: string): string {
+  const v = String(value || "").trim();
+  if (!v || v === "—") return "—";
+  if (v.length <= 14) return v;
+  return `${v.slice(0, 8)}…${v.slice(-6)}`;
+}
 
-  const PLACEHOLDER = "—";
-  const isRefreshing = bool("isRefreshing");
-  const isVerifierBusy = bool("isVerifierBusy");
-  const isHookBusy = bool("isHookBusy");
-  const currentVerifier = str("currentVerifier", PLACEHOLDER);
-  const currentHook = str("currentHook", PLACEHOLDER);
-  const currentBackupOwner = str("currentBackupOwner", PLACEHOLDER);
-  // True only after a successful read — the "configured" chip and detail grid
-  // must reflect fetched state, not merely a typed account id.
+const PERMISSION_CONSOLE_ART = "permission-console.webp";
+
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool } = useStateBindings(state);
+
+  const currentVerifier = str("currentVerifier");
+  const currentHook = str("currentHook");
+  const currentBackupOwner = str("currentBackupOwner");
   const hasInspected = bool("hasInspected");
   const hasPendingVerifier = bool("hasPendingVerifier");
   const hasPendingHook = bool("hasPendingHook");
-  const pendingVerifierUnlockAt = num("pendingVerifierUnlockAt", 0);
-  const pendingHookUnlockAt = num("pendingHookUnlockAt", 0);
-  const connectedWalletHash = str("connectedWalletDisplay");
+  const pendingVerifierUnlockAt = str("pendingVerifierUnlockAt");
+  const pendingHookUnlockAt = str("pendingHookUnlockAt");
+  const connectedWallet = str("connectedWalletDisplay");
+  const isRefreshing = bool("isRefreshing");
+  const isVerifierBusy = bool("isVerifierBusy");
+  const isHookBusy = bool("isHookBusy");
 
-  const [accountIdHash, setAccountIdHash] = useState(
-    launchDefaults.accountIdHash,
-  );
-  const [verifierHash, setVerifierHash] = useState(launchDefaults.verifierHash);
-  const [verifierParamsHex, setVerifierParamsHex] = useState(
-    launchDefaults.verifierParamsHex,
-  );
-  const [hookHash, setHookHash] = useState(launchDefaults.hookHash);
+  const [draftAccount, setDraftAccount] = useState("");
+  const [draftVerifier, setDraftVerifier] = useState("");
+  const [draftHook, setDraftHook] = useState("");
 
-  useEffect(() => {
-    setAccountIdHash(launchDefaults.accountIdHash);
-    setVerifierHash(launchDefaults.verifierHash);
-    setVerifierParamsHex(launchDefaults.verifierParamsHex);
-    setHookHash(launchDefaults.hookHash);
-  }, [launchContext.signature, launchDefaults]);
+  const busy = isRefreshing || isVerifierBusy || isHookBusy;
+  const handleRefresh = () => { void dispatch("refresh", draftAccount); };
+  const handleConnect = () => { void dispatch("connect"); };
+  const handleProposeVerifier = () => { void dispatch("submitVerifier", draftAccount, draftVerifier, ""); };
+  const handleProposeHook = () => { void dispatch("submitHook", draftAccount, draftHook); };
+  const handleConfirmVerifier = () => { void dispatch("confirmVerifier", draftAccount); };
+  const handleCancelVerifier = () => { void dispatch("cancelVerifier", draftAccount); };
+  const handleConfirmHook = () => { void dispatch("confirmHook", draftAccount); };
+  const handleCancelHook = () => { void dispatch("cancelHook", draftAccount); };
 
-  const accountReady = Boolean(accountIdHash.trim());
-
-  const notAvailable = t("notAvailable");
-  const normalize = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed || trimmed === notAvailable || trimmed === "N/A") {
-      return PLACEHOLDER;
-    }
-    return trimmed;
-  };
-
-  // The connected wallet must be the account's backup owner to rotate bindings;
-  // the contract enforces this, so disable the write CTAs (with guidance) when
-  // an inspected backup owner is known and does not match the wallet.
-  const walletNormalized = connectedWalletHash.trim().replace(/^0x/i, "").toLowerCase();
-  const ownerNormalized = currentBackupOwner.trim().replace(/^0x/i, "").toLowerCase();
-  const ownerKnown = hasInspected && /^[0-9a-f]{40}$/.test(ownerNormalized);
-  const notBackupOwner =
-    Boolean(walletNormalized) && ownerKnown && ownerNormalized !== walletNormalized;
-
-  const canRefresh = accountReady && !isRefreshing;
-  const canUpdateVerifier =
-    accountReady &&
-    Boolean(verifierHash.trim()) &&
-    !isVerifierBusy &&
-    !notBackupOwner;
-  const canUpdateHook =
-    accountReady && Boolean(hookHash.trim()) && !isHookBusy && !notBackupOwner;
-  const isPermissionRouteBusy = isRefreshing || isVerifierBusy || isHookBusy;
-  const hasPendingChange = hasPendingVerifier || hasPendingHook;
-  const routeStageState = isVerifierBusy
-    ? "verifier"
-    : isHookBusy
-      ? "hook"
-      : isRefreshing
-        ? "inspect"
-        : hasPendingChange
-          ? "timelock"
-          : hasInspected
-            ? "ready"
-            : accountReady
-              ? "armed"
-              : "empty";
-  const routeStageStatus = isVerifierBusy
-    ? t("permissionsRouteStatusVerifier")
-    : isHookBusy
-      ? t("permissionsRouteStatusHook")
-      : isRefreshing
-        ? t("permissionsRouteStatusInspect")
-        : hasPendingVerifier
-          ? t("permissionsRouteStatusPendingVerifier")
-          : hasPendingHook
-            ? t("permissionsRouteStatusPendingHook")
-            : hasInspected
-              ? t("permissionsRouteStatusReady")
-              : accountReady
-                ? t("permissionsRouteStatusArmed")
-                : t("permissionsRouteStatusEmpty");
-
-  // Humanize a pending-update unlock timestamp into a status line. The value is
-  // the contract's getPending*UpdateTime, computed as InitiatedAt (Runtime.Time)
-  // + ConfigUpdateTimelockMs — i.e. epoch MILLISECONDS, since Neo N3 Runtime.Time
-  // is ms. (Treating it as seconds read the unlock ~1000x into the future and
-  // never showed "ready".)
-  const pendingUnlockText = (unlockAtMs: number): string => {
-    if (!unlockAtMs || unlockAtMs <= Date.now()) {
-      return t("pendingUnlockReady");
-    }
-    const when = new Date(unlockAtMs).toLocaleString();
-    return t("pendingUnlockAt", { time: when });
-  };
-
-  const detailItems = [
+  const accountReady = draftAccount.trim().length > 0;
+  const routeState = busy
+    ? isRefreshing
+      ? t("permissionsRouteStatusInspect")
+      : isVerifierBusy
+        ? t("permissionsRouteStatusVerifier")
+        : t("permissionsRouteStatusHook")
+    : hasPendingVerifier
+      ? t("permissionsRouteStatusPendingVerifier")
+      : hasPendingHook
+        ? t("permissionsRouteStatusPendingHook")
+        : hasInspected
+          ? t("permissionsRouteStatusReady")
+          : accountReady
+            ? t("permissionsRouteStatusArmed")
+            : t("permissionsRouteStatusEmpty");
+  const liveStateTitle = hasInspected ? t("permissionsStateTitle") : t("permissionsStateEmpty");
+  const timelockValue = hasPendingVerifier
+    ? pendingVerifierUnlockAt || t("permissionsRoutePending")
+    : hasPendingHook
+      ? pendingHookUnlockAt || t("permissionsRoutePending")
+      : hasInspected
+        ? t("permissionsRouteGuard")
+        : "—";
+  const verifierValue = hasInspected ? compactHash(currentVerifier) : t("notInspected");
+  const hookValue = hasInspected ? compactHash(currentHook) : t("notInspected");
+  const accountValue = accountReady ? compactHash(draftAccount) : t("permissionsRouteAccountEmpty");
+  const routeNodes = [
     {
-      label: t("currentVerifier"),
-      value: normalize(currentVerifier),
+      key: "account",
+      label: t("permissionsRouteAccount"),
+      value: accountValue,
+      active: accountReady || hasInspected,
+      icon: ShieldCheck,
     },
-    { label: t("currentHook"), value: normalize(currentHook) },
     {
-      label: t("currentBackupOwner"),
-      value: normalize(currentBackupOwner),
+      key: "verifier",
+      label: t("permissionsRouteVerifier"),
+      value: verifierValue,
+      active: hasInspected || hasPendingVerifier,
+      pending: hasPendingVerifier,
+      icon: KeyRound,
+    },
+    {
+      key: "timelock",
+      label: t("permissionsRouteTimelock"),
+      value: timelockValue,
+      active: hasPendingVerifier || hasPendingHook,
+      pending: hasPendingVerifier || hasPendingHook,
+      icon: Timer,
+    },
+    {
+      key: "hook",
+      label: t("permissionsRouteHook"),
+      value: hookValue,
+      active: hasInspected || hasPendingHook,
+      pending: hasPendingHook,
+      icon: PlugZap,
     },
   ];
 
-  return (
-    <div className="aa-permissions-play-area">
-      <section className="permissions-hero">
-        <div className="permissions-hero__copy">
-          <span className="permissions-hero__badge" aria-hidden="true">
-            <KeyRound size={24} />
-          </span>
-          <div>
-            <span className="permissions-hero__eyebrow">
-              {t("permissionsHeroEyebrow")}
-            </span>
-            <h2>{t("permissionsHeroTitle")}</h2>
-            <p>{t("permissionsHeroCopy")}</p>
-            <span className="permissions-hero__chip">{t("permissionsHeroChip")}</span>
+  const scene = (
+    <div className="perms-scene" data-state={busy ? "busy" : hasInspected ? "inspected" : "idle"}>
+      <div className="perms-boundary">
+        <div className="perms-boundary__target-bar">
+          <div className="perms-boundary__target-copy">
+            <WalletCards size={18} aria-hidden="true" />
+            <div>
+              <span>{t("permissionsCommandTitle")}</span>
+              <strong>{accountReady ? compactHash(draftAccount) : t("permissionsRouteStatusEmpty")}</strong>
+            </div>
           </div>
+          <OpenUiTextField
+            className="perms-boundary__target-input"
+            label={t("accountId")}
+            value={draftAccount}
+            onChange={(e) => setDraftAccount(e.target.value)}
+            placeholder={t("accountIdHashPlaceholder")}
+            mono
+            spellCheck={false}
+          />
         </div>
-        <figure className="permissions-hero__visual">
-          <img src="./permission-console.jpg" alt={t("permissionsHeroImageAlt")} />
-          <figcaption>
+
+        <div className="perms-boundary__map" aria-label={t("permissionsFlowLabel")}>
+          <div className="perms-boundary__visual" aria-hidden="true">
+            <img src={PERMISSION_CONSOLE_ART} alt="" loading="eager" decoding="async" />
             <span>{t("permissionsHeroVisualLabel")}</span>
-            <strong>{hasInspected ? t("configured") : t("notInspected")}</strong>
-          </figcaption>
-        </figure>
-        <div className="permissions-hero__metrics" aria-label={t("permissionsMetricsLabel")}>
-          <span>
-            <Fingerprint size={15} aria-hidden="true" />
-            {t("permissionsMetricAccount")}
-            <strong>{accountIdHash.trim() || PLACEHOLDER}</strong>
-          </span>
-          <span>
-            <ShieldCheck size={15} aria-hidden="true" />
-            {t("permissionsMetricVerifier")}
-            <strong>{normalize(currentVerifier)}</strong>
-          </span>
-          <span>
-            <Link2 size={15} aria-hidden="true" />
-            {t("permissionsMetricHook")}
-            <strong>{normalize(currentHook)}</strong>
-          </span>
-        </div>
-      </section>
-
-      <div className="permissions-grid">
-        <div className="permissions-column">
-          <NeoCard
-            variant="erobo"
-            title={t("permissionsCommandTitle")}
-            className="permissions-command"
-          >
-            <div className="permissions-form">
-              <div className="permissions-account-card" aria-label={t("permissionsAccountPreview")}>
-                <span className="permissions-account-card__icon" aria-hidden="true">
-                  <Fingerprint size={26} />
-                </span>
-                <div className="permissions-account-card__copy">
-                  <span>{t("permissionsAccountPreview")}</span>
-                  <strong>{accountIdHash.trim() || t("accountPreviewEmpty")}</strong>
-                  <p>{t("permissionsRiskCopy")}</p>
-                </div>
-                <dl className="permissions-account-card__facts">
-                  <div>
-                    <dt>{t("currentBackupOwner")}</dt>
-                    <dd>{normalize(currentBackupOwner)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("connectedWallet")}</dt>
-                    <dd>{connectedWalletHash || PLACEHOLDER}</dd>
-                  </div>
-                </dl>
-              </div>
-              <NeoInput
-                value={accountIdHash}
-                label={t("accountId")}
-                hint={t("accountIdHint")}
-                placeholder={
-                  t("accountIdHashPlaceholder")
-                }
-                onChange={(v) => setAccountIdHash(v)}
-              />
-              <div className="permissions-action-grid">
-                <NeoButton
-                  variant="primary"
-                  aria-label={t("connectWallet")}
-                  onClick={() => dispatch("connect")}
-                >
-                  <WalletCards size={17} aria-hidden="true" />
-                  {t("connectWallet")}
-                </NeoButton>
-                <NeoButton
-                  variant="secondary"
-                  loading={isRefreshing}
-                  disabled={!canRefresh}
-                  aria-label={t("inspect")}
-                  onClick={() => dispatch("refresh", accountIdHash)}
-                >
-                  <RefreshCw size={17} aria-hidden="true" />
-                  {t("inspect")}
-                </NeoButton>
-              </div>
-              {!canRefresh ? (
-                <p className="permissions-caption permissions-caption--warn">
-                  {t("inspectBlocked")}
-                </p>
-              ) : (
-                <p className="permissions-caption">{t("permissionsRiskCopy")}</p>
-              )}
-            </div>
-          </NeoCard>
-
-          <section className="permissions-state-panel">
-            <div className="permissions-section-heading">
-              <div>
-                <span>{t("permissionsStateLabel")}</span>
-                <h3>{t("permissionsStateTitle")}</h3>
-              </div>
-              {/* Gate on hasInspected (a completed read), not on a typed id —
-                  a green "configured" chip must not assert unfetched state. */}
-              <strong
-                className={`permissions-status${
-                  hasInspected ? " permissions-status--active" : ""
-                }`}
-              >
-                {hasInspected ? t("configured") : t("notInspected")}
-              </strong>
-            </div>
-
-            {hasInspected ? (
-              <div className="permissions-detail-list">
-                {detailItems.map((item) => (
-                  <div key={item.label} className="permissions-detail-row">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <StateView
-                kind="empty"
-                className="permissions-empty"
-                title={t("permissionsStateEmpty")}
-                hint={t("inspectBlocked")}
-              />
-            )}
-          </section>
-        </div>
-
-        <div className="permissions-column permissions-column--write">
-          <div className="permissions-write-heading">
-            <span>{t("permissionsFlowLabel")}</span>
-            <h3>{t("permissionsRiskTitle")}</h3>
           </div>
 
-          <div className="permissions-flow-rail" aria-label={t("permissionsFlowLabel")}>
-            <span>
-              <b>1</b>
-              <strong>{t("permissionsFlowInspect")}</strong>
-              <small>{t("permissionsFlowInspectDesc")}</small>
+          <div className="perms-boundary__core">
+            <span className="perms-boundary__core-orb" aria-hidden="true">
+              {busy ? <LoaderCircle size={28} /> : <ShieldCheck size={30} />}
             </span>
-            <span>
-              <b>2</b>
-              <strong>{t("writeStagePropose")}</strong>
-              <small>{t("twoPhaseExplainer")}</small>
-            </span>
-            <span>
-              <b>3</b>
-              <strong>{t("writeStageConfirm")}</strong>
-              <small>{t("timelockPurpose")}</small>
-            </span>
+            <span>{t("permissionsRouteStageLabel")}</span>
+            <strong>{liveStateTitle}</strong>
+            <p>{routeState}</p>
           </div>
 
-          <section
-            className={`permissions-route-stage permissions-route-stage--${routeStageState}`}
-            aria-label={t("permissionsRouteStageTitle")}
-            aria-busy={isPermissionRouteBusy}
-          >
-            <figure className="permissions-route-stage__visual">
-              <img src="./permission-console.jpg" alt="" aria-hidden="true" />
-              <span className="permissions-route-stage__scan" aria-hidden="true" />
-            </figure>
-            <div className="permissions-route-stage__content">
-              <div className="permissions-route-stage__head">
-                <span>{t("permissionsRouteStageLabel")}</span>
-                <strong>{t("permissionsRouteStageTitle")}</strong>
-                <p>{t("permissionsRouteStageCopy")}</p>
-              </div>
+          <div className="perms-boundary__route">
+            {routeNodes.map(({ key, label, value, active, pending, icon: Icon }) => (
               <div
-                className="permissions-route-stage__status"
-                role="status"
-                aria-live="polite"
+                className="perms-boundary__gate"
+                key={key}
+                data-kind={key}
+                data-active={active ? "true" : undefined}
+                data-pending={pending ? "true" : undefined}
               >
-                <span>{t("permissionsRouteStatusLabel")}</span>
-                <strong>{routeStageStatus}</strong>
-              </div>
-              <div className="permissions-route-map" aria-hidden="true">
-                <span className="permissions-route-map__node permissions-route-map__node--account">
-                  <Fingerprint size={18} />
-                  <strong>{t("permissionsRouteAccount")}</strong>
-                  <small>{accountIdHash.trim() || PLACEHOLDER}</small>
+                <span className="perms-boundary__gate-icon" aria-hidden="true">
+                  <Icon size={19} />
                 </span>
-                <i className="permissions-route-map__lane" />
-                <span className="permissions-route-map__node permissions-route-map__node--verifier">
-                  <BadgeCheck size={18} />
-                  <strong>{t("permissionsRouteVerifier")}</strong>
-                  <small>{verifierHash.trim() || normalize(currentVerifier)}</small>
-                </span>
-                <i className="permissions-route-map__lane" />
-                <span className="permissions-route-map__node permissions-route-map__node--timelock">
-                  <Clock3 size={18} />
-                  <strong>{t("permissionsRouteTimelock")}</strong>
-                  <small>
-                    {hasPendingChange
-                      ? t("permissionsRoutePending")
-                      : t("permissionsRouteGuard")}
-                  </small>
-                </span>
-                <i className="permissions-route-map__lane" />
-                <span className="permissions-route-map__node permissions-route-map__node--hook">
-                  <Link2 size={18} />
-                  <strong>{t("permissionsRouteHook")}</strong>
-                  <small>{hookHash.trim() || normalize(currentHook)}</small>
+                <span className="perms-boundary__gate-copy">
+                  <span className="perms-boundary__gate-label">{label}</span>
+                  <strong className="perms-boundary__gate-value">{value}</strong>
                 </span>
               </div>
-            </div>
-          </section>
+            ))}
+          </div>
+        </div>
 
-          {notBackupOwner && (
-            <p
-              className="permissions-caption permissions-caption--warn"
-              role="alert"
-            >
-              {t("notBackupOwner")}
-            </p>
-          )}
-
-          <NeoCard
-            variant="erobo"
-            title={t("updateVerifier")}
-            className="permissions-operation-card"
-          >
-            <div className="permissions-form">
-              <div className="permissions-operation-intro">
-                <span className="permissions-operation-intro__icon" aria-hidden="true">
-                  <BadgeCheck size={18} />
-                </span>
-                <div>
-                  <strong>{t("permissionsFlowVerifier")}</strong>
-                  <p>{t("permissionsFlowVerifierDesc")}</p>
-                </div>
-              </div>
-              <NeoInput
-                value={verifierHash}
-                label={t("verifier")}
-                placeholder={t("verifierHashPlaceholder")}
-                onChange={(v) => setVerifierHash(v)}
-              />
-              <NeoInput
-                value={verifierParamsHex}
-                label={t("verifierParams")}
-                hint={t("verifierParamsHint")}
-                placeholder={t("verifierParamsPlaceholder")}
-                onChange={(v) => setVerifierParamsHex(v)}
-              />
-              <NeoButton
-                variant="primary"
-                loading={isVerifierBusy}
-                disabled={!canUpdateVerifier}
-                aria-label={t("updateVerifier")}
-                onClick={() =>
-                  dispatch(
-                    "submitVerifier",
-                    accountIdHash,
-                    verifierHash,
-                    verifierParamsHex,
-                  )
-                }
-              >
-                <SlidersHorizontal size={17} aria-hidden="true" />
-                {t("updateVerifier")}
-              </NeoButton>
-              <p className="permissions-caption">{t("proposeVerifierHint")}</p>
-              {!canUpdateVerifier && !isVerifierBusy && !notBackupOwner ? (
-                <p className="permissions-caption permissions-caption--helper">
-                  {t("verifierUpdateBlocked")}
-                </p>
-              ) : null}
-              {/* Second phase: a proposed rotation waits out a timelock, then
-                  the owner confirms (or cancels) it. */}
-              {hasPendingVerifier && (
-                <div className="permissions-pending" role="status">
-                  <span className="permissions-pending__title">
-                    {t("pendingVerifierTitle")}
-                  </span>
-                  <span className="permissions-pending__time">
-                    {pendingUnlockText(pendingVerifierUnlockAt)}
-                  </span>
-                  <span className="permissions-pending__purpose">
-                    {t("timelockPurpose")}
-                  </span>
-                  <div className="permissions-pending__actions">
-                    <NeoButton
-                      variant="primary"
-                      loading={isVerifierBusy}
-                      disabled={isVerifierBusy}
-                      aria-label={t("confirmUpdate")}
-                      onClick={() => dispatch("confirmVerifier", accountIdHash)}
-                    >
-                      {t("confirmUpdate")}
-                    </NeoButton>
-                    <NeoButton
-                      variant="secondary"
-                      loading={isVerifierBusy}
-                      disabled={isVerifierBusy}
-                      aria-label={t("cancelUpdate")}
-                      onClick={() => dispatch("cancelVerifier", accountIdHash)}
-                    >
-                      {t("cancelUpdate")}
-                    </NeoButton>
-                  </div>
-                </div>
-              )}
-            </div>
-          </NeoCard>
-
-          <NeoCard
-            variant="erobo"
-            title={t("updateHook")}
-            className="permissions-operation-card"
-          >
-            <div className="permissions-form">
-              <div className="permissions-operation-intro">
-                <span className="permissions-operation-intro__icon" aria-hidden="true">
-                  <Clock3 size={18} />
-                </span>
-                <div>
-                  <strong>{t("permissionsFlowHook")}</strong>
-                  <p>{t("permissionsFlowHookDesc")}</p>
-                </div>
-              </div>
-              <NeoInput
-                value={hookHash}
-                label={t("hook")}
-                placeholder={t("hookHashPlaceholder")}
-                onChange={(v) => setHookHash(v)}
-              />
-              <NeoButton
-                variant="secondary"
-                loading={isHookBusy}
-                disabled={!canUpdateHook}
-                aria-label={t("updateHook")}
-                onClick={() => dispatch("submitHook", accountIdHash, hookHash)}
-              >
-                <Link2 size={17} aria-hidden="true" />
-                {t("updateHook")}
-              </NeoButton>
-              <p className="permissions-caption">{t("proposeHookHint")}</p>
-              {!canUpdateHook && !isHookBusy && !notBackupOwner ? (
-                <p className="permissions-caption permissions-caption--helper">
-                  {t("hookUpdateBlocked")}
-                </p>
-              ) : null}
-              {hasPendingHook && (
-                <div className="permissions-pending" role="status">
-                  <span className="permissions-pending__title">
-                    {t("pendingHookTitle")}
-                  </span>
-                  <span className="permissions-pending__time">
-                    {pendingUnlockText(pendingHookUnlockAt)}
-                  </span>
-                  <span className="permissions-pending__purpose">
-                    {t("timelockPurpose")}
-                  </span>
-                  <div className="permissions-pending__actions">
-                    <NeoButton
-                      variant="primary"
-                      loading={isHookBusy}
-                      disabled={isHookBusy}
-                      aria-label={t("confirmUpdate")}
-                      onClick={() => dispatch("confirmHook", accountIdHash)}
-                    >
-                      {t("confirmUpdate")}
-                    </NeoButton>
-                    <NeoButton
-                      variant="secondary"
-                      loading={isHookBusy}
-                      disabled={isHookBusy}
-                      aria-label={t("cancelUpdate")}
-                      onClick={() => dispatch("cancelHook", accountIdHash)}
-                    >
-                      {t("cancelUpdate")}
-                    </NeoButton>
-                  </div>
-                </div>
-              )}
-            </div>
-          </NeoCard>
+        <div className="perms-boundary__guard">
+          <span>
+            <CircleCheckBig size={16} aria-hidden="true" />
+            {routeState}
+          </span>
+          <small>
+            <AlertTriangle size={14} aria-hidden="true" />
+            {t("permissionsRiskCopy")}
+          </small>
         </div>
       </div>
+    </div>
+  );
+
+  const readout = hasInspected ? [
+    { label: t("currentVerifier"), value: compactHash(currentVerifier), accent: hasPendingVerifier },
+    { label: t("currentHook"), value: compactHash(currentHook), accent: hasPendingHook },
+    { label: t("currentBackupOwner"), value: compactHash(currentBackupOwner) },
+  ] : [
+    { label: t("connectedWallet"), value: connectedWallet ? compactHash(connectedWallet) : t("notConnected") },
+    { label: t("permissionsMetricAccount"), value: draftAccount ? compactHash(draftAccount) : "—" },
+    { label: t("permissionsHeroEyebrow"), value: hasInspected ? t("configured") : t("notInspected") },
+  ];
+
+  const drawer = (
+    <div className="perms-drawer">
+      <OpenUiPanel
+        className="perms-drawer__panel perms-drawer__panel--wide"
+        icon={<WalletCards size={16} />}
+        title={t("permissionsCommandTitle")}
+        subtitle={accountReady ? compactHash(draftAccount) : t("permissionsRouteStatusEmpty")}
+        titleId="perms-drawer-account"
+      >
+        <OpenUiTextField
+          className="perms-drawer__field"
+          label={t("accountId")}
+          value={draftAccount}
+          onChange={(e) => setDraftAccount(e.target.value)}
+          placeholder={t("accountIdHashPlaceholder")}
+          mono
+        />
+        {!connectedWallet && (
+          <button type="button" className="perms-drawer__connect mx2-btn mx2-btn--ghost" onClick={handleConnect}>
+            <WalletCards size={15} /> {t("connectWallet")}
+          </button>
+        )}
+      </OpenUiPanel>
+
+      <OpenUiNotice
+        className="perms-drawer__notice"
+        icon={<Timer size={16} />}
+        title={t("twoPhaseExplainer")}
+      />
+
+      <OpenUiPanel
+        className="perms-drawer__panel"
+        icon={<KeyRound size={16} />}
+        title={t("updateVerifier")}
+        subtitle={hasPendingVerifier && pendingVerifierUnlockAt ? pendingVerifierUnlockAt : t("permissionsRouteGuard")}
+        titleId="perms-drawer-verifier"
+      >
+        <OpenUiTextField
+          className="perms-drawer__field"
+          label={t("updateVerifier")}
+          value={draftVerifier}
+          onChange={(e) => setDraftVerifier(e.target.value)}
+          placeholder={t("verifierHashPlaceholder")}
+          mono
+        />
+        <div className="perms-drawer__row">
+          <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleProposeVerifier} disabled={!draftAccount || !draftVerifier}>{t("writeStagePropose")}</button>
+          {hasPendingVerifier && (<>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleConfirmVerifier}>{t("confirmUpdate")}</button>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleCancelVerifier}>{t("cancelUpdate")}</button>
+          </>)}
+        </div>
+        {hasPendingVerifier && pendingVerifierUnlockAt && <small>{pendingVerifierUnlockAt}</small>}
+      </OpenUiPanel>
+
+      <OpenUiPanel
+        className="perms-drawer__panel"
+        icon={<PlugZap size={16} />}
+        title={t("updateHook")}
+        subtitle={hasPendingHook && pendingHookUnlockAt ? pendingHookUnlockAt : t("permissionsRouteGuard")}
+        titleId="perms-drawer-hook"
+      >
+        <OpenUiTextField
+          className="perms-drawer__field"
+          label={t("updateHook")}
+          value={draftHook}
+          onChange={(e) => setDraftHook(e.target.value)}
+          placeholder={t("hookHashPlaceholder")}
+          mono
+        />
+        <div className="perms-drawer__row">
+          <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleProposeHook} disabled={!draftAccount || !draftHook}>{t("writeStagePropose")}</button>
+          {hasPendingHook && (<>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleConfirmHook}>{t("confirmUpdate")}</button>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleCancelHook}>{t("cancelUpdate")}</button>
+          </>)}
+        </div>
+        {hasPendingHook && pendingHookUnlockAt && <small>{pendingHookUnlockAt}</small>}
+      </OpenUiPanel>
+    </div>
+  );
+
+  return (
+    <div className="perms-play-area mx2 mx2-cat-tool">
+      <OpenUiProvider>
+        <PlayStage
+          category="tool"
+          stage={{ eyebrow: t("permissionsHeroEyebrow"), title: t("permissionsHeroTitle"), subtitle: t("permissionsHeroChip") }}
+          scene={scene}
+          score={readout}
+          actions={{
+            primary: { label: t("inspect"), onClick: handleRefresh, loading: busy, disabled: !accountReady },
+            secondary: connectedWallet ? undefined : [{ label: t("connectWallet"), onClick: handleConnect }],
+          }}
+          drawerToggleLabel={t("permissionsCommandTitle")}
+          drawer={{ title: t("permissionsCommandTitle"), children: drawer }}
+        />
+      </OpenUiProvider>
     </div>
   );
 }

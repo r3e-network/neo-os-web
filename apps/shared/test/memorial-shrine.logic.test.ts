@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 import { useMemorialShrine } from "../../memorial-shrine/src/composables/useMemorialShrine";
 
@@ -157,8 +158,14 @@ function createShrine(options: {
   const events = {
     emit: vi.fn(),
   };
+  // The composable now consumes the MiniApp framework; its arg builders and raw
+  // passthroughs are behavior-preserving, so every recorded chain call matches.
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-memorial-shrine" },
+  );
   const shrine = useMemorialShrine({
-    chainService: chain as never,
+    app: framework,
     launchNetwork: options.launchNetwork ?? "testnet",
     eventBus: events,
     t,

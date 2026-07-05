@@ -2,7 +2,7 @@
  * useNeoPayApp — Domain logic for the Neo Pay miniapp (streams / vesting).
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppNeoPay) via
- * ctx.services.chain. The earlier OS-proxy data layer routed deposits/streams
+ * the MiniApp framework SDK (ctx.framework). The earlier OS-proxy data layer routed deposits/streams
  * through the Morpheus Oracle FEE kernel — a GAS-only fee-credit contract with
  * no vesting/escrow primitive — so NEO could never work and there was no real
  * stream ledger. This composable now drives the dedicated contract, which fully
@@ -10,13 +10,13 @@
  *
  * Contract interaction model (verified against the deployed ABI):
  *
- *   READS (chain.read / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw / chain.readArray, default app contract script hash):
  *     getUserStreams(creator, offset, limit)            -> streamId[]
  *     getBeneficiaryStreams(beneficiary, offset, limit) -> streamId[]
  *     getStreamDetails(streamId)                        -> Map of fields
  *     totalStreams()                                    -> Integer
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT — a NEP-17 transfer to the contract, targeting the *asset*
  *        token (scriptHash override), with a memo that MUST start with the app
  *        id + ":" so OnNEP17Payment credits the depositor's prepaid balance:
@@ -42,7 +42,8 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
+import type { ChainService, ContractArg } from "@shared/services/ChainService";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -82,14 +83,26 @@ const assetHash = (asset: "NEO" | "GAS"): string =>
 // ============================================================================
 // toBaseUnits (amountToBaseUnits) comes from @shared/utils/amounts — GAS is
 // scaled ×1e8 without floats; NEO is the integer token count (never scaled).
+// Kept ad-hoc (NOT swapped for app.amount.gasToFixed8 / neoToUnits): the GAS
+// scaler here IS ×1e8, but toBaseUnits returns 0n on invalid/fractional input,
+// which the create flow relies on to raise its own t("invalidAmount") — the
+// framework helpers THROW a different (non-localized) message instead, so
+// swapping would change the observable error semantics.
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface UseNeoPayAppOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
+  /**
+   * Shared chain service from ctx.services.chain — retained ONLY for
+   * `readArray`, which parses a stack of items and has no framework equivalent
+   * (`app.chain.readRaw` routes through the scalar `chain.read` backend). Every
+   * other chain/arg/amount touchpoint goes through `app`.
+   */
+  chain: Pick<ChainService, "readArray">;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -126,7 +139,7 @@ const resolveAssetSymbol = (record: Record<string, unknown>): { asset: string; a
 };
 
 /**
- * Parse a getStreamDetails Map (returned by chain.read as a plain object) into a
+ * Parse a getStreamDetails Map (returned by app.chain.readRaw as a plain object) into a
  * typed StreamItem. Returns null for an empty / missing stream (no creator key).
  */
 const parseStreamDetails = (raw: unknown, id: string): StreamItem | null => {
@@ -180,7 +193,7 @@ const toIdString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
+export function useNeoPayApp({ app, chain, t }: UseNeoPayAppOptions) {
   // ── Reactive State ──────────────────────────────────────────────────────
   // isLoading drives the initial data load (list spinners), isRefreshing the
   // post-action re-reads, and isCreating ONLY the create flow — kept separate
@@ -225,11 +238,13 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
     const hash = addressToScriptHash(addr);
     if (!hash) return [];
 
+    // readArray has no framework equivalent; the framework arg builders produce
+    // the same {type,value} shape, so pass them through with a structural cast.
     const idsRaw = await chain.readArray(op, [
-      { type: "Hash160", value: hash },
-      { type: "Integer", value: "0" },
-      { type: "Integer", value: String(LIST_PAGE_LIMIT) },
-    ]);
+      app.chain.arg.hash160(hash),
+      app.chain.arg.integer(0),
+      app.chain.arg.integer(LIST_PAGE_LIMIT),
+    ] as ContractArg[]);
 
     const ids = (Array.isArray(idsRaw) ? idsRaw : [])
       .map(toIdString)
@@ -238,8 +253,8 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
     const items = await Promise.all(
       ids.map(async (id) => {
         try {
-          const raw = await chain.read("getStreamDetails", [
-            { type: "Integer", value: id },
+          const raw = await app.chain.readRaw("getStreamDetails", [
+            app.chain.arg.integer(id),
           ]);
           return parseStreamDetails(raw, id);
         } catch (e) {
@@ -265,7 +280,7 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
    */
   const refreshStreams = async () => {
     if (isRefreshing.get()) return;
-    const addr = chain.address.get() ?? "";
+    const addr = app.chain.address.get() ?? "";
     if (!addr) {
       createdStreams.set([]);
       beneficiaryStreams.set([]);
@@ -365,13 +380,13 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
       throw new Error(t("rateTooHigh"));
     }
 
-    const creatorAddr = chain.address.get() ?? "";
+    const creatorAddr = app.chain.address.get() ?? "";
     const creatorHash = addressToScriptHash(creatorAddr);
     if (!creatorAddr || !creatorHash) {
       throw new Error(t("walletNotConnected"));
     }
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) {
       throw new Error(t("contractMissing"));
     }
@@ -385,13 +400,13 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
       // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
       // The scriptHash override targets the token contract (not the app), and
       // the memo must start with the app id so OnNEP17Payment credits us.
-      await chain.invoke(
+      await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: creatorHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: totalAmount.toString() },
-          { type: "String", value: PAYMENT_MEMO },
+          app.chain.arg.hash160(creatorHash),
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(totalAmount),
+          app.chain.arg.string(PAYMENT_MEMO),
         ],
         { scriptHash: assetHash(asset) },
       );
@@ -400,17 +415,17 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
       // stream. If this fails, the credit stays on the contract under the
       // creator and the asset, recoverable by retrying create.
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "createStream",
           [
-            { type: "Hash160", value: creatorHash },
-            { type: "Hash160", value: beneficiaryHash },
-            { type: "Hash160", value: assetHash(asset) },
-            { type: "Integer", value: totalAmount.toString() },
-            { type: "Integer", value: rateAmount.toString() },
-            { type: "Integer", value: intervalSeconds.toString() },
-            { type: "String", value: title },
-            { type: "String", value: notes },
+            app.chain.arg.hash160(creatorHash),
+            app.chain.arg.hash160(beneficiaryHash),
+            app.chain.arg.hash160(assetHash(asset)),
+            app.chain.arg.integer(totalAmount),
+            app.chain.arg.integer(rateAmount),
+            app.chain.arg.integer(intervalSeconds),
+            app.chain.arg.string(title),
+            app.chain.arg.string(notes),
           ],
           { waitForEvent: "StreamCreated" },
         );
@@ -436,16 +451,17 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
   const claimStream = async (stream: StreamItem) => {
     if (claimingId.get()) return; // double-submit guard
 
-    const beneficiaryHash = addressToScriptHash(chain.address.get() ?? "");
+    const beneficiaryAddr = app.chain.address.get() ?? "";
+    const beneficiaryHash = addressToScriptHash(beneficiaryAddr);
     if (!beneficiaryHash) throw new Error(t("walletNotConnected"));
 
     try {
       claimingId.set(stream.id);
-      await chain.invoke(
+      await app.chain.invoke(
         "claimStream",
         [
-          { type: "Hash160", value: beneficiaryHash },
-          { type: "Integer", value: stream.id },
+          app.chain.arg.hash160(beneficiaryHash),
+          app.chain.arg.integer(stream.id),
         ],
         { waitForEvent: "StreamClaimed" },
       );
@@ -462,16 +478,17 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
   const cancelStream = async (stream: StreamItem) => {
     if (cancellingId.get()) return; // double-submit guard
 
-    const creatorHash = addressToScriptHash(chain.address.get() ?? "");
+    const creatorAddr = app.chain.address.get() ?? "";
+    const creatorHash = addressToScriptHash(creatorAddr);
     if (!creatorHash) throw new Error(t("walletNotConnected"));
 
     try {
       cancellingId.set(stream.id);
-      await chain.invoke(
+      await app.chain.invoke(
         "cancelStream",
         [
-          { type: "Hash160", value: creatorHash },
-          { type: "Integer", value: stream.id },
+          app.chain.arg.hash160(creatorHash),
+          app.chain.arg.integer(stream.id),
         ],
         { waitForEvent: "StreamCancelled" },
       );

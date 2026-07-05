@@ -18,8 +18,9 @@
  */
 
 import { createObservable } from "@shared/react/context";
+import type { MiniAppFramework } from "@shared/react";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
+import type { ContractArg } from "@shared/services/ChainService";
 import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 import {
   formatAddress,
@@ -90,8 +91,8 @@ const EMPTY_PROVIDER_STATS: ProviderStats = {
 };
 
 export interface UseFlashloanCoreOptions {
-  /** Shared chain service for contract reads and wallet invocations */
-  chainService: ChainService;
+  /** MiniApp framework SDK from ctx.framework (chain reads/invokes + arg builders) */
+  app: MiniAppFramework;
   /** OS BadgeProxy instance from ctx.os.badge */
   badgeService: BadgeProxy;
   /** Translation function */
@@ -101,7 +102,7 @@ export interface UseFlashloanCoreOptions {
 }
 
 export function useFlashloanCore({
-  chainService,
+  app,
   badgeService,
   t,
   network,
@@ -143,6 +144,12 @@ export function useFlashloanCore({
     return ((raw * BigInt(FLASH_FEE_BPS)) / 10_000n).toString();
   };
 
+  // GAS→base-unit scaling stays on parsePositiveFixed8 (NOT app.amount.gasToFixed8):
+  // it returns null on invalid/over-precision input, which the null-based
+  // validators (validateLoanRequest / validateLiquidityAmount) depend on to
+  // surface localized t(...) messages. The framework helper throws a different,
+  // non-localized message, so swapping would change the observable validation
+  // semantics. The scaler is ×1e8, identical to gasToFixed8.
   const parseGasAmountFixed8 = (amount: string): string | null =>
     parsePositiveFixed8(amount);
 
@@ -253,7 +260,7 @@ export function useFlashloanCore({
   };
 
   const loanArgs = (loanId: number): ContractArg[] => [
-    { type: "Integer", value: String(loanId) },
+    app.chain.arg.integer(loanId) as ContractArg,
   ];
 
   // -- Data loading (via FlashLoan contract) --------------------------------
@@ -296,7 +303,7 @@ export function useFlashloanCore({
     const entries = await Promise.all(
       ids.map(async (id) =>
         buildLoanDetails(
-          await chainService.read("getLoanDetails", loanArgs(id), {
+          await app.chain.readRaw("getLoanDetails", loanArgs(id), {
             cache: true,
             cacheTtlMs: 30_000,
           }),
@@ -322,7 +329,7 @@ export function useFlashloanCore({
 
   const loadLoanStats = async () => {
     const rawStats = asRecord(
-      await chainService.read("getPlatformStats", [], {
+      await app.chain.readRaw("getPlatformStats", [], {
         cache: true,
         cacheTtlMs: 30_000,
       }),
@@ -344,7 +351,7 @@ export function useFlashloanCore({
       return;
     }
     const raw = asRecord(
-      await chainService.read("getProviderStatsDetails", [{ type: "Hash160", value: providerHash }], {
+      await app.chain.readRaw("getProviderStatsDetails", [app.chain.arg.hash160(providerHash)], {
         cache: true,
         cacheTtlMs: 30_000,
       }),
@@ -390,7 +397,7 @@ export function useFlashloanCore({
     isLoading.set(true);
 
     try {
-      const parsed = await chainService.read("getLoanDetails", loanArgs(loanId));
+      const parsed = await app.chain.readRaw("getLoanDetails", loanArgs(loanId));
       const details = buildLoanDetails(parsed, loanId);
       if (!details) {
         loanDetails.set(null);
@@ -418,20 +425,25 @@ export function useFlashloanCore({
     isLoading.set(true);
 
     try {
-      const borrower = await chainService.ensureWallet();
+      const borrower = await app.chain.ensureWallet();
       const callbackContract = normalizeHash160Input(data.callbackContract);
       const amountFixed8 = parseGasAmountFixed8(data.amount);
       if (!amountFixed8) throw new Error(t("invalidLoanAmount"));
       const feeFixed8 = estimateFeeFixed8(data.amount);
       address.set(borrower);
 
-      const result: TxResult = await chainService.invoke(
+      // borrower comes straight from ensureWallet() and is passed as a Hash160
+      // value without conversion (unlike callbackContract, which is normalized
+      // via normalizeHash160Input); keep it raw so the on-chain value is byte-
+      // identical. callbackContract is already a normalized script hash, so the
+      // arg builder returns it unchanged.
+      const result = await app.chain.invoke(
         "requestLoan",
         [
           { type: "Hash160", value: borrower },
-          { type: "Integer", value: amountFixed8 },
-          { type: "Hash160", value: callbackContract },
-          { type: "String", value: CALLBACK_METHOD },
+          app.chain.arg.integer(amountFixed8),
+          app.chain.arg.hash160(callbackContract),
+          app.chain.arg.string(CALLBACK_METHOD),
         ],
         { waitForEvent: "LoanExecuted", waitTimeoutMs: 30_000 },
       );
@@ -475,35 +487,35 @@ export function useFlashloanCore({
 
     isLoading.set(true);
     try {
-      const provider = await chainService.ensureWallet();
+      const provider = await app.chain.ensureWallet();
       address.set(provider);
       const amountFixed8 = parseGasAmountFixed8(amount);
       if (!amountFixed8) throw new Error(t("invalidLiquidityAmount"));
 
-      let result: TxResult;
+      let result: Awaited<ReturnType<typeof app.chain.invoke>>;
       if (isMainnet) {
         const normalizedReceiptId = String(receiptId ?? "").trim();
         if (!/^[1-9]\d*$/.test(normalizedReceiptId)) {
           throw new Error(t("receiptIdRequired"));
         }
-        result = await chainService.invoke(
+        result = await app.chain.invoke(
           "deposit",
           [
             { type: "Hash160", value: provider },
-            { type: "Integer", value: amountFixed8 },
-            { type: "Integer", value: normalizedReceiptId },
+            app.chain.arg.integer(amountFixed8),
+            app.chain.arg.integer(normalizedReceiptId),
           ],
           { waitForEvent: "LiquidityDeposited", waitTimeoutMs: 30_000 },
         );
       } else {
-        result = await chainService.invokeWithPayment(
+        result = await app.chain.invokeWithPayment(
           amountFixed8,
           DEPOSIT_MEMO,
           "deposit",
           [
             { type: "Hash160", value: provider },
-            { type: "Integer", value: amountFixed8 },
-            { type: "Integer", value: "0" },
+            app.chain.arg.integer(amountFixed8),
+            app.chain.arg.integer("0"),
           ],
           { waitForEvent: "LiquidityDeposited", waitTimeoutMs: 30_000 },
         );
@@ -530,16 +542,16 @@ export function useFlashloanCore({
 
     isLoading.set(true);
     try {
-      const provider = await chainService.ensureWallet();
+      const provider = await app.chain.ensureWallet();
       address.set(provider);
       const amountFixed8 = parseGasAmountFixed8(amount);
       if (!amountFixed8) throw new Error(t("invalidLiquidityAmount"));
 
-      const result: TxResult = await chainService.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
         [
           { type: "Hash160", value: provider },
-          { type: "Integer", value: amountFixed8 },
+          app.chain.arg.integer(amountFixed8),
         ],
         { waitForEvent: "LiquidityWithdrawn", waitTimeoutMs: 30_000 },
       );
@@ -567,7 +579,7 @@ export function useFlashloanCore({
 
     // Methods
     connect: async () => {
-      const connected = await chainService.ensureWallet();
+      const connected = await app.chain.ensureWallet();
       address.set(connected);
       return connected;
     },

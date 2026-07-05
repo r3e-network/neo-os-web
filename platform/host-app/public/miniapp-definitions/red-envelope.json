@@ -18,8 +18,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-redenvelope",
   "media": {
-    "icon": "/miniapp-assets/red-envelope/logo.jpg",
-    "banner": "/miniapp-assets/red-envelope/banner.jpg"
+    "icon": "/miniapp-assets/red-envelope/logo.webp",
+    "banner": "/miniapp-assets/red-envelope/banner.webp"
   },
   "permissions": {
     "payments": true

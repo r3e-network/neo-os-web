@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 import { addressToScriptHash } from "../utils/neo";
 import { useEventTicket } from "../../event-ticket-pass/src/composables/useEventTicket";
@@ -164,7 +165,11 @@ function setup(initial?: Partial<ChainState>) {
 
   const eventBus = { emit: vi.fn() };
 
-  const ticket = useEventTicket({ chain, eventBus, t });
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-event-ticket-pass" },
+  );
+  const ticket = useEventTicket({ app, eventBus, t });
   ticket.address.set(OWNER);
 
   return { ticket, chain, invoke, read, eventBus, chainState };

@@ -115,6 +115,7 @@ const appMessages = {
     zh: "账户、新 owner、过期窗口和可选 verifier override 有效前，恢复链接会保持禁用。",
   },
   guardianPrepareTitle: { en: "Prepare Recovery", zh: "准备恢复" },
+  guardianPrepareShort: { en: "Prepare", zh: "准备" },
   guardianDraftLabel: { en: "Draft Account", zh: "草稿账户" },
   guardianPassTitle: { en: "Recovery pass", zh: "恢复 Pass" },
   guardianPassLocked: { en: "Read state first", zh: "先读取状态" },
@@ -201,8 +202,8 @@ const appMessages = {
     zh: "打开恢复凭证",
   },
   copyRecoveryCredential: {
-    en: "Copy Recovery Credential Link",
-    zh: "复制恢复凭证链接",
+    en: "Copy Credential",
+    zh: "复制凭证",
   },
   shareRecoveryCredential: {
     en: "Share Recovery Credential Link",

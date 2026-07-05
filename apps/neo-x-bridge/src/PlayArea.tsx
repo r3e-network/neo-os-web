@@ -1,1272 +1,262 @@
-import {
-  ArrowLeftRight,
-  ArrowRight,
-  CheckCircle2,
-  CircleDashed,
-  Clock3,
-  Copy,
-  ExternalLink,
-  FileJson,
-  Landmark,
-  PackageCheck,
-  ShieldCheck,
-  WalletCards,
-} from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+/** PlayArea.tsx - Neo X Bridge (v2) - Bridge portal scene */
+import { type ReactNode, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
-import {
-  BRIDGE_RESOURCES,
-  compactHash,
-  sourceExplorerUrl,
-  type BridgeEnvironment,
-  type BridgeOperation,
-  type TimelineStep,
-} from "./bridgeConsole";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
+import { ArrowRight, CheckCircle2, PackageCheck, RadioTower, ShieldCheck } from "lucide-react";
 import "./PlayArea.scss";
 
-const EMPTY_OPERATIONS: BridgeOperation[] = [];
-const EMPTY_TIMELINE: TimelineStep[] = [];
-const GAS_PRESETS = ["0.1", "1", "5"];
-
-type WorkspaceMode = "asset" | "message" | "track";
-type DirectionValue = "n3-to-neox" | "neox-to-n3";
-type BridgeKindValue = "asset" | "message";
-
-const DIRECTION_OPTIONS: Array<{
-  value: DirectionValue;
-  sourceKey: string;
-  targetKey: string;
-  hintKey: string;
-}> = [
-  {
-    value: "n3-to-neox",
-    sourceKey: "routeNeoN3",
-    targetKey: "neoX",
-    hintKey: "routeN3ToNeoXHint",
-  },
-  {
-    value: "neox-to-n3",
-    sourceKey: "neoX",
-    targetKey: "routeNeoN3",
-    hintKey: "routeNeoXToN3Hint",
-  },
-];
-
-const TRACK_KIND_OPTIONS: Array<{
-  value: BridgeKindValue;
-  labelKey: string;
-  hintKey: string;
-}> = [
-  { value: "asset", labelKey: "assetBridge", hintKey: "trackAssetHint" },
-  { value: "message", labelKey: "messageBridge", hintKey: "trackMessageHint" },
-];
-
-const STRICT_DECIMAL = /^\d+(\.\d+)?$/;
-const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-const NEO_N3_ADDRESS = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
-const HASH256 = /^0x[0-9a-fA-F]{64}$/;
-/** Em-dash placeholder used fleet-wide for empty preview values. */
-const EM_DASH = "—";
-
-/** Map a bridge kind enum to its short localized label. */
-function kindLabel(t: PlayAreaProps["t"], kind: string): string {
-  return kind === "message" ? t("messageBridge") : t("assetBridge");
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-function isPositiveAmount(value: string) {
-  const text = value.trim();
-  if (!STRICT_DECIMAL.test(text)) return false;
-  const amount = Number(text);
-  return Number.isFinite(amount) && amount > 0;
+interface BridgeTimelineStep {
+  label?: string;
+  labelKey?: string;
+  detail?: string;
+  detailKey?: string;
+  detailParams?: Record<string, string>;
+  state?: "done" | "active" | "waiting";
 }
 
-function parseGasLimit(value: string): number | null {
-  const text = value.trim();
-  if (!/^\d+$/.test(text)) return null;
-  const limit = Number(text);
-  return Number.isInteger(limit) ? limit : null;
+type BridgeMode = "asset" | "message" | "track";
+type DrawerMode = "summary" | "timeline" | "resources";
+
+function compact(value: string): string {
+  const v = String(value || "").trim();
+  if (!v || v === "-") return "-";
+  return v.length > 18 ? `${v.slice(0, 8)}...${v.slice(-6)}` : v;
 }
 
-/** Target chain of a direction: Neo X (EVM) for n3-to-neox, Neo N3 otherwise. */
-function targetChain(direction: DirectionValue): "neo-x" | "neo-n3" {
-  return direction === "neox-to-n3" ? "neo-n3" : "neo-x";
-}
-
-/** Address must match the target chain of the selected direction. */
-function isValidTargetAddress(direction: DirectionValue, value: string) {
-  const text = value.trim();
-  return targetChain(direction) === "neo-x"
-    ? EVM_ADDRESS.test(text)
-    : NEO_N3_ADDRESS.test(text);
-}
-
-/** Locale key for the direction-specific wrong-chain address error. */
-function addressErrorKey(direction: DirectionValue) {
-  return targetChain(direction) === "neo-x"
-    ? "errAddressNeoX"
-    : "errAddressNeoN3";
-}
-
-function normalizeWorkspaceDirection(value: unknown): DirectionValue {
-  const text = String(value ?? "").toLowerCase();
-  return text === "neox-to-n3" ||
-    text === "neo x -> neo n3" ||
-    text === "neo x \u2192 neo n3"
-    ? "neox-to-n3"
-    : "n3-to-neox";
-}
-
-export default function PlayArea({
-  t,
-  state,
-  services,
-  dispatch,
-  setStatus,
-  launchContext,
-}: PlayAreaProps) {
-  const { str, val } = useStateBindings(state);
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, num, val } = useStateBindings(state);
+  const [bridgeMode, setBridgeMode] = useState<BridgeMode>("asset");
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("summary");
+  const networkLabel = str("networkLabel", "Neo N3 / Neo X");
+  const endpointLabel = str("endpointLabel", "AxLabs / BaneLabs");
+  const bridgeEnvironment = str("bridgeEnvironment", "mainnet");
+  const bridgeAppUrl = str("bridgeAppUrl", "");
+  const lastStatus = str("lastStatus", t("statusReady"));
   const lastRoute = str("lastRoute", "Neo N3 -> Neo X");
   const lastKind = str("lastKind", "asset");
-  // Active bridge environment + the official-bridge URL (network-derived), so the
-  // required "Open official bridge" next step and the source-tx explorer link
-  // target mainnet/testnet correctly rather than a hardcoded testnet literal.
-  const bridgeEnvironment = str(
-    "bridgeEnvironment",
-    "mainnet",
-  ) as BridgeEnvironment;
-  const officialBridgeUrl = str(
-    "bridgeAppUrl",
-    BRIDGE_RESOURCES.bridgeAppMainnet,
-  );
-  const rawDigest = str("lastDigest", "—");
-  const notAvailableLabel = t("notAvailable");
-  const lastDigest =
-    rawDigest && rawDigest !== notAvailableLabel && rawDigest !== "N/A"
-      ? rawDigest
-      : "—";
-  // The digest only becomes meaningful once a handoff is prepared; before then
-  // it is a lone "—" that leaves the top summary strip half-empty, so keep the
-  // strip to its three live facts (route / type / status) and surface DIGEST
-  // only after a real digest exists.
-  const hasDigest = lastDigest !== "—";
-  const lastStatus = str("lastStatus", t("statusReady"));
-  const payload = str("lastPayload", t("emptyPayload"));
-  const operations =
-    val<BridgeOperation[]>("operationsLog", EMPTY_OPERATIONS) ??
-    EMPTY_OPERATIONS;
-  const timeline =
-    val<TimelineStep[]>("timeline", EMPTY_TIMELINE) ?? EMPTY_TIMELINE;
-
-  const activeOperation = operations[0] ?? null;
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("asset");
-  const [assetDirection, setAssetDirection] =
-    useState<DirectionValue>("n3-to-neox");
-  const [assetAmount, setAssetAmount] = useState("");
-  const [assetRecipient, setAssetRecipient] = useState("");
-  const [messageDirection, setMessageDirection] =
-    useState<DirectionValue>("n3-to-neox");
-  const [targetContract, setTargetContract] = useState("");
-  const [targetMethod, setTargetMethod] = useState("onCrossChainMessage");
-  const [messagePayload, setMessagePayload] = useState("");
-  const [messagePayloadTouched, setMessagePayloadTouched] = useState(false);
-  const [gasLimit, setGasLimit] = useState("250000");
-  const [trackKind, setTrackKind] = useState<BridgeKindValue>("asset");
-  const [trackDirection, setTrackDirection] =
-    useState<DirectionValue>("n3-to-neox");
-  const [operationId, setOperationId] = useState("");
-  const [sourceTx, setSourceTx] = useState("");
-  const [pendingMode, setPendingMode] = useState<WorkspaceMode | null>(null);
-  const [actionNotice, setActionNotice] = useState("");
-  const [actionError, setActionError] = useState("");
-  const handledLaunchRef = useRef("");
-
-  const assetAmountInvalid =
-    assetAmount.trim().length > 0 && !isPositiveAmount(assetAmount);
-  const assetRecipientInvalid =
-    assetRecipient.trim().length > 0 &&
-    !isValidTargetAddress(assetDirection, assetRecipient);
-  const parsedGasLimit = parseGasLimit(gasLimit);
-  const gasLimitInvalid =
-    gasLimit.trim().length > 0 &&
-    (parsedGasLimit === null || parsedGasLimit < 21000);
-  const targetContractInvalid =
-    targetContract.trim().length > 0 &&
-    !isValidTargetAddress(messageDirection, targetContract);
-  const messagePayloadInvalid =
-    messagePayloadTouched && messagePayload.trim().length === 0;
-  // The operation panel declares sourceTx as hash256; validate it so a typo'd
-  // hash cannot flip the timeline's first steps to done/active.
-  const sourceTxInvalid =
-    sourceTx.trim().length > 0 && !HASH256.test(sourceTx.trim());
-  const canPrepareAsset =
-    isPositiveAmount(assetAmount) &&
-    isValidTargetAddress(assetDirection, assetRecipient);
-  const canPrepareMessage =
-    isValidTargetAddress(messageDirection, targetContract) &&
-    messagePayload.trim().length > 0 &&
-    parsedGasLimit !== null &&
-    parsedGasLimit >= 21000;
-  const canTrack =
-    (operationId.trim().length > 0 || sourceTx.trim().length > 0) &&
-    !sourceTxInvalid;
-  const workspaceStageDirection =
-    workspaceMode === "message"
-      ? messageDirection
-      : workspaceMode === "track"
-        ? trackDirection
-        : assetDirection;
-  const workspaceStageKind =
-    workspaceMode === "message"
-      ? "message"
-      : workspaceMode === "track"
-        ? trackKind
-        : "asset";
-  const workspaceStageReady =
-    workspaceMode === "asset"
-      ? canPrepareAsset
-      : workspaceMode === "message"
-        ? canPrepareMessage
-        : canTrack;
-  const workspaceStageActive =
-    pendingMode === workspaceMode || workspaceStageReady;
-  const workspaceStageDetail =
-    workspaceMode === "asset"
-      ? isPositiveAmount(assetAmount)
-        ? `${assetAmount} GAS`
-        : t("assetBridge")
-      : workspaceMode === "message"
-        ? messagePayload.trim()
-          ? t("previewReady")
-          : t("messageBridge")
-        : sourceTx.trim()
-          ? compactHash(sourceTx)
-          : operationId.trim() || kindLabel(t, trackKind);
-  const workspaceStageDestination =
-    workspaceMode === "asset"
-      ? assetRecipient.trim() || t("destinationAddress")
-      : workspaceMode === "message"
-        ? targetContract.trim() || t("targetContract")
-        : sourceTx.trim()
-          ? t("previewSourceTx")
-          : t("operationId");
-  const workspaceStageStatus =
-    pendingMode === workspaceMode
-      ? t("bridgeStagePreparing")
-      : workspaceStageReady
-        ? t("bridgeStageReady")
-        : t("bridgeStageWaiting");
-
-  const runWorkspaceAction = useCallback(
-    async (
-      mode: WorkspaceMode,
-      action: () => Promise<void>,
-      doneMessage: string,
-    ) => {
-      setPendingMode(mode);
-      setActionError("");
-      setActionNotice("");
-      try {
-        await action();
-        setActionNotice(doneMessage);
-        setStatus(doneMessage, "success");
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : t("errBridgeGeneric");
-        setActionError(message);
-        setStatus(message, "error");
-      } finally {
-        setPendingMode(null);
-      }
-    },
-    [setStatus, t],
-  );
-
-  useEffect(() => {
-    const operation = String(launchContext?.operation || "");
-    const params = launchContext?.params ?? {};
-    const signature = `${operation}:${launchContext?.signature || ""}`;
-    if (!operation || handledLaunchRef.current === signature) return;
-
-    const direction = normalizeWorkspaceDirection(
-      params.direction || params.route,
-    );
-    if (/bridgeAsset|assetBridge|prepareAssetBridge/i.test(operation)) {
-      const nextAmount = String(params.amount || "").trim();
-      const nextRecipient = String(
-        params.recipient || params.to || params.address || "",
-      ).trim();
-      setWorkspaceMode("asset");
-      setAssetDirection(direction);
-      setAssetAmount(nextAmount);
-      setAssetRecipient(nextRecipient);
-      if (
-        isPositiveAmount(nextAmount) &&
-        isValidTargetAddress(direction, nextRecipient)
-      ) {
-        handledLaunchRef.current = signature;
-        void runWorkspaceAction(
-          "asset",
-          () =>
-            dispatch("prepareAssetBridge", {
-              direction,
-              asset: "GAS",
-              amount: nextAmount,
-              recipient: nextRecipient,
-            }),
-          t("noticeAssetReady"),
-        );
-      }
-      return;
-    }
-
-    if (/messageBridge|bridgeMessage|prepareMessageBridge/i.test(operation)) {
-      const nextTarget = String(
-        params.targetContract || params.contract || params.to || "",
-      ).trim();
-      const nextPayload = String(params.payload || params.message || "").trim();
-      const nextMethod = String(params.method || "onCrossChainMessage").trim();
-      const nextGasLimit = String(params.gasLimit || "250000").trim();
-      setWorkspaceMode("message");
-      setMessageDirection(direction);
-      setTargetContract(nextTarget);
-      setTargetMethod(nextMethod || "onCrossChainMessage");
-      setMessagePayload(nextPayload);
-      setGasLimit(nextGasLimit);
-      const nextGasParsed = parseGasLimit(nextGasLimit);
-      if (
-        isValidTargetAddress(direction, nextTarget) &&
-        nextPayload &&
-        nextGasParsed !== null &&
-        nextGasParsed >= 21000
-      ) {
-        handledLaunchRef.current = signature;
-        void runWorkspaceAction(
-          "message",
-          () =>
-            dispatch("prepareMessageBridge", {
-              direction,
-              targetContract: nextTarget,
-              method: nextMethod || "onCrossChainMessage",
-              payload: nextPayload,
-              gasLimit: nextGasLimit,
-            }),
-          t("noticeMessageReady"),
-        );
-      }
-      return;
-    }
-
-    if (/trackBridgeOperation/i.test(operation)) {
-      const nextKind =
-        String(params.bridgeKind || params.kind || "asset") === "message"
-          ? "message"
-          : "asset";
-      const nextOperationId = String(
-        params.operationId || params.id || "",
-      ).trim();
-      const nextSourceTx = String(
-        params.sourceTx || params.txHash || "",
-      ).trim();
-      setWorkspaceMode("track");
-      setTrackKind(nextKind);
-      setTrackDirection(direction);
-      setOperationId(nextOperationId);
-      setSourceTx(nextSourceTx);
-      if (nextOperationId || nextSourceTx) {
-        handledLaunchRef.current = signature;
-        void runWorkspaceAction(
-          "track",
-          () =>
-            dispatch("trackBridgeOperation", {
-              bridgeKind: nextKind,
-              direction,
-              operationId: nextOperationId,
-              sourceTx: nextSourceTx,
-            }),
-          t("noticeTrackingReady"),
-        );
-      }
-    }
-  }, [
-    dispatch,
-    runWorkspaceAction,
-    t,
-    launchContext?.operation,
-    launchContext?.params,
-    launchContext?.signature,
-  ]);
-
-  async function copyPayload() {
-    await services.clipboard.copy(payload, "copiedPayload");
-  }
-
-  async function prepareAssetBridge() {
-    if (!canPrepareAsset) {
-      const message = t("errAssetForm");
-      setActionError(message);
-      setStatus(message, "error");
-      return;
-    }
-    await runWorkspaceAction(
-      "asset",
-      () =>
-        dispatch("prepareAssetBridge", {
-          direction: assetDirection,
-          asset: "GAS",
-          amount: assetAmount,
-          recipient: assetRecipient,
-        }),
-      t("noticeAssetReady"),
-    );
-  }
-
-  async function prepareMessageBridge() {
-    if (!canPrepareMessage) {
-      setMessagePayloadTouched(true);
-      const message = t("errMessageForm");
-      setActionError(message);
-      setStatus(message, "error");
-      return;
-    }
-    await runWorkspaceAction(
-      "message",
-      () =>
-        dispatch("prepareMessageBridge", {
-          direction: messageDirection,
-          targetContract,
-          method: targetMethod || "onCrossChainMessage",
-          payload: messagePayload,
-          gasLimit,
-        }),
-      t("noticeMessageReady"),
-    );
-  }
-
-  async function refreshTracking() {
-    if (!canTrack) {
-      const message = t("errTrackForm");
-      setActionError(message);
-      setStatus(message, "error");
-      return;
-    }
-    await runWorkspaceAction(
-      "track",
-      () =>
-        dispatch("trackBridgeOperation", {
-          bridgeKind: trackKind,
-          direction: trackDirection,
-          operationId,
-          sourceTx,
-        }),
-      t("noticeTrackingReady"),
-    );
-  }
-
-  return (
-    <div className="neo-x-bridge-play-area">
-      <section className="bridge-console-hero" aria-label={t("heroAria")}>
-        <div className="bridge-hero-copy">
-          <span className="bridge-hero-badge" aria-hidden="true">
-            <ArrowLeftRight size={22} />
-          </span>
-          <span className="bridge-eyebrow">{t("heroEyebrow")}</span>
-          <h2>{t("heroTitle")}</h2>
-          <p>{t("heroBody")}</p>
-          <p className="bridge-hero-disclaimer" role="note">
-            {t("heroNoFunds")}
-          </p>
-        </div>
-        <figure className="bridge-hero-visual">
-          <picture>
-            <img
-              src="./bridge-route.jpg"
-              alt={t("bridgeHeroImageAlt")}
-              loading="eager"
-              decoding="sync"
-            />
-          </picture>
-          <figcaption className="bridge-route-card" aria-label={t("routeAria")}>
-            <span className="bridge-route-card__title">
-              {t("routeCardTitle")}
-            </span>
-            <div className="bridge-route-card__flow">
-              <div className="route-node">
-                <span className="route-node__role">{t("routeSendLabel")}</span>
-                <span className="route-node__chain">Neo N3</span>
-                <small>{t("routeN3Wallet")}</small>
-              </div>
-              <ArrowLeftRight size={20} aria-label={t("routeArrowAria")} />
-              <div className="route-node">
-                <span className="route-node__role">
-                  {t("routeReceiveLabel")}
-                </span>
-                <span className="route-node__chain">{t("neoX")}</span>
-                <small>{t("routeNeoXWallet")}</small>
-              </div>
-            </div>
-          </figcaption>
-        </figure>
-      </section>
-
-      <div className="bridge-metrics-strip" aria-label={t("metricsAria")}>
-        <span className="strip-metric">
-          <small>{t("metricRoute")}</small>
-          <strong>{lastRoute}</strong>
-        </span>
-        <span className="strip-metric">
-          <small>{t("bridgeKind")}</small>
-          <strong>{kindLabel(t, lastKind)}</strong>
-        </span>
-        <span className="strip-metric">
-          <small>{t("metricStatus")}</small>
-          <strong>{lastStatus}</strong>
-        </span>
-        {hasDigest && (
-          <span className="strip-metric">
-            <small>{t("statDigest")}</small>
-            <strong className="strip-metric--mono">
-              {compactHash(lastDigest)}
-            </strong>
-          </span>
-        )}
-      </div>
-
-      <NeoCard variant="erobo" className="bridge-action-card">
-        <div className="bridge-action-head">
-          <div>
-            <span className="module-kicker">{t("workspaceKicker")}</span>
-            <h3>{t("workspaceTitle")}</h3>
-          </div>
-          <div
-            className="bridge-mode-tabs"
-            role="tablist"
-            aria-label={t("workspaceModeAria")}
-          >
-            {(
-              [
-                ["asset", "tabAsset"],
-                ["message", "tabMessage"],
-                ["track", "tabTrack"],
-              ] as const
-            ).map(([mode, labelKey]) => (
-              <button
-                key={mode}
-                type="button"
-                role="tab"
-                aria-selected={workspaceMode === mode}
-                className={`bridge-mode-tab${
-                  workspaceMode === mode ? " bridge-mode-tab--active" : ""
-                }`}
-                onClick={() => setWorkspaceMode(mode as WorkspaceMode)}
-              >
-                {t(labelKey)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <BridgeRouteStage
-          t={t}
-          direction={workspaceStageDirection}
-          kind={workspaceStageKind}
-          mode={workspaceMode}
-          detail={workspaceStageDetail}
-          destination={workspaceStageDestination}
-          status={workspaceStageStatus}
-          active={workspaceStageActive}
-          pending={pendingMode === workspaceMode}
-        />
-
-        {workspaceMode === "asset" && (
-          <div className="bridge-form-grid">
-            <BridgeRouteChooser
-              t={t}
-              value={assetDirection}
-              onChange={setAssetDirection}
-            />
-            <div className="bridge-ticket bridge-field-wide">
-              <div className="bridge-ticket-copy">
-                <span className="bridge-ticket-icon" aria-hidden="true">
-                  <WalletCards size={18} />
-                </span>
-                <span className="bridge-eyebrow">
-                  {t("assetTicketEyebrow")}
-                </span>
-                <strong>
-                  {t("assetTicketTitle", {
-                    route: bridgeRouteLabel(t, assetDirection),
-                  })}
-                </strong>
-                <small>{t("assetFixedNote")}</small>
-              </div>
-              <div className="bridge-ticket-amount">
-                <NeoInput
-                  type="number"
-                  label={t("amount")}
-                  placeholder="0.1"
-                  suffix="GAS"
-                  value={assetAmount}
-                  error={assetAmountInvalid ? t("errAmountPositive") : ""}
-                  onChange={setAssetAmount}
-                />
-                <div
-                  className="bridge-amount-presets"
-                  aria-label={t("amountPresetsAria")}
-                >
-                  {GAS_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      className={`bridge-preset${
-                        assetAmount === preset ? " bridge-preset--active" : ""
-                      }`}
-                      onClick={() => setAssetAmount(preset)}
-                    >
-                      {preset} GAS
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <NeoInput
-              label={t("destinationAddress")}
-              placeholder={t("destinationPlaceholder")}
-              value={assetRecipient}
-              error={
-                assetRecipientInvalid ? t(addressErrorKey(assetDirection)) : ""
-              }
-              onChange={setAssetRecipient}
-              className="bridge-field-wide"
-            />
-            <BridgeHandoffRail
-              t={t}
-              direction={assetDirection}
-              amount={
-                isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : EM_DASH
-              }
-              recipient={assetRecipient || EM_DASH}
-            />
-            <BridgeActionPreview
-              items={[
-                [t("previewRoute"), bridgeRouteLabel(t, assetDirection)],
-                [
-                  t("previewAmount"),
-                  isPositiveAmount(assetAmount)
-                    ? `${assetAmount} GAS`
-                    : EM_DASH,
-                ],
-                [t("previewRecipient"), assetRecipient || EM_DASH],
-              ]}
-            />
-            <BridgeCostsPanel t={t} />
-            <NeoButton
-              variant="primary"
-              size="lg"
-              disabled={!canPrepareAsset || pendingMode === "asset"}
-              loading={pendingMode === "asset"}
-              onClick={prepareAssetBridge}
-            >
-              {t("btnPrepareAsset")}
-            </NeoButton>
-            {!canPrepareAsset && (
-              <p className="bridge-gate-hint" role="note">
-                {t("hintAssetGate")}
-              </p>
-            )}
-          </div>
-        )}
-
-        {workspaceMode === "message" && (
-          <div className="bridge-form-grid">
-            <BridgeRouteChooser
-              t={t}
-              value={messageDirection}
-              onChange={setMessageDirection}
-            />
-            <div className="bridge-message-intent bridge-field-wide">
-              <span className="bridge-ticket-icon" aria-hidden="true">
-                <FileJson size={18} />
-              </span>
-              <div>
-                <span className="bridge-eyebrow">
-                  {t("messageIntentEyebrow")}
-                </span>
-                <strong>{t("messageIntentTitle")}</strong>
-                <small>{t("messageIntentBody")}</small>
-              </div>
-            </div>
-            <NeoInput
-              label={t("targetContract")}
-              placeholder={t("targetContractPlaceholder")}
-              value={targetContract}
-              error={
-                targetContractInvalid
-                  ? t(addressErrorKey(messageDirection))
-                  : ""
-              }
-              onChange={setTargetContract}
-            />
-            <NeoInput
-              label={t("targetMethod")}
-              placeholder="onCrossChainMessage"
-              value={targetMethod}
-              onChange={setTargetMethod}
-            />
-            <NeoInput
-              type="number"
-              label={t("gasLimit")}
-              placeholder="250000"
-              value={gasLimit}
-              error={gasLimitInvalid ? t("errGasLimit") : ""}
-              onChange={setGasLimit}
-            />
-            <NeoInput
-              type="textarea"
-              label={t("messagePayload")}
-              placeholder='{"type":"signal","value":"..."}'
-              value={messagePayload}
-              error={messagePayloadInvalid ? t("messagePayloadRequired") : ""}
-              onChange={(value) => {
-                setMessagePayloadTouched(true);
-                setMessagePayload(value);
-              }}
-              onBlur={() => setMessagePayloadTouched(true)}
-              className="bridge-field-wide"
-            />
-            <BridgeHandoffRail
-              t={t}
-              direction={messageDirection}
-              amount={messagePayload ? t("previewReady") : EM_DASH}
-              recipient={targetContract || EM_DASH}
-            />
-            <BridgeActionPreview
-              items={[
-                [t("previewRoute"), bridgeRouteLabel(t, messageDirection)],
-                [t("previewTarget"), targetContract || EM_DASH],
-                [
-                  t("previewPayload"),
-                  messagePayload ? t("previewReady") : EM_DASH,
-                ],
-              ]}
-            />
-            <NeoButton
-              variant="primary"
-              size="lg"
-              disabled={!canPrepareMessage || pendingMode === "message"}
-              loading={pendingMode === "message"}
-              onClick={prepareMessageBridge}
-            >
-              {t("btnPrepareMessage")}
-            </NeoButton>
-            {!canPrepareMessage && (
-              <p className="bridge-gate-hint" role="note">
-                {t("hintMessageGate")}
-              </p>
-            )}
-          </div>
-        )}
-
-        {workspaceMode === "track" && (
-          <div className="bridge-form-grid">
-            <BridgeKindChooser
-              t={t}
-              value={trackKind}
-              onChange={setTrackKind}
-            />
-            <BridgeRouteChooser
-              t={t}
-              value={trackDirection}
-              onChange={setTrackDirection}
-            />
-            <NeoInput
-              label={t("operationId")}
-              placeholder="N3X-ASSET-..."
-              value={operationId}
-              onChange={setOperationId}
-            />
-            <NeoInput
-              label={t("sourceTx")}
-              placeholder="0x..."
-              value={sourceTx}
-              error={sourceTxInvalid ? t("errSourceTx") : ""}
-              onChange={setSourceTx}
-            />
-            <BridgeActionPreview
-              items={[
-                [
-                  t("previewBridge"),
-                  trackKind === "message"
-                    ? t("messageBridge")
-                    : t("assetBridge"),
-                ],
-                [t("previewRoute"), bridgeRouteLabel(t, trackDirection)],
-                [
-                  t("previewSourceTx"),
-                  sourceTx ? compactHash(sourceTx) : EM_DASH,
-                ],
-              ]}
-            />
-            <NeoButton
-              variant="secondary"
-              size="lg"
-              disabled={!canTrack || pendingMode === "track"}
-              loading={pendingMode === "track"}
-              onClick={refreshTracking}
-            >
-              {t("btnRefreshTracking")}
-            </NeoButton>
-            {!canTrack && (
-              <p className="bridge-gate-hint" role="note">
-                {t("hintTrackGate")}
-              </p>
-            )}
-          </div>
-        )}
-
-        {(actionNotice || actionError) && (
-          <div
-            className={`bridge-action-feedback${
-              actionError ? " bridge-action-feedback--error" : ""
-            }`}
-            role="status"
-          >
-            {actionError || actionNotice}
-          </div>
-        )}
-      </NeoCard>
-
-      {activeOperation && (
-        <div className="bridge-output-grid">
-          <NeoCard
-            variant="erobo"
-            title={t("outputTitle")}
-            className="bridge-output-card"
-            header={
-              <NeoButton
-                size="sm"
-                variant="ghost"
-                aria-label={t("copyAria")}
-                onClick={copyPayload}
-              >
-                <Copy size={15} aria-hidden="true" />
-                {t("copyLabel")}
-              </NeoButton>
-            }
-          >
-            <div className="operation-summary">
-              <span>{activeOperation.id}</span>
-              <strong>{activeOperation.title}</strong>
-            </div>
-            <pre className="payload-preview">{payload}</pre>
-            <div className="bridge-next-step" role="note">
-              <div className="bridge-next-step__copy">
-                <strong>{t("nextStepTitle")}</strong>
-                <small>{t("nextStepBody")}</small>
-              </div>
-              <a
-                className="bridge-next-step__cta"
-                href={officialBridgeUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span>{t("btnOpenOfficialBridge")}</span>
-                <ExternalLink size={15} aria-hidden="true" />
-              </a>
-            </div>
-          </NeoCard>
-
-          <NeoCard
-            variant="erobo"
-            title={t("statusCardTitle")}
-            className="bridge-status-card"
-          >
-            <p className="bridge-preview-note" role="note">
-              {t("trackPreviewNote")}
-            </p>
-            <div className="timeline-list">
-              {timeline.map((step) => (
-                <div
-                  key={step.key}
-                  className={`timeline-step timeline-step--${step.state}`}
-                >
-                  <span className="timeline-icon" aria-hidden="true">
-                    {step.state === "done" ? (
-                      <CheckCircle2 size={16} />
-                    ) : step.state === "active" ? (
-                      <Clock3 size={16} />
-                    ) : (
-                      <CircleDashed size={16} />
-                    )}
-                  </span>
-                  <span className="timeline-copy">
-                    <strong>{t(step.labelKey)}</strong>
-                    <small>{t(step.detailKey, step.detailParams)}</small>
-                  </span>
-                </div>
-              ))}
-            </div>
-            {activeOperation.sourceTx &&
-              HASH256.test(activeOperation.sourceTx) && (
-                <a
-                  className="bridge-source-explorer"
-                  href={sourceExplorerUrl(
-                    activeOperation.direction,
-                    bridgeEnvironment,
-                    activeOperation.sourceTx,
-                  )}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>{t("viewSourceTxExplorer")}</span>
-                  <ExternalLink size={14} aria-hidden="true" />
-                </a>
-              )}
-          </NeoCard>
-        </div>
-      )}
-
-      <div className="bridge-resource-row" aria-label={t("resourcesAria")}>
-        <ResourceLink label={t("resOfficialBridge")} href={officialBridgeUrl} />
-        <ResourceLink
-          label={t("resAssetBridgeDocs")}
-          href={BRIDGE_RESOURCES.assetBridgeDocs}
-        />
-        <ResourceLink
-          label={t("resMessageBridgeDocs")}
-          href={BRIDGE_RESOURCES.messageBridgeDocs}
-        />
-        <ResourceLink
-          label={t("resBridgeSdk")}
-          href={BRIDGE_RESOURCES.bridgeSdk}
-        />
-      </div>
-
-      {operations.length > 0 && (
-        <NeoCard
-          variant="erobo"
-          title={t("recentTitle")}
-          className="bridge-recent-card"
-        >
-          <div className="recent-operation-list">
-            {operations.map((operation) => (
-              <div key={operation.id} className="recent-operation">
-                <span className="recent-kind">
-                  {kindLabel(t, operation.kind)}
-                </span>
-                <span className="recent-title">{operation.title}</span>
-                <code>{compactHash(operation.digest)}</code>
-              </div>
-            ))}
-          </div>
-        </NeoCard>
-      )}
-    </div>
-  );
-}
-
-function bridgeRouteLabel(t: PlayAreaProps["t"], direction: DirectionValue) {
-  return direction === "neox-to-n3" ? t("routeNeoXToN3") : t("routeN3ToNeoX");
-}
-
-function BridgeRouteStage({
-  t,
-  direction,
-  kind,
-  mode,
-  detail,
-  destination,
-  status,
-  active,
-  pending,
-}: {
-  t: PlayAreaProps["t"];
-  direction: DirectionValue;
-  kind: BridgeKindValue;
-  mode: WorkspaceMode;
-  detail: string;
-  destination: string;
-  status: string;
-  active: boolean;
-  pending: boolean;
-}) {
-  const source = direction === "neox-to-n3" ? t("neoX") : t("routeNeoN3");
-  const target = direction === "neox-to-n3" ? t("routeNeoN3") : t("neoX");
-  const kindText = kindLabel(t, kind);
-
-  return (
-    <figure
-      className={[
-        "bridge-route-stage",
-        `bridge-route-stage--${kind}`,
-        `bridge-route-stage--mode-${mode}`,
-        active ? "bridge-route-stage--active" : "",
-        pending ? "bridge-route-stage--pending" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      aria-label={t("bridgeStageAria")}
-    >
-      <picture className="bridge-route-stage__media" aria-hidden="true">
-        <img
-          src="./bridge-route.jpg"
-          alt=""
-          loading="eager"
-          decoding="async"
-        />
-      </picture>
-      <div className="bridge-route-stage__scrim" aria-hidden="true" />
-      <div className="bridge-route-stage__map" aria-hidden="true">
-        <span className="bridge-route-stage__node bridge-route-stage__node--source">
-          <span>{source}</span>
-        </span>
-        <span className="bridge-route-stage__lane">
-          <span className="bridge-route-stage__flow" />
-          <span className="bridge-route-stage__packet bridge-route-stage__packet--one" />
-          <span className="bridge-route-stage__packet bridge-route-stage__packet--two" />
-          <span className="bridge-route-stage__packet bridge-route-stage__packet--three" />
-        </span>
-        <span className="bridge-route-stage__node bridge-route-stage__node--target">
-          <span>{target}</span>
-        </span>
-      </div>
-      <figcaption className="bridge-route-stage__caption">
-        <span className="bridge-route-stage__kicker">{kindText}</span>
-        <strong>{bridgeRouteLabel(t, direction)}</strong>
-        <span className="bridge-route-stage__status">
-          <span aria-hidden="true" />
-          {status}
-        </span>
-      </figcaption>
-      <dl className="bridge-route-stage__facts">
-        <div>
-          <dt>{t("bridgeStageIntent")}</dt>
-          <dd>{detail}</dd>
-        </div>
-        <div>
-          <dt>{t("bridgeStageTarget")}</dt>
-          <dd>{destination}</dd>
-        </div>
-      </dl>
-    </figure>
-  );
-}
-
-function BridgeRouteChooser({
-  t,
-  value,
-  onChange,
-}: {
-  t: PlayAreaProps["t"];
-  value: DirectionValue;
-  onChange: (value: DirectionValue) => void;
-}) {
-  return (
-    <section
-      className="bridge-route-chooser bridge-field-wide"
-      aria-label={t("direction")}
-    >
-      <span className="bridge-composer-label">{t("direction")}</span>
-      <div
-        className="bridge-route-options"
-        role="radiogroup"
-        aria-label={t("direction")}
-      >
-        {DIRECTION_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={value === option.value}
-            className={`bridge-route-option${
-              value === option.value ? " bridge-route-option--selected" : ""
-            }`}
-            onClick={() => onChange(option.value)}
-          >
-            <span className="bridge-route-option__path">
-              <span>
-                <small>{t("routeSendLabel")}</small>
-                <strong>{t(option.sourceKey)}</strong>
-              </span>
-              <ArrowRight size={16} aria-hidden="true" />
-              <span>
-                <small>{t("routeReceiveLabel")}</small>
-                <strong>{t(option.targetKey)}</strong>
-              </span>
-            </span>
-            <span className="bridge-route-option__hint">
-              {t(option.hintKey)}
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function BridgeKindChooser({
-  t,
-  value,
-  onChange,
-}: {
-  t: PlayAreaProps["t"];
-  value: BridgeKindValue;
-  onChange: (value: BridgeKindValue) => void;
-}) {
-  return (
-    <section
-      className="bridge-kind-chooser bridge-field-wide"
-      aria-label={t("bridgeKind")}
-    >
-      <span className="bridge-composer-label">{t("bridgeKind")}</span>
-      <div
-        className="bridge-kind-options"
-        role="radiogroup"
-        aria-label={t("bridgeKind")}
-      >
-        {TRACK_KIND_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={value === option.value}
-            className={`bridge-kind-option${
-              value === option.value ? " bridge-kind-option--selected" : ""
-            }`}
-            onClick={() => onChange(option.value)}
-          >
-            <span className="bridge-kind-option__icon" aria-hidden="true">
-              {option.value === "message" ? (
-                <FileJson size={18} />
-              ) : (
-                <WalletCards size={18} />
-              )}
-            </span>
-            <span>
-              <strong>{t(option.labelKey)}</strong>
-              <small>{t(option.hintKey)}</small>
-            </span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function BridgeHandoffRail({
-  t,
-  direction,
-  amount,
-  recipient,
-}: {
-  t: PlayAreaProps["t"];
-  direction: DirectionValue;
-  amount: string;
-  recipient: string;
-}) {
-  const source = direction === "neox-to-n3" ? t("neoX") : t("routeNeoN3");
-  const target = direction === "neox-to-n3" ? t("routeNeoN3") : t("neoX");
-  const steps = [
+  const lastDigest = str("lastDigest", t("notAvailable"));
+  const timeline = val<BridgeTimelineStep[]>("timeline", []) ?? [];
+  const requestCount = num("requestCount", 0);
+  const prepared = requestCount > 0;
+  const visibleKind = bridgeMode === "message" ? "message" : lastKind;
+  const isMessage = visibleKind === "message";
+  const routeParts = lastRoute.split("->").map((part) => part.trim()).filter(Boolean);
+  const sourceChain = routeParts[0] || "Neo N3";
+  const targetChain = routeParts[1] || "Neo X";
+  const visibleTimeline = timeline.slice(0, 3);
+  const activeTimeline = visibleTimeline.find((step) => step.state === "active") ?? visibleTimeline.find((step) => step.state === "waiting") ?? visibleTimeline[0];
+  const activeStepLabel = activeTimeline
+    ? t(activeTimeline.labelKey || activeTimeline.label || "")
+    : lastStatus;
+  const activeStepDetail = activeTimeline
+    ? t(activeTimeline.detailKey || activeTimeline.detail || "", activeTimeline.detailParams)
+    : endpointLabel;
+  const modeOptions: Array<{
+    mode: BridgeMode;
+    label: string;
+    copy: string;
+    actionLabel: string;
+    icon: ReactNode;
+  }> = [
     {
-      key: "source",
-      icon: Landmark,
-      label: t("railSource"),
-      title: source,
-      detail: amount,
+      mode: "asset",
+      label: t("assetBridge"),
+      copy: t("opAssetDesc"),
+      actionLabel: t("opAssetAction"),
+      icon: <PackageCheck size={16} aria-hidden="true" />,
     },
     {
-      key: "attest",
-      icon: ShieldCheck,
-      label: t("railAttest"),
-      title: t("railAttestTitle"),
-      detail: t("railAttestDetail"),
+      mode: "message",
+      label: t("messageBridge"),
+      copy: t("opMessageDesc"),
+      actionLabel: t("opMessageAction"),
+      icon: <RadioTower size={16} aria-hidden="true" />,
     },
     {
-      key: "destination",
-      icon: PackageCheck,
-      label: t("railDestination"),
-      title: target,
-      detail: recipient,
+      mode: "track",
+      label: t("opTrackTitle"),
+      copy: t("opTrackDesc"),
+      actionLabel: t("opTrackAction"),
+      icon: <ShieldCheck size={16} aria-hidden="true" />,
     },
   ];
+  const activeMode = modeOptions.find((option) => option.mode === bridgeMode) ?? modeOptions[0];
+  const primaryAction = () => {
+    if (bridgeMode === "message") {
+      void dispatch("prepareMessageBridge");
+      return;
+    }
+    if (bridgeMode === "track") {
+      void dispatch("trackBridgeOperation");
+      return;
+    }
+    void dispatch("prepareAssetBridge");
+  };
 
-  return (
-    <section
-      className="bridge-handoff-rail bridge-field-wide"
-      aria-label={t("handoffRailAria")}
-    >
-      {steps.map(({ key, icon: Icon, label, title, detail }, index) => (
-        <div className="bridge-handoff-rail__step-wrap" key={key}>
-          <div className="bridge-handoff-rail__step">
-            <Icon size={16} aria-hidden="true" />
-            <span>{label}</span>
-            <strong>{title}</strong>
-            <small>{detail}</small>
-          </div>
-          {index < steps.length - 1 && (
-            <ArrowRight
-              className="bridge-handoff-rail__arrow"
-              size={17}
-              aria-hidden="true"
-            />
-          )}
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function BridgeCostsPanel({ t }: { t: PlayAreaProps["t"] }) {
-  return (
-    <div className="bridge-costs" role="note">
-      <span className="bridge-costs__title">{t("costsTitle")}</span>
-      <dl className="bridge-costs__rows">
-        <div>
-          <dt>{t("costsBridgeFee")}</dt>
-          <dd>{t("costsBridgeFeeValue")}</dd>
-        </div>
-        <div>
-          <dt>{t("costsGas")}</dt>
-          <dd>{t("costsGasValue")}</dd>
-        </div>
-        <div>
-          <dt>{t("costsEta")}</dt>
-          <dd>{t("costsEtaValue")}</dd>
-        </div>
+  const drawerPanels: Record<DrawerMode, ReactNode> = {
+    summary: (
+      <dl className="bridge-detail-list">
+        <div><dt>{t("statNetwork")}</dt><dd>{networkLabel}</dd></div>
+        <div><dt>{t("bridgeEnvironmentLabel")}</dt><dd>{bridgeEnvironment}</dd></div>
+        <div><dt>{t("lastRoute")}</dt><dd>{lastRoute}</dd></div>
+        <div><dt>{t("lastStatus")}</dt><dd>{lastStatus}</dd></div>
+        <div><dt>{t("statDigest")}</dt><dd>{lastDigest}</dd></div>
       </dl>
-      <small className="bridge-costs__footnote">{t("costsFootnote")}</small>
-    </div>
-  );
-}
+    ),
+    timeline: (
+      <ol className="bridge-drawer-timeline">
+        {visibleTimeline.map((step, index) => (
+          <li key={`${step.labelKey || step.label || index}-drawer-${index}`} data-state={step.state || "waiting"}>
+            <span>{index + 1}</span>
+            <div>
+              <strong>{t(step.labelKey || step.label || "")}</strong>
+              <small>{t(step.detailKey || step.detail || "", step.detailParams)}</small>
+            </div>
+          </li>
+        ))}
+      </ol>
+    ),
+    resources: (
+      <dl className="bridge-detail-list">
+        <div><dt>{t("statEndpoint")}</dt><dd>{endpointLabel}</dd></div>
+        <div><dt>{t("resOfficialBridge")}</dt><dd>{bridgeAppUrl ? <a href={bridgeAppUrl} target="_blank" rel="noreferrer">{bridgeAppUrl}</a> : t("notAvailable")}</dd></div>
+        <div><dt>{t("statRequests")}</dt><dd>{requestCount}</dd></div>
+      </dl>
+    ),
+  };
 
-function BridgeActionPreview({
-  items,
-}: {
-  items: Array<[label: string, value: string]>;
-}) {
-  return (
-    <div className="bridge-action-preview">
-      {items.map(([label, value]) => (
-        <div key={label}>
-          <span>{label}</span>
-          <strong>{value}</strong>
+  const scene = (
+    <div className="bridge-scene" data-kind={visibleKind} data-prepared={prepared ? "true" : "false"}>
+      <div className="bridge-scene__mode-tabs" role="tablist" aria-label={t("tabConsole")}>
+        {modeOptions.map((option) => (
+          <button
+            key={option.mode}
+            type="button"
+            role="tab"
+            aria-selected={bridgeMode === option.mode}
+            className={bridgeMode === option.mode ? "is-active" : undefined}
+            onClick={() => setBridgeMode(option.mode)}
+          >
+            {option.icon}
+            <span>{option.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="bridge-scene__route" aria-label={lastRoute}>
+        <div className="bridge-scene__chain bridge-scene__chain--neo">
+          <CoinArt size={46} variant="neo" decorative />
+          <span>{sourceChain}</span>
         </div>
-      ))}
+        <div className="bridge-scene__bridge" aria-hidden="true">
+          <div className="bridge-scene__rail" />
+          <div className="bridge-scene__packet">
+            {isMessage ? <RadioTower size={24} strokeWidth={2.3} /> : <CoinArt size={34} variant="gas" decorative />}
+          </div>
+          <span className="bridge-scene__checkpoint bridge-scene__checkpoint--source" />
+          <span className="bridge-scene__checkpoint bridge-scene__checkpoint--middle" />
+          <span className="bridge-scene__checkpoint bridge-scene__checkpoint--target" />
+        </div>
+        <div className="bridge-scene__chain bridge-scene__chain--x">
+          <strong>X</strong>
+          <span>{targetChain}</span>
+        </div>
+      </div>
+
+      <div className="bridge-scene__intent">
+        <div className="bridge-scene__intent-main">
+          <span>{activeMode.label}</span>
+          <strong>{activeMode.actionLabel}</strong>
+          <small>{prepared ? compact(lastDigest) : activeMode.copy}</small>
+        </div>
+        <div className="bridge-scene__intent-icon" aria-hidden="true">
+          {prepared ? <CheckCircle2 size={28} strokeWidth={2.4} /> : <PackageCheck size={28} strokeWidth={2.4} />}
+        </div>
+      </div>
+
+      {visibleTimeline.length > 0 && (
+        <ol className="bridge-scene__timeline" aria-label={t("opTrackTitle")}>
+          {visibleTimeline.map((step, index) => (
+            <li key={`${step.labelKey || step.label || index}-${index}`} data-state={step.state || "waiting"}>
+              <span>{index + 1}</span>
+              <strong>{t(step.labelKey || step.label || "")}</strong>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <div className="bridge-scene__handoff">
+        <div>
+          <span>{t("lastRoute")}</span>
+          <strong>{lastRoute}</strong>
+        </div>
+        <ArrowRight size={16} aria-hidden="true" />
+        <div>
+          <span>{activeStepLabel}</span>
+          <strong>{activeStepDetail}</strong>
+        </div>
+      </div>
+
+      <p className="bridge-scene__status">{lastStatus}</p>
     </div>
   );
-}
 
-function ResourceLink({ label, href }: { label: string; href: string }) {
   return (
-    <a
-      className="bridge-resource-link"
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-    >
-      <span>{label}</span>
-      <ExternalLink size={14} aria-hidden="true" />
-    </a>
+    <div className="neo-x-bridge-play-area mx2 mx2-cat-tool">
+      <PlayStage
+        category="tool"
+        stage={{
+          eyebrow: "Neo X Bridge",
+          title: "Cross-chain bridge",
+          subtitle: endpointLabel,
+          badges: (
+            <span className="mx2-badge" data-tone="accent">
+              <span className="mx2-badge__dot" /> {networkLabel}
+            </span>
+          ),
+        }}
+        scene={scene}
+        actions={{
+          primary: { label: activeMode.actionLabel, onClick: primaryAction },
+        }}
+        drawerToggleLabel="Details"
+        drawer={{
+          title: "Bridge details",
+          children: (
+            <div className="bridge-drawer">
+              <div className="bridge-drawer-tabs" role="tablist" aria-label="Bridge details">
+                {[
+                  { mode: "summary" as const, label: t("outputTitle") },
+                  { mode: "timeline" as const, label: t("statusCardTitle") },
+                  { mode: "resources" as const, label: t("resourcesAria") },
+                ].map((item) => (
+                  <button
+                    key={item.mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={drawerMode === item.mode}
+                    className={drawerMode === item.mode ? "is-active" : undefined}
+                    onClick={() => setDrawerMode(item.mode)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="bridge-drawer__panel" data-mode={drawerMode}>
+                {drawerPanels[drawerMode]}
+              </div>
+            </div>
+          ),
+        }}
+      />
+    </div>
   );
 }

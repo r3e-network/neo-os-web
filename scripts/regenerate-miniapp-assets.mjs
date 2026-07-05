@@ -400,7 +400,7 @@ async function roundedTile(tile, width, height, radius) {
 function tinyWrapper(kind, slug) {
   const width = kind === "logo" ? 1024 : 1200;
   const height = kind === "logo" ? 1024 : 480;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="${kind}.jpg" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/></svg>\n`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="${kind}.webp" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/></svg>\n`;
 }
 
 async function writeAssets(item, tile, index) {
@@ -434,8 +434,6 @@ async function writeAssets(item, tile, index) {
 
   const hostDir = path.join(hostAssetRoot, item.slug);
   fs.mkdirSync(hostDir, { recursive: true });
-  fs.writeFileSync(path.join(hostDir, "logo.jpg"), logo);
-  fs.writeFileSync(path.join(hostDir, "banner.jpg"), banner);
   fs.writeFileSync(
     path.join(hostDir, "logo.webp"),
     await sharp(logo).webp({ quality: 88, effort: 5, smartSubsample: true }).toBuffer(),
@@ -459,8 +457,6 @@ async function writeAssets(item, tile, index) {
   if (fs.existsSync(appDir)) {
     const publicDir = path.join(appDir, "public");
     fs.mkdirSync(publicDir, { recursive: true });
-    fs.writeFileSync(path.join(publicDir, "logo.jpg"), logo);
-    fs.writeFileSync(path.join(publicDir, "banner.jpg"), banner);
     fs.writeFileSync(
       path.join(publicDir, "logo.webp"),
       await sharp(logo).webp({ quality: 88, effort: 5, smartSubsample: true }).toBuffer(),
@@ -489,8 +485,8 @@ function updateAppManifests(inventoryBySlug) {
     const manifest = readJson(file);
     if (!manifest) continue;
     manifest.urls = { ...(manifest.urls || {}) };
-    manifest.urls.icon = `/miniapps/${item.slug}/logo.jpg`;
-    manifest.urls.banner = `/miniapps/${item.slug}/banner.jpg`;
+    manifest.urls.icon = `/miniapps/${item.slug}/logo.webp`;
+    manifest.urls.banner = `/miniapps/${item.slug}/banner.webp`;
     writeJson(file, manifest);
   }
 }
@@ -521,8 +517,8 @@ function updateDefinitions(inventoryBySlug) {
     if (!slug) continue;
     if (OFFICIAL_BRAND_ASSET_SLUGS.has(slug)) continue;
     json.media = { ...(json.media || {}) };
-    json.media.icon = `/miniapp-assets/${slug}/logo.jpg`;
-    json.media.banner = `/miniapp-assets/${slug}/banner.jpg`;
+    json.media.icon = `/miniapp-assets/${slug}/logo.webp`;
+    json.media.banner = `/miniapp-assets/${slug}/banner.webp`;
     delete json.media.logo;
     delete json.media.logo_url;
     delete json.media.banner_url;
@@ -531,7 +527,7 @@ function updateDefinitions(inventoryBySlug) {
 }
 
 function removeOldPlaceholders(inventoryBySlug) {
-  const oldNames = ["icon.png", "logo.png", "banner.png", "icon.svg"];
+  const oldNames = ["icon.png", "logo.jpg", "logo.png", "banner.jpg", "banner.png", "icon.svg"];
   for (const slug of inventoryBySlug.keys()) {
     if (OFFICIAL_BRAND_ASSET_SLUGS.has(slug)) continue;
     const hostDir = path.join(hostAssetRoot, slug);
