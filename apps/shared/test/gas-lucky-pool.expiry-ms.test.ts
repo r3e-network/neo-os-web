@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   OWNER,
   launch,
+  makeApp,
   t,
   useGasLuckyPool,
 } from "./gas-lucky-pool.logic.test-utils";
@@ -34,7 +35,7 @@ describe("OneGate Vault range pool expiry uses milliseconds", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch(""),
       t,
     });
@@ -73,7 +74,7 @@ describe("OneGate Vault range pool expiry uses milliseconds", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch(""),
       t,
     });
@@ -104,7 +105,7 @@ describe("OneGate Vault range pool expiry uses milliseconds", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch(""),
       t,
     });

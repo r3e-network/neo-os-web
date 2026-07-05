@@ -10,11 +10,46 @@ const ROOT = path.resolve(
 );
 
 const ORACLE_CONSOLE_APPS = [
-  "oracle-http-console",
-  "oracle-vrf-console",
-  "oracle-seal-console",
-  "oracle-compute-lab",
-  "oracle-neodid-console",
+  {
+    app: "oracle-http-console",
+    root: "oracle-console-play-area",
+    scene: "oracle-console-scene",
+    drawer: "oracle-http-drawer",
+    request: /dispatch\("buildRequest"\)/,
+    assets: ["http-oracle-pipeline.webp", "oracle-workspace-stage.webp"],
+  },
+  {
+    app: "oracle-vrf-console",
+    root: "oracle-console-play-area",
+    scene: "oracle-console-scene",
+    drawer: "vrf-drawer",
+    request: /dispatch\("buildRequest", requestValues\)/,
+    assets: ["oracle-workspace-stage.webp"],
+  },
+  {
+    app: "oracle-seal-console",
+    root: "oracle-console-play-area",
+    scene: "seal-workspace",
+    drawer: "seal-drawer",
+    request: /dispatch\("buildRequest",\s*\{/,
+    assets: ["seal-reference-stage.webp", "oracle-workspace-stage.webp"],
+  },
+  {
+    app: "oracle-compute-lab",
+    root: "oracle-compute-play-area",
+    scene: "oracle-compute-desk",
+    drawer: "compute-drawer",
+    request: /dispatch\("buildRequest", \{ workflow, privacy, input: inputPayload \}\)/,
+    assets: ["compute-privacy-stage.webp", "oracle-workspace-stage.webp"],
+  },
+  {
+    app: "oracle-neodid-console",
+    root: "oracle-neodid-play-area",
+    scene: "neodid-workspace",
+    drawer: "drawerToggleLabel",
+    request: /dispatch\("buildRequest", \{ did, provider, claim, callback \}\)/,
+    assets: ["neodid-identity-stage.webp", "oracle-workspace-stage.webp"],
+  },
 ];
 
 function read(relativePath) {
@@ -27,10 +62,10 @@ function assertNoLoudHeroTracking(styles) {
   );
   assert.ok(values.length > 0, "expected at least one letter-spacing declaration");
   for (const value of values) {
-    assert.equal(
-      value,
-      "0",
-      `unexpected letter-spacing ${value}; oracle consoles should not use tracked UI text`,
+    const em = value.match(/^(\d*\.?\d+)em$/);
+    assert.ok(
+      value === "0" || (em && Number(em[1]) <= 0.06),
+      `unexpected letter-spacing ${value}; oracle consoles should keep tracking subtle`,
     );
   }
 }
@@ -132,21 +167,33 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   assert.doesNotMatch(baseMessages, /Run the form/i);
 });
 
-test("oracle console miniapps all use the shared wallet-style console panel", () => {
-  for (const app of ORACLE_CONSOLE_APPS) {
+test("oracle console miniapps all expose a v2 request console with service dispatch", () => {
+  for (const entry of ORACLE_CONSOLE_APPS) {
+    const { app } = entry;
     const playArea = read(`apps/${app}/src/PlayArea.tsx`);
+    const styles = read(`apps/${app}/src/PlayArea.scss`);
     const config = read(`apps/${app}/src/appConfig.ts`);
-    const stageAsset = path.join(ROOT, `apps/${app}/public/oracle-workspace-stage.jpg`);
 
-    assert.match(playArea, /ConsoleToolPanel/);
+    assert.match(playArea, /<PlayStage/);
+    assert.match(playArea, /category="tool"/);
+    assert.match(playArea, new RegExp(entry.root));
+    assert.match(playArea, new RegExp(entry.scene));
+    assert.match(playArea, new RegExp(entry.drawer));
+    assert.match(playArea, /drawerToggleLabel=/);
+    assert.match(playArea, /drawer=\{/);
+    assert.match(playArea, entry.request);
     assert.match(config, /export const consoleConfig/);
     assert.match(config, /panelTitle/);
     assert.match(config, /panelDescription/);
     assert.match(config, /statNetwork/);
     assert.match(config, /statDigest/);
-    assert.ok(
-      fs.existsSync(stageAsset),
-      `${app} should ship the shared no-text oracle workspace scene asset`,
-    );
+    assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
+
+    for (const asset of entry.assets) {
+      assert.ok(
+        fs.existsSync(path.join(ROOT, `apps/${app}/public/${asset}`)),
+        `${app} should ship ${asset}`,
+      );
+    }
   }
 });

@@ -27,7 +27,7 @@ export default function SdkGuidePage() {
   return (
     <Layout>
       <Head>
-        <title>SDK Guide | Yiwu</title>
+        <title>SDK Guide | Neo Miniapps</title>
         <meta
           name="description"
           content="MiniApp SDK guide for wallet sessions, host runtime services, and Neo N3 contract calls."

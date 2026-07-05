@@ -44,7 +44,7 @@ defineMiniApp({
       },
     });
 
-    ctx.registerAction("registerTrigger", async () => {
+    ctx.framework.actions.register("registerTrigger", async () => {
       try {
         await copilot.registerTrigger();
         const status = copilot.apiStatus.get() || ctx.t("triggerRegistered");
@@ -60,11 +60,11 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("selectTrigger", async (...args: unknown[]) => {
+    ctx.framework.actions.register("selectTrigger", async (...args: unknown[]) => {
       copilot.selectTrigger(String(args[0] ?? ""));
     });
 
-    ctx.registerAction("deleteTrigger", async (...args: unknown[]) => {
+    ctx.framework.actions.register("deleteTrigger", async (...args: unknown[]) => {
       await ctx.services.notify.guard(
         () => copilot.deleteTrigger(String(args[0] ?? "")),
         "triggerDeleted",

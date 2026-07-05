@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useSelfLoan } from "./useSelfLoan";
+import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 
@@ -79,11 +80,19 @@ function makeChain(s: ChainReadState) {
   return { chain, invoke, read };
 }
 
+/** Wrap a mock chain in the MiniApp framework SDK the composable now consumes. */
+function makeApp(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-self-loan" },
+  );
+}
+
 describe("useSelfLoan — borrow gating + pool preflight", () => {
   it("loads pool() liquidity and the NEO price for the borrow card", async () => {
     // neoPrice 3 GAS/NEO (3e8), pool 50 GAS (50e8).
     const { chain } = makeChain({ neoPrice: "300000000", pool: "5000000000" });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -100,7 +109,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
       neoPrice: "300000000",
       pool: "5000000000",
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
     invoke.mockClear();
@@ -116,7 +125,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     // price 3 GAS/NEO, 20% LTV, 0.5% fee. 5 NEO -> gross 3 GAS, net ~2.985 GAS.
     // Pool only 1 GAS (1e8) -> must be blocked.
     const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "100000000", neoBalance: "100" });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
     invoke.mockClear();
@@ -128,7 +137,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
 
   it("bumps borrowOkNonce only on a successful borrow", async () => {
     const { chain } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -145,7 +154,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
       if (op === "borrow") throw new Error("on-chain revert");
       return { txid: "0xtx", success: true, verified: true };
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -163,7 +172,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
       if (op === "borrow") return { txid: "0xborrow", success: true, verified: false };
       return { txid: "0xtransfer", success: true, verified: true };
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -187,7 +196,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
       if (op === "borrow") return { txid: "0xborrow", success: true, verified: !unverified };
       return { txid: "0xtransfer", success: true, verified: true };
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -205,7 +214,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
 
   it("derives the transfer to the configured contract with the collateral memo", async () => {
     const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(ALICE);
     await app.loadAll();
     invoke.mockClear();

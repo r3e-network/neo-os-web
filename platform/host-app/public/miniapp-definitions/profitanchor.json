@@ -21,8 +21,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-profitanchor",
   "media": {
-    "icon": "/miniapp-assets/profitanchor/logo.jpg",
-    "banner": "/miniapp-assets/profitanchor/banner.jpg"
+    "icon": "/miniapp-assets/profitanchor/logo.webp",
+    "banner": "/miniapp-assets/profitanchor/banner.webp"
   },
   "permissions": {
     "payments": true,

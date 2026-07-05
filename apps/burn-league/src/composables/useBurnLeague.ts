@@ -2,7 +2,7 @@
  * useBurnLeague — Domain logic for the Burn League miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppBurnLeague)
- * via ctx.services.chain. The earlier path routed burns through the OS
+ * via ctx.framework.chain. The earlier path routed burns through the OS
  * GameProxy/LeaderboardProxy/BadgeProxy edge functions, which moved nothing once
  * the kernel degraded and read a pool / leaderboard no contract maintained. This
  * composable drives the dedicated contract, an all-pay SEASONAL contest (no house
@@ -13,7 +13,7 @@
  *
  * Contract interaction model (verified against MiniAppBurnLeague.cs / ABI):
  *
- *   READS (chain.read, default app contract script hash; all GAS in BASE UNITS):
+ *   READS (app.chain.readRaw, default app contract script hash; all GAS in BASE UNITS):
  *     currentSeason()        -> Integer (1-based; 0 before the first season)
  *     seasonEnd()            -> Integer (ms epoch; 0 = dormant)
  *     rewardPool()           -> Integer (current season pool, base units)
@@ -25,13 +25,13 @@
  *     creditOf(player)       -> Integer (prepaid burn credit, base units)
  *     minBurn() / maxBurn()  -> Integer (base units)
  *
- *   EVENTS (chain.listEvents):
+ *   EVENTS (app.chain.events):
  *     Burned(seasonId, player, amount, userSeasonTotal) — the lag-free
  *       leaderboard source. state slots: [0]=seasonId, [1]=player(address),
  *       [2]=amount(base units), [3]=userSeasonTotal(base units). The board is the
  *       LATEST userSeasonTotal per player for the CURRENT season, ranked desc.
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT (fund a burn) — a GAS transfer to the contract with the memo
  *        "miniapp-burnleague:burn" so OnNEP17Payment credits the sender's prepaid
  *        burn balance (only topped up when creditOf(player) < amount):
@@ -61,7 +61,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { formatNumber, fromFixed8 } from "@shared/utils/format";
@@ -128,12 +128,12 @@ export interface LeaderEntry {
 }
 
 export interface UseBurnLeagueOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework (chain args / reads / invokes). */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
   /**
-   * Accessor for the connected wallet address (e.g. ctx.services.chain.address.get).
+   * Accessor for the connected wallet address (e.g. ctx.framework.chain.address.get).
    * Used to resolve the current user's leaderboard rank and identity. Optional so
    * the composable degrades gracefully when no wallet is connected.
    */
@@ -163,7 +163,7 @@ function parseBurnAmount(input: string | null | undefined): number {
 // Composable
 // ============================================================================
 
-export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
+export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
   // ── State (all GAS values in whole GAS for display) ──────────────────
   const totalBurned = createObservable(0);
   const rewardPool = createObservable(0);
@@ -222,7 +222,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
 
   // Connected wallet address (synced from main.tsx / chain).
   const resolveAddress = (): string | null =>
-    (getAddress?.() ?? chain.address.get()) ?? null;
+    (getAddress?.() ?? app.chain.address.get()) ?? null;
   const address = createObservable<string | null>(resolveAddress());
 
   const setAddress = (addr: string | null) => {
@@ -391,15 +391,15 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         minBurnRaw,
         maxBurnRaw,
       ] = await Promise.all([
-        chain.read("currentSeason", []),
-        chain.read("seasonEnd", []),
-        chain.read("rewardPool", []),
-        chain.read("burnCount", []),
-        chain.read("topBurner", []),
-        chain.read("topBurned", []),
-        chain.read("seasonDuration", []),
-        chain.read("minBurn", []),
-        chain.read("maxBurn", []),
+        app.chain.readRaw("currentSeason", []),
+        app.chain.readRaw("seasonEnd", []),
+        app.chain.readRaw("rewardPool", []),
+        app.chain.readRaw("burnCount", []),
+        app.chain.readRaw("topBurner", []),
+        app.chain.readRaw("topBurned", []),
+        app.chain.readRaw("seasonDuration", []),
+        app.chain.readRaw("minBurn", []),
+        app.chain.readRaw("maxBurn", []),
       ]);
 
       seasonId.set(Number(parseBigInt(seasonRaw)));
@@ -432,8 +432,8 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       const myHash = myAddr ? addressToScriptHash(myAddr) || null : null;
       if (myHash) {
         try {
-          const userRaw = await chain.read("userBurned", [
-            { type: "Hash160", value: myHash },
+          const userRaw = await app.chain.readRaw("userBurned", [
+            app.chain.arg.hash160(myHash),
           ]);
           userBurned.set(fromBaseUnits(parseBigInt(userRaw)));
         } catch (e) {
@@ -441,8 +441,8 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
           userBurned.set(0);
         }
         try {
-          const creditRaw = await chain.read("creditOf", [
-            { type: "Hash160", value: myHash },
+          const creditRaw = await app.chain.readRaw("creditOf", [
+            app.chain.arg.hash160(myHash),
           ]);
           prepaidCredit.set(fromFixed8(parseBigInt(creditRaw)));
         } catch (e) {
@@ -482,7 +482,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         return;
       }
 
-      const events = await chain.listEvents("Burned", { limit: BURNED_EVENTS_LIMIT });
+      const events = await app.chain.events("Burned", { limit: BURNED_EVENTS_LIMIT });
 
       // Newest-first: keep the FIRST (= latest) userSeasonTotal seen per player
       // within the current season.
@@ -604,7 +604,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       throw new Error(msg);
     }
 
-    const playerAddr = resolveAddress() || (await chain.ensureWallet());
+    const playerAddr = resolveAddress() || (await app.chain.ensureWallet());
     const playerHash = addressToScriptHash(playerAddr || "");
     if (!playerAddr || !playerHash) {
       const msg = t("burnWalletUnavailable");
@@ -613,7 +613,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     }
     setAddress(playerAddr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) {
       const msg = t("missingContract");
       actionNotice.set(msg);
@@ -633,7 +633,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(playerHash)]),
         );
       } catch {
         credit = 0n;
@@ -646,13 +646,13 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         // unconfirmed deposit lets burn() execute first and fault (the shared
         // invokeWithDirectPrepaidGas path confirms the deposit for the same
         // reason: intra-block ordering is fee/hash-based).
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: playerHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: (amountBase - credit).toString() },
-            { type: "String", value: BURN_MEMO },
+            app.chain.arg.hash160(playerHash),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(amountBase - credit),
+            app.chain.arg.string(BURN_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
@@ -663,11 +663,11 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       // deposit landed but this reverts, the credit persists as reusable prepaid
       // credit (reclaimable via withdraw); surface that distinctly.
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "burn",
           [
-            { type: "Hash160", value: playerHash },
-            { type: "Integer", value: amountBase.toString() },
+            app.chain.arg.hash160(playerHash),
+            app.chain.arg.integer(amountBase),
           ],
           { waitForEvent: "Burned" },
         );
@@ -712,11 +712,11 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   const settleSeason = async () => {
     if (isSettling.get()) return;
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     // The signer just triggers the settle; ensure a wallet is available to sign.
-    const callerAddr = resolveAddress() || (await chain.ensureWallet());
+    const callerAddr = resolveAddress() || (await app.chain.ensureWallet());
     if (!callerAddr) throw new Error(t("burnWalletUnavailable"));
     setAddress(callerAddr);
 
@@ -726,7 +726,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     const awardedPool = prizePoolDisplay.get();
     const winnerWasMe = userIsLeader.get();
     try {
-      await chain.invoke("settle", [], { waitForEvent: "SeasonSettled" });
+      await app.chain.invoke("settle", [], { waitForEvent: "SeasonSettled" });
       lastSettleResult.set({
         won: winnerWasMe,
         amount: awardedPool,
@@ -748,7 +748,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   const withdrawCredit = async (): Promise<{ amount: number }> => {
     if (isLoading.get()) return { amount: 0 };
 
-    const accountAddr = resolveAddress() || (await chain.ensureWallet());
+    const accountAddr = resolveAddress() || (await app.chain.ensureWallet());
     const accountHash = addressToScriptHash(accountAddr || "");
     if (!accountAddr || !accountHash) throw new Error(t("burnWalletUnavailable"));
     setAddress(accountAddr);
@@ -760,16 +760,16 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
         );
       } catch {
         credit = 0n;
       }
       if (credit <= 0n) throw new Error(t("noCredit"));
 
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: accountHash }],
+        [app.chain.arg.hash160(accountHash)],
         { waitForEvent: "CreditWithdrawn" },
       );
 
@@ -860,7 +860,7 @@ export type UseBurnLeagueReturn = ReturnType<typeof useBurnLeague>;
 // ============================================================================
 
 /** Format a number for display with 2 decimal places */
-export const formatNum = (n: number): string => formatNumber(n, 2);
+export { formatNum } from "@shared/utils/format";
 
 /** Get medal icon name for top-3 leaderboard ranks */
 export const getMedalIcon = (rank: number): string => {

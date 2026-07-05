@@ -107,7 +107,7 @@ for (const slug of slugs) {
       await page.setViewportSize(size);
       await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 45_000 }).catch(() => {});
       await page.waitForTimeout(600);
-      const file = path.join(outDir, `${safe}__${tag}__${vp}.png`);
+      const file = path.join(outDir, `${safe}__${tag}__${vp}.webp`);
       // animations:"disabled" freezes CSS/Web animations so fullPage capture of
       // pages with perpetual motion (shimmer, marquees) can stabilize.
       await page.screenshot({ path: file, fullPage: true, animations: "disabled", timeout: 20_000 })

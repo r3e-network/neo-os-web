@@ -182,6 +182,7 @@ describe("MiniAppDetailPage shared invoke", () => {
       />,
     );
 
+    fireEvent.click(screen.getByText("Host transaction console"));
     expect(screen.getByRole("button", { name: "Buy Keys" })).toBeDisabled();
     expect(
       screen.getByText("Connect wallet before sending transactions."),
@@ -302,6 +303,7 @@ describe("MiniAppDetailPage shared invoke", () => {
       })[0],
     );
 
+    fireEvent.click(screen.getByText("Host transaction console"));
     fireEvent.click(screen.getByTestId("operation-submit-button"));
 
     await waitFor(() =>

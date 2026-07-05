@@ -145,6 +145,12 @@ defineMiniApp({
     const workflowStatus = createObservable(ctx.t("workflowReady"));
     const lastError = createObservable("");
     const isLoading = createObservable(false);
+    // Write-action lock: every stake/withdraw/claim/register/recover action
+    // checks this before invoking so a double-click can't fire two NEO
+    // transfers or two registration sequences (mirrors profitanchor's
+    // runAnchorAction). Reset in the finally so a wallet rejection never leaves
+    // the surface stuck spinning.
+    const submitting = createObservable(false);
     // Registration state of the resolved anchor (getAppMode): 0 = not registered,
     // 1 = trust, 2 = profit. -1 = unknown (not yet read / no anchor).
     const anchorMode = createObservable(-1);
@@ -162,21 +168,26 @@ defineMiniApp({
     };
 
     async function loadCredits() {
-      const address = ctx.services.chain.address.get();
+      const address = ctx.framework.chain.address.get();
       if (!address) {
         neoCredit.set("0"); gasCredit.set("0");
         neoCreditRaw.set("0"); gasCreditRaw.set("0");
         return;
       }
       try {
+        // address is non-empty here (guarded above); arg.hash160 THROWS on an
+        // empty/invalid address, so it is only built inside this try after the
+        // guard (a build failure would be caught and zero the credit like any
+        // read failure — the existing behavior).
+        const accountArg = ctx.framework.chain.arg.hash160(address);
         const [neo, gas] = await Promise.all([
-          ctx.services.chain.read("getCredit", [
-            { type: "Hash160", value: address },
-            { type: "String", value: "NEO" },
+          ctx.framework.chain.readRaw("getCredit", [
+            accountArg,
+            ctx.framework.chain.arg.string("NEO"),
           ], anchorOptions()),
-          ctx.services.chain.read("getCredit", [
-            { type: "Hash160", value: address },
-            { type: "String", value: "GAS" },
+          ctx.framework.chain.readRaw("getCredit", [
+            accountArg,
+            ctx.framework.chain.arg.string("GAS"),
           ], anchorOptions()),
         ]);
         const neoBase = parseBigInt(neo);
@@ -210,7 +221,7 @@ defineMiniApp({
         // plausible-but-fake anchor. Surface an explicit "not registered" state
         // and skip the money reads.
         const mode = stackNumber(
-          await ctx.services.chain.read("getAppMode", [{ type: "String", value: target }], anchorOptions()),
+          await ctx.framework.chain.readRaw("getAppMode", [ctx.framework.chain.arg.string(target)], anchorOptions()),
         );
         anchorMode.set(mode);
         if (mode <= 0) {
@@ -220,27 +231,29 @@ defineMiniApp({
           return;
         }
 
+        const targetArg = ctx.framework.chain.arg.string(target);
         const [total, reserve, agents, rps] = await Promise.all([
-          ctx.services.chain.read("getTotalStaked", [{ type: "String", value: target }], anchorOptions()),
-          ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], anchorOptions()),
-          ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], anchorOptions()),
-          ctx.services.chain.read("getRewardPerNeo", [{ type: "String", value: target }], anchorOptions()),
+          ctx.framework.chain.readRaw("getTotalStaked", [targetArg], anchorOptions()),
+          ctx.framework.chain.readRaw("getRewardReserve", [targetArg], anchorOptions()),
+          ctx.framework.chain.readRaw("getAgentCount", [targetArg], anchorOptions()),
+          ctx.framework.chain.readRaw("getRewardPerNeo", [targetArg], anchorOptions()),
         ]);
         totalStaked.set(fromWholeNeo(total));
         rewardReserve.set(fromFixed8(reserve));
         agentCount.set(stackNumber(agents));
         rewardPerNeo.set(fromRewardPerNeo(rps));
 
-        const address = ctx.services.chain.address.get();
+        const address = ctx.framework.chain.address.get();
         if (address) {
+          const userArg = ctx.framework.chain.arg.hash160(address);
           const [stake, rewards] = await Promise.all([
-            ctx.services.chain.read("getUserStake", [
-              { type: "String", value: target },
-              { type: "Hash160", value: address },
+            ctx.framework.chain.readRaw("getUserStake", [
+              targetArg,
+              userArg,
             ], anchorOptions()),
-            ctx.services.chain.read("getPendingRewards", [
-              { type: "String", value: target },
-              { type: "Hash160", value: address },
+            ctx.framework.chain.readRaw("getPendingRewards", [
+              targetArg,
+              userArg,
             ], anchorOptions()),
           ]);
           userStake.set(fromWholeNeo(stake));
@@ -260,7 +273,7 @@ defineMiniApp({
     /** Build the discovery list from AnchorAppRegistered events (newest first). */
     async function loadDiscovered() {
       try {
-        const events = await ctx.services.chain.listEvents("AnchorAppRegistered", {
+        const events = await ctx.framework.chain.events("AnchorAppRegistered", {
           limit: REGISTERED_EVENTS_LIMIT,
         });
         const seen = new Set<string>();
@@ -279,20 +292,45 @@ defineMiniApp({
       }
     }
 
-    ctx.registerAction("stake", async (...args: unknown[]) => {
+    /**
+     * Guard + error-recovery wrapper for every write action. Blocks
+     * double-submits (the #1 regression this app had vs profitanchor), ensures
+     * the busy flag is released in finally so a wallet rejection / RPC error
+     * never leaves the surface stuck on "Submitting…", and surfaces a localized
+     * error + failed status instead of an opaque throw.
+     */
+    async function runWrite<T>(
+      fn: () => Promise<T>,
+    ): Promise<T | undefined> {
+      if (submitting.get()) return undefined; // double-submit guard
+      submitting.set(true);
+      lastError.set("");
+      try {
+        return await fn();
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        lastError.set(message);
+        workflowStatus.set(ctx.t("workflowFailed"));
+        throw e;
+      } finally {
+        submitting.set(false);
+      }
+    }
+
+    ctx.framework.actions.register("stake", async (...args: unknown[]) => {
+      return runWrite(async () => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
       const contract = getMiniAppContractHash(appId);
       if (!contract) throw new Error("PlatformAnchor contract is not configured.");
-      const user = await ctx.services.chain.ensureWallet();
+      const user = await ctx.framework.chain.ensureWallet();
       const amount = wholeNeo(form.amount);
       workflowStatus.set(ctx.t("stakeSubmitting"));
-      lastError.set("");
-      const result = await ctx.services.chain.invoke("transfer", [
-        { type: "Hash160", value: user },
-        { type: "Hash160", value: contract },
-        { type: "Integer", value: amount },
-        { type: "String", value: `stake:${target}` },
+      const result = await ctx.framework.chain.invoke("transfer", [
+        ctx.framework.chain.arg.hash160(user),
+        ctx.framework.chain.arg.hash160(contract),
+        ctx.framework.chain.arg.integer(amount),
+        ctx.framework.chain.arg.string(`stake:${target}`),
       ], {
         scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
         // Wait on the contract's stake event so the post-write refresh reads the
@@ -305,44 +343,47 @@ defineMiniApp({
       workflowStatus.set(ctx.t("stakeSubmitted"));
       await loadData();
       return result;
+      });
     });
 
-    ctx.registerAction("withdraw", async (...args: unknown[]) => {
+    ctx.framework.actions.register("withdraw", async (...args: unknown[]) => {
+      return runWrite(async () => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
-      const user = await ctx.services.chain.ensureWallet();
+      const user = await ctx.framework.chain.ensureWallet();
       workflowStatus.set(ctx.t("withdrawSubmitting"));
-      lastError.set("");
-      const result = await ctx.services.chain.invoke("withdraw", [
-        { type: "String", value: target },
-        { type: "Hash160", value: user },
-        { type: "Integer", value: wholeNeo(form.amount) },
+      const result = await ctx.framework.chain.invoke("withdraw", [
+        ctx.framework.chain.arg.string(target),
+        ctx.framework.chain.arg.hash160(user),
+        ctx.framework.chain.arg.integer(wholeNeo(form.amount)),
       ], anchorOptions({ waitForEvent: "AnchorStakeChanged" }));
       anchorAppId.set(target);
       lastTxid.set(result.txid);
       workflowStatus.set(ctx.t("withdrawSubmitted"));
       await loadData();
       return result;
+      });
     });
 
-    ctx.registerAction("claimRewards", async (...args: unknown[]) => {
+    ctx.framework.actions.register("claimRewards", async (...args: unknown[]) => {
+      return runWrite(async () => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
-      const user = await ctx.services.chain.ensureWallet();
+      const user = await ctx.framework.chain.ensureWallet();
       workflowStatus.set(ctx.t("claimSubmitting"));
-      lastError.set("");
-      const result = await ctx.services.chain.invoke("claimRewards", [
-        { type: "String", value: target },
-        { type: "Hash160", value: user },
+      const result = await ctx.framework.chain.invoke("claimRewards", [
+        ctx.framework.chain.arg.string(target),
+        ctx.framework.chain.arg.hash160(user),
       ], anchorOptions({ waitForEvent: "AnchorRewardsClaimed" }));
       anchorAppId.set(target);
       lastTxid.set(result.txid);
       workflowStatus.set(ctx.t("claimSubmitted"));
       await loadData();
       return result;
+      });
     });
 
-    ctx.registerAction("refreshAnchor", async (...args: unknown[]) => {
+    ctx.framework.actions.register("refreshAnchor", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = String(form.anchorAppId || anchorAppId.get() || "").trim();
       if (target) anchorAppId.set(targetAnchorId(target));
@@ -361,12 +402,13 @@ defineMiniApp({
     //   4. anchor.registerAgents(appId, accounts, candidates, scriptHashes)
     // Without steps 3-4 the anchor is born at agentCount = 0 (inert): staked
     // NEO neither votes nor earns. The appAdmin witness is the connected wallet.
-    ctx.registerAction("register", async (...args: unknown[]) => {
+    ctx.framework.actions.register("register", async (...args: unknown[]) => {
+      return runWrite(async () => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = strictAnchorId(form.anchorAppId);
       const contract = getMiniAppContractHash(appId);
       if (!contract) throw new Error("PlatformAnchor contract is not configured.");
-      const user = await ctx.services.chain.ensureWallet();
+      const user = await ctx.framework.chain.ensureWallet();
       const mode = stackNumber(form.mode) === 2 ? 2 : MODE_TRUST;
       // Exactly 21 valid compressed council candidate public keys (duplicates
       // allowed — RegisterAgents accepts repeats; mirrors the deploy default).
@@ -377,7 +419,8 @@ defineMiniApp({
       );
 
       // Source the AA core contract for the wallet's active network so the
-      // agent accounts register against the right deployment.
+      // agent accounts register against the right deployment. detectNetwork has
+      // no framework equivalent, so it stays on the raw chain service.
       const network = resolveNeoNetwork(await ctx.services.chain.detectNetwork());
       const aaCoreHash = EXTERNAL_INTEGRATIONS[network].contracts.aaCore;
       if (!/^0x[0-9a-fA-F]{40}$/.test(aaCoreHash)) {
@@ -401,23 +444,22 @@ defineMiniApp({
 
       // Reject re-registering an already-registered anchor before spending the fee.
       const existing = stackNumber(
-        await ctx.services.chain.read("getAppMode", [{ type: "String", value: target }], anchorOptions()),
+        await ctx.framework.chain.readRaw("getAppMode", [ctx.framework.chain.arg.string(target)], anchorOptions()),
       );
       if (existing > 0) throw new Error(ctx.t("anchorAlreadyRegistered"));
 
       workflowStatus.set(ctx.t("registerSubmitting"));
-      lastError.set("");
       // Step 1: top up the 1-GAS prepaid credit (only if the wallet lacks it).
       // The contract credits the deposit in OnNEP17Payment but emits no event,
       // so wait on the GAS transfer's on-chain confirmation (not a contract
       // event) before the register call consumes the credit.
       const haveGas = parseBigInt(gasCreditRaw.get());
       if (haveGas < BigInt(REGISTRATION_FEE_BASE)) {
-        const deposit = await ctx.services.chain.invoke("transfer", [
-          { type: "Hash160", value: user },
-          { type: "Hash160", value: contract },
-          { type: "Integer", value: REGISTRATION_FEE_BASE },
-          { type: "String", value: "" },
+        const deposit = await ctx.framework.chain.invoke("transfer", [
+          ctx.framework.chain.arg.hash160(user),
+          ctx.framework.chain.arg.hash160(contract),
+          ctx.framework.chain.arg.integer(REGISTRATION_FEE_BASE),
+          ctx.framework.chain.arg.string(""),
         ], {
           scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
         });
@@ -426,10 +468,10 @@ defineMiniApp({
         });
       }
       // Step 2: register the anchor app, consuming the prepaid credit.
-      const result = await ctx.services.chain.invoke("registerCustomAnchorApp", [
-        { type: "String", value: target },
-        { type: "Integer", value: String(mode) },
-        { type: "Hash160", value: user },
+      const result = await ctx.framework.chain.invoke("registerCustomAnchorApp", [
+        ctx.framework.chain.arg.string(target),
+        ctx.framework.chain.arg.integer(mode),
+        ctx.framework.chain.arg.hash160(user),
       ], anchorOptions({ waitForEvent: "AnchorAppRegistered" }));
       anchorAppId.set(target);
       lastTxid.set(result.txid);
@@ -437,7 +479,7 @@ defineMiniApp({
       // Step 3: register the 21 AA agent accounts with the AA core. No anchor
       // event fires here, so confirm the tx on-chain before binding agents.
       workflowStatus.set(ctx.t("registerProvisioningAccounts"));
-      const accountsTx = await ctx.services.chain.invoke(
+      const accountsTx = await ctx.framework.chain.invoke(
         registerAccountsCall.operation,
         toChainArgs(registerAccountsCall.args),
         { scriptHash: aaCoreHash },
@@ -449,7 +491,7 @@ defineMiniApp({
       // anchor. AnchorAgentRegistered fires per agent — wait on it so the
       // post-write refresh reads the settled agentCount.
       workflowStatus.set(ctx.t("registerProvisioningAgents"));
-      const agentsTx = await ctx.services.chain.invoke(
+      const agentsTx = await ctx.framework.chain.invoke(
         registerAgentsCall.operation,
         toChainArgs(registerAgentsCall.args),
         anchorOptions({ waitForEvent: "AnchorAgentRegistered" }),
@@ -460,35 +502,37 @@ defineMiniApp({
       await loadData();
       await loadDiscovered();
       return agentsTx;
+      });
     });
 
     // Reclaim stranded contract credit (NEO or GAS) via withdrawCredit.
-    ctx.registerAction("recoverCredit", async (...args: unknown[]) => {
+    ctx.framework.actions.register("recoverCredit", async (...args: unknown[]) => {
+      return runWrite(async () => {
       const asset = String((args[0] ?? "") as string) === "NEO" ? "NEO" : "GAS";
-      const user = await ctx.services.chain.ensureWallet();
+      const user = await ctx.framework.chain.ensureWallet();
       const raw = asset === "NEO" ? parseBigInt(neoCreditRaw.get()) : parseBigInt(gasCreditRaw.get());
       if (raw <= 0n) throw new Error(ctx.t("noCreditToRecover"));
       workflowStatus.set(ctx.t("recoverSubmitting"));
-      lastError.set("");
       // withdrawCredit transfers the asset back but emits no contract event, so
       // there is nothing app-scoped to wait on; the post-call loadCredits read
       // reflects the new (zeroed) balance.
-      const result = await ctx.services.chain.invoke("withdrawCredit", [
-        { type: "Hash160", value: user },
-        { type: "String", value: asset },
-        { type: "Integer", value: raw.toString() },
+      const result = await ctx.framework.chain.invoke("withdrawCredit", [
+        ctx.framework.chain.arg.hash160(user),
+        ctx.framework.chain.arg.string(asset),
+        ctx.framework.chain.arg.integer(raw),
       ], anchorOptions());
       lastTxid.set(result.txid);
       workflowStatus.set(ctx.t("recoverSubmitted"));
       await loadCredits();
       return result;
+      });
     });
 
-    ctx.registerAction("discoverAnchors", async () => {
+    ctx.framework.actions.register("discoverAnchors", async () => {
       await loadDiscovered();
     });
 
-    ctx.registerAction("selectAnchor", async (...args: unknown[]) => {
+    ctx.framework.actions.register("selectAnchor", async (...args: unknown[]) => {
       const target = String((args[0] ?? "") as string).trim();
       if (!target) return;
       anchorAppId.set(targetAnchorId(target));
@@ -509,6 +553,7 @@ defineMiniApp({
         workflowStatus,
         lastError,
         isLoading,
+        submitting,
         neoCredit,
         gasCredit,
         discoveredAnchors,

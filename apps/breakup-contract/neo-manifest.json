@@ -33,8 +33,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/breakup-contract/index.html",
-    "icon": "/miniapps/breakup-contract/logo.jpg",
-    "banner": "/miniapps/breakup-contract/banner.jpg"
+    "icon": "/miniapps/breakup-contract/logo.webp",
+    "banner": "/miniapps/breakup-contract/banner.webp"
   },
   "permissions": [
     "invoke:primary",

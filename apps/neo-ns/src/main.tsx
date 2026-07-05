@@ -20,7 +20,7 @@ defineMiniApp({
 
   setup(ctx) {
     const ns = useNeoNS({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -29,10 +29,10 @@ defineMiniApp({
     // switching wallets in the host no longer strands the previous account's
     // (or empty) list until a write action happens. Debounced to coalesce the
     // connect→address bursts a wallet emits.
-    let lastAddress = ctx.services.chain.address.get();
+    let lastAddress = ctx.framework.chain.address.get();
     let accountChangeTimer: ReturnType<typeof setTimeout> | null = null;
-    const unsubscribeAddress = ctx.services.chain.address.subscribe(() => {
-      const next = ctx.services.chain.address.get();
+    const unsubscribeAddress = ctx.framework.chain.address.subscribe(() => {
+      const next = ctx.framework.chain.address.get();
       if (next === lastAddress) return;
       lastAddress = next;
       if (accountChangeTimer) clearTimeout(accountChangeTimer);
@@ -41,7 +41,7 @@ defineMiniApp({
       }, 300);
     });
 
-    ctx.registerAction("searchDomain", async () => {
+    ctx.framework.actions.register("searchDomain", async () => {
       const query = (ns.searchQuery.get() as string).trim();
       if (!query) {
         ctx.setStatus(ctx.t("enterDomainNameError"), "error");
@@ -50,11 +50,11 @@ defineMiniApp({
       ns.searchDomain();
     });
 
-    ctx.registerAction("registerDomain", async () => {
+    ctx.framework.actions.register("registerDomain", async () => {
       await ctx.services.notify.guard(() => ns.registerDomain(), "registered");
     });
 
-    ctx.registerAction("fetchRenewPrice", async (domain: unknown) => {
+    ctx.framework.actions.register("fetchRenewPrice", async (domain: unknown) => {
       if (!domain) return 0;
       try {
         return await ns.getRenewPrice(domain as Domain);
@@ -63,12 +63,12 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("handleRenew", async (domain: unknown) => {
+    ctx.framework.actions.register("handleRenew", async (domain: unknown) => {
       if (!domain) return;
       await ctx.services.notify.guard(() => ns.renewDomain(domain as Domain), "renewed");
     });
 
-    ctx.registerAction("handleSetTarget", async (targetAddress: unknown) => {
+    ctx.framework.actions.register("handleSetTarget", async (targetAddress: unknown) => {
       if (!targetAddress || !ns.managingDomain.get()) return;
       await ctx.services.notify.guard(async () => {
         await ns.setRecord(ns.managingDomain.get()!, String(targetAddress));
@@ -76,7 +76,7 @@ defineMiniApp({
       }, "targetSet");
     });
 
-    ctx.registerAction("handleTransfer", async (transferAddress: unknown) => {
+    ctx.framework.actions.register("handleTransfer", async (transferAddress: unknown) => {
       if (!transferAddress || !ns.managingDomain.get()) return;
       await ctx.services.notify.guard(async () => {
         await ns.transferDomain(ns.managingDomain.get()!, String(transferAddress));
@@ -84,17 +84,17 @@ defineMiniApp({
       }, "transferred");
     });
 
-    ctx.registerAction("showManage", async (domain?: unknown) => {
+    ctx.framework.actions.register("showManage", async (domain?: unknown) => {
       if (domain) ns.showManage(domain as Domain);
     });
 
-    ctx.registerAction("cancelManage", async () => {
+    ctx.framework.actions.register("cancelManage", async () => {
       ns.cancelManage();
     });
 
     return {
       state: {
-        address: ctx.services.chain.address,
+        address: ctx.framework.chain.address,
         domainCount: ns.domainCount,
         walletStatus: ns.walletStatus,
         expiringSoon: ns.expiringSoon,

@@ -23,8 +23,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/neo-treasury/index.html",
-    "icon": "/miniapps/neo-treasury/logo.jpg",
-    "banner": "/miniapps/neo-treasury/banner.jpg"
+    "icon": "/miniapps/neo-treasury/logo.webp",
+    "banner": "/miniapps/neo-treasury/banner.webp"
   },
   "permissions": [
     "invoke:primary",

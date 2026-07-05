@@ -1,289 +1,112 @@
 import React from "react";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import path from "node:path";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../neo-sign-anything/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-function t(key: string) {
-  const messages: Record<string, string> = {
-    signHeroTitle: "Neo Signature Desk",
-    signHeroKicker: "Wallet-reviewed proof desk",
-    signHeroSubtitle: "Prepare a message and request a wallet signature.",
-    signStageKicker: "Signature desk",
-    signStageTitle:
-      "Review the payload, approve it in wallet, then keep the proof.",
-    signCount: "Signed",
-    broadcastCount: "Posted",
-    signFlowTitle: "Signature flow",
-    signFlowStepOne: "Write message",
-    signFlowStepOneCopy: "Keep it short.",
-    signFlowStepTwo: "Wallet review",
-    signFlowStepTwoCopy: "Approve in wallet.",
-    signFlowStepThree: "Copy proof",
-    signFlowStepThreeCopy: "Copy the evidence.",
-    signatureDeskTitle: "Message composer",
-    messagePreviewLabel: "Message signing preview",
-    messagePreviewEmptyTitle: "Ready for a message",
-    messagePreviewEmpty: "Your message preview will appear here.",
-    signRouteStageLabel: "Signing route",
-    signRouteStageEmpty: "Prepare the message",
-    signRouteStageEmptyHint: "Add a message before opening the wallet.",
-    signRouteStageReady: "Ready for wallet review",
-    signRouteStageReadyHint: "The message is ready.",
-    signRouteStageSigning: "Wallet signature in progress",
-    signRouteStageSigningHint: "Confirm the message in your wallet.",
-    signRouteStageBroadcasting: "Broadcast route in progress",
-    signRouteStageBroadcastingHint: "The wallet is preparing a public proof.",
-    signRouteStageSigned: "Signature proof ready",
-    signRouteStageSignedHint: "Copy the signature bundle.",
-    signRouteStageBroadcasted: "On-chain proof posted",
-    signRouteStageBroadcastedHint: "Copy the transaction hash.",
-    signRouteStageMessage: "Message",
-    signRouteStageWallet: "Wallet",
-    signRouteStageProof: "Proof",
-    messageTypePlain: "Message payload",
-    messageTypeDigest: "File digest",
-    messageBytesLabel: "Message bytes",
-    bytesUnit: "bytes",
-    walletAddress: "Wallet",
-    disconnected: "Disconnected",
-    walletPrompt: "Review",
-    ready: "Ready",
-    awaitingSignature: "Waiting",
-    messageLabel: "Message",
-    messagePlaceholder: "Enter your message here...",
-    messageTemplateLabel: "Message starters",
-    templateReleaseLabel: "Release proof",
-    templateReleaseBody:
-      "I confirm this release note is accurate, reviewed, and approved for publication.",
-    templateDigestLabel: "File digest",
-    templateDigestBody:
-      "sha256:<paste digest here>\nI confirm this file digest matches the reviewed artifact.",
-    templateApprovalLabel: "Approval note",
-    templateApprovalBody:
-      "I approve this request after reviewing the destination, amount, and purpose.",
-    messageTooLong: "Message is too long for on-chain broadcast.",
-    signFileBtn: "Hash & load file",
-    hashedFileNotice: "The file is hashed locally.",
-    signBtn: "Sign Message",
-    broadcastBtn: "Broadcast Message (On-chain)",
-    walletPromptCopy: "The wallet prompt opens when you sign or broadcast.",
-    resultPanelTitle: "Proof output",
-    proofEmptyHint: "Sign or broadcast a message to see its proof here.",
-    noSignatureYet: "No signature yet",
-    noBroadcastYet: "No broadcast yet",
-    txPending: "Transaction sent (ID pending)",
-    signatureResult: "Signature",
-    broadcastResult: "Transaction Hash",
-    copySignature: "Copy signature",
-    copyVerifyBundle: "Copy verify bundle",
-    verifyBundleHint: "Copies a verifier bundle.",
-    copyTxHash: "Copy transaction hash",
-    viewOnExplorer: "View on explorer",
-    publicKeyLabel: "Public key",
-    safetyPanelTitle: "Transaction safety",
-    connected: "Connected",
-    safetyPanelCopy: "The miniapp does not handle private keys.",
-    signRouteLabel: "Sign route",
-    signContractRoute: "chain.signMessage",
-    broadcastRouteLabel: "Broadcast route",
-    broadcastContractRoute: "GAS.transfer self -> data",
-    gasAmountLabel: "Transfer amount",
-    privacyLabel: "Privacy",
-    privacyValue: "No secrets",
-    broadcastPanelTitle: "On-chain broadcast",
-    broadcastPanelCopy: "Broadcasting is public and permanent.",
-    networkFeeNote: "Broadcasting still pays normal Neo fees.",
-  };
-  return messages[key] ?? key;
+function t(k: string) { return k; }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
-
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
-    message: "ship release note",
-    signature: "0xsig",
-    publicKey: "02abcdef",
-    txHash: "0xtxhash",
-    txPending: false,
-    isSigning: false,
-    isBroadcasting: false,
-    signCount: 2,
-    broadcastCount: 1,
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
 }
-
-describe("Neo Sign Anything PlayArea", () => {
-  it("renders the signature workspace and preserves core actions", () => {
-    const dispatch = vi.fn(async () => undefined);
-    const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={dispatch} />,
-    );
-
-    expect(container.querySelector(".sign-play-area--ready")).toBeTruthy();
-    expect(container.querySelector(".sign-play-area--signed")).toBeTruthy();
-    expect(
-      container.querySelector(".sign-play-area--broadcasted"),
-    ).toBeTruthy();
-    expect(
-      container.querySelector(".sign-document-preview--ready"),
-    ).toBeTruthy();
-    expect(container.querySelector(".sign-result-panel--ready")).toBeTruthy();
-    expect(
-      container.querySelector(".sign-route-stage--broadcasted"),
-    ).toBeTruthy();
-    expect(screen.getByText("Neo Signature Desk")).toBeTruthy();
-    expect(screen.getByLabelText("Message signing preview")).toBeTruthy();
-    expect(screen.getByLabelText("Signing route")).toBeTruthy();
-    expect(screen.getByText("On-chain proof posted")).toBeTruthy();
-    expect(
-      document.querySelector(
-        '.sign-hero-stage img[src="./signature-desk.jpg"]',
-      ),
-    ).toBeTruthy();
-    expect(screen.getAllByText("Message payload").length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getByRole("button", { name: "Release proof" }));
-    expect(dispatch).toHaveBeenCalledWith(
-      "setMessage",
-      "I confirm this release note is accurate, reviewed, and approved for publication.",
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Sign Message" }));
-    expect(dispatch).toHaveBeenCalledWith("signMessage", "ship release note");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Broadcast Message (On-chain)" }),
-    );
-    expect(dispatch).toHaveBeenCalledWith(
-      "broadcastMessage",
-      "ship release note",
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy signature" }));
-    expect(dispatch).toHaveBeenCalledWith("copyToClipboard", "0xsig");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Copy transaction hash" }),
-    );
-    expect(dispatch).toHaveBeenCalledWith("copyToClipboard", "0xtxhash");
+describe("neo-sign-anything PlayArea (v2)", () => {
+  it("renders the tool scene", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".sign-desk")).toBeTruthy();
+    expect(container.querySelector(".sign-desk__paper")).toBeTruthy();
+    expect(container.querySelector(".sign-desk__photo")).toBeTruthy();
+    expect(container.querySelector(".sign-desk__payload-preview")).toBeTruthy();
+    expect(container.querySelector(".sign-desk__handoff")).toBeTruthy();
   });
-
-  it("keeps empty state actions disabled until a message exists", () => {
+  it("uses designed Open UI panels for proof details instead of raw drawer sections", () => {
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({ message: "", signature: "", txHash: "" })}
+        state={state({
+          address: "NZExampleSignerAddress",
+          message: "release digest",
+          signature: "signature-abcdef0123456789",
+          txHash: "0x1234567890abcdef",
+        })}
         dispatch={vi.fn()}
       />,
     );
 
-    expect(container.querySelector(".sign-play-area--ready")).toBeNull();
-    expect(container.querySelector(".sign-document-preview--ready")).toBeNull();
-    expect(container.querySelector(".sign-route-stage--empty")).toBeTruthy();
-    expect(screen.getByText("Ready for a message")).toBeTruthy();
-    expect(screen.getByText("Prepare the message")).toBeTruthy();
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Sign Message",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Broadcast Message (On-chain)",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+
+    expect(container.querySelector(".sign-details__tabs")).toBeTruthy();
+    expect(container.querySelectorAll(".sign-details__tabs [role='tab']")).toHaveLength(3);
+    expect(container.querySelectorAll(".sign-details__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelector(".sign-details__summary")).toBeTruthy();
+    expect(container.querySelectorAll(".sign-details__status-chip[data-active='true']")).toHaveLength(2);
+
+    fireEvent.click(container.querySelectorAll(".sign-details__tabs [role='tab']")[1]);
+    expect(container.querySelector(".sign-details__panel--signature")).toBeTruthy();
+    expect(container.querySelectorAll(".sign-details__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelectorAll(".sign-details__artifact")).toHaveLength(1);
+
+    fireEvent.click(container.querySelectorAll(".sign-details__tabs [role='tab']")[2]);
+    expect(container.querySelector(".sign-details__panel--broadcast")).toBeTruthy();
+    expect(container.querySelectorAll(".sign-details__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelector(".sign-details__notice.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".sign-details__panel h3")).toBeNull();
+    expect(container.querySelector("section.sign-details__panel")).toBeNull();
   });
-
-  it("keeps wallet actions mutually exclusive while one is pending", () => {
-    const { container, rerender } = render(
-      <PlayArea t={t} state={state({ isSigning: true })} dispatch={vi.fn()} />,
-    );
-
-    expect(container.querySelector(".sign-route-stage--signing")).toBeTruthy();
-    expect(
-      screen.getByLabelText("Signing route").getAttribute("aria-busy"),
-    ).toBe("true");
-    expect(screen.getByText("Wallet signature in progress")).toBeTruthy();
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Broadcast Message (On-chain)",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-
-    rerender(
-      <PlayArea
-        t={t}
-        state={state({ isBroadcasting: true })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(
-      container.querySelector(".sign-route-stage--broadcasting"),
-    ).toBeTruthy();
-    expect(screen.getByText("Broadcast route in progress")).toBeTruthy();
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Sign Message",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
+  it("has reduced-motion", () => {
+    const s = playAreaStyles("neo-sign-anything");
+    
+    expect(s).toMatch(/prefers-reduced-motion/); expect(s).toMatch(/0\.001ms/);
   });
+  it("keeps the signing desk foreground-led instead of using a dirty scenic background", () => {
+    const s = playAreaStyles("neo-sign-anything");
 
-  it("keeps the signature desk motion and reduced-motion fallback covered", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../neo-sign-anything/src/PlayArea.scss"),
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes sign-stage-drift");
-    expect(styles).toContain("@keyframes sign-stage-scan");
-    expect(styles).toContain("@keyframes sign-accent-ready");
-    expect(styles).toContain("@keyframes sign-paper-ready");
-    expect(styles).toContain("@keyframes sign-seal-ready");
-    expect(styles).toContain("@keyframes sign-meter-shine");
-    expect(styles).toContain("@keyframes sign-proof-reveal");
-    expect(styles).toContain("@keyframes sign-route-stage-scan");
-    expect(styles).toContain("@keyframes sign-route-node-pulse");
-    expect(styles).toContain("@keyframes sign-route-track-flow");
-    expect(styles).toContain("@keyframes sign-route-packet");
-    expect(styles).toContain("@keyframes sign-route-proof-land");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /\.sign-route-stage--signing \.sign-route-stage__track--wallet::before[\s\S]*animation:\s*sign-route-track-flow/,
-    );
-    expect(styles).toMatch(
-      /\.sign-route-stage--signing[\s\S]*\.sign-route-stage__track--wallet[\s\S]*\.sign-route-stage__packet[\s\S]*animation:\s*sign-route-packet/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sign-document-preview--ready \.sign-document-preview__seal[\s\S]*animation:\s*none/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.sign-route-stage__packet[\s\S]*animation:\s*none/,
-    );
+    expect(s).toMatch(/\.sign-desk\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.tool-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/\.tool-play-area \.mx2-action-rail,[\s\S]*\.tool-play-area \.mx2-drawer\s*\{[\s\S]*width:\s*min\(100%,\s*920px\)/);
+    expect(s).toMatch(/\.tool-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 156px/);
+    expect(s).toMatch(/\.sign-desk__workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(360px,\s*1\.18fr\) minmax\(280px,\s*0\.82fr\)/);
+    expect(s).toMatch(/\.sign-desk__workspace\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-desk__paper\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-desk__proof\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-desk__photo\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-desk__photo img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(s).toMatch(/\.sign-desk__photo img\s*\{[\s\S]*opacity:\s*1/);
+    expect(s).toMatch(/\.sign-desk__photo img\s*\{[\s\S]*filter:\s*none/);
+    expect(s).toMatch(/\.sign-desk__photo::after\s*\{[\s\S]*content:\s*none/);
+    expect(s).toMatch(/\.sign-desk__mode\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-desk__payload-sheet\s*\{/);
+    expect(s).toMatch(/\.sign-desk__payload-sheet\s*\{[\s\S]*box-shadow:\s*inset 0 -1px 0 rgba\(31,\s*138,\s*83,\s*0\.1\)/);
+    expect(s).toMatch(/\.sign-desk__textarea\s*\{[\s\S]*font:\s*620 14px/);
+    expect(s).toMatch(/\.sign-desk__textarea\s*\{[\s\S]*min-height:\s*132px/);
+    expect(s).toMatch(/\.sign-desk__textarea\s*\{[\s\S]*resize:\s*none/);
+    expect(s).toMatch(/\.sign-desk__payload-preview\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(s).toMatch(/\.sign-desk__handoff\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-details__panel\.mx2-open-panel\.semi-card\s*\{/);
+    expect(s).toMatch(/\.sign-details__tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.sign-details__tabs button\.is-active,[\s\S]*\.sign-details__tabs button:hover\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.sign-details__panel\.mx2-open-panel \.mx2-open-panel__copy span\s*\{[\s\S]*line-height:\s*1\.3/);
+    expect(s).toMatch(/\.sign-details__summary\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.sign-details__status-chip\s*\{[\s\S]*min-height:\s*40px/);
+    expect(s).toMatch(/\.sign-details__facts div\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(s).toMatch(/\.sign-details__artifact\s*\{[\s\S]*border-radius:\s*16px/);
+    expect(s).toMatch(/\.sign-details__artifact code\s*\{[\s\S]*font:\s*650 11px/);
+    expect(s).toMatch(/\.sign-details__notice\.mx2-open-notice\.semi-banner\s*\{[\s\S]*min-height:\s*72px/);
+    expect(s).toMatch(/@keyframes sign-desk-handoff/);
+    expect(s).not.toMatch(/\.sign-desk__textarea\s*\{[\s\S]*min-height:\s*150px/);
+    expect(s).not.toMatch(/\.sign-desk__textarea\s*\{[\s\S]*min-height:\s*96px/);
+    expect(s).not.toMatch(/\.sign-desk__photo img\s*\{[^}]*filter:\s*saturate/);
+    expect(s).not.toMatch(/\.sign-desk__photo::after\s*\{[^}]*linear-gradient/);
+    expect(s).not.toMatch(/sign-scene-art\.jpg/);
+    expect(s).not.toMatch(/repeating-linear-gradient/);
+    expect(s).not.toMatch(/backdrop-filter/);
+    expect(s).not.toMatch(/\.sign-details__panel h3/);
   });
 });

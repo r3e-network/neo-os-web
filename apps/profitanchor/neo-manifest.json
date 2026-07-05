@@ -66,8 +66,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/profitanchor/index.html",
-    "icon": "/miniapps/profitanchor/logo.jpg",
-    "banner": "/miniapps/profitanchor/banner.jpg"
+    "icon": "/miniapps/profitanchor/logo.webp",
+    "banner": "/miniapps/profitanchor/banner.webp"
   },
   "permissions": [
     "invoke:primary",

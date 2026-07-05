@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createMiniAppFramework } from "../../../framework";
 
 const harness = vi.hoisted(() => {
   function observable<T>(initial: T) {
@@ -116,7 +117,7 @@ vi.mock("../../dev-tipping/src/composables/useDevTippingWallet", () => ({
 }));
 
 function buildCtx(registeredActions: Map<string, (...args: unknown[]) => Promise<unknown>>) {
-  return {
+  const ctx = {
     os: {},
     services: {
       chain: {},
@@ -127,6 +128,10 @@ function buildCtx(registeredActions: Map<string, (...args: unknown[]) => Promise
     registerAction: (key: string, handler: (...args: unknown[]) => Promise<unknown>) => {
       registeredActions.set(key, handler);
     },
+  };
+  return {
+    ...ctx,
+    framework: createMiniAppFramework(ctx as never, { appId: "miniapp-dev-tipping" }),
   };
 }
 

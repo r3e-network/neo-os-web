@@ -32,8 +32,8 @@ describe("miniapp-definitions loader", () => {
           entry_url: "mf://manifest?app=miniapp-neo-swap",
           content: {
             category: "defi",
-            logo_url: "/miniapp-assets/neo-swap/logo.jpg",
-            banner_url: "/miniapp-assets/neo-swap/banner.jpg",
+            logo_url: "/miniapp-assets/neo-swap/logo.webp",
+            banner_url: "/miniapp-assets/neo-swap/banner.webp",
           },
           frontend_spec: {
             format: "markdown",
@@ -53,8 +53,8 @@ describe("miniapp-definitions loader", () => {
         app_id: "miniapp-neo-swap",
         name: "Neo Swap",
         category: "defi",
-        logo_url: "/miniapp-assets/neo-swap/logo.jpg",
-        banner_url: "/miniapp-assets/neo-swap/banner.jpg",
+        logo_url: "/miniapp-assets/neo-swap/logo.webp",
+        banner_url: "/miniapp-assets/neo-swap/banner.webp",
       }),
     );
     expect(getApp(apps, "miniapp-neo-swap")?.detail_template?.tabs?.[0]).toEqual(
@@ -132,8 +132,8 @@ describe("miniapp-definitions loader", () => {
           name: "On-chain Tarot",
           urls: {
             entry: "/miniapps/on-chain-tarot/index.html",
-            icon: "/miniapps/on-chain-tarot/logo.jpg",
-            banner: "/miniapps/on-chain-tarot/banner.jpg",
+            icon: "/miniapps/on-chain-tarot/logo.webp",
+            banner: "/miniapps/on-chain-tarot/banner.webp",
           },
         },
         null,
@@ -147,8 +147,8 @@ describe("miniapp-definitions loader", () => {
       expect.objectContaining({
         entry_url: "mf://manifest?app=miniapp-onchaintarot",
         dapp_url: "/miniapps/on-chain-tarot/index.html",
-        logo_url: "/miniapp-assets/on-chain-tarot/logo.jpg",
-        banner_url: "/miniapp-assets/on-chain-tarot/banner.jpg",
+        logo_url: "/miniapp-assets/on-chain-tarot/logo.webp",
+        banner_url: "/miniapp-assets/on-chain-tarot/banner.webp",
       }),
     );
   });
@@ -659,7 +659,7 @@ describe("miniapp-definitions loader", () => {
         "    template_id: prediction-binary",
         "    version: 1.0.0",
         "media:",
-        "  logo: https://cdn.example.com/yaml/logo.png",
+        "  logo: https://cdn.example.com/yaml/logo.webp",
         "  banner: https://cdn.example.com/yaml/banner.png",
         "  logo_variants:",
         "    - url: https://cdn.example.com/yaml/logo-dark.png",

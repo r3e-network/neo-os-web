@@ -59,7 +59,7 @@ describe("POST /api/miniapps/admin/media/upload-url", () => {
         app_id: "miniapp-a",
         asset_type: "logo",
         content_type: "image/png",
-        file_name: "logo.png",
+        file_name: "logo.webp",
         variant: { theme: "dark", density: "2x" },
       }),
     );

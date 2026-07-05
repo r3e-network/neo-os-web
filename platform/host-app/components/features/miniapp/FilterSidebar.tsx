@@ -43,7 +43,7 @@ export function FilterSidebar({
       tabIndex={0}
     >
       <div className="p-6">
-        <h2 className="text-sm font-black text-gray-500 uppercase mb-6 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase mb-6 flex items-center gap-2">
           Filters
           <div className="h-px bg-gray-200 flex-1" />
         </h2>

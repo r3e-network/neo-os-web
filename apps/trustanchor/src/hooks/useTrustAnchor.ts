@@ -3,10 +3,13 @@
  *
  * TrustAnchor uses explicit admin-operated AA agent routing. Rebalancing
  * is a deliberate transfer between candidate agents, never an auto strategy.
+ *
+ * All on-chain reads/writes go through the MiniApp framework SDK (ctx.framework).
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { getMiniAppContractHash } from "@shared/constants/rpc";
 import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
@@ -37,7 +40,8 @@ export interface AnchorAdminInfo {
 }
 
 export interface UseTrustAnchorOptions {
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -127,7 +131,7 @@ function normalizeHash160OrAddress(input: unknown, t: Translate): string {
   throw new Error(t("invalidAgentAccount"));
 }
 
-export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
+export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
   const isLoading = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
@@ -142,15 +146,15 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const loadMyStake = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       myStake.set(0);
       return;
     }
     try {
-      const result = await chain.read("getUserStake", [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: addr },
+      const result = await app.chain.readRaw("getUserStake", [
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(addr),
       ], anchorOptions());
       myStake.set(asNumber(result));
     } catch (e) {
@@ -162,15 +166,15 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const loadPendingRewards = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       pendingRewards.set(0);
       return;
     }
     try {
-      const result = await chain.read("getPendingRewards", [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: addr },
+      const result = await app.chain.readRaw("getPendingRewards", [
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(addr),
       ], anchorOptions());
       pendingRewards.set(asNumber(result) / GAS_DECIMALS);
     } catch (e) {
@@ -182,15 +186,15 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const loadPendingWithdraw = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       pendingWithdraw.set(0);
       return;
     }
     try {
-      const result = await chain.read("getCredit", [
-        { type: "Hash160", value: addr },
-        { type: "String", value: "NEO" },
+      const result = await app.chain.readRaw("getCredit", [
+        app.chain.arg.hash160(addr),
+        app.chain.arg.string("NEO"),
       ], anchorOptions());
       pendingWithdraw.set(asNumber(result));
     } catch (e) {
@@ -203,8 +207,8 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
 
   const loadStats = async () => {
     try {
-      const result = await chain.read("getAnchorStats", [
-        { type: "String", value: APP_ID },
+      const result = await app.chain.readRaw("getAnchorStats", [
+        app.chain.arg.string(APP_ID),
       ], anchorOptions());
       stats.set({
         totalStaked: asNumber(asMapValue(result, "totalStaked")),
@@ -226,17 +230,17 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   // is the per-app operator. Either witness authorizes the admin console paths.
   const loadAdmin = async () => {
     try {
-      const [platform, app] = await Promise.all([
-        chain.read("admin", [], anchorOptions()),
-        chain.read(
+      const [platform, appAdminRaw] = await Promise.all([
+        app.chain.readRaw("admin", [], anchorOptions()),
+        app.chain.readRaw(
           "getAppAdmin",
-          [{ type: "String", value: APP_ID }],
+          [app.chain.arg.string(APP_ID)],
           anchorOptions(),
         ),
       ]);
       adminInfo.set({
         platformAdmin: parseHash160(platform),
-        appAdmin: parseHash160(app),
+        appAdmin: parseHash160(appAdminRaw),
       });
     } catch (e) {
       console.warn(
@@ -251,9 +255,9 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   const loadAgents = async () => {
     try {
       const count = asNumber(
-        await chain.read(
+        await app.chain.readRaw(
           "getAgentCount",
-          [{ type: "String", value: APP_ID }],
+          [app.chain.arg.string(APP_ID)],
           anchorOptions(),
         ),
       );
@@ -264,11 +268,11 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       const reads = [];
       for (let id = 1; id <= count; id += 1) {
         reads.push(
-          chain.read(
+          app.chain.readRaw(
             "getAgent",
             [
-              { type: "String", value: APP_ID },
-              { type: "Integer", value: id },
+              app.chain.arg.string(APP_ID),
+              app.chain.arg.integer(id),
             ],
             anchorOptions(),
           ),
@@ -313,7 +317,7 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   const isAdmin = (): boolean | null => {
     const info = adminInfo.get();
     if (!info) return null;
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) return false;
     const myHash = addressToScriptHash(addr).toLowerCase();
     if (!myHash) return false;
@@ -324,17 +328,17 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const stakeNeo = async (amountInput: unknown) => {
-    const user = await chain.ensureWallet();
-    const contract = getMiniAppContractHash(APP_ID) || chain.contractAddress.get();
+    const user = await app.chain.ensureWallet();
+    const contract = getMiniAppContractHash(APP_ID) || app.chain.contractAddress.get();
     if (!contract) throw new Error(t("missingContract"));
     const amount = normalizeWholeNeo(amountInput, t);
-    const result = await chain.invoke(
+    const result = await app.chain.invoke(
       "transfer",
       [
-        { type: "Hash160", value: user },
-        { type: "Hash160", value: contract },
-        { type: "Integer", value: amount },
-        { type: "String", value: `stake:${APP_ID}` },
+        app.chain.arg.hash160(user),
+        app.chain.arg.hash160(contract),
+        app.chain.arg.integer(amount),
+        app.chain.arg.string(`stake:${APP_ID}`),
       ],
       {
         scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
@@ -348,14 +352,14 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const withdrawNeo = async (amountInput: unknown) => {
-    const user = await chain.ensureWallet();
+    const user = await app.chain.ensureWallet();
     const amount = normalizeWholeNeo(amountInput, t);
-    const result = await chain.invoke(
+    const result = await app.chain.invoke(
       "withdraw",
       [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: user },
-        { type: "Integer", value: amount },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(user),
+        app.chain.arg.integer(amount),
       ],
       {
         ...anchorOptions(),
@@ -369,12 +373,12 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const claimRewards = async () => {
-    const user = await chain.ensureWallet();
-    const result = await chain.invoke(
+    const user = await app.chain.ensureWallet();
+    const result = await app.chain.invoke(
       "claimRewards",
       [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: user },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(user),
       ],
       {
         ...anchorOptions(),
@@ -391,17 +395,17 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   // the "stake:<appId>" memo). withdrawCredit(user,"NEO",amount) is witness-
   // gated to the user and transfers the NEO back from the contract balance.
   const recoverNeoCredit = async () => {
-    const user = await chain.ensureWallet();
+    const user = await app.chain.ensureWallet();
     const amount = pendingWithdraw.get();
     if (!Number.isInteger(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
-    const result = await chain.invoke(
+    const result = await app.chain.invoke(
       "withdrawCredit",
       [
-        { type: "Hash160", value: user },
-        { type: "String", value: "NEO" },
-        { type: "Integer", value: amount },
+        app.chain.arg.hash160(user),
+        app.chain.arg.string("NEO"),
+        app.chain.arg.integer(amount),
       ],
       anchorOptions(),
     );
@@ -415,18 +419,18 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
     toAgentIdInput: unknown,
     amountInput: unknown,
   ) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const fromAgentId = normalizeAgentId(fromAgentIdInput, t);
     const toAgentId = normalizeAgentId(toAgentIdInput, t);
     const amount = normalizeWholeNeo(amountInput, t);
     if (fromAgentId === toAgentId) throw new Error(t("sameAgent"));
-    await chain.invoke(
+    await app.chain.invoke(
       "transferAgentNeo",
       [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: fromAgentId },
-        { type: "Integer", value: toAgentId },
-        { type: "Integer", value: amount },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.integer(fromAgentId),
+        app.chain.arg.integer(toAgentId),
+        app.chain.arg.integer(amount),
       ],
       anchorOptions(),
     );
@@ -443,14 +447,15 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
     agentIdInput: unknown,
     candidateInput: unknown,
   ) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
-    await chain.invoke(
+    // PublicKey has no framework arg builder — keep the literal contract arg.
+    await app.chain.invoke(
       "setAgentCandidate",
       [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: agentId },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.integer(agentId),
         { type: "PublicKey", value: candidate },
       ],
       anchorOptions(),
@@ -464,13 +469,13 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   const voteAgent = async (agentIdInput: unknown) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput, t);
-    await chain.invoke(
+    await app.chain.invoke(
       "voteAgent",
       [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: agentId },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.integer(agentId),
       ],
       anchorOptions(),
     );
@@ -483,17 +488,18 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
     candidateInput: unknown,
     verificationScriptHashInput: unknown,
   ) => {
-    await chain.ensureWallet();
+    await app.chain.ensureWallet();
     const agentAccount = normalizeHash160OrAddress(agentAccountInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
     const verificationScriptHash = normalizeHex(verificationScriptHashInput, t);
-    await chain.invoke(
+    // PublicKey has no framework arg builder — keep the literal contract arg.
+    await app.chain.invoke(
       "registerAgent",
       [
-        { type: "String", value: APP_ID },
-        { type: "Hash160", value: agentAccount },
+        app.chain.arg.string(APP_ID),
+        app.chain.arg.hash160(agentAccount),
         { type: "PublicKey", value: candidate },
-        { type: "ByteArray", value: verificationScriptHash },
+        app.chain.arg.byteArray(verificationScriptHash),
       ],
       anchorOptions(),
     );

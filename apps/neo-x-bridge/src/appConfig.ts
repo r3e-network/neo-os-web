@@ -252,6 +252,7 @@ const appMessages = {
   statEndpoint: { en: "Console", zh: "控制台" },
   statRequests: { en: "Operations", zh: "操作数" },
   statDigest: { en: "Digest", zh: "摘要" },
+  bridgeEnvironmentLabel: { en: "Environment", zh: "环境" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   lastRoute: { en: "Route", zh: "路径" },
   emptyPayload: {

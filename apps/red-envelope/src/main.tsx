@@ -23,13 +23,13 @@ defineMiniApp({
         launchParams.packet,
     );
     const envelope = useRedEnvelope({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t,
     });
 
     envelope.setAddress(ctx.services.chain.address.get() ?? null);
 
-    ctx.registerAction("createEnvelope", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createEnvelope", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
         amount?: string;
         count?: string;
@@ -47,7 +47,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("claimEnvelope", async (...args: unknown[]) => {
+    ctx.framework.actions.register("claimEnvelope", async (...args: unknown[]) => {
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
@@ -58,7 +58,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("reclaimEnvelope", async (...args: unknown[]) => {
+    ctx.framework.actions.register("reclaimEnvelope", async (...args: unknown[]) => {
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
@@ -74,7 +74,7 @@ defineMiniApp({
       });
     });
 
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(async () => {
         const { amount } = await envelope.withdrawCredit();
         if (amount > 0) {
@@ -86,7 +86,7 @@ defineMiniApp({
       });
     });
 
-    ctx.registerAction("dismissOverlay", async () => {
+    ctx.framework.actions.register("dismissOverlay", async () => {
       envelope.luckyMessage.set(null);
     });
 
@@ -94,7 +94,7 @@ defineMiniApp({
     // the distribution step the product is named for. The recipient opens the
     // link and the envelope id prefills their claim field (see PlayArea launch
     // params: envelopeId/poolId/id/packet).
-    ctx.registerAction("shareEnvelope", async (...args: unknown[]) => {
+    ctx.framework.actions.register("shareEnvelope", async (...args: unknown[]) => {
       const first = args[0];
       const form = first && typeof first === "object" ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? first ?? envelope.lastCreatedEnvelopeId.get() ?? "").trim();
@@ -103,7 +103,7 @@ defineMiniApp({
       await ctx.services.clipboard.copy(deeplink, "shareLinkCopied");
     });
 
-    ctx.registerAction("dismissShare", async () => {
+    ctx.framework.actions.register("dismissShare", async () => {
       envelope.lastCreatedEnvelopeId.set("");
     });
 

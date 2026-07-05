@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useNeoPayApp } from "../../neo-pay/src/composables/useNeoPayApp";
 import { deriveSchedule } from "../../neo-pay/src/composables/deriveSchedule";
+import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -65,7 +66,14 @@ function makeChain() {
 
 function setup() {
   const { chain, invoke, read, readArray } = makeChain();
-  const app = useNeoPayApp({ chain, t });
+  // The composable consumes the framework SDK for chain/arg/amount, plus the raw
+  // chain for readArray (no framework equivalent). Build the framework from the
+  // same mock chain so recorded read/invoke calls are byte-identical.
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-neo-pay" },
+  );
+  const app = useNeoPayApp({ app: framework, chain, t });
   return { app, chain, invoke, read, readArray };
 }
 
@@ -427,6 +435,12 @@ describe("deriveSchedule (form -> contract rate)", () => {
   it("uses an integer per-day NEO rate when total >= days", () => {
     const { rate, intervalDays } = deriveSchedule("30", "10", "NEO");
     expect(rate).toBe("3");
+    expect(intervalDays).toBe("1");
+  });
+
+  it("does not truncate fractional NEO into a valid schedule", () => {
+    const { rate, intervalDays } = deriveSchedule("1.5", "10", "NEO");
+    expect(rate).toBe("0");
     expect(intervalDays).toBe("1");
   });
 });

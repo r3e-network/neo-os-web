@@ -23,8 +23,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-dice-game",
   "media": {
-    "icon": "/miniapp-assets/dice-game/logo.svg",
-    "banner": "/miniapp-assets/dice-game/banner.svg"
+    "icon": "/miniapp-assets/dice-game/logo.webp",
+    "banner": "/miniapp-assets/dice-game/banner.webp"
   },
   "permissions": {
     "payments": true,

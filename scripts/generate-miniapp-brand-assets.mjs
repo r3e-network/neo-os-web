@@ -320,10 +320,8 @@ async function writeOptimizedRasters(app, logo, banner) {
   const logoImage = sharp(Buffer.from(logo)).resize(512, 512, { fit: "cover" });
   const bannerImage = sharp(Buffer.from(banner)).resize(1440, 640, { fit: "cover" });
 
-  writeBinary(`${base}/logo.jpg`, await logoImage.clone().jpeg({ quality: 88, mozjpeg: true }).toBuffer());
   writeBinary(`${base}/logo.webp`, await logoImage.clone().webp({ quality: 84 }).toBuffer());
   writeBinary(`${base}/logo.avif`, await logoImage.clone().avif({ quality: 70, effort: 6 }).toBuffer());
-  writeBinary(`${base}/banner.jpg`, await bannerImage.clone().jpeg({ quality: 86, mozjpeg: true }).toBuffer());
   writeBinary(`${base}/banner.webp`, await bannerImage.clone().webp({ quality: 80 }).toBuffer());
   writeBinary(`${base}/banner.avif`, await bannerImage.clone().avif({ quality: 64, effort: 6 }).toBuffer());
 }

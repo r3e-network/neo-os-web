@@ -1,0 +1,1101 @@
+/**
+ * Aim Master — archery range.
+ *
+ * The hero element is a real target board with a sweeping reticle. Players tap
+ * the range itself, not a form control, and the support UI stays quiet around
+ * the game surface.
+ */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
+
+.aim-playarea {
+  display: block;
+  --mx2-stage-floor: #faf9f7;
+  --mx2-ink: #4f4133;
+  --mx2-text-muted: #75695c;
+  --aim-ink: #4f4133;
+  --aim-muted: #7b6e5f;
+  --aim-soft: #fff8ea;
+  --aim-panel: #fffdf8;
+  --aim-border: #eadfc8;
+  --aim-gold: #d8a742;
+  --aim-teal: #1aa896;
+  --aim-coral: #eb715f;
+}
+
+.aim-playarea .mx2-stage {
+  padding: 22px 24px 20px;
+  background: #fffdf8;
+}
+
+.aim-playarea .mx2-stage__head {
+  margin-bottom: 12px;
+}
+
+.aim-playarea .mx2-eyebrow {
+  color: #6f5a3f;
+  font-weight: 640;
+  letter-spacing: 0.05em;
+}
+
+.aim-playarea .mx2-stage__title {
+  color: var(--aim-ink);
+  font-size: clamp(1.5rem, 3vw, 1.95rem);
+  font-weight: 560;
+}
+
+.aim-playarea .mx2-stage__subtitle {
+  max-width: 44ch;
+  margin-top: 8px;
+  color: var(--aim-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.aim-playarea .mx2-stage__scene {
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 12px 12px 0;
+}
+
+/* --------------------------------------------------------------- scene -- */
+
+.aim-scene {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  overflow: hidden;
+  padding: 18px 16px 16px;
+  isolation: isolate;
+  border: 1px solid rgba(216, 167, 66, 0.18);
+  border-radius: var(--mx2-r-lg);
+  background: var(--aim-soft);
+}
+
+.aim-scene__range-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  object-fit: cover;
+  opacity: 0.1;
+  pointer-events: none;
+  filter: saturate(0.9);
+}
+
+.aim-scene > *:not(.aim-scene__range-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+.aim-scene[data-state="dealing"] .aim-dealing__dots span {
+  animation: aim-dealing-dots 800ms ease-in-out infinite alternate;
+}
+
+.aim-scene[data-state="submitting"] .aim-gauge {
+  animation: aim-submit-pulse 1200ms ease-in-out infinite;
+}
+
+.aim-scene[data-state="won"] .aim-lobby__result[data-state="won"] {
+  animation: aim-win-glow 1600ms ease-in-out infinite alternate;
+}
+
+.aim-scene__status {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--mx2-text-muted);
+  text-align: center;
+  min-height: 1.2em;
+  color: var(--aim-muted);
+}
+
+/* ---------------------------------------------------------------- lobby -- */
+
+.aim-lobby {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.aim-lobby__range-card {
+  position: relative;
+  min-height: 286px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 167, 66, 0.24);
+  border-radius: 22px;
+  background: #fff4dd;
+}
+
+.aim-lobby__range-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.03) contrast(1.02);
+}
+
+.aim-lobby__range-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 248, 234, 0.94) 0%, rgba(255, 248, 234, 0.76) 42%, rgba(255, 248, 234, 0.08) 100%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.14), rgba(255, 248, 234, 0.58));
+  pointer-events: none;
+}
+
+.aim-lobby__range-focus {
+  position: absolute;
+  right: clamp(16px, 7vw, 64px);
+  bottom: 28px;
+  width: clamp(150px, 32vw, 240px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+
+.aim-lobby__target {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 28px rgba(101, 72, 24, 0.2));
+  animation: aim-target-idle 2400ms ease-in-out infinite;
+}
+
+.aim-lobby__reticle {
+  position: absolute;
+  width: 43%;
+  height: 43%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(26, 168, 150, 0.24));
+  animation: aim-reticle-breathe 1800ms ease-in-out infinite;
+}
+
+.aim-lobby__range-copy {
+  position: relative;
+  z-index: 1;
+  width: min(62%, 392px);
+  min-height: 204px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--aim-ink);
+
+  > span {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--aim-teal);
+  }
+
+  strong {
+    font-size: clamp(1.25rem, 3vw, 1.8rem);
+    font-weight: 560;
+    letter-spacing: 0;
+  }
+
+  p {
+    max-width: 300px;
+    margin: 0;
+    color: var(--aim-muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+}
+
+.aim-lobby__sweep {
+  position: relative;
+  width: min(100%, 300px);
+  height: 44px;
+  margin-top: 2px;
+  border: 1px solid rgba(216, 167, 66, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(255, 248, 234, 0.88), rgba(255, 253, 248, 0.96), rgba(255, 248, 234, 0.88)),
+    #fffdf8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.aim-lobby__sweep-mark {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  border-radius: 999px;
+  background: rgba(216, 167, 66, 0.32);
+}
+
+.aim-lobby__sweep-mark--center {
+  width: 3px;
+  background: rgba(26, 168, 150, 0.64);
+  box-shadow: 0 0 0 5px rgba(26, 168, 150, 0.08);
+}
+
+.aim-lobby__sweep-reticle {
+  position: absolute;
+  top: 50%;
+  left: 18%;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 8px 14px rgba(26, 168, 150, 0.22));
+  animation: aim-lobby-reticle-sweep 2200ms ease-in-out infinite alternate;
+}
+
+.aim-lobby__ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 330px;
+  margin-top: 1px;
+}
+
+.aim-lobby__ribbon span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(216, 167, 66, 0.2);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(255, 253, 248, 0.86);
+  color: var(--aim-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.aim-lobby__ribbon-prize {
+  color: var(--aim-teal) !important;
+}
+
+.aim-lobby__cards {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 0;
+  padding: 7px;
+  border: 1px solid rgba(216, 167, 66, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.74);
+  backdrop-filter: blur(10px);
+}
+
+.aim-diff-card {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-areas:
+    "badge name"
+    "badge accuracy";
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 68px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  color: var(--aim-ink);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: rgba(26, 168, 150, 0.5);
+    background: #fffaf0;
+  }
+
+  &--active {
+    border-color: rgba(26, 168, 150, 0.76);
+    background: #f3fffb;
+    box-shadow: 0 8px 18px rgba(26, 168, 150, 0.14);
+    animation: aim-card-pop 240ms ease-out;
+  }
+}
+
+.aim-diff-card__badge {
+  grid-area: badge;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 14px rgba(122, 88, 26, 0.16));
+}
+
+.aim-diff-card__name {
+  grid-area: name;
+  min-width: 0;
+  font-weight: 590;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aim-diff-card__meta {
+  grid-area: meta;
+  display: none;
+  font-size: 0.72rem;
+  color: var(--aim-muted);
+  white-space: nowrap;
+}
+
+.aim-diff-card__accuracy {
+  grid-area: accuracy;
+  justify-self: end;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: rgba(216, 167, 66, 0.12);
+  font-size: 0.72rem;
+  color: #9b7a34;
+  white-space: nowrap;
+}
+
+.aim-lobby__pool {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  border: 1px solid rgba(216, 167, 66, 0.24);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(255, 253, 248, 0.88);
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--aim-muted);
+}
+
+.aim-lobby__result {
+  position: relative;
+  border-radius: var(--mx2-r-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+
+  &[data-state="won"] {
+    background: linear-gradient(180deg, rgba(26, 168, 150, 0.14), rgba(26, 168, 150, 0.05));
+    border: 1px solid rgba(26, 168, 150, 0.34);
+    color: var(--aim-ink);
+  }
+
+  &[data-state="expired"] {
+    background: rgba(255, 253, 248, 0.86);
+    border: 1px solid rgba(235, 113, 95, 0.24);
+    color: var(--aim-muted);
+  }
+
+  strong {
+    font-size: 1.02rem;
+  }
+
+  span {
+    font-size: 0.78rem;
+    color: var(--aim-muted);
+  }
+}
+
+/* -------------------------------------------------------------- dealing -- */
+
+.aim-dealing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 520px);
+  margin-top: 32px;
+  padding: 34px 18px 28px;
+  border: 1px solid var(--aim-border);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.9);
+
+  p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--aim-muted);
+    max-width: 320px;
+    text-align: center;
+  }
+}
+
+.aim-dealing__dots {
+  display: flex;
+  gap: 8px;
+
+  span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--aim-teal);
+    animation: aim-dealing-dots 800ms ease-in-out infinite alternate;
+  }
+}
+
+/* ---------------------------------------------------------------- gauge -- */
+
+.aim-table {
+  width: 100%;
+  max-width: 640px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.aim-timer {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--aim-border);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.9);
+  color: var(--aim-ink);
+
+  &[data-low="true"] .aim-timer__clock {
+    color: var(--aim-coral);
+    animation: aim-timer-alarm 1s ease-in-out infinite;
+  }
+}
+
+.aim-timer__clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 680;
+  font-size: 1.05rem;
+}
+
+.aim-timer__track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(216, 167, 66, 0.16);
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--aim-teal), #7ed9c6);
+    transition: width 900ms linear;
+  }
+}
+
+.aim-timer__reward {
+  font-size: 0.78rem;
+  font-weight: 620;
+  color: var(--aim-teal);
+}
+
+/* ------------------------------------------------------- gauge track -- */
+
+.aim-gauge-wrap {
+  position: relative;
+  width: 100%;
+  min-height: clamp(250px, 52vw, 330px);
+  display: grid;
+  place-items: center;
+  padding: 18px clamp(12px, 3vw, 28px);
+  border: 1px solid var(--aim-border);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fffaf0, #fffdf8);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.aim-gauge__target-board {
+  width: clamp(220px, 52vw, 330px);
+  height: clamp(220px, 52vw, 330px);
+  object-fit: contain;
+  filter: drop-shadow(0 20px 28px rgba(116, 77, 21, 0.2));
+  z-index: 1;
+}
+
+.aim-gauge {
+  position: absolute;
+  left: clamp(24px, 8%, 52px);
+  right: clamp(24px, 8%, 52px);
+  top: 50%;
+  z-index: 2;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(216, 167, 66, 0.1), rgba(26, 168, 150, 0.5), rgba(216, 167, 66, 0.1));
+  overflow: visible;
+  box-shadow: 0 0 0 1px rgba(216, 167, 66, 0.12);
+}
+
+/* Ring markers on the gauge */
+.aim-gauge__ring {
+  position: absolute;
+  top: -42px;
+  bottom: -42px;
+  width: 2px;
+  background: rgba(160, 118, 45, 0.14);
+  pointer-events: none;
+
+  &--centre {
+    background: rgba(26, 168, 150, 0.6);
+    width: 3px;
+  }
+
+  &--zone {
+    background: rgba(216, 167, 66, 0.2);
+  }
+}
+
+/* The moving indicator (the "target") */
+.aim-gauge__indicator {
+  position: absolute;
+  top: 50%;
+  width: clamp(70px, 14vw, 92px);
+  height: clamp(70px, 14vw, 92px);
+  margin-left: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: none;
+
+  &::before,
+  &::after {
+    content: none;
+  }
+}
+
+.aim-gauge__reticle {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(26, 168, 150, 0.28));
+}
+
+/* Ring labels under the gauge */
+.aim-gauge__labels {
+  position: absolute;
+  left: clamp(24px, 8%, 52px);
+  right: clamp(24px, 8%, 52px);
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 0.65rem;
+  color: #9b8a72;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ------------------------------------------------------ round display -- */
+
+.aim-rounds {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+.aim-rounds__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(216, 167, 66, 0.34);
+  background: rgba(255, 253, 248, 0.9);
+
+  &--hit {
+    background: var(--aim-teal);
+    border-color: var(--aim-teal);
+    animation: aim-ring-pulse 400ms ease-out;
+  }
+
+  &--miss {
+    background: rgba(235, 113, 95, 0.18);
+    border-color: rgba(235, 113, 95, 0.36);
+  }
+
+  &--current {
+    border-color: rgba(26, 168, 150, 0.64);
+    animation: aim-ring-pulse 1200ms ease-in-out infinite;
+  }
+}
+
+/* ---------------------------------------------------- hit/miss overlay -- */
+
+.aim-feedback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.aim-feedback__label {
+  font-size: 1.6rem;
+  font-weight: 660;
+  padding: 8px 14px;
+  border: 1px solid rgba(216, 167, 66, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.9);
+  text-shadow: none;
+  box-shadow: 0 12px 28px rgba(115, 75, 20, 0.14);
+
+  &--bullseye {
+    color: var(--aim-teal);
+    animation: aim-bullseye-burst 800ms ease-out forwards;
+  }
+
+  &--hit {
+    color: #148a7c;
+    animation: aim-hit-pop 600ms ease-out forwards;
+  }
+
+  &--miss {
+    color: var(--aim-coral);
+    animation: aim-miss-shake 500ms ease-out forwards;
+  }
+}
+
+/* ------------------------------------------------------------ submit -- */
+
+.aim-submit-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.aim-submit-info {
+  font-size: 0.82rem;
+  color: var(--aim-muted);
+  text-align: center;
+}
+
+/* --------------------------------------------------------------- drawer -- */
+
+.aim-drawer__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  img {
+    border-radius: 10px;
+    border: 1px solid var(--aim-border);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--aim-muted);
+  }
+}
+
+.aim-ranks {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aim-ranks__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.82);
+  font-size: 0.8rem;
+  color: var(--aim-ink);
+
+  &[data-me="true"] {
+    background: rgba(26, 168, 150, 0.1);
+    border: 1px solid rgba(26, 168, 150, 0.34);
+  }
+}
+
+.aim-ranks__rank {
+  font-weight: 680;
+}
+
+.aim-ranks__addr {
+  font-family: var(--mx2-font-mono, monospace);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--aim-muted);
+}
+
+.aim-ranks__solves {
+  color: var(--aim-muted);
+  font-size: 0.72rem;
+}
+
+.aim-ranks__won {
+  font-weight: 620;
+  color: var(--aim-teal);
+}
+
+.aim-ranks__me {
+  font-size: 0.66rem;
+  font-weight: 680;
+  color: var(--aim-teal);
+}
+
+.aim-drawer__seed {
+  font-size: 0.72rem;
+  color: var(--aim-muted);
+  font-family: var(--mx2-font-mono, monospace);
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------ keyframes -- */
+
+@keyframes aim-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes aim-dealing-dots {
+  from {
+    opacity: 0.2;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes aim-card-pop {
+  0% {
+    transform: scale(0.96);
+  }
+  60% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes aim-lobby-reticle-sweep {
+  0% {
+    left: 18%;
+  }
+  48% {
+    left: 51%;
+  }
+  100% {
+    left: 82%;
+  }
+}
+
+@keyframes aim-target-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1deg);
+  }
+}
+
+@keyframes aim-reticle-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.88;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes aim-ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes aim-bullseye-burst {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes aim-hit-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes aim-miss-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+    opacity: 1;
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes aim-submit-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(0, 175, 146, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 175, 146, 0.3);
+  }
+}
+
+@keyframes aim-win-glow {
+  from {
+    box-shadow: 0 0 0 rgba(0, 175, 146, 0);
+  }
+  to {
+    box-shadow: 0 0 26px rgba(0, 175, 146, 0.35);
+  }
+}
+
+@keyframes aim-timer-alarm {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+// ─── Aim preview cue ────────────────────────────────────────────────────────
+// Immediate local motion the moment a shot lands, released on a timer by the
+// PlayArea so the gauge never sticks in its action state.
+
+@keyframes aim-shot-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+
+.aim-gauge-wrap[data-aim="true"] {
+  animation: aim-shot-pulse 220ms ease-out;
+}
+
+.aim-gauge-wrap[data-aim="true"] .aim-gauge__reticle {
+  animation: aim-reticle-breathe 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aim-scene *,
+  .aim-scene *::before,
+  .aim-scene *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .aim-scene {
+    min-height: 0;
+    padding: 10px 8px 10px;
+  }
+
+  .aim-playarea .mx2-stage {
+    padding: 16px 16px 18px;
+  }
+
+  .aim-playarea .mx2-stage__head {
+    margin-bottom: 10px;
+  }
+
+  .aim-playarea .mx2-stage__title {
+    font-size: 1.34rem;
+    line-height: 1.22;
+  }
+
+  .aim-playarea .mx2-stage__subtitle {
+    display: none;
+  }
+
+  .aim-lobby__range-card {
+    min-height: 300px;
+    border-radius: 20px;
+  }
+
+  .aim-lobby__range-card::after {
+    background:
+      linear-gradient(180deg, rgba(255, 248, 234, 0.92) 0%, rgba(255, 248, 234, 0.74) 54%, rgba(255, 248, 234, 0.2) 100%),
+      linear-gradient(180deg, rgba(255, 253, 248, 0.12), rgba(255, 248, 234, 0.56));
+  }
+
+  .aim-lobby__range-copy {
+    min-height: 0;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 16px 18px 0;
+    gap: 7px;
+
+    strong {
+      max-width: 240px;
+      font-size: 1.25rem;
+      line-height: 1.2;
+    }
+
+    p {
+      max-width: 236px;
+      font-size: 0.82rem;
+      line-height: 1.38;
+    }
+  }
+
+  .aim-lobby__sweep {
+    width: min(100%, 260px);
+    height: 38px;
+  }
+
+  .aim-lobby__sweep-reticle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .aim-lobby__ribbon {
+    max-width: 270px;
+    gap: 5px;
+  }
+
+  .aim-lobby__ribbon span {
+    min-height: 26px;
+    padding: 5px 7px;
+    font-size: 0.62rem;
+  }
+
+  .aim-lobby__range-focus {
+    right: 50%;
+    bottom: 34px;
+    transform: translateX(50%);
+    width: min(48vw, 176px);
+  }
+
+  .aim-lobby__cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin-top: 0;
+    padding: 5px;
+    border-radius: 16px;
+  }
+
+  .aim-diff-card {
+    min-height: 70px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "badge"
+      "name"
+      "accuracy";
+    justify-items: center;
+    gap: 1px;
+    padding: 7px 5px;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .aim-diff-card__badge {
+    width: 34px;
+    height: 34px;
+  }
+
+  .aim-diff-card__name {
+    grid-area: name;
+    max-width: 100%;
+    font-size: 0.72rem;
+    line-height: 1.12;
+    white-space: normal;
+    overflow: visible;
+  }
+  .aim-diff-card__meta { display: none; }
+  .aim-diff-card__accuracy {
+    grid-area: accuracy;
+    justify-self: center;
+    max-width: 100%;
+    padding: 2px 5px;
+    font-size: 0.64rem;
+    line-height: 1.12;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .aim-lobby__pool {
+    max-width: calc(100% - 16px);
+    padding: 5px 10px;
+    font-size: 0.72rem;
+  }
+}

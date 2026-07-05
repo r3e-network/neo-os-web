@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createVaultApi, type VaultChain } from "./api";
+import { createVaultApi } from "./api";
+import { createMiniAppFramework } from "@shared/react";
 import {
   MAX_SIGNERS,
   MIN_SIGNERS,
@@ -51,14 +52,23 @@ function makeChain() {
     contractAddress: { get: () => CONTRACT },
     invoke,
     read,
-  } as unknown as VaultChain;
+  };
   return { chain, invoke };
+}
+
+/** Wrap the mock chain in the framework and build the vault API on it. */
+function makeApi(chain: Record<string, unknown>) {
+  const app = createMiniAppFramework(
+    { services: { chain }, t: (key: string) => key } as never,
+    { appId: "miniapp-neo-multisig" },
+  );
+  return createVaultApi(app);
 }
 
 describe("neo-multisig api — deposit waits for the Deposited event", () => {
   it("passes waitForEvent:'Deposited' on the GAS deposit transfer", async () => {
     const { chain, invoke } = makeChain();
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
     await api.deposit({ from: ALICE, vaultId: 1, amount: "2.5", asset: "GAS" });
 
     const transfer = invoke.mock.calls.find((c) => c[0] === "transfer");
@@ -70,7 +80,7 @@ describe("neo-multisig api — deposit waits for the Deposited event", () => {
 
   it("passes waitForEvent:'Deposited' on the NEO deposit transfer", async () => {
     const { chain, invoke } = makeChain();
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
     await api.deposit({ from: ALICE, vaultId: 1, amount: "3", asset: "NEO" });
 
     const transfer = invoke.mock.calls.find((c) => c[0] === "transfer");

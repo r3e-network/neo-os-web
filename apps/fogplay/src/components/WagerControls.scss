@@ -210,8 +210,8 @@
 
 .wager-fog-field__mist {
   position: absolute;
-  inset: 8px auto 8px -18%;
-  width: 44%;
+  inset: 8px auto 8px 0;
+  width: 42%;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
@@ -225,7 +225,7 @@
 }
 
 .wager-fog-field__mist--two {
-  width: 56%;
+  width: 46%;
   animation-delay: -2.7s;
   animation-duration: 6.8s;
 }
@@ -362,7 +362,7 @@
   color: var(--coin-text-secondary);
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.09em;
+  letter-spacing: 0;
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -493,7 +493,7 @@
   color: #8a92a6;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -666,7 +666,7 @@
     color: #8a92a6;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 }
@@ -866,7 +866,7 @@
     color: var(--coin-text-secondary);
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -1008,7 +1008,7 @@
 
   100% {
     opacity: 0;
-    transform: translateX(285%) scaleX(1.08);
+    transform: translateX(116%) scaleX(1.08);
   }
 }
 

@@ -1,12 +1,5 @@
 import React from "react";
-import fs from "node:fs";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -16,463 +9,289 @@ import PlayArea from "../../last-survivor/src/PlayArea";
 
 afterEach(() => cleanup());
 
-function t(key: string) {
+function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    activeRound: "Active",
-    arenaMomentum: "Arena momentum",
-    arenaMomentumHint:
-      "Leader, your stake, and the pot move as the round heats up.",
-    awaitingFirstKey: "Be the first to buy a key",
-    buying: "Buying...",
-    buyKeys: "Buy Keys",
-    buyKeysAndRollover: "Buy Keys and Roll Forward",
-    buyKeysRolloverHint:
-      "The next key purchase rolls the expired round forward before applying your bid.",
-    critical: "CRITICAL",
-    estimatedCost: "Estimated Cost",
-    howItWorks: "How It Works",
-    inactiveRound: "Rollover ready",
-    keyPrice: "Base price: 0.1 GAS per key",
-    keysSuffix: "Keys",
-    lastBuyer: "Current leader",
-    leaderMarker: "Leader",
-    noHistory: "No events yet",
-    recentHistory: "Recent Rounds",
-    refreshRound: "Refresh Round",
-    refreshRoundHint: "Refresh the game state before buying keys.",
+    buyKeys: "Insert Keys",
+    buying: "Inserting...",
+    estimatedCost: "Estimated cost",
+    keyCapsules: "Key capsules",
+    keyChamber: "Clock key chamber",
+    keyLoadoutHint: "Loaded keys feed the pot and push the survival clock forward.",
+    keyTuner: "Key load tuner",
+    keysSuffix: "keys",
+    keyPrice: "Key price",
+    nextCost: `${params?.amount ?? "0.10"} GAS to load`,
+    decreaseKeys: "Remove one key",
+    increaseKeys: "Add one key",
     round: "Round",
-    roundStateRequired:
-      "Refresh the round state before submitting a key purchase.",
-    roundStateUnavailableTitle: "Round state unavailable",
-    ruleDeposit: "Buy keys",
-    ruleDepositDesc: "Each purchase adds GAS to the prize pool.",
-    ruleTimer: "Timer pressure increases",
-    ruleTimerDesc: "Later bids add less time.",
-    ruleWin: "Last buyer wins",
-    ruleWinDesc: "When the timer reaches zero, the last buyer wins.",
-    roundEnded:
-      "Timer expired. The settlement transaction pays the winner and opens the next live round.",
-    safe: "SAFE",
-    settleBeforeBuy:
-      "The countdown has expired. Settle the round to pay the winner, then a fresh round opens.",
-    settleRound: "Settle Round",
-    settleRoundHint:
-      "Anyone can settle: the last buyer is paid the entire pot on-chain and a fresh round begins.",
+    survivalArena: "Survival Arena",
+    subtitle: "Last key wins the pot.",
+    totalPot: "Total pot",
+    totalKeys: "Total keys",
+    yourKeys: "Your keys",
+    share: "Your share",
+    currentLeader: "Leader",
+    roundStatusDisplay: "Live",
+    countdown: "00:01:30",
+    dangerLevelText: "Medium",
+    safe: "Safe",
+    awaitingFirstKey: "Awaiting first key",
+    roundEnded: "Round ended",
+    roundStateRequired: "Refresh round",
     settlingRound: "Settling...",
-    share: "Share",
-    status: "Status",
-    pressConsole: "Press console",
-    pressConsoleHint:
-      "Every key feeds the pot. The final buyer survives when the clock runs out.",
-    pressConsoleTitle: "Buy a key. Reset the clock.",
-    playerMarker: "You",
-    potMarker: "Pot",
-    survivorSeats: "Survivor seats",
-    survivorSeatsHint: "The final live seat wins when the clock stops.",
-    survivorSeatEmpty: "Open seat",
-    survivalArena: "Last Survivor arena",
-    survivalArenaAlt:
-      "Bright futuristic arena with a glowing button console and GAS prize pool",
-    survivorStageEyebrow: "Pressure game",
-    timeUntilEvent: "Time Until Event",
-    title: "LastSurvivor",
-    tokenGas: "GAS",
-    totalKeys: "Total Keys",
-    totalPot: "Total Pot",
-    yourKeys: "Your Keys",
+    settleRound: "Settle round",
+    settleRoundHint: "Award the pot",
+    youWon: "You won!",
+    winnerDeclared: "Winner declared",
+    recentHistory: "Recent history",
+    noHistory: "No history yet",
+    howItWorks: "How it works",
+    ruleDepositDesc: "Buy keys with GAS.",
+    ruleTimerDesc: "Each buy extends the timer.",
+    ruleWinDesc: "Last buyer when time runs out wins the pot.",
+    arenaMomentum: "Arena momentum",
+    beatBuyKey: "Load key",
+    beatExtendClock: "Extend clock",
+    beatLastBuyer: "Win pot",
+    prepaidCreditLabel: "Prepaid credit",
+    prepaidCreditHint: "Withdrawable.",
+    withdrawCredit: "Withdraw credit",
   };
-  return messages[key] ?? key;
+  let value = messages[key] ?? key;
+  if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
+  return value;
 }
 
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  return {
-    countdown: createObservable("00:00:00"),
-    dangerLevel: createObservable("low"),
-    dangerLevelText: createObservable("LOW RISK"),
-    dangerProgress: createObservable(0),
-    estimatedCost: createObservable("0.10"),
-    formattedRound: createObservable("#0"),
-    history: createObservable([]),
-    isBuyingKeys: createObservable(false),
-    isSettling: createObservable(false),
-    isLoading: createObservable(false),
-    isRoundActive: createObservable(false),
-    keyCount: createObservable(0),
-    keyValidationError: createObservable(null),
-    lastBuyer: createObservable(""),
-    lastBuyerLabel: createObservable("---"),
-    needsLifecycleSync: createObservable(false),
-    roundDataAvailable: createObservable(false),
-    roundStatusDisplay: createObservable("Rollover ready"),
-    serviceNotice: createObservable(""),
-    shouldPulse: createObservable(false),
-    totalKeysDisplay: createObservable(0),
-    totalPot: createObservable(0),
-    totalPotDisplay: createObservable("0.00 GAS"),
-    userKeys: createObservable(0),
-    userSharePercent: createObservable(0),
-    ...Object.fromEntries(
-      Object.entries(overrides).map(([key, value]) => [
-        key,
-        createObservable(value),
-      ]),
-    ),
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    formattedRound: "#1",
+    roundStatusDisplay: "Live",
+    countdown: "00:01:30",
+    dangerLevel: "medium",
+    dangerLevelText: "Medium",
+    dangerProgress: 40,
+    lastBuyer: "",
+    lastBuyerLabel: "--",
+    viewerAddress: "",
+    totalPot: 5,
+    totalPotDisplay: "5.00 GAS",
+    userKeys: 0,
+    totalKeysDisplay: 10,
+    userSharePercent: 0,
+    estimatedCost: "0.10",
+    isRoundActive: true,
+    shouldPulse: false,
+    isBuyingKeys: false,
+    isSettling: false,
+    isLoading: false,
+    roundDataAvailable: true,
+    needsLifecycleSync: false,
+    serviceNotice: "",
+    prepaidCredit: 0,
+    keyValidationError: null,
+    history: [],
   };
+  return Object.fromEntries(
+    Object.entries({ ...base, ...overrides }).map(([k, v]) => [k, createObservable(v)]),
+  );
 }
 
-describe("LastSurvivor PlayArea", () => {
-  it("shows a professional service notice and keeps Buy Keys visible", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          serviceNotice:
-            "The countdown service is not available in this environment yet.",
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
+describe("Last Survivor PlayArea (v2 scene-driven)", () => {
+  it("renders the survival vault with a foreground timer relic", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    // The page now renders more than one status region (the service notice plus
-    // the shared StateView empty state for Recent Rounds), so assert the notice
-    // text is present in one of them rather than assuming a single status node.
-    expect(
-      screen
-        .getAllByRole("status")
-        .some((el) =>
-          el.textContent?.includes("The countdown service is not available"),
-        ),
-    ).toBe(true);
-    expect(
-      screen.queryByText(/OS service error|os-game-status|Not Found/i),
-    ).toBeNull();
-    expect(screen.getByLabelText("Last Survivor arena")).toBeTruthy();
-    expect(
-      screen.getByAltText(
-        "Bright futuristic arena with a glowing button console and GAS prize pool",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText("Buy a key. Reset the clock.")).toBeTruthy();
-    expect(
-      screen.getAllByRole("button", { name: "Refresh Round" }).length,
-    ).toBeGreaterThan(0);
-    expect(
-      (screen.getByRole("button", { name: "Buy Keys" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
+    expect(container.querySelector(".survivor-scene")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".survivor-scene__arena-art")?.getAttribute("src")).toContain("last-survivor-arena.webp");
+    expect(container.querySelector(".survivor-scene__shade")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".survivor-scene__relic-art")?.getAttribute("src")).toContain("survivor-scene-art.webp");
+    expect(container.querySelector(".survivor-scene__timer")?.textContent).toContain("00:01:30");
+    expect(container.querySelector(".survivor-scene__danger-track")).toBeTruthy();
+    expect(container.querySelector(".survivor-scene__key-stack")).toBeTruthy();
+    expect(container.querySelector(".survivor-scene__beats")).toBeTruthy();
+    expect(container.textContent).toContain("Load key");
+    expect(container.textContent).toContain("Extend clock");
+    expect(container.textContent).toContain("Win pot");
+    // The in-scene relic is the primary buy action.
+    expect(container.querySelector(".mx2-btn--primary")).toBeTruthy();
   });
 
-  it("keeps the stage key controls wired to the local key count", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          isRoundActive: true,
-          lastBuyer: "NMockLastBuyer111111111111111111111111111",
-          roundDataAvailable: true,
-          roundStatusDisplay: "Active",
-          totalPot: 4.2,
-          totalKeysDisplay: 2,
-          userKeys: 1,
-          userSharePercent: 50,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
+  it("renders a key chamber instead of a purchase form", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Increase" }));
-    expect(container.querySelector(".key-count-value")?.textContent).toBe("2");
-    expect(container.querySelector(".survivor-key-burst--active")).toBeTruthy();
-    expect(container.querySelectorAll(".survivor-key-burst span")).toHaveLength(
-      6,
-    );
-    expect(container.querySelector(".survivor-play-area--live")).toBeTruthy();
-    expect(
-      container.querySelector(".survivor-stage.survivor-play-area--live"),
-    ).toBeTruthy();
-    const lane = container.querySelector(".survivor-arena-lane") as HTMLElement;
-    expect(lane).toBeTruthy();
-    expect(lane.style.getPropertyValue("--survivor-player-progress")).toBe(
-      "50%",
-    );
-    expect(
-      container.querySelectorAll(".survivor-arena-lane__marker").length,
-    ).toBe(3);
-    expect(
-      container.querySelector(".survivor-arena-lane__marker--leader.is-live"),
-    ).toBeTruthy();
-    expect(
-      container.querySelector(".survivor-arena-lane__marker--player.is-live"),
-    ).toBeTruthy();
-    expect(
-      container.querySelector(".survivor-arena-lane__marker--pot.is-live"),
-    ).toBeTruthy();
-    expect(container.querySelector(".survivor-seat-strip")).toBeTruthy();
-    expect(
-      container.querySelector(".survivor-seat--leader.is-live"),
-    ).toBeTruthy();
-    expect(
-      container.querySelector(".survivor-seat--player.is-live"),
-    ).toBeTruthy();
-    expect(container.querySelector(".survivor-seat--pot.is-live")).toBeTruthy();
-    expect(container.querySelectorAll(".survivor-seat__icon svg").length).toBe(
-      3,
-    );
-    expect(container.querySelector(".key-adjust-btn.plus svg")).toBeTruthy();
-    expect(container.querySelector(".key-adjust-btn.minus svg")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "5" }));
-    expect(container.querySelector(".key-count-value")?.textContent).toBe("5");
-    expect(container.querySelector(".preset-chip.active")).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Buy Keys" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(false);
+    expect(container.querySelector(".survivor-controls__dock")).toBeTruthy();
+    expect(container.querySelector(".survivor-controls__core")?.textContent).toContain("Clock key chamber");
+    expect(container.querySelector(".survivor-controls__core")?.textContent).toContain("0.10 GAS to load");
+    expect(container.querySelector(".survivor-controls__presets")?.getAttribute("aria-label")).toBe("Key capsules");
+    expect(container.querySelector(".survivor-controls__stepper")?.getAttribute("aria-label")).toBe("Key load tuner");
+    expect(container.querySelector(".survivor-stepper__track-fill")).toBeTruthy();
+    expect(container.querySelector(".survivor-preset")?.getAttribute("aria-label")).toBe("1 keys");
+    expect(container.querySelector("input, textarea, select, form")).toBeNull();
   });
 
-  it("turns a key purchase into immediate arena motion instead of a static submit", async () => {
-    let resolveBuy: (() => void) | undefined;
-    const dispatch = vi.fn((name: string) => {
-      if (name === "buyKeys") {
-        return new Promise<void>((resolve) => {
-          resolveBuy = resolve;
-        });
-      }
-      return Promise.resolve();
+  it("dispatches buyKeys from the tappable relic with the selected count and shows buying motion", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    // Select 3 keys.
+    const preset3 = container.querySelectorAll(".survivor-preset")[1];
+    fireEvent.click(preset3);
+
+    // Fire the in-scene relic action, not only the rail button.
+    fireEvent.click(container.querySelector(".survivor-scene__relic") as Element);
+
+    await waitFor(() => {
+      expect(container.querySelector('.survivor-scene[data-state="buying"]')).toBeTruthy();
+      expect(container.querySelector(".survivor-scene__key-burst")).toBeTruthy();
+      expect(container.querySelectorAll(".survivor-scene__key-token").length).toBe(3);
     });
+    expect(dispatch).toHaveBeenCalledWith("buyKeys", "3");
+  });
+
+  it("shows a settle affordance when the round needs settling", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({
-          isRoundActive: true,
-          lastBuyer: "NMockLastBuyer111111111111111111111111111",
-          roundDataAvailable: true,
-          roundStatusDisplay: "Active",
-          totalPot: 4.2,
-          totalKeysDisplay: 2,
-          userKeys: 1,
-          userSharePercent: 50,
-        })}
+        state={state({ needsLifecycleSync: true, isRoundActive: false, seasonPhase: "ended" } as Record<string, unknown>)}
         dispatch={dispatch}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Buy Keys" }));
-
-    expect(dispatch).toHaveBeenCalledWith("buyKeys", "1");
-    await waitFor(() => {
-      expect(
-        container.querySelector(".survivor-play-area--buying"),
-      ).toBeTruthy();
-      expect(
-        container.querySelector(".survivor-stage.survivor-play-area--buying"),
-      ).toBeTruthy();
-      expect(
-        container.querySelector(".survivor-key-burst--active"),
-      ).toBeTruthy();
-      expect(
-        container.querySelector(
-          ".survivor-play-area--buying .survivor-seat--player",
-        ),
-      ).toBeTruthy();
-      expect(
-        screen
-          .getByRole("button", { name: "Buying..." })
-          .getAttribute("aria-busy"),
-      ).toBe("true");
-    });
-
-    resolveBuy?.();
-    await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("setKeyCount", "1"),
+    const settleBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("Settle round"),
     );
+    expect(settleBtn).toBeTruthy();
+    fireEvent.click(settleBtn!);
+    expect(dispatch).toHaveBeenCalledWith("settleRound");
   });
 
-  it("surfaces a permissionless Settle affordance for an ended round and blocks buying", async () => {
-    // The on-chain contract rejects a buy on an ended round ("settle first"), so
-    // the ended-round affordance is Settle — which dispatches the permissionless
-    // settle() — NOT a buy-and-rollover. (Replaces the old OS-rollover behavior.)
-    let resolveSettle: (() => void) | undefined;
-    const dispatch = vi.fn((name: string) => {
-      if (name === "settleRound") {
-        return new Promise<void>((resolve) => {
-          resolveSettle = resolve;
-        });
-      }
-      return Promise.resolve();
-    });
+  it("renders the leader readout when there is a last buyer", () => {
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({
-          isRoundActive: false,
-          lastBuyer: "NMockLastBuyer111111111111111111111111111",
-          needsLifecycleSync: true,
-          roundDataAvailable: true,
-          totalPot: 12.5,
-          totalPotDisplay: "12.50 GAS",
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    // Settle is the live action; clicking it dispatches settleRound.
-    const settle = screen.getByRole("button", { name: "Settle Round" });
-    expect((settle as HTMLButtonElement).disabled).toBe(false);
-    settle.click();
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("settleRound"));
-    await waitFor(() => {
-      expect(
-        container.querySelector(".survivor-play-area--settling"),
-      ).toBeTruthy();
-      expect(
-        container.querySelector(".survivor-stage.survivor-play-area--settling"),
-      ).toBeTruthy();
-      expect(
-        container.querySelector(".claim-card-inner.is-settling"),
-      ).toBeTruthy();
-      expect(
-        screen
-          .getByRole("button", { name: "Settling..." })
-          .getAttribute("aria-busy"),
-      ).toBe("true");
-    });
-    resolveSettle?.();
-
-    // Buying is blocked while the round needs settlement.
-    const buy = screen.getByRole("button", { name: "Buy Keys" });
-    expect((buy as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it("uses app icons and motion states instead of text-symbol chrome", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          isRoundActive: true,
-          lastBuyer: "NMockLastBuyer111111111111111111111111111",
-          roundDataAvailable: true,
-          roundStatusDisplay: "Active",
-          totalKeysDisplay: 4,
-        })}
+        state={state({ lastBuyer: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa", lastBuyerLabel: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa" })}
         dispatch={vi.fn()}
       />,
     );
 
-    expect(container.querySelector(".hero-badge svg")).toBeTruthy();
-    expect(container.querySelector(".last-buyer-icon svg")).toBeTruthy();
-    expect(container.querySelectorAll(".participation-icon svg").length).toBe(
-      3,
-    );
-    expect(container.querySelector(".history-section-icon svg")).toBeTruthy();
-    expect(container.querySelector(".cost-gas-icon")).toBeTruthy();
+    expect(container.querySelector(".survivor-scene__leader")).toBeTruthy();
+    expect(container.textContent).toContain("Ndb1n4");
   });
 
-  it("binds TOTAL KEYS and YOUR SHARE to the round total, not the buy-selector", () => {
+  it("tucks history, how-it-works, and recovery into a drawer", () => {
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({
-          // Buy-selector dialed to 10 — must NOT leak into the strip.
-          keyCount: 10,
-          userKeys: 5,
-          totalKeysDisplay: 20,
-          // userShare = 5 / 20 * 100 = 25% (round total denominator, not 10).
-          userSharePercent: 25,
-        })}
+        state={state({ history: [{ round: 1, winner: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa", pot: "3.00 GAS" }] })}
         dispatch={vi.fn()}
       />,
     );
 
-    const values = Array.from(
-      container.querySelectorAll(".participation-value"),
-    ).map((el) => el.textContent);
-
-    // [YOUR KEYS, TOTAL KEYS, YOUR SHARE]
-    expect(values).toEqual(["5", "20", "25.0%"]);
-    // The picker value (10) must not appear in the participation strip.
-    expect(values).not.toContain("10");
-    // Share must not be the meaningless 5/10 = 50%.
-    expect(values).not.toContain("50.0%");
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.textContent).toContain("3.00 GAS");
   });
 
-  it("shows an em-dash share when no keys have been sold in the round", () => {
+  it("exposes prepaid-credit withdrawal as a secondary action", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          keyCount: 3,
-          userKeys: 0,
-          totalKeysDisplay: 0,
-          userSharePercent: 0,
-        })}
-        dispatch={vi.fn()}
-      />,
+      <PlayArea t={t} state={state({ prepaidCredit: 1.5 })} dispatch={dispatch} />,
     );
 
-    const values = Array.from(
-      container.querySelectorAll(".participation-value"),
-    ).map((el) => el.textContent);
-
-    expect(values).toEqual(["0", "0", "—"]);
+    const withdrawBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent?.includes("Withdraw credit"),
+    );
+    expect(withdrawBtn).toBeTruthy();
+    fireEvent.click(withdrawBtn!);
+    expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
   });
 
-  it("keeps survivor stage motion backed by reduced-motion fallbacks", () => {
-    const playAreaStyles = fs.readFileSync(
-      `${process.cwd()}/../last-survivor/src/PlayArea.scss`,
+  it("keeps motion backed by reduced-motion fallbacks", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
+    const styles = fs.readFileSync(
+      path.join(appsRoot, "last-survivor/src/PlayArea.scss"),
       "utf8",
     );
-    const buyKeysStyles = fs.readFileSync(
-      `${process.cwd()}/../last-survivor/src/pages/index/components/BuyKeysCard.scss`,
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-scene__beats span\[data-active="true"\]/);
+  });
+
+  it("keeps the game surface clean, resource-led, and away from form controls", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
+    const styles = fs.readFileSync(
+      path.join(appsRoot, "last-survivor/src/PlayArea.scss"),
+      "utf8",
+    );
+    const source = fs.readFileSync(
+      path.join(appsRoot, "last-survivor/src/PlayArea.tsx"),
       "utf8",
     );
 
-    expect(playAreaStyles).toContain("@keyframes survivor-arena-drift");
-    expect(playAreaStyles).toContain("@keyframes survivor-stage-sweep");
-    expect(playAreaStyles).toContain("@keyframes survivor-lane-progress");
-    expect(playAreaStyles).toContain("@keyframes survivor-lane-scan");
-    expect(playAreaStyles).toContain("@keyframes survivor-lane-marker-ready");
-    expect(playAreaStyles).toContain("@keyframes survivor-stage-buying");
-    expect(playAreaStyles).toContain("@keyframes survivor-lane-buy-charge");
-    expect(playAreaStyles).toContain("@keyframes survivor-stage-settling");
-    expect(playAreaStyles).toContain("@keyframes survivor-lane-settle-charge");
-    expect(playAreaStyles).toContain("@keyframes survivor-seat-settle-award");
-    expect(playAreaStyles).toContain("@keyframes survivor-settle-crown-turn");
-    expect(playAreaStyles).toContain("@keyframes survivor-claim-settle-sweep");
-    expect(playAreaStyles).toContain("@keyframes survivor-seat-enter");
-    expect(playAreaStyles).toContain("@keyframes survivor-seat-breathe");
-    expect(playAreaStyles).toContain("@keyframes survivor-seat-buy-press");
-    expect(playAreaStyles).toContain("@keyframes survivor-key-icon-turn");
-    expect(playAreaStyles).toContain("@keyframes survivor-seat-scan");
-    expect(playAreaStyles).toContain("@keyframes survivor-key-burst-flight");
-    expect(playAreaStyles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-stage\.survivor-play-area--buying[\s\S]*animation:\s*none/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-seat\.is-live::after[\s\S]*animation:\s*none/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-play-area--buying \.survivor-seat--player[\s\S]*animation:\s*none/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-stage\.survivor-play-area--settling[\s\S]*animation:\s*none/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-play-area--settling \.survivor-seat--leader[\s\S]*animation:\s*none/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.claim-card-inner\.is-settling::before[\s\S]*animation:\s*none/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.survivor-key-burst--active span[\s\S]*animation:\s*none/,
-    );
-    expect(buyKeysStyles).toContain("@keyframes survivor-preset-confirm");
-    expect(buyKeysStyles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(buyKeysStyles).toContain(
-      ".buy-keys-card .neo-btn--primary:disabled:not(.neo-btn--loading)",
-    );
+    // The arena is atmospheric, while the relic and key resources own the foreground.
+    expect(styles).toMatch(/\.survivor-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/\.survivor-play-area \.mx2-action-rail__drawer-toggle\s*\{[\s\S]*min-width:\s*176px/);
+    expect(styles).toMatch(/\.survivor-scene__arena-art\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.survivor-scene__arena-art\s*\{[\s\S]*opacity:\s*0\.78/);
+    expect(styles).toMatch(/\.survivor-scene__shade\s*\{[\s\S]*linear-gradient/);
+    expect(styles).not.toMatch(/var\(--mx2-scene-art-opacity|background-image:\s*url/);
+    expect(styles).not.toMatch(/radial-gradient/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).toMatch(/\.survivor-scene\s*\{[\s\S]*background:\s*#f7fbf4/);
+    expect(styles).toMatch(/\.survivor-scene__pot,[\s\S]*\.survivor-scene__notice \{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.94\)/);
+    expect(styles).toMatch(/\.survivor-scene__relic\s*\{[\s\S]*min-height:\s*374px/);
+    expect(styles).toMatch(/\.survivor-scene__relic-art\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.survivor-scene__relic-art\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/\.survivor-scene__relic-art\s*\{[\s\S]*filter:\s*saturate\(1\.04\) contrast\(1\.03\)/);
+    expect(styles).toMatch(/\.survivor-scene__relic-scrim\s*\{[\s\S]*display:\s*block/);
+    expect(styles).toMatch(/\.survivor-scene__danger-track\s*\{[\s\S]*position:\s*absolute/);
+    expect(styles).toMatch(/\.survivor-scene__beats\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.survivor-scene__beats span\[data-active="true"\]\s*\{[\s\S]*animation:\s*survivor-beat-glow/);
+    expect(styles).toMatch(/\.survivor-scene__relic-copy\s*\{[\s\S]*text-shadow:\s*none/);
+    expect(styles).toMatch(/\.survivor-climax__card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.survivor-climax__medal\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.survivor-climax__medal img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.survivor-climax__medal img\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/\.survivor-climax__medal img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.survivor-climax__medal::after\s*\{[\s\S]*content:\s*none/);
+    expect(styles).toMatch(/\.survivor-controls__dock[\s\S]*grid-template-columns:\s*minmax\(176px,\s*0\.56fr\)/);
+    expect(styles).toMatch(/\.survivor-controls__core[\s\S]*background:\s*#fff8ed/);
+    expect(styles).toMatch(/\.survivor-controls__stepper[\s\S]*background:\s*#fff8ed/);
+    expect(styles).toMatch(/\.survivor-stepper__track-fill[\s\S]*background:\s*#f59e0b/);
+    expect(styles).toMatch(/\.survivor-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/\.survivor-scene__notice\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-play-area \.mx2-stage\s*\{[\s\S]*padding:\s*13px 14px 14px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-play-area \.mx2-stage__subtitle\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-scene\s*\{[\s\S]*min-height:\s*456px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-scene__relic\s*\{[\s\S]*width:\s*min\(252px,\s*calc\(100vw - 92px\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-scene__relic-art\s*\{[\s\S]*height:\s*296px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-controls__presets\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-controls__dock\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-preset\s*\{[\s\S]*min-height:\s*54px/);
+    expect(styles).not.toMatch(/\.survivor-climax__medal img\s*\{[^}]*object-fit:\s*cover/);
+    expect(styles).not.toMatch(/\.survivor-climax__medal img\s*\{[^}]*filter:\s*saturate/);
+    expect(styles).not.toMatch(/\.survivor-climax__medal::after\s*\{[^}]*linear-gradient/);
+
+    // Key buying stays game-like: tappable relic + presets + stepper, not a form.
+    expect(source).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
+    expect(source).toMatch(/ARENA_IMAGE = "last-survivor-arena\.webp"/);
+    expect(source).toContain("survivor-scene__arena-art");
+    expect(source).toContain("survivor-scene__shade");
+    expect(source).toContain("survivor-scene__relic");
+    expect(source).toContain("survivor-scene__beats");
+    expect(source).toContain("survivor-controls__dock");
+    expect(source).toContain("survivor-controls__core");
+    expect(source).toContain("survivor-controls__presets");
+    expect(source).toContain("survivor-controls__stepper");
   });
 });

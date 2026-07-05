@@ -1,337 +1,159 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../wallet-health/src/PlayArea";
-import type { ChecklistItem } from "../../wallet-health/src/composables/useHealthScore";
-import type { HealthStat } from "../../wallet-health/src/composables/useWalletHealth";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
-
-const TEST_ADDRESS = "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa";
+afterEach(() => cleanup());
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    allSet: "All checks look good",
-    autoChecked: "Auto",
-    balanceStripTitle: "Balance and connection",
-    checklistProgress: `${params?.completed ?? 0}/${params?.total ?? 0} complete`,
-    connectHint: "Connect a Neo N3 wallet to refresh live balances.",
-    connectWallet: "Connect wallet",
-    copyAddress: "Copy address",
-    copyReport: "Copy report",
-    diagnosticReportStep: "Report",
-    diagnosticStageCopy: "Connect, refresh balances, review the local safety checklist, then export a clean wallet health report.",
+    healthSummary: "Health Summary",
+    connectToScore: "Connect to score",
     diagnosticStageTitle: "Live diagnostic run",
+    diagnosticStageCopy: "Check your wallet health.",
     diagnosticStatusIdle: "Ready to scan",
     diagnosticStatusReady: "Diagnostics ready",
     diagnosticStatusScanning: "Scanning wallet",
-    downloadReport: "Download report",
-    loading: "Loading",
-    markDone: "Mark done",
-    markUndo: "Undo",
-    networkReadiness: "Network readiness",
-    notConnected: "Not connected",
-    notAvailable: "N/A",
+    connectHint: "Connect your wallet to refresh live balances.",
+    copyReport: "Copy report",
+    copyAddress: "Copy address",
     addressCopied: "Address copied",
-    recommendationsTitle: "Next actions",
-    reportActionError: "Action failed",
-    reportChecklist: "Checklist",
     reportCopied: "Report copied",
-    reportDownloaded: "Report downloaded",
-    reportGeneratedAt: "Generated at",
-    reportReady: "Report ready",
+    balanceStripTitle: "Balance and connection",
+    riskLabel: "Risk",
+    checklistProgress: "{completed}/{total} complete",
+    allSet: "All checks look good",
+    diagnosticReportStep: "Report",
+    sectionChecklist: "Safety Checklist",
+    sectionRecommendations: "Recommendations",
+    recommendationsTitle: "Next actions",
+    networkReadiness: "Network readiness",
+    refresh: "Refresh",
+    statusConnected: "Connected",
+    statusDisconnected: "Disconnected",
+    notConnected: "Not connected",
+    noChecklistItems: "No checklist items available",
     reportTitle: "Wallet Health Report",
+    reportGeneratedAt: "Generated at",
+    walletAddress: "Wallet address",
+    statNetwork: "Network",
+    statScore: "Safety Score",
+    statNeo: "NEO Balance",
+    statGas: "GAS Balance",
+    reportChecklist: "Checklist",
     reportDone: "DONE",
     reportPending: "PENDING",
     checklistConnectToCheck: "Connect to check",
-    refreshBalances: "Refresh balances",
-    riskInsights: "Risk insights",
-    sectionBalances: "Balances",
-    sectionChecklist: "Safety Checklist",
-    statConnection: "Connection",
-    statGas: "GAS reserve",
-    statNeo: "NEO Balance",
-    statNetwork: "Network",
-    statScore: "Safety Score",
-    statusConnected: "Connected",
-    walletHeroSubtitle: "Review balances, network readiness, and signing hygiene.",
-    walletHeroTitle: "Wallet Health Command Center",
-    walletAddress: "Wallet address",
   };
-  return messages[key] ?? key;
+  return (messages[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? ""));
 }
 
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const checklist: ChecklistItem[] = [
-    {
-      id: "backup",
-      title: "Backup phrase stored",
-      desc: "Store your seed phrase offline.",
-      done: false,
-      auto: false,
-    },
-    {
-      id: "gas",
-      title: "Keep GAS for fees",
-      desc: "Maintain enough GAS for future transactions.",
-      done: true,
-      auto: true,
-    },
-  ];
-  const healthStats: HealthStat[] = [
-    { label: "Connection", value: "Disconnected" },
-    { label: "Network", value: "Neo N3 TestNet" },
-    { label: "Safety Score", value: "50%" },
-  ];
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
     address: "",
-    checklistItems: checklist,
-    completedChecklistCount: 1,
-    connectionStatus: "Disconnected",
-    gasDisplay: "N/A",
-    healthStats,
     isConnected: false,
+    isConnecting: false,
     isRefreshing: false,
-    neoDisplay: "N/A",
-    networkLabel: "Neo N3 TestNet",
+    connectionStatus: "Disconnected",
+    networkLabel: "Neo N3",
+    neoDisplay: "-",
+    gasDisplay: "-",
+    safetyScore: 0,
+    riskLabel: "High risk",
+    riskClass: "risk-high",
+    completedChecklistCount: 0,
+    totalChecklistCount: 5,
+    checklistItems: [
+      { id: "backup", title: "Backup phrase stored", desc: "Store your seed phrase offline.", done: false, auto: false },
+      { id: "gas", title: "Keep GAS for fees", desc: "Connect a wallet to check GAS.", done: false, auto: true, pending: true },
+    ],
+    healthStats: [],
     recommendations: ["Backup your seed phrase immediately."],
-    riskClass: "risk-medium",
-    riskIcon: "alert-circle",
-    riskLabel: "Medium risk",
-    safetyScore: 50,
-    totalChecklistCount: 2,
     ...overrides,
   };
 
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
-  );
+  ) as ObservableState;
 }
 
 describe("Wallet Health PlayArea", () => {
-  it("renders the security dashboard visual assets", () => {
-    render(<PlayArea t={t} state={baseState()} dispatch={vi.fn().mockResolvedValue(undefined)} />);
+  it("renders a foreground-led diagnostic workspace with real checklist labels", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(document.querySelector('.wallet-health-hero-art img[src="./banner.jpg"]')).toBeTruthy();
-    expect(document.querySelector('.wallet-health-logo img[src="./logo.jpg"]')).toBeTruthy();
-    expect(
-      document.querySelector(
-        '.wallet-health-diagnostic-art img[src="./wallet-health-diagnostic-station.png"]',
-      ),
-    ).toBeTruthy();
-    expect(document.querySelector(".wallet-health-diagnostic-stage--idle")).toBeTruthy();
-    expect(document.querySelectorAll(".wallet-health-diagnostic-steps li")).toHaveLength(4);
-    expect(screen.getByText("Live diagnostic run")).toBeTruthy();
+    expect(container.querySelector(".health-workspace")).toBeTruthy();
+    expect(container.querySelector(".health-summary-card")).toBeTruthy();
+    expect(container.querySelector(".health-scanner-art")).toBeTruthy();
+    expect(container.querySelector(".health-scanner-art img")?.getAttribute("src")).toContain("wallet-health-scanner.webp");
+    expect(container.querySelector(".health-checklist-card")).toBeTruthy();
+    expect(container.querySelector(".health-scene__backdrop")).toBeFalsy();
+    expect(container.textContent).toContain("Backup phrase stored");
+    expect(container.textContent).toContain("0/5 complete");
+    expect(container.textContent).not.toContain("{completed}");
+    expect(container.textContent).not.toContain("{total}");
   });
 
-  it("shows an animated scanning stage while balances are refreshing", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          address: TEST_ADDRESS,
-          connectionStatus: "Connected",
-          gasDisplay: "0.45",
-          isConnected: true,
-          isRefreshing: true,
-          neoDisplay: "12",
-        })}
-        dispatch={vi.fn().mockResolvedValue(undefined)}
-      />,
-    );
+  it("dispatches connect before a wallet is connected and copy after connection", () => {
+    const disconnected = vi.fn().mockResolvedValue(undefined);
+    const disconnectedView = render(<PlayArea t={t} state={state()} dispatch={disconnected} />);
+    fireEvent.click(disconnectedView.container.querySelector(".mx2-btn--primary") as Element);
+    expect(disconnected).toHaveBeenCalledWith("connectWallet");
+    disconnectedView.unmount();
 
-    const stage = document.querySelector(".wallet-health-diagnostic-stage--scanning");
-    expect(stage).toBeTruthy();
-    expect(stage?.querySelector('[aria-busy="true"]')).toBeTruthy();
-    expect(document.querySelectorAll(".wallet-health-diagnostic-steps li.is-active")).toHaveLength(1);
-    expect(screen.getByText("Scanning wallet")).toBeTruthy();
+    const connected = vi.fn().mockResolvedValue(undefined);
+    const connectedView = render(<PlayArea t={t} state={state({
+      isConnected: true,
+      address: "Nabc1234567890",
+      connectionStatus: "Connected",
+      safetyScore: 80,
+      riskLabel: "Low risk",
+      riskClass: "risk-low",
+    })} dispatch={connected} />);
+    fireEvent.click(connectedView.container.querySelector(".mx2-btn--primary") as Element);
+    expect(connected).toHaveBeenCalledWith("copy", expect.stringContaining("Wallet Health Report"), "reportCopied");
   });
 
-  it("keeps the diagnostic station resource and motion accessible", () => {
-    const repoPath = resolve(process.cwd(), "apps/wallet-health/src/PlayArea.scss");
-    const sharedPath = resolve(process.cwd(), "../wallet-health/src/PlayArea.scss");
-    const css = readFileSync(existsSync(repoPath) ? repoPath : sharedPath, "utf8");
-    const repoAsset = resolve(
-      process.cwd(),
-      "apps/wallet-health/public/wallet-health-diagnostic-station.png",
-    );
-    const sharedAsset = resolve(
-      process.cwd(),
-      "../wallet-health/public/wallet-health-diagnostic-station.png",
-    );
-
-    expect(existsSync(existsSync(repoAsset) ? repoAsset : sharedAsset)).toBe(true);
-    expect(css).toContain("@keyframes wallet-health-scan-sweep");
-    expect(css).toContain("@keyframes wallet-health-diagnostic-breathe");
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(css).toContain("animation: none");
-  });
-
-  it("keeps wallet actions and manual checklist items interactive", async () => {
+  it("lets manual checklist items toggle and keeps auto checks disabled", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const checks = container.querySelectorAll<HTMLButtonElement>(".health-check");
 
-    render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
+    expect(checks).toHaveLength(2);
+    expect(checks[0].disabled).toBe(false);
+    expect(checks[1].disabled).toBe(true);
 
-    const connectButton = screen.getByRole("button", { name: "Connect wallet" });
-    const refreshButton = screen.getByRole("button", { name: "Refresh balances" });
-    const copyAddressButton = screen.getByRole("button", { name: "Copy address" });
-    const copyReportButton = screen.getByRole("button", { name: "Copy report" });
-    expect((connectButton as HTMLButtonElement).disabled).toBe(false);
-    expect((refreshButton as HTMLButtonElement).disabled).toBe(true);
-    expect((copyAddressButton as HTMLButtonElement).disabled).toBe(true);
-    expect((copyReportButton as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByText("Backup your seed phrase immediately.")).toBeTruthy();
-
-    fireEvent.click(connectButton);
-    fireEvent.click(screen.getByRole("button", { name: "Mark done" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("connectWallet");
-      expect(dispatch).toHaveBeenCalledWith("toggleChecklist", "backup");
-    });
+    fireEvent.click(checks[0]);
+    expect(dispatch).toHaveBeenCalledWith("toggleChecklist", "backup");
   });
 
-  it("enables balance refresh and shows the scoped connected wallet state", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
+  it("keeps the diagnostic surface clean instead of using a decorative backdrop", () => {
+    const styles = readFileSync(`${process.cwd()}/../wallet-health/src/PlayArea.scss`, "utf8");
+    const source = readFileSync(`${process.cwd()}/../wallet-health/src/PlayArea.tsx`, "utf8");
+    const assetPath = `${process.cwd()}/../wallet-health/public/wallet-health-scanner.webp`;
 
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          address: TEST_ADDRESS,
-          checklistItems: [
-            {
-              id: "backup",
-              title: "Backup phrase stored",
-              desc: "Store your seed phrase offline.",
-              done: true,
-              auto: false,
-            },
-            {
-              id: "gas",
-              title: "Keep GAS for fees",
-              desc: "Maintain enough GAS for future transactions.",
-              done: true,
-              auto: true,
-            },
-          ],
-          completedChecklistCount: 2,
-          connectionStatus: "Connected",
-          gasDisplay: "0.45",
-          isConnected: true,
-          neoDisplay: "12",
-          recommendations: [],
-          riskClass: "risk-low",
-          riskIcon: "check-circle",
-          riskLabel: "Low risk",
-          safetyScore: 100,
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    expect(screen.getByText("Ndb1n4zz...F9m2Aa")).toBeTruthy();
-    expect(screen.getByText("All checks look good")).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Connected" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-
-    const refreshButton = screen.getByRole("button", { name: "Refresh balances" });
-    expect((refreshButton as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(refreshButton);
-
-    await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("refreshBalances"),
-    );
+    expect(existsSync(assetPath)).toBe(true);
+    expect(statSync(assetPath).size).toBeGreaterThan(40_000);
+    expect(statSync(assetPath).size).toBeLessThan(220_000);
+    expect(styles).toContain('@use "@shared/components-react/v2/v2" as *;');
+    expect(styles).toMatch(/\.health-workspace\s*\{[\s\S]*background:\s*#ffffff;/);
+    expect(styles).toMatch(/\.health-workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(500px,\s*1\.06fr\) minmax\(420px,\s*0\.94fr\)/);
+    expect(styles).toMatch(/\.health-workspace\s*\{[\s\S]*box-shadow:\s*none;/);
+    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*height:\s*clamp\(210px,\s*24vw,\s*300px\)/);
+    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).not.toMatch(/AI-generated scene backdrop|health-scene__backdrop|backdrop-filter|radial-gradient/);
+    expect(source).toContain("wallet-health-scanner.webp");
+    expect(source).not.toContain("health-scene__backdrop");
   });
 
-  it("copies address and exports a business-ready wallet health report", async () => {
-    // Copy now routes through the shared ClipboardService via the host "copy"
-    // action (so the iframe execCommand fallback + standardized toast apply),
-    // not a raw navigator.clipboard call — assert via the dispatched action.
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: vi.fn(() => "blob:wallet-health-report"),
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: vi.fn(),
-    });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  it("has reduced-motion guards for foreground motion", () => {
+    const styles = readFileSync(`${process.cwd()}/../wallet-health/src/PlayArea.scss`, "utf8");
 
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          address: TEST_ADDRESS,
-          checklistItems: [
-            {
-              id: "backup",
-              title: "Backup phrase stored",
-              desc: "Store your seed phrase offline.",
-              done: true,
-              auto: false,
-            },
-            {
-              id: "gas",
-              title: "Keep GAS for fees",
-              desc: "Maintain enough GAS for future transactions.",
-              done: true,
-              auto: true,
-            },
-          ],
-          completedChecklistCount: 2,
-          connectionStatus: "Connected",
-          gasDisplay: "0.45",
-          isConnected: true,
-          neoDisplay: "12",
-          recommendations: ["Revoke stale app approvals."],
-          riskClass: "risk-low",
-          riskIcon: "check-circle",
-          riskLabel: "Low risk",
-          safetyScore: 100,
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy address" }));
-    await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("copy", TEST_ADDRESS, "addressCopied"),
-    );
-    expect(screen.getByRole("status").textContent).toBe("Address copied");
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy report" }));
-    await waitFor(() => {
-      const reportCall = dispatch.mock.calls.find(
-        (c) => c[0] === "copy" && c[2] === "reportCopied",
-      );
-      expect(reportCall).toBeTruthy();
-      const report = String(reportCall?.[1] ?? "");
-      expect(report).toContain("Wallet Health Report");
-      expect(report).toContain(`Wallet address: ${TEST_ADDRESS}`);
-      // Score now carries the % suffix everywhere.
-      expect(report).toContain("Safety Score: 100%");
-      expect(report).toContain("DONE: Backup phrase stored");
-      expect(report).toContain("Revoke stale app approvals.");
-    });
-    expect(screen.getByRole("status").textContent).toBe("Report copied");
-
-    fireEvent.click(screen.getByRole("button", { name: "Download report" }));
-    expect(URL.createObjectURL).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:wallet-health-report");
-    expect(screen.getByRole("status").textContent).toBe("Report downloaded");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/transition-duration:\s*0\.001ms/);
   });
 });

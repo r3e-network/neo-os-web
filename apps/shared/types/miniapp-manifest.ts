@@ -154,11 +154,15 @@ export interface OperationFieldDefinition {
   default?: string | number | boolean;
   /** Options for select fields — each entry has a value and an i18n label key */
   options?: Array<{ value: string; labelKey?: string; label?: string }>;
+  /** Asset unit for amount fields. NEO is indivisible; GAS allows decimals. */
+  asset?: "GAS" | "NEO";
   /** Validation constraints */
   validation?: {
     min?: number;
     max?: number;
     pattern?: string;
+    /** Require a whole-number amount; implied for NEO amount fields. */
+    integer?: boolean;
   };
 }
 
@@ -285,6 +289,72 @@ export interface PlatformPermissions {
 }
 
 // ============================================================================
+// Game Page (focused launch page for game-type miniapps)
+// ============================================================================
+
+/** Feature card definition for the game page features section */
+export interface GamePageFeature {
+  /** Optional icon identifier; rendered only when a concrete icon component exists. */
+  icon?: string;
+  /** i18n key for feature title */
+  titleKey: string;
+  /** i18n key for feature description */
+  descKey: string;
+  /** Render as a large hero card (gradient background, bigger) */
+  large?: boolean;
+  /** CSS gradient for the large card's visual area */
+  gradient?: string;
+}
+
+/**
+ * Declarative configuration for the focused launch page shown
+ * to users when they first enter a game-type miniapp. The platform
+ * renders a default launch page for every `shell: "game"` app and
+ * uses this config only to customize copy, features, and accent color.
+ *
+ * All text fields reference i18n keys — the actual strings come from
+ * the miniapp's messages.
+ */
+export interface GamePageConfig {
+  /** Category badge text (e.g. "On-Chain Challenge") — i18n key */
+  heroBadgeKey: string;
+  /** Hero title — i18n key */
+  heroTitleKey: string;
+  /** Word within the hero title to apply accent styling to; accepts a literal or i18n key. */
+  heroTitleAccent?: string;
+  /** Hero description paragraph — i18n key */
+  heroDescKey: string;
+  /** Primary action button label — i18n key */
+  primaryLabelKey: string;
+  /** Secondary button label (e.g. "How to Play") — i18n key */
+  ghostLabelKey?: string;
+  /** Features section eyebrow — i18n key */
+  featuresEyebrowKey?: string;
+  /** Features section title — i18n key */
+  featuresTitleKey?: string;
+  /** Feature cards (large + small grid) */
+  features?: GamePageFeature[];
+  /** Leaderboard section eyebrow — i18n key */
+  lbEyebrowKey?: string;
+  /** Leaderboard section title — i18n key */
+  lbTitleKey?: string;
+  /** Leaderboard score column label — i18n key */
+  lbScoreLabelKey?: string;
+  /** Bottom CTA section title — i18n key */
+  ctaTitleKey: string;
+  /** Bottom CTA section description — i18n key */
+  ctaDescKey: string;
+  /** CTA button label — i18n key (falls back to primaryLabelKey) */
+  ctaLabelKey?: string;
+  /** Trust badge texts — i18n keys */
+  trustBadgeKeys?: string[];
+  /** Category accent color override (hex, e.g. "#10B981") */
+  categoryColor?: string;
+  /** Optional icon identifier for future concrete icon rendering. Prefer app logo assets. */
+  appIcon?: string;
+}
+
+// ============================================================================
 // MiniApp Manifest (Top-Level)
 // ============================================================================
 
@@ -347,4 +417,9 @@ export interface MiniAppManifest {
 
   /** Platform permission declarations */
   permissions?: PlatformPermissions;
+
+  /** Optional launch page config for game-type miniapps.
+   *  Every `shell: "game"` miniapp gets a focused launch page before
+   *  entering the game; this config customizes that default. */
+  gamePage?: GamePageConfig;
 }

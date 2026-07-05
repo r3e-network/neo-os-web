@@ -262,8 +262,8 @@ const TEMPLATE_REGISTRY = {
 export const DEFAULT_FACTORY_DRAFT: FactoryDraft = {
   kind: "nep17",
   nep17: {
-    name: "Yiwu Credits",
-    symbol: "YIWU",
+    name: "Neo Credits",
+    symbol: "NEOC",
     decimals: "8",
     initialSupply: "1000000",
     owner: "",

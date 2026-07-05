@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { addressToScriptHash } from "../utils/neo";
-import {
-  createVaultApi,
-  type VaultChain,
-} from "../../neo-multisig/src/services/api";
+import { createMiniAppFramework } from "../react";
+import { createVaultApi } from "../../neo-multisig/src/services/api";
 import {
   buildApproveArgs,
   buildCancelArgs,
@@ -29,10 +27,11 @@ const SIGNER_B = "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv";
 const RECIPIENT = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
 const VAULT_CONTRACT = "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178";
 
-/** Build a mock VaultChain that records invoke/read calls. */
-function mockChain(reads: Record<string, unknown> = {}): VaultChain & {
+/** Build a mock chain that records invoke/read calls. */
+function mockChain(reads: Record<string, unknown> = {}): {
   invoke: ReturnType<typeof vi.fn>;
   read: ReturnType<typeof vi.fn>;
+  contractAddress: { get: () => string };
 } {
   const invoke = vi.fn().mockResolvedValue({ txid: "0xtx", success: true });
   const read = vi.fn(async (operation: string) => reads[operation] ?? null);
@@ -41,6 +40,19 @@ function mockChain(reads: Record<string, unknown> = {}): VaultChain & {
     read,
     contractAddress: { get: () => VAULT_CONTRACT },
   };
+}
+
+/**
+ * Wrap a mock chain in the MiniApp framework and build the vault API on it, so
+ * the API's chain calls route through app.chain (the migrated seam) while the
+ * recorded invoke/read/listEvents calls remain exactly as the contract expects.
+ */
+function makeApi(chain: Record<string, unknown>) {
+  const app = createMiniAppFramework(
+    { services: { chain }, t: (key: string) => key } as never,
+    { appId: "miniapp-neo-multisig" },
+  );
+  return createVaultApi(app);
 }
 
 describe("neo-multisig vault validation", () => {
@@ -241,7 +253,7 @@ describe("neo-multisig read parsing", () => {
 describe("neo-multisig vault service", () => {
   it("dispatches createVault with validated args", async () => {
     const chain = mockChain({ lastVaultId: 7 });
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
 
     await api.createVault({
       creator: SIGNER_A,
@@ -249,22 +261,28 @@ describe("neo-multisig vault service", () => {
       threshold: 2,
     });
 
-    expect(chain.invoke).toHaveBeenCalledWith("createVault", [
-      { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
-      {
-        type: "Array",
-        value: [
-          { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
-          { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
-        ],
-      },
-      { type: "Integer", value: "2" },
-    ]);
+    // The framework chain layer forwards an (empty) options slot as `undefined`,
+    // which is on-chain-identical to omitting it.
+    expect(chain.invoke).toHaveBeenCalledWith(
+      "createVault",
+      [
+        { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
+        {
+          type: "Array",
+          value: [
+            { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
+            { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
+          ],
+        },
+        { type: "Integer", value: "2" },
+      ],
+      undefined,
+    );
   });
 
   it("rejects an invalid signer set before invoking the contract", async () => {
     const chain = mockChain();
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
 
     await expect(
       api.createVault({ creator: SIGNER_A, signers: [SIGNER_A], threshold: 1 }),
@@ -274,7 +292,7 @@ describe("neo-multisig vault service", () => {
 
   it("deposits via a NEP-17 transfer targeting the token contract", async () => {
     const chain = mockChain();
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
 
     await api.deposit({ from: SIGNER_A, vaultId: 7, amount: "1", asset: "GAS" });
 
@@ -295,7 +313,7 @@ describe("neo-multisig vault service", () => {
 
   it("dispatches createRequest and approve against the vault contract", async () => {
     const chain = mockChain({ lastRequestId: 4 });
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
 
     await api.createRequest({
       vaultId: 7,
@@ -305,32 +323,44 @@ describe("neo-multisig vault service", () => {
       amount: "0.5",
       memo: "rent",
     });
-    expect(chain.invoke).toHaveBeenCalledWith("createRequest", [
-      { type: "Integer", value: "7" },
-      { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
-      { type: "Hash160", value: addressToScriptHash(RECIPIENT) },
-      { type: "Hash160", value: GAS_HASH },
-      { type: "Integer", value: "50000000" },
-      { type: "String", value: "rent" },
-    ]);
+    expect(chain.invoke).toHaveBeenCalledWith(
+      "createRequest",
+      [
+        { type: "Integer", value: "7" },
+        { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
+        { type: "Hash160", value: addressToScriptHash(RECIPIENT) },
+        { type: "Hash160", value: GAS_HASH },
+        { type: "Integer", value: "50000000" },
+        { type: "String", value: "rent" },
+      ],
+      undefined,
+    );
 
     await api.approve(4, SIGNER_B);
-    expect(chain.invoke).toHaveBeenCalledWith("approve", [
-      { type: "Integer", value: "4" },
-      { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
-    ]);
+    expect(chain.invoke).toHaveBeenCalledWith(
+      "approve",
+      [
+        { type: "Integer", value: "4" },
+        { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
+      ],
+      undefined,
+    );
   });
 
   it("dispatches cancel from ANY signer (v2 semantics)", async () => {
     const chain = mockChain();
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
 
     // SIGNER_B did not create the request; v2 lets any vault signer cancel.
     await api.cancel(4, SIGNER_B);
-    expect(chain.invoke).toHaveBeenCalledWith("cancel", [
-      { type: "Integer", value: "4" },
-      { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
-    ]);
+    expect(chain.invoke).toHaveBeenCalledWith(
+      "cancel",
+      [
+        { type: "Integer", value: "4" },
+        { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
+      ],
+      undefined,
+    );
   });
 
   it("resolves the RequestUnfunded event for an auto-cancelled request (v2)", async () => {
@@ -352,7 +382,7 @@ describe("neo-multisig vault service", () => {
         ],
       },
     ]);
-    const api = createVaultApi({ ...mockChain(), listEvents });
+    const api = makeApi({ ...mockChain(), listEvents });
 
     expect(await api.requestUnfunded(4)).toEqual({
       requestId: 4,
@@ -366,10 +396,10 @@ describe("neo-multisig vault service", () => {
 
   it("degrades requestUnfunded to null when events are unavailable", async () => {
     // No listEvents on the chain layer at all.
-    expect(await createVaultApi(mockChain()).requestUnfunded(4)).toBeNull();
+    expect(await makeApi(mockChain()).requestUnfunded(4)).toBeNull();
 
     // listEvents present but failing (indexer outage) — still null, no throw.
-    const failing = createVaultApi({
+    const failing = makeApi({
       ...mockChain(),
       listEvents: vi.fn().mockRejectedValue(new Error("indexer down")),
     });
@@ -400,7 +430,7 @@ describe("neo-multisig vault service", () => {
         memo: "rent",
       },
     });
-    const api = createVaultApi(chain);
+    const api = makeApi(chain);
 
     const vault = await api.getVault(7);
     expect(vault?.gasBalance).toBe(100000000);

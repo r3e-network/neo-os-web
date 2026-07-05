@@ -4,7 +4,7 @@ const appMessages = {
   // App translations
   title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   subtitle: { en: "Blockchain-powered divination", zh: "区块链占卜" },
-  drawYourCards: { en: "Draw Your Cards", zh: "抽取您的牌" },
+  drawYourCards: { en: "Draw the spread", zh: "抽取牌阵" },
   drawCards: { en: "Draw 3 Cards", zh: "抽取 3 张牌" },
   drawValueHint: {
     en: "Pay 0.1 GAS to draw your Past · Present · Future cards on-chain.",
@@ -39,6 +39,7 @@ const appMessages = {
   drawingCards: { en: "Drawing cards...", zh: "正在抽取牌..." },
   dealingCards: { en: "Dealing the spread...", zh: "正在发牌..." },
   flipCard: { en: "Flip card", zh: "翻开卡牌" },
+  revealAllCards: { en: "Reveal cards", zh: "揭示卡牌" },
   tapToReveal: { en: "Tap to reveal", zh: "点击揭示" },
   past: { en: "Past", zh: "过去" },
   present: { en: "Present", zh: "现在" },
@@ -68,8 +69,8 @@ const appMessages = {
   },
   tarotHeroTitle: { en: "On-Chain Tarot Reading Desk", zh: "链上塔罗读牌台" },
   tarotHeroSubtitle: {
-    en: "Ask a focused question, pay the on-chain draw fee, then reveal Past, Present, and Future cards drawn on-chain with a clear wallet-reviewed route.",
-    zh: "输入明确问题，支付链上抽牌费用，然后按过去、现在、未来揭示由链上抽取的结果，并清楚查看钱包确认路径。",
+    en: "Draw three Neo tarot cards on-chain, then reveal Past, Present, and Future.",
+    zh: "链上抽取三张 Neo 塔罗牌，然后揭示过去、现在与未来。",
   },
   tarotStageAlt: {
     en: "Three Neo tarot cards arranged on a bright reading table.",
@@ -110,10 +111,10 @@ const appMessages = {
     zh: "选择快捷意图或写下一个明确问题。问题保留在本地；链上只处理抽牌和卡牌编号。",
   },
   intentionDeckLabel: { en: "Intention deck", zh: "意图牌组" },
-  questionPreviewLabel: { en: "Reading slip", zh: "读牌签" },
+  questionPreviewLabel: { en: "Focus", zh: "聚焦" },
   questionPreviewFallback: {
-    en: "Choose an intent to place your question on the reading slip.",
-    zh: "选择一个意图，把问题放到读牌签上。",
+    en: "Set the tone for this spread.",
+    zh: "为这次牌阵设定主题。",
   },
   oracleLaneLabel: { en: "Oracle draw lane", zh: "预言抽牌轨道" },
   oracleLaneIntent: { en: "Intent", zh: "意图" },

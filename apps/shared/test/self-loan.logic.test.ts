@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChainService } from "../services/ChainService";
+import { createMiniAppFramework } from "../react";
 import { useSelfLoan } from "../../self-loan/src/composables/useSelfLoan";
 
 // A funded testnet account; addressToScriptHash resolves it without external deps.
@@ -123,6 +124,14 @@ function makeChain(state: ChainState = {}) {
   return { chain, read, invoke };
 }
 
+/** Wrap a mock chain in the MiniApp framework SDK the composable now consumes. */
+function makeApp(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-self-loan" },
+  );
+}
+
 /** Pull every invoke call's [op, args] for assertions. */
 function invokeCalls(invoke: ReturnType<typeof vi.fn>) {
   return invoke.mock.calls.map((c) => ({ op: c[0] as string, args: c[1] as ContractArg[], opts: c[2] }));
@@ -134,7 +143,7 @@ describe("useSelfLoan NEO-integer vs GAS-base-units separation (self-loan-asset)
     const { chain } = makeChain({
       loan: { collateral: 100n, borrowed: 20n * GAS, ltvBps: 2000n, active: true },
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -147,7 +156,7 @@ describe("useSelfLoan NEO-integer vs GAS-base-units separation (self-loan-asset)
 
   it("reads NEO balance as WHOLE NEO (no ÷1e8)", async () => {
     const { chain } = makeChain({ neoBalance: 250n });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
     expect(app.neoBalance.get()).toBe(250);
@@ -159,7 +168,7 @@ describe("useSelfLoan NEO-integer vs GAS-base-units separation (self-loan-asset)
       totalBorrowed: 140n * GAS,
       totalRepaid: 35n * GAS,
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
     expect(app.stats.get().totalLoans).toBe(7);
@@ -169,7 +178,7 @@ describe("useSelfLoan NEO-integer vs GAS-base-units separation (self-loan-asset)
 
   it("reads tier bps + fee bps straight from the contract", async () => {
     const { chain } = makeChain();
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
     expect(app.platformStats.get().ltvTier1Bps).toBe(2000);
@@ -186,7 +195,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
   it("deposits NEO collateral (integer memo transfer) then calls borrow(tier)", async () => {
     // Price set so borrow is allowed on-chain; 100 NEO available.
     const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -210,7 +219,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
 
   it("rejects fractional NEO collateral before any chain call", async () => {
     const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -221,7 +230,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
 
   it("surfaces a held-credit error when the deposit lands but borrow reverts", async () => {
     const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -241,7 +250,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
       neoBalance: 100n,
       collateralCredit: 10n,
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -261,7 +270,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
       neoBalance: 100n,
       collateralCredit: 4n,
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -284,7 +293,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
       neoBalance: 100n,
       collateralCredit: 12n,
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -304,7 +313,7 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
       neoBalance: 100n,
       pool: 5n * GAS,
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -324,7 +333,7 @@ describe("useSelfLoan repay flow (self-loan-2)", () => {
 
   it("deposits GAS repay credit (base units) then calls repay(borrower)", async () => {
     const { chain, invoke } = makeChain(activeLoan);
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
     expect(app.loan.get().borrowed).toBe(20);
@@ -344,7 +353,7 @@ describe("useSelfLoan repay flow (self-loan-2)", () => {
 
   it("caps the repayment at the outstanding debt (client-side UX)", async () => {
     const { chain, invoke } = makeChain(activeLoan);
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -355,7 +364,7 @@ describe("useSelfLoan repay flow (self-loan-2)", () => {
 
   it("rejects repaying when there is no active loan", async () => {
     const { chain, invoke } = makeChain({ loan: null });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -365,7 +374,7 @@ describe("useSelfLoan repay flow (self-loan-2)", () => {
 
   it("surfaces a held-credit error when the GAS deposit lands but repay reverts", async () => {
     const { chain, invoke } = makeChain(activeLoan);
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -385,7 +394,7 @@ describe("useSelfLoan addCollateral (self-loan-add)", () => {
       neoBalance: 100n,
       loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -403,7 +412,7 @@ describe("useSelfLoan addCollateral (self-loan-add)", () => {
       neoBalance: 100n,
       loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -419,7 +428,7 @@ describe("useSelfLoan addCollateral (self-loan-add)", () => {
       collateralCredit: 3n,
       loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -439,7 +448,7 @@ describe("useSelfLoan addCollateral (self-loan-add)", () => {
       collateralCredit: 9n,
       loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
     });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -455,7 +464,7 @@ describe("useSelfLoan reclaim affordances (self-loan-reclaim)", () => {
 
   it("exposes reclaimable NEO collateral credit (WHOLE NEO) and reclaims via withdraw()", async () => {
     const { chain, invoke } = makeChain({ collateralCredit: 12n });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -469,7 +478,7 @@ describe("useSelfLoan reclaim affordances (self-loan-reclaim)", () => {
 
   it("exposes reclaimable GAS repay credit (÷1e8) and reclaims via withdrawRepayCredit()", async () => {
     const { chain, invoke } = makeChain({ repayCredit: 3n * GAS });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -483,7 +492,7 @@ describe("useSelfLoan reclaim affordances (self-loan-reclaim)", () => {
 
   it("rejects reclaim when there is no credit", async () => {
     const { chain } = makeChain();
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -502,7 +511,7 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
 
   it("falls back to a same-unit collateral ratio when no price is configured", async () => {
     const { chain } = makeChain(loanOpts);
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -521,7 +530,7 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
   it("value-normalizes collateral to GAS via neoPrice when configured", async () => {
     // neoPrice = 0.5 GAS per NEO = 0.5e8 base units. Collateral value = 100 * 0.5 = 50 GAS.
     const { chain } = makeChain({ ...loanOpts, neoPrice: GAS / 2n });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
@@ -537,7 +546,7 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
 
   it("reports a neutral health factor when there is no debt", async () => {
     const { chain } = makeChain({ neoBalance: 100n, loan: null });
-    const app = useSelfLoan({ chain, t });
+    const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 

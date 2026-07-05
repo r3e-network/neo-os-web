@@ -1,1211 +1,576 @@
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/playarea-base";
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-.shared-pay-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  color: var(--ns-ink, #1e1e2e);
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #0f766e;
+  --mx2-brand-hover: #0c5f58;
+  --mx2-brand-light: #e6f2f0;
+  --mx2-brand-subtle: #b3d9d3;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #0369a1;
+  --mx2-accent-strong: #075985;
+  --mx2-accent-soft: #e6f1fa;
+  --mx2-accent-ink: #0b3a56;
 }
 
-.shared-pay-stage {
-  position: relative;
-  isolation: isolate;
+
+.neo-pay-play-area {
+  display: block;
+  --mx2-stage-floor: #ffffff;
+}
+
+.neo-pay-play-area .mx2-stage__scene {
+  background: #ffffff;
+}
+
+.neopay-shared-desk {
+  width: 100%;
+  min-height: 420px;
   display: grid;
-  grid-template-columns: minmax(0, 0.86fr) minmax(320px, 1.14fr);
-  gap: 1rem;
+  grid-template-columns: minmax(420px, 1.18fr) minmax(320px, 0.82fr);
   align-items: stretch;
-  min-height: 356px;
-  overflow: hidden;
-  padding: 1.15rem;
-  border: 1px solid rgba(23, 92, 70, 0.14);
-  border-radius: var(--ns-radius-lg, 20px);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(245, 252, 248, 0.72)),
-    var(--ns-surface, #ffffff);
-  box-shadow: 0 18px 42px rgba(18, 37, 58, 0.11);
+  gap: 16px;
 }
 
-.shared-pay-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(115deg, transparent 0 36%, rgba(255, 255, 255, 0.36) 46%, transparent 58%),
-    linear-gradient(145deg, rgba(255, 184, 77, 0.14), transparent 44%);
-  opacity: 0.7;
-  pointer-events: none;
-  animation: shared-pay-stage-sheen 8s ease-in-out infinite;
-}
-
-.shared-pay-stage__media {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: 50% 50%;
-    opacity: 0.42;
-    filter: saturate(1.08) contrast(1.02);
-    transform: scale(1.04);
-    animation: shared-pay-stage-drift 18s ease-in-out infinite alternate;
-  }
-}
-
-.shared-pay-stage__shade {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 42%, rgba(255, 255, 255, 0.58) 100%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(22, 199, 132, 0.08));
-}
-
-.shared-pay-stage__copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.82rem;
+.neopay-ticket-board,
+.neopay-ticket {
   min-width: 0;
-  padding: 0.25rem 0.15rem;
-
-  h2 {
-    max-width: 11ch;
-    margin: 0;
-    color: #13291f;
-    font-size: 3.35rem;
-    line-height: 0.94;
-    font-weight: 900;
-    letter-spacing: 0;
-  }
-
-  p {
-    max-width: 49ch;
-    margin: 0;
-    color: #3d5160;
-    font-size: 0.96rem;
-    line-height: 1.58;
-    font-weight: 650;
-  }
-}
-
-.shared-pay-stage__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 30px;
-    padding: 0 0.74rem;
-    border: 1px solid rgba(19, 41, 31, 0.08);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.74);
-    color: #244337;
-    box-shadow: 0 6px 18px rgba(18, 37, 58, 0.08);
-    font-size: 0.72rem;
-    font-weight: 900;
-    letter-spacing: 0;
-  }
-}
-
-.shared-pay-route-board {
-  display: grid;
-  align-self: stretch;
-  gap: 0.9rem;
-  min-width: 0;
-  padding: 1rem;
-  border: 1px solid rgba(16, 91, 67, 0.16);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 18px 40px rgba(18, 37, 58, 0.12);
-  backdrop-filter: blur(14px);
-}
-
-.shared-pay-route-board__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-
-  span {
-    color: #576b78;
-    font-size: 0.7rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  strong {
-    min-width: 0;
-    color: #10261d;
-    font-size: 1.5rem;
-    line-height: 1.05;
-    font-weight: 900;
-    text-align: right;
-    overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.shared-pay-route {
-  display: grid;
-  grid-template-columns: minmax(118px, 0.8fr) minmax(180px, 1.25fr) minmax(118px, 0.8fr);
-  gap: 0.7rem;
-  align-items: center;
-  min-height: 190px;
-}
-
-.shared-pay-route-node {
-  display: grid;
-  gap: 0.36rem;
-  min-width: 0;
-  padding: 0.78rem;
-  border: 1px solid rgba(32, 86, 69, 0.12);
-  border-radius: var(--ns-radius-md, 16px);
-  background: rgba(247, 251, 249, 0.88);
-  box-shadow: 0 10px 24px rgba(18, 37, 58, 0.07);
-  animation: shared-pay-node-float 5.5s ease-in-out infinite;
-
-  span {
-    color: #5f7280;
-    font-size: 0.68rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  strong {
-    min-width: 0;
-    color: #14291f;
-    font-size: 0.9rem;
-    font-weight: 900;
-    overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.shared-pay-route-node--recipient {
-  animation-delay: -2.2s;
-}
-
-.shared-pay-route-track {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 168px;
-  overflow: hidden;
-  border: 1px solid rgba(15, 177, 116, 0.16);
+  border: 1px solid rgba(31, 41, 55, 0.08);
   border-radius: 24px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(229, 248, 239, 0.68)),
-    linear-gradient(90deg, rgba(22, 199, 132, 0.12), rgba(65, 124, 245, 0.08));
+  background: #ffffff;
+  box-shadow: none;
 }
 
-.shared-pay-route-track__line {
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 50%;
-  height: 8px;
-  border-radius: 999px;
-  background:
-    linear-gradient(90deg, rgba(22, 199, 132, 0.24), rgba(42, 115, 240, 0.22), rgba(245, 166, 35, 0.24)),
-    rgba(255, 255, 255, 0.68);
-  box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.16);
-  transform: translateY(-50%);
-}
-
-.shared-pay-route-token {
-  position: absolute;
-  left: 9%;
-  top: calc(50% - 22px);
-  display: block;
-  width: 44px;
-  height: 44px;
-  overflow: hidden;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
-  box-shadow: 0 10px 22px rgba(16, 44, 78, 0.22);
-  animation: shared-pay-route-token-run 5.6s cubic-bezier(0.45, 0, 0.22, 1) infinite;
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-}
-
-.shared-pay-route-token--two {
-  width: 34px;
-  height: 34px;
-  top: calc(50% + 16px);
-  animation-delay: -2.35s;
-  opacity: 0.88;
-}
-
-.shared-pay-route-vault {
-  position: relative;
-  z-index: 1;
+.neopay-ticket-board {
   display: grid;
-  place-items: center;
-  gap: 0.28rem;
-  width: min(156px, 72%);
-  min-height: 118px;
-  padding: 0.76rem;
-  border: 1px solid rgba(15, 177, 116, 0.22);
-  border-radius: 24px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(237, 252, 245, 0.9)),
-    #ffffff;
-  box-shadow: 0 16px 30px rgba(18, 37, 58, 0.13);
-  text-align: center;
-  animation: shared-pay-vault-pulse 4.4s ease-in-out infinite;
-
-  span {
-    color: #294737;
-    font-size: 0.76rem;
-    font-weight: 900;
-  }
-
-  strong {
-    color: #0b7650;
-    font-size: 1rem;
-    line-height: 1.1;
-    font-weight: 950;
-    font-variant-numeric: tabular-nums;
-  }
+  align-content: center;
+  gap: 12px;
+  padding: 16px;
 }
 
-.shared-pay-route-vault__logo {
-  display: block;
-  width: 44px;
-  height: 44px;
-  overflow: hidden;
-  border-radius: 14px;
-  box-shadow: 0 8px 18px rgba(15, 177, 116, 0.22);
-
-  img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-}
-
-.shared-pay-stage__stats {
+.neopay-ticket-board__screen {
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.6rem;
-
-  div {
-    display: grid;
-    gap: 0.26rem;
-    min-width: 0;
-    padding: 0.72rem;
-    border: 1px solid rgba(20, 54, 42, 0.08);
-    border-radius: var(--ns-radius-md, 16px);
-    background: rgba(247, 251, 249, 0.82);
-  }
-
-  span {
-    color: #677b87;
-    font-size: 0.66rem;
-    font-weight: 900;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  strong {
-    min-width: 0;
-    color: #12291f;
-    font-size: 0.96rem;
-    line-height: 1.12;
-    font-weight: 900;
-    overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums;
-  }
+  gap: 6px;
+  border: 1px solid rgba(29, 78, 216, 0.14);
+  border-radius: 20px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: inset 4px 0 0 rgba(37, 99, 235, 0.18);
 }
 
-.shared-pay-stage--ready .shared-pay-route-board {
-  border-color: rgba(15, 177, 116, 0.34);
-  box-shadow:
-    0 18px 42px rgba(18, 37, 58, 0.12),
-    0 0 0 4px rgba(22, 199, 132, 0.08);
-}
-
-.shared-pay-stage--creating .shared-pay-route-token {
-  animation-duration: 2.4s;
-}
-
-.shared-pay-eyebrow {
-  align-self: flex-start;
+.neopay-ticket-board__screen span {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 0.6rem;
-  border-radius: 999px;
-  background: var(--ns-violet-soft, #e4f8f0);
-  color: var(--ns-violet-strong, #0fb174);
-  font-size: 0.68rem;
-  font-weight: 800;
+  gap: 8px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.shared-pay-notice {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.9rem 1.1rem;
-  border: 1px solid rgba(245, 166, 35, 0.24);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-warning-soft, #fff3dd);
-  color: #8a5a08;
-  font-size: 0.82rem;
-  line-height: 1.5;
-
-  strong {
-    color: #6b450a;
-    font-weight: 800;
-  }
-}
-
-.shared-pay-primary {
-  display: block;
-}
-
-.shared-pay-composer-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.72fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.shared-pay-composer-main {
-  display: grid;
-  gap: 0.85rem;
-  min-width: 0;
-}
-
-.shared-pay-stream-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.shared-pay-card {
-  border-radius: var(--ns-radius-lg, 20px);
-}
-
-.shared-pay-card--form {
-  min-width: 0;
-}
-
-.shared-pay-composer {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.shared-pay-composer__amount {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.95rem;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  background:
-    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(22, 199, 132, 0)),
-    var(--ns-surface-subtle, #f7f8fa);
-
-  .neo-input__wrapper {
-    min-height: 66px;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .neo-input__field {
-    min-height: 66px;
-    padding: 0 0.15rem;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 2.55rem;
-    font-weight: 800;
-    letter-spacing: 0;
-  }
-
-  .neo-input__suffix {
-    padding-right: 0.2rem;
-    color: var(--ns-brand-strong, #0fb174);
-    font-size: 0.9rem;
-    font-weight: 900;
-  }
-}
-
-.shared-pay-composer__label {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.shared-pay-asset-switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  border: none;
-
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    min-height: 46px;
-    padding: 0.58rem 0.75rem;
-    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-    border-radius: var(--ns-radius-md, 16px);
-    background: var(--ns-surface, #ffffff);
-    color: var(--ns-text-2, #5b6478);
-    cursor: pointer;
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease,
-      box-shadow 0.15s ease,
-      transform 0.15s ease;
-
-    strong {
-      color: var(--ns-ink, #1e1e2e);
-      font-size: 0.92rem;
-      font-weight: 900;
-      letter-spacing: 0;
-    }
-
-    span {
-      color: var(--ns-text-muted, #8a92a6);
-      font-size: 0.68rem;
-      font-weight: 800;
-      text-align: right;
-    }
-
-    &:hover {
-      transform: translateY(-1px);
-      border-color: rgba(22, 199, 132, 0.3);
-      box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-    }
-
-    &.is-active {
-      border-color: rgba(22, 199, 132, 0.44);
-      background: var(--ns-brand-soft, #e4f8f0);
-
-      strong,
-      span {
-        color: var(--ns-brand-strong, #0fb174);
-      }
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
-}
-
-.shared-pay-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.shared-pay-form--compact {
-  .neo-input__wrapper {
-    min-height: 48px;
-  }
-}
-
-.shared-pay-advanced {
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface, #ffffff);
-
-  summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 44px;
-    padding: 0 0.9rem;
-    color: var(--ns-text-2, #5b6478);
-    cursor: pointer;
-    font-size: 0.78rem;
-    font-weight: 850;
-    list-style: none;
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    &::after {
-      content: "+";
-      color: var(--ns-brand-strong, #0fb174);
-      font-size: 1rem;
-      font-weight: 900;
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
-
-  &[open] {
-    padding-bottom: 0.85rem;
-
-    summary::after {
-      content: "-";
-    }
-  }
-
-  .shared-pay-form {
-    padding: 0 0.85rem;
-  }
-}
-
-.shared-pay-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.85rem;
-
-  button {
-    min-height: 34px;
-    padding: 0 0.85rem;
-    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-    border-radius: 999px;
-    background: var(--ns-surface-subtle, #f7f8fa);
-    color: var(--ns-text-2, #5b6478);
-    font-size: 0.78rem;
-    font-weight: 800;
-    cursor: pointer;
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease,
-      color 0.15s ease;
-
-    &:hover {
-      border-color: rgba(22, 199, 132, 0.32);
-      background: var(--ns-violet-soft, #e4f8f0);
-      color: var(--ns-violet-strong, #0fb174);
-    }
-
-    &.is-active {
-      border-color: var(--ns-violet, #16c784);
-      background: var(--ns-violet-soft, #e4f8f0);
-      color: var(--ns-violet-strong, #0fb174);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
-}
-
-.shared-pay-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.6rem;
-  align-items: center;
-  margin-top: 0.85rem;
-
-  // Once a field is dirty the secondary "Clear" appears as a narrow trailing
-  // control, keeping the primary CTA dominant and "Clear" clearly secondary.
-  &.is-dirty {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  // The pristine / incomplete primary is intentionally quiet: a neutral
-  // outlined control that reads as "not ready" rather than a green CTA the
-  // eye mistakes for an enabled action.
-  .neo-btn--primary:disabled,
-  .neo-btn--primary[aria-disabled="true"] {
-    background: var(--ns-surface-subtle, #f7f8fa);
-    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-    color: var(--ns-text-muted, #8a92a6);
-    box-shadow: none;
-    opacity: 1;
-  }
-}
-
-.shared-pay-actions .shared-pay-create-cta.neo-btn--primary:not(:disabled):not([aria-disabled="true"]) {
-  border: 1px solid #0a7a52;
-  background: #0a7a52;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(22, 199, 132, 0.2);
-
-  &:hover {
-    background: #086d49;
-    border-color: #086d49;
-  }
-}
-
-.shared-pay-review-panel {
-  display: grid;
-  gap: 0.75rem;
-  min-width: 0;
-  padding: 0.9rem;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
-  background:
-    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(255, 255, 255, 0) 42%),
-    var(--ns-surface, #ffffff);
-
-  &.is-ready {
-    border-color: rgba(22, 199, 132, 0.2);
-  }
-
-  .shared-pay-summary {
-    margin: 0;
-  }
-}
-
-.shared-pay-review-panel__top {
-  display: grid;
-  gap: 0.28rem;
-
-  span {
-    color: var(--ns-brand-strong, #0fb174);
-    font-size: 0.68rem;
-    font-weight: 900;
-    line-height: 1.2;
-    letter-spacing: 0;
-    text-transform: uppercase;
-  }
-
-  strong {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 1.38rem;
-    line-height: 1.05;
-    font-weight: 900;
-    letter-spacing: 0;
-    overflow-wrap: anywhere;
-    font-variant-numeric: tabular-nums;
-  }
-
-}
-
-.shared-pay-review__pending {
-  color: var(--ns-text-muted, #8a92a6) !important;
-  font-weight: 700 !important;
-}
-
-.shared-pay-review__hint {
-  margin: 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.74rem;
-  line-height: 1.5;
-}
-
-.shared-pay-review__warning {
-  margin: 0;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--ns-danger-border, rgba(220, 38, 38, 0.22));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-danger-soft, #fdecec);
-  color: var(--ns-danger-strong, #b42318);
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.shared-pay-summary {
-  display: grid;
-  gap: 0.5rem;
-
-  div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    min-height: 42px;
-    padding: 0.6rem 0.75rem;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: var(--ns-radius-sm, 12px);
-    background: var(--ns-surface-subtle, #f7f8fa);
-  }
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 0.76rem;
-    font-weight: 700;
-  }
-
-  strong {
-    min-width: 0;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 0.88rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-    text-align: right;
-  }
-
-  // The network-fee row is an honest estimate (the wallet quotes the exact GAS
-  // fee at signing), so it reads in a quieter, non-numeric weight.
-  strong.shared-pay-summary__muted {
-    color: var(--ns-text-2, #5b6478);
-    font-size: 0.78rem;
-    font-weight: 700;
-  }
-}
-
-.shared-pay-howto {
-  .shared-pay-howto__steps {
-    display: grid;
-    gap: 0.7rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-
-    li {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.7rem;
-    }
-  }
-
-  .shared-pay-howto__num {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 999px;
-    background: var(--ns-violet-soft, #e4f8f0);
-    color: var(--ns-violet-strong, #0fb174);
-    font-size: 0.78rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .shared-pay-howto__copy {
-    padding-top: 0.15rem;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 0.84rem;
-    line-height: 1.5;
-  }
-
-  .shared-pay-howto__foot {
-    margin: 0.9rem 0 0;
-    padding-top: 0.8rem;
-    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 0.78rem;
-    line-height: 1.5;
-  }
-}
-
-.shared-pay-stream-list {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.shared-pay-stream {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.8rem;
-  align-items: center;
-  padding: 0.9rem;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:hover {
-    border-color: rgba(22, 199, 132, 0.22);
-    box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-  }
-}
-
-.shared-pay-stream__main {
-  min-width: 0;
-}
-
-.shared-pay-stream__header {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.shared-pay-stream__title {
+.neopay-ticket-board__screen strong {
   min-width: 0;
   overflow: hidden;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9rem;
-  font-weight: 800;
+  color: var(--mx2-ink);
+  font-size: 49px;
+  font-weight: 680;
+  line-height: 0.98;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.shared-pay-status {
-  flex-shrink: 0;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(138, 146, 166, 0.14);
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.64rem;
-  font-weight: 800;
+.neopay-ticket-board__screen em {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-accent-strong);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neopay-route {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.neopay-node {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon amount"
+    "icon detail";
+  column-gap: 11px;
+  align-items: center;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: var(--mx2-r);
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+}
+
+.neopay-node__icon {
+  grid-area: icon;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mx2-accent-soft);
+  color: var(--mx2-accent-strong);
+}
+
+.neopay-node span:not(.neopay-node__icon) {
+  grid-area: label;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.neopay-node strong {
+  grid-area: amount;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 25px;
+  font-weight: 680;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neopay-node em {
+  grid-area: detail;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-accent-strong);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neopay-flow {
+  position: relative;
+  min-height: 88px;
+  display: grid;
+  place-items: center;
+  color: var(--mx2-accent-strong);
+}
+
+.neopay-flow__rail {
+  position: absolute;
+  width: 118px;
+  height: 10px;
+  border-radius: var(--mx2-r-pill);
+  background: rgba(29, 78, 216, 0.16);
+}
+
+.neopay-flow__orb {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: var(--mx2-accent);
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.22);
+}
+
+.neopay-flow__orb--one {
+  transform: translateX(-30px);
+}
+
+.neopay-flow__orb--two {
+  transform: translateX(26px);
+}
+
+.neopay-shared-desk[data-state="ready"] .neopay-flow__orb,
+.neopay-shared-desk[data-state="creating"] .neopay-flow__orb {
+  animation: neopay-shared-flow 1.3s var(--mx2-ease) infinite;
+}
+
+.neopay-receipt-strip,
+.neopay-route__status {
+  min-width: 0;
+  border: 1px dashed rgba(31, 41, 55, 0.16);
+  border-radius: 18px;
+  padding: 11px 12px;
+  background: var(--mx2-surface-2);
+}
+
+.neopay-receipt-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px 12px;
+}
+
+.neopay-receipt-strip span {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.neopay-receipt-strip strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neopay-route__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-style: solid;
+}
+
+.neopay-route__status span {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.neopay-route__status strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-weight: 680;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neopay-ticket {
+  align-self: stretch;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: 12px;
+}
+
+.neopay-ticket__notice {
+  margin: 0;
+  border: 1px solid rgba(180, 83, 9, 0.24);
+  border-radius: var(--mx2-r);
+  padding: 8px 10px;
+  background: var(--mx2-warning-soft);
+  color: var(--mx2-warning);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.neopay-ticket__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.neopay-ticket__head span,
+.neopay-ticket__amount label,
+.neopay-recipient-field span,
+.neopay-duration__head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
-
-  &--active {
-    background: var(--ns-success-soft, #e4f8f0);
-    color: var(--ns-brand-strong, #0fb174);
-  }
-
-  &--completed {
-    background: var(--ns-violet-soft, #e4f8f0);
-    color: var(--ns-violet-strong, #0fb174);
-  }
-
-  &--cancelled {
-    background: var(--ns-danger-soft, #fde7e9);
-    color: #a4212b;
-  }
 }
 
-.shared-pay-stream__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem 0.7rem;
-  margin-top: 0.35rem;
-  color: var(--ns-text-muted, #7a8498);
-  font-size: 0.76rem;
-
-  span {
-    overflow-wrap: anywhere;
-  }
-
-  /* Per-day release rate — emphasized so the schedule reads clearly. */
-  .shared-pay-stream__rate {
-    font-weight: 600;
-    color: var(--ns-brand-strong, #0fb174);
-  }
-}
-
-.shared-pay-stream__note {
-  margin: 0.35rem 0 0;
-  color: var(--ns-text-2, #5c677d);
-  font-size: 0.76rem;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.shared-pay-progress {
-  height: 5px;
-  margin-top: 0.55rem;
+.neopay-ticket__head strong,
+.neopay-duration__head strong {
+  min-width: 0;
   overflow: hidden;
-  border-radius: 999px;
-  background: rgba(122, 132, 152, 0.16);
-
-  span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--ns-brand, #16c784), var(--ns-violet, #16c784));
-    transition: width 0.3s ease;
-  }
+  color: var(--mx2-accent-strong);
+  font-size: 12px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.shared-pay-stream__progress-copy,
-.shared-pay-claimable {
-  margin-top: 0.3rem;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.72rem;
+.neopay-ticket__summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: var(--mx2-r-pill);
+  padding: 7px 10px 7px 7px;
+  background: var(--mx2-surface-2);
+}
+
+.neopay-ticket__summary span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mx2-accent-soft);
+  color: var(--mx2-accent-strong);
+}
+
+.neopay-ticket__summary strong,
+.neopay-ticket__summary em {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neopay-ticket__summary em {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.neopay-ticket__amount,
+.neopay-recipient-field,
+.neopay-duration {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: var(--mx2-r);
+  padding: 10px;
+  background: #ffffff;
+}
+
+.neopay-amount-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+}
+
+.neopay-amount-row input,
+.neopay-recipient-field input,
+.neopay-duration__grid input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--mx2-border-strong);
+  border-radius: var(--mx2-r);
+  padding: 9px 11px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 620;
+  outline: none;
+}
+
+.neopay-amount-row input {
+  min-height: 46px;
+  border: 0;
+  padding: 0 2px;
+  background: transparent;
+  font-size: 24px;
+  font-weight: 680;
   font-variant-numeric: tabular-nums;
 }
 
-.shared-pay-claimable strong {
-  color: var(--ns-brand-strong, #0fb174);
+.neopay-amount-row input:focus,
+.neopay-recipient-field input:focus,
+.neopay-duration__grid input:focus {
+  border-color: var(--mx2-accent);
+  box-shadow: var(--mx2-shadow-glow);
 }
 
-.shared-pay-stream__actions {
-  display: flex;
-  flex-shrink: 0;
+.neopay-amount-row input:focus {
+  box-shadow: none;
 }
 
-.shared-pay-empty {
-  display: flex;
-  flex-direction: column;
+.neopay-asset-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 6px;
+}
+
+.neopay-asset-toggle button,
+.neopay-amount-presets button,
+.neopay-duration__grid button {
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.neopay-asset-toggle button {
+  min-width: 72px;
+  min-height: 34px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  min-height: 96px;
-  padding: 1.75rem 1.25rem;
-  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  text-align: center;
-  font-size: 0.84rem;
-  line-height: 1.5;
+  gap: 6px;
 }
 
-.shared-pay-empty__icon {
+.neopay-amount-presets,
+.neopay-duration__grid {
+  display: grid;
+  gap: 7px;
+}
+
+.neopay-amount-presets {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.neopay-amount-presets button,
+.neopay-duration__grid button {
+  min-height: 34px;
+}
+
+.neopay-asset-toggle button.is-active,
+.neopay-amount-presets button.is-active,
+.neopay-duration__grid button.is-active {
+  border-color: var(--mx2-accent);
+  background: var(--mx2-accent-soft);
+  color: var(--mx2-accent-strong);
+}
+
+.neopay-duration__head {
   display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.neopay-duration__grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.neopay-ticket__review {
+  margin: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 7px;
+  border: 1px solid rgba(31, 41, 55, 0.07);
+  border-radius: var(--mx2-r-pill);
+  padding: 7px 9px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-2);
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.neopay-ticket__review svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.neopay-shared-drawer .mx2-history__item {
   align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--ns-radius-full, 999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand, #16c784);
+  flex-wrap: wrap;
 }
 
-.shared-pay-empty__text {
-  display: block;
-  max-width: 32ch;
+.neopay-shared-drawer .mx2-btn {
+  min-height: 34px;
+  padding: 0.55em 0.9em;
+  font-size: 12px;
 }
 
-@keyframes shared-pay-stage-drift {
+.neopay-asset-toggle button:hover:not(:disabled),
+.neopay-amount-presets button:hover:not(:disabled),
+.neopay-duration__grid button:hover:not(:disabled) {
+  border-color: var(--mx2-accent);
+  color: var(--mx2-accent-strong);
+}
+
+.neopay-asset-toggle button:disabled,
+.neopay-amount-presets button:disabled,
+.neopay-duration__grid button:disabled,
+.neopay-amount-row input:disabled,
+.neopay-recipient-field input:disabled,
+.neopay-duration__grid input:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@keyframes neopay-shared-flow {
   0% {
-    transform: scale(1.04) translate3d(-1.4%, -0.8%, 0);
+    transform: translateX(-34px);
   }
-
-  100% {
-    transform: scale(1.08) translate3d(1.4%, 0.8%, 0);
-  }
-}
-
-@keyframes shared-pay-stage-sheen {
-  0%,
-  100% {
-    opacity: 0.42;
-    transform: translateX(-3%);
-  }
-
   50% {
-    opacity: 0.78;
-    transform: translateX(3%);
+    transform: translateX(30px);
   }
-}
-
-@keyframes shared-pay-node-float {
-  0%,
   100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-4px);
+    transform: translateX(-34px);
   }
 }
 
-@keyframes shared-pay-route-token-run {
-  0% {
-    transform: translate3d(-12%, 0, 0) scale(0.82);
-    opacity: 0;
-  }
-
-  16% {
-    opacity: 1;
-  }
-
-  72% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate3d(242%, 0, 0) scale(1.02);
-    opacity: 0;
-  }
-}
-
-@keyframes shared-pay-vault-pulse {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow: 0 16px 30px rgba(18, 37, 58, 0.13);
-  }
-
-  50% {
-    transform: translateY(-3px);
-    box-shadow: 0 20px 36px rgba(15, 177, 116, 0.18);
-  }
-}
-
-@media (max-width: 920px) {
-  .shared-pay-stage {
+@media (max-width: 860px) {
+  .neopay-shared-desk,
+  .neopay-route {
     grid-template-columns: 1fr;
-    min-height: auto;
   }
 
-  .shared-pay-stage__copy h2 {
-    max-width: 14ch;
+  .neopay-flow {
+    min-height: 38px;
+    transform: rotate(90deg);
   }
 
-  .shared-pay-composer-shell,
-  .shared-pay-stream-grid {
+  .neopay-amount-row {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 640px) {
-  .shared-pay-play-area {
-    padding: 0.75rem;
+@media (max-width: 520px) {
+  .neopay-shared-desk {
+    min-height: 0;
   }
 
-  .shared-pay-stage {
-    gap: 0.75rem;
-    padding: 0.78rem;
+  .neopay-ticket-board,
+  .neopay-ticket {
     border-radius: 18px;
+    padding: 12px;
   }
 
-  .shared-pay-stage__copy {
-    gap: 0.66rem;
-    padding: 0;
-  }
-
-  .shared-pay-stage__copy h2 {
-    max-width: 11ch;
-    font-size: 2.18rem;
-  }
-
-  .shared-pay-stage__copy p {
-    font-size: 0.86rem;
-  }
-
-  .shared-pay-route-board {
-    gap: 0.72rem;
-    padding: 0.72rem;
-    border-radius: 18px;
-  }
-
-  .shared-pay-route-board__top {
-    flex-direction: column;
-    gap: 0.34rem;
-  }
-
-  .shared-pay-route-board__top strong {
-    text-align: left;
-  }
-
-  .shared-pay-route {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .shared-pay-route-track {
-    min-height: 126px;
-  }
-
-  .shared-pay-route-token {
-    animation-name: shared-pay-route-token-run-mobile;
-  }
-
-  .shared-pay-route-vault {
-    min-height: 106px;
-  }
-
-  .shared-pay-stage__stats {
-    grid-template-columns: 1fr;
-  }
-
-  .shared-pay-composer__amount {
-    padding: 0.8rem;
-  }
-
-  .shared-pay-composer__amount .neo-input__wrapper,
-  .shared-pay-composer__amount .neo-input__field {
-    min-height: 56px;
-  }
-
-  .shared-pay-composer__amount .neo-input__field {
-    font-size: 2rem;
-  }
-
-  .shared-pay-asset-switch button {
-    min-height: 42px;
-    padding: 0.5rem 0.62rem;
-  }
-
-  .shared-pay-form {
-    grid-template-columns: 1fr;
-  }
-
-  .shared-pay-actions,
-  .shared-pay-actions.is-dirty,
-  .shared-pay-stream {
-    grid-template-columns: 1fr;
-  }
-
-  .shared-pay-review-panel {
-    padding: 0.75rem;
-  }
-
-  .shared-pay-summary div,
-  .shared-pay-stream__header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .shared-pay-summary strong {
-    text-align: left;
-  }
-
-  .shared-pay-stream__title {
-    white-space: normal;
-  }
-
-  .shared-pay-stream__actions > * {
-    width: 100%;
-  }
-}
-
-@keyframes shared-pay-route-token-run-mobile {
-  0% {
-    transform: translate3d(-28%, 0, 0) scale(0.84);
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 1;
-  }
-
-  78% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate3d(232%, 0, 0) scale(1);
-    opacity: 0;
+  .neopay-duration__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shared-pay-stage::after,
-  .shared-pay-stage__media img,
-  .shared-pay-route-token,
-  .shared-pay-route-node,
-  .shared-pay-route-vault,
-  .shared-pay-progress span {
-    animation: none;
-    transition: none;
-  }
-
-  .shared-pay-stage__media img {
-    transform: scale(1.04);
+  .neopay-shared-desk[data-state="ready"] .neopay-flow__orb,
+  .neopay-shared-desk[data-state="creating"] .neopay-flow__orb {
+    animation-duration: 0.001ms !important;
   }
 }

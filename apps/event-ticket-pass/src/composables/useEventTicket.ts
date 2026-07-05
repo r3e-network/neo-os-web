@@ -2,7 +2,8 @@
  * useEventTicket - Business logic for the Event Ticket Pass miniapp.
  *
  * The React app talks DIRECTLY to the standalone MiniAppEventTicketPass contract
- * via ctx.services.chain. The earlier path routed event/ticket records through
+ * via the MiniApp framework chain layer (ctx.framework.chain). The earlier path
+ * routed event/ticket records through
  * the Morpheus OS kernel (ctx.os.storage / ctx.os.nft / ctx.os.badge → EdgeClient
  * → /api/edge → Morpheus), which is down/degraded, so the app was broken at
  * runtime and the "tickets" were never real NEP-11 tokens.
@@ -43,6 +44,7 @@
 
 import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppFramework } from "@shared/react";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
 import { encodeTokenId, parseBigInt, parseBool, parseDateInput } from "@shared/utils/parsers";
@@ -59,8 +61,9 @@ type TxResult = {
 };
 
 /**
- * Minimal surface of ctx.services.chain (ChainService) this composable uses.
- * Kept as a structural type so the composable can be unit-tested with a fake.
+ * Minimal surface of the underlying chain service (ChainService) the MiniApp
+ * framework wraps. Kept as a structural type so tests can build a fake chain and
+ * pass it through createMiniAppFramework.
  */
 export type ChainLike = {
   address: Observable<string | null> | Observable<string>;
@@ -78,7 +81,7 @@ export type ChainLike = {
 };
 
 export interface UseEventTicketOptions {
-  chain: ChainLike;
+  app: MiniAppFramework;
   eventBus: { emit: (event: string, payload?: unknown) => void };
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -175,7 +178,7 @@ function mergeTicket(list: TicketItem[], ticket: TicketItem) {
 const EVENT_SCAN_LIMIT = 200;
 const TICKET_SCAN_LIMIT = 500;
 
-export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
+export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
   const events = createObservable<EventItem[]>([]);
   const tickets = createObservable<TicketItem[]>([]);
   const address = createObservable("");
@@ -188,8 +191,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
 
   const eventName = createObservable("Neo Builder Summit");
   const eventVenue = createObservable("Neo Community Hall");
-  const eventStart = createObservable("2026-06-20 09:00");
-  const eventEnd = createObservable("2026-06-20 18:00");
+  const eventStart = createObservable("2026-08-20 09:00");
+  const eventEnd = createObservable("2026-08-20 18:00");
   const maxSupply = createObservable("120");
   const notes = createObservable("Workshop pass, badge pickup, and live check-in.");
   const issueRecipient = createObservable("");
@@ -237,7 +240,7 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   );
 
   function currentAddress(): string {
-    return address.get() || stringValue(chain.address.get());
+    return address.get() || stringValue(app.chain.address.get());
   }
 
   function nowSeconds() {
@@ -250,7 +253,7 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
       if (!address.get()) address.set(existing);
       return existing;
     }
-    const wallet = await chain.ensureWallet();
+    const wallet = await app.chain.ensureWallet();
     address.set(wallet);
     return wallet;
   }
@@ -265,10 +268,10 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   async function loadEventIds(creator: string): Promise<string[]> {
     const creatorHash = addressToScriptHash(creator);
     if (!creatorHash) return [];
-    const raw = await chain.read("getCreatorEvents", [
-      { type: "Hash160", value: creatorHash },
-      { type: "Integer", value: "0" },
-      { type: "Integer", value: "50" },
+    const raw = await app.chain.readRaw("getCreatorEvents", [
+      app.chain.arg.hash160(creatorHash),
+      app.chain.arg.integer(0),
+      app.chain.arg.integer(50),
     ]);
     const list = Array.isArray(raw) ? raw : [];
     return list
@@ -278,8 +281,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   }
 
   async function loadEventDetails(eventId: string): Promise<EventItem | null> {
-    const raw = await chain.read("getEventDetails", [
-      { type: "Integer", value: eventId },
+    const raw = await app.chain.readRaw("getEventDetails", [
+      app.chain.arg.integer(eventId),
     ]);
     const record = asRecord(raw);
     if (!record) return null;
@@ -331,13 +334,13 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
    */
   async function loadOwnedTokenIds(ownerHash: string): Promise<string[]> {
     // Short-circuit: an attendee with no ticket balance holds nothing to scan.
-    const rawBalance = await chain.read("balanceOf", [
-      { type: "Hash160", value: ownerHash },
+    const rawBalance = await app.chain.readRaw("balanceOf", [
+      app.chain.arg.hash160(ownerHash),
     ]);
     const balance = Number(parseBigInt(rawBalance));
     if (!Number.isFinite(balance) || balance <= 0) return [];
 
-    const totalEvents = Number(parseBigInt(await chain.read("totalEvents")));
+    const totalEvents = Number(parseBigInt(await app.chain.readRaw("totalEvents")));
     const eventCount = Number.isFinite(totalEvents)
       ? Math.min(totalEvents, EVENT_SCAN_LIMIT)
       : 0;
@@ -347,8 +350,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     const mintedCounts = await Promise.all(
       eventIds.map(async (eventId) => {
         const record = asRecord(
-          await chain
-            .read("getEventDetails", [{ type: "Integer", value: String(eventId) }])
+          await app.chain
+            .readRaw("getEventDetails", [app.chain.arg.integer(eventId)])
             .catch(() => null),
         );
         const minted = record ? Number(parseBigInt(record.minted)) : 0;
@@ -367,8 +370,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
 
     const ownedTokenIds: string[] = [];
     for (const tokenId of candidateTokenIds) {
-      const rawOwner = await chain
-        .read("ownerOf", [{ type: "ByteArray", value: encodeTokenId(tokenId) }])
+      const rawOwner = await app.chain
+        .readRaw("ownerOf", [app.chain.arg.byteArray(encodeTokenId(tokenId))])
         .catch(() => null);
       if (parseHash160(rawOwner) === ownerHash) {
         ownedTokenIds.push(tokenId);
@@ -403,8 +406,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
       // the whole list, so settle every promise and keep the resolvable ones.
       const settled = await Promise.allSettled(
         tokenIds.map((tokenId) =>
-          chain.read("getTicketDetails", [
-            { type: "ByteArray", value: encodeTokenId(tokenId) },
+          app.chain.readRaw("getTicketDetails", [
+            app.chain.arg.byteArray(encodeTokenId(tokenId)),
           ]).then((raw) => ticketFromRecord(asRecord(raw) ?? {}, tokenId)),
         ),
       );
@@ -459,16 +462,18 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         notes: clean(notes.get()),
       };
       latestRequest.set(request);
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "createEvent",
         [
+          // creator is a raw Neo address; the chain layer resolves it to a
+          // script hash, so keep it as-is (arg.hash160 would pre-convert it).
           { type: "Hash160", value: creator },
-          { type: "String", value: name },
-          { type: "String", value: venue },
-          { type: "Integer", value: String(startTime) },
-          { type: "Integer", value: String(endTime) },
-          { type: "Integer", value: supply.toString() },
-          { type: "String", value: clean(notes.get()) },
+          app.chain.arg.string(name),
+          app.chain.arg.string(venue),
+          app.chain.arg.integer(startTime),
+          app.chain.arg.integer(endTime),
+          app.chain.arg.integer(supply.toString()),
+          app.chain.arg.string(clean(notes.get())),
         ],
         { waitForEvent: "EventCreated" },
       );
@@ -531,14 +536,16 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         memo,
       };
       latestRequest.set(request);
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "issueTicket",
         [
+          // organizer / recipient are raw Neo addresses resolved by the chain
+          // layer; keep them as-is (arg.hash160 would pre-convert them).
           { type: "Hash160", value: organizer },
           { type: "Hash160", value: recipient },
-          { type: "Integer", value: event.id },
-          { type: "String", value: seat },
-          { type: "String", value: memo },
+          app.chain.arg.integer(event.id),
+          app.chain.arg.string(seat),
+          app.chain.arg.string(memo),
         ],
         { waitForEvent: "TicketIssued" },
       );
@@ -602,12 +609,13 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         active: next.active,
       };
       latestRequest.set(request);
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "setEventActive",
         [
+          // creator is a raw Neo address resolved by the chain layer; keep as-is.
           { type: "Hash160", value: creator },
-          { type: "Integer", value: next.id },
-          { type: "Boolean", value: next.active },
+          app.chain.arg.integer(next.id),
+          app.chain.arg.boolean(next.active),
         ],
         { waitForEvent: "EventUpdated" },
       );
@@ -638,8 +646,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     isLookingUp.set(true);
     lastError.set("");
     try {
-      const raw = await chain.read("getTicketDetails", [
-        { type: "ByteArray", value: encodeTokenId(tokenId) },
+      const raw = await app.chain.readRaw("getTicketDetails", [
+        app.chain.arg.byteArray(encodeTokenId(tokenId)),
       ]);
       const record = asRecord(raw);
       const parsed = record ? ticketFromRecord(record, tokenId) : null;
@@ -684,11 +692,12 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         tokenId: ticket.tokenId,
       };
       latestRequest.set(request);
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "checkIn",
         [
+          // creator is a raw Neo address resolved by the chain layer; keep as-is.
           { type: "Hash160", value: creator },
-          { type: "ByteArray", value: encodeTokenId(ticket.tokenId) },
+          app.chain.arg.byteArray(encodeTokenId(ticket.tokenId)),
         ],
         { waitForEvent: "TicketCheckedIn" },
       );
@@ -746,14 +755,15 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         tokenId,
       };
       latestRequest.set(request);
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "transfer",
         [
+          // recipient is a raw Neo address resolved by the chain layer; keep as-is.
           { type: "Hash160", value: recipient },
-          { type: "ByteArray", value: encodeTokenId(tokenId) },
+          app.chain.arg.byteArray(encodeTokenId(tokenId)),
           // NEP-11 `data` (Any) — an empty ByteArray; the recipient's
           // onNEP11Payment hook receives it. No app-level payload is needed.
-          { type: "ByteArray", value: "" },
+          app.chain.arg.byteArray(""),
         ],
         { waitForEvent: "Transfer" },
       );

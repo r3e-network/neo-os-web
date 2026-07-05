@@ -35,8 +35,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/red-envelope/index.html",
-    "icon": "/miniapps/red-envelope/logo.jpg",
-    "banner": "/miniapps/red-envelope/banner.jpg"
+    "icon": "/miniapps/red-envelope/logo.webp",
+    "banner": "/miniapps/red-envelope/banner.webp"
   },
   "permissions": [
     "invoke:primary",

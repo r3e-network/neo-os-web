@@ -2,20 +2,23 @@
  * useMilestoneEscrow — Domain logic for the Milestone Escrow miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract
- * (MiniAppMilestoneEscrow) via ctx.services.chain. The earlier OS-proxy data
- * layer routed deposits/escrows through the Morpheus Oracle FEE kernel, which
- * is a GAS-only fee-credit contract with no escrow primitive — so NEO could
- * never work and there was no real escrow ledger. This composable now drives
- * the dedicated contract, which fully supports NEO + GAS escrows.
+ * (MiniAppMilestoneEscrow) through the MiniApp framework SDK (ctx.framework →
+ * app). The earlier OS-proxy data layer routed deposits/escrows through the
+ * Morpheus Oracle FEE kernel, which is a GAS-only fee-credit contract with no
+ * escrow primitive — so NEO could never work and there was no real escrow
+ * ledger. This composable now drives the dedicated contract, which fully
+ * supports NEO + GAS escrows.
  *
  * Contract interaction model (verified against the deployed ABI):
  *
- *   READS (chain.read, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     getCreatorEscrows(creator, offset, limit)      -> escrowId[]
  *     getBeneficiaryEscrows(beneficiary, offset, limit) -> escrowId[]
  *     getEscrowDetails(escrowId)                      -> Map of fields
+ *   The two id-list reads use the raw chain's readArray (the framework SDK has
+ *   no array-read equivalent), so a minimal chain reference is kept for those.
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT — a NEP-17 transfer to the contract, targeting the *asset*
  *        token (scriptHash override), with a memo that MUST start with the
  *        app id + ":" so OnNEP17Payment credits the depositor's prepaid
@@ -43,15 +46,16 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
+import type { MiniAppFramework } from "@shared/react";
 import { waitForDepositConfirmation } from "@shared/composables/useContractInteraction";
 import type { DepositConfirmation } from "@shared/composables/useContractInteraction";
 import type { ChainService, ContractArg } from "@shared/services/ChainService";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { formatGas, formatAddress } from "@shared/utils/format";
-import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "@shared/constants";
-import type { EscrowItem } from "../pages/index/components/EscrowList";
+import type { EscrowItem } from "./escrowTypes";
 
 // ============================================================================
 // Constants
@@ -88,7 +92,13 @@ export interface CreateEscrowParams {
 }
 
 export interface UseMilestoneEscrowOptions {
-  /** Shared chain service from ctx.services.chain. */
+  /** MiniApp framework SDK from ctx.framework (chain args/amounts/passthroughs). */
+  app: MiniAppFramework;
+  /**
+   * Raw chain service from ctx.services.chain, used ONLY for the escrow-id
+   * array reads (getCreatorEscrows / getBeneficiaryEscrows) — the framework SDK
+   * exposes no array-read helper, so this is the single passthrough kept ad-hoc.
+   */
   chain: ChainService;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -135,8 +145,8 @@ const normalizeStatus = (value: unknown): "active" | "completed" | "cancelled" =
 };
 
 /**
- * Parse a getEscrowDetails Map (returned by chain.read as a plain object) into
- * an EscrowItem. Returns null for an empty / missing escrow.
+ * Parse a getEscrowDetails Map (returned by the chain read as a plain object)
+ * into an EscrowItem. Returns null for an empty / missing escrow.
  */
 const parseEscrowDetails = (raw: unknown, id: string): EscrowItem | null => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -179,6 +189,7 @@ const toIdString = (value: unknown): string => {
 // ============================================================================
 
 export function useMilestoneEscrow({
+  app,
   chain,
   t,
   confirmDeposit,
@@ -226,8 +237,11 @@ export function useMilestoneEscrow({
   // wallet is connected. Deriving it from the address made the disconnected case
   // show "deployment pending" and left the Connect-wallet branch (which needs
   // contractReady && !hasAddress) mathematically unreachable.
+  // The framework surfaces contractAddress as a plain { get } accessor, but the
+  // derivation needs the subscribable observable — use the raw chain's
+  // contractAddress (the same underlying RefCompatObservable) as the dependency.
   const contractReady = createDerived(
-    () => Boolean(chain.contractAddress.get()),
+    () => Boolean(app.chain.contractAddress.get()),
     [chain.contractAddress],
   );
 
@@ -255,14 +269,20 @@ export function useMilestoneEscrow({
     op: "getCreatorEscrows" | "getBeneficiaryEscrows",
     addr: string,
   ): Promise<EscrowItem[]> => {
-    const hash = addressToScriptHash(addr);
-    if (!hash) return [];
+    if (!addr) return [];
+    // arg.hash160 THROWS on an empty/invalid address, so the empty guard above
+    // mirrors the old `if (!hash) return []` behavior before we build the arg.
+    const creatorArg = app.chain.arg.hash160(addr);
 
+    // The framework SDK has no array-read helper, so this one id-list read stays
+    // on the raw chain (readArray); its args are built via the framework though.
+    // Framework args carry the same runtime shape as ContractArg — cast at this
+    // single raw-chain boundary (the arg builders never emit nested Arrays here).
     const idsRaw = await chain.readArray(op, [
-      { type: "Hash160", value: hash },
-      { type: "Integer", value: "0" },
-      { type: "Integer", value: String(LIST_PAGE_LIMIT) },
-    ]);
+      creatorArg,
+      app.chain.arg.integer(0),
+      app.chain.arg.integer(LIST_PAGE_LIMIT),
+    ] as ContractArg[]);
 
     const ids = (Array.isArray(idsRaw) ? idsRaw : [])
       .map(toIdString)
@@ -271,8 +291,8 @@ export function useMilestoneEscrow({
     const items = await Promise.all(
       ids.map(async (id) => {
         try {
-          const raw = await chain.read("getEscrowDetails", [
-            { type: "Integer", value: id },
+          const raw = await app.chain.readRaw("getEscrowDetails", [
+            app.chain.arg.integer(id),
           ]);
           return parseEscrowDetails(raw, id);
         } catch (e) {
@@ -399,35 +419,50 @@ export function useMilestoneEscrow({
       throw new Error(t("milestoneSumMismatch"));
     }
 
+    // arg.hash160 THROWS on an empty/invalid address, so guard the raw address
+    // strings FIRST (mirroring the old `if (!addr || !hash)` checks) and build
+    // the Hash160 args only once they are known non-empty & well-formed.
     const creatorAddr = address.get();
-    const creatorHash = addressToScriptHash(creatorAddr);
-    if (!creatorAddr || !creatorHash) {
+    if (!creatorAddr) {
+      throw new Error(t("walletNotConnected"));
+    }
+    let creatorArg: ContractArg;
+    try {
+      creatorArg = app.chain.arg.hash160(creatorAddr) as ContractArg;
+    } catch {
       throw new Error(t("walletNotConnected"));
     }
 
     const beneficiaryAddr = data.beneficiary.trim();
-    const beneficiaryHash = addressToScriptHash(beneficiaryAddr);
-    if (!beneficiaryAddr || !beneficiaryHash) {
+    if (!beneficiaryAddr) {
+      throw new Error(t("invalidAddress"));
+    }
+    let beneficiaryArg: ContractArg;
+    try {
+      beneficiaryArg = app.chain.arg.hash160(beneficiaryAddr) as ContractArg;
+    } catch {
       throw new Error(t("invalidAddress"));
     }
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) {
       throw new Error(t("contractMissing"));
     }
+    const contractArg = app.chain.arg.hash160(contractHash) as ContractArg;
+    const assetArg = app.chain.arg.hash160(assetHash(asset)) as ContractArg;
 
     isCreating.set(true);
     try {
       // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
       // The scriptHash override targets the token contract (not the app), and
       // the memo must start with the app id so OnNEP17Payment credits us.
-      const deposit = await chain.invoke(
+      const deposit = await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: creatorHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: totalAmount.toString() },
-          { type: "String", value: PAYMENT_MEMO },
+          creatorArg,
+          contractArg,
+          app.chain.arg.integer(totalAmount),
+          app.chain.arg.string(PAYMENT_MEMO),
         ],
         { scriptHash: assetHash(asset) },
       );
@@ -454,25 +489,21 @@ export function useMilestoneEscrow({
       // SDK serialises a nested ContractArg[] passed as the Array arg's value
       // (same shape quadratic-funding uses for finalizeRound). ContractArg.value
       // is nominally a scalar, so cast at this single boundary.
-      const milestoneArg = {
-        type: "Array",
-        value: milestoneBaseUnits.map((n) => ({
-          type: "Integer",
-          value: n.toString(),
-        })),
-      } as unknown as ContractArg;
+      const milestoneArg = app.chain.arg.array(
+        milestoneBaseUnits.map((n) => app.chain.arg.integer(n)),
+      ) as unknown as ContractArg;
 
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "createEscrow",
           [
-            { type: "Hash160", value: creatorHash },
-            { type: "Hash160", value: beneficiaryHash },
-            { type: "Hash160", value: assetHash(asset) },
-            { type: "Integer", value: totalAmount.toString() },
+            creatorArg,
+            beneficiaryArg,
+            assetArg,
+            app.chain.arg.integer(totalAmount),
             milestoneArg,
-            { type: "String", value: data.name.trim().slice(0, 60) },
-            { type: "String", value: (data.notes ?? "").slice(0, 240) },
+            app.chain.arg.string(data.name.trim().slice(0, 60)),
+            app.chain.arg.string((data.notes ?? "").slice(0, 240)),
           ],
           { waitForEvent: "EscrowCreated" },
         );
@@ -503,17 +534,23 @@ export function useMilestoneEscrow({
       escrow.milestoneApproved.findIndex((approved: boolean) => !approved);
     if (idx < 0) return;
 
-    const creatorHash = addressToScriptHash(address.get());
-    if (!creatorHash) throw new Error(t("walletNotConnected"));
+    const creatorAddr = address.get();
+    if (!creatorAddr) throw new Error(t("walletNotConnected"));
+    let creatorArg: ContractArg;
+    try {
+      creatorArg = app.chain.arg.hash160(creatorAddr) as ContractArg;
+    } catch {
+      throw new Error(t("walletNotConnected"));
+    }
 
     try {
       approvingId.set(`${escrow.id}-${idx}`);
-      await chain.invoke(
+      await app.chain.invoke(
         "approveMilestone",
         [
-          { type: "Hash160", value: creatorHash },
-          { type: "Integer", value: escrow.id },
-          { type: "Integer", value: String(idx + 1) }, // 0-based UI → 1-based contract
+          creatorArg,
+          app.chain.arg.integer(escrow.id),
+          app.chain.arg.integer(idx + 1), // 0-based UI → 1-based contract
         ],
         { waitForEvent: "MilestoneApproved" },
       );
@@ -537,17 +574,23 @@ export function useMilestoneEscrow({
       );
     if (idx < 0) return;
 
-    const beneficiaryHash = addressToScriptHash(address.get());
-    if (!beneficiaryHash) throw new Error(t("walletNotConnected"));
+    const beneficiaryAddr = address.get();
+    if (!beneficiaryAddr) throw new Error(t("walletNotConnected"));
+    let beneficiaryArg: ContractArg;
+    try {
+      beneficiaryArg = app.chain.arg.hash160(beneficiaryAddr) as ContractArg;
+    } catch {
+      throw new Error(t("walletNotConnected"));
+    }
 
     try {
       claimingId.set(`${escrow.id}-${idx}`);
-      await chain.invoke(
+      await app.chain.invoke(
         "claimMilestone",
         [
-          { type: "Hash160", value: beneficiaryHash },
-          { type: "Integer", value: escrow.id },
-          { type: "Integer", value: String(idx + 1) }, // 0-based UI → 1-based contract
+          beneficiaryArg,
+          app.chain.arg.integer(escrow.id),
+          app.chain.arg.integer(idx + 1), // 0-based UI → 1-based contract
         ],
         { waitForEvent: "MilestoneClaimed" },
       );
@@ -561,16 +604,22 @@ export function useMilestoneEscrow({
   const cancelEscrow = async (escrow: EscrowItem) => {
     if (cancellingId.get()) return; // double-submit guard
 
-    const creatorHash = addressToScriptHash(address.get());
-    if (!creatorHash) throw new Error(t("walletNotConnected"));
+    const creatorAddr = address.get();
+    if (!creatorAddr) throw new Error(t("walletNotConnected"));
+    let creatorArg: ContractArg;
+    try {
+      creatorArg = app.chain.arg.hash160(creatorAddr) as ContractArg;
+    } catch {
+      throw new Error(t("walletNotConnected"));
+    }
 
     try {
       cancellingId.set(escrow.id);
-      await chain.invoke(
+      await app.chain.invoke(
         "cancelEscrow",
         [
-          { type: "Hash160", value: creatorHash },
-          { type: "Integer", value: escrow.id },
+          creatorArg,
+          app.chain.arg.integer(escrow.id),
         ],
         { waitForEvent: "EscrowCancelled" },
       );

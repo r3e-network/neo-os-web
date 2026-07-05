@@ -226,7 +226,7 @@ export function DeveloperBuilderForm({
           id="submit-logo-url"
           type="url"
           label="Logo URL"
-          placeholder="https://cdn/logo.png"
+          placeholder="https://cdn/logo.webp"
           value={form.logo_url}
           onChange={(e) =>
             onFormChange({ ...form, logo_url: e.target.value })

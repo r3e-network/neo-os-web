@@ -510,7 +510,7 @@ async function inspectMiniapp(context, slug, viewport, options) {
 
   let screenshot = null;
   if (options.screenshots) {
-    const fileName = `${safeFilePart(slug)}-${safeFilePart(viewport.label)}-${viewport.width}x${viewport.height}.png`;
+    const fileName = `${safeFilePart(slug)}-${safeFilePart(viewport.label)}-${viewport.width}x${viewport.height}.webp`;
     const screenshotPath = path.join(options.screenshotDir, fileName);
     try {
       fs.mkdirSync(options.screenshotDir, { recursive: true });

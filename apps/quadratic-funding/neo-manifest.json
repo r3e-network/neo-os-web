@@ -63,9 +63,9 @@
   ],
   "updatedAt": "2026-05-08T12:13:25Z",
   "urls": {
-    "banner": "/miniapps/quadratic-funding/banner.jpg",
+    "banner": "/miniapps/quadratic-funding/banner.webp",
     "entry": "/miniapps/quadratic-funding/index.html",
-    "icon": "/miniapps/quadratic-funding/logo.jpg"
+    "icon": "/miniapps/quadratic-funding/logo.webp"
   },
   "version": "1.0.0"
 }

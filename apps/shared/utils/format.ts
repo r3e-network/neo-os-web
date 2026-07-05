@@ -194,13 +194,11 @@ export function randomIntFromBytes(bytes: Uint8Array, max?: number): number {
 }
 
 /**
- * Format a hash or address for display (truncate middle)
+ * Format a hash or address for display (truncate middle).
+ * Alias of {@link formatAddress}; kept as a distinct export for call-site clarity.
  */
 export function formatHash(hash: string, head = 6, tail = 4): string {
-  const value = String(hash || "").trim();
-  if (!value) return "";
-  if (value.length <= head + tail + 3) return value;
-  return `${value.slice(0, head)}...${value.slice(-tail)}`;
+  return formatAddress(hash, head, tail);
 }
 
 /**

@@ -17,7 +17,7 @@ defineMiniApp({
 
   setup(ctx) {
     const flash = useFlashloanCore({
-      chainService: ctx.services.chain,
+      app: ctx.framework,
       badgeService: ctx.os.badge,
       t: ctx.t,
       network: readMiniAppLaunchContext("miniapp-flashloan").network,
@@ -28,7 +28,7 @@ defineMiniApp({
       flash.setAddress(ctx.services.chain.address?.get?.() ?? "");
     });
 
-    ctx.registerAction("requestLoan", async (...args: unknown[]) => {
+    ctx.framework.actions.register("requestLoan", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as {
         amount?: string;
         callbackContract?: string;
@@ -45,7 +45,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("provideLiquidity", async (...args: unknown[]) => {
+    ctx.framework.actions.register("provideLiquidity", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as { amount?: string; receiptId?: string };
       await ctx.services.notify.guard(
         () =>
@@ -57,7 +57,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("withdrawLiquidity", async (...args: unknown[]) => {
+    ctx.framework.actions.register("withdrawLiquidity", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as { amount?: string };
       await ctx.services.notify.guard(
         () => flash.withdrawLiquidity(String(data.amount ?? "")),
@@ -65,14 +65,14 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       await ctx.services.notify.guard(async () => {
         const addr = await flash.connect();
         flash.setAddress(addr);
       }, "walletConnected");
     });
 
-    ctx.registerAction("lookupLoan", async (...args: unknown[]) => {
+    ctx.framework.actions.register("lookupLoan", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       if (!id) return;
       // Guard the read so a faulting / non-existent loan surfaces the mapped

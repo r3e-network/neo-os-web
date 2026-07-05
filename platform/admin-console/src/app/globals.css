@@ -2,60 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════
+   Neo v3 — Admin Console 全局样式
+   ═══════════════════════════════════════════════════════════ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --neo: 160 100% 45%;
-    --electric-purple: 266 100% 50%;
-
-    /* Polymarket-light tokens — admin console mirrors host-app. */
-    --pm-bg: #ffffff;
-    --pm-surface: #fafbfc;
-    --pm-surface-2: #f4f5f7;
-    --pm-border: #e6e8ea;
-    --pm-text: #18181b;
-    --pm-text-muted: #77808d;
+    --n3-bg: #f8f9fb;
+    --n3-surface: #ffffff;
+    --n3-ink: #141626;
+    --n3-text: #1e2036;
+    --n3-text-secondary: #515572;
+    --n3-text-muted: #787e9b;
+    --n3-brand: #16c784;
+    --n3-brand-hover: #0fb174;
+    --n3-brand-soft: #e4f8f0;
+    --n3-border: rgba(20,26,38,0.06);
+    --n3-border-strong: rgba(20,26,38,0.10);
+    --n3-radius-lg: 16px;
+    --n3-radius-xl: 20px;
+    --n3-radius-full: 9999px;
+    --n3-shadow-sm: 0 2px 8px rgba(20,26,38,0.04);
+    --n3-shadow-md: 0 4px 16px rgba(20,26,38,0.05);
+    --n3-ease-out-expo: cubic-bezier(0.16,1,0.3,1);
   }
 
-  * {
-    @apply border-gray-200;
-  }
-
-  html {
-    @apply scroll-smooth;
-    font-family: var(--font-inter, Inter), system-ui, sans-serif;
-  }
-
-  body {
-    @apply bg-white text-gray-900 antialiased;
-  }
+  * { @apply border-[var(--n3-border)]; }
+  html { @apply scroll-smooth; font-family: "Inter", system-ui, sans-serif; }
+  body { @apply bg-[var(--n3-bg)] text-[var(--n3-ink)] antialiased; }
 }
 
 @layer components {
-  .glass-panel {
-    @apply bg-white border border-gray-200 shadow-sm;
+  .card-v3 {
+    background: var(--n3-surface);
+    border: 1px solid var(--n3-border);
+    border-radius: var(--n3-radius-xl);
+    box-shadow: var(--n3-shadow-sm);
+    transition: box-shadow 0.25s var(--n3-ease-out-expo), transform 0.25s var(--n3-ease-out-expo);
   }
-
-  /* Polymarket-light card: solid white, hairline border, no blur. */
-  .glass-card {
-    @apply bg-white border border-gray-200 hover:border-neo/40 transition-colors duration-200 shadow-none;
-  }
-
-  .neo-gradient-text {
-    @apply text-emerald-600;
+  .card-v3:hover {
+    box-shadow: var(--n3-shadow-md);
+    transform: translateY(-1px);
   }
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { @apply bg-transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors; }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
 }

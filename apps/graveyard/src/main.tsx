@@ -19,57 +19,57 @@ defineMiniApp({
     const { notify } = ctx.services;
 
     const graveyard = useGraveyard({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    ctx.registerAction("initiateDestroy", async () => {
+    ctx.framework.actions.register("initiateDestroy", async () => {
       graveyard.initiateDestroy();
     });
-    ctx.registerAction("cancelDestroy", async () => {
+    ctx.framework.actions.register("cancelDestroy", async () => {
       graveyard.cancelDestroy();
     });
-    ctx.registerAction("setComposeMode", async (mode: unknown) => {
+    ctx.framework.actions.register("setComposeMode", async (mode: unknown) => {
       graveyard.setComposeMode(mode === "hash" ? "hash" : "write");
     });
-    ctx.registerAction("setMemoryText", async (text: unknown) => {
+    ctx.framework.actions.register("setMemoryText", async (text: unknown) => {
       await graveyard.setMemoryText(String(text ?? ""));
     });
-    ctx.registerAction("executeDestroy", async () => {
+    ctx.framework.actions.register("executeDestroy", async () => {
       await notify.guard(() => graveyard.executeDestroy(), "memoryBuried");
     });
-    ctx.registerAction("requestForget", async (item: unknown) => {
+    ctx.framework.actions.register("requestForget", async (item: unknown) => {
       graveyard.requestForget(item as HistoryItem);
     });
-    ctx.registerAction("cancelForget", async () => {
+    ctx.framework.actions.register("cancelForget", async () => {
       graveyard.cancelForget();
     });
-    ctx.registerAction("forgetMemory", async (item: unknown) => {
+    ctx.framework.actions.register("forgetMemory", async (item: unknown) => {
       await notify.guard(
         () => graveyard.forgetMemory(item as HistoryItem),
         "forgetSuccess",
       );
     });
-    ctx.registerAction("startEpitaph", async (item: unknown) => {
+    ctx.framework.actions.register("startEpitaph", async (item: unknown) => {
       graveyard.startEpitaph(item as HistoryItem);
     });
-    ctx.registerAction("cancelEpitaph", async () => {
+    ctx.framework.actions.register("cancelEpitaph", async () => {
       graveyard.cancelEpitaph();
     });
-    ctx.registerAction("setEpitaphText", async (text: unknown) => {
+    ctx.framework.actions.register("setEpitaphText", async (text: unknown) => {
       graveyard.epitaphText.set(String(text ?? ""));
     });
-    ctx.registerAction("saveEpitaph", async (item: unknown) => {
+    ctx.framework.actions.register("saveEpitaph", async (item: unknown) => {
       await notify.guard(
         () => graveyard.saveEpitaph(item as HistoryItem),
         "epitaphSaved",
       );
     });
-    ctx.registerAction("setShowAllHistory", async (value: unknown) => {
+    ctx.framework.actions.register("setShowAllHistory", async (value: unknown) => {
       await graveyard.setShowAllHistory(Boolean(value));
     });
-    ctx.registerAction("refreshRecords", async () => {
+    ctx.framework.actions.register("refreshRecords", async () => {
       await graveyard.loadAll();
     });
 

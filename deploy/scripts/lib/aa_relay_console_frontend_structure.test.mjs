@@ -21,25 +21,42 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   );
   const messages = read("apps/aa-relay-console/src/locale/messages.ts");
 
-  assert.match(playArea, /className="relay-play-area"/);
-  assert.match(playArea, /className="relay-hero"/);
-  // Neo Soft redesign renamed the hero metric strip relay-hero__metrics -> relay-hero__facts.
-  assert.match(playArea, /className="relay-hero__facts"/);
-  // The multi-step relay-flow/relay-workspace sections were consolidated into a single
-  // relay-command card whose body is the relay-form flow. Guard both regions remain.
-  assert.match(playArea, /className="relay-command"/);
-  assert.match(playArea, /className="relay-form"/);
-  assert.match(playArea, /const canCheckSponsor =/);
-  assert.match(playArea, /const canRequestSponsor =/);
-  assert.match(playArea, /const canSubmitRelay =/);
-  assert.match(playArea, /disabled=\{!canCheckSponsor/);
-  assert.match(playArea, /disabled=\{!canRequestSponsor/);
-  assert.match(playArea, /disabled=\{!canSubmitRelay/);
-  assert.match(styles, /\.relay-play-area button:disabled/);
-  // Neo Soft design language: hero eyebrow is an uppercase, letter-spaced kicker.
-  assert.match(styles, /\.relay-hero__eyebrow\s*\{[^}]*text-transform:\s*uppercase/);
-  assert.match(styles, /\.relay-hero__eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/);
-  // Design-system constraints preserved: no fluid font clamp, no radial-gradient washes.
+  assert.match(playArea, /from "@shared\/components-react\/v2"/);
+  assert.match(playArea, /OpenUiProvider/);
+  assert.match(playArea, /PlayStage/);
+  assert.match(playArea, /OpenUiPanel/);
+  assert.match(playArea, /OpenUiSegmented/);
+  assert.match(playArea, /OpenUiTextArea/);
+  assert.match(playArea, /OpenUiTextField/);
+  assert.match(playArea, /const RELAY_STATION_ART = "aa-relay-station\.jpg"/);
+  assert.ok(
+    fs.existsSync(path.join(ROOT, "apps/aa-relay-console/public/aa-relay-station.webp")),
+    "AA relay scene art must ship with the miniapp",
+  );
+
+  assert.match(playArea, /className="relay-play-area mx2 mx2-cat-tool"/);
+  assert.match(playArea, /className="relay-scene"/);
+  assert.match(playArea, /className="relay-scene__board"/);
+  assert.match(playArea, /className="relay-scene__account-panel"/);
+  assert.match(playArea, /className="relay-scene__station-card"/);
+  assert.match(playArea, /className="relay-scene__line-card"/);
+  assert.match(playArea, /className="relay-scene__track"/);
+  assert.match(playArea, /className="relay-drawer"/);
+  assert.match(playArea, /drawerToggleLabel=\{t\("relayFlowLabel"\)\}/);
+  assert.match(playArea, /drawer=\{\{ title: t\("relayFlowLabel"\), children: drawer \}\}/);
+
+  assert.match(playArea, /function parseSponsor/);
+  assert.match(playArea, /JSON\.parse\(draftPayload\)/);
+  assert.match(playArea, /const submitReady = hasAa && payloadValid/);
+  assert.match(playArea, /void dispatch\("checkSponsor", draftAa, draftDapp\)/);
+  assert.match(playArea, /void dispatch\("requestSponsor", draftAa, draftDapp, draftAmount\)/);
+  assert.match(playArea, /void dispatch\("submitRelay", draftAa, draftDapp, draftPayload\)/);
+  assert.match(playArea, /disabled: !submitReady/);
+  assert.match(playArea, /secondary: \[\{ label: t\("sponsorCheck"\), onClick: handleCheckSponsor, disabled: !hasAa \|\| busy \}\]/);
+  assert.match(styles, /\.relay-play-area \.mx2-action-rail__row \.mx2-btn--primary:disabled/);
+  assert.match(styles, /\.relay-scene\s*\{[^}]*background:\s*#ffffff/s);
+  assert.match(styles, /\.relay-drawer\s*\{/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /radial-gradient/);
   assert.match(composable, /aa\.isCheckingSponsorship\.get\(\)/);
@@ -50,7 +67,9 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   );
   assert.doesNotMatch(composable, /get:\s*\(\)\s*=>\s*aa\.isRelaying,/);
   assert.match(messages, /relayHeroTitle/);
-  assert.match(messages, /relayFlowSubmit/);
+  assert.match(messages, /relayStageTitle/);
+  assert.match(messages, /relaySubmitExplainer/);
+  assert.match(messages, /payloadInvalid/);
   assert.match(messages, /sponsorBlocked/);
   assert.match(messages, /relayBlocked/);
 });

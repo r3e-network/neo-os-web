@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useTarot } from "../../on-chain-tarot/src/composables/useTarot";
 import type { UseTarotOptions } from "../../on-chain-tarot/src/composables/useTarot";
-import type { ContractArg, TxResult } from "../services/ChainService";
+import { createMiniAppFramework } from "../react";
+import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
@@ -61,6 +62,7 @@ function makeDeps(
     emitEvent?: boolean;
     drawThrows?: boolean;
     getReadingCards?: [number, number, number];
+    contract?: string | null;
   } = {},
 ) {
   const cards = opts.cards ?? [0, 21, 47];
@@ -101,13 +103,13 @@ function makeDeps(
   const clipboard = { copy: vi.fn(async () => true) };
 
   const chain = {
-    contractAddress: { get: () => CONTRACT },
+    contractAddress: { get: () => ("contract" in opts ? opts.contract : CONTRACT) },
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
     invoke,
     read,
     readArray: vi.fn(async (): Promise<unknown[]> => []),
-  } as unknown as UseTarotOptions["chain"];
+  } as unknown as ChainService;
 
   return {
     chain,
@@ -122,7 +124,11 @@ function makeDeps(
 
 function setup(opts: Parameters<typeof makeDeps>[0] = {}) {
   const deps = makeDeps(opts);
-  const tarot = useTarot({ chain: deps.chain, cache: deps.cache, clipboard: deps.clipboard, t });
+  const app = createMiniAppFramework(
+    { services: { chain: deps.chain }, t } as never,
+    { appId: "miniapp-onchaintarot" },
+  );
+  const tarot = useTarot({ app, cache: deps.cache, clipboard: deps.clipboard, t });
   tarot.setAddress(PLAYER);
   return { tarot, ...deps };
 }
@@ -217,5 +223,17 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
     expect(read.mock.calls.some((c) => c[0] === "playerReadingCount")).toBe(true);
     expect(tarot.readingsCount.get()).toBe(5);
     expect(tarot.cardsDrawnCount.get()).toBe(15);
+  });
+
+  it("keeps host/local preview quiet when no contract address is configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { tarot, read } = setup({ contract: null, credit: "10000000" });
+
+    await tarot.loadAll();
+
+    expect(read).not.toHaveBeenCalled();
+    expect(tarot.readingsCount.get()).toBe(0);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

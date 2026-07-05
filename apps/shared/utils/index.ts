@@ -87,16 +87,9 @@ export {
 // transaction.ts
 export {
   extractTxid,
-  isTxEventPendingError,
-  waitForEventByTransaction,
   pollForTxEvent,
-  waitForListedEventByTransaction,
 } from "./transaction";
-export type { PollForTxEventParams, WaitForListedEventByTransactionParams } from "./transaction";
-
-// theme.ts
-export { getTheme, setTheme, initTheme, listenForThemeChanges } from "./theme";
-export type { Theme } from "./theme";
+export type { PollForTxEventParams } from "./transaction";
 
 // hash.ts
 export { sha256Hex, sha256HexFromHex } from "./hash";
@@ -149,9 +142,6 @@ export {
   readCachedJSON,
   writeCachedJSON,
   clearCachedValue,
-  readTimedCache,
-  readTimedCacheValue,
-  writeTimedCache,
 } from "./runtime-cache";
 
 // safe-storage.ts

@@ -1,456 +1,295 @@
-import { useCallback, useEffect, useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { StateView } from "@shared/components";
-import { CategoryIcon } from "@shared/components-react/illustrations";
+/** TrustAnchor Admin -- AA agent trust-routing workspace. */
+import { useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  KeyRound,
+  Route,
+  ShieldCheck,
+  Users,
+  Vote,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import type { TrustAnchorStats } from "../../trustanchor/src/hooks/useTrustAnchor";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
+interface Props {
+  t: (key: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { val, str, bool } = useStateBindings(state);
-  const stats = val<TrustAnchorStats | null>("stats", null);
-  const agentAccounts =
-    val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
-  // True once the on-chain directory has loaded. Until then the rows are the
-  // static roster (kept for Move/Vote balance lookups), so we suppress the
-  // full list and show a compact placeholder instead of 21 lookalike rows.
-  const agentsLive = bool("agentsLive");
-  const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
-  const selectedAgent = str("selectedAgentDisplay", t("noneFallback"));
-  const agentCount = str("agentCountDisplay", "0 / 21");
-  const reserveDisplay = str("reserveDisplay", "0 GAS");
-  // Admin-role gating: until admin() + getAppAdmin resolve we keep the console
-  // neutral; a non-operator gets a read-only state instead of a fully armed
-  // console that only fails with a raw contract "unauthorized" assert.
+interface AgentRecord {
+  id?: string | number;
+  agentId?: string | number;
+  label?: string;
+  account?: string;
+  accountAddress?: string;
+  address?: string;
+  candidate?: string;
+  candidateTarget?: string;
+  active?: boolean;
+  neo?: string;
+  neoBalance?: number | null;
+}
+
+type OperationMode = "move" | "candidate" | "vote";
+type RouteSlot = "from" | "to";
+
+const EMPTY_AGENTS: AgentRecord[] = [];
+
+function getAgentId(agent: AgentRecord, fallback: number) {
+  const value = Number(agent.agentId ?? agent.id ?? fallback);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+function agentLabel(agent: AgentRecord, fallback: number) {
+  const id = getAgentId(agent, fallback);
+  return agent.label || `Agent ${String(id).padStart(2, "0")}`;
+}
+
+function agentAddress(agent?: AgentRecord) {
+  return String(agent?.accountAddress || agent?.account || agent?.address || "");
+}
+
+function agentCandidate(agent?: AgentRecord) {
+  return String(agent?.candidate || agent?.candidateTarget || "");
+}
+
+function short(value: string, head = 8, tail = 6) {
+  if (!value) return "-";
+  return value.length > head + tail + 3 ? `${value.slice(0, head)}...${value.slice(-tail)}` : value;
+}
+
+function balance(agent?: AgentRecord, pendingLabel = "Balance pending") {
+  if (!agent) return pendingLabel;
+  if (typeof agent.neoBalance === "number") return `${agent.neoBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })} NEO`;
+  if (agent.neo) return `${agent.neo} NEO`;
+  return pendingLabel;
+}
+
+function clampAgentId(value: number, max: number) {
+  if (!Number.isInteger(value) || value < 1) return 1;
+  return Math.min(value, Math.max(max, 1));
+}
+
+function normalizeWholeNeoAmount(value: string) {
+  const whole = value.split(/[.,]/)[0] ?? "";
+  return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+}
+
+export default function PlayArea({ t, state, dispatch }: Props) {
+  const { str, val } = useStateBindings(state);
+  const rawAgents = val("agentAccounts") as AgentRecord[] | undefined;
+  const agents = useMemo(() => rawAgents ?? EMPTY_AGENTS, [rawAgents]);
+  const totalNeoDisplay = str("totalNeoDisplay", "-");
+  const reserveDisplay = str("reserveDisplay", "-");
+  const selectedAgentDisplay = str("selectedAgentDisplay", t("noneFallback"));
+  const agentCountDisplay = str("agentCountDisplay", `${agents.length || 0} / 21`);
   const adminState = str("adminState", "loading");
-  const expectedAdmin = str("expectedAdminDisplay", "");
-  const isDenied = adminState === "denied";
-  // Only the confirmed-denied state makes the controls read-only. (Gating on
-  // the transient "loading" state too dimmed the read-only grid via opacity,
-  // which dropped the static labels below WCAG AA on first render; an
-  // unauthorized click during loading harmlessly reverts on-chain anyway.)
-  const controlsDisabled = isDenied;
+  const expectedAdminDisplay = str("expectedAdminDisplay", "");
 
-  const [fromAgentId, setFromAgentId] = useState("1");
-  const [toAgentId, setToAgentId] = useState("2");
-  const [moveAmount, setMoveAmount] = useState("1");
-  const [candidateAgentId, setCandidateAgentId] = useState("1");
-  const [candidatePublicKey, setCandidatePublicKey] = useState("");
-  // Seed the vote field with a sensible default ("1") so the third command card
-  // paints with an example value like its two pre-filled siblings, then snap to
-  // the live on-chain route once stats arrive. The voteAgentEdited guard below
-  // stops tracking the moment the operator edits the field so we never clobber
-  // their intent.
-  const [voteAgentId, setVoteAgentId] = useState("1");
-  const [voteAgentEdited, setVoteAgentEdited] = useState(false);
-  const selectedAgentId = stats?.selectedAgentId;
+  const [mode, setMode] = useState<OperationMode>("move");
+  const [activeSlot, setActiveSlot] = useState<RouteSlot>("from");
+  const [fromAgentId, setFromAgentId] = useState(1);
+  const [toAgentId, setToAgentId] = useState(2);
+  const [amount, setAmount] = useState("1");
+  const [candidate, setCandidate] = useState("");
 
-  useEffect(() => {
-    if (voteAgentEdited) return;
-    if (selectedAgentId && selectedAgentId > 0) {
-      setVoteAgentId(String(selectedAgentId));
+  const roster = useMemo(
+    () => agents.map((agent, index) => ({ ...agent, normalizedId: getAgentId(agent, index + 1), normalizedLabel: agentLabel(agent, index + 1) })),
+    [agents],
+  );
+  const maxAgentId = roster.length || 21;
+  const fromId = clampAgentId(fromAgentId, maxAgentId);
+  const toId = clampAgentId(toAgentId === fromId ? (fromId === maxAgentId ? 1 : fromId + 1) : toAgentId, maxAgentId);
+  const fromAgent = roster.find((agent) => agent.normalizedId === fromId) ?? roster[0];
+  const toAgent = roster.find((agent) => agent.normalizedId === toId) ?? roster[1] ?? roster[0];
+  const focusedAgent = mode === "move" ? fromAgent : fromAgent;
+  const focusedCandidate = candidate || agentCandidate(focusedAgent);
+  const isReadOnly = adminState === "denied";
+
+  const selectAgent = (id: number) => {
+    if (mode === "move") {
+      if (activeSlot === "from") {
+        setFromAgentId(id);
+        if (id === toId) setToAgentId(id === 1 ? 2 : 1);
+      } else {
+        setToAgentId(id === fromId ? (id === 1 ? 2 : 1) : id);
+      }
+      return;
     }
-  }, [selectedAgentId, voteAgentEdited]);
-
-  const onVoteAgentIdChange = useCallback((next: string) => {
-    setVoteAgentEdited(true);
-    setVoteAgentId(next);
-  }, []);
-
-  // In-flight guards: one per fund-moving action. Each is set true before the
-  // first await and reset in finally so a double-click (or a click while the
-  // first call is still settling) cannot fire the same transfer/vote twice.
-  const [movingNeo, setMovingNeo] = useState(false);
-  const [updatingCandidate, setUpdatingCandidate] = useState(false);
-  const [syncingVote, setSyncingVote] = useState(false);
-
-  const submitMove = useCallback(async () => {
-    if (movingNeo) return;
-    setMovingNeo(true);
-    try {
-      await dispatch("transferAgentNeo", {
-        fromAgentId,
-        toAgentId,
-        amount: moveAmount,
-      });
-    } finally {
-      setMovingNeo(false);
-    }
-  }, [movingNeo, dispatch, fromAgentId, toAgentId, moveAmount]);
-
-  const submitCandidate = useCallback(async () => {
-    if (updatingCandidate) return;
-    setUpdatingCandidate(true);
-    try {
-      await dispatch("setAgentCandidate", {
-        agentId: candidateAgentId,
-        candidate: candidatePublicKey,
-      });
-    } finally {
-      setUpdatingCandidate(false);
-    }
-  }, [updatingCandidate, dispatch, candidateAgentId, candidatePublicKey]);
-
-  const submitVote = useCallback(async () => {
-    if (syncingVote) return;
-    setSyncingVote(true);
-    try {
-      await dispatch("voteAgent", { agentId: voteAgentId });
-    } finally {
-      setSyncingVote(false);
-    }
-  }, [syncingVote, dispatch, voteAgentId]);
-
-  const visibleAgents = agentAccounts.slice(0, 21);
-  // Resolve an agent's on-chain NEO balance (read in main.tsx) by agent id.
-  const agentBalanceById = (id: string): number | null => {
-    const numeric = Number(id);
-    if (!Number.isInteger(numeric)) return null;
-    const match = visibleAgents.find(
-      (agent, idx) => Number(agent.agentId ?? idx + 1) === numeric,
-    );
-    if (!match) return null;
-    const raw = (match as Record<string, unknown>).neoBalance;
-    return typeof raw === "number" ? raw : null;
+    setFromAgentId(id);
   };
-  // Pre-validate the move against the SOURCE agent's NEO balance so the operator
-  // is not submitting a transfer the contract would revert (insufficient NEO).
-  const sourceBalance = agentBalanceById(fromAgentId);
-  const moveAmountNum = Number(moveAmount);
-  const moveExceedsBalance =
-    sourceBalance !== null &&
-    Number.isFinite(moveAmountNum) &&
-    moveAmountNum > 0 &&
-    moveAmountNum > sourceBalance;
-  // Account address for the agent whose vote is being synced (for the AA-witness note).
-  const voteAgentAccount = (() => {
-    const numeric = Number(voteAgentId);
-    if (!Number.isInteger(numeric)) return "";
-    const match = visibleAgents.find(
-      (agent, idx) => Number(agent.agentId ?? idx + 1) === numeric,
-    );
-    if (!match) return "";
-    return String(match.account ?? match.accountAddress ?? match.address ?? "");
-  })();
-  const shortVoteAccount = voteAgentAccount
-    ? voteAgentAccount.length <= 16
-      ? voteAgentAccount
-      : `${voteAgentAccount.slice(0, 8)}…${voteAgentAccount.slice(-6)}`
-    : "";
 
-  const canMove =
-    !controlsDisabled &&
-    Boolean(fromAgentId.trim()) &&
-    Boolean(toAgentId.trim()) &&
-    Boolean(moveAmount.trim()) &&
-    fromAgentId.trim() !== toAgentId.trim() &&
-    !moveExceedsBalance;
-  const canUpdateCandidate =
-    !controlsDisabled &&
-    Boolean(candidateAgentId.trim()) &&
-    Boolean(candidatePublicKey.trim());
-  const canSyncVote = !controlsDisabled && Boolean(voteAgentId.trim());
-  const routeItems = [
-    { label: t("selectedRoute"), value: selectedAgent },
-    { label: t("agentCount"), value: agentCount },
-    { label: t("trackedNeo"), value: totalNeoDisplay },
-    { label: t("reserve"), value: reserveDisplay },
-  ];
-  const heroRouteSteps = [
-    { label: t("moveNeo"), ready: canMove },
-    { label: t("setCandidate"), ready: canUpdateCandidate },
-    { label: t("syncVote"), ready: canSyncVote },
-  ];
+  const submit = () => {
+    if (mode === "move") {
+      void dispatch("transferAgentNeo", { fromAgentId: fromId, toAgentId: toId, amount: Number(normalizeWholeNeoAmount(amount)) });
+      return;
+    }
+    if (mode === "candidate") {
+      void dispatch("setAgentCandidate", { agentId: fromId, candidate: focusedCandidate.trim() });
+      return;
+    }
+    void dispatch("voteAgent", { agentId: fromId });
+  };
 
-  return (
-    <div className="anchor-admin-playarea anchor-admin-playarea--trust">
-      <div className="anchor-admin-shell">
-        <main className="anchor-admin-main">
-          <section className="anchor-admin-hero anchor-admin-hero--staged">
-            <div className="anchor-admin-hero-panel">
-              <div className="anchor-admin-hero-top">
-                <span className="anchor-admin-hero-badge">
-                  <CategoryIcon name="governance" size={40} title={t("appName")} />
-                </span>
-                <div className="anchor-admin-hero-copy">
-                  <span className="anchor-admin-kicker">{t("appName")}</span>
-                  <h2>{t("adminHeroTitle")}</h2>
-                  <p>{t("adminHeroSubtitle")}</p>
-                </div>
+  const operationLabel = mode === "move" ? t("moveNeo") : mode === "candidate" ? t("setCandidate") : t("syncVote");
+  const operationHint = mode === "move" ? t("moveNeoDesc") : mode === "candidate" ? t("setCandidateDesc") : t("syncVoteDesc");
+
+  const scene = (
+    <div className="admin-scene admin-workspace" data-mode={mode}>
+      <section className="admin-command" aria-label={t("adminCommandCenter")}>
+        <div className="admin-command__head">
+          <span><Route size={16} />{t("adminCommandCenter")}</span>
+          <strong>{adminState === "admin" ? t("adminScope") : adminState === "denied" ? t("operatorRequiredEyebrow") : t("statsAwaitConnect")}</strong>
+        </div>
+
+        <div className="admin-mode" aria-label={t("operationMode")}>
+          {([
+            ["move", t("moveNeo"), <ArrowRight size={15} key="move" />],
+            ["candidate", t("setCandidate"), <KeyRound size={15} key="candidate" />],
+            ["vote", t("syncVote"), <Vote size={15} key="vote" />],
+          ] as const).map(([value, label, icon]) => (
+            <button key={value} type="button" data-active={mode === value ? "true" : undefined} onClick={() => setMode(value)}>
+              {icon}
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-route-board">
+          <button type="button" className="admin-agent-card" data-active={mode !== "move" || activeSlot === "from" ? "true" : undefined} onClick={() => setActiveSlot("from")}>
+            <span>{mode === "move" ? t("fromAgentId") : t("agentId")}</span>
+            <strong>{fromAgent?.normalizedLabel ?? `Agent ${fromId}`}</strong>
+            <em>{short(agentAddress(fromAgent), 10, 6)}</em>
+            <small>{balance(fromAgent, t("agentBalancePending"))}</small>
+          </button>
+
+          {mode === "move" ? (
+            <>
+              <div className="admin-route-link" aria-hidden="true">
+                <CoinArt size={34} variant="neo" />
+                <ArrowRight size={18} />
               </div>
-              <div className="anchor-admin-hero-stats">
-                {routeItems.map((item) => (
-                  <div key={item.label} className="anchor-admin-hero-stat">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-              {!agentsLive && (
-                <p className="anchor-admin-hero-caption">{t("statsAwaitConnect")}</p>
-              )}
-            </div>
-
-            <figure className="anchor-admin-route-stage" aria-label={t("routeMapTitle")}>
-              <picture aria-hidden="true">
-                <source srcSet="./banner.avif" type="image/avif" />
-                <source srcSet="./banner.webp" type="image/webp" />
-                <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
-              </picture>
-              <figcaption>
-                <span>{t("routeMapTitle")}</span>
-                <strong>{selectedAgent}</strong>
-                <small>{totalNeoDisplay} · {reserveDisplay}</small>
-              </figcaption>
-              <ol className="anchor-admin-route-steps">
-                {heroRouteSteps.map((step, index) => (
-                  <li key={step.label} className={step.ready ? "is-ready" : undefined}>
-                    <span>{index + 1}</span>
-                    <strong>{step.label}</strong>
-                  </li>
-                ))}
-              </ol>
-              <div className="anchor-admin-route-beam" aria-hidden="true" />
-            </figure>
-          </section>
-
-          {isDenied && (
-            <div className="anchor-admin-role-banner" role="status">
-              <span className="anchor-admin-role-banner__eyebrow">
-                {t("operatorRequiredEyebrow")}
-              </span>
-              <strong>{t("operatorRequiredTitle")}</strong>
-              <p>
-                {expectedAdmin
-                  ? t("operatorRequiredBody", { address: expectedAdmin })
-                  : t("operatorRequiredBodyNoAddress")}
-              </p>
+              <button type="button" className="admin-agent-card" data-active={activeSlot === "to" ? "true" : undefined} onClick={() => setActiveSlot("to")}>
+                <span>{t("toAgentId")}</span>
+                <strong>{toAgent?.normalizedLabel ?? `Agent ${toId}`}</strong>
+                <em>{short(agentAddress(toAgent), 10, 6)}</em>
+                <small>{balance(toAgent, t("agentBalancePending"))}</small>
+              </button>
+            </>
+          ) : (
+            <div className="admin-candidate-card">
+              <span>{t("agentCandidateLabel")}</span>
+              <strong>{short(agentCandidate(focusedAgent), 12, 8) || t("agentCandidateNone")}</strong>
+              <em>{mode === "candidate" ? t("cardRuleCandidate") : t("voteWitnessTitle")}</em>
             </div>
           )}
+        </div>
 
-          <section
-            className={`anchor-admin-command-grid${controlsDisabled ? " is-readonly" : ""}`}
-            aria-label={t("adminCommandCenter")}
-          >
-            <NeoCard title={t("moveNeo")} className="anchor-admin-workflow-card">
-              <p>{t("moveNeoDesc")}</p>
-              <div className="anchor-admin-form-grid">
-                <NeoInput
-                  type="number"
-                  min={1}
-                  max={21}
-                  label={t("fromAgentId")}
-                  value={fromAgentId}
-                  onChange={setFromAgentId}
-                />
-                <NeoInput
-                  type="number"
-                  min={1}
-                  max={21}
-                  label={t("toAgentId")}
-                  value={toAgentId}
-                  onChange={setToAgentId}
-                />
-                <NeoInput
-                  type="number"
-                  min={1}
-                  label={t("neoAmount")}
-                  suffix="NEO"
-                  value={moveAmount}
-                  onChange={setMoveAmount}
-                />
-              </div>
-              {sourceBalance !== null && (
-                <p className="anchor-admin-move-hint">
-                  {t("moveBalanceHint")}{" "}
-                  <strong>
-                    #{fromAgentId.trim()}: {sourceBalance} {t("agentBalanceLabel")}
-                  </strong>
-                </p>
-              )}
-              {moveExceedsBalance && (
-                <p className="anchor-admin-move-error" role="alert">
-                  {t("moveExceedsBalance")}
-                </p>
-              )}
-              <NeoButton
-                block
-                variant="primary"
-                disabled={!canMove || movingNeo}
-                loading={movingNeo}
-                onClick={submitMove}
-              >
-                {t("submitMove")}
-              </NeoButton>
-            </NeoCard>
+        <div className="admin-operation-ticket">
+          <div>
+            <span>{operationLabel}</span>
+            <strong>{operationHint}</strong>
+          </div>
+          {mode === "move" ? (
+            <label>
+              <span>{t("neoAmount")}</span>
+              <input value={amount} inputMode="numeric" onChange={(event) => setAmount(normalizeWholeNeoAmount(event.target.value))} />
+            </label>
+          ) : mode === "candidate" ? (
+            <label className="admin-operation-ticket__candidate">
+              <span>{t("candidatePublicKey")}</span>
+              <input value={candidate} onChange={(event) => setCandidate(event.target.value)} placeholder={short(agentCandidate(focusedAgent), 14, 10)} />
+            </label>
+          ) : (
+            <p>{t("voteWitnessNote", { agent: fromId, account: short(agentAddress(focusedAgent), 10, 6) })}</p>
+          )}
+        </div>
+      </section>
 
-            <NeoCard title={t("setCandidate")} className="anchor-admin-workflow-card">
-              <p>{t("setCandidateDesc")}</p>
-              <NeoInput
-                type="number"
-                min={1}
-                max={21}
-                label={t("agentId")}
-                value={candidateAgentId}
-                onChange={setCandidateAgentId}
-              />
-              <NeoInput
-                label={t("candidatePublicKey")}
-                placeholder="02..."
-                value={candidatePublicKey}
-                onChange={setCandidatePublicKey}
-              />
-              <NeoButton
-                block
-                variant="primary"
-                disabled={!canUpdateCandidate || updatingCandidate}
-                loading={updatingCandidate}
-                onClick={submitCandidate}
-              >
-                {t("submitCandidate")}
-              </NeoButton>
-            </NeoCard>
+      <section className="admin-ledger" aria-label={t("agentDirectoryTitle")}>
+        <div className="admin-ledger__head">
+          <span><Users size={16} />{t("agentDirectoryTitle")}</span>
+          <strong>{t("directoryRosterNote", { count: roster.length || 21 })}</strong>
+        </div>
+        <div className="admin-agent-grid">
+          {roster.slice(0, 12).map((agent) => {
+            const selected = agent.normalizedId === fromId || (mode === "move" && agent.normalizedId === toId);
+            return (
+              <button key={agent.normalizedId} type="button" data-selected={selected ? "true" : undefined} onClick={() => selectAgent(agent.normalizedId)}>
+                <span>{agent.normalizedLabel}</span>
+                <strong>{balance(agent, t("agentBalancePending"))}</strong>
+                <em>{agent.active === false ? t("agentInactive") : t("agentActive")}</em>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-            <NeoCard title={t("syncVote")} className="anchor-admin-workflow-card">
-              <p>{t("syncVoteDesc")}</p>
-              <div className="anchor-admin-vote-preview">
-                <span>{t("currentVoteRoute")}</span>
-                <strong>{selectedAgent}</strong>
-              </div>
-              <NeoInput
-                type="number"
-                min={1}
-                max={21}
-                label={t("agentId")}
-                value={voteAgentId}
-                onChange={onVoteAgentIdChange}
-              />
-              {voteAgentId.trim() && (
-                <p className="anchor-admin-witness-note" role="note">
-                  <strong>{t("voteWitnessTitle")}</strong>
-                  <span>
-                    {t("voteWitnessNote", {
-                      agent: voteAgentId.trim(),
-                      account: shortVoteAccount || t("agentBalanceUnknown"),
-                    })}
-                  </span>
-                </p>
-              )}
-              <NeoButton
-                block
-                variant="primary"
-                disabled={!canSyncVote || syncingVote}
-                loading={syncingVote}
-                onClick={submitVote}
-              >
-                {t("submitVote")}
-              </NeoButton>
-            </NeoCard>
-          </section>
-        </main>
+      <section className="admin-policy">
+        <span><ShieldCheck size={16} />{t("operatorRule")}</span>
+        <p>{isReadOnly
+          ? (expectedAdminDisplay ? t("operatorRequiredBody", { address: expectedAdminDisplay }) : t("operatorRequiredBodyNoAddress"))
+          : t("operatorRuleDesc")}</p>
+      </section>
+    </div>
+  );
 
-        <aside className="anchor-admin-side">
-          <section className="anchor-admin-agent-strip" aria-label={t("agentDirectoryTitle")}>
-            <div className="anchor-admin-section-heading">
-              <span>{t("agentDirectoryTitle")}</span>
-              <strong className="anchor-admin-count-pill">{agentCount}</strong>
-            </div>
-            <div className="anchor-admin-agent-scroll">
-              <div
-                className={`anchor-admin-agent-list${agentsLive ? "" : " is-resting"}`}
-              >
-                {visibleAgents.length === 0 ? (
-                  adminState === "loading" ? (
-                    <StateView
-                      className="anchor-admin-agent-state"
-                      kind="loading"
-                      title={t("agentDirectoryLoading")}
-                    />
-                  ) : (
-                    <StateView
-                      className="anchor-admin-agent-state"
-                      kind="empty"
-                      icon={null}
-                      title={t("agentDirectoryEmpty")}
-                      hint={t("agentDirectoryEmptyHint")}
-                    />
-                  )
-                ) : (
-                  visibleAgents.map((agent, idx) => {
-                    const address = String(
-                      agent.account ??
-                        agent.accountAddress ??
-                        agent.address ??
-                        agent.name ??
-                        `agent-${idx + 1}`,
-                    );
-                    const rawBalance = (agent as Record<string, unknown>).neoBalance;
-                    const balance =
-                      typeof rawBalance === "number" ? rawBalance : null;
-                    const hasActiveFlag = "active" in agent;
-                    const isActive = Boolean(
-                      (agent as Record<string, unknown>).active,
-                    );
-                    const candidate = String(
-                      (agent as Record<string, unknown>).candidate ?? "",
-                    );
-                    const shortCandidate = candidate
-                      ? candidate.length <= 16
-                        ? candidate
-                        : `${candidate.slice(0, 8)}…${candidate.slice(-6)}`
-                      : "";
-                    return (
-                      <div key={idx} className="anchor-admin-agent-row">
-                        <div className="anchor-admin-agent-row__top">
-                          <span>#{String(agent.agentId ?? idx + 1)}</span>
-                          <strong className="anchor-admin-agent-row__balance">
-                            {balance !== null
-                              ? `${balance} ${t("agentBalanceLabel")}`
-                              : t("agentBalanceUnknown")}
-                          </strong>
-                          {hasActiveFlag && (
-                            <span
-                              className={`anchor-admin-agent-row__flag${isActive ? " is-active" : ""}`}
-                            >
-                              {isActive ? t("agentActive") : t("agentInactive")}
-                            </span>
-                          )}
-                        </div>
-                        <code title={address}>{address}</code>
-                        <span className="anchor-admin-agent-row__candidate">
-                          {t("agentCandidateLabel")}:{" "}
-                          {shortCandidate || t("agentCandidateNone")}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </section>
+  const drawer = (
+    <div className="admin-drawer">
+      <section>
+        <h4>{t("routeMapTitle")}</h4>
+        <p><span>{t("trackedNeo")}</span><strong>{totalNeoDisplay}</strong></p>
+        <p><span>{t("reserve")}</span><strong>{reserveDisplay}</strong></p>
+        <p><span>{t("selectedRoute")}</span><strong>{selectedAgentDisplay}</strong></p>
+      </section>
+      <section>
+        <h4>{t("agentDirectoryTitle")}</h4>
+        {roster.length > 0 ? (
+          <ul className="mx2-history">
+            {roster.slice(0, 10).map((agent) => (
+              <li key={agent.normalizedId} className="mx2-history__item">
+                <span className="mx2-history__face">{agent.normalizedLabel}</span>
+                <span className="mx2-history__result">{short(agentAddress(agent), 9, 5)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p>{t("agentDirectoryEmpty")}</p>}
+      </section>
+    </div>
+  );
 
-          <section className="anchor-admin-safety-card" aria-label={t("operatorRule")}>
-            <div className="anchor-admin-section-heading">
-              <span>{t("operatorRule")}</span>
-              <strong>{t("manualOnly")}</strong>
-            </div>
-            <p>{t("operatorRuleDesc")}</p>
-            <p className="anchor-admin-yield-causality">{t("yieldCausality")}</p>
-            <div className="anchor-admin-safety-list">
-              <span>{t("safetyMove")}</span>
-              <span>{t("safetyTarget")}</span>
-              <span>{t("safetyVote")}</span>
-            </div>
-          </section>
-        </aside>
-      </div>
+  return (
+    <div className="anchor-admin-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{
+          eyebrow: t("appName"),
+          title: t("adminHeroTitle"),
+          subtitle: t("adminHeroSubtitle"),
+          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {agentCountDisplay}</span>,
+        }}
+        scene={scene}
+        score={[
+          { label: t("trackedNeo"), value: totalNeoDisplay, accent: true },
+          { label: t("agentCount"), value: agentCountDisplay },
+          { label: t("selectedRoute"), value: selectedAgentDisplay },
+        ]}
+        actions={{
+          primary: {
+            label: operationLabel,
+            onClick: submit,
+            disabled: isReadOnly || (mode === "candidate" && !focusedCandidate.trim()),
+            icon: <BadgeCheck size={17} />,
+          },
+        }}
+        drawerToggleLabel={t("agentDirectoryTitle")}
+        drawer={{ title: t("agentDirectoryTitle"), children: drawer }}
+      />
     </div>
   );
 }

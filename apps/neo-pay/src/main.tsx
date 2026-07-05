@@ -20,6 +20,8 @@ defineMiniApp({
 
   setup(ctx) {
     const pay = useNeoPayApp({
+      app: ctx.framework,
+      // chain retained solely for readArray (no framework equivalent).
       chain: ctx.services.chain,
       t: ctx.t,
     });
@@ -27,7 +29,7 @@ defineMiniApp({
     const findStreamById = (id: string) =>
       pay.allStreams.get().find((s) => String(s.id) === id) ?? null;
 
-    ctx.registerAction("createStream", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createStream", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
         recipient?: string;
         amount?: string;
@@ -59,7 +61,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("cancelStream", async (...args: unknown[]) => {
+    ctx.framework.actions.register("cancelStream", async (...args: unknown[]) => {
       const input = (args[0] ?? {}) as { streamId?: string } | string;
       const id =
         typeof input === "string"
@@ -76,7 +78,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("claimStream", async (...args: unknown[]) => {
+    ctx.framework.actions.register("claimStream", async (...args: unknown[]) => {
       const input = (args[0] ?? {}) as { streamId?: string } | string;
       const id =
         typeof input === "string"
@@ -91,6 +93,10 @@ defineMiniApp({
         () => pay.claimStream(stream),
         "streamClaimed",
       );
+    });
+
+    ctx.framework.actions.register("refreshStreams", async () => {
+      await pay.refreshStreams();
     });
 
     return {

@@ -19,7 +19,7 @@ type MediaOptions = {
 };
 
 const miniAppPathPattern = /\/(?:miniapps|miniapp-assets)\/([^/?#]+)/i;
-const imageExtensions = ["jpg", "svg", "png", "jpeg"] as const;
+const imageExtensions = ["webp", "svg", "png"] as const;
 type AssetKind = "logo" | "banner";
 
 export type ModernImageSources = {
@@ -48,6 +48,105 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-stream-vault": ["neo-pay", "stream-vault"],
   "miniapp-unbreakablevault": ["unbreakable-vault"],
 };
+
+const BUNDLED_MINIAPP_ASSET_SLUGS = new Set([
+  "aa-account-lab",
+  "aa-market-hub",
+  "aa-permissions-lab",
+  "aa-relay-console",
+  "aa-session-key-lab",
+  "asset-factory",
+  "aim-master",
+  "automation-copilot",
+  "breakup-contract",
+  "burn-league",
+  "candidate-vote",
+  "charity-vault",
+  "coin-flip",
+  "color-clash",
+  "compound-capsule",
+  "council-governance",
+  "custom-anchor",
+  "daily-checkin",
+  "dev-tipping",
+  "dice-game",
+  "doomsday-clock",
+  "event-ticket-pass",
+  "ex-files",
+  "explorer",
+  "flashloan",
+  "flappy-dash",
+  "fogplay",
+  "forever-album",
+  "garden-of-neo",
+  "game-2048",
+  "gas-lucky-pool",
+  "gas-sponsor",
+  "gasbox",
+  "gov-merc",
+  "grant-share",
+  "graveyard",
+  "guardian-policy",
+  "hall-of-fame",
+  "heritage-trust",
+  "jump-rush",
+  "last-survivor",
+  "lottery",
+  "masquerade-dao",
+  "memorial-shrine",
+  "merge-kingdom",
+  "milestone-escrow",
+  "million-piece-map",
+  "miniapp-factory",
+  "neo-convert",
+  "neo-gacha",
+  "neo-message",
+  "neo-multisig",
+  "neo-news-today",
+  "neo-ns",
+  "neo-pay",
+  "neo-pay-shared-example",
+  "neo-sign-anything",
+  "neo-swap",
+  "neo-treasury",
+  "neo-x-bridge",
+  "neodid-passport",
+  "nft-factory",
+  "on-chain-tarot",
+  "oracle-compute-lab",
+  "oracle-http-console",
+  "oracle-neodid-console",
+  "oracle-price-console",
+  "oracle-seal-console",
+  "oracle-vrf-console",
+  "pet-potion",
+  "piggy-bank",
+  "prediction-market",
+  "private-transfer",
+  "profitanchor",
+  "profitanchor-admin",
+  "quadratic-funding",
+  "recovery-guardian",
+  "red-envelope",
+  "secret-vote",
+  "self-loan",
+  "sheep-solitaire",
+  "snake-bounty",
+  "social-karma",
+  "soulbound-certificate",
+  "stream-vault",
+  "sudoku",
+  "time-capsule",
+  "timestamp-proof",
+  "tipping",
+  "trustanchor",
+  "trustanchor-admin",
+  "turtle-match",
+  "unbreakable-vault",
+  "voting",
+  "wallet-health",
+  "zk-privacy",
+]);
 
 type MediaVariant = {
   url: string;
@@ -313,10 +412,13 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
 } {
   const slug = resolveMiniAppSlug(appID, entryURL);
   if (!slug) return { logoURL: null, bannerURL: null };
+  if (!BUNDLED_MINIAPP_ASSET_SLUGS.has(slug)) {
+    return { logoURL: null, bannerURL: null };
+  }
 
   return {
-    logoURL: resolveBundledMiniAppAssetURL(`/miniapp-assets/${slug}/logo.jpg`),
-    bannerURL: resolveBundledMiniAppAssetURL(`/miniapp-assets/${slug}/banner.jpg`),
+    logoURL: resolveBundledMiniAppAssetURL(`/miniapp-assets/${slug}/logo.webp`),
+    bannerURL: resolveBundledMiniAppAssetURL(`/miniapp-assets/${slug}/banner.webp`),
   };
 }
 
@@ -329,11 +431,13 @@ function getMiniAppAssetCandidates(asset: AssetKind, appID?: string | null, entr
 
   const bases: string[] = [];
   for (const appSlug of slugs) {
+    if (BUNDLED_MINIAPP_ASSET_SLUGS.has(appSlug)) {
+      bases.push(`/miniapp-assets/${appSlug}/${asset}`);
+    }
     bases.push(
-      `/miniapp-assets/${appSlug}/${asset}`,
-      `/miniapps/${appSlug}/${asset}`,
       // Keep compatibility with source-tree style paths used by miniapp folders.
       `/miniapps/${appSlug}/public/${asset}`,
+      `/miniapps/${appSlug}/${asset}`,
     );
   }
 
@@ -395,9 +499,9 @@ export function buildModernImageSources(url?: string | null): ModernImageSources
   const match = source.match(/^([^?#]+)([?#].*)?$/);
   const assetPath = match?.[1] || "";
   const suffix = match?.[2] || "";
-  if (!/\/miniapp-assets\/.+\.(jpe?g)$/i.test(assetPath)) return {};
+  if (!/\/miniapp-assets\/.+\.(jpe?g|png|webp)$/i.test(assetPath)) return {};
 
-  const withoutExtension = assetPath.replace(/\.(jpe?g)$/i, "");
+  const withoutExtension = assetPath.replace(/\.(jpe?g|png|webp)$/i, "");
   return {
     avif: `${withoutExtension}.avif${suffix}`,
     webp: `${withoutExtension}.webp${suffix}`,

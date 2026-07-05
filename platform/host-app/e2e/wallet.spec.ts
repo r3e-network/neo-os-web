@@ -16,7 +16,7 @@ test.describe("Wallet Connection", () => {
     const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
 
-    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Neo" })).toBeVisible();
     await expect(page.getByText("Email & Social")).toBeVisible();
     await expect(page.getByText("Neo Ecosystem")).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
@@ -32,7 +32,7 @@ test.describe("Wallet Connection", () => {
   test("should display wallet option buttons", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Neo" })).toBeVisible();
 
     await expect(page.getByTestId("wallet-option-onegate")).toBeVisible();
     await expect(page.getByTestId("wallet-option-neoline")).toBeVisible();
@@ -43,10 +43,10 @@ test.describe("Wallet Connection", () => {
   test("should open and close login modal", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Neo" })).toBeVisible();
 
     await page.getByRole("button", { name: /close login modal/i }).click();
-    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).not.toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Neo" })).not.toBeVisible();
   });
 
   test("should render login modal as a full viewport overlay above navigation", async ({ page }) => {

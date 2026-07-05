@@ -6,8 +6,8 @@ import { defineMiniApp, refsToObservables } from "@shared/react";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useQuadraticFundingPage } from "./pages/index/composables/useQuadraticFundingPage";
-import type { ProjectItem } from "./pages/index/components/ProjectList";
+import { useQuadraticFundingPage } from "./composables/useQuadraticFundingPage";
+import type { ProjectItem } from "./composables/quadraticTypes";
 
 defineMiniApp({
   appId: "miniapp-quadratic-funding",
@@ -20,54 +20,54 @@ defineMiniApp({
 
     // These three return a success boolean so the view can clear its inputs
     // only on a confirmed on-chain success (dispatch forwards the payload).
-    ctx.registerAction("createRound", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createRound", async (...args: unknown[]) => {
       return qf.handleCreateRound(...(args as Parameters<typeof qf.handleCreateRound>));
     });
 
-    ctx.registerAction("registerProject", async (...args: unknown[]) => {
+    ctx.framework.actions.register("registerProject", async (...args: unknown[]) => {
       return qf.handleRegisterProject(...(args as Parameters<typeof qf.handleRegisterProject>));
     });
 
-    ctx.registerAction("contribute", async (...args: unknown[]) => {
+    ctx.framework.actions.register("contribute", async (...args: unknown[]) => {
       return qf.handleContribute(...(args as Parameters<typeof qf.handleContribute>));
     });
 
-    ctx.registerAction("addMatching", async (...args: unknown[]) => {
+    ctx.framework.actions.register("addMatching", async (...args: unknown[]) => {
       const amount = String(args[0] ?? "");
       await qf.handleAddMatching(amount);
     });
 
-    ctx.registerAction("finalize", async (...args: unknown[]) => {
+    ctx.framework.actions.register("finalize", async (...args: unknown[]) => {
       const projectIdsRaw = String(args[0] ?? "");
       const matchedRaw = String(args[1] ?? "");
       await qf.handleFinalize(projectIdsRaw, matchedRaw);
     });
 
-    ctx.registerAction("finalizeSuggested", async () => {
+    ctx.framework.actions.register("finalizeSuggested", async () => {
       await qf.handleFinalizeSuggested();
     });
 
-    ctx.registerAction("claimProject", async (...args: unknown[]) => {
+    ctx.framework.actions.register("claimProject", async (...args: unknown[]) => {
       await qf.handleClaimProject(args[0] as ProjectItem);
     });
 
-    ctx.registerAction("claimUnused", async () => {
+    ctx.framework.actions.register("claimUnused", async () => {
       await qf.handleClaimUnused();
     });
 
-    ctx.registerAction("cancelRound", async () => {
+    ctx.framework.actions.register("cancelRound", async () => {
       await qf.handleCancelRound();
     });
 
-    ctx.registerAction("refreshRounds", async () => {
+    ctx.framework.actions.register("refreshRounds", async () => {
       await qf.refreshRounds();
     });
 
-    ctx.registerAction("switchTab", async (...args: unknown[]) => {
+    ctx.framework.actions.register("switchTab", async (...args: unknown[]) => {
       await qf.onTabChange(String(args[0] ?? "contribute"));
     });
 
-    ctx.registerAction("selectRound", async (...args: unknown[]) => {
+    ctx.framework.actions.register("selectRound", async (...args: unknown[]) => {
       await qf.handleSelectRound(args[0] as Parameters<typeof qf.handleSelectRound>[0]);
     });
 

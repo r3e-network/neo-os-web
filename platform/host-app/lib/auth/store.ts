@@ -162,6 +162,30 @@ function clearStoredWalletSessionTokens() {
   }
 }
 
+/**
+ * Drop the wallet-bound auth session from the in-memory store. A social login
+ * (Auth0) is preserved because its session lives in its own cookie/lane and is
+ * not affected by the wallet JWT being cleared. `setWalletSession` lets the
+ * cross-tab listener re-derive state WITHOUT mutating storage (which would
+ * re-fire the storage event and loop).
+ */
+function clearWalletAuthState(
+  get: () => AuthStore,
+  set: (state: Partial<AuthStore>) => void,
+) {
+  const state = get();
+  const keepSocialSession = state.method === "social";
+  set({
+    authenticated: keepSocialSession ? state.authenticated : false,
+    userId: keepSocialSession ? state.userId : "",
+    method: keepSocialSession ? "social" : null,
+    walletAddress: "",
+    walletType: null,
+    loading: false,
+    error: null,
+  });
+}
+
 function completeWalletOnlyLogin(set: (state: Partial<AuthStore>) => void) {
   const { connected, address } = useWalletStore.getState();
   if (!connected || !address) {
@@ -280,17 +304,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   clearWalletSession: () => {
     clearStoredWalletSessionTokens();
-    const state = get();
-    const keepSocialSession = state.method === "social";
-    set({
-      authenticated: keepSocialSession ? state.authenticated : false,
-      userId: keepSocialSession ? state.userId : "",
-      method: keepSocialSession ? "social" : null,
-      walletAddress: "",
-      walletType: null,
-      loading: false,
-      error: null,
-    });
+    clearWalletAuthState(get, set);
   },
 
   clearError: () => set({ error: null }),
@@ -307,3 +321,45 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     }
   },
 }));
+
+/**
+ * React to wallet-session JWT changes made by another tab.
+ *
+ * `sb-access-token` lives in sessionStorage (per-tab, never shared), so only the
+ * localStorage `neo_miniapp_auth_jwt` can signal a cross-tab logout. When another
+ * tab logs out / disconnects the wallet it clears that key. But each tab mints
+ * its OWN wallet JWT during login and keeps it in its own sessionStorage, so a
+ * logout in tab A must NOT tear down tab B's still-valid per-tab session. This
+ * listener therefore only drops the local auth view when this tab's OWN access
+ * token is also gone — i.e. the shared wallet session is truly dead here too.
+ * It only re-derives state — it never writes storage — so it cannot loop with
+ * the originating tab's clear.
+ */
+const AUTH_JWT_STORAGE_KEY = "neo_miniapp_auth_jwt";
+const AUTH_SESSION_TOKEN_KEY = "sb-access-token";
+let crossTabAuthSyncInstalled = false;
+function installCrossTabAuthSync(): void {
+  if (crossTabAuthSyncInstalled || typeof window === "undefined") return;
+  crossTabAuthSyncInstalled = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== AUTH_JWT_STORAGE_KEY) return;
+    const state = useAuthStore.getState();
+    const hasExternalWalletSession =
+      state.method === "wallet" || state.walletType === "external";
+    if (!hasExternalWalletSession) return;
+    if (event.newValue) return;
+    // The shared wallet JWT was cleared in another tab. Only tear down THIS
+    // tab's auth view when this tab does not still hold its own per-tab access
+    // token — otherwise a logout in one tab would kill a live, independently
+    // authenticated session in another (e.g. a dev-key tab beside an external-
+    // wallet tab, or two separately-logged-in tabs).
+    const ownToken =
+      typeof sessionStorage !== "undefined"
+        ? sessionStorage.getItem(AUTH_SESSION_TOKEN_KEY)
+        : null;
+    if (ownToken) return;
+    clearWalletAuthState(useAuthStore.getState, useAuthStore.setState);
+  });
+}
+
+installCrossTabAuthSync();

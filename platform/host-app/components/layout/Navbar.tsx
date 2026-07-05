@@ -96,8 +96,8 @@ export function Navbar() {
       className={cn(
         "fixed top-0 z-50 w-full transition-all duration-300",
         scrolled
-          ? "bg-white/80 backdrop-blur-xl border-b border-gray-200 py-2 shadow-sm"
-          : "bg-white/60 backdrop-blur-md py-4 border-b border-transparent",
+          ? "bg-surface/80 backdrop-blur-xl border-b border-border py-2 shadow-sm"
+          : "bg-surface/60 backdrop-blur-md py-4 border-b border-transparent",
       )}
     >
       <div className="mx-auto flex min-w-0 max-w-[1600px] items-center justify-between px-4 sm:px-6">
@@ -107,7 +107,7 @@ export function Navbar() {
             href={withNetworkQuery("/", networkQuery)}
             prefetch={false}
             aria-label={t("navigation.home")}
-            className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 transition-transform hover:scale-105"
+            className="flex min-w-0 items-center gap-2 rounded-lg transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/40"
           >
             <img
               src="/brand/yiwu-mark.svg"
@@ -115,16 +115,16 @@ export function Navbar() {
               aria-hidden="true"
               className="h-9 w-9 rounded-xl shadow-md"
             />
-            <span className="truncate text-lg font-bold text-gray-900 sm:text-xl">
+            <span className="truncate text-lg font-semibold text-ink sm:text-xl">
               {BRAND.name}{" "}
-              <span className="hidden text-emerald-700 sm:inline">
+              <span className="hidden text-neo-600 sm:inline">
                 {t("navigation.miniapps")}
               </span>
             </span>
           </Link>
 
           {/* Desktop Nav Links */}
-          <ul className="hidden md:flex items-center gap-1.5 p-1 bg-gray-100/60 rounded-2xl border border-gray-200/60">
+          <ul className="hidden items-center gap-1 rounded-xl border border-border bg-canvas-alt p-1 md:flex">
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
@@ -134,10 +134,10 @@ export function Navbar() {
                     router.pathname.startsWith(link.href) ? "page" : undefined
                   }
                   className={cn(
-                    "px-4 py-1.5 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                    "rounded-lg px-4 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/40",
                     router.pathname.startsWith(link.href)
-                      ? "text-gray-900 bg-white shadow-sm"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-white/60",
+                      ? "text-ink bg-surface shadow-sm"
+                      : "text-ink-secondary hover:text-ink hover:bg-surface/60",
                   )}
                 >
                   {t(link.labelKey)}
@@ -155,7 +155,7 @@ export function Navbar() {
         >
           <div className="relative w-full group">
             <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-neo transition-colors"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint group-focus-within:text-neo-500 transition-colors"
               aria-hidden="true"
             />
             <input
@@ -167,7 +167,7 @@ export function Navbar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("actions.search")}
               aria-label={t("actions.search")}
-              className="w-full h-10 pl-10 pr-4 text-sm rounded-2xl border border-gray-200 bg-gray-50/50 text-gray-900 placeholder-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 hover:border-neo/40"
+              className="w-full h-10 pl-10 pr-4 text-sm rounded-2xl border border-border-strong bg-canvas-alt text-ink placeholder-ink-faint transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/50 focus-visible:border-neo-400"
             />
           </div>
         </form>
@@ -180,7 +180,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="px-2 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5 sm:px-3"
+            className="px-2 py-2 rounded-xl border border-transparent hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/50 text-ink-secondary hover:bg-canvas-alt transition-all cursor-pointer flex items-center gap-1.5 sm:px-3"
             aria-label={t("language.switch")}
           >
             <Globe size={18} aria-hidden="true" />
@@ -195,7 +195,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer"
+            className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/50 text-ink-secondary hover:bg-canvas-alt transition-all cursor-pointer"
             aria-label={t("navigation.toggleMenu")}
             aria-controls="mobile-nav-menu"
             aria-expanded={mobileMenuOpen}
@@ -209,14 +209,14 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div
           id="mobile-nav-menu"
-          className="md:hidden absolute top-full left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur-2xl px-4 py-4 shadow-xl"
+          className="md:hidden absolute top-full left-0 w-full border-b border-border bg-surface/95 backdrop-blur-2xl px-4 py-4 shadow-lg"
           role="navigation"
           aria-label={t("navigation.mobile")}
         >
           <form onSubmit={handleSearch} role="search" className="mb-4">
             <div className="relative group">
               <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-neo"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint group-focus-within:text-neo-500"
                 aria-hidden="true"
               />
               <input
@@ -228,7 +228,7 @@ export function Navbar() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("actions.search")}
                 aria-label={t("actions.search")}
-                className="w-full h-11 pl-10 pr-4 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                className="w-full h-11 pl-10 pr-4 text-sm rounded-xl border border-border-strong bg-canvas-alt text-ink placeholder-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/50 focus-visible:border-neo-400"
               />
             </div>
           </form>
@@ -243,10 +243,10 @@ export function Navbar() {
                     router.pathname.startsWith(link.href) ? "page" : undefined
                   }
                   className={cn(
-                    "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
+                    "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/50",
                     router.pathname.startsWith(link.href)
-                      ? "text-gray-900 bg-gray-100"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+                      ? "text-ink bg-canvas-alt"
+                      : "text-ink-secondary hover:text-ink hover:bg-canvas-alt",
                   )}
                 >
                   {t(link.labelKey)}

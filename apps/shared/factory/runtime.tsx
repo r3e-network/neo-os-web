@@ -165,7 +165,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       }
     }
 
-    ctx.registerAction("generatePlan", async (...args: unknown[]) => {
+    ctx.framework.actions.register("generatePlan", async (...args: unknown[]) => {
       if (isGenerating.get()) return;
       isGenerating.set(true);
       try {
@@ -192,7 +192,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       }
     });
 
-    ctx.registerAction("signCurrentPlan", async () => {
+    ctx.framework.actions.register("signCurrentPlan", async () => {
       const plan = currentPlan.get();
       if (!plan) throw new Error(ctx.t("noPlanToSign"));
       if (!plan.publishable) throw new Error(ctx.t("packageBlocked"));
@@ -227,7 +227,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       }
     });
 
-    ctx.registerAction("executePlan", async () => {
+    ctx.framework.actions.register("executePlan", async () => {
       if (isExecuting.get()) return;
       const plan = currentPlan.get();
       if (!plan) throw new Error(ctx.t("noPlanToSign"));
@@ -280,7 +280,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
     // Background refresh used by the PlayArea when the form's template or
     // network changes before a plan is generated. Never throws — failures
     // surface as the "unverified" presence state, not an error toast.
-    ctx.registerAction("ensureArtifactState", async (...args: unknown[]) => {
+    ctx.framework.actions.register("ensureArtifactState", async (...args: unknown[]) => {
       const input = (args[0] || {}) as { templateId?: string; network?: string; scriptHash?: string };
       const network: FactoryNetwork = input.network === "neo-n3-mainnet" ? "neo-n3-mainnet" : "neo-n3-testnet";
       const templateId = String(input.templateId ?? "");
@@ -288,7 +288,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       await resolveArtifactPresence(network, templateId, String(input.scriptHash ?? ""));
     });
 
-    ctx.registerAction("refreshDeployments", async (...args: unknown[]) => {
+    ctx.framework.actions.register("refreshDeployments", async (...args: unknown[]) => {
       const input = (args[0] || {}) as { network?: string };
       const network: FactoryNetwork = input.network === "neo-n3-mainnet"
         ? "neo-n3-mainnet"

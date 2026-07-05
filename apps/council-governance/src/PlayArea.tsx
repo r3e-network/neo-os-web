@@ -1,1135 +1,635 @@
-import { useEffect, useRef, useState } from "react";
+/**
+ * PlayArea.tsx -- Council Governance proposal cockpit
+ *
+ * The proposal is the primary surface: inspect quorum, choose for/against, and
+ * send one wallet-backed vote. Drafting on the stage is a compact council
+ * motion card; proposal type/policy controls stay in the drawer so the first
+ * screen does not read like a questionnaire.
+ */
+import { useMemo, useState } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import {
   CheckCircle2,
-  ChevronRight,
   Clock3,
-  FileCheck2,
+  FileText,
   Landmark,
-  PencilLine,
+  PlayCircle,
+  RefreshCw,
   ScrollText,
+  Send,
+  ShieldCheck,
   UsersRound,
-  X,
+  Vote,
+  XCircle,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import {
+  OpenUiNotice,
+  OpenUiPanel,
+  OpenUiProvider,
+  OpenUiSegmented,
+  OpenUiTextArea,
+  OpenUiTextField,
+  PlayStage,
+} from "@shared/components-react/v2";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import { ownerMatchesAddress } from "@shared/utils/neo";
+import type { ObservableState } from "@shared/react/context";
+import type { Proposal, VoteChoice } from "./composables/useGovernance";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
+  state: ObservableState;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  retryLoad: () => Promise<void>;
 }
 
-interface Proposal {
-  id: number;
-  externalId?: string;
-  source?: "contract" | "neo-community";
-  type: number;
-  title: string;
-  description: string;
-  statusKey:
-    | "active"
-    | "passed"
-    | "rejected"
-    | "revoked"
-    | "expired"
-    | "executed"
-    | "pending";
-  statusString?: string;
-  yesVotes: number;
-  noVotes: number;
-  totalVotes: number;
-  quorumRequired: number;
-  quorumReached: boolean;
-  creator: string;
-  creatorDisplay?: string;
-  createTime: number;
-  expiryTime: number;
-  policyMethod?: string;
-  policyValue?: string;
-}
+type DraftType = "text" | "policy";
+type FloorMode = "review" | "draft";
+type DrawerMode = "draft" | "active" | "history";
 
 const DURATION_OPTIONS = [
-  { labelKey: "duration3Days", value: 3 * 24 * 60 * 60 * 1000 },
-  { labelKey: "duration7Days", value: 7 * 24 * 60 * 60 * 1000 },
-  { labelKey: "duration14Days", value: 14 * 24 * 60 * 60 * 1000 },
+  { labelKey: "duration3Days", days: 3 },
+  { labelKey: "duration7Days", days: 7 },
+  { labelKey: "duration14Days", days: 14 },
 ];
 
 const POLICY_METHODS = [
-  { key: "FeePerByte", labelKey: "methodFeePerByte" },
-  { key: "ExecFeeFactor", labelKey: "methodExecFeeFactor" },
-  { key: "StoragePrice", labelKey: "methodStoragePrice" },
-  { key: "MaxBlockSize", labelKey: "methodMaxBlockSize" },
-  { key: "MaxTransactionsPerBlock", labelKey: "methodMaxTransactions" },
-  { key: "MaxSystemFee", labelKey: "methodMaxSystemFee" },
+  { key: "setFeePerByte", labelKey: "methodFeePerByte" },
+  { key: "setExecFeeFactor", labelKey: "methodExecFeeFactor" },
+  { key: "setStoragePrice", labelKey: "methodStoragePrice" },
+  { key: "setMaxBlockSize", labelKey: "methodMaxBlockSize" },
+  { key: "setMaxTransactionsPerBlock", labelKey: "methodMaxTransactions" },
+  { key: "setMaxSystemFee", labelKey: "methodMaxSystemFee" },
 ];
 
-const DEFAULT_POLICY_METHOD = POLICY_METHODS[0]?.key ?? "FeePerByte";
-const DEFAULT_DURATION_MS =
-  DURATION_OPTIONS[1]?.value ?? 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_POLICY_METHOD = "setFeePerByte";
+const EMPTY_PROPOSALS: Proposal[] = [];
+const COUNCIL_CHAMBER_IMAGE = "./council-chamber.webp";
 
-// Neo's council is the top-21 candidates. Used as the quorum denominator when
-// the contract returns no explicit quorumRequired so the pass bar stays legible.
-const COUNCIL_SIZE = 21;
-
-const TAB_ICONS: Record<"active" | "create" | "history", JSX.Element> = {
-  active: <Landmark size={15} />,
-  create: <PencilLine size={15} />,
-  history: <ScrollText size={15} />,
-};
-
-function shortAddress(value?: string) {
-  if (!value) return "—";
-  if (value.length <= 14) return value;
-  return `${value.slice(0, 8)}…${value.slice(-6)}`;
+function formatTime(value: number | undefined, fallback: string): string {
+  if (!value) return fallback;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(value);
+  } catch {
+    return fallback;
+  }
 }
 
-function formatDate(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+function statusKey(proposal: Proposal | null): string {
+  return proposal?.statusKey ?? "active";
 }
 
-// Voting is time-sensitive: flag an active window closing within 24h so members
-// see urgency at a glance. Read-only / display-only — no logic depends on it.
-const ENDING_SOON_MS = 24 * 60 * 60 * 1000;
-function isEndingSoon(proposal: Proposal): boolean {
-  if (proposal.statusKey !== "active") return false;
-  if (!Number.isFinite(proposal.expiryTime) || proposal.expiryTime <= 0)
-    return false;
-  const remaining = proposal.expiryTime - Date.now();
-  return remaining > 0 && remaining <= ENDING_SOON_MS;
+function statusLabel(t: PlayAreaProps["t"], proposal: Proposal | null): string {
+  return t(statusKey(proposal));
 }
 
-// The quorum denominator. When the contract returns no explicit quorumRequired
-// (0/empty), fall back to the known council size so the pass bar reads as
-// "X/21" instead of "X/—". Returns the value and whether it's the fallback.
-function quorumDenominator(proposal: Proposal): {
-  value: number;
-  isFallback: boolean;
-} {
-  if (proposal.quorumRequired > 0)
-    return { value: proposal.quorumRequired, isFallback: false };
-  // When the contract reports no explicit quorum we fall back to the council
-  // size, but never let the denominator read below the actual vote count — an
-  // unbounded tally would otherwise render a nonsensical "30/21".
-  return {
-    value: Math.max(COUNCIL_SIZE, proposal.totalVotes),
-    isFallback: true,
-  };
+function passNeed(proposal: Proposal | null): { needed: number; total: number } {
+  const total = Math.max(Number(proposal?.quorumRequired || 0), 21);
+  return { needed: Math.floor(total / 2) + 1, total };
 }
 
-// A proposal passes on a strict majority of the council seats voting For — the
-// same majority the contract uses for quorum (>= half + 1 of the denominator).
-// This only LABELS the existing threshold; it changes no vote math.
-function passThreshold(proposal: Proposal): number {
-  return Math.floor(quorumDenominator(proposal).value / 2) + 1;
+function percent(value: number, total: number): number {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
 }
 
-// Vote-bar geometry. The For and Against segments are sized against the council
-// denominator (not just cast votes) so the pass-line tick stays at a fixed,
-// readable position and a split vote reads as for / against / undecided rather
-// than "red = failing".
-function voteBarGeometry(proposal: Proposal) {
-  const denominator = Math.max(quorumDenominator(proposal).value, 1);
-  const forPct = Math.min(100, (proposal.yesVotes / denominator) * 100);
-  const againstPct = Math.min(
-    100 - forPct,
-    (proposal.noVotes / denominator) * 100,
-  );
-  const thresholdPct = Math.min(
-    100,
-    (passThreshold(proposal) / denominator) * 100,
-  );
-  return { forPct, againstPct, thresholdPct };
-}
-
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  retryLoad,
-}: PlayAreaProps) {
-  const { str, bool, num, val } = useStateBindings(state);
-
-  const isLoading = bool("isLoading");
-  const isVoting = bool("isVoting");
-  const isCreating = bool("isCreating");
-  const isCandidate = bool("isCandidate");
-  const candidateLoaded = bool("candidateLoaded");
-  const walletAddress = str("address");
-  const totalProposals = num("totalProposals");
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+  const { bool, num, str, val } = useStateBindings(state);
+  const activeProposals = val<Proposal[]>("activeProposals", EMPTY_PROPOSALS) ?? EMPTY_PROPOSALS;
+  const historyProposals = val<Proposal[]>("historyProposals", EMPTY_PROPOSALS) ?? EMPTY_PROPOSALS;
+  const selectedProposal = val<Proposal | null>("selectedProposal", null);
   const activeCount = num("activeCount");
   const historyCount = num("historyCount");
-  const proposals = val<Proposal[]>("proposals", []) ?? [];
-  const activeProposals = val<Proposal[]>("activeProposals", []) ?? [];
-  const historyProposals = val<Proposal[]>("historyProposals", []) ?? [];
+  const isVoting = bool("isVoting");
+  const isCreating = bool("isCreating");
+  const isLoading = bool("isLoading");
+  const isCandidate = bool("isCandidate");
+  const candidateLoaded = bool("candidateLoaded");
+  const votingPower = str("votingPower", "0");
+  const address = str("address", "");
   const hasVotedMap = val<Record<number, boolean>>("hasVotedMap", {}) ?? {};
 
-  // The board settles into an empty/connect state — the skeleton is shown ONLY
-  // during the very first read, never as a terminal state. Once that first read
-  // resolves (with or without data, with or without a wallet), the empty
-  // archetype state with its visible primary action takes over so a viewer can
-  // always tell "no proposals yet" from "still loading".
-  const hasResolvedRef = useRef(false);
-  if (!isLoading) hasResolvedRef.current = true;
-  // Display-only safety net: if the first read is still in flight after a short
-  // window (e.g. no reachable RPC in a standalone preview), settle the board to
-  // its empty/connect state instead of holding the skeleton indefinitely. This
-  // never mutates load state or dispatch — it only stops the skeleton from being
-  // the terminal impression.
-  const [settleTimedOut, setSettleTimedOut] = useState(false);
-  useEffect(() => {
-    if (!isLoading || hasResolvedRef.current) return;
-    const timer = window.setTimeout(() => setSettleTimedOut(true), 2500);
-    return () => window.clearTimeout(timer);
-  }, [isLoading]);
-  const isFirstLoad = isLoading && !hasResolvedRef.current && !settleTimedOut;
-
-  const [tab, setTab] = useState<"active" | "create" | "history">("active");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [newTitle, setNewTitle] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [proposalType, setProposalType] = useState("0");
+  const [voteChoice, setVoteChoice] = useState<VoteChoice>("for");
+  const [draftType, setDraftType] = useState<DraftType>("text");
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftDescription, setDraftDescription] = useState("");
+  const [draftDurationDays, setDraftDurationDays] = useState(7);
   const [policyMethod, setPolicyMethod] = useState(DEFAULT_POLICY_METHOD);
   const [policyValue, setPolicyValue] = useState("");
-  const [duration, setDuration] = useState(String(DEFAULT_DURATION_MS));
 
-  const selectedProposal =
-    proposals.find((proposal) => proposal.id === selectedId) ?? null;
-  const visibleProposals =
-    tab === "history" ? historyProposals : activeProposals;
-  const canWrite = Boolean(walletAddress && isCandidate);
-  const showPolicyFields = proposalType === "1";
-  const selectedDurationLabel = t(
-    DURATION_OPTIONS.find((option) => String(option.value) === duration)
-      ?.labelKey ?? "duration7Days",
-  );
-  const selectedPolicyMethodLabel = t(
-    POLICY_METHODS.find((method) => method.key === policyMethod)?.labelKey ??
-      "methodFeePerByte",
-  );
-  const draftTitle = newTitle.trim() || t("proposalDraftEmpty");
-  const draftDescription = newDescription.trim() || t("descPlaceholder");
-  const hasBrief = Boolean(newTitle.trim() && newDescription.trim());
-  const hasPolicyDetails =
-    !showPolicyFields || Boolean(policyMethod && policyValue.trim());
-  const canSubmitProposal = canWrite && hasBrief && hasPolicyDetails;
-  const submitHint = !walletAddress
-    ? t("connectWalletCreate")
-    : candidateLoaded && !isCandidate
-      ? t("notCandidateCreate")
-      : !hasBrief
-        ? t("fillAllFields")
-        : !hasPolicyDetails
-          ? t("policyFieldsRequired")
-          : t("eligibleToVote");
-  const proposalTypeLabel = showPolicyFields ? t("policyType") : t("textType");
-  const proposalTypeHelp = showPolicyFields
-    ? t("policyProposalScope")
+  const proposal = selectedProposal ?? activeProposals[0] ?? historyProposals[0] ?? null;
+  const [floorMode, setFloorMode] = useState<FloorMode>(proposal ? "review" : "draft");
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>(proposal ? "active" : "draft");
+  const stageMode: FloorMode = proposal ? floorMode : "draft";
+  const proposalActive = proposal?.statusKey === "active";
+  const proposalExternal = proposal?.source === "neo-community";
+  const alreadyVoted = proposal ? Boolean(hasVotedMap[proposal.id]) : false;
+  const canVote = Boolean(proposal && proposalActive && !proposalExternal && !alreadyVoted && !isVoting);
+  const draftReady =
+    draftTitle.trim().length > 0 &&
+    draftDescription.trim().length > 0 &&
+    (draftType === "text" || (policyMethod.trim().length > 0 && policyValue.trim().length > 0));
+  const policyMethodLabel = t(POLICY_METHODS.find((method) => method.key === policyMethod)?.labelKey ?? "policyMethod");
+  const draftDurationLabel = t(DURATION_OPTIONS.find((option) => option.days === draftDurationDays)?.labelKey ?? "duration7Days");
+  const draftTitlePreview = draftTitle.trim() || t("proposalDraftEmpty");
+  const draftDescriptionPreview = draftDescription.trim() || t("proposalDescPlaceholder");
+  const draftScopePreview = draftType === "policy"
+    ? policyValue.trim()
+      ? `${policyMethodLabel} · ${policyValue.trim()}`
+      : t("needsPolicyDetails")
     : t("textProposalScope");
-  const draftReadinessLabel = canSubmitProposal
-    ? t("readyToSubmit")
-    : !hasBrief
-      ? t("needsBrief")
-      : !hasPolicyDetails
-        ? t("needsPolicyDetails")
-        : t("needsCouncilEligibility");
-  const floorStageState = isCreating
-    ? "publishing"
-    : canSubmitProposal
-      ? "ready"
-      : hasBrief || showPolicyFields || policyValue.trim()
-        ? "draft"
-        : "idle";
-  const floorStageTitle =
-    floorStageState === "publishing"
-      ? t("floorStagePublishingTitle")
-      : floorStageState === "ready"
-        ? t("floorStageReadyTitle")
-        : floorStageState === "draft"
-          ? t("floorStageDraftTitle")
-          : t("floorStageIdleTitle");
-  const floorStageHint =
-    floorStageState === "publishing"
-      ? t("floorStagePublishingHint")
-      : floorStageState === "ready"
-        ? t("floorStageReadyHint")
-        : floorStageState === "draft"
-          ? t("floorStageDraftHint")
-          : t("floorStageIdleHint");
-  const floorSeatLabel = canWrite
-    ? t("floorSeatReady")
-    : walletAddress
-      ? t("floorSeatReadOnly")
-      : t("floorSeatConnect");
-  const floorPolicyLabel = showPolicyFields
-    ? hasPolicyDetails
-      ? t("floorPolicyReady")
-      : t("floorPolicyMissing")
-    : t("floorPolicyText");
+  const passLine = passNeed(proposal);
+  const yesVotes = Number(proposal?.yesVotes ?? 0);
+  const noVotes = Number(proposal?.noVotes ?? 0);
+  const totalVotes = Math.max(Number(proposal?.totalVotes ?? yesVotes + noVotes), yesVotes + noVotes, 1);
+  const yesPercent = percent(yesVotes, totalVotes);
+  const noPercent = percent(noVotes, totalVotes);
+  const passPercent = percent(passLine.needed, passLine.total);
+  const expiry = formatTime(proposal?.expiryTime, t("votingEnds"));
+  const voteReadiness = !address
+    ? t("connectWallet")
+    : candidateLoaded && !isCandidate
+      ? t("notCandidate")
+      : proposalExternal
+        ? t("externalProposalReadOnly")
+        : alreadyVoted
+          ? t("alreadyVoted")
+          : proposalActive
+            ? t("castYourVote")
+            : t("proposalNotActive");
 
-  const statusLabel = (proposal: Proposal) => {
-    const key = proposal.statusKey || "pending";
-    return t(key);
-  };
-
-  // User-initiated refresh from the settled empty state. Uses a local flag so
-  // the affordance shows a brief, self-resolving spinner on click and otherwise
-  // stays a clearly-labeled "Refresh" button — never a perpetual loader tied to
-  // an in-flight read that may not resolve in a standalone preview.
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const handleRefresh = async () => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      await retryLoad();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const openDetails = async (proposal: Proposal) => {
-    setSelectedId(proposal.id);
-    await dispatch("selectProposal", proposal);
-  };
-
-  const handleVote = async (proposalId: number, vote: "for" | "against") => {
-    await dispatch("vote", { proposalId, vote });
-  };
-
-  const handleFinalize = async (proposalId: number) => {
-    await dispatch("finalizeProposal", proposalId);
-  };
-
-  // Execute a finalized, passed POLICY proposal — applies the on-chain
-  // PolicyContract change (a distinct step from finalize).
-  const handleExecute = async (proposalId: number) => {
-    await dispatch("executeProposal", proposalId);
-  };
-
-  // Revoke an own, still-active proposal (creator-gated below).
-  const handleRevoke = async (proposalId: number) => {
-    await dispatch("revokeProposal", proposalId);
-  };
-
-  // A proposal is the connected wallet's own when the creator script hash
-  // matches — compared via ownerMatchesAddress so the contract's LE hash lines
-  // up with the wallet address. neo-community mirror entries are never ownable.
-  const isOwnProposal = (proposal: Proposal): boolean =>
-    proposal.source !== "neo-community" &&
-    ownerMatchesAddress(proposal.creator, walletAddress);
-
-  const handleCreateProposal = async () => {
-    if (isCreating || !canSubmitProposal) return;
-    // dispatch forwards the action payload at runtime (typed Promise<void>);
-    // the createProposal handler resolves to a truthy tx on success and
-    // undefined on failure (validation throw, network/gas error). Only clear
-    // the form and switch tabs on confirmed success so a failed submit keeps
-    // the typed input instead of wiping it.
-    const created: unknown = await dispatch("createProposal", {
-      type: Number(proposalType),
-      title: newTitle,
-      description: newDescription,
-      policyMethod: showPolicyFields ? policyMethod : undefined,
-      policyValue: showPolicyFields ? policyValue : undefined,
-      duration: Number(duration),
+  const handleVote = () => {
+    if (!proposal || isVoting) return;
+    void dispatch("vote", {
+      proposalId: proposal.id,
+      vote: voteChoice,
     });
-    if (!created) return;
-    setNewTitle("");
-    setNewDescription("");
-    setProposalType("0");
-    setPolicyValue("");
-    setTab("active");
   };
 
-  return (
-    <div className="council-play-area">
-      <section className="council-hero">
-        <div className="council-hero-main">
-          <div className="council-hero-copy">
-            <div className="council-hero-mark">
-              <span className="council-hero-badge" aria-hidden="true">
-                <Landmark size={24} />
-              </span>
-              <p className="council-eyebrow">{t("liveGovernance")}</p>
-            </div>
-            <h2>{t("title")}</h2>
-            <p className="council-hero-sub">{t("governanceSummary")}</p>
-            <div className="council-hero-actions">
-              <NeoButton
-                variant="ghost"
-                size="sm"
-                className="council-refresh"
-                loading={isRefreshing}
-                disabled={isRefreshing}
-                onClick={handleRefresh}
-              >
-                {t("refresh")}
-              </NeoButton>
-            </div>
-          </div>
+  const handleCreate = () => {
+    if (!draftReady || isCreating) return;
+    void dispatch("createProposal", {
+      type: draftType === "policy" ? 1 : 0,
+      title: draftTitle,
+      description: draftDescription,
+      policyMethod: draftType === "policy" ? policyMethod : undefined,
+      policyValue: draftType === "policy" ? policyValue : undefined,
+      duration: draftDurationDays * 24 * 60 * 60 * 1000,
+    });
+  };
 
-          <figure className="council-hero-visual">
-            <img
-              src="./council-chamber.jpg"
-              alt={t("heroImageAlt")}
-              loading="eager"
-              decoding="sync"
-            />
-            <figcaption className="council-quorum-card">
-              <span>{t("quorumChamber")}</span>
-              <strong>{t("councilOf21")}</strong>
-              <small>{t("quorumRing")}</small>
-            </figcaption>
-          </figure>
-        </div>
+  const sceneTitle = proposal?.title || t("noActiveProposals");
+  const proposalRows = useMemo(
+    () => activeProposals.slice(0, 5),
+    [activeProposals],
+  );
+  const switchFloorMode = (mode: FloorMode) => {
+    setFloorMode(mode);
+    setDrawerMode(mode === "draft" ? "draft" : "active");
+  };
 
-        <div className="council-stats" aria-label={t("governanceStats")}>
-          <div className="council-stat">
-            <span>{totalProposals}</span>
-            <label>{t("totalProposals")}</label>
+  const draftComposer = (surface: "stage" | "drawer") => (
+    <section
+      className={`council-draft council-draft--${surface}`}
+      data-ready={draftReady ? "true" : "false"}
+    >
+      {surface === "stage" && (
+        <header className="council-draft__masthead">
+          <div>
+            <span>{t("proposalDossier")}</span>
+            <strong>{draftReady ? t("readyToSubmit") : t("needsBrief")}</strong>
           </div>
-          <div className="council-stat">
-            <span>{activeCount}</span>
-            <label>{t("activeProposals")}</label>
-          </div>
-          <div className="council-stat">
-            <span>{historyCount}</span>
-            <label>{t("historyProposals")}</label>
-          </div>
-          <div
-            className={`council-stat council-stat--seat council-stat--seat-${
-              !walletAddress || !candidateLoaded
-                ? "off"
-                : isCandidate
-                  ? "ok"
-                  : "read"
-            }`}
+          <em>{draftType === "policy" ? t("policyType") : t("textType")}</em>
+        </header>
+      )}
+      {surface === "drawer" && (
+        <div className="council-draft-type" role="radiogroup" aria-label={t("motionType")}>
+          <button
+            type="button"
+            className={draftType === "text" ? "is-active" : undefined}
+            onClick={() => setDraftType("text")}
+            aria-pressed={draftType === "text"}
           >
-            <span className="council-seat-state">
-              <span className="council-seat-dot" aria-hidden="true" />
-              {!walletAddress || !candidateLoaded
-                ? t("seatNotConnected")
-                : isCandidate
-                  ? t("seatVerified")
-                  : t("seatReadOnly")}
-            </span>
-            <label>{t("councilSeat")}</label>
-            <small className="council-stat-caption">
-              {!walletAddress || !candidateLoaded
-                ? t("seatCaptionConnect")
-                : isCandidate
-                  ? t("seatCaptionVerified")
-                  : t("seatCaptionReadOnly")}
-            </small>
+            <FileText size={16} />
+            <span>{t("textType")}</span>
+            <em>{t("textProposalScope")}</em>
+          </button>
+          <button
+            type="button"
+            className={draftType === "policy" ? "is-active" : undefined}
+            onClick={() => setDraftType("policy")}
+            aria-pressed={draftType === "policy"}
+          >
+            <ShieldCheck size={16} />
+            <span>{t("policyType")}</span>
+            <em>{t("policyProposalScope")}</em>
+          </button>
+        </div>
+      )}
+      {surface === "stage" ? (
+        <div className="council-motion-paper council-motion-paper--stage">
+          <div className="council-motion-paper__title">
+            <span>{t("proposalTitle")}</span>
+            <strong>{draftTitlePreview}</strong>
           </div>
+          <div className="council-motion-paper__brief">
+            <span>{t("proposalBrief")}</span>
+            <p>{draftDescriptionPreview}</p>
+          </div>
+          <div className="council-motion-paper__summary-grid" aria-label={t("proposalDossier")}>
+            <span className="council-motion-paper__summary-card">
+              <FileText size={15} />
+              <em>{t("proposalType")}</em>
+              <strong>{draftType === "policy" ? t("policyType") : t("textType")}</strong>
+            </span>
+            <span className="council-motion-paper__summary-card">
+              <Clock3 size={15} />
+              <em>{t("reviewWindow")}</em>
+              <strong>{draftDurationLabel}</strong>
+            </span>
+            <span className="council-motion-paper__summary-card">
+              <ShieldCheck size={15} />
+              <em>{draftType === "policy" ? t("policyDetails") : t("proposalBrief")}</em>
+              <strong>{draftScopePreview}</strong>
+            </span>
+          </div>
+          <footer className="council-motion-paper__seal">
+            <span>{t("proposalDossierHelp")}</span>
+            <strong>{draftReady ? t("readyToSubmit") : t("needsBrief")}</strong>
+          </footer>
+        </div>
+      ) : (
+        <div className="council-drawer-fields">
+          <OpenUiTextField
+            className="council-drawer__field"
+            label={t("proposalTitle")}
+            value={draftTitle}
+            onChange={(event) => setDraftTitle(event.target.value)}
+            placeholder={t("proposalTitlePlaceholder")}
+          />
+          <OpenUiTextArea
+            className="council-drawer__field council-drawer__field--brief mx2-open-field--compact"
+            label={t("proposalDescription")}
+            value={draftDescription}
+            onChange={(event) => setDraftDescription(event.target.value)}
+            placeholder={t("proposalDescPlaceholder")}
+            rows={3}
+          />
+        </div>
+      )}
+      {surface === "drawer" && draftType === "policy" && (
+        <div className="council-policy-fields" aria-label={t("policyDetails")}>
+          <OpenUiSegmented
+            className="council-drawer__field council-policy-methods"
+            label={t("policyMethod")}
+            value={policyMethod}
+            onChange={(value) => setPolicyMethod(value)}
+            options={POLICY_METHODS.map((method) => ({ value: method.key, label: t(method.labelKey) }))}
+          />
+          <OpenUiTextField
+            className="council-drawer__field council-policy-value"
+            label={t("policyValue")}
+            value={policyValue}
+            onChange={(event) => setPolicyValue(event.target.value)}
+            placeholder={t("policyValuePlaceholder")}
+            inputMode="numeric"
+          />
+        </div>
+      )}
+      {surface === "drawer" && (
+        <div className="council-window-rail">
+          <div>
+            <span>{t("reviewWindow")}</span>
+            <strong>{t("reviewWindowHelp")}</strong>
+          </div>
+          <div className="council-duration-grid">
+            {DURATION_OPTIONS.map((option) => (
+              <button
+                key={option.days}
+                type="button"
+                className={draftDurationDays === option.days ? "is-active" : undefined}
+                onClick={() => setDraftDurationDays(option.days)}
+              >
+                {t(option.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {surface === "drawer" && (
+        <button
+          type="button"
+          className="council-submit-draft"
+          onClick={handleCreate}
+          disabled={!draftReady || isCreating}
+        >
+          <Send size={15} />
+          {isCreating ? t("submittingProposal") : t("submitProposal")}
+        </button>
+      )}
+    </section>
+  );
+
+  const scene = (
+    <div
+      className="council-scene"
+      data-state={isVoting ? "voting" : proposal ? "proposal" : "empty"}
+      data-choice={voteChoice}
+      aria-label={t("floorStageLabel")}
+    >
+      <figure className="council-chamber-visual">
+        <img
+          src={COUNCIL_CHAMBER_IMAGE}
+          alt={t("heroImageAlt")}
+          loading="eager"
+          decoding="async"
+          draggable={false}
+        />
+      </figure>
+
+      <div className="council-quorum">
+        <div
+          className="council-quorum__ring"
+          style={{
+            "--yes": `${yesPercent}%`,
+            "--no": `${noPercent}%`,
+            "--pass": `${passPercent}%`,
+          } as CSSProperties}
+        >
+          <span className="council-quorum__seat council-quorum__seat--one" />
+          <span className="council-quorum__seat council-quorum__seat--two" />
+          <span className="council-quorum__seat council-quorum__seat--three" />
+          <span className="council-quorum__seat council-quorum__seat--four" />
+          <span className="council-quorum__core"><Landmark size={30} /></span>
+        </div>
+        <div className="council-quorum__caption">
+          <span>{t("quorum")}</span>
+          <strong>{yesVotes} {t("for")} / {noVotes} {t("against")}</strong>
+        </div>
+      </div>
+
+      <article className="council-proposal-card">
+        <div className="council-proposal-card__head">
+          <span className="council-proposal-card__icon"><ScrollText size={22} /></span>
+          <div>
+            <span>{proposal ? `#${proposal.id}` : t("proposalDossier")}</span>
+            <strong>{sceneTitle}</strong>
+          </div>
+        </div>
+        <p>{proposal?.description || t("emptyProposalHelp")}</p>
+        <div className="council-proposal-card__meta">
+          <span><Clock3 size={14} /> {expiry}</span>
+          <span><UsersRound size={14} /> {t("passThreshold", { needed: passLine.needed, total: passLine.total })}</span>
+          <span><ShieldCheck size={14} /> {statusLabel(t, proposal)}</span>
+        </div>
+      </article>
+    </div>
+  );
+
+  const floorTabs = (
+    <div className="council-floor-tabs" role="tablist" aria-label={t("proposalTabs")}>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={stageMode === "review"}
+        className={stageMode === "review" ? "is-active" : undefined}
+        onClick={() => switchFloorMode("review")}
+        disabled={!proposal}
+      >
+        <Vote size={16} />
+        <span>{t("reviewFloor")}</span>
+        <em>{proposal ? statusLabel(t, proposal) : t("noActiveProposals")}</em>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={stageMode === "draft"}
+        className={stageMode === "draft" ? "is-active" : undefined}
+        onClick={() => switchFloorMode("draft")}
+      >
+        <Send size={16} />
+        <span>{t("draftFloor")}</span>
+        <em>{draftReady ? t("readyToSubmit") : t("needsBrief")}</em>
+      </button>
+    </div>
+  );
+
+  const voteControls = proposal ? (
+    <div className="council-ticket council-ticket--vote">
+      <section className="council-ticket__decision">
+        <div className="council-ticket__label">
+          <span>{t("castYourVote")}</span>
+          <strong>{votingPower} {t("tokenNeo")}</strong>
+        </div>
+        <div className="council-choice" role="radiogroup" aria-label={t("castYourVote")}>
+          <button
+            type="button"
+            className={voteChoice === "for" ? "is-active" : undefined}
+            onClick={() => setVoteChoice("for")}
+            disabled={isVoting}
+            aria-pressed={voteChoice === "for"}
+          >
+            <CheckCircle2 size={18} />
+            {t("voteFor")}
+          </button>
+          <button
+            type="button"
+            className={voteChoice === "against" ? "is-active" : undefined}
+            onClick={() => setVoteChoice("against")}
+            disabled={isVoting}
+            aria-pressed={voteChoice === "against"}
+          >
+            <XCircle size={18} />
+            {t("voteAgainst")}
+          </button>
         </div>
       </section>
 
-      <div className={`council-access ${canWrite ? "council-access--ok" : ""}`}>
-        <span className="council-access-dot" />
-        <span>
-          {!walletAddress
-            ? t("connectWalletReadOnly")
-            : candidateLoaded && !isCandidate
-              ? t("readOnlyReason")
-              : t("eligibleToVote")}
-        </span>
-        {walletAddress && <strong>{shortAddress(walletAddress)}</strong>}
-      </div>
+      <section className="council-ticket__proposal">
+        <div className="council-ticket__label">
+          <span>{t("activeProposals")}</span>
+          <strong>{activeCount}</strong>
+        </div>
+        {proposalRows.length > 0 ? (
+          <div className="council-proposal-list">
+            {proposalRows.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={proposal?.id === item.id ? "is-active" : undefined}
+                onClick={() => void dispatch("selectProposal", item)}
+                disabled={isVoting}
+              >
+                <span>#{item.id}</span>
+                <strong>{item.title || t("proposalDraftEmpty")}</strong>
+                <em>{item.yesVotes} / {item.noVotes}</em>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="council-empty">{t("noActiveProposals")}</p>
+        )}
+      </section>
 
-      <div
-        className="council-tabs"
-        role="tablist"
-        aria-label={t("proposalTabs")}
-      >
-        {(["active", "create", "history"] as const).map((entry) => (
+      <div className="council-ticket__review">
+        <span><Vote size={15} /> {voteReadiness}</span>
+        <span><FileText size={15} /> {proposal?.source === "neo-community" ? t("externalProposalReadOnly") : t("majorityPreview")}</span>
+        <span><ShieldCheck size={15} /> {isCandidate ? t("eligibleToVote") : t("connectWalletReadOnly")}</span>
+      </div>
+    </div>
+  ) : (
+    <OpenUiNotice className="council-empty council-empty--floor" icon={<Vote size={17} />} title={t("noActiveProposals")}>
+      {t("emptyProposalHelp")}
+    </OpenUiNotice>
+  );
+
+  const draftControls = (
+    <div className="council-ticket council-ticket--draft">
+      {draftComposer("stage")}
+      <div className="council-ticket__review">
+        <span><Send size={15} /> {draftReady ? t("readyToSubmit") : t("draftReadinessHelp")}</span>
+        <span><FileText size={15} /> {t("textProposalScope")}</span>
+        <span><ShieldCheck size={15} /> {isCandidate ? t("eligibleToVote") : t("connectWalletReadOnly")}</span>
+      </div>
+    </div>
+  );
+
+  const stageScene = (
+    <div className="council-workbench" data-mode={stageMode}>
+      {floorTabs}
+      <div className="council-workbench__body">
+        {stageMode === "review" ? <>{scene}{voteControls}</> : draftControls}
+      </div>
+    </div>
+  );
+
+  const proposalList = (title: string, rows: Proposal[], empty: string, icon: ReactElement) => (
+    <OpenUiPanel className="council-drawer__panel" icon={icon} title={title} subtitle={rows.length > 0 ? String(rows.length) : empty}>
+      {rows.length > 0 ? (
+        <ul className="council-history">
+          {rows.slice(0, 10).map((item) => (
+            <li key={`${title}-${item.id}`}>
+              <button type="button" onClick={() => void dispatch("selectProposal", item)}>
+                <span>#{item.id}</span>
+                <strong>{item.title || t("proposalDraftEmpty")}</strong>
+                <em>{statusLabel(t, item)}</em>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <OpenUiNotice className="council-empty" icon={icon} title={title}>
+          {empty}
+        </OpenUiNotice>
+      )}
+    </OpenUiPanel>
+  );
+
+  const drawerPanel = (() => {
+    if (drawerMode === "draft") {
+      return (
+        <OpenUiPanel
+          className="council-drawer__panel council-drawer__panel--draft"
+          icon={<Send size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("proposalDossier")}
+          subtitle={draftReady ? t("readyToSubmit") : t("needsBrief")}
+        >
+          {draftComposer("drawer")}
+        </OpenUiPanel>
+      );
+    }
+    if (drawerMode === "history") {
+      return proposalList(t("historyProposals"), historyProposals, t("noHistory"), <Clock3 size={17} strokeWidth={2.35} aria-hidden="true" />);
+    }
+    return proposalList(t("activeProposals"), activeProposals, t("noActiveProposals"), <Vote size={17} strokeWidth={2.35} aria-hidden="true" />);
+  })();
+
+  const drawer = (
+    <div className="council-drawer">
+      <div className="council-drawer-tabs" role="tablist" aria-label={t("proposalTabs")}>
+        {[
+          { mode: "draft" as const, label: t("proposalDossier"), meta: draftReady ? t("readyToSubmit") : t("needsBrief"), icon: <Send size={15} /> },
+          { mode: "active" as const, label: t("activeProposals"), meta: `${activeCount} ${t("active")}`, icon: <Vote size={15} /> },
+          { mode: "history" as const, label: t("historyProposals"), meta: `${historyCount} ${t("history")}`, icon: <Clock3 size={15} /> },
+        ].map((item) => (
           <button
-            key={entry}
+            key={item.mode}
             type="button"
             role="tab"
-            aria-selected={tab === entry}
-            className={tab === entry ? "is-active" : ""}
-            onClick={() => setTab(entry)}
+            aria-selected={drawerMode === item.mode}
+            className={drawerMode === item.mode ? "is-active" : undefined}
+            onClick={() => setDrawerMode(item.mode)}
           >
-            <span className="council-tab-icon" aria-hidden="true">
-              {TAB_ICONS[entry]}
-            </span>
-            <span className="council-tab-label">
-              {entry === "active" && t("active")}
-              {entry === "create" && t("createProposal")}
-              {entry === "history" && t("history")}
-            </span>
+            {item.icon}
+            <span>{item.label}</span>
+            <em>{item.meta}</em>
           </button>
         ))}
       </div>
-
-      {tab === "create" ? (
-        <NeoCard variant="erobo" className="council-create-panel">
-          <div className="council-panel-heading">
-            <h3>{t("createProposal")}</h3>
-            <p>{t("createProposalHelp")}</p>
-          </div>
-
-          <div className="council-create-dossier">
-            <figure className="council-dossier-image">
-              <img
-                src="./council-chamber.jpg"
-                alt={t("dossierImageAlt")}
-                loading="lazy"
-                decoding="async"
-              />
-              <figcaption>
-                <span>{t("proposalDossier")}</span>
-                <strong>{proposalTypeLabel}</strong>
-              </figcaption>
-            </figure>
-
-            <section
-              className="council-dossier-board"
-              aria-label={t("proposalDossier")}
-            >
-              <div className="council-dossier-board__head">
-                <span>{t("proposalDossier")}</span>
-                <strong>{draftReadinessLabel}</strong>
-              </div>
-              <p>{t("proposalDossierHelp")}</p>
-
-              <div className="council-dossier-grid">
-                <span>
-                  {showPolicyFields ? (
-                    <Landmark aria-hidden="true" />
-                  ) : (
-                    <ScrollText aria-hidden="true" />
-                  )}
-                  <small>{t("motionType")}</small>
-                  <strong>{proposalTypeLabel}</strong>
-                  <em>{proposalTypeHelp}</em>
-                </span>
-                <span>
-                  <Clock3 aria-hidden="true" />
-                  <small>{t("reviewWindow")}</small>
-                  <strong>{selectedDurationLabel}</strong>
-                  <em>{t("reviewWindowHelp")}</em>
-                </span>
-                <span>
-                  <FileCheck2 aria-hidden="true" />
-                  <small>{t("draftReadiness")}</small>
-                  <strong>{draftReadinessLabel}</strong>
-                  <em>{t("draftReadinessHelp")}</em>
-                </span>
-                <span>
-                  <UsersRound aria-hidden="true" />
-                  <small>{t("quorum")}</small>
-                  <strong>{t("councilOf21")}</strong>
-                  <em>{t("majorityPreview")}</em>
-                </span>
-              </div>
-
-              <div className="council-flow" aria-label={t("governanceFlow")}>
-                <span>{t("flowDraft")}</span>
-                <span>{t("flowReview")}</span>
-                <span>{t("flowVote")}</span>
-              </div>
-            </section>
-          </div>
-
-          <section
-            className={`council-floor-stage council-floor-stage--${floorStageState}`}
-            role="region"
-            aria-label={t("floorStageLabel")}
-            aria-live="polite"
-            aria-busy={isCreating || undefined}
-          >
-            <div className="council-floor-stage__copy">
-              <span>{t("floorStageLabel")}</span>
-              <strong>{floorStageTitle}</strong>
-              <p>{floorStageHint}</p>
-            </div>
-            <div
-              className="council-floor-stage__route"
-              aria-label={t("governanceFlow")}
-            >
-              <span className={canWrite ? "is-ready" : ""}>
-                <UsersRound aria-hidden="true" />
-                <small>{t("floorSeat")}</small>
-                <strong>{floorSeatLabel}</strong>
-              </span>
-              <span className={hasBrief ? "is-ready" : ""}>
-                <PencilLine aria-hidden="true" />
-                <small>{t("floorBrief")}</small>
-                <strong>
-                  {hasBrief ? t("floorBriefReady") : t("floorBriefMissing")}
-                </strong>
-              </span>
-              <span className={hasPolicyDetails ? "is-ready" : ""}>
-                <Landmark aria-hidden="true" />
-                <small>{t("floorPolicy")}</small>
-                <strong>{floorPolicyLabel}</strong>
-              </span>
-              <span className={canSubmitProposal ? "is-ready" : ""}>
-                <Clock3 aria-hidden="true" />
-                <small>{t("floorWindow")}</small>
-                <strong>{selectedDurationLabel}</strong>
-              </span>
-            </div>
-            <div className="council-floor-stage__packet" aria-hidden="true">
-              <span />
-              <strong>{t("floorPacket")}</strong>
-            </div>
-          </section>
-
-          <div className="council-create-workbench">
-            <div className="council-create-controls">
-              <section
-                className="council-create-section"
-                aria-label={t("proposalType")}
-              >
-                <span className="council-section-label">
-                  {t("proposalType")}
-                </span>
-                <div
-                  className="council-choice-grid council-choice-grid--type"
-                  role="radiogroup"
-                >
-                  {[
-                    {
-                      value: "0",
-                      label: t("textType"),
-                      description: t("textProposalScope"),
-                    },
-                    {
-                      value: "1",
-                      label: t("policyType"),
-                      description: t("policyProposalScope"),
-                    },
-                  ].map((option) => {
-                    const active = proposalType === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        className={`council-choice-button${active ? " is-selected" : ""}`}
-                        onClick={() => setProposalType(option.value)}
-                      >
-                        <span
-                          className="council-choice-button__icon"
-                          aria-hidden="true"
-                        >
-                          {option.value === "1" ? (
-                            <Landmark size={17} />
-                          ) : (
-                            <ScrollText size={17} />
-                          )}
-                        </span>
-                        <span className="council-choice-button__copy">
-                          <strong>{option.label}</strong>
-                          <span>{option.description}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section
-                className="council-create-section"
-                aria-label={t("duration")}
-              >
-                <span className="council-section-label">{t("duration")}</span>
-                <div className="council-duration-row" role="radiogroup">
-                  {DURATION_OPTIONS.map((option) => {
-                    const active = String(option.value) === duration;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        className={`council-duration-chip${active ? " is-selected" : ""}`}
-                        onClick={() => setDuration(String(option.value))}
-                      >
-                        {t(option.labelKey)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section
-                className="council-proposal-editor"
-                aria-label={t("proposalBrief")}
-              >
-                <NeoInput
-                  value={newTitle}
-                  placeholder={t("titlePlaceholder")}
-                  label={t("proposalTitle")}
-                  onChange={setNewTitle}
-                />
-                <NeoInput
-                  type="textarea"
-                  value={newDescription}
-                  placeholder={t("descPlaceholder")}
-                  label={t("description")}
-                  onChange={setNewDescription}
-                />
-              </section>
-
-              {showPolicyFields && (
-                <section
-                  className="council-policy-group"
-                  aria-label={t("policyDetails")}
-                >
-                  <div className="council-policy-head">
-                    <span className="council-section-label">
-                      {t("policyDetails")}
-                    </span>
-                    <p>{t("policyMethodHint")}</p>
-                  </div>
-                  <div
-                    className="council-policy-methods"
-                    role="radiogroup"
-                    aria-label={t("policyMethod")}
-                  >
-                    {POLICY_METHODS.map((method) => {
-                      const active = policyMethod === method.key;
-                      return (
-                        <button
-                          key={method.key}
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          className={`council-policy-method${active ? " is-selected" : ""}`}
-                          onClick={() => setPolicyMethod(method.key)}
-                        >
-                          {t(method.labelKey)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <NeoInput
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={policyValue}
-                    placeholder={t("policyValuePlaceholder")}
-                    label={t("policyValue")}
-                    onChange={setPolicyValue}
-                  />
-                </section>
-              )}
-            </div>
-
-            <section
-              className="council-draft-preview"
-              aria-label={t("proposalDraft")}
-            >
-              <div className="council-draft-preview__rail" aria-hidden="true">
-                <span>{t("proposalDraft")}</span>
-              </div>
-              <div className="council-draft-preview__body">
-                <div className="council-draft-preview__meta">
-                  <span>
-                    {showPolicyFields ? t("policyType") : t("textType")}
-                  </span>
-                  <span>{selectedDurationLabel}</span>
-                </div>
-                <strong>{draftTitle}</strong>
-                <p>{draftDescription}</p>
-                {showPolicyFields && (
-                  <div className="council-draft-policy">
-                    <span>{selectedPolicyMethodLabel}</span>
-                    <strong>
-                      {policyValue || t("policyValuePlaceholder")}
-                    </strong>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
-
-          <div className="council-create-submit">
-            <p
-              className={`council-submit-hint${
-                canSubmitProposal ? " is-ready" : ""
-              }`}
-            >
-              {submitHint}
-            </p>
-            <NeoButton
-              variant="primary"
-              size="md"
-              block
-              className={`council-submit-button${isCreating ? " council-submit-button--publishing" : ""}`}
-              disabled={isCreating || !canSubmitProposal}
-              onClick={handleCreateProposal}
-            >
-              {isCreating && (
-                <span
-                  className="council-submit-button__spinner"
-                  aria-hidden="true"
-                />
-              )}
-              {isCreating ? t("submittingProposal") : t("submitProposal")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      ) : (
-        <section className="council-board">
-          {isFirstLoad ? (
-            <div
-              className="council-loading"
-              role="status"
-              aria-busy="true"
-              aria-label={t("loadingProposals")}
-            >
-              <div className="council-skeleton" aria-hidden="true">
-                {[0, 1, 2].map((row) => (
-                  <div key={row} className="council-skeleton-row">
-                    <div className="council-skeleton-head">
-                      <span className="council-skeleton-pill" />
-                      <span className="council-skeleton-tag" />
-                    </div>
-                    <span className="council-skeleton-line council-skeleton-line--title" />
-                    <span className="council-skeleton-line" />
-                  </div>
-                ))}
-              </div>
-              <div className="council-loading-note">
-                <span className="council-loading-spinner" aria-hidden="true" />
-                <div className="council-loading-note-text">
-                  <strong>{t("loadingProposals")}</strong>
-                  <span>{t("loadingProposalsHint")}</span>
-                </div>
-              </div>
-            </div>
-          ) : visibleProposals.length === 0 ? (
-            <div className="council-empty">
-              <span className="council-empty-icon" aria-hidden="true">
-                <FileCheck2 size={24} />
-              </span>
-              <h3>
-                {tab === "active" ? t("noActiveProposals") : t("noHistory")}
-              </h3>
-              <p>{t("emptyProposalHelp")}</p>
-              <div className="council-empty-actions">
-                {tab === "active" && (
-                  <NeoButton
-                    variant="primary"
-                    size="md"
-                    onClick={() => setTab("create")}
-                  >
-                    {t("createProposal")}
-                  </NeoButton>
-                )}
-                <NeoButton
-                  variant="ghost"
-                  size="md"
-                  loading={isRefreshing}
-                  disabled={isRefreshing}
-                  onClick={handleRefresh}
-                >
-                  {t("refresh")}
-                </NeoButton>
-              </div>
-            </div>
-          ) : (
-            <div className="council-proposal-list">
-              {visibleProposals.map((proposal) => {
-                const alreadyVoted = Boolean(hasVotedMap[proposal.id]);
-                const isExternalProposal = proposal.source === "neo-community";
-                return (
-                  <article key={proposal.id} className="council-proposal-item">
-                    <div className="council-proposal-top">
-                      <span
-                        className={`council-status-badge council-status--${proposal.statusKey}`}
-                      >
-                        {proposal.statusKey === "active" && (
-                          <CheckCircle2 size={13} aria-hidden="true" />
-                        )}
-                        {statusLabel(proposal)}
-                      </span>
-                      <span className="council-proposal-id">
-                        {proposal.externalId
-                          ? `#${proposal.id} · neo.community`
-                          : `#${proposal.id}`}
-                      </span>
-                      {alreadyVoted && (
-                        <span className="council-voted">
-                          {t("alreadyVotedLabel")}
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="council-proposal-title">{proposal.title}</h3>
-                    <p className="council-proposal-desc">
-                      {proposal.description || t("noDescription")}
-                    </p>
-
-                    <div
-                      className="council-vote-bar"
-                      aria-label={t("voteSplit")}
-                    >
-                      <div className="council-vote-bar-track">
-                        <div
-                          className="council-vote-bar-fill"
-                          style={{
-                            width: `${voteBarGeometry(proposal).forPct}%`,
-                          }}
-                        />
-                        <div
-                          className="council-vote-bar-against"
-                          style={{
-                            width: `${voteBarGeometry(proposal).againstPct}%`,
-                          }}
-                        />
-                        <span
-                          className="council-vote-bar-marker"
-                          style={{
-                            left: `${voteBarGeometry(proposal).thresholdPct}%`,
-                          }}
-                          title={t("passLine")}
-                          aria-hidden="true"
-                        />
-                      </div>
-                      <div className="council-vote-counts">
-                        <span className="council-vote-for">
-                          {proposal.yesVotes} {t("for")}
-                        </span>
-                        <span className="council-vote-against">
-                          {proposal.noVotes} {t("against")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="council-pass-threshold">
-                      <span aria-hidden="true" />
-                      {t("passThreshold", {
-                        needed: passThreshold(proposal),
-                        total: quorumDenominator(proposal).value,
-                      })}
-                    </p>
-
-                    <div className="council-proposal-meta">
-                      <span>
-                        {t("quorum")}: {proposal.totalVotes}/
-                        {quorumDenominator(proposal).value}
-                        {quorumDenominator(proposal).isFallback &&
-                          ` · ${t("councilOf21")}`}
-                      </span>
-                      <span>
-                        {t("creator")}:{" "}
-                        {shortAddress(
-                          proposal.creatorDisplay ?? proposal.creator,
-                        )}
-                      </span>
-                      <span
-                        className={
-                          isEndingSoon(proposal) ? "council-ending-soon" : ""
-                        }
-                      >
-                        {t("votingEnds")}: {formatDate(proposal.expiryTime)}
-                        {isEndingSoon(proposal) && ` · ${t("endingSoon")}`}
-                      </span>
-                    </div>
-
-                    <div className="council-proposal-actions">
-                      <NeoButton
-                        variant="secondary"
-                        size="md"
-                        block
-                        onClick={() => openDetails(proposal)}
-                      >
-                        {t("viewDetails")}
-                      </NeoButton>
-                      {proposal.statusKey === "active" &&
-                        !isExternalProposal && (
-                          <div className="council-vote-actions">
-                            <NeoButton
-                              variant="success"
-                              size="sm"
-                              block
-                              loading={isVoting}
-                              disabled={isVoting || !canWrite || alreadyVoted}
-                              onClick={() => handleVote(proposal.id, "for")}
-                            >
-                              {t("voteFor")}
-                            </NeoButton>
-                            <NeoButton
-                              variant="danger"
-                              size="sm"
-                              block
-                              loading={isVoting}
-                              disabled={isVoting || !canWrite || alreadyVoted}
-                              onClick={() => handleVote(proposal.id, "against")}
-                            >
-                              {t("voteAgainst")}
-                            </NeoButton>
-                          </div>
-                        )}
-                      {proposal.statusKey === "active" &&
-                        isExternalProposal && (
-                          <span className="council-readonly-note">
-                            {t("externalProposalReadOnly")}
-                          </span>
-                        )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      {selectedProposal && (
-        <aside
-          className="council-details-panel"
-          aria-label={t("proposalDetails")}
-        >
-          <div className="council-details-head">
-            <div>
-              <span
-                className={`council-status-badge council-status--${selectedProposal.statusKey}`}
-              >
-                {selectedProposal.statusKey === "active" && (
-                  <CheckCircle2 size={13} aria-hidden="true" />
-                )}
-                {statusLabel(selectedProposal)}
-              </span>
-              <h3>{selectedProposal.title}</h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedId(null)}
-              aria-label={t("close")}
-            >
-              <X size={16} aria-hidden="true" />
-            </button>
-          </div>
-          <p>{selectedProposal.description || t("noDescription")}</p>
-          <dl className="council-details-grid">
-            <div>
-              <dt>{t("proposalType")}</dt>
-              <dd>
-                {selectedProposal.type === 1 ? t("policyType") : t("textType")}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("votingEnds")}</dt>
-              <dd>{formatDate(selectedProposal.expiryTime)}</dd>
-            </div>
-            <div>
-              <dt>{t("proposalCreated")}</dt>
-              <dd>{formatDate(selectedProposal.createTime)}</dd>
-            </div>
-            <div>
-              <dt>{t("quorum")}</dt>
-              <dd>
-                {selectedProposal.totalVotes}/
-                {quorumDenominator(selectedProposal).value}
-                {quorumDenominator(selectedProposal).isFallback &&
-                  ` · ${t("councilOf21")}`}
-              </dd>
-            </div>
-          </dl>
-
-          {selectedProposal.statusKey === "passed" &&
-            selectedProposal.source !== "neo-community" && (
-              <NeoButton
-                variant="primary"
-                size="md"
-                block
-                disabled={!canWrite}
-                onClick={() => handleFinalize(selectedProposal.id)}
-              >
-                {t("finalizeProposal")}
-              </NeoButton>
-            )}
-
-          {/* Execute the on-chain PolicyContract change for a passed POLICY
-              proposal — a distinct step from finalize (previously unreachable,
-              the action was aliased to finalize). */}
-          {selectedProposal.type === 1 &&
-            selectedProposal.statusKey === "passed" &&
-            selectedProposal.source !== "neo-community" && (
-              <NeoButton
-                variant="secondary"
-                size="md"
-                block
-                disabled={!canWrite}
-                onClick={() => handleExecute(selectedProposal.id)}
-              >
-                {t("executeProposal")}
-              </NeoButton>
-            )}
-
-          {/* Revoke an own, still-active proposal (creator exit path). */}
-          {selectedProposal.statusKey === "active" &&
-            isOwnProposal(selectedProposal) && (
-              <NeoButton
-                variant="danger"
-                size="md"
-                block
-                disabled={!walletAddress}
-                onClick={() => handleRevoke(selectedProposal.id)}
-              >
-                {t("revokeProposal")}
-              </NeoButton>
-            )}
-
-          <details className="council-more-details">
-            <summary>
-              <ChevronRight
-                className="council-more-details__icon"
-                size={15}
-                aria-hidden="true"
-              />
-              {t("proposalDetails")}
-            </summary>
-            <dl className="council-details-grid">
-              <div>
-                <dt>{t("proposalId")}</dt>
-                <dd>
-                  {selectedProposal.externalId
-                    ? `#${selectedProposal.id} · ${selectedProposal.externalId}`
-                    : `#${selectedProposal.id}`}
-                </dd>
-              </div>
-              <div>
-                <dt>{t("creator")}</dt>
-                <dd>
-                  {shortAddress(
-                    selectedProposal.creatorDisplay ?? selectedProposal.creator,
-                  )}
-                </dd>
-              </div>
-              {selectedProposal.policyMethod && (
-                <div>
-                  <dt>{t("policyMethod")}</dt>
-                  <dd>{selectedProposal.policyMethod}</dd>
-                </div>
-              )}
-              {selectedProposal.policyValue && (
-                <div>
-                  <dt>{t("policyValue")}</dt>
-                  <dd>{selectedProposal.policyValue}</dd>
-                </div>
-              )}
-            </dl>
-          </details>
-        </aside>
-      )}
+      <div className="council-drawer__active" data-mode={drawerMode}>
+        {drawerPanel}
+      </div>
     </div>
+  );
+
+  const primaryLabel = stageMode === "review" && proposal
+    ? voteChoice === "against"
+      ? t("voteAgainst")
+      : t("voteFor")
+    : t("submitProposal");
+
+  return (
+    <OpenUiProvider>
+      <div className="council-gov-play-area mx2 mx2-cat-defi">
+        <PlayStage
+          category="defi"
+          stage={{
+            eyebrow: t("liveGovernance"),
+            title: proposal?.title || t("title"),
+            subtitle: t("governanceSummary"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {activeCount} {t("active")}</span>,
+          }}
+          scene={stageScene}
+          actions={{
+            primary: {
+              label: primaryLabel,
+              icon: stageMode === "review" ? <Vote size={17} /> : <Send size={17} />,
+              onClick: stageMode === "review" ? handleVote : handleCreate,
+              disabled: stageMode === "review" ? !canVote : !draftReady || isCreating,
+              loading: isVoting || isCreating,
+            },
+            secondary: stageMode === "review" && proposal && proposal.source !== "neo-community"
+              ? [
+                {
+                  label: t("finalizeProposal"),
+                  icon: <CheckCircle2 size={15} />,
+                  onClick: () => void dispatch("finalizeProposal", proposal.id),
+                  disabled: isVoting,
+                },
+                {
+                  label: t("executeProposal"),
+                  icon: <PlayCircle size={15} />,
+                  onClick: () => void dispatch("executeProposal", proposal.id),
+                  disabled: isVoting,
+                },
+              ]
+              : stageMode === "review" ? [
+                {
+                  label: t("refresh"),
+                  icon: <RefreshCw size={15} />,
+                  onClick: () => void dispatch("refresh"),
+                  disabled: isLoading,
+                },
+              ] : undefined,
+          }}
+          drawerToggleLabel={t("proposalTabs")}
+          drawer={{ title: t("proposalTabs"), children: drawer }}
+        />
+      </div>
+    </OpenUiProvider>
   );
 }

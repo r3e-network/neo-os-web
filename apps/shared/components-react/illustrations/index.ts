@@ -1,25 +1,15 @@
 /**
  * Neo Soft illustration & icon library.
  *
- * Original, self-contained inline-SVG React components in the "Neo Soft"
- * visual language (soft, friendly fintech). All components are accessible
- * (role="img" + aria-label via the `title` prop) and take a numeric `size`
- * plus an optional `className`. No external assets, fonts or emojis.
+ * Empty/status art in the "Neo Soft" visual language (soft, friendly fintech),
+ * kept inline and accessible.
  *
  * Usage:
- *   import {
- *     NeoMascot, EmptyStateArt, SuccessArt, ErrorArt, CoinArt, CategoryIcon,
- *   } from "@shared/components-react";
+ *   import { EmptyStateArt, ErrorArt } from "@shared/components-react/illustrations";
  *
- *   <NeoMascot variant="brand" size={140} title="Welcome" />
  *   <EmptyStateArt size={220} />
- *   <SuccessArt size={120} title="Swap complete" />
- *   <CoinArt kind="neo" size={64} />
- *   <CategoryIcon name="finance" size={40} />
+ *   <ErrorArt size={120} title="Something went wrong" />
  */
 
-export * from "./NeoMascot";
 export * from "./EmptyStateArt";
 export * from "./StatusArt";
-export * from "./CoinArt";
-export * from "./CategoryIcon";

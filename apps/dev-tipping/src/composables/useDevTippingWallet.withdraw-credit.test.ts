@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useDevTippingWallet } from "./useDevTippingWallet";
+import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import type { EventBus } from "@shared/services/EventBus";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
@@ -40,7 +41,11 @@ function makeChain() {
 describe("dev-tipping — withdrawCredit reclaims stranded tip credit", () => {
   it("calls withdraw(walletHash) waiting for CreditWithdrawn and returns the human amount", async () => {
     const { chain, invoke } = makeChain();
-    const wallet = useDevTippingWallet({ chain, eventBus: makeBus(), t });
+    const app = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-dev-tipping" },
+    );
+    const wallet = useDevTippingWallet({ app, eventBus: makeBus(), t });
 
     const amount = await wallet.withdrawCredit();
 

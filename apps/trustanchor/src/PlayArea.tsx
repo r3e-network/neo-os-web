@@ -1,448 +1,284 @@
 /**
- * PlayArea.tsx -- TrustAnchor
+ * PlayArea.tsx — TrustAnchor (v2 scene-driven rebuild)
  *
- * User-facing TrustAnchor staking surface.
+ * DeFi identity. The staking node IS the scene: concentric node rings (your
+ * stake at the core, agent nodes orbiting), rewards flowing in. Stake is the
+ * primary write (always dispatches); withdraw/claim/recover + stake-amount input
+ * live in a drawer. Real state from useTrustanchor bound throughout.
  */
-
-import { useMemo, useState } from "react";
-import { Coins, Route, ShieldCheck, WalletCards } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import type { TrustAnchorStats } from "./hooks/useTrustAnchor";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+const AMOUNT_PRESETS = ["1", "5", "10", "21"] as const;
+type DrawerMode = "amount" | "rewards" | "stats";
+
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-type AnchorActionHistoryItem = {
-  action: string;
-  amount?: string;
-  status: string;
-  txid?: string;
-  at?: string;
-};
-
-const STAKE_AMOUNT_PRESETS = ["1", "10", "25", "100"];
-
-function normalizeNeoAmount(value: string): string {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return value.trim();
-  return String(Math.trunc(numeric));
+function withoutUnit(value: string, unit: string): string {
+  return String(value || "0").replace(new RegExp(`\\s*${unit}\\s*$`, "i"), "").trim() || "0";
 }
 
-function isWholeNeo(value: string): boolean {
-  return /^[1-9]\d*$/.test(value.trim());
+function normalizeWholeNeoAmount(value: string): string {
+  const whole = value.split(/[.,]/)[0] ?? "";
+  return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
 }
 
-function formatTx(txid: string): string {
-  if (!txid) return "";
-  if (txid.length <= 20) return txid;
-  return `${txid.slice(0, 10)}...${txid.slice(-8)}`;
-}
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, num } = useStateBindings(state);
 
-function formatAddress(value: string): string {
-  if (!value) return "";
-  if (value.length <= 20) return value;
-  return `${value.slice(0, 10)}...${value.slice(-6)}`;
-}
-
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { val, num, str } = useStateBindings(state);
-
-  const stats = val<TrustAnchorStats | null>("stats", null);
-  const agentAccounts =
-    val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
-  const actionHistory =
-    val<AnchorActionHistoryItem[]>("actionHistory", []) ?? [];
+  const myStakeDisplay = str("myStakeDisplay", "0");
+  const pendingRewardsDisplay = str("pendingRewardsDisplay", "0");
+  const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0");
+  const totalNeoDisplay = str("totalNeoDisplay", "0");
+  const rewardReserveDisplay = str("rewardReserveDisplay", "0");
+  const rewardPerNeoDisplay = str("rewardPerNeoDisplay", "—");
   const agentCount = num("agentCount");
-  const pendingRewards = num("pendingRewards");
-  const pendingWithdraw = num("pendingWithdraw");
-  const myStakeDisplay = str("myStakeDisplay", "0 NEO");
-  const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
-  const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0 NEO");
-  const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
-  const rewardPerNeoDisplay = str("rewardPerNeoDisplay", "0");
-  const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
-  const workflowStatus = str("workflowStatus", t("workflowReady"));
-  const lastError = str("lastError");
-  const lastTxid = str("lastTxid");
-  const submitting = val<boolean>("submitting", false) ?? false;
-  const [amountInput, setAmountInput] = useState("1");
-  const [localError, setLocalError] = useState("");
-  const [busyAction, setBusyAction] = useState("");
-  const selectedAgent = stats?.selectedAgentId
-    ? `#${stats.selectedAgentId}`
-    : t("noneFallback");
-  const hasAgentStats = agentCount > 0 || agentAccounts.length > 0;
-  const agentTotal = agentCount || agentAccounts.length || 0;
-  const agentTotalDisplay = hasAgentStats ? String(agentTotal) : "—";
-  const routeStatus = stats?.selectedAgentId
-    ? t("routeSelected")
-    : t("awaitingRoute");
-  const amountIsValid = useMemo(() => isWholeNeo(amountInput), [amountInput]);
-  const normalizedAmount = useMemo(
-    () => normalizeNeoAmount(amountInput),
-    [amountInput],
+  const submitting = bool("submitting");
+
+  const [amount, setAmount] = useState("1");
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("amount");
+  const [stakePreview, setStakePreview] = useState(false);
+  const stakePreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (stakePreviewTimeout.current) clearTimeout(stakePreviewTimeout.current); }, []);
+  const busy = submitting || stakePreview;
+
+  const startStakePreview = () => {
+    if (stakePreviewTimeout.current) clearTimeout(stakePreviewTimeout.current);
+    setStakePreview(true);
+    stakePreviewTimeout.current = setTimeout(() => { setStakePreview(false); stakePreviewTimeout.current = null; }, 1200);
+  };
+
+  const amountReady = /^[1-9]\d*$/.test(amount.trim());
+  const adjustAmount = (delta: number) => {
+    const current = Number.parseInt(normalizeWholeNeoAmount(amount), 10);
+    setAmount(String(Math.max(1, (Number.isFinite(current) ? current : 1) + delta)));
+  };
+
+  const handleStake = () => {
+    if (!amountReady || busy) return;
+    startStakePreview();
+    void dispatch("stakeNeo", { amount: normalizeWholeNeoAmount(amount) });
+  };
+  const handleWithdraw = () => {
+    if (!amountReady || busy) return;
+    void dispatch("withdrawNeo", { amount: normalizeWholeNeoAmount(amount) });
+  };
+  const handleClaim = () => { void dispatch("claimRewards"); };
+  const handleRecover = () => { void dispatch("recoverNeoCredit"); };
+  const handleRefresh = () => { void dispatch("refreshAnchor"); };
+
+  const myStakeValue = withoutUnit(myStakeDisplay, "NEO");
+  const pendingRewardsValue = withoutUnit(pendingRewardsDisplay, "GAS");
+  const rewardReserveValue = withoutUnit(rewardReserveDisplay, "GAS");
+  const hasStake = Number(myStakeValue) > 0;
+
+  const scene = (
+    <div className="tool-scene trust-scene" data-state={busy ? "busy" : hasStake ? "staking" : "idle"}>
+      {stakePreview && (
+        <div className="trust-scene__burst"><ParticleBurst coins count={8} /></div>
+      )}
+
+      <section className="trust-stage-card" aria-label={t("stageAria")}>
+        <img className="trust-stage-card__image" src="./trustanchor-stage.webp" alt={t("stageAria")} />
+        <div className="trust-stage-card__summary">
+          <div className="trust-scene__network">
+            <div className={["trust-scene__core", busy ? "is-pulsing" : ""].filter(Boolean).join(" ")}>
+              <CoinArt size={26} variant="neo" />
+              <strong>{myStakeValue}</strong>
+              <span>NEO</span>
+            </div>
+            <div className="trust-scene__orbit trust-scene__orbit--1" />
+            <div className="trust-scene__orbit trust-scene__orbit--2" />
+            {agentCount > 0 && Array.from({ length: Math.min(agentCount, 4) }).map((_, i) => (
+              <span key={i} className="trust-scene__node" style={{ "--i": i } as React.CSSProperties} />
+            ))}
+          </div>
+          <div className="trust-stage-card__copy">
+            <span>{t("contractLiquidityLabel")}</span>
+            <strong>{totalNeoDisplay}</strong>
+            <small>{t("rewardReserve")}: {rewardReserveDisplay}</small>
+          </div>
+        </div>
+      </section>
+
+      <section className="trust-console" aria-label={t("stakePath")}>
+        <header className="trust-console__head">
+          <div>
+            <span>{t("stakePath")}</span>
+            <strong>{hasStake ? t("pendingRewards") : t("routeAwaiting")}</strong>
+          </div>
+          <em>{agentCount || 0}/21</em>
+        </header>
+
+        <div className="trust-console__metrics">
+          <span><small>{t("myStake")}</small><strong>{myStakeValue} NEO</strong></span>
+          <span><small>{t("pendingRewards")}</small><strong>{pendingRewardsValue} GAS</strong></span>
+          <span><small>{t("rewardReserve")}</small><strong>{rewardReserveValue} GAS</strong></span>
+        </div>
+
+        <section className="trust-ticket" data-ready={amountReady ? "true" : undefined} aria-label={t("preflightAmount")}>
+          <div className="trust-ticket__head">
+            <span>{t("preflightAmount")}</span>
+            <strong>{amount || "0"} NEO</strong>
+          </div>
+          <div className="trust-ticket__presets" aria-label={t("stakePresetLabel")}>
+            {AMOUNT_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={amount === preset ? "is-active" : undefined}
+                onClick={() => setAmount(preset)}
+                disabled={busy}
+              >
+                {preset} NEO
+              </button>
+            ))}
+          </div>
+          <div className="trust-ticket__amount">
+            <button type="button" onClick={() => adjustAmount(-1)} disabled={busy || amount === "1"} aria-label="-1 NEO">-</button>
+            <output aria-live="polite">{amount || "0"} NEO</output>
+            <button type="button" onClick={() => adjustAmount(1)} disabled={busy} aria-label="+1 NEO">+</button>
+          </div>
+          <small>{amountReady ? t("amountPlanReady") : t("amountPlanBlocked")}</small>
+        </section>
+
+        <div className="trust-route">
+          <span>{t("preflightRoute")}</span>
+          <strong>{t("heroFactAgents")}</strong>
+          <small>{t("heroFactVariable")}</small>
+        </div>
+
+        <p className="trust-scene__status">
+          {busy ? `${t("stakeNeo")}...` : hasStake ? `${t("pendingRewards")}: ${pendingRewardsDisplay}` : t("stageCaption")}
+        </p>
+      </section>
+    </div>
   );
-  // Gate hero/stat displays on whether chain stats have loaded, mirroring
-  // sibling profitanchor: show the em-dash placeholder until data lands so a
-  // genuine on-chain 0 is distinguishable from data-not-loaded.
-  const placeholder = "—";
-  const hasData = Boolean(stats);
-  const statusText = localError || lastError || workflowStatus;
-  // Reflect the shared in-flight lock so PlayArea buttons disable while a
-  // submission started from the manifest operation panel is still in flight.
-  const isBusy = Boolean(busyAction) || submitting;
-  const claimReady = pendingRewards > 0;
-  const canRecoverCredit = pendingWithdraw > 0;
-  const plannedAmountLabel = amountIsValid
-    ? `${normalizedAmount} NEO`
-    : t("amountNeedsWholeNeo");
-  const capitalFlowClassName = [
-    "anchor-capital-flow",
-    amountIsValid ? "is-ready" : "is-blocked",
-    claimReady ? "has-claim" : "",
-    isBusy ? "is-busy" : "",
-    stats?.selectedAgentId ? "has-route" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
 
-  const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
-    if (!amountIsValid) {
-      setLocalError(t("invalidAmount"));
-      return;
-    }
-    setLocalError("");
-    setBusyAction(action);
-    try {
-      await dispatch(action, { amount: normalizedAmount });
-    } catch (error) {
-      setLocalError(error instanceof Error ? error.message : t("workflowFailed"));
-    } finally {
-      setBusyAction("");
-    }
-  };
+  const score = [
+    { label: t("myStake"), value: `${myStakeValue} NEO`, accent: true },
+    { label: t("pendingRewards"), value: pendingRewardsDisplay },
+    { label: t("rewardPerNeo"), value: rewardPerNeoDisplay },
+  ];
+  const drawerModes: Array<{ id: DrawerMode; label: string; value: string }> = [
+    { id: "amount", label: t("stakeNeo"), value: `${amount || "0"} NEO` },
+    { id: "rewards", label: t("pendingRewards"), value: pendingRewardsDisplay },
+    { id: "stats", label: t("totalNeoTracked"), value: totalNeoDisplay },
+  ];
 
-  const runSimpleAction = async (
-    action: "claimRewards" | "refreshAnchor" | "recoverNeoCredit",
-  ) => {
-    setLocalError("");
-    setBusyAction(action);
-    try {
-      await dispatch(action);
-    } catch (error) {
-      setLocalError(error instanceof Error ? error.message : t("workflowFailed"));
-    } finally {
-      setBusyAction("");
-    }
-  };
+  const drawer = (
+    <OpenUiProvider>
+      <div className="trust-drawer">
+        <div className="trust-drawer__switcher" role="tablist" aria-label={t("heroTitle")}>
+          {drawerModes.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              role="tab"
+              aria-selected={drawerMode === mode.id}
+              className={drawerMode === mode.id ? "is-active" : undefined}
+              onClick={() => setDrawerMode(mode.id)}
+            >
+              <span>{mode.label}</span>
+              <strong>{mode.value}</strong>
+            </button>
+          ))}
+        </div>
+
+        {drawerMode === "amount" && (
+          <OpenUiPanel
+            className="trust-drawer__panel trust-drawer__panel--amount"
+            icon={<CoinArt size={20} variant="neo" decorative />}
+            title={t("preflightAmount")}
+            subtitle={amountReady ? t("amountPlanReady") : t("amountPlanBlocked")}
+          >
+            <div className="trust-drawer__amount-layout">
+              <OpenUiTextField
+                className="trust-drawer-field trust-drawer-field--amount"
+                inputClassName="trust-drawer-input trust-drawer-input--amount"
+                label={`${t("stakeNeo")} (NEO)`}
+                value={amount}
+                onChange={(e) => setAmount(normalizeWholeNeoAmount(e.target.value))}
+                placeholder="1"
+                inputMode="numeric"
+                disabled={busy}
+              />
+              <div className="trust-drawer__presets" aria-label={t("stakePresetLabel")}>
+                {AMOUNT_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={amount === preset ? "is-active" : undefined}
+                    onClick={() => setAmount(preset)}
+                    disabled={busy}
+                  >
+                    {preset} NEO
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="trust-drawer__row trust-drawer__row--primary">
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleStake} disabled={busy || !amountReady}>{t("stakeNeo")}</button>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleWithdraw} disabled={busy || !amountReady}>{t("withdrawNeo")}</button>
+            </div>
+          </OpenUiPanel>
+        )}
+
+        {drawerMode === "rewards" && (
+          <OpenUiPanel
+            className="trust-drawer__panel trust-drawer__panel--rewards"
+            icon={<CoinArt size={20} variant="gas" decorative />}
+            title={t("pendingRewards")}
+            subtitle={pendingRewardsDisplay}
+          >
+            <div className="trust-drawer__row">
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleClaim} disabled={busy}>{t("claimRewards")}</button>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleRecover} disabled={busy}>{t("recoverNeoCredit")}</button>
+              <button type="button" className="mx2-btn mx2-btn--ghost trust-drawer__refresh" onClick={handleRefresh} disabled={busy}>{t("refreshAnchor")}</button>
+            </div>
+          </OpenUiPanel>
+        )}
+
+        {drawerMode === "stats" && (
+          <OpenUiPanel
+            className="trust-drawer__panel trust-drawer__panel--stats"
+            icon={<CoinArt size={20} variant="neo" decorative />}
+            title={t("totalNeoTracked")}
+            subtitle={totalNeoDisplay}
+          >
+            <div className="trust-drawer__stats">
+              <div><span>{t("totalNeoTracked")}</span><strong>{totalNeoDisplay}</strong></div>
+              <div><span>{t("rewardReserve")}</span><strong>{rewardReserveDisplay}</strong></div>
+              <div><span>{t("pendingWithdraw")}</span><strong>{pendingWithdrawDisplay}</strong></div>
+              <div><span>{t("agentTargetCount")}</span><strong>{agentCount}</strong></div>
+            </div>
+          </OpenUiPanel>
+        )}
+      </div>
+    </OpenUiProvider>
+  );
 
   return (
-    <div className="trustanchor-play-area">
-      <section className="anchor-primary-card anchor-primary-card--trust">
-        <div className="anchor-primary-card__copy">
-          <div className="anchor-primary-card__brand">
-            <span className="anchor-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-            </span>
-            <span className="anchor-kicker">{t("appName")}</span>
-          </div>
-          <h2>{t("heroTitle")}</h2>
-          <p>{t("heroDescription")}</p>
-          <div className="anchor-hero-facts" aria-label={t("heroFactsLabel")}>
-            <span>{t("heroFactAgents")}</span>
-            <span>{t("heroFactReserve")}</span>
-            <span>{t("heroFactVariable")}</span>
-          </div>
-          {!hasData && (
-            <p className="anchor-connect-prompt">{t("connectPrompt")}</p>
-          )}
-        </div>
-        <figure className="anchor-stage-card" aria-label={t("stageAria")}>
-          <img
-            src="./trustanchor-stage.jpg"
-            alt=""
-            loading="eager"
-            decoding="async"
-          />
-          <figcaption>
-            <span>{t("stageCaption")}</span>
-            <strong className={hasData ? undefined : "anchor-score__placeholder"}>
-              {hasData ? myStakeDisplay : placeholder}
-            </strong>
-            <small>{t("myStake")}</small>
-          </figcaption>
-        </figure>
-      </section>
-
-      <div className="anchor-stat-grid">
-        <div className="stat-chip">
-          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
-            {hasData ? pendingRewardsDisplay : placeholder}
-          </span>
-          <span className="stat-label">{t("pendingRewards")}</span>
-        </div>
-        <div className="stat-chip">
-          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
-            {hasData
-              ? totalNeoDisplay || `${stats?.totalStaked ?? 0} NEO`
-              : placeholder}
-          </span>
-          <span className="stat-label">{t("totalNeoTracked")}</span>
-        </div>
-        <div className="stat-chip">
-          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
-            {hasData ? rewardReserveDisplay : placeholder}
-          </span>
-          <span className="stat-label">{t("rewardReserve")}</span>
-        </div>
-        <div className="stat-chip">
-          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
-            {hasData ? pendingWithdrawDisplay : placeholder}
-          </span>
-          <span className="stat-label">{t("pendingWithdraw")}</span>
-        </div>
-      </div>
-
-      <section className="anchor-earn-card" aria-label={t("earnTitle")}>
-        <span className="anchor-earn-card__title">{t("earnTitle")}</span>
-        <ul className="anchor-earn-card__list">
-          <li>{t("earnLine1")}</li>
-          <li>{t("earnLine2")}</li>
-          <li>{t("earnLine3")}</li>
-        </ul>
-      </section>
-
-      <section className="anchor-workspace" aria-label={t("stakingWorkspaceLabel")}>
-        <div className="anchor-status-card">
-          <div className="anchor-section-head">
-            <span>{t("actionPanelLabel")}</span>
-            <h3>{t("actionPanelTitle")}</h3>
-            <p>{t("actionPanelBody")}</p>
-          </div>
-
-          <div className="anchor-action-panel">
-            <section
-              className={capitalFlowClassName}
-              aria-label={t("stakePath")}
-            >
-              <picture className="anchor-capital-flow__token" aria-hidden="true">
-                <source srcSet="./logo.avif" type="image/avif" />
-                <source srcSet="./logo.webp" type="image/webp" />
-                <img src="./logo.jpg" alt="" loading="eager" decoding="sync" />
-              </picture>
-              <span className="anchor-capital-flow__rail" aria-hidden="true" />
-              <div className="anchor-capital-flow__node anchor-capital-flow__node--wallet">
-                <WalletCards size={18} aria-hidden="true" />
-                <span>{t("preflightAmount")}</span>
-                <strong>{plannedAmountLabel}</strong>
-              </div>
-              <div className="anchor-capital-flow__node anchor-capital-flow__node--route">
-                <Route size={18} aria-hidden="true" />
-                <span>{t("preflightRoute")}</span>
-                <strong>{stats?.selectedAgentId ? selectedAgent : t("routeAwaiting")}</strong>
-              </div>
-              <div className="anchor-capital-flow__node anchor-capital-flow__node--claim">
-                <Coins size={18} aria-hidden="true" />
-                <span>{t("claimPlan")}</span>
-                <strong>{claimReady ? pendingRewardsDisplay : t("claimPlanEmpty")}</strong>
-              </div>
-            </section>
-
-            <label className="anchor-amount-field">
-              <span>{t("neoAmount")}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                value={amountInput}
-                aria-invalid={!amountIsValid}
-                disabled={isBusy}
-                onChange={(event) => setAmountInput(event.currentTarget.value)}
-              />
-            </label>
-
-            <div className="anchor-amount-presets" aria-label={t("stakePresetLabel")}>
-              {STAKE_AMOUNT_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  className={amountInput === preset ? "is-active" : undefined}
-                  disabled={isBusy}
-                  onClick={() => setAmountInput(preset)}
-                >
-                  {preset} NEO
-                </button>
-              ))}
-            </div>
-
-            <p
-              className={`anchor-inline-status${amountIsValid ? " is-ready" : " is-blocked"}`}
-              aria-live="polite"
-            >
-              <ShieldCheck size={16} aria-hidden="true" />
-              <span>{amountIsValid ? plannedAmountLabel : t("amountNeedsWholeNeo")}</span>
-              <em>{amountIsValid ? t("amountPlanReady") : t("amountPlanBlocked")}</em>
-            </p>
-
-            <div className="anchor-action-buttons" aria-label={t("actionPanelTitle")}>
-              <button
-                type="button"
-                className="anchor-action-button anchor-action-button--primary"
-                disabled={isBusy || !amountIsValid}
-                onClick={() => void runAmountAction("stakeNeo")}
-              >
-                {busyAction === "stakeNeo" ? t("workflowSubmitting") : t("submitStake")}
-              </button>
-              <button
-                type="button"
-                className="anchor-action-button"
-                disabled={isBusy || !amountIsValid}
-                onClick={() => void runAmountAction("withdrawNeo")}
-              >
-                {busyAction === "withdrawNeo" ? t("workflowSubmitting") : t("submitWithdraw")}
-              </button>
-              <button
-                type="button"
-                className="anchor-action-button"
-                disabled={isBusy || !claimReady}
-                title={claimReady ? undefined : t("noRewardsHint")}
-                onClick={() => void runSimpleAction("claimRewards")}
-              >
-                {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
-              </button>
-              <button
-                type="button"
-                className="anchor-action-button anchor-action-button--ghost"
-                disabled={isBusy}
-                onClick={() => void runSimpleAction("refreshAnchor")}
-              >
-                {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
-              </button>
-            </div>
-            {!claimReady && (
-              <p className="anchor-claim-note">{t("claimDisabledCaption")}</p>
-            )}
-            <p className="anchor-redeem-note">{t("redeemTimingNote")}</p>
-            {canRecoverCredit && (
-              <div className="anchor-recover-card">
-                <div className="anchor-recover-card__copy">
-                  <span className="anchor-recover-card__label">{t("pendingWithdraw")}</span>
-                  <strong>{pendingWithdrawDisplay}</strong>
-                  <small>{t("creditRecoverHint")}</small>
-                </div>
-                <button
-                  type="button"
-                  className="anchor-action-button anchor-action-button--primary"
-                  disabled={isBusy}
-                  onClick={() => void runSimpleAction("recoverNeoCredit")}
-                >
-                  {busyAction === "recoverNeoCredit"
-                    ? t("workflowSubmitting")
-                    : t("recoverCredit")}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className={`anchor-status-strip${localError || lastError ? " anchor-status-strip--error" : ""}`} aria-live="polite">
-            <span>{statusText}</span>
-            {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
-          </div>
-
-          {actionHistory.length > 0 && (
-            <div className="anchor-action-history" aria-label={t("actionHistory")}>
-              <div className="anchor-action-history__head">
-                <span>{t("actionHistory")}</span>
-                <strong>{stats?.selectedAgentId ? selectedAgent : "—"}</strong>
-              </div>
-              {actionHistory.slice(0, 4).map((item) => (
-                <div className="anchor-history-row" key={`${item.action}-${item.at ?? item.txid ?? item.amount ?? "local"}`}>
-                  <span>{item.action}</span>
-                  <strong>{item.amount ? `${item.amount} NEO` : item.status}</strong>
-                  {item.txid && <code>{formatTx(item.txid)}</code>}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <aside className="anchor-route-card" aria-label={t("routeStateLabel")}>
-          <span>{t("routeStateLabel")}</span>
-          <small className="anchor-route-card__eyebrow">{t("voteTargetLabel")}</small>
-          <strong
-            className={
-              stats?.selectedAgentId ? undefined : "anchor-route-card__placeholder"
-            }
-          >
-            {stats?.selectedAgentId ? selectedAgent : "—"}
-          </strong>
-          <p className="anchor-route-card__lead-copy">{t("routeStateCaption")}</p>
-          <dl>
-            <div>
-              <dt>{t("statusLabel")}</dt>
-              <dd>{routeStatus}</dd>
-            </div>
-            <div>
-              <dt>{t("agentsLabel")}</dt>
-              <dd>{agentTotalDisplay}/21</dd>
-            </div>
-            <div>
-              <dt>{t("rewardPoolLabel")}</dt>
-              <dd>{hasData ? rewardReserveDisplay : placeholder}</dd>
-            </div>
-            <div>
-              <dt>{t("rewardPerNeo")}</dt>
-              <dd>{hasData ? rewardPerNeoDisplay : placeholder}</dd>
-            </div>
-          </dl>
-          <p className="anchor-route-card__caption">{t("rewardPerNeoMerged")}</p>
-        </aside>
-      </section>
-
-      <details className="neo-card anchor-routing-model">
-        <summary className="anchor-routing-model__summary">
-          <span className="section-title">{t("routeModelHeading")}</span>
-          <span className="anchor-routing-model__hint">
-            {t("agentsHint", { count: agentTotalDisplay })}
-          </span>
-        </summary>
-        <div className="anchor-flow-list">
-          <span>{t("currentRouteLine", { agent: selectedAgent })}</span>
-          <span>{t("agentsRegisteredLine", { count: agentTotalDisplay })}</span>
-          <span>{t("operatorsNote")}</span>
-        </div>
-        <div className="agent-list">
-          {agentAccounts.slice(0, 21).map((agent, idx) => {
-            const address = String(
-              agent.accountAddress ??
-                agent.address ??
-                agent.name ??
-                `agent-${idx + 1}`,
-            );
-            return (
-              <div key={idx} className="agent-row">
-                <span className="agent-address" title={address}>
-                  {formatAddress(address)}
-                </span>
-                <span className="agent-status">
-                  {t("agentCandidateLabel", {
-                    id: String(agent.agentId ?? idx + 1),
-                  })}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </details>
+    <div className="trustanchor-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{ eyebrow: t("heroFactsLabel"), title: t("heroTitle"), subtitle: t("stageCaption") }}
+        scene={scene}
+        score={score}
+        actions={{
+          primary: { label: busy ? "..." : t("stakeNeo"), onClick: handleStake, loading: busy, disabled: !amountReady || busy },
+        }}
+        drawerToggleLabel={t("heroTitle")}
+        drawer={{ title: t("heroTitle"), children: drawer }}
+      />
     </div>
   );
 }

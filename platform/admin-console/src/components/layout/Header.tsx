@@ -1,5 +1,5 @@
 // =============================================================================
-// Header Component
+// Header Component — Neo v3
 // =============================================================================
 
 "use client";
@@ -43,9 +43,7 @@ export function Header() {
   const [envLabel] = useState<string>(
     () =>
       process.env.NEXT_PUBLIC_ENV_LABEL ||
-      (process.env.NODE_ENV === "production"
-        ? "Production"
-        : "Local Development"),
+      (process.env.NODE_ENV === "production" ? "Production" : "Local Development"),
   );
 
   const mobileNavigation = ADMIN_NAVIGATION_ITEMS.map((item) => ({
@@ -64,28 +62,27 @@ export function Header() {
     t("dashboard.overview");
 
   return (
-    <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
+    <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-xl">
       <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-black text-gray-950 sm:text-base">
+          <h2 className="truncate text-sm font-black tracking-tight text-ink sm:text-base">
             {sectionTitle}
           </h2>
-          <p className="hidden text-xs font-medium text-gray-500 sm:block">
+          <p className="hidden text-xs font-medium text-ink-muted sm:block">
             {sectionContext}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <LanguageToggle />
-          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 sm:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <span className="hidden items-center gap-1.5 rounded-full border border-neo-200 bg-neo-50 px-2.5 py-1 text-[11px] font-bold text-neo-700 sm:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-neo-500 animate-pulse-dot" />
             {envLabel}
           </span>
         </div>
       </div>
-      <nav
-        aria-label="Mobile admin navigation"
-        className="border-t border-gray-200 px-3 pb-3 md:hidden"
-      >
+
+      {/* Mobile navigation */}
+      <nav aria-label="Mobile admin navigation" className="border-t border-border px-3 pb-3 md:hidden">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {mobileNavigation.map((item) => {
             const isActive = isActivePath(pathname, item.href);
@@ -94,10 +91,11 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
+                  "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo-500/40",
                   isActive
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                    ? "border-neo-200 bg-neo-50 text-neo-700"
+                    : "border-border bg-surface text-ink-secondary hover:bg-canvas-alt hover:text-ink",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >

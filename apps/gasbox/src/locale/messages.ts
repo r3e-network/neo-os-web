@@ -26,7 +26,7 @@ const appMessages = {
     noMachines: { en: "No active machines yet.", zh: "暂无可用机器。" },
     gasboxPending: { en: "Sync pending", zh: "等待同步" },
     gasboxLiveStatus: { en: "Live market status", zh: "实时市场状态" },
-    gasboxHeroTitle: { en: "Pick a capsule machine, pull on-chain, reveal the prize.", zh: "选择扭蛋机，链上抽取，下一块揭晓奖品。" },
+    gasboxHeroTitle: { en: "Pick a GasBox machine", zh: "选择一台 GasBox" },
     gasboxHeroCopy: {
         en: "GasBox keeps the fun path simple: compare funded machines, confirm the GAS pull in your wallet, then reveal a prize paid from escrow.",
         zh: "GasBox 保持玩家路径足够简单：比较已注资机器，在钱包确认 GAS 抽取，然后揭晓由托管奖池支付的奖品。",
@@ -55,6 +55,30 @@ const appMessages = {
     gasboxMarketEmptyTeaser: {
         en: "Active capsule machines land here. Refresh to pull one and win an escrowed on-chain prize.",
         zh: "可用的扭蛋机会出现在这里。刷新即可抽取，赢取托管的链上奖品。",
+    },
+    gasboxCapsuleStation: { en: "Capsule station", zh: "胶囊柜台" },
+    gasboxMarketSyncTitle: { en: "Market sync in progress", zh: "正在同步市场" },
+    gasboxMarketSyncCopy: {
+        en: "Refreshing checks live machines, escrowed inventory, and readable odds before the player pulls.",
+        zh: "刷新会在玩家抽取前核查可用机台、托管库存和可读概率。",
+    },
+    gasboxSyncingMachines: {
+        en: "Syncing live machines and escrowed capsules...",
+        zh: "正在同步可用机台与托管胶囊...",
+    },
+    gasboxPrizeDeckPending: { en: "Prize reel syncing", zh: "奖品轨道同步中" },
+    gasboxPrizeDeckPendingCopy: {
+        en: "This machine needs escrow-ready prizes before players can pull.",
+        zh: "这台机器需要完成奖品托管后，玩家才能抽取。",
+    },
+    gasboxDrawerMarketTitle: { en: "Machine counter", zh: "机台柜台" },
+    gasboxDrawerMarketCopy: {
+        en: "Pick a live machine or refresh the market before pulling.",
+        zh: "抽取前请选择可用机台，或刷新市场。",
+    },
+    gasboxDrawerMarketEmpty: {
+        en: "No active machines are loaded yet. Refresh the market to fill the counter.",
+        zh: "暂未加载可用机台。刷新市场即可填充柜台。",
     },
     gasboxEmptyStageLabel: { en: "Locked preview", zh: "机台预览" },
     gasboxEmptyStageHint: {
@@ -128,6 +152,7 @@ const appMessages = {
         en: "Bet placed but the confirmation hasn't landed yet. Use Reveal result in a moment to draw your prize.",
         zh: "下注已提交，但确认尚未到账。请稍后点击「揭晓结果」抽取奖品。",
     },
+    canReveal: { en: "Reveal", zh: "揭晓" },
     revealPendingRetry: {
         en: "The reveal block isn't ready yet. Tap Reveal result in a few seconds to draw your prize.",
         zh: "揭晓所在区块尚未生成。请几秒后点击「揭晓结果」抽取奖品。",
@@ -186,6 +211,7 @@ const appMessages = {
         en: "{count} prize entries are currently unavailable and excluded from the pull odds.",
         zh: "{count} 个奖品条目当前不可用，已从抽取概率中排除。",
     },
+    gasboxFindMachines: { en: "Find Machines", zh: "查找机器" },
     refreshMachines: { en: "Refresh Machines", zh: "刷新机器" },
     openStudio: { en: "Open Studio", zh: "打开工作室" },
     studioGuidance: {

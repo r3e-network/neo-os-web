@@ -1,22 +1,18 @@
-import { type CSSProperties, useEffect, useRef, useState } from "react";
-import {
-  Clock3,
-  Crown,
-  Hash,
-  KeyRound,
-  Percent,
-  RotateCcw,
-  Trophy,
-} from "lucide-react";
-import { NeoButton, NeoCard } from "@shared/components-react";
+/**
+ * PlayArea.tsx -- Last Survivor (v2 scene-driven rebuild)
+ *
+ * The arena IS the scene: a bright survival vault with a tap-to-buy countdown
+ * relic, animated key stacks, and a settle climax. Buy keys is the primary
+ * action; history, how-it-works, prepaid-credit recovery, and the settle/claim
+ * flow are tucked into a drawer. Warm game identity, high contrast. Chain logic
+ * (useLastSurvivor) is untouched.
+ */
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Flame, KeyRound, Timer, Trophy } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import { formatNumber } from "@shared/utils/format";
 import type { Observable } from "@shared/react/context";
-import type { HistoryEvent } from "./composables/useLastSurvivor";
-import DangerRingHero from "./components/DangerRingHero";
-import DangerMeter from "./components/DangerMeter";
-import BuyKeysCard from "./pages/index/components/BuyKeysCard";
-import HistoryList from "./pages/index/components/HistoryList";
+import { ParticleBurst, CoinArt } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -25,639 +21,422 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+const KEY_PRESETS = ["1", "3", "5", "10"];
+const ARENA_IMAGE = "last-survivor-arena.webp";
+const RELIC_IMAGE = "survivor-scene-art.webp";
+
+type SurvivorSceneStyle = CSSProperties & {
+  "--survivor-danger-progress": string;
+};
+
+function shortAddr(addr: string): string {
+  if (!addr || addr.length < 10) return addr || "---";
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  // Round info
   const formattedRound = str("formattedRound", "#0");
-  const roundStatusDisplay = str("roundStatusDisplay", "---");
-  const isRoundActive = bool("isRoundActive");
-
-  // Prize pool — rendered once inside the hero ring
-  const totalPot = num("totalPot");
-
-  // Timer / danger
+  const roundStatusDisplay = str("roundStatusDisplay");
   const countdown = str("countdown", "00:00:00");
   const dangerLevel = str("dangerLevel", "low");
   const dangerLevelText = str("dangerLevelText");
   const dangerProgress = num("dangerProgress");
-  const shouldPulse = bool("shouldPulse");
-
-  // Leader
   const lastBuyer = str("lastBuyer");
-
-  // Connected wallet (when present) — used to celebrate the viewer's own win in
-  // the settle/payout card. Absent in the standalone (no-wallet) capture.
+  const lastBuyerLabel = str("lastBuyerLabel", "--");
   const viewerAddress = str("viewerAddress");
-
-  // User participation
+  const totalPotDisplay = str("totalPotDisplay", "0.00 GAS");
   const userKeys = num("userKeys");
-  // Round total keys SOLD (chain state) and the user's share of them. These
-  // are distinct from the buy-selector `keyCount` picker (used only for the
-  // estimated-cost calculation inside BuyKeysCard).
   const totalKeys = num("totalKeysDisplay");
   const userSharePercent = num("userSharePercent");
-
-  // Buy keys
   const estimatedCost = str("estimatedCost", "0.00");
-  const keyValidationError = val<string>("keyValidationError");
+  const isRoundActive = bool("isRoundActive");
+  const shouldPulse = bool("shouldPulse");
   const isBuyingKeys = bool("isBuyingKeys");
-  const roundDataAvailable = bool("roundDataAvailable");
-  const serviceNotice = str("serviceNotice");
-
-  // The round has ended on-chain and needs a permissionless settle() to pay the
-  // last buyer and roll forward before a new round can be bought.
-  const needsLifecycleSync = bool("needsLifecycleSync");
   const isSettling = bool("isSettling");
-
-  // Unused prepaid buy-credit (a deposit that landed but whose buy didn't
-  // complete) — withdrawable via the recovery row.
+  const roundDataAvailable = bool("roundDataAvailable");
+  const needsLifecycleSync = bool("needsLifecycleSync");
+  const serviceNotice = str("serviceNotice");
   const prepaidCredit = num("prepaidCredit");
-
-  // Loading
-  const isLoading = bool("isLoading");
-
-  // History
-  const history = val<HistoryEvent[]>("history") ?? [];
+  const keyValidationError = val<string>("keyValidationError");
+  const history = val<unknown[]>("history") ?? [];
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
+  const [motionKeyCount, setMotionKeyCount] = useState<string | null>(null);
   const [keyBurst, setKeyBurst] = useState(0);
-  const [buyActionPreview, setBuyActionPreview] = useState(false);
-  const [settleActionPreview, setSettleActionPreview] = useState(false);
-  const buyActionPreviewTimeout = useRef<number | null>(null);
-  const settleActionPreviewTimeout = useRef<number | null>(null);
-  const formatNum = (n: number) => formatNumber(n, 2);
-  const buyKeysIsAnimating = isBuyingKeys || buyActionPreview;
-  const settleIsAnimating = isSettling || settleActionPreview;
+  const [buyPreview, setBuyPreview] = useState(false);
+  const [settlePreview, setSettlePreview] = useState(false);
+  const buyPreviewTimeout = useRef<number | null>(null);
+  const settlePreviewTimeout = useRef<number | null>(null);
+  const resetKeyCountAfterPreview = useRef(false);
 
-  useEffect(() => {
-    return () => {
-      if (buyActionPreviewTimeout.current !== null) {
-        window.clearTimeout(buyActionPreviewTimeout.current);
-      }
-      if (settleActionPreviewTimeout.current !== null) {
-        window.clearTimeout(settleActionPreviewTimeout.current);
-      }
-    };
-  }, []);
+  const buyAnimating = isBuyingKeys || buyPreview;
+  const settleAnimating = isSettling || settlePreview;
+  const liveDanger = isRoundActive && roundDataAvailable && totalKeys > 0;
+  const awaitingFirstKey = isRoundActive && roundDataAvailable && totalKeys <= 0;
+  const canBuyKeys = roundDataAvailable && isRoundActive && !needsLifecycleSync;
+  const safeDangerProgress = Math.max(0, Math.min(100, dangerProgress || 0));
+  const visualKeyCount = buyAnimating && motionKeyCount ? motionKeyCount : localKeyCount;
+  const selectedKeyCountNumber = Number(localKeyCount || "1") || 1;
+  const keyLoadPct = Math.min(100, Math.max(8, (selectedKeyCountNumber / 10) * 100));
+  const selectedKeyVisualCount = Math.max(1, Math.min(6, Number.parseInt(visualKeyCount || "1", 10) || 1));
+  const sceneStyle: SurvivorSceneStyle = {
+    "--survivor-danger-progress": `${safeDangerProgress}%`,
+  };
 
-  const startBuyActionPreview = () => {
-    if (buyActionPreviewTimeout.current !== null) {
-      window.clearTimeout(buyActionPreviewTimeout.current);
-    }
-    setBuyActionPreview(true);
-    buyActionPreviewTimeout.current = window.setTimeout(() => {
-      setBuyActionPreview(false);
-      buyActionPreviewTimeout.current = null;
+  useEffect(
+    () => () => {
+      if (buyPreviewTimeout.current !== null) window.clearTimeout(buyPreviewTimeout.current);
+      if (settlePreviewTimeout.current !== null) window.clearTimeout(settlePreviewTimeout.current);
+      resetKeyCountAfterPreview.current = false;
+    },
+    [],
+  );
+
+  const startBuyPreview = (count: string) => {
+    if (buyPreviewTimeout.current !== null) window.clearTimeout(buyPreviewTimeout.current);
+    setMotionKeyCount(count);
+    setBuyPreview(true);
+    buyPreviewTimeout.current = window.setTimeout(() => {
+      setBuyPreview(false);
+      setMotionKeyCount(null);
+      buyPreviewTimeout.current = null;
+      if (resetKeyCountAfterPreview.current) {
+        resetKeyCountAfterPreview.current = false;
+        setLocalKeyCount("1");
+        void dispatch("setKeyCount", "1");
+      }
     }, 1400);
   };
-  const startSettleActionPreview = () => {
-    if (settleActionPreviewTimeout.current !== null) {
-      window.clearTimeout(settleActionPreviewTimeout.current);
-    }
-    setSettleActionPreview(true);
-    settleActionPreviewTimeout.current = window.setTimeout(() => {
-      setSettleActionPreview(false);
-      settleActionPreviewTimeout.current = null;
+  const startSettlePreview = () => {
+    if (settlePreviewTimeout.current !== null) window.clearTimeout(settlePreviewTimeout.current);
+    setSettlePreview(true);
+    settlePreviewTimeout.current = window.setTimeout(() => {
+      setSettlePreview(false);
+      settlePreviewTimeout.current = null;
     }, 1500);
   };
-  // A fresh round is active on-chain but has no keys sold yet, so it reports
-  // remainingTime 0 — the danger ring/meter must NOT render a pulsing red
-  // CRITICAL 00:00:00 for it. Reserve the live danger styling for a round that
-  // has at least one key (a real running clock); a fresh round shows the calm
-  // accent + an "awaiting the first key" caption instead.
-  const liveDanger = isRoundActive && roundDataAvailable && totalKeys > 0;
-  const awaitingFirstKey =
-    isRoundActive && roundDataAvailable && totalKeys <= 0;
-  // Buys are only valid on a live round. An ended round (needsLifecycleSync) is
-  // blocked by the contract ("round ended; settle first"), so the affordance is
-  // Settle, not Buy.
-  const canBuyKeys = roundDataAvailable && isRoundActive && !needsLifecycleSync;
-  const showBuyKeysPanel =
-    isRoundActive ||
-    needsLifecycleSync ||
-    roundDataAvailable ||
-    Boolean(serviceNotice);
-  const buyKeysHelper = !roundDataAvailable
-    ? // When the service-notice card is already showing its own "Refresh Round"
-      // entry point, the helper points back to it instead of repeating the
-      // full "refresh before buying" instruction a second time.
-      serviceNotice
-      ? t("roundStateNoticeRef")
-      : t("roundStateRequired")
-    : needsLifecycleSync
-      ? t("settleBeforeBuy")
-      : t("keyPrice");
-  const buyKeysLabel = t("buyKeys");
-  const clampLanePercent = (value: number) => Math.min(92, Math.max(8, value));
-  const arenaDangerProgress = clampLanePercent(
-    liveDanger ? dangerProgress : needsLifecycleSync ? 92 : 10,
-  );
-  const arenaPlayerProgress = clampLanePercent(
-    totalKeys > 0 ? userSharePercent : 8,
-  );
-  const arenaPotProgress = clampLanePercent(
-    totalPot > 0 ? 12 + Math.log10(totalPot + 1) * 34 : 8,
-  );
-  const arenaLaneStyle = {
-    "--survivor-danger-progress": `${arenaDangerProgress}%`,
-    "--survivor-player-progress": `${arenaPlayerProgress}%`,
-    "--survivor-pot-progress": `${arenaPotProgress}%`,
-  } as CSSProperties;
 
-  const formatBuyerAddress = (addr: string) => {
-    if (!addr || addr.length < 10) return addr || "---";
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const handleKeyCountChange = (value: string) => {
+    if (value !== localKeyCount) setKeyBurst((tick) => tick + 1);
+    setLocalKeyCount(value);
+    void dispatch("setKeyCount", value);
+  };
+  const handleBuyKeys = async () => {
+    if (!canBuyKeys || buyAnimating) return;
+    setKeyBurst((tick) => tick + 1);
+    startBuyPreview(localKeyCount || "1");
+    await dispatch("buyKeys", localKeyCount);
+    if (buyPreviewTimeout.current === null) {
+      setLocalKeyCount("1");
+      void dispatch("setKeyCount", "1");
+    } else {
+      resetKeyCountAfterPreview.current = true;
+    }
+  };
+  const handleSettle = async () => {
+    if (settleAnimating) return;
+    startSettlePreview();
+    await dispatch("settleRound");
   };
 
-  // The settling round pays the recorded last buyer the entire pot. When the
-  // connected wallet IS that last buyer, the settle card becomes a personal
-  // "You won the pot!" celebration instead of a neutral leader readout.
   const viewerIsWinner =
     Boolean(viewerAddress) &&
     Boolean(lastBuyer) &&
     viewerAddress.toLowerCase() === lastBuyer.toLowerCase();
 
-  const handleKeyCountChange = (value: string) => {
-    if (value !== localKeyCount) {
-      setKeyBurst((tick) => tick + 1);
-    }
-    setLocalKeyCount(value);
-    // Keep the composable's keyCount in sync so the Estimated Cost derive
-    // reflects the count the user is actually editing (not the 1-key price).
-    void dispatch("setKeyCount", value);
-  };
+  const scene = (
+    <div
+      className="survivor-scene"
+      data-state={buyAnimating ? "buying" : settleAnimating ? "settling" : liveDanger ? dangerLevel : needsLifecycleSync ? "ended" : "idle"}
+      style={sceneStyle}
+    >
+      <img className="survivor-scene__arena-art" src={ARENA_IMAGE} alt="" aria-hidden="true" />
+      <span className="survivor-scene__shade" aria-hidden="true" />
 
-  const handleBuyKeys = async () => {
-    if (!canBuyKeys || buyKeysIsAnimating) return;
-    setKeyBurst((tick) => tick + 1);
-    startBuyActionPreview();
-    await dispatch("buyKeys", localKeyCount);
-    setLocalKeyCount("1");
-    void dispatch("setKeyCount", "1");
-  };
+      <div className="survivor-scene__hud">
+        <div className="survivor-scene__pot">
+          <CoinArt size={22} variant="gas" />
+          <span>{t("totalPot")}</span>
+          <strong>{totalPotDisplay}</strong>
+        </div>
+        <div className="survivor-scene__timer" data-danger={dangerLevel} data-pulse={shouldPulse ? "true" : undefined}>
+          <Timer size={16} />
+          <span>{countdown}</span>
+        </div>
+      </div>
 
-  const handleRefreshRound = async () => {
-    await dispatch("refreshRound");
-  };
+      <button
+        type="button"
+        className="survivor-scene__relic"
+        onClick={() => void handleBuyKeys()}
+        disabled={!canBuyKeys || buyAnimating}
+        aria-label={buyAnimating ? t("buying") : t("buyKeys")}
+      >
+        <img className="survivor-scene__relic-art" src={RELIC_IMAGE} alt="" aria-hidden="true" />
+        <span className="survivor-scene__relic-scrim" aria-hidden="true" />
+        <span className="survivor-scene__danger-track" aria-hidden="true">
+          <span className="survivor-scene__danger-fill" />
+        </span>
+        <span className="survivor-scene__relic-copy">
+          <span>
+            <Flame size={14} /> {dangerLevelText || t("safe")}
+          </span>
+          <strong>{countdown}</strong>
+          <em>{t("buyKeys")}</em>
+        </span>
+      </button>
 
-  const handleSettleRound = async () => {
-    if (settleIsAnimating) return;
-    startSettleActionPreview();
-    await dispatch("settleRound");
-  };
-  const playStateClass = [
-    liveDanger ? "survivor-play-area--live" : "",
-    awaitingFirstKey ? "survivor-play-area--awaiting-first-key" : "",
-    needsLifecycleSync ? "survivor-play-area--settlement" : "",
-    settleIsAnimating ? "survivor-play-area--settling" : "",
-    viewerIsWinner ? "survivor-play-area--winner" : "",
-    buyKeysIsAnimating ? "survivor-play-area--buying" : "",
-    serviceNotice ? "survivor-play-area--service-notice" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+      <div className="survivor-scene__beats" role="list" aria-label={t("arenaMomentum")}>
+        <span role="listitem" data-active={buyAnimating || awaitingFirstKey || totalKeys > 0 ? "true" : undefined}>
+          <KeyRound size={14} />
+          <em>{t("beatBuyKey")}</em>
+        </span>
+        <span role="listitem" data-active={liveDanger || shouldPulse ? "true" : undefined}>
+          <Timer size={14} />
+          <em>{t("beatExtendClock")}</em>
+        </span>
+        <span role="listitem" data-active={needsLifecycleSync || viewerIsWinner ? "true" : undefined}>
+          <Trophy size={14} />
+          <em>{t("beatLastBuyer")}</em>
+        </span>
+      </div>
+
+      <div className="survivor-scene__key-stack" aria-hidden="true" key={keyBurst}>
+        {Array.from({ length: selectedKeyVisualCount }).map((_, i) => (
+          <span key={i} className={`survivor-scene__key-token survivor-scene__key-token--${i}`}>
+            <KeyRound size={18} />
+          </span>
+        ))}
+      </div>
+
+      {buyAnimating && (
+        <div className="survivor-scene__key-burst" aria-hidden="true">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <span key={i} className={`survivor-scene__key-spark survivor-scene__key-spark--${i} mx2-spark`}>
+              <KeyRound size={18} />
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="survivor-scene__readout">
+        {lastBuyerLabel !== "--" && (
+          <div className="survivor-scene__leader">
+            <span>{t("currentLeader")}</span>
+            <code>{shortAddr(lastBuyerLabel)}</code>
+          </div>
+        )}
+        <div className="survivor-scene__cost">
+          <span>{t("estimatedCost")}</span>
+          <strong>{estimatedCost} GAS</strong>
+        </div>
+      </div>
+
+      {serviceNotice && <p className="survivor-scene__notice" role="alert">{serviceNotice}</p>}
+
+      <p className="survivor-scene__status" aria-live="polite">
+        {buyAnimating
+          ? t("buying")
+          : settleAnimating
+            ? t("settlingRound")
+            : awaitingFirstKey
+              ? t("awaitingFirstKey")
+              : needsLifecycleSync
+                ? t("roundEnded")
+                : !roundDataAvailable
+                  ? t("roundStateRequired")
+                  : roundStatusDisplay}
+      </p>
+    </div>
+  );
+
+  const controls = (
+    <div className="survivor-controls" aria-label={t("keyChamber")}>
+      <div className="survivor-controls__dock">
+        <div className="survivor-controls__core">
+          <span>{t("keyChamber")}</span>
+          <strong>{localKeyCount || "1"} {t("keysSuffix")}</strong>
+          <em>{t("nextCost", { amount: estimatedCost })}</em>
+        </div>
+        <div className="survivor-controls__presets" aria-label={t("keyCapsules")}>
+          {KEY_PRESETS.map((preset) => {
+            const active = localKeyCount === preset;
+            return (
+              <button
+                key={preset}
+                type="button"
+                className={["survivor-preset", active ? "survivor-preset--active" : null]
+                  .filter(Boolean).join(" ")}
+                onClick={() => handleKeyCountChange(preset)}
+                disabled={buyAnimating}
+                aria-pressed={active}
+                aria-label={`${preset} ${t("keysSuffix")}`}
+              >
+                <span className="survivor-preset__icon" aria-hidden="true">
+                  <KeyRound size={15} />
+                </span>
+                <span>
+                  <strong>{preset}</strong>
+                  <em>{t("keysSuffix")}</em>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="survivor-controls__stepper" aria-label={t("keyTuner")}>
+          <button
+            type="button"
+            className="survivor-stepper__btn"
+            onClick={() => handleKeyCountChange(String(Math.max(1, Number(localKeyCount || "1") - 1)))}
+            disabled={buyAnimating}
+            aria-label={t("decreaseKeys")}
+          >-</button>
+          <output className="survivor-stepper__output" aria-live="polite">
+            <span className="survivor-stepper__track" aria-hidden="true">
+              <span
+                className="survivor-stepper__track-fill"
+                style={{ width: `${keyLoadPct}%` }}
+              />
+            </span>
+            <strong>{localKeyCount || "1"}</strong>
+            <span>{t("keysSuffix")}</span>
+          </output>
+          <button
+            type="button"
+            className="survivor-stepper__btn"
+            onClick={() => handleKeyCountChange(String(Number(localKeyCount || "1") + 1))}
+            disabled={buyAnimating}
+            aria-label={t("increaseKeys")}
+          >+</button>
+        </div>
+        <p className="survivor-controls__hint">{t("keyLoadoutHint")}</p>
+        {keyValidationError && (
+          <p className="survivor-controls__error" role="alert">{keyValidationError}</p>
+        )}
+      </div>
+    </div>
+  );
+
+  const stageTitle = buyAnimating
+    ? t("buying")
+    : needsLifecycleSync
+      ? viewerIsWinner ? t("youWon") : t("winnerDeclared")
+      : awaitingFirstKey
+        ? t("awaitingFirstKey")
+        : t("survivalArena");
 
   return (
-    <div className={`survivor-play-area ${playStateClass}`.trim()}>
-      {/* Game stage: the countdown arena, prize pressure, and key purchase live
-          together so the player acts on the scene instead of filling a form. */}
-      <section
-        className={`survivor-stage ${playStateClass}`.trim()}
-        aria-label={t("survivalArena")}
-      >
-        <img
-          className="survivor-stage__image"
-          src="./last-survivor-arena.jpg"
-          alt={t("survivalArenaAlt")}
-          loading="eager"
-          decoding="async"
-        />
-        <div className="survivor-stage__shade" aria-hidden="true" />
-        <div className="survivor-stage__content">
-          <div className="survivor-stage__left">
-            {serviceNotice && (
-              <div className="survivor-service-notice" role="status">
-                <div className="survivor-service-notice__copy">
-                  <span className="survivor-service-notice__title">
-                    {t("roundStateUnavailableTitle")}
-                  </span>
-                  <span>{serviceNotice}</span>
-                </div>
-                <NeoButton
-                  size="sm"
-                  variant="secondary"
-                  loading={isLoading}
-                  onClick={handleRefreshRound}
-                  aria-label={t("refreshRound")}
+    <div className="survivor-play-area mx2 mx2-cat-game">
+      <PlayStage
+        category="game"
+        stage={{
+          eyebrow: `${t("round")} ${formattedRound}`,
+          title: stageTitle,
+          subtitle: t("subtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge__dot" /> {roundStatusDisplay}
+              </span>
+              {viewerIsWinner && <span className="mx2-badge">{t("youWon")}</span>}
+            </>
+          ),
+        }}
+        scene={
+          <>
+            {scene}
+            {controls}
+          </>
+        }
+        score={[
+          { label: t("totalPot"), value: totalPotDisplay, accent: true },
+          { label: t("yourKeys"), value: String(userKeys) },
+          { label: t("totalKeys"), value: String(totalKeys) },
+          { label: t("share"), value: userSharePercent > 0 ? `${userSharePercent.toFixed(1)}%` : "—" },
+        ]}
+        actions={{
+          primary: {
+            label: buyAnimating ? t("buying") : t("buyKeys"),
+            onClick: () => void handleBuyKeys(),
+            disabled: buyAnimating || !canBuyKeys,
+            loading: buyAnimating,
+            hint: t("keyPrice"),
+          },
+          secondary: [
+            ...(needsLifecycleSync
+              ? [{ label: t("settleRound"), onClick: () => void handleSettle(), loading: settleAnimating, hint: t("settleRoundHint") }]
+              : []),
+            ...(prepaidCredit > 0
+              ? [{ label: t("withdrawCredit"), onClick: () => void dispatch("withdrawCredit"), hint: t("prepaidCreditLabel") }]
+              : []),
+          ],
+        }}
+        drawerToggleLabel={t("recentHistory")}
+        drawer={{
+          title: t("recentHistory"),
+          children: (
+            <>
+              {history.length > 0 ? (
+                <ul className="mx2-history">
+                  {history.slice(0, 8).map((row, i) => {
+                    const r = row as { round?: number; winner?: string; pot?: number | string };
+                    return (
+                      <li key={i} className="mx2-history__item">
+                        <span className="mx2-history__face">#{r.round ?? i + 1}</span>
+                        <span className="mx2-history__stake">{r.winner ? shortAddr(r.winner) : "—"}</span>
+                        <span className="mx2-history__result">{r.pot ?? "—"}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p>{t("noHistory")}</p>
+              )}
+
+              <h4>{t("howItWorks")}</h4>
+              <p>{t("ruleDepositDesc")}</p>
+              <p>{t("ruleTimerDesc")}</p>
+              <p>{t("ruleWinDesc")}</p>
+
+              <h4>{t("prepaidCreditLabel")}</h4>
+              <p>{t("prepaidCreditHint")}</p>
+              {prepaidCredit > 0 && (
+                <button
+                  type="button"
+                  className="mx2-btn mx2-btn--ghost"
+                  onClick={() => void dispatch("withdrawCredit")}
                 >
-                  {t("refreshRound")}
-                </NeoButton>
-              </div>
+                  {t("withdrawCredit")}
+                </button>
+              )}
+            </>
+          ),
+        }}
+      />
+
+      {(settleAnimating || (needsLifecycleSync && viewerIsWinner)) && (
+        <div className="survivor-climax" role="dialog" aria-modal="true" aria-label={viewerIsWinner ? t("youWon") : t("winnerDeclared")}>
+          <div className="survivor-climax__card mx2-rise-in">
+            {viewerIsWinner && <ParticleBurst coins count={14} />}
+            <div className="survivor-climax__medal mx2-float">
+              <img src={RELIC_IMAGE} alt="" aria-hidden="true" />
+              <Trophy size={34} />
+            </div>
+            <h3>{viewerIsWinner ? t("youWon") : t("winnerDeclared")}</h3>
+            <p className="survivor-climax__pot">{totalPotDisplay}</p>
+            {lastBuyerLabel !== "--" && (
+              <p className="survivor-climax__winner">{shortAddr(lastBuyerLabel)}</p>
             )}
-            <div className="hero-heading">
-              <span className="hero-badge" aria-hidden="true">
-                <Clock3 size={22} />
-              </span>
-              <div className="hero-heading-copy">
-                <span className="hero-eyebrow">
-                  {t("survivorStageEyebrow")}
-                </span>
-                <h2 className="hero-title">{t("title")}</h2>
-                <span className="hero-facts">
-                  <span className="hero-fact-round">{formattedRound}</span>
-                  <span className="hero-fact-sep" aria-hidden="true">
-                    &middot;
-                  </span>
-                  <span
-                    className={`hero-fact-status status-${isRoundActive ? "active" : "ended"}`}
-                  >
-                    <span className="status-dot" aria-hidden="true" />
-                    {roundStatusDisplay}
-                  </span>
-                </span>
-              </div>
-            </div>
-            <DangerRingHero
-              t={t}
-              countdown={countdown}
-              dangerLevel={dangerLevel}
-              shouldPulse={shouldPulse}
-              formattedPot={formatNum(totalPot)}
-              active={liveDanger}
-              awaitingFirstKey={awaitingFirstKey}
-            />
-            <DangerMeter
-              t={t}
-              level={dangerLevel}
-              levelText={dangerLevelText}
-              progress={dangerProgress}
-              active={liveDanger}
-            />
-          </div>
-
-          <div className="survivor-stage__right">
-            <div className="survivor-action-console">
-              <div className="survivor-action-console__head">
-                <span className="survivor-action-console__eyebrow">
-                  {t("pressConsole")}
-                </span>
-                <strong>{t("pressConsoleTitle")}</strong>
-                <span>{t("pressConsoleHint")}</span>
-              </div>
-
-              <div
-                className="survivor-arena-lane"
-                aria-label={t("arenaMomentum")}
-                style={arenaLaneStyle}
-              >
-                <div className="survivor-arena-lane__head">
-                  <span>{t("arenaMomentum")}</span>
-                  <strong>{t("arenaMomentumHint")}</strong>
-                </div>
-                <div className="survivor-arena-lane__track" aria-hidden="true">
-                  <span className="survivor-arena-lane__pulse" />
-                  <span
-                    className={`survivor-arena-lane__marker survivor-arena-lane__marker--leader${
-                      lastBuyer ? " is-live" : ""
-                    }`}
-                  >
-                    <Crown size={15} />
-                  </span>
-                  <span
-                    className={`survivor-arena-lane__marker survivor-arena-lane__marker--player${
-                      userKeys > 0 ? " is-live" : ""
-                    }`}
-                  >
-                    <KeyRound size={15} />
-                  </span>
-                  <span
-                    className={`survivor-arena-lane__marker survivor-arena-lane__marker--pot${
-                      totalPot > 0 ? " is-live" : ""
-                    }`}
-                  >
-                    <Trophy size={15} />
-                  </span>
-                </div>
-                <div className="survivor-arena-lane__labels">
-                  <span>
-                    <small>{t("leaderMarker")}</small>
-                    <strong>
-                      {lastBuyer
-                        ? formatBuyerAddress(lastBuyer)
-                        : t("awaitingFirstKey")}
-                    </strong>
-                  </span>
-                  <span>
-                    <small>{t("playerMarker")}</small>
-                    <strong>{userKeys}</strong>
-                  </span>
-                  <span>
-                    <small>{t("potMarker")}</small>
-                    <strong>
-                      {formatNum(totalPot)} {t("tokenGas")}
-                    </strong>
-                  </span>
-                </div>
-              </div>
-
-              <div
-                className="survivor-seat-strip"
-                aria-label={t("survivorSeats")}
-              >
-                <div className="survivor-seat-strip__head">
-                  <span>{t("survivorSeats")}</span>
-                  <strong>{t("survivorSeatsHint")}</strong>
-                </div>
-                <div className="survivor-seat-grid">
-                  <span
-                    className={`survivor-seat survivor-seat--leader${
-                      lastBuyer ? " is-live" : ""
-                    }`}
-                  >
-                    <span className="survivor-seat__icon" aria-hidden="true">
-                      <Crown size={17} />
-                    </span>
-                    <small>{t("leaderMarker")}</small>
-                    <strong>
-                      {lastBuyer
-                        ? formatBuyerAddress(lastBuyer)
-                        : t("survivorSeatEmpty")}
-                    </strong>
-                  </span>
-                  <span
-                    className={`survivor-seat survivor-seat--player${
-                      userKeys > 0 ? " is-live" : ""
-                    }`}
-                  >
-                    <span className="survivor-seat__icon" aria-hidden="true">
-                      <KeyRound size={17} />
-                    </span>
-                    <small>{t("playerMarker")}</small>
-                    <strong>{userKeys}</strong>
-                  </span>
-                  <span
-                    className={`survivor-seat survivor-seat--pot${
-                      totalPot > 0 ? " is-live" : ""
-                    }`}
-                  >
-                    <span className="survivor-seat__icon" aria-hidden="true">
-                      <Trophy size={17} />
-                    </span>
-                    <small>{t("potMarker")}</small>
-                    <strong>
-                      {formatNum(totalPot)} {t("tokenGas")}
-                    </strong>
-                  </span>
-                </div>
-                <div
-                  key={keyBurst}
-                  className={`survivor-key-burst${
-                    keyBurst > 0 ? " survivor-key-burst--active" : ""
-                  }`}
-                  aria-hidden="true"
-                >
-                  {Array.from({ length: 6 }, (_, index) => (
-                    <span
-                      key={index}
-                      style={
-                        {
-                          "--survivor-key-burst-delay": `${index * 46}ms`,
-                          "--survivor-key-burst-x": `${18 + index * 11}%`,
-                          "--survivor-key-burst-y": `${42 + (index % 3) * 9}px`,
-                        } as CSSProperties
-                      }
-                    >
-                      <KeyRound size={13} />
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Last buyer / current leader badge */}
-              {lastBuyer && isRoundActive && (
-                <div className="last-buyer-badge">
-                  <span className="last-buyer-icon" aria-hidden="true">
-                    <Crown size={18} />
-                  </span>
-                  <div className="last-buyer-info">
-                    <span className="last-buyer-label">
-                      {t("currentLeader")}
-                    </span>
-                    <span className="last-buyer-address">
-                      {formatBuyerAddress(lastBuyer)}
-                    </span>
-                  </div>
-                  <span className="last-buyer-hint">{t("winsIfZero")}</span>
-                </div>
-              )}
-
-              {/* Primary action — Buy Keys, inside the stage console. */}
-              {showBuyKeysPanel && (
-                <div className="buy-keys-card">
-                  <BuyKeysCard
-                    keyCount={localKeyCount}
-                    estimatedCost={estimatedCost}
-                    isPaying={buyKeysIsAnimating}
-                    disabled={!canBuyKeys}
-                    validationError={keyValidationError}
-                    helperText={buyKeysHelper}
-                    submitLabel={buyKeysLabel}
-                    t={t}
-                    onKeyCountChange={handleKeyCountChange}
-                    onBuy={handleBuyKeys}
-                  />
-                </div>
-              )}
-
-              {/* Round-control prompt — suppressed when the service notice is already
-                  showing its own "Refresh Round" entry point. */}
-              {!isRoundActive && !needsLifecycleSync && !serviceNotice && (
-                <NeoCard variant="erobo" className="round-control-card">
-                  <div className="round-control-card__body">
-                    <div className="round-control-card__copy">
-                      <span className="round-control-card__title">
-                        {t("inactiveRound")}
-                      </span>
-                      <span className="round-control-card__text">
-                        {t("refreshRoundHint")}
-                      </span>
-                    </div>
-                    <NeoButton
-                      size="sm"
-                      variant="secondary"
-                      loading={isLoading}
-                      onClick={handleRefreshRound}
-                      aria-label={t("refreshRound")}
-                    >
-                      {t("refreshRound")}
-                    </NeoButton>
-                  </div>
-                </NeoCard>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Round ended on-chain — the payout reveal is the hero moment. Show the
-          winner + the exact GAS prize prominently, then anyone can settle() to
-          pay the last buyer the entire pot atomically and open the next round
-          (permissionless). */}
-      {needsLifecycleSync && (
-        <NeoCard variant="erobo" className="claim-card">
-          <div
-            className={[
-              "claim-card-inner",
-              viewerIsWinner ? "is-winner" : "",
-              settleIsAnimating ? "is-settling" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <span className="claim-card-trophy" aria-hidden="true">
-              <Trophy size={26} />
-            </span>
-            <span className="claim-card-eyebrow">
-              {viewerIsWinner ? t("youWon") : t("winnerDeclared")}
-            </span>
-            <div className="claim-payout">
-              <span className="claim-payout-amount">{formatNum(totalPot)}</span>
-              <span className="claim-payout-token">{t("tokenGas")}</span>
-            </div>
-            {lastBuyer && (
-              <span className="claim-winner-address" title={lastBuyer}>
-                {viewerIsWinner
-                  ? t("youWonPayout")
-                  : formatBuyerAddress(lastBuyer)}
-              </span>
+            {!viewerIsWinner && (
+              <button type="button" className="mx2-btn mx2-btn--primary" onClick={() => void handleSettle()}>
+                {settleAnimating ? t("settlingRound") : t("settleRound")}
+              </button>
             )}
-            <span className="claim-card-text">
-              {viewerIsWinner ? t("settleToClaim") : t("settleRoundHint")}
-            </span>
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              loading={settleIsAnimating}
-              disabled={settleIsAnimating}
-              onClick={handleSettleRound}
-              aria-label={
-                settleIsAnimating ? t("settlingRound") : t("settleRound")
-              }
-            >
-              {settleIsAnimating ? t("settlingRound") : t("settleRound")}
-            </NeoButton>
           </div>
-        </NeoCard>
+        </div>
       )}
-
-      {/* Recovery — unused prepaid buy-credit from a deposit whose buy didn't
-          complete. The contract reuses it on the next buy, or the player can
-          withdraw it back to the wallet here (money-in needs money-out). */}
-      {prepaidCredit > 0 && (
-        <NeoCard variant="erobo" className="survivor-recovery-card">
-          <div className="survivor-recovery-card__body">
-            <div className="survivor-recovery-card__copy">
-              <span className="survivor-recovery-card__title">
-                {t("prepaidCreditLabel")} · {formatNum(prepaidCredit)}{" "}
-                {t("tokenGas")}
-              </span>
-              <span className="survivor-recovery-card__text">
-                {t("prepaidCreditHint")}
-              </span>
-            </div>
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              loading={isLoading}
-              disabled={isLoading}
-              onClick={() => dispatch("withdrawCredit")}
-              aria-label={t("withdrawCredit")}
-            >
-              {t("withdrawCredit")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      )}
-
-      {/* Your participation — single compact metrics strip */}
-      <div className="participation-bar">
-        <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">
-            <KeyRound size={17} />
-          </span>
-          <div className="participation-detail">
-            <span className="participation-label">{t("yourKeys")}</span>
-            <span className="participation-value">{userKeys}</span>
-          </div>
-        </div>
-        <div className="participation-divider" />
-        <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">
-            <Hash size={17} />
-          </span>
-          <div className="participation-detail">
-            <span className="participation-label">{t("totalKeys")}</span>
-            <span className="participation-value">{totalKeys}</span>
-          </div>
-        </div>
-        <div className="participation-divider" />
-        <div className="participation-item" title={t("shareHint")}>
-          <span className="participation-icon" aria-hidden="true">
-            <Percent size={17} />
-          </span>
-          <div className="participation-detail">
-            <span className="participation-label">{t("share")}</span>
-            <span className="participation-value">
-              {totalKeys > 0 ? `${userSharePercent.toFixed(1)}%` : "—"}
-            </span>
-          </div>
-        </div>
-      </div>
-      <p className="participation-share-hint">{t("shareHint")}</p>
-
-      {/* Game rules — collapsed tutorial, out of the primary flow */}
-      <details className="rules-card">
-        <summary className="rules-summary">
-          <span className="rules-title">{t("howItWorks")}</span>
-          <span className="rules-chevron" aria-hidden="true" />
-        </summary>
-        <div className="rules-grid">
-          <div className="rule-item">
-            <span className="rule-number">1</span>
-            <div className="rule-text">
-              <strong>{t("ruleDeposit")}</strong>
-              <span>{t("ruleDepositDesc")}</span>
-            </div>
-          </div>
-          <div className="rule-item">
-            <span className="rule-number">2</span>
-            <div className="rule-text">
-              <strong>{t("ruleTimer")}</strong>
-              <span>{t("ruleTimerDesc")}</span>
-            </div>
-          </div>
-          <div className="rule-item">
-            <span className="rule-number">3</span>
-            <div className="rule-text">
-              <strong>{t("ruleWin")}</strong>
-              <span>{t("ruleWinDesc")}</span>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      {/* Recent winners / history section */}
-      <div className="history-section">
-        <div className="history-section-header">
-          <span className="history-section-icon" aria-hidden="true">
-            <RotateCcw size={15} />
-          </span>
-          <span className="history-section-title">{t("recentHistory")}</span>
-        </div>
-        <HistoryList history={history} t={t} />
-      </div>
     </div>
   );
 }

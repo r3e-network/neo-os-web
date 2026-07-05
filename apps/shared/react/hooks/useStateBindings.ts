@@ -1,7 +1,6 @@
 /**
  * useStateBindings — React hook for typed state accessors
  *
- * React equivalent of the Vue composable in composables/useStateBindings.ts.
  * Returns accessor functions that read current observable values synchronously.
  *
  * The hook subscribes to ALL observables in the state record and triggers a

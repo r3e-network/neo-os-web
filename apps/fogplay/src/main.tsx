@@ -16,14 +16,14 @@ defineMiniApp({
 
   setup(ctx) {
     const coinFlip = useCoinFlip({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
     coinFlip.setAddress(ctx.services.chain.address.get() ?? null);
 
-    ctx.registerAction("placeBet", async () => {
+    ctx.framework.actions.register("placeBet", async () => {
       // The toast must reflect the actual outcome — placeBet commits, waits one
       // block, then settles and resolves on both a win and a loss, so a blanket
       // "youWon" success key would celebrate losses.
@@ -34,7 +34,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("revealResult", async () => {
+    ctx.framework.actions.register("revealResult", async () => {
       // Permissionless, idempotent retry of settle() for the persisted pending
       // bet — used by the "Reveal result" button when the inline reveal failed.
       const result = await ctx.services.notify.guard(() => coinFlip.revealResult());
@@ -44,27 +44,27 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(() => coinFlip.withdrawCredit(), "creditWithdrawn");
     });
 
-    ctx.registerAction("dismissOverlay", async () => {
+    ctx.framework.actions.register("dismissOverlay", async () => {
       coinFlip.dismissOverlay();
     });
 
-    ctx.registerAction("setChoice", async (side: unknown) => {
+    ctx.framework.actions.register("setChoice", async (side: unknown) => {
       if (side === "heads" || side === "tails") {
         coinFlip.choice.set(side);
       }
     });
 
-    ctx.registerAction("setBetAmount", async (amount: unknown) => {
+    ctx.framework.actions.register("setBetAmount", async (amount: unknown) => {
       if (typeof amount === "string") {
         coinFlip.setBetAmount(amount);
       }
     });
 
-    ctx.registerAction("resetGame", async () => {
+    ctx.framework.actions.register("resetGame", async () => {
       coinFlip.resetGame();
     });
 

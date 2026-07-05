@@ -1,7 +1,7 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import { createObservable } from "@shared/react/context";
 import PlayArea from "./PlayArea";
-import { appId, appMeta, manifest, messages } from "./appConfig";
+import { appId, appMeta, consoleConfig, manifest, messages } from "./appConfig";
 
 defineMiniApp({
   appId,
@@ -9,13 +9,37 @@ defineMiniApp({
   manifest,
   messages,
   setup(ctx) {
+    const networkLabel = createObservable(appMeta.networkLabel);
+    const endpointLabel = createObservable(appMeta.endpointLabel);
+    const lastStatus = createObservable(ctx.t("statusReady"));
+    const lastDigest = createObservable(ctx.t("digestPlaceholder"));
+    const requestCount = createObservable(0);
+
+    ctx.framework.actions.register("buildRequest", async (...args: unknown[]) => {
+      const values = (args[0] ?? {}) as Record<string, string>;
+      const result = consoleConfig.buildResult(values, ctx.t);
+      const payload = result.payload as { status?: string; digest?: string; requestId?: string };
+      const ok = payload.status !== "input_required";
+
+      lastStatus.set(result.status);
+      if (ok) {
+        const digest = payload.digest ?? payload.requestId ?? ctx.t("digestPlaceholder");
+        lastDigest.set(String(digest));
+        requestCount.set(requestCount.get() + 1);
+      } else {
+        lastDigest.set(ctx.t("digestPlaceholder"));
+      }
+      ctx.setStatus(result.status, ok ? "success" : "warning");
+      return result;
+    });
+
     return {
       state: {
-        networkLabel: createObservable(appMeta.networkLabel),
-        endpointLabel: createObservable(appMeta.endpointLabel),
-        lastStatus: createObservable(ctx.t("statusReady")),
-        lastDigest: createObservable(ctx.t("digestPlaceholder")),
-        requestCount: createObservable(0),
+        networkLabel,
+        endpointLabel,
+        lastStatus,
+        lastDigest,
+        requestCount,
       },
       loadData: async () => {},
     };

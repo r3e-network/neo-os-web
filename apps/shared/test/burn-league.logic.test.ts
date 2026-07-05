@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useBurnLeague } from "../../burn-league/src/composables/useBurnLeague";
+import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -15,7 +16,7 @@ const ZERO_HASH = "0x0000000000000000000000000000000000000000";
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     burnActionUnavailable: "The burn could not be submitted to the contract.",
-    burnServiceUnavailable: "Live burn stats could not be read from the chain right now.",
+    burnServiceUnavailable: "Stats unavailable; you can still prepare a burn. Pool and rank refresh later.",
     burnDepositHeld: "Your GAS was deposited as reusable burn credit.",
     burnPreparing: `Preparing a ${params?.amount ?? ""} burn wallet confirmation.`,
     burnSubmitted: "Burn confirmed on chain. Refreshing the pool and leaderboard.",
@@ -133,7 +134,11 @@ function makeChain(opts: ChainOpts = {}) {
 
 function setup(opts: ChainOpts = {}) {
   const { chain, invoke, read, listEvents } = makeChain(opts);
-  const app = useBurnLeague({ chain, t, getAddress: () => PLAYER });
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-burn-league" },
+  );
+  const app = useBurnLeague({ app: framework, t, getAddress: () => PLAYER });
   app.setAddress(PLAYER);
   return { app, chain, invoke, read, listEvents };
 }
@@ -342,13 +347,17 @@ describe("useBurnLeague (direct MiniAppBurnLeague contract)", () => {
       if (op === "currentSeason") throw new Error("rpc unavailable");
       return "0";
     });
-    const app = useBurnLeague({ chain, t, getAddress: () => PLAYER });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-burn-league" },
+    );
+    const app = useBurnLeague({ app: framework, t, getAddress: () => PLAYER });
     app.setAddress(PLAYER);
 
     await expect(app.loadAll()).resolves.toBeUndefined();
     expect(app.leagueDataAvailable.get()).toBe(false);
     expect(app.serviceNotice.get()).toBe(
-      "Live burn stats could not be read from the chain right now.",
+      "Stats unavailable; you can still prepare a burn. Pool and rank refresh later.",
     );
     expect(invoke).not.toHaveBeenCalled();
   });

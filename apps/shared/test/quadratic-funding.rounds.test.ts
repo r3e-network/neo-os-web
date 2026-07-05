@@ -7,6 +7,7 @@ const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const OWNER_HASH = addressToScriptHash(OWNER);
 const CONTRACT = "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43";
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
+const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 
 // Captured invoke/read calls the composable makes through the wallet SDK.
 const invokeContract = vi.fn(async (params: { operation: string }) => ({
@@ -107,6 +108,12 @@ function wireReads(adminDisplayHash: string, creatorDisplayHash: string, roundOv
   });
 }
 
+function futureLocalTime(offsetMs: number) {
+  const d = new Date(Date.now() + offsetMs);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
   beforeEach(() => {
     addressRef.value = OWNER;
@@ -170,6 +177,36 @@ describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
       startTime: "2000-01-01 00:00",
       endTime: "2000-01-02 00:00",
     });
+    expect(invokeContract).not.toHaveBeenCalled();
+  });
+
+  it("rejects fractional NEO matching pool creation instead of truncating", async () => {
+    const rounds = useQuadraticRounds();
+    await rounds.createRound({
+      title: "NEO Round",
+      description: "",
+      asset: "NEO",
+      matchingPool: "1.5",
+      startTime: futureLocalTime(30 * 60 * 1000),
+      endTime: futureLocalTime(60 * 60 * 1000),
+    });
+
+    expect(invokeContract).not.toHaveBeenCalled();
+  });
+
+  it("rejects fractional NEO addMatching instead of truncating", async () => {
+    wireReads(OWNER_HASH, OWNER_HASH, {
+      asset: { type: "ByteString", value: displayHashToChainBase64(NEO_HASH) },
+      assetSymbol: { type: "ByteString", value: btoa("NEO") },
+      matchingPool: { type: "Integer", value: "10" },
+      matchingRemaining: { type: "Integer", value: "10" },
+    });
+    const rounds = useQuadraticRounds();
+    await rounds.refreshRounds();
+    invokeContract.mockClear();
+
+    await rounds.addMatching("2.25");
+
     expect(invokeContract).not.toHaveBeenCalled();
   });
 });

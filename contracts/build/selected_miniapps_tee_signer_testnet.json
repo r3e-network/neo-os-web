@@ -1,0 +1,16 @@
+[
+  {
+    "name": "MiniAppJumpRush",
+    "network": "testnet",
+    "hash": "0xd98c65af1500cb17417db0ffd1d724f1ccd494cb",
+    "app_manifest": "apps/jump-rush/neo-manifest.json",
+    "tee_signer_set": true
+  },
+  {
+    "name": "MiniAppSheepSolitaire",
+    "network": "testnet",
+    "hash": "0x7541e13629eb35ec54181be2772bff34e39d3c35",
+    "app_manifest": "apps/sheep-solitaire/neo-manifest.json",
+    "tee_signer_set": true
+  }
+]

@@ -63,9 +63,9 @@
   ],
   "updatedAt": "2026-05-08T12:10:43Z",
   "urls": {
-    "banner": "/miniapps/milestone-escrow/banner.jpg",
+    "banner": "/miniapps/milestone-escrow/banner.webp",
     "entry": "/miniapps/milestone-escrow/index.html",
-    "icon": "/miniapps/milestone-escrow/logo.jpg"
+    "icon": "/miniapps/milestone-escrow/logo.webp"
   },
   "version": "1.0.0"
 }

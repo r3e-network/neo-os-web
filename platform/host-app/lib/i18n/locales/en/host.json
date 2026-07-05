@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "Yiwu MiniApps",
+    "title": "Neo Miniapps",
     "subtitle": "Small, focused Neo MiniApps for practical wallet operations",
     "exploreApps": "Explore Apps",
     "launchApp": "Launch App"
@@ -50,6 +50,7 @@
     "pageTitle": "MiniApps",
     "title": "MiniApp Catalog",
     "description": "Browse small, focused MiniApps for Neo N3. Pick one, open the play area, and operate from the shared action console.",
+    "resultsDescription": "Filter by status, category, or search term to find the exact app you want to open.",
     "searchLabel": "Search MiniApps",
     "searchPlaceholder": "Search by name, category, app ID",
     "fetchError": "Failed to load. Please try again.",
@@ -83,8 +84,8 @@
       "onegateExport": "OneGate dApp export"
     },
     "hero": {
-      "title": "Yiwu MiniApps, small tools for every Neo scenario.",
-      "body": "Like Yiwu's small-commodity market, this is a single production interface for small, focused MiniApps: games, payments, oracle tools, account abstraction, bridge workflows, ratings, comments, contract state, and wallet-safe operations.",
+      "title": "Neo Miniapps, focused apps for every Neo scenario.",
+      "body": "A single production interface for focused Neo apps: games, payments, oracle tools, account abstraction, bridge workflows, ratings, comments, contract state, and wallet-safe operations.",
       "catalogCta": "Open MiniApp Catalog",
       "developerCta": "Developer Console"
     },
@@ -109,6 +110,11 @@
     },
     "catalog": {
       "description": "Browse polished apps by category, then open the unified detail view with the app-specific play area and shared action console.",
+      "previewEyebrow": "Explore by intent",
+      "previewTitle": "Find the right MiniApp",
+      "previewBody": "Start with the apps most relevant to your current goal. Open the full catalog when you want the complete library.",
+      "previewCta": "Open full catalog",
+      "moreCount": "{count} more apps are available in the full catalog.",
       "searchPlaceholder": "Search apps, categories, or IDs",
       "ecosystems": "Ecosystems",
       "shownCount": "{shown} shown",

@@ -27,12 +27,12 @@ defineMiniApp({
     const t = ctx.t as (key: string, params?: Record<string, string | number>) => string;
 
     const stats = useDevTippingStats({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t,
     });
 
     const wallet = useDevTippingWallet({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t,
     });
@@ -94,7 +94,7 @@ defineMiniApp({
     // Connect the wallet from the Developer Zone. Reuses the existing wallet
     // connect mechanism (ctx.services.chain.ensureWallet — the same path the
     // tip/register/withdraw flows already drive); no new connect logic.
-    ctx.registerAction("connect", async () => {
+    ctx.framework.actions.register("connect", async () => {
       if (isConnecting.get()) return false;
       isConnecting.set(true);
       try {
@@ -110,7 +110,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("sendTip", async (...args: unknown[]) => {
+    ctx.framework.actions.register("sendTip", async (...args: unknown[]) => {
       const devId = args[0] as number;
       const amount = args[1] as string;
       const anonymous = args[2] as boolean;
@@ -124,7 +124,7 @@ defineMiniApp({
       return result === true;
     });
 
-    ctx.registerAction("registerDeveloper", async (...args: unknown[]) => {
+    ctx.framework.actions.register("registerDeveloper", async (...args: unknown[]) => {
       const name = args[0] as string;
       const role = args[1] as string;
       const result = await notify.guard(
@@ -135,7 +135,7 @@ defineMiniApp({
       return typeof result === "number" && result > 0;
     });
 
-    ctx.registerAction("withdrawTips", async (...args: unknown[]) => {
+    ctx.framework.actions.register("withdrawTips", async (...args: unknown[]) => {
       const devId = args[0] as number;
       const result = await notify.guard(
         () => wallet.withdrawTips(devId, () => void refresh()),
@@ -145,7 +145,7 @@ defineMiniApp({
       return typeof result === "number" && result > 0;
     });
 
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       const result = await notify.guard(
         () => wallet.withdrawCredit(() => void refresh()),
         "creditWithdrawn",

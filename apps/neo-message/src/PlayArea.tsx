@@ -1,614 +1,467 @@
-/**
- * PlayArea.tsx — Neo Message UI (compose + inbox/outbox).
- */
-
+/** PlayArea.tsx — Neo Message sealing desk */
 import { useState } from "react";
-import type { CSSProperties } from "react";
-import {
-  AlertTriangle,
-  CalendarClock,
-  Clock3,
-  CircleCheck,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  MailPlus,
-  MessageSquareText,
-  SendHorizontal,
-  ShieldCheck,
-} from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { StateView } from "@shared/components";
+import { Clock3, LockKeyhole, MailCheck, RadioTower, RefreshCw, SendHorizontal, ShieldCheck, Stamp } from "lucide-react";
+import Checkbox from "@douyinfe/semi-ui/lib/es/checkbox";
+import type { CheckboxEvent } from "@douyinfe/semi-ui/lib/es/checkbox";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
+import type { ObservableState } from "@shared/react/context";
+import { OpenUiNotice, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import {
-  messageStatus,
-  formatUnlock,
-  shortAddress,
-  addressesEqual,
-  needsPublicRevealAck,
-  isEvmAddress,
-  validateCompose,
   MAX_BODY_LENGTH,
+  formatUnlock,
+  isEvmAddress,
+  messageStatus,
+  needsPublicRevealAck,
+  shortAddress,
   type ComposeForm,
+  type LockMode,
   type MessageView,
 } from "./message-logic";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+const sealedDeskUrl = new URL("../public/sealed-message-desk.webp", import.meta.url).href;
+
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-const EMPTY_FORM: ComposeForm = { recipient: "", body: "", lockMode: "recipient", revealDate: "" };
+const EMPTY_FORM: ComposeForm = {
+  recipient: "",
+  body: "",
+  lockMode: "recipient",
+  revealDate: "",
+  publicRevealAcknowledged: false,
+};
 
-// Local datetime-local min: now, formatted as YYYY-MM-DDTHH:mm (no seconds/zone)
-// so the native picker rejects past instants up front.
-function localDateTimeMin(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+type DrawerMode = "delivery" | "inbox" | "sent" | "network";
+
+function bodyPreview(body: string, fallback: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) return fallback;
+  return trimmed.length > 170 ? `${trimmed.slice(0, 170)}...` : trimmed;
 }
 
-// A friendly, warm palette for the per-address identicon. Deterministic from the
-// address so the same correspondent always wears the same colour — a small
-// visual identity for an otherwise faceless 0x… string. Display-only.
-const IDENTICON_HUES = ["#5b6ef5", "#7b5bf5", "#e07b4f", "#0fb174", "#d6516e", "#3b9ae0", "#c08a18"];
-
-function identiconColor(addr: string | undefined | null): string {
-  const a = String(addr ?? "").toLowerCase();
-  let hash = 0;
-  for (let i = 0; i < a.length; i += 1) hash = (hash * 31 + a.charCodeAt(i)) % 100000;
-  return IDENTICON_HUES[hash % IDENTICON_HUES.length] ?? IDENTICON_HUES[0]!;
+function displayMode(form: ComposeForm): LockMode {
+  return form.lockMode === "timed" ? "timed" : "recipient";
 }
 
-// Two leading hex characters make a stable, glanceable monogram for an address.
-function identiconLabel(addr: string | undefined | null): string {
-  const a = String(addr ?? "").replace(/^0x/i, "");
-  return (a.slice(0, 2) || "··").toUpperCase();
+function MessageRow({
+  row,
+  type,
+  busy,
+  t,
+  dispatch,
+}: {
+  row: MessageView;
+  type: "inbox" | "outbox";
+  busy: boolean;
+  t: P["t"];
+  dispatch: P["dispatch"];
+}) {
+  const status = messageStatus(row);
+  const isRecipientOnly = status === "recipient";
+  const unlockLabel = formatUnlock(row.unlockTime);
+  const canRevealRecipient = type === "inbox" && isRecipientOnly && !row.revealed;
+  const canRequestReveal = status === "unlockable";
+  const locked = status === "locked";
+
+  return (
+    <li className="neomsg-message">
+      <div className="neomsg-message__top">
+        <span className="neomsg-message__id">#{row.id}</span>
+        <span className="neomsg-message__status" data-status={status}>
+          {t(`statusBadge${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
+        </span>
+      </div>
+      <dl className="neomsg-message__meta">
+        <div>
+          <dt>{type === "inbox" ? t("fromLabel") : t("toLabel")}</dt>
+          <dd>{shortAddress(type === "inbox" ? row.sender : row.recipient)}</dd>
+        </div>
+        <div>
+          <dt>{row.timeLocked ? t("unlocksLabel") : t("deliveryPreviewLabel")}</dt>
+          <dd>{row.timeLocked ? unlockLabel : t("recipientOnlyHint")}</dd>
+        </div>
+      </dl>
+      <p className="neomsg-message__body">
+        {row.plaintext || (locked ? t("notUnlockedYet") : t("onlyRecipientCanRead"))}
+      </p>
+      {(canRevealRecipient || canRequestReveal || locked) && (
+        <button
+          type="button"
+          className="mx2-btn mx2-btn--ghost"
+          disabled={busy || locked}
+          onClick={() => void dispatch(canRevealRecipient ? "revealRecipient" : "requestTimedReveal", row)}
+        >
+          {locked ? t("notUnlockedYet") : canRevealRecipient ? t("revealForMe") : t("revealOnChain")}
+        </button>
+      )}
+    </li>
+  );
 }
 
-// Local-only nickname book. Maps a recipient address → a name the sender chose,
-// stored on this device alone. It never touches the compose form, the dispatch
-// path, or the on-chain payload — purely a human label for the UI.
-const NICKNAME_STORE_KEY = "neo-message:nicknames";
-
-function loadNicknames(): Record<string, string> {
-  try {
-    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(NICKNAME_STORE_KEY) : null;
-    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
-    if (parsed && typeof parsed === "object") return parsed as Record<string, string>;
-  } catch {
-    // Corrupt or unavailable storage falls back to an empty book.
-  }
-  return {};
-}
-
-function persistNicknames(book: Record<string, string>): void {
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(NICKNAME_STORE_KEY, JSON.stringify(book));
-    }
-  } catch {
-    // Storage may be full or blocked; the in-memory book still works this session.
-  }
-}
-
-function nicknameFor(book: Record<string, string>, addr: string | undefined | null): string {
-  const key = String(addr ?? "").toLowerCase();
-  return key ? (book[key] ?? "").trim() : "";
-}
-
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, val } = useStateBindings(state);
-
-  const address = val<string>("address", "") ?? "";
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, val } = useStateBindings(state);
+  const address = str("address");
+  const connected = Boolean(address);
   const networkSupported = bool("networkSupported");
   const hasWallet = bool("hasWallet");
   const isLoading = bool("isLoading");
   const isSending = bool("isSending");
-  const busyIds = val<string[]>("busyIds", []) ?? [];
   const hasMore = bool("hasMore");
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const form = val<ComposeForm>("composeForm", EMPTY_FORM) ?? EMPTY_FORM;
   const inbox = val<MessageView[]>("inbox", []) ?? [];
   const outbox = val<MessageView[]>("outbox", []) ?? [];
-  const form = val<ComposeForm>("composeForm", EMPTY_FORM) ?? EMPTY_FORM;
+  const busyIds = val<string[]>("busyIds", []) ?? [];
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("delivery");
 
-  const setForm = (patch: Partial<ComposeForm>) => {
-    if (state.composeForm) state.composeForm.set({ ...form, ...patch });
+  const lockMode = displayMode(form);
+  const recipient = String(form.recipient ?? "");
+  const body = String(form.body ?? "");
+  const validRecipient = isEvmAddress(recipient);
+  const bodyLength = body.trim().length;
+  const bodyTooLong = bodyLength > MAX_BODY_LENGTH;
+  const ackNeeded = needsPublicRevealAck(lockMode, Boolean(form.publicRevealAcknowledged));
+  const readyToSend = connected && validRecipient && bodyLength > 0 && !bodyTooLong && !ackNeeded;
+  const readinessValue = (() => {
+    if (!hasWallet || (!networkSupported && !connected)) return t("notConnected");
+    if (!validRecipient) return t("readinessNeedRecipient");
+    if (bodyLength === 0) return t("readinessNeedMessage");
+    if (bodyTooLong) return t("readinessDeskNeedsDetails");
+    if (ackNeeded) return t("readinessDeskNeedsAck");
+    return t("readinessDeskReady");
+  })();
+  const drawerModes: Array<{ mode: DrawerMode; label: string; count?: number }> = [
+    { mode: "delivery", label: t("deliveryTab") },
+    { mode: "inbox", label: t("inboxTitle"), count: inbox.length },
+    { mode: "sent", label: t("outboxTitle"), count: outbox.length },
+    { mode: "network", label: t("networkCardTitle") },
+  ];
+
+  const updateForm = (patch: Partial<ComposeForm>) => {
+    const next = { ...form, ...patch };
+    state.composeForm?.set(next);
   };
 
-  const isTimed = form.lockMode === "timed";
-  const connected = address.length > 0;
-  const bodyLength = (form.body ?? "").length;
-  const bodyUsage = Math.min(100, Math.round((bodyLength / MAX_BODY_LENGTH) * 100));
-  const dateMin = localDateTimeMin();
-  const recipientValue = String(form.recipient ?? "").trim();
-  const recipientIsValid = isEvmAddress(recipientValue);
-  const draftBody = String(form.body ?? "").trim();
-
-  // Time-locked messages post their plaintext publicly on-chain, so require an
-  // explicit acknowledgement before sending. Local UI state — never touches the
-  // send path or the on-chain payload.
-  const [publicRevealAck, setPublicRevealAck] = useState(false);
-  const sendBlockedByAck = needsPublicRevealAck(form.lockMode, publicRevealAck);
-
-  // Local-only nickname book. Lets the sender label a 0x… recipient with a human
-  // name (Mom, Alex…) that is shown back on rows. Display-only: stored on this
-  // device and never sent on-chain or through dispatch.
-  const [nicknames, setNicknames] = useState<Record<string, string>>(loadNicknames);
-  const [recipientNickname, setRecipientNickname] = useState("");
-
-  const recipientKnownName = nicknameFor(nicknames, form.recipient);
-  const recipientNicknameValue = recipientNickname || recipientKnownName;
-  const recipientPreview =
-    recipientNicknameValue.trim() ||
-    (recipientIsValid ? shortAddress(recipientValue) : t("recipientPreviewEmpty"));
-  const deskRecipientPreview =
-    recipientIsValid || recipientNicknameValue.trim()
-      ? recipientPreview
-      : t("recipientDeskEmpty");
-  const draftPreview = draftBody || t("messageDraftEmpty");
-  const deliveryPreview = isTimed ? t("publicRevealLabel") : t("privateSealLabel");
-  const deskDeliveryPreview = isTimed ? t("deliveryDeskTimed") : t("deliveryDeskRecipient");
-  const composeValidation = validateCompose(form);
-  const sendBlockedByValidation = !composeValidation.ok;
-  const readinessLabel = sendBlockedByValidation
-    ? t(composeValidation.error ?? "statusFailed")
-    : sendBlockedByAck
-      ? t("readinessNeedAck")
-      : t("readinessReady");
-  const deskReadinessLabel = sendBlockedByValidation
-    ? t("readinessDeskNeedsDetails")
-    : sendBlockedByAck
-      ? t("readinessDeskNeedsAck")
-      : t("readinessDeskReady");
-  const stageCompletion =
-    (recipientIsValid ? 34 : 0) +
-    (draftBody ? 33 : 0) +
-    (!sendBlockedByValidation && !sendBlockedByAck ? 33 : 0);
-  const messageStageState = isSending
-    ? "sending"
-    : sendBlockedByValidation
-      ? draftBody || recipientValue
-        ? "draft"
-        : "empty"
-      : sendBlockedByAck
-        ? "consent"
-        : "ready";
-  const messageStageStyle = {
-    "--nm-stage-progress": `${stageCompletion}%`,
-  } as CSSProperties;
-
-  const onRecipientNicknameChange = (value: string) => {
-    setRecipientNickname(value);
-    const key = String(form.recipient ?? "").toLowerCase();
-    if (!/^0x[0-9a-fA-F]{40}$/.test(key)) return;
-    setNicknames((prev) => {
-      const next = { ...prev };
-      const trimmed = value.trim();
-      if (trimmed) next[key] = trimmed;
-      else delete next[key];
-      persistNicknames(next);
-      return next;
+  const setLockMode = (nextMode: LockMode) => {
+    updateForm({
+      lockMode: nextMode,
+      revealDate: nextMode === "recipient" ? "" : form.revealDate ?? "",
+      publicRevealAcknowledged: false,
     });
   };
-
-  const Identicon = ({ addr }: { addr: string }) => (
-    <span
-      className="nm-identicon"
-      aria-hidden="true"
-      style={{ background: identiconColor(addr) }}
-    >
-      {identiconLabel(addr)}
-    </span>
-  );
-
-  const renderMessage = (msg: MessageView, box: "inbox" | "outbox") => {
-    const status = messageStatus(msg);
-    const unlockLabel = formatUnlock(msg.unlockTime);
-    const youAreRecipient = addressesEqual(address, msg.recipient);
-    const isBusy = busyIds.includes(msg.id);
-    const partyAddr = box === "inbox" ? msg.sender : msg.recipient;
-    const partyName = nicknameFor(nicknames, partyAddr);
-    const partyLabel = box === "inbox" ? t("fromLabel") : t("toLabel");
-    return (
-      <div key={`${box}-${msg.id}`} className={`nm-item nm-${status}`}>
-        <div className="nm-item-head">
-          <div className="nm-party">
-            <Identicon addr={partyAddr} />
-            <span className="nm-party-text">
-              <span className="nm-party-name">{partyName || partyLabel}</span>
-              <span className="nm-party-addr">{shortAddress(partyAddr)}</span>
-            </span>
-          </div>
-          <span className={`nm-badge nm-badge-${status}`}>
-            {status === "revealed"
-              ? t("statusBadgeRevealed")
-              : status === "recipient"
-                ? t("statusBadgeSealed")
-                : status === "unlockable"
-                  ? t("statusBadgeUnlockable")
-                  : t("statusBadgeLocked")}
-          </span>
-        </div>
-        {msg.timeLocked && unlockLabel ? (
-          <p className="nm-meta nm-unlock">{t("unlocksLabel")}: {unlockLabel}</p>
-        ) : (
-          <p className="nm-meta nm-mode">{t("recipientOnlyHint")}</p>
-        )}
-
-        {msg.revealed && msg.plaintext ? (
-          <p className="nm-plaintext">{msg.plaintext}</p>
-        ) : null}
-
-        {/* Recipient-only plaintext is cached on this device only — it is
-            re-derivable via a fresh wallet signature, not stored as readable
-            text. Time-locked reveals are genuinely public on-chain, so the note
-            applies only to recipient-only rows the connected wallet decrypted. */}
-        {msg.revealed && msg.plaintext && !msg.timeLocked && youAreRecipient ? (
-          <p className="nm-hint nm-device-note">{t("decryptedOnDevice")}</p>
-        ) : null}
-
-        {/* Recipient-only, not yet locally revealed: only the recipient can read */}
-        {status === "recipient" && box === "inbox" && !msg.plaintext ? (
-          youAreRecipient ? (
-            <NeoButton
-              variant="primary"
-              size="sm"
-              loading={isBusy}
-              disabled={isBusy}
-              onClick={() => dispatch("revealRecipient", msg)}
-            >
-              {t("revealForMe")}
-            </NeoButton>
-          ) : (
-            <span className="nm-hint">{t("onlyRecipientCanRead")}</span>
-          )
-        ) : null}
-
-        {/* Time-locked + past unlock: anyone may trigger the on-chain reveal */}
-        {status === "unlockable" ? (
-          <NeoButton
-            variant="primary"
-            size="sm"
-            loading={isBusy}
-            disabled={isBusy}
-            onClick={() => dispatch("requestTimedReveal", msg)}
-          >
-            {t("revealOnChain")}
-          </NeoButton>
-        ) : null}
-
-        {status === "locked" ? <span className="nm-hint">{t("notUnlockedYet")}</span> : null}
-      </div>
-    );
+  const setDrawerTab = (value: string) => {
+    if (value === "delivery" || value === "inbox" || value === "sent" || value === "network") {
+      setDrawerMode(value);
+    }
+  };
+  const setDeliveryMode = (value: string) => {
+    setLockMode(value === "timed" ? "timed" : "recipient");
   };
 
-  return (
-    <div className="nm-play-area">
-      <div className="nm-hero">
-        <div className="nm-hero-content">
-          <div className="nm-hero-badge" aria-hidden="true">
-            <picture>
-              <source srcSet="./logo.avif" type="image/avif" />
-              <source srcSet="./logo.webp" type="image/webp" />
-              <img src="./logo.jpg" alt="" />
-            </picture>
-          </div>
-          <div className="nm-hero-copy">
-            <span className="nm-hero-eyebrow">{t("heroEyebrow")}</span>
-            <h2 className="nm-hero-title">{t("heroTitle")}</h2>
-            <p className="nm-hero-sub">{t("heroSubtitle")}</p>
-          </div>
-        </div>
-        <picture className="nm-hero-media" aria-hidden="true">
-          <source srcSet="./banner.avif" type="image/avif" />
-          <source srcSet="./banner.webp" type="image/webp" />
-          <img src="./banner.jpg" alt="" />
-        </picture>
-      </div>
+  const scene = (
+    <div
+      className={[
+        "neomsg-desk",
+        lockMode === "timed" ? "neomsg-desk--timed" : "neomsg-desk--recipient",
+        isSending ? "neomsg-desk--sending" : null,
+      ].filter(Boolean).join(" ")}
+      data-ready={readyToSend ? "true" : undefined}
+    >
+      <section className="neomsg-mail-desk" aria-label={t("messageStageAria")}>
+        <header className="neomsg-mail-desk__head">
+          <span>
+            <MailCheck size={16} />
+            {t("composeTitle")}
+          </span>
+          <strong>{readinessValue}</strong>
+        </header>
 
-      {!networkSupported ? (
-        <NeoCard title={t("networkCardTitle")} className="nm-network-card">
-          <div className="nm-network-warning" role="status">
-            <AlertTriangle className="nm-network-warning-icon" aria-hidden="true" />
-            <span>{hasWallet ? t("errorWrongNetwork") : t("errorNoEvmWallet")}</span>
-          </div>
-          {hasWallet ? (
-            <NeoButton
-              variant="primary"
-              size="sm"
-              loading={isLoading}
-              disabled={isLoading}
-              onClick={() => dispatch("switchToNeoX")}
-            >
-              {t("switchToNeoX")}
-            </NeoButton>
-          ) : null}
-        </NeoCard>
-      ) : null}
+        <div className="neomsg-mail-desk__hero">
+          <figure className="neomsg-mail-desk__art">
+            <img src={sealedDeskUrl} alt="" loading="eager" decoding="async" />
+            <figcaption>{lockMode === "timed" ? t("publicRevealLabel") : t("privateSealLabel")}</figcaption>
+          </figure>
 
-      <NeoCard title={t("composeTitle")} className="nm-compose-card">
-        <div className="nm-compose-shell">
-          <section
-            className={`nm-message-stage nm-message-stage--${messageStageState}`}
-            aria-label={t("messageStageAria")}
-            style={messageStageStyle}
-          >
-            <figure className="nm-message-stage__visual">
-              <img src="./sealed-message-desk.jpg" alt="" loading="lazy" decoding="async" />
-              <span className="nm-message-stage__beam" aria-hidden="true" />
-              <span className="nm-message-stage__packet" aria-hidden="true">
-                {isTimed ? <CalendarClock size={20} /> : <LockKeyhole size={20} />}
-              </span>
-              <span className="nm-message-stage__seal" aria-hidden="true">
-                <ShieldCheck size={21} />
-              </span>
-            </figure>
-            <div className="nm-message-stage__copy">
-              <span className="nm-hero-eyebrow">{t("messageStageLabel")}</span>
-              <h3>{t("messageStageTitle")}</h3>
-              <p>{t("messageStageBody")}</p>
-              <div className="nm-message-stage__progress" aria-hidden="true">
-                <span />
+          <div className="neomsg-letter-card" data-ready={readyToSend ? "true" : undefined}>
+            <div className="neomsg-envelope-card">
+              <div className="neomsg-envelope-card__stamp" aria-hidden="true">
+                <Stamp size={15} />
+                <span>{lockMode === "timed" ? t("publicRevealLabel") : t("privateSealLabel")}</span>
               </div>
-              <div className="nm-message-stage__readouts">
-                <span>
-                  <small>{t("recipientPreviewLabel")}</small>
-                  <strong>{deskRecipientPreview}</strong>
-                </span>
-                <span>
-                  <small>{t("deliveryPreviewLabel")}</small>
-                  <strong>{deskDeliveryPreview}</strong>
-                </span>
-                <span>
-                  <small>{t("readinessLabel")}</small>
-                  <strong>{deskReadinessLabel}</strong>
-                </span>
-                <span>
-                  <small>{t("characterBudgetLabel")}</small>
-                  <strong>{t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}</strong>
-                </span>
-              </div>
-            </div>
-            <div className="nm-message-stage__route" aria-hidden="true">
-              <span className={recipientIsValid ? "is-complete" : ""}>
-                <MessageSquareText />
-                <strong>{t("messageStageStepWrite")}</strong>
-              </span>
-              <span className={draftBody ? "is-complete" : ""}>
-                {isTimed ? <Eye /> : <EyeOff />}
-                <strong>{t("messageStageStepSeal")}</strong>
-              </span>
-              <span className={!sendBlockedByValidation && !sendBlockedByAck ? "is-complete" : ""}>
-                {isSending ? <SendHorizontal /> : <CircleCheck />}
-                <strong>{t("messageStageStepSend")}</strong>
-              </span>
-            </div>
-          </section>
-
-          <div className="nm-form">
-            <div className="nm-compose-intro">
-              <span className="nm-compose-intro__icon" aria-hidden="true">
-                <MailPlus size={18} />
-              </span>
-              <div>
-                <span className="nm-compose-intro__eyebrow">{t("composeEyebrow")}</span>
-                <p>{t("composeLead")}</p>
-              </div>
-            </div>
-
-            <div className="nm-recipient-row">
-              <NeoInput
-                label={t("recipientLabel")}
-                placeholder="0x…"
-                value={form.recipient ?? ""}
-                onChange={(v) => setForm({ recipient: v })}
+              <OpenUiTextField
+                className="neomsg-recipient"
+                inputClassName="neomsg-recipient__input"
+                label={t("recipientPreviewLabel")}
+                value={recipient}
+                onChange={(event) => updateForm({ recipient: event.target.value })}
+                placeholder="0x..."
+                autoComplete="off"
+                inputMode="text"
+                spellCheck={false}
+                hint={(
+                  <em data-valid={validRecipient ? "true" : undefined}>
+                    {validRecipient ? shortAddress(recipient) : t("recipientPreviewEmpty")}
+                  </em>
+                )}
               />
-              <NeoInput
-                label={t("recipientNicknameLabel")}
-                placeholder={t("recipientNicknamePlaceholder")}
-                value={recipientNicknameValue}
-                onChange={onRecipientNicknameChange}
+              <OpenUiTextArea
+                className="neomsg-note-sheet"
+                textareaClassName="neomsg-note-sheet__input"
+                label={t("messageLabel")}
+                value={body}
+                onChange={(event) => updateForm({ body: event.target.value, publicRevealAcknowledged: false })}
+                placeholder={t("messagePlaceholder")}
+                rows={4}
               />
-            </div>
-            {recipientKnownName && !recipientNickname ? (
-              <p className="nm-hint nm-saved-name">
-                {t("savedNicknameNote", { name: recipientKnownName })}
-              </p>
-            ) : null}
-            <div className={`nm-message-composer${bodyLength > MAX_BODY_LENGTH ? " nm-message-composer--error" : ""}`}>
-              <div className="nm-message-composer__head">
-                <span className="nm-message-composer__label" id="nm-message-body-label">
-                  <MessageSquareText aria-hidden="true" />
-                  {t("messageLabel")}
-                </span>
-                <span className="nm-message-composer__counter">
+              <div className="neomsg-postmark" aria-live="polite">
+                <span data-over={bodyTooLong ? "true" : undefined}>
                   {t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}
                 </span>
-              </div>
-              <textarea
-                aria-labelledby="nm-message-body-label"
-                placeholder={t("messagePlaceholder")}
-                value={form.body ?? ""}
-                onChange={(e) => setForm({ body: e.target.value.slice(0, MAX_BODY_LENGTH) })}
-              />
-              <div
-                className="nm-message-composer__meter"
-                role="progressbar"
-                aria-label={t("characterBudgetLabel")}
-                aria-valuemin={0}
-                aria-valuemax={MAX_BODY_LENGTH}
-                aria-valuenow={bodyLength}
-              >
-                <span style={{ width: `${bodyUsage}%` }} />
-              </div>
-              {bodyLength > MAX_BODY_LENGTH ? (
-                <span className="nm-message-composer__error">{t("bodyTooLong")}</span>
-              ) : null}
-            </div>
-
-            <div className="nm-mode-toggle" role="radiogroup" aria-label={t("deliveryModeLabel")}>
-              <button
-                type="button"
-                className={`nm-mode-option ${!isTimed ? "active" : ""}`}
-                role="radio"
-                aria-checked={!isTimed}
-                onClick={() => setForm({ lockMode: "recipient" })}
-              >
-                <span className="nm-mode-icon" aria-hidden="true">
-                  <LockKeyhole />
-                </span>
-                <span className="nm-mode-text">
-                  <strong>{t("modeRecipient")}</strong>
-                  <span>{t("modeRecipientHint")}</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className={`nm-mode-option ${isTimed ? "active" : ""}`}
-                role="radio"
-                aria-checked={isTimed}
-                onClick={() => setForm({ lockMode: "timed" })}
-              >
-                <span className="nm-mode-icon" aria-hidden="true">
-                  <Clock3 />
-                </span>
-                <span className="nm-mode-text">
-                  <strong>{t("modeTimed")}</strong>
-                  <span>{t("modeTimedHint")}</span>
-                </span>
-              </button>
-            </div>
-
-            {isTimed ? (
-              <div className="nm-timed-panel">
-                <div className="nm-public-warning" role="alert">
-                  <AlertTriangle aria-hidden="true" />
-                  <span>{t("timedPublicWarning")}</span>
-                </div>
-                <label className="nm-date-field">
-                  <span>
-                    <CalendarClock aria-hidden="true" />
-                    {t("revealDateLabel")}
-                  </span>
-                  <input
-                    type="datetime-local"
-                    min={dateMin}
-                    value={form.revealDate ?? ""}
-                    onChange={(e) => setForm({ revealDate: e.target.value })}
-                  />
-                </label>
-                <label className="nm-ack">
-                  <input
-                    type="checkbox"
-                    checked={publicRevealAck}
-                    onChange={(e) => setPublicRevealAck(e.target.checked)}
-                  />
-                  <span>{t("timedAcknowledge")}</span>
-                </label>
-              </div>
-            ) : null}
-
-            <div className="nm-send-panel">
-              <p className="nm-note">
-                <ShieldCheck aria-hidden="true" />
-                <span>{isTimed ? t("timedNote") : t("recipientNote")}</span>
-              </p>
-              <div className="nm-send-panel__footer">
-                <span className={`nm-readiness${readinessLabel === t("readinessReady") ? " is-ready" : ""}`}>
-                  {readinessLabel}
-                </span>
-                <NeoButton
-                  variant="primary"
-                  size="lg"
-                  loading={isSending}
-                  disabled={isSending || sendBlockedByAck || sendBlockedByValidation}
-                  onClick={() => dispatch("sendMessage")}
-                >
-                  <SendHorizontal size={17} aria-hidden="true" />
-                  {isSending ? t("sending") : isTimed ? t("sendButtonTimed") : t("sendButton")}
-                </NeoButton>
+                <strong>{readyToSend ? t("messageStageStepSend") : t("messageStageStepSeal")}</strong>
               </div>
             </div>
           </div>
-
-          <aside className={`nm-letter-preview nm-letter-preview--${messageStageState}`} aria-label={t("messagePreviewTitle")}>
-            <div className="nm-letter-preview__top">
-              <span className={`nm-letter-preview__seal${isTimed ? " is-public" : ""}`} aria-hidden="true">
-                {isTimed ? <Eye size={22} /> : <EyeOff size={22} />}
-              </span>
-              <span className="nm-letter-preview__mode">{deliveryPreview}</span>
-            </div>
-            <div className="nm-letter-preview__to">
-              <span>{t("recipientPreviewLabel")}</span>
-              <strong>{recipientPreview}</strong>
-            </div>
-            <p className="nm-letter-preview__body">{draftPreview}</p>
-            <div className="nm-letter-preview__meta">
-              <span>
-                <small>{t("characterBudgetLabel")}</small>
-                <strong>{t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}</strong>
-              </span>
-              <span>
-                <small>{t("deliveryPreviewLabel")}</small>
-                <strong>{isTimed ? t("modeTimed") : t("modeRecipient")}</strong>
-              </span>
-            </div>
-          </aside>
         </div>
-      </NeoCard>
 
-      <NeoCard title={t("inboxTitle")}>
-        <div className="nm-inbox-head">
-          <span className="nm-account">
-            {connected ? <Identicon addr={address} /> : null}
-            <span className="nm-account-addr">
+        <div className="neomsg-mail-desk__route">
+          <span data-active={bodyLength > 0 ? "true" : undefined}>{t("messageStageStepWrite")}</span>
+          <span data-active={validRecipient ? "true" : undefined}>{t("messageStageStepSeal")}</span>
+          <span data-active={readyToSend ? "true" : undefined}>{t("messageStageStepSend")}</span>
+        </div>
+
+        <div className="neomsg-mail-desk__preview">
+          <span>{t("messagePreviewTitle")}</span>
+          <p>{bodyPreview(body, t("messageDraftEmpty"))}</p>
+        </div>
+
+        <div className="neomsg-mail-desk__status">
+          <span>
+            {readyToSend ? <ShieldCheck size={16} /> : <LockKeyhole size={16} />}
+            {lockMode === "timed" ? t("publicRevealLabel") : t("privateSealLabel")}
+          </span>
+          <strong>{connected ? shortAddress(address) : t("notConnected")}</strong>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderMessageList = (rows: MessageView[], type: "inbox" | "outbox") => (
+    <section className="neomsg-drawer-panel neomsg-drawer-panel--list">
+      <header className="neomsg-drawer-panel__head">
+        <span>{type === "inbox" ? t("inboxTitle") : t("outboxTitle")}</span>
+        <strong>{rows.length}</strong>
+      </header>
+      {rows.length > 0 ? (
+        <ul>
+          {rows.slice(0, 8).map((row) => (
+            <MessageRow
+              key={`${type}-${row.id}`}
+              row={row}
+              type={type}
+              busy={busyIds.includes(row.id)}
+              t={t}
+              dispatch={dispatch}
+            />
+          ))}
+        </ul>
+      ) : (
+        <OpenUiNotice
+          className="neomsg-empty"
+          icon={type === "inbox" ? <MailCheck size={17} strokeWidth={2.35} aria-hidden="true" /> : <SendHorizontal size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={connected ? (type === "inbox" ? t("inboxEmpty") : t("connectToView")) : t("connectToView")}
+        />
+      )}
+      {type === "outbox" && hasMore && (
+        <button type="button" className="mx2-btn mx2-btn--ghost neomsg-list__more" onClick={() => void dispatch("loadOlder")}>
+          {t("loadOlder")}
+        </button>
+      )}
+    </section>
+  );
+
+  const drawer = (
+    <div className="neomsg-drawer">
+      <OpenUiSegmented
+        className="neomsg-drawer-tabs"
+        label={t("inboxTitle")}
+        onChange={setDrawerTab}
+        options={drawerModes.map((item) => ({
+          value: item.mode,
+          label: (
+            <span className="neomsg-drawer-tab-label">
+              <span>{item.label}</span>
+              {typeof item.count === "number" && <em>{item.count}</em>}
+            </span>
+          ),
+        }))}
+        segmentedClassName="neomsg-drawer-segmented"
+        value={drawerMode}
+      />
+
+      {drawerMode === "delivery" && (
+        <section className="neomsg-drawer-panel neomsg-drawer-panel--mode">
+          <header className="neomsg-drawer-panel__head">
+            <span>{t("deliveryModeLabel")}</span>
+            <strong>{lockMode === "timed" ? t("publicRevealLabel") : t("privateSealLabel")}</strong>
+          </header>
+          <OpenUiSegmented
+            className="neomsg-mode__choices"
+            label={t("deliveryModeLabel")}
+            onChange={setDeliveryMode}
+            options={[
+              {
+                value: "recipient",
+                label: (
+                  <span className="neomsg-mode-card">
+                    <span className="neomsg-mode__icon" aria-hidden="true">
+                      <LockKeyhole size={17} strokeWidth={2.35} />
+                    </span>
+                    <strong>{t("modeRecipient")}</strong>
+                    <span>{t("modeRecipientHint")}</span>
+                  </span>
+                ),
+              },
+              {
+                value: "timed",
+                label: (
+                  <span className="neomsg-mode-card">
+                    <span className="neomsg-mode__icon" aria-hidden="true">
+                      <Clock3 size={17} strokeWidth={2.35} />
+                    </span>
+                    <strong>{t("modeTimed")}</strong>
+                    <span>{t("modeTimedHint")}</span>
+                  </span>
+                ),
+              },
+            ]}
+            segmentedClassName="neomsg-mode-segmented"
+            value={lockMode}
+          />
+          {lockMode === "timed" && (
+            <div className="neomsg-timed">
+              <OpenUiTextField
+                className="neomsg-timed__date"
+                inputClassName="neomsg-timed__input"
+                label={t("revealDateLabel")}
+                type="datetime-local"
+                value={String(form.revealDate ?? "")}
+                onChange={(event) => updateForm({ revealDate: event.target.value, publicRevealAcknowledged: false })}
+              />
+              <Checkbox
+                aria-label={t("timedAcknowledge")}
+                checked={Boolean(form.publicRevealAcknowledged)}
+                className="neomsg-timed__ack"
+                onChange={(event: CheckboxEvent) => updateForm({ publicRevealAcknowledged: Boolean(event.target.checked) })}
+                type="pureCard"
+              >
+                <span className="neomsg-timed__ack-content">
+                  <ShieldCheck size={15} strokeWidth={2.35} aria-hidden="true" />
+                  <span>{t("timedAcknowledge")}</span>
+                </span>
+              </Checkbox>
+              <OpenUiNotice
+                className="neomsg-drawer__notice"
+                icon={<Clock3 size={17} strokeWidth={2.35} aria-hidden="true" />}
+                title={t("publicRevealLabel")}
+                type="warning"
+              >
+                {t("timedPublicWarning")}
+              </OpenUiNotice>
+            </div>
+          )}
+          <p className="neomsg-mode__note">{lockMode === "timed" ? t("timedNote") : t("recipientNote")}</p>
+        </section>
+      )}
+
+      {drawerMode === "inbox" && renderMessageList(inbox, "inbox")}
+      {drawerMode === "sent" && renderMessageList(outbox, "outbox")}
+
+      {drawerMode === "network" && (
+        <section className="neomsg-drawer-panel neomsg-drawer-panel--network">
+          <header className="neomsg-drawer-panel__head">
+            <span>{t("networkCardTitle")}</span>
+            <strong>{connected ? shortAddress(address) : t("notConnected")}</strong>
+          </header>
+          <div className="neomsg-drawer__summary">
+            <span className="neomsg-drawer__chip" data-active={connected ? "true" : undefined}>
+              <ShieldCheck size={15} strokeWidth={2.35} aria-hidden="true" />
               {connected ? shortAddress(address) : t("notConnected")}
             </span>
-          </span>
-          <NeoButton
-            variant="secondary"
-            size="sm"
-            loading={isLoading}
-            disabled={isLoading}
-            onClick={() => dispatch("connectAndLoad")}
-          >
-            {connected ? t("refresh") : t("connectWallet")}
-          </NeoButton>
-        </div>
-        {inbox.length === 0 ? (
-          <StateView
-            kind="empty"
-            icon={null}
-            className="nm-inbox-empty"
-            title={connected ? t("inboxEmpty") : undefined}
-            hint={connected ? undefined : t("connectToView")}
-          />
-        ) : (
-          <div className="nm-list">{inbox.map((m) => renderMessage(m, "inbox"))}</div>
-        )}
-        {connected && hasMore ? (
-          <div className="nm-load-more">
-            <NeoButton
-              variant="secondary"
-              size="sm"
-              loading={isLoading}
-              disabled={isLoading}
-              onClick={() => dispatch("loadOlder")}
-            >
-              {t("loadOlder")}
-            </NeoButton>
+            <span className="neomsg-drawer__chip" data-active={networkSupported ? "true" : undefined}>
+              <RadioTower size={15} strokeWidth={2.35} aria-hidden="true" />
+              {networkSupported ? t("statusReady") : t("switchToNeoX")}
+            </span>
           </div>
-        ) : null}
-      </NeoCard>
+          <div className="neomsg-drawer__actions" aria-label={t("networkCardTitle")}>
+            <button
+              type="button"
+              className="mx2-btn mx2-btn--ghost"
+              onClick={() => void dispatch("connectAndLoad")}
+              disabled={isLoading}
+            >
+              <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
+              {t("refresh")}
+            </button>
+            <button
+              type="button"
+              className="mx2-btn mx2-btn--ghost"
+              onClick={() => void dispatch("switchToNeoX")}
+              disabled={isLoading}
+            >
+              <RadioTower size={15} strokeWidth={2.35} aria-hidden="true" />
+              {t("switchToNeoX")}
+            </button>
+          </div>
+        </section>
+      )}
 
-      {outbox.length > 0 ? (
-        <NeoCard title={t("outboxTitle")}>
-          <div className="nm-list">{outbox.map((m) => renderMessage(m, "outbox"))}</div>
-        </NeoCard>
-      ) : null}
+      <OpenUiNotice
+        className="neomsg-last-status"
+        icon={<MailCheck size={17} strokeWidth={2.35} aria-hidden="true" />}
+        title={lastStatus}
+      />
     </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div className="neo-message-play-area mx2 mx2-cat-tool">
+        <PlayStage
+          category="tool"
+          className="neo-message-playstage"
+          stage={{
+            eyebrow: t("heroEyebrow"),
+            title: t("heroTitle"),
+            subtitle: t("composeLead"),
+            badges: (
+              <span className="mx2-badge" data-tone={connected ? "accent" : undefined}>
+                {connected ? shortAddress(address) : t("notConnected")}
+              </span>
+            ),
+          }}
+          scene={scene}
+          actions={{
+            primary: connected
+              ? {
+                  label: isSending ? t("sending") : lockMode === "timed" ? t("sendButtonTimed") : t("sendButton"),
+                  onClick: () => void dispatch("sendMessage"),
+                  loading: isSending,
+                  disabled: !readyToSend || isSending,
+                }
+              : {
+                  label: isLoading ? t("statusInboxLoaded") : t("connectWallet"),
+                  onClick: () => void dispatch("connectAndLoad"),
+                  loading: isLoading,
+                },
+          }}
+          drawerToggleLabel={t("inboxTab")}
+          drawer={{ title: t("inboxTitle"), children: drawer }}
+        />
+      </div>
+    </OpenUiProvider>
   );
 }

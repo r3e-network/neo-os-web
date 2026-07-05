@@ -26,8 +26,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/aa-session-key-lab/index.html",
-    "icon": "/miniapps/aa-session-key-lab/logo.jpg",
-    "banner": "/miniapps/aa-session-key-lab/banner.jpg"
+    "icon": "/miniapps/aa-session-key-lab/logo.webp",
+    "banner": "/miniapps/aa-session-key-lab/banner.webp"
   },
   "permissions": ["invoke:primary", "read:blockchain"],
   "features": {

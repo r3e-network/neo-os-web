@@ -55,9 +55,9 @@
   ],
   "updatedAt": "2026-06-12T00:00:00Z",
   "urls": {
-    "banner": "/miniapps/gov-merc/banner.jpg",
+    "banner": "/miniapps/gov-merc/banner.webp",
     "entry": "/miniapps/gov-merc/index.html",
-    "icon": "/miniapps/gov-merc/logo.jpg"
+    "icon": "/miniapps/gov-merc/logo.webp"
   },
   "version": "1.0.0"
 }

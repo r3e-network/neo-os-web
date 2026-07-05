@@ -1,611 +1,519 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Check,
-  ChevronDown,
+  CheckCircle2,
   Copy,
-  Dices,
+  Dice5,
   Fingerprint,
   KeyRound,
-  Layers3,
   Minus,
-  Play,
   Plus,
-  ReceiptText,
-  RotateCcw,
+  RefreshCw,
   ShieldCheck,
-  Shuffle,
   Sparkles,
 } from "lucide-react";
-import {
-  NeoButton,
-  type ConsoleFieldOption,
-  type ConsoleResult,
-} from "@shared/components-react";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
-import { consoleConfig } from "./appConfig";
+import type { ConsoleResult } from "@shared/components-react";
+import {
+  OpenUiNotice,
+  OpenUiPanel,
+  OpenUiProvider,
+  OpenUiSegmented,
+  OpenUiTextField,
+  PlayStage,
+} from "@shared/components-react/v2";
+import { consoleConfig, appMeta } from "./appConfig";
 import "./PlayArea.scss";
 
-function initialValues(
-  launchParams: Record<string, string> = {},
-): Record<string, string> {
-  return consoleConfig.fields.reduce<Record<string, string>>((acc, field) => {
-    acc[field.key] = launchParams[field.key] ?? field.defaultValue ?? "";
-    return acc;
-  }, {});
+interface PlayAreaProps {
+  t: (key: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext?: { params?: Record<string, string> };
+}
+
+type VrfValues = {
+  consumer: string;
+  salt: string;
+  rounds: string;
+  mode: string;
+};
+type DrawerMode = "seed" | "flow" | "proof" | "payload";
+
+type VrfPreset = VrfValues & {
+  key: string;
+  label: string;
+  hint: string;
+};
+
+function defaults(params: Record<string, string> = {}): VrfValues {
+  const values = Object.fromEntries(
+    consoleConfig.fields.map((field) => [
+      field.key,
+      params[field.key] ?? field.defaultValue ?? "",
+    ]),
+  ) as VrfValues;
+  return {
+    consumer: values.consumer || "miniapp-council",
+    salt: values.salt || "vrf:miniapp-round",
+    rounds: values.rounds || "1",
+    mode: values.mode || "single-proof",
+  };
 }
 
 function setObservable(state: ObservableState, key: string, value: unknown) {
-  const observable = state[key];
-  if (observable && typeof observable.set === "function") {
-    observable.set(value);
-  }
+  state[key]?.set?.(value);
 }
 
-function readObservable(state: ObservableState, key: string, fallback: string) {
-  const value = state[key]?.get?.();
-  return value == null || value === "" ? fallback : String(value);
-}
-
-function optionLabel(option: ConsoleFieldOption, t: PlayAreaProps["t"]) {
-  return option.labelKey ? t(option.labelKey) : (option.label ?? option.value);
-}
-
-function roundValue(value: string) {
+function clampRounds(value: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 1;
   return Math.min(10, Math.max(1, Math.floor(parsed)));
 }
 
-type VrfActionPreview = "build" | "copy";
+function shortDigest(value: string, placeholder: string) {
+  const text = String(value || "").trim();
+  if (!text || text === placeholder) return placeholder;
+  if (text.length <= 18) return text;
+  return `${text.slice(0, 10)}...${text.slice(-6)}`;
+}
 
-export default function PlayArea({
-  t,
-  state,
-  services,
-  setStatus,
-  launchContext,
-}: PlayAreaProps) {
-  const [values, setValues] = useState(() =>
-    initialValues(launchContext?.params),
-  );
+export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
+  const { str } = useStateBindings(state);
+  const networkLabel = str("networkLabel");
+  const digestPlaceholder = t("digestPlaceholder");
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const lastDigest = str("lastDigest", digestPlaceholder);
+  const [values, setValues] = useState(() => defaults(launchContext?.params));
   const [result, setResult] = useState<ConsoleResult | null>(null);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("seed");
+  const [building, setBuilding] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [actionPreview, setActionPreview] =
-    useState<VrfActionPreview | null>(null);
-  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const [initialDigest] = useState(() =>
-    readObservable(state, "lastDigest", t("digestPlaceholder")),
-  );
-  const [initialStatus] = useState(() =>
-    readObservable(state, "lastStatus", t("statusReady")),
-  );
-
+  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const payloadText = useMemo(
     () => (result ? JSON.stringify(result.payload, null, 2) : ""),
     [result],
   );
-  const draftResult = useMemo(
-    () => consoleConfig.buildResult(values, t),
-    [values, t],
-  );
-  const networkLabel = readObservable(state, "networkLabel", t("notAvailable"));
-  const endpointLabel = readObservable(
-    state,
-    "endpointLabel",
-    t("notAvailable"),
-  );
-  const lastStatus = readObservable(state, "lastStatus", initialStatus);
-  const lastDigest = readObservable(state, "lastDigest", initialDigest);
-  const requestCount = readObservable(state, "requestCount", "0");
-  const consumerValue = values.consumer ?? "";
-  const saltValue = values.salt ?? "";
-  const roundsValue = values.rounds ?? "";
-  const modeValue = values.mode ?? "";
-  const rounds = roundValue(roundsValue);
-  const modeField = consoleConfig.fields.find((field) => field.key === "mode");
-  const modeOptions = modeField?.options ?? [];
-  const selectedMode =
-    modeOptions.find((option) => option.value === modeValue) ?? modeOptions[0];
-  const selectedModeLabel = selectedMode
-    ? optionLabel(selectedMode, t)
-    : modeValue;
-  const draftOk = draftResult.payload.status !== "input_required";
-  const seedReady =
-    consumerValue.trim().length > 0 && saltValue.trim().length > 0;
-  const proofState = result
-    ? result.payload.status === "input_required"
-      ? "warn"
-      : "ready"
-    : draftOk
-      ? "draft"
-      : "warn";
-  const isBuilding = actionPreview === "build";
-  const isCopying = actionPreview === "copy";
-  const isLocalActionBusy = actionPreview !== null;
 
-  useEffect(
-    () => () => {
-      if (actionPreviewTimeout.current !== null) {
-        clearTimeout(actionPreviewTimeout.current);
-      }
+  useEffect(() => () => {
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+  }, []);
+  useEffect(() => {
+    if (drawerMode === "payload" && !payloadText) setDrawerMode("proof");
+  }, [drawerMode, payloadText]);
+
+  const rounds = clampRounds(values.rounds);
+  const modeLabel = values.mode === "batch-proof" ? t("modeBatch") : t("modeSingle");
+  const hasDigest = Boolean(lastDigest && lastDigest !== digestPlaceholder);
+  const digestDisplay = shortDigest(lastDigest, digestPlaceholder);
+  const presets: VrfPreset[] = [
+    {
+      key: "game",
+      label: t("vrfPresetGame"),
+      hint: t("vrfPresetGameHint"),
+      consumer: "miniapp-game-engine",
+      salt: "match:final-round",
+      rounds: "3",
+      mode: "single-proof",
     },
-    [],
+    {
+      key: "raffle",
+      label: t("vrfPresetRaffle"),
+      hint: t("vrfPresetRaffleHint"),
+      consumer: "community-raffle",
+      salt: "raffle:weekly-draw",
+      rounds: "1",
+      mode: "single-proof",
+    },
+    {
+      key: "loot",
+      label: t("vrfPresetLoot"),
+      hint: t("vrfPresetLootHint"),
+      consumer: "loot-drop",
+      salt: "drop:season-pack",
+      rounds: "6",
+      mode: "batch-proof",
+    },
+  ];
+  const activePreset = presets.find((preset) =>
+    values.consumer === preset.consumer
+      && values.salt === preset.salt
+      && values.rounds === preset.rounds
+      && values.mode === preset.mode,
+  );
+  const drawerModes: Array<{ id: DrawerMode; label: string; value: string; disabled?: boolean }> = [
+    { id: "seed", label: t("vrfSeedIdentity"), value: values.consumer || t("consumerPlaceholder") },
+    { id: "flow", label: t("vrfFlowTitle"), value: modeLabel },
+    { id: "proof", label: t("vrfProofPreview"), value: hasDigest ? digestDisplay : t("vrfEmptyTitle") },
+    { id: "payload", label: t("requestId"), value: result?.summary ?? t("vrfEmptyTitle"), disabled: !payloadText },
+  ];
+  const setDrawerModeSafe = (mode: string) => {
+    const nextMode = drawerModes.find((item) => item.id === mode && !item.disabled);
+    if (nextMode) setDrawerMode(nextMode.id);
+  };
+
+  const update = (key: keyof VrfValues, value: string) => {
+    setValues((current) => ({ ...current, [key]: value }));
+  };
+
+  const applyPreset = (preset: VrfPreset) => {
+    setValues({
+      consumer: preset.consumer,
+      salt: preset.salt,
+      rounds: preset.rounds,
+      mode: preset.mode,
+    });
+    setResult(null);
+    setCopied(false);
+    setObservable(state, "lastStatus", t("statusReady"));
+    setObservable(state, "lastDigest", digestPlaceholder);
+  };
+
+  const adjustRounds = (delta: number) => {
+    update("rounds", String(Math.min(10, Math.max(1, rounds + delta))));
+  };
+
+  const applyResult = (next: ConsoleResult, requestValues: VrfValues) => {
+    setResult(next);
+    setCopied(false);
+    void dispatch("buildRequest", requestValues);
+  };
+
+  const buildRequest = () => {
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+    setBuilding(true);
+    const next = consoleConfig.buildResult(values, t);
+    applyResult(next, values);
+    previewTimeout.current = setTimeout(() => {
+      setBuilding(false);
+      previewTimeout.current = null;
+    }, 900);
+  };
+
+  const resetTicket = () => {
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+    setBuilding(false);
+    setCopied(false);
+    setValues(defaults(launchContext?.params));
+    setResult(null);
+    setObservable(state, "lastStatus", t("statusReady"));
+    setObservable(state, "lastDigest", digestPlaceholder);
+  };
+
+  const copyPayload = () => {
+    if (!payloadText || !navigator.clipboard) return;
+    void navigator.clipboard.writeText(payloadText);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1000);
+  };
+
+  const scene = (
+    <div className="oracle-console-scene" data-state={building ? "building" : hasDigest ? "ready" : "idle"}>
+      <figure className="oracle-console-scene__image">
+        <img src="./oracle-workspace-stage.webp" alt={t("vrfHeroAlt")} decoding="async" />
+        <figcaption>
+          <span>{t("vrfTicketTitle")}</span>
+          <strong>{activePreset?.label ?? t("vrfRequestPlan")}</strong>
+        </figcaption>
+      </figure>
+      <div className="oracle-console-scene__capsule">
+        <div className="oracle-console-scene__beam" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="oracle-console-scene__machine">
+          <span className="oracle-console-scene__orb oracle-console-scene__orb--one"><Dice5 size={22} /></span>
+          <span className="oracle-console-scene__orb oracle-console-scene__orb--two"><Sparkles size={20} /></span>
+          <span className="oracle-console-scene__orb oracle-console-scene__orb--three"><KeyRound size={19} /></span>
+          <strong>{rounds}</strong>
+          <span>{t("rounds")}</span>
+        </div>
+        <article className="oracle-console-scene__proof">
+          <span className="oracle-console-scene__proof-icon"><ShieldCheck size={22} /></span>
+          <div>
+            <span>{t("vrfStatusLabel")}</span>
+            <strong>{building ? t("buildingRequest") : lastStatus}</strong>
+          </div>
+          <p>{hasDigest ? digestDisplay : t("vrfEmptyCopy")}</p>
+        </article>
+      </div>
+      <div className="oracle-console-scene__ticket-strip" aria-label={t("vrfTicketTitle")}>
+        <span>
+          <small>{t("consumer")}</small>
+          <strong>{values.consumer || t("consumerPlaceholder")}</strong>
+        </span>
+        <span>
+          <small>{t("rounds")}</small>
+          <strong>{rounds} x {modeLabel}</strong>
+        </span>
+        <span>
+          <small>{t("salt")}</small>
+          <strong>{values.salt || t("saltPlaceholder")}</strong>
+        </span>
+      </div>
+    </div>
   );
 
-  function startActionPreview(action: VrfActionPreview, duration = 1200) {
-    if (actionPreviewTimeout.current !== null) {
-      clearTimeout(actionPreviewTimeout.current);
-    }
-    setActionPreview(action);
-    actionPreviewTimeout.current = setTimeout(() => {
-      setActionPreview(null);
-      actionPreviewTimeout.current = null;
-    }, duration);
-  }
-
-  function updateValue(key: string, value: string) {
-    if (isBuilding) return;
-    setValues((current) => ({ ...current, [key]: value }));
-  }
-
-  function adjustRounds(delta: number) {
-    if (isBuilding) return;
-    updateValue("rounds", String(Math.min(10, Math.max(1, rounds + delta))));
-  }
-
-  function applyResult(next: ConsoleResult) {
-    setResult(next);
-    const ok = next.payload.status !== "input_required";
-    setObservable(state, "lastStatus", next.status);
-    const digest = next.payload.digest ?? next.payload.requestId;
-    if (ok && digest != null && digest !== "") {
-      setObservable(state, "lastDigest", String(digest));
-    } else if (!ok) {
-      setObservable(
-        state,
-        "lastDigest",
-        readObservable(state, "lastDigest", t("notAvailable")),
-      );
-    }
-    if (ok) {
-      const count = Number(state.requestCount?.get?.() ?? 0);
-      setObservable(state, "requestCount", count + 1);
-    }
-    if (!ok) {
-      setStatus(next.status, "warning");
-    }
-  }
-
-  function buildPreview() {
-    if (isBuilding) return;
-    startActionPreview("build", 1200);
-    applyResult(consoleConfig.buildResult(values, t));
-  }
-
-  function reset() {
-    if (isLocalActionBusy) return;
-    setValues(initialValues(launchContext?.params));
-    setResult(null);
-    setObservable(state, "lastStatus", initialStatus);
-    setObservable(state, "lastDigest", initialDigest);
-    setObservable(state, "requestCount", 0);
-  }
-
-  async function copyPayload() {
-    if (!payloadText || isCopying) return;
-    startActionPreview("copy", 900);
-    await services.clipboard.copy(payloadText, consoleConfig.copiedKey);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
-  }
-
-  return (
-    <div
-      className={[
-        "vrf-play-area",
-        `vrf-play-area--${proofState}`,
-        isBuilding ? "vrf-play-area--rolling" : "",
-        isCopying ? "vrf-play-area--copying" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      aria-busy={isLocalActionBusy || undefined}
-    >
-      <section
-        className={`vrf-hero vrf-hero--${proofState}`}
-        aria-label={t("panelTitle")}
-      >
-        <img
-          className="vrf-hero__media"
-          src="./vrf-randomness-stage.jpg"
-          alt={t("vrfHeroAlt")}
-          loading="eager"
-          decoding="async"
-        />
-        <div className="vrf-hero__shade" aria-hidden="true" />
-        <div className="vrf-hero__copy">
-          <span className="vrf-hero__badge" aria-hidden="true">
-            <Dices size={24} />
-          </span>
-          <span className="vrf-eyebrow">{t("panelEyebrow")}</span>
-          <h2>{t("panelTitle")}</h2>
-          <p>{t("vrfHeroCopy")}</p>
-          <div className="vrf-hero__pills" aria-label={t("vrfStatusLabel")}>
-            <span>
-              <ShieldCheck size={15} aria-hidden="true" />
-              {lastStatus}
-            </span>
-            <span>
-              <Fingerprint size={15} aria-hidden="true" />
-              {lastDigest}
-            </span>
-          </div>
+  const controls = (
+    <div className="vrf-ticket">
+      <section className="vrf-ticket__presets">
+        <div className="vrf-ticket__header">
+          <span>{t("vrfPresetTitle")}</span>
+          <strong>{t("vrfRequestPlan")}</strong>
         </div>
-        <div className="vrf-hero__metrics" aria-label={t("statistics")}>
-          <span>
-            <small>{t("statNetwork")}</small>
-            <strong>{networkLabel}</strong>
-          </span>
-          <span>
-            <small>{t("statEndpoint")}</small>
-            <strong>{endpointLabel}</strong>
-          </span>
-          <span>
-            <small>{t("statRequests")}</small>
-            <strong>{requestCount}</strong>
-          </span>
+        <div className="vrf-preset-grid">
+          {presets.map((preset) => {
+            const active = values.consumer === preset.consumer
+              && values.salt === preset.salt
+              && values.rounds === preset.rounds
+              && values.mode === preset.mode;
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                className={active ? "is-active" : undefined}
+                onClick={() => applyPreset(preset)}
+                disabled={building}
+              >
+                <span className="vrf-preset-grid__icon">
+                  {preset.key === "game" ? <Dice5 size={17} /> : preset.key === "raffle" ? <Sparkles size={17} /> : <ShieldCheck size={17} />}
+                </span>
+                <span>
+                  <strong>{preset.label}</strong>
+                  <small>{preset.hint}</small>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      <section className="vrf-flow" aria-label={t("vrfFlowTitle")}>
-        <span className={seedReady ? "is-ready" : undefined}>
-          <KeyRound size={18} aria-hidden="true" />
-          <strong>{t("vrfFlowSeed")}</strong>
-          <small>{t("vrfFlowSeedDesc")}</small>
-        </span>
-        <span className={rounds >= 1 ? "is-ready" : undefined}>
-          <Shuffle size={18} aria-hidden="true" />
-          <strong>{t("vrfFlowDraw")}</strong>
-          <small>{t("vrfFlowDrawDesc")}</small>
-        </span>
-        <span className={draftOk ? "is-ready" : undefined}>
-          <ShieldCheck size={18} aria-hidden="true" />
-          <strong>{t("vrfFlowVerify")}</strong>
-          <small>{t("vrfFlowVerifyDesc")}</small>
-        </span>
-      </section>
-
-      <section className="vrf-workspace">
-        <div className="vrf-request-card" aria-label={t("vrfRequestPlan")}>
-          <header className="vrf-card-head">
-            <span aria-hidden="true">
-              <Sparkles size={19} />
-            </span>
-            <div>
-              <small>{t("vrfRequestPlan")}</small>
-              <strong>{t("vrfRequestPlanCopy")}</strong>
-            </div>
-          </header>
-
-          <section
-            className="vrf-ticket-panel"
-            aria-label={t("vrfTicketTitle")}
-          >
-            <div className="vrf-ticket-panel__head">
-              <div className="vrf-section-copy">
-                <small>{t("vrfTicketTitle")}</small>
-                <strong>{t("vrfTicketCopy")}</strong>
-              </div>
-              <span
-                className={`vrf-valid-chip${
-                  draftOk ? " vrf-valid-chip--ok" : " vrf-valid-chip--warn"
-                }`}
-              >
-                {draftOk ? (
-                  <Check size={15} aria-hidden="true" />
-                ) : (
-                  <KeyRound size={15} aria-hidden="true" />
-                )}
-                {draftOk ? t("vrfTicketReady") : draftResult.status}
-              </span>
-            </div>
-
-              <div
-                className={`vrf-ticket-board vrf-ticket-board--${draftOk ? "ready" : "warn"}${
-                  result ? " vrf-ticket-board--built" : ""
-                }${isBuilding ? " vrf-ticket-board--rolling" : ""}`}
-                aria-busy={isBuilding || undefined}
-              >
-              <div className="vrf-ticket-seed">
-                <div className="vrf-ticket-step">
-                  <span aria-hidden="true">
-                    <KeyRound size={18} />
-                  </span>
-                  <div>
-                    <small>{t("vrfSeedIdentity")}</small>
-                    <strong>{t("vrfSeedIdentityCopy")}</strong>
-                  </div>
-                </div>
-                <div className="vrf-seed-grid">
-                  <label className="vrf-seed-field">
-                    <span>{t("consumer")}</span>
-                    <input
-                      value={consumerValue}
-                      placeholder={t("consumerPlaceholder")}
-                      aria-label={t("consumer")}
-                      disabled={isBuilding}
-                      onChange={(event) =>
-                        updateValue("consumer", event.currentTarget.value)
-                      }
-                    />
-                    <small>{t("vrfConsumerHint")}</small>
-                  </label>
-                  <label className="vrf-seed-field">
-                    <span>{t("salt")}</span>
-                    <input
-                      value={saltValue}
-                      placeholder={t("saltPlaceholder")}
-                      aria-label={t("salt")}
-                      disabled={isBuilding}
-                      onChange={(event) =>
-                        updateValue("salt", event.currentTarget.value)
-                      }
-                    />
-                    <small>{t("vrfSaltHint")}</small>
-                  </label>
-                </div>
-              </div>
-
-              <div className="vrf-draw-stage">
-                <div className="vrf-ticket-step">
-                  <span aria-hidden="true">
-                    <Dices size={18} />
-                  </span>
-                  <div>
-                    <small>{t("vrfRoundsTitle")}</small>
-                    <strong>{t("vrfRoundsHint")}</strong>
-                  </div>
-                </div>
-                <div className="vrf-rounds-control">
-                  <button
-                    type="button"
-                    aria-label={t("vrfDecreaseRounds")}
-                    disabled={isBuilding}
-                    onClick={() => adjustRounds(-1)}
-                  >
-                    <Minus size={16} aria-hidden="true" />
-                  </button>
-                  <label className="vrf-rounds-value">
-                    <span>{t("roundsLabel")}</span>
-                    <input
-                      type="number"
-                      value={roundsValue}
-                      min={1}
-                      max={10}
-                      aria-label={t("roundsLabel")}
-                      disabled={isBuilding}
-                      onChange={(event) =>
-                        updateValue("rounds", event.currentTarget.value)
-                      }
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    aria-label={t("vrfIncreaseRounds")}
-                    disabled={isBuilding}
-                    onClick={() => adjustRounds(1)}
-                  >
-                    <Plus size={16} aria-hidden="true" />
-                  </button>
-                </div>
-                <div className="vrf-rounds-track" aria-hidden="true">
-                  {Array.from({ length: 10 }, (_, index) => (
-                    <span
-                      key={index}
-                      className={index < rounds ? "is-active" : undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="vrf-proof-stage">
-                <div className="vrf-ticket-step">
-                  <span aria-hidden="true">
-                    <ShieldCheck size={18} />
-                  </span>
-                  <div>
-                    <small>{t("vrfProofModeTitle")}</small>
-                    <strong>{t("vrfProofModeHint")}</strong>
-                  </div>
-                </div>
-                <div
-                  className="vrf-mode-grid"
-                  role="radiogroup"
-                  aria-label={t("mode")}
-                >
-                  {modeOptions.map((option) => {
-                    const selected = modeValue === option.value;
-                    const label = optionLabel(option, t);
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        aria-label={`${t("mode")}: ${label}`}
-                        className={`vrf-mode-card${
-                          selected ? " vrf-mode-card--selected" : ""
-                        }`}
-                        disabled={isBuilding}
-                        onClick={() => updateValue("mode", option.value)}
-                      >
-                        <span aria-hidden="true">
-                          {option.value === "batch-proof" ? (
-                            <Layers3 size={18} />
-                          ) : (
-                            <ReceiptText size={18} />
-                          )}
-                        </span>
-                        <strong>{label}</strong>
-                        <small>
-                          {option.value === "batch-proof"
-                            ? t("modeBatchHint")
-                            : t("modeSingleHint")}
-                        </small>
-                        {selected && (
-                          <span
-                            className="vrf-mode-card__check"
-                            aria-hidden="true"
-                          >
-                            <Check size={14} />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <div className="vrf-actions">
-            <NeoButton
-              variant="primary"
-              size="lg"
-              disabled={isBuilding}
-              className={isBuilding ? "is-rolling" : undefined}
-              aria-label={
-                isBuilding
-                  ? t("buildingRequest")
-                  : t(consoleConfig.primaryActionKey)
-              }
-              onClick={buildPreview}
-            >
-              {isBuilding ? (
-                <Shuffle size={18} aria-hidden="true" />
-              ) : (
-                <Play size={18} aria-hidden="true" />
-              )}
-              <span>
-                {isBuilding
-                  ? t("buildingRequest")
-                  : t(consoleConfig.primaryActionKey)}
-              </span>
-            </NeoButton>
-            <NeoButton
-              variant="ghost"
-              size="lg"
-              disabled={isLocalActionBusy}
-              onClick={reset}
-            >
-              <RotateCcw size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.resetActionKey)}</span>
-            </NeoButton>
+      <div className="vrf-ticket__compose">
+        <section className="vrf-ticket__draw">
+          <div className="vrf-ticket__header">
+            <span>{t("vrfRoundsTitle")}</span>
+            <strong>{rounds} / 10</strong>
           </div>
+          <div className="vrf-round-stepper">
+            <button type="button" onClick={() => adjustRounds(-1)} disabled={building || rounds <= 1} aria-label={t("vrfDecreaseRounds")}>
+              <Minus size={16} />
+            </button>
+            <strong>{rounds}</strong>
+            <button type="button" onClick={() => adjustRounds(1)} disabled={building || rounds >= 10} aria-label={t("vrfIncreaseRounds")}>
+              <Plus size={16} />
+            </button>
+          </div>
+        </section>
+
+        <section className="vrf-ticket__mode">
+          <div className="vrf-ticket__header">
+            <span>{t("vrfProofModeTitle")}</span>
+            <strong>{modeLabel}</strong>
+          </div>
+          <OpenUiSegmented
+            className="vrf-mode-switch"
+            segmentedClassName="vrf-mode-switch__group"
+            label={t("mode")}
+            value={values.mode}
+            onChange={(mode) => update("mode", mode)}
+            disabled={building}
+            options={[
+              {
+                value: "single-proof",
+                label: (
+                  <span className="vrf-mode-card">
+                    <strong>{t("modeSingle")}</strong>
+                    <small>{t("modeSingleHint")}</small>
+                  </span>
+                ),
+              },
+              {
+                value: "batch-proof",
+                label: (
+                  <span className="vrf-mode-card">
+                    <strong>{t("modeBatch")}</strong>
+                    <small>{t("modeBatchHint")}</small>
+                  </span>
+                ),
+              },
+            ]}
+          />
+        </section>
+      </div>
+
+      <section className="vrf-ticket__seed-summary">
+        <div className="vrf-ticket__header">
+          <span>{t("vrfSeedIdentity")}</span>
+          <strong>{t("vrfProofPreview")}</strong>
         </div>
-
-        <aside
-          className={`vrf-proof-card vrf-proof-card--${
-            result
-              ? result.payload.status === "input_required"
-                ? "warn"
-                : "ready"
-              : "empty"
-          }${isCopying ? " vrf-proof-card--copying" : ""}`}
-          aria-live="polite"
-        >
-          <figure className="vrf-proof-oracle" aria-hidden="true">
-            <img
-              src="./oracle-workspace-stage.jpg"
-              alt=""
-              loading="eager"
-              decoding="async"
-            />
-          </figure>
-          <header className="vrf-card-head">
-            <span aria-hidden="true">
-              <ReceiptText size={19} />
-            </span>
-            <div>
-              <small>{t("vrfProofPreview")}</small>
-              <strong>{result ? result.status : t("previewWaiting")}</strong>
-            </div>
-          </header>
-
-          {result ? (
-            <>
-              <div className="vrf-result-hero">
-                <span>{selectedModeLabel}</span>
-                <strong>{result.summary}</strong>
-                <small>
-                  {String(
-                    result.payload.digest ?? result.payload.requestId ?? "",
-                  )}
-                </small>
-              </div>
-              <div className="vrf-result-rows">
-                {result.rows.map((row) => (
-                  <span key={row.label}>
-                    <small>{row.label}</small>
-                    <strong>{row.value}</strong>
-                  </span>
-                ))}
-              </div>
-              <div className="vrf-payload-actions">
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  disabled={isCopying}
-                  className={isCopying ? "is-copying" : undefined}
-                  aria-label={
-                    isCopying
-                      ? t("copyingPayload")
-                      : t(consoleConfig.copyActionKey)
-                  }
-                  onClick={copyPayload}
-                >
-                  {isCopying ? (
-                    <Shuffle size={16} aria-hidden="true" />
-                  ) : copied ? (
-                    <Check size={16} aria-hidden="true" />
-                  ) : (
-                    <Copy size={16} aria-hidden="true" />
-                  )}
-                  <span>
-                    {isCopying
-                      ? t("copyingPayload")
-                      : copied
-                      ? t(consoleConfig.copiedKey)
-                      : t(consoleConfig.copyActionKey)}
-                  </span>
-                </NeoButton>
-              </div>
-              <details className="vrf-payload-card">
-                <summary>
-                  <span>{t("consolePayload")}</span>
-                  <ChevronDown
-                    className="vrf-payload-card__icon"
-                    size={15}
-                    aria-hidden="true"
-                  />
-                </summary>
-                <pre>{payloadText}</pre>
-              </details>
-            </>
-          ) : (
-            <div className="vrf-empty-state">
-              <span aria-hidden="true">
-                <Dices size={24} />
-              </span>
-              <strong>{t("vrfEmptyTitle")}</strong>
-              <p>{t("vrfEmptyCopy")}</p>
-            </div>
-          )}
-        </aside>
+        <div className="vrf-seed-summary">
+          <span>
+            <Fingerprint size={14} />
+            <strong>{values.consumer || t("consumerPlaceholder")}</strong>
+          </span>
+          <span>
+            <KeyRound size={14} />
+            <strong>{values.salt || t("saltPlaceholder")}</strong>
+          </span>
+        </div>
       </section>
     </div>
+  );
+
+  const drawer = (
+    <div className="vrf-drawer">
+      <OpenUiSegmented
+        className="vrf-drawer__switcher"
+        segmentedClassName="vrf-drawer__switcher-group"
+        label={t("vrfProofPreview")}
+        value={drawerMode}
+        onChange={setDrawerModeSafe}
+        options={drawerModes.map((mode) => ({
+          value: mode.id,
+          disabled: mode.disabled,
+          label: (
+            <span className="vrf-drawer-tab">
+              <span>{mode.label}</span>
+              <strong>{mode.value}</strong>
+            </span>
+          ),
+        }))}
+      />
+
+      {drawerMode === "seed" && (
+        <OpenUiPanel
+          className="vrf-drawer__panel vrf-drawer__panel--wide"
+          icon={<Fingerprint size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("vrfSeedIdentity")}
+          subtitle={t("vrfSeedIdentityCopy")}
+        >
+          <div className="vrf-seed-grid">
+            <OpenUiTextField
+              className="vrf-field"
+              label={<><Fingerprint size={14} /> {t("consumer")}</>}
+              value={values.consumer}
+              onChange={(event) => update("consumer", event.target.value)}
+              placeholder={t("consumerPlaceholder")}
+              hint={t("vrfConsumerHint")}
+              disabled={building}
+              mono
+              spellCheck={false}
+            />
+            <OpenUiTextField
+              className="vrf-field"
+              label={<><KeyRound size={14} /> {t("salt")}</>}
+              value={values.salt}
+              onChange={(event) => update("salt", event.target.value)}
+              placeholder={t("saltPlaceholder")}
+              hint={t("vrfSaltHint")}
+              disabled={building}
+              mono
+              spellCheck={false}
+            />
+          </div>
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "flow" && (
+        <OpenUiPanel
+          className="vrf-drawer__panel"
+          icon={<ShieldCheck size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("vrfFlowTitle")}
+          subtitle={t("vrfFlowVerifyDesc")}
+        >
+          <ol className="vrf-flow">
+            <li><strong>{t("vrfFlowSeed")}</strong><span>{t("vrfFlowSeedDesc")}</span></li>
+            <li><strong>{t("vrfFlowDraw")}</strong><span>{t("vrfFlowDrawDesc")}</span></li>
+            <li><strong>{t("vrfFlowVerify")}</strong><span>{t("vrfFlowVerifyDesc")}</span></li>
+          </ol>
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "proof" && (
+        <OpenUiPanel
+          className="vrf-drawer__panel"
+          icon={<Sparkles size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("vrfProofPreview")}
+          subtitle={result ? t("vrfReady") : t("vrfEmptyTitle")}
+        >
+          {result ? (
+            <dl className="vrf-result">
+              {result.rows.map((row) => (
+                <div key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <OpenUiNotice
+              className="vrf-empty"
+              icon={<Dice5 size={18} strokeWidth={2.4} aria-hidden="true" />}
+              title={t("vrfEmptyTitle")}
+            >
+              {t("vrfEmptyCopy")}
+            </OpenUiNotice>
+          )}
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "payload" && payloadText && (
+        <OpenUiPanel
+          className="vrf-drawer__panel vrf-drawer__panel--wide"
+          icon={<Copy size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("requestId")}
+          subtitle={t("vrfProofPreview")}
+        >
+          <pre className="vrf-payload">{payloadText}</pre>
+        </OpenUiPanel>
+      )}
+    </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div className="oracle-console-play-area mx2 mx2-cat-tool">
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t(consoleConfig.eyebrowKey),
+            title: t(consoleConfig.titleKey),
+            subtitle: t("vrfHeroCopy"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkLabel || appMeta.networkLabel}</span>,
+          }}
+          scene={<>{scene}{controls}</>}
+          score={[
+            { label: t("rounds"), value: String(rounds), accent: true },
+            { label: t("lastStatus"), value: lastStatus },
+            { label: t("statDigest"), value: digestDisplay },
+          ]}
+          actions={{
+            primary: {
+              label: t("runAction"),
+              icon: <Sparkles size={17} />,
+              onClick: buildRequest,
+              loading: building,
+            },
+            secondary: [
+              {
+                label: t("reset"),
+                icon: <RefreshCw size={15} />,
+                onClick: resetTicket,
+                disabled: building,
+              },
+              {
+                label: copied ? t("copied") : t("copy"),
+                icon: copied ? <CheckCircle2 size={15} /> : <Copy size={15} />,
+                onClick: copyPayload,
+                disabled: !payloadText || building,
+              },
+            ],
+          }}
+          drawerToggleLabel={t("vrfProofPreview")}
+          drawer={{ title: t("vrfProofPreview"), children: drawer }}
+        />
+      </div>
+    </OpenUiProvider>
   );
 }

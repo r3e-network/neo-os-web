@@ -1,1058 +1,308 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  CircleAlert,
-  Clock3,
-  Copy,
-  Gem,
-  Globe2,
-  LockKeyhole,
-  ShieldCheck,
-  type LucideIcon,
-} from "lucide-react";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
-import { StateView } from "@shared/components";
-import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
-import {
-  buildConfidentialTransferPackage,
-  encryptJsonWithOraclePublicKey,
-} from "@shared/utils/morpheus-confidential-envelope";
-import {
-  appendSealedIntent,
-  clearSealedIntents,
-  readSealedIntents,
-  type SealedIntent,
-} from "./history";
+/**
+ * PlayArea.tsx — Confidential Transfer (v2 scene-driven rebuild)
+ *
+ * DeFi identity. The sealed envelope IS the scene: a privacy lock/seal that
+ * shows the sealing status, with the commitment + nullifier readout once sealed.
+ * This app seals an encrypted intent (no funds move, no on-chain write) — so the
+ * primary action dispatches a preview/seal intent. Recipient + amount are the
+ * foreground packet slots; optional memo and technical details stay tucked in
+ * the drawer so this reads like an app, not a long form.
+ */
+import { useState } from "react";
+import { FileLock2, LockKeyhole, Send, ShieldCheck, UnlockKeyhole } from "lucide-react";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { isPositiveAssetAmount, isValidNeoAddress, type PrivateTransferAsset } from "./seal";
 import "./PlayArea.scss";
 
-type SubmitState =
-  | { status: "idle"; message: string }
-  | { status: "sealing"; message: string }
-  | {
-      status: "stored";
-      message: string;
-      secretRef: string;
-      noteCommitment: string;
-      nullifier: string;
-    }
-  | { status: "error"; message: string; detail?: string };
-
-type NetworkHealth = "checking" | "live" | "degraded";
-type RouteVisualState = "draft" | "ready" | "sealing" | "stored" | "error";
-
-const AMOUNT_PRESETS = ["0.1", "1", "5"];
-const NEO_AMOUNT_PRESETS = ["1", "5", "10"];
-const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
-const MEMO_MAX_LENGTH = 160;
-// GAS on Neo N3 carries 8 decimal places; finer precision can never settle.
-const GAS_DECIMALS = 8;
-const NETWORKS = ["testnet", "mainnet"] as const;
-type TransferNetwork = (typeof NETWORKS)[number];
-type TransferAsset = "GAS" | "NEO";
-
-// Neo N3 addresses are Base58Check-encoded, so the Bitcoin/Base58 alphabet
-// applies: the ambiguous glyphs 0 (zero), O, I, and l are NOT valid. The
-// previous /[0-9A-Za-z]/ class let an O-for-0 typo slip into the sealed
-// payload; restricting to the real alphabet rejects clearly-malformed input.
-const BASE58_BODY = "[1-9A-HJ-NP-Za-km-z]{33}";
-const NEO_ADDRESS_PATTERN = new RegExp(`^N${BASE58_BODY}$`);
-
-// Canonical, non-negative decimal only. Rejects scientific ("1e2"), hex
-// ("0x10"), leading-dot (".5"), signs, and internal whitespace. The input is
-// expected pre-trimmed by the caller.
-const DECIMAL_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
-
-const isValidNeoAddress = (value: string) =>
-  NEO_ADDRESS_PATTERN.test(value.trim());
-
-// Render a Neo N3 address as a short, scannable head…tail form for the confirm
-// summary so the user can verify the recipient at a glance without horizontal
-// scrolling. The full value is still validated and sealed verbatim.
-function shortAddress(value: string) {
-  const trimmed = value.trim();
-  if (trimmed.length <= 14) {
-    return trimmed;
-  }
-  return `${trimmed.slice(0, 8)}…${trimmed.slice(-6)}`;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-function isPositiveAmount(value: string, asset = "GAS") {
-  const trimmed = value.trim();
-  // Reject scientific/hex/whitespace/leading-dot strings up front so a value
-  // like "1e2" or "0x10" can never reach the sealed payload verbatim.
-  if (!DECIMAL_PATTERN.test(trimmed)) {
-    return false;
-  }
-  const amount = Number(trimmed);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return false;
-  }
-  if (asset.trim().toUpperCase() === "NEO") {
-    // NEO on Neo N3 is indivisible: only whole integer units can ever settle.
-    return !trimmed.includes(".");
-  }
-  // GAS settles at 8-decimal precision; finer amounts (e.g. "1e-9" worth of
-  // GAS, here written as a long decimal) can never be released.
-  const fraction = trimmed.split(".")[1] ?? "";
-  return fraction.length <= GAS_DECIMALS;
+const STAGE_IMAGE = new URL("../public/private-transfer-stage.webp", import.meta.url).href;
+const ASSET_OPTIONS: Array<{ symbol: PrivateTransferAsset; metaKey: string; presets: string[] }> = [
+  { symbol: "GAS", metaKey: "assetGasMeta", presets: ["0.1", "1", "5"] },
+  { symbol: "NEO", metaKey: "assetNeoMeta", presets: ["1", "5", "10"] },
+];
+
+function shortHash(value: string): string {
+  const v = String(value || "").trim();
+  if (!v || v === "—") return "—";
+  if (v.length <= 18) return v;
+  return `${v.slice(0, 10)}…${v.slice(-6)}`;
 }
 
-// Normalize a validated amount to a canonical decimal string (strip redundant
-// leading/trailing zeros) so the downstream TEE/settlement consumer parses a
-// single unambiguous representation. Callers MUST validate first.
-function normalizeAmount(value: string, asset = "GAS") {
-  const trimmed = value.trim();
-  if (asset.trim().toUpperCase() === "NEO") {
-    // Integer-only; drop any leading zeros.
-    return String(BigInt(trimmed));
+function coinVariant(asset: PrivateTransferAsset): "gas" | "neo" {
+  return asset === "NEO" ? "neo" : "gas";
+}
+
+function normalizeAmountInput(value: string, asset: PrivateTransferAsset): string {
+  const text = String(value ?? "");
+  if (asset === "NEO") {
+    return text.split(/[.,]/)[0].replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   }
-  const [whole, fractionRaw = ""] = trimmed.split(".");
-  const normalizedWhole = String(BigInt(whole || "0"));
-  const fraction = fractionRaw.replace(/0+$/, "");
-  return fraction ? `${normalizedWhole}.${fraction}` : normalizedWhole;
+  return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 }
 
-// Map the wallet's detected chain id (e.g. "neo-n3-testnet", "neo-x-mainnet")
-// onto the two networks this sealing desk targets. Anything that doesn't name
-// "mainnet" — including the generic "neo-n3" default — falls back to mainnet,
-// the only lane currently serving a live Morpheus key.
-function networkFromChainId(chainId: string | null | undefined): "testnet" | "mainnet" {
-  const id = String(chainId ?? "").toLowerCase();
-  if (id.includes("test")) {
-    return "testnet";
-  }
-  return "mainnet";
-}
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, num, bool } = useStateBindings(state);
 
-function networkHealthKey(health: NetworkHealth) {
-  if (health === "live") return "networkStatusLive";
-  if (health === "degraded") return "networkStatusDegraded";
-  return "networkStatusChecking";
-}
+  const privacyMode = str("privacyMode");
+  const networkLabel = str("networkLabel");
+  const lastStatus = str("lastStatus");
+  const lastDigest = str("lastDigest");
+  const lastSecretRef = str("lastSecretRef");
+  const lastNullifier = str("lastNullifier");
+  const isSealing = bool("isSealing");
+  const requestCount = num("requestCount");
 
-function networkHealthIcon(health: NetworkHealth): LucideIcon {
-  if (health === "live") return ShieldCheck;
-  if (health === "degraded") return CircleAlert;
-  return Clock3;
-}
-
-function setObservable(state: PlayAreaProps["state"], key: string, value: unknown) {
-  const observable = state[key];
-  if (observable && typeof observable.set === "function") {
-    observable.set(value);
-  }
-}
-
-export default function PlayArea({ t, state, services, setStatus }: PlayAreaProps) {
   const [recipient, setRecipient] = useState("");
-  const [asset, setAsset] = useState<TransferAsset>("GAS");
   const [amount, setAmount] = useState("");
+  const [asset, setAsset] = useState<PrivateTransferAsset>("GAS");
   const [memo, setMemo] = useState("");
-  const [network, setNetwork] = useState<TransferNetwork>("mainnet");
-  const [networkHealth, setNetworkHealth] = useState<Record<string, NetworkHealth>>({
-    testnet: "checking",
-    mainnet: "checking",
-  });
-  const [submitState, setSubmitState] = useState<SubmitState>({
-    status: "idle",
-    message: t("statusInitial"),
-  });
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [history, setHistory] = useState<SealedIntent[]>(() => readSealedIntents());
 
-  const userFacingSealError = useCallback(
-    (error: unknown, sealPhase: "key" | "store" | "package") => {
-      const raw = error instanceof Error ? error.message : String(error ?? "");
-      // The phase we actually failed in is authoritative: a store-phase 404
-      // ("not found") must not be misclassified by the key-phase message regex.
-      if (sealPhase === "store") {
-        return t("sealErrorStore");
-      }
-      if (sealPhase === "key") {
-        return t("sealErrorKey");
-      }
-      if (/algorithm|X25519|HKDF|AES/i.test(raw)) {
-        return t("sealErrorAlgorithm");
-      }
-      if (/public key|contract.*configured|not configured|network|404|not found/i.test(raw)) {
-        return t("sealErrorKey");
-      }
-      if (/secret reference|secret_ref|store|inline_fallback/i.test(raw)) {
-        return t("sealErrorStore");
-      }
-      return t("sealErrorGeneric");
-    },
-    [t],
-  );
+  const recipientReady = isValidNeoAddress(recipient);
+  const amountReady = isPositiveAssetAmount(amount, asset);
+  const canSeal = recipientReady && amountReady && !isSealing;
+  const hasSealed = requestCount > 0;
+  const stageState = isSealing ? "sealing" : hasSealed ? "sealed" : canSeal ? "ready" : "draft";
+  const activeAsset = ASSET_OPTIONS.find((option) => option.symbol === asset) ?? ASSET_OPTIONS[0];
+  const packetTitle = hasSealed ? t("packetSealed") : canSeal ? t("packetReady") : t(asset === "NEO" ? "packetDraftNeo" : "packetDraftGas");
+  const amountHint = asset === "NEO" ? t("amountHintNeo") : t("amountHintGas");
 
-  const networkLabelFor = useCallback(
-    (value: string) => (value === "mainnet" ? t("networkMainnet") : t("networkTestnet")),
-    [t],
-  );
-
-  // Default the form network from the connected wallet's chain (falling back to
-  // mainnet — the lane that currently serves a live Morpheus key) instead of
-  // hardcoding the degraded testnet lane, so the default-path user does not fail
-  // at the very first fetch.
-  useEffect(() => {
-    let cancelled = false;
-    const detect = services?.chain?.detectNetwork;
-    if (typeof detect !== "function") {
-      return;
+  const selectAsset = (next: PrivateTransferAsset) => {
+    setAsset(next);
+    setAmount((current) => normalizeAmountInput(current, next));
+  };
+  const selectAssetSafe = (value: string) => {
+    if (value === "GAS" || value === "NEO") {
+      selectAsset(value);
     }
-    void Promise.resolve(detect.call(services.chain))
-      .then((chainId) => {
-        if (cancelled) {
-          return;
-        }
-        const resolved = networkFromChainId(chainId);
-        setNetwork(resolved);
-        setObservable(state, "networkLabel", networkLabelFor(resolved));
-      })
-      .catch(() => {
-        // Detection unavailable — keep the mainnet default already in state.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [networkLabelFor, services, state]);
+  };
 
-  // Ping each network's Morpheus public-key endpoint once so the Network select
-  // can badge live vs degraded lanes and the user can avoid the dead one.
-  useEffect(() => {
-    let cancelled = false;
-    NETWORKS.forEach((net) => {
-      void fetchWithTimeout(
-        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(net)}`,
-      )
-        .then(async (response) => {
-          const meta = await response.json().catch(() => ({}));
-          return Boolean(response.ok && meta?.public_key);
-        })
-        .catch(() => false)
-        .then((live) => {
-          if (cancelled) {
-            return;
-          }
-          setNetworkHealth((current) => ({
-            ...current,
-            [net]: live ? "live" : "degraded",
-          }));
-        });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const handleSeal = async () => {
+    if (!canSeal) return;
+    await dispatch("prepareTransfer", { recipient, amount, asset, memo });
+  };
 
-  // Keep the header "Network" stat tile in lock-step with the in-form select so
-  // the visible indicator always names the network the ciphertext targets.
-  useEffect(() => {
-    setObservable(state, "networkLabel", networkLabelFor(network));
-  }, [network, networkLabelFor, state]);
-
-  const handleNetworkChange = useCallback(
-    (value: string) => {
-      const next = value === "mainnet" ? "mainnet" : "testnet";
-      setNetwork(next);
-      setObservable(state, "networkLabel", networkLabelFor(next));
-    },
-    [networkLabelFor, state],
-  );
-
-  // Switching GAS -> NEO leaves a fractional amount (e.g. "1.5") that NEO can
-  // never settle, plus a now-stale GAS preset highlight. Re-floor to the whole
-  // unit so the field matches the new asset's constraints instead of forcing an
-  // invalid-input round trip.
-  const handleAssetChange = useCallback((value: TransferAsset) => {
-    setAsset(value);
-    const nextIsNeo = value.trim().toUpperCase() === "NEO";
-    if (nextIsNeo) {
-      setAmount((current) => {
-        const trimmed = current.trim();
-        if (!trimmed || !trimmed.includes(".")) {
-          return current;
-        }
-        const whole = trimmed.split(".")[0] ?? "";
-        return /^\d+$/.test(whole) && BigInt(whole) > 0n ? whole : "";
-      });
-    }
-  }, []);
-
-  const copyValue = useCallback(async (field: string, value: string) => {
-    if (!value || !navigator.clipboard?.writeText) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedField(field);
-      window.setTimeout(() => {
-        setCopiedField((current) => (current === field ? null : current));
-      }, 1500);
-    } catch {
-      setCopiedField(null);
-    }
-  }, []);
-
-  const handleClearHistory = useCallback(() => {
-    clearSealedIntents();
-    setHistory([]);
-    setObservable(state, "requestCount", 0);
-    setObservable(state, "lastDigest", t("digestPlaceholder"));
-    setObservable(state, "lastStatus", t("statusReady"));
-  }, [state, t]);
-
-  const isNeo = asset.trim().toUpperCase() === "NEO";
-  const recipientInvalid =
-    recipient.trim().length > 0 && !isValidNeoAddress(recipient);
-  const amountInvalid =
-    amount.trim().length > 0 && !isPositiveAmount(amount, asset);
-  const canSeal =
-    isValidNeoAddress(recipient) && isPositiveAmount(amount, asset);
-
-  // When the selected lane is degraded but the other lane reports live, offer a
-  // one-tap switch so the default-path user is not dead-ended on the paused
-  // network. Only surfaces once both health probes have resolved.
-  const otherNetwork: "testnet" | "mainnet" =
-    network === "mainnet" ? "testnet" : "mainnet";
-  const showLiveSwitch =
-    networkHealth[network] === "degraded" &&
-    networkHealth[otherNetwork] === "live";
-
-  const sealTransfer = useCallback(async () => {
-    if (!canSeal) {
-      const message = t("errorMissingInputs");
-      setStatus(message, "error");
-      setSubmitState({ status: "error", message });
-      return;
-    }
-    setSubmitState({
-      status: "sealing",
-      message: t("statusSealingProgress"),
-    });
-    setStatus(t("statusSealingShort"), "info");
-
-    let sealPhase: "key" | "store" | "package" = "key";
-    try {
-      const keyResponse = await fetchWithTimeout(
-        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
-      );
-      const keyMeta = await keyResponse.json().catch(() => ({}));
-      if (!keyResponse.ok || !keyMeta?.public_key) {
-        throw new Error(
-          keyMeta?.error || "Morpheus oracle public key is unavailable",
-        );
-      }
-      if (
-        keyMeta.algorithm &&
-        keyMeta.algorithm !== MORPHEUS_ENCRYPTION_ALGORITHM
-      ) {
-        sealPhase = "package";
-        throw new Error(
-          `Unsupported Morpheus encryption algorithm: ${keyMeta.algorithm}`,
-        );
-      }
-
-      sealPhase = "package";
-      const transferPackage = await buildConfidentialTransferPackage({
-        appId: "miniapp-private-transfer",
-        network,
-        recipient: recipient.trim(),
-        asset,
-        amount: normalizeAmount(amount, asset),
-        memo,
-      });
-      const ciphertext = await encryptJsonWithOraclePublicKey(
-        String(keyMeta.public_key),
-        transferPackage.confidentialPayload,
-      );
-
-      sealPhase = "store";
-      const storeResponse = await fetchWithTimeout("/api/morpheus/confidential/store", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          network,
-          target_chain: "neo_n3",
-          app_id: "miniapp-private-transfer",
-          name: `private-transfer:${transferPackage.publicEnvelope.note_commitment}`,
-          ciphertext,
-          public_envelope: transferPackage.publicEnvelope,
-        }),
-      });
-      const stored = await storeResponse.json().catch(() => ({}));
-      // The host proxy converts an upstream failure into a 200 body carrying
-      // inline_fallback:true with no secret_ref; surface the upstream detail
-      // so the failure is diagnosable rather than always-generic.
-      const upstreamDetail = String(
-        stored?.error || stored?.message || "",
-      ).trim();
-      const upstreamStatus = stored?.upstream_status;
-      if (!storeResponse.ok || stored?.inline_fallback || stored?.store_available === false) {
-        const reason = upstreamDetail || "Morpheus confidential store is unavailable";
-        const error = new Error(reason);
-        (error as Error & { detail?: string }).detail = upstreamStatus
-          ? `${reason} (${upstreamStatus})`
-          : reason;
-        throw error;
-      }
-      const secretRef = String(
-        stored.secret_ref || stored.id || stored.ref || "",
-      ).trim();
-      if (!secretRef) {
-        throw new Error("Morpheus confidential store did not return a secret reference");
-      }
-
-      const commitment = transferPackage.publicEnvelope.note_commitment;
-      const nullifier = transferPackage.publicEnvelope.nullifier_hash;
-      const nextHistory = appendSealedIntent({
-        secretRef,
-        commitment,
-        nullifier,
-        network,
-        asset,
-        ts: Date.now(),
-      });
-      setHistory(nextHistory);
-      setObservable(state, "requestCount", nextHistory.length);
-      setObservable(state, "lastStatus", t("statusSealed"));
-      setObservable(state, "lastDigest", commitment);
-      setStatus(t("statusSealedToast"), "success");
-      setSubmitState({
-        status: "stored",
-        message: t("statusStored"),
-        secretRef,
-        noteCommitment: commitment,
-        nullifier,
-      });
-    } catch (error) {
-      const message = userFacingSealError(error, sealPhase);
-      const detail = (error as Error & { detail?: string })?.detail;
-      console.warn(
-        `[private-transfer] seal failed during ${sealPhase} phase`,
-        error,
-      );
-      setStatus(message, "error");
-      setSubmitState({ status: "error", message, detail });
-    }
-  }, [
-    amount,
-    asset,
-    canSeal,
-    memo,
-    network,
-    recipient,
-    setStatus,
-    state,
-    t,
-    userFacingSealError,
-  ]);
-
-  const sealed = submitState.status !== "idle";
-  const assetOptions: Array<{
-    value: TransferAsset;
-    label: string;
-    meta: string;
-    icon: LucideIcon;
-  }> = [
-    {
-      value: "GAS",
-      label: "GAS",
-      meta: t("assetGasMeta"),
-      icon: Gem,
-    },
-    {
-      value: "NEO",
-      label: "NEO",
-      meta: t("assetNeoMeta"),
-      icon: ShieldCheck,
-    },
-  ];
-  const routeVisualState: RouteVisualState =
-    submitState.status === "stored"
-      ? "stored"
-      : submitState.status === "error"
-        ? "error"
-        : submitState.status === "sealing"
-          ? "sealing"
-          : canSeal
-            ? "ready"
-            : "draft";
-  const routeProgressPercent =
-    routeVisualState === "stored"
-      ? 100
-      : routeVisualState === "sealing"
-        ? 72
-        : routeVisualState === "ready"
-          ? 44
-          : routeVisualState === "error"
-            ? 58
-            : 18;
-  const routeRecipientLabel = recipient.trim()
-    ? isValidNeoAddress(recipient)
-      ? shortAddress(recipient)
-      : t("routeRecipientInvalid")
-    : t("routeRecipientPending");
-  const routeAmountLabel = isPositiveAmount(amount, asset)
-    ? t("summaryAmountValue", {
-        amount: normalizeAmount(amount, asset),
-        asset,
-      })
-    : t("routeAmountPending");
-  const routeSteps: Array<{
-    key: string;
-    label: string;
-    icon: LucideIcon;
-    ready: boolean;
-  }> = [
-    {
-      key: "compose",
-      label: t("routeStepCompose"),
-      icon: Gem,
-      ready: canSeal || routeVisualState === "stored",
-    },
-    {
-      key: "encrypt",
-      label: t("routeStepEncrypt"),
-      icon: LockKeyhole,
-      ready:
-        routeVisualState === "sealing" ||
-        routeVisualState === "stored" ||
-        routeVisualState === "error",
-    },
-    {
-      key: "morpheus",
-      label: t("routeStepMorpheus"),
-      icon: ShieldCheck,
-      ready: routeVisualState === "stored",
-    },
-  ];
-
-  return (
-    <div className="private-transfer">
-      <section className="private-transfer__hero">
-        <div className="private-transfer__hero-body">
-          <span className="private-transfer__eyebrow">{t("heroEyebrow")}</span>
-          <h2>{t("heroTitle")}</h2>
-          <p>{t("heroBody")}</p>
-          <div className="private-transfer__hero-facts">
-            <span>
-              {t("heroFacts", { network: networkLabelFor(network), asset })}
-            </span>
-            <span className="private-transfer__badge">{t("heroBadge")}</span>
+  const scene = (
+    <div className="pt-scene" data-state={stageState}>
+      <aside className="pt-vault-card" aria-label={t("heroStageAria")}>
+        <figure className="pt-vault-card__art">
+          <img src={STAGE_IMAGE} alt={t("heroStageAria")} loading="eager" decoding="async" />
+        </figure>
+        <div className={["pt-seal-device", hasSealed ? "is-sealed" : ""].filter(Boolean).join(" ")}>
+          <div className="pt-seal-device__coin" aria-hidden="true">
+            <CoinArt size={32} variant={coinVariant(asset)} decorative />
+          </div>
+          <div className="pt-seal-device__lock" aria-hidden="true">
+            {hasSealed ? <LockKeyhole size={26} /> : <UnlockKeyhole size={26} />}
+          </div>
+          <div className="pt-seal-device__body">
+            <span className="pt-seal-device__label">{t("statDigest")}</span>
+            <strong className="pt-seal-device__digest">{hasSealed ? shortHash(lastDigest) : t("digestPlaceholder")}</strong>
+            <small>{lastSecretRef ? shortHash(lastSecretRef) : t("sealPreviewPending")}</small>
           </div>
         </div>
-        <figure className="private-transfer__stage" aria-label={t("heroStageAria")}>
-          <img
-            src="./private-transfer-stage.jpg"
-            alt=""
-            decoding="async"
-            loading="eager"
-          />
-          <figcaption>
-            <span>{t("statusBlockHeader")}</span>
-            <strong>{t("heroStageTitle")}</strong>
-          </figcaption>
-        </figure>
-      </section>
+      </aside>
 
-      <section className="private-transfer__grid">
-        <div className="private-transfer__panel">
-          <div className="private-transfer__composer-head">
-            <div>
-              <span>{t("composerTitle")}</span>
-              <strong>{t("composerSubtitle")}</strong>
-            </div>
-            <em>{networkLabelFor(network)} · {asset}</em>
+      <section className="pt-packet-console" aria-label={t("composerTitle")}>
+        <header className="pt-packet-console__head">
+          <span><FileLock2 size={16} /> {t("composerTitle")}</span>
+          <strong>{packetTitle}</strong>
+          <small>{t("introBody")}</small>
+        </header>
+
+        <div className="pt-transfer-packet" data-ready={canSeal ? "true" : undefined}>
+          <div className="pt-transfer-packet__seal" aria-hidden="true">
+            <img src={STAGE_IMAGE} alt="" />
+            <span>{hasSealed ? <LockKeyhole size={23} /> : <UnlockKeyhole size={23} />}</span>
           </div>
-          <div className="private-transfer__form-grid">
-            <section className="private-transfer__choice-field" aria-label={t("formNetworkLabel")}>
-              <div className="private-transfer__choice-head">
-                <span>{t("formNetworkLabel")}</span>
-                <strong>{networkLabelFor(network)}</strong>
-              </div>
-              <div
-                className="private-transfer__choice-grid"
-                role="radiogroup"
-                aria-label={t("formNetworkLabel")}
-              >
-                {NETWORKS.map((net) => {
-                  const health = networkHealth[net] ?? "checking";
-                  const StatusIcon = networkHealthIcon(health);
-                  const selected = net === network;
-                  const label = networkLabelFor(net);
-                  const statusLabel = t(networkHealthKey(health));
+          <div className="pt-transfer-packet__body">
+            <span>{t(asset === "NEO" ? "packetRailNeo" : "packetRailGas")}</span>
+            <strong>{amountReady ? `${amount} ${asset}` : t(asset === "NEO" ? "routeAmountPendingNeo" : "routeAmountPendingGas")}</strong>
+            <small>{recipientReady ? shortHash(recipient) : t("routeRecipientPending")}</small>
+          </div>
+          <div className="pt-scene__route" aria-label={t("routeAria")}>
+            <span className={recipientReady ? "is-on" : ""}>{t("routeStepCompose")}</span>
+            <span className="pt-scene__route-arrow">→</span>
+            <span className={amountReady ? "is-on" : ""}>{t("routeStepEncrypt")}</span>
+            <span className="pt-scene__route-arrow">→</span>
+            <span className={hasSealed ? "is-on" : ""}>{t("routeStepMorpheus")}</span>
+          </div>
+        </div>
 
-                  return (
-                    <button
-                      key={net}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      aria-label={`${t("formNetworkLabel")}: ${label} · ${statusLabel}`}
-                      className={`private-transfer__choice-card private-transfer__choice-card--${health}${
-                        selected ? " is-active" : ""
-                      }`}
-                      onClick={() => handleNetworkChange(net)}
-                    >
-                      <span className="private-transfer__choice-icon" aria-hidden="true">
-                        {net === "mainnet" ? <ShieldCheck size={17} /> : <Globe2 size={17} />}
-                      </span>
-                      <span className="private-transfer__choice-copy">
-                        <strong>{label}</strong>
-                        <small className={`private-transfer__choice-status is-${health}`}>
-                          <StatusIcon size={12} aria-hidden="true" />
-                          {statusLabel}
-                        </small>
-                      </span>
-                      {selected ? (
-                        <span className="private-transfer__choice-check" aria-hidden="true">
-                          <Check size={14} />
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-              {networkHealth[network] === "degraded" && (
-                <div className="private-transfer__network-alert" role="status">
-                  <small className="private-transfer__network-hint">
-                    {t("networkDegradedHint")}
-                  </small>
-                  <small className="private-transfer__network-note">
-                    {t("networkDegradedNote")}
-                  </small>
-                  {showLiveSwitch && (
-                    <button
-                      type="button"
-                      className="private-transfer__network-switch"
-                      onClick={() => handleNetworkChange(otherNetwork)}
-                      aria-label={t("networkSwitchAria", {
-                        network: networkLabelFor(otherNetwork),
-                      })}
-                    >
-                      {t("networkSwitchCta", {
-                        network: networkLabelFor(otherNetwork),
-                      })}
-                    </button>
-                  )}
-                </div>
-              )}
-            </section>
-            <section className="private-transfer__choice-field" aria-label={t("formAssetLabel")}>
-              <div className="private-transfer__choice-head">
-                <span>{t("formAssetLabel")}</span>
+        <div className="pt-compose-strip" aria-label={t("composerLead")}>
+          <div className="pt-amount-desk" data-ready={amountReady ? "true" : "false"} data-asset={asset.toLowerCase()}>
+            <OpenUiSegmented
+              className="pt-asset-switch"
+              segmentedClassName="pt-asset-switch__group"
+              label={t("formAssetLabel")}
+              value={asset}
+              onChange={selectAssetSafe}
+              options={ASSET_OPTIONS.map((option) => ({
+                value: option.symbol,
+                label: (
+                  <span className="pt-asset-option" data-asset={option.symbol.toLowerCase()}>
+                    <CoinArt size={22} variant={coinVariant(option.symbol)} decorative />
+                    <span>
+                      <strong>{option.symbol}</strong>
+                      <small>{t(option.metaKey)}</small>
+                    </span>
+                  </span>
+                ),
+              }))}
+            />
+            <div
+              className="pt-compose-slot pt-compose-slot--amount"
+              data-ready={amountReady ? "true" : "false"}
+              data-empty={!amount ? "true" : undefined}
+            >
+              <span><CoinArt size={16} variant={coinVariant(asset)} decorative /> {t("formAmountLabel")}</span>
+              <div className="pt-amount-control">
+                <OpenUiTextField
+                  className="pt-amount-field"
+                  inputClassName="pt-compose-input pt-compose-input--amount"
+                  label={t("formAmountLabel")}
+                  value={amount}
+                  onChange={(e) => setAmount(normalizeAmountInput(e.target.value, asset))}
+                  placeholder={asset === "NEO" ? "1" : "0.00"}
+                  inputMode={asset === "NEO" ? "numeric" : "decimal"}
+                />
                 <strong>{asset}</strong>
               </div>
-              <div
-                className="private-transfer__choice-grid private-transfer__choice-grid--asset"
-                role="radiogroup"
-                aria-label={t("formAssetLabel")}
-              >
-                {assetOptions.map((option) => {
-                  const Icon = option.icon;
-                  const selected = option.value === asset;
+              <small className="pt-amount-hint">{amountHint}</small>
+            </div>
+            <OpenUiSegmented
+              className="pt-amount-presets"
+              segmentedClassName="pt-amount-presets__group"
+              label={t("presetsLabel")}
+              value={activeAsset.presets.includes(amount) ? amount : ""}
+              onChange={setAmount}
+              options={activeAsset.presets.map((preset) => ({
+                value: preset,
+                label: <span className="pt-preset-option">{preset} {asset}</span>,
+              }))}
+            />
+            {amount && !amountReady && <small className="pt-amount-error">{t(asset === "NEO" ? "errorInvalidNeoAmount" : "errorInvalidAmount")}</small>}
+          </div>
 
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      aria-label={`${t("formAssetLabel")}: ${option.label}`}
-                      className={`private-transfer__choice-card${
-                        selected ? " is-active" : ""
-                      }`}
-                      onClick={() => handleAssetChange(option.value)}
-                    >
-                      <span className="private-transfer__choice-icon" aria-hidden="true">
-                        <Icon size={17} />
-                      </span>
-                      <span className="private-transfer__choice-copy">
-                        <strong>{option.label}</strong>
-                        <small>{option.meta}</small>
-                      </span>
-                      {selected ? (
-                        <span className="private-transfer__choice-check" aria-hidden="true">
-                          <Check size={14} />
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-            <label className="private-transfer__wide">
-              <span>{t("formRecipientLabel")}</span>
-              <input
-                value={recipient}
-                placeholder={t("formRecipientPlaceholder")}
-                aria-invalid={recipientInvalid || undefined}
-                onChange={(event) => setRecipient(event.target.value)}
-              />
-              {recipientInvalid && (
-                <small className="private-transfer__field-error">
-                  {t("errorInvalidAddress")}
-                </small>
-              )}
-            </label>
-            <label>
-              <span>{t("formAmountLabel")}</span>
-              <input
-                type="number"
-                min="0"
-                step={isNeo ? "1" : "0.00000001"}
-                value={amount}
-                aria-invalid={amountInvalid || undefined}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-              {amountInvalid ? (
-                <small className="private-transfer__field-error">
-                  {isNeo ? t("errorInvalidNeoAmount") : t("errorInvalidAmount")}
-                </small>
-              ) : (
-                <small className="private-transfer__field-hint">
-                  {isNeo ? t("amountHintNeo") : t("amountHintGas")}
-                </small>
-              )}
-              <div
-                className="private-transfer__presets"
-                aria-label={t("presetsLabel")}
-              >
-                {(isNeo ? NEO_AMOUNT_PRESETS : AMOUNT_PRESETS).map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={`private-transfer__preset${
-                      amount === preset ? " is-active" : ""
-                    }`}
-                    onClick={() => setAmount(preset)}
-                  >
-                    {preset} {asset}
-                  </button>
-                ))}
-              </div>
-            </label>
-            <label className="private-transfer__wide">
-              <span className="private-transfer__label-row">
-                {t("formMemoLabel")}
-                <em className="private-transfer__label-optional">
-                  {t("formMemoOptional")}
-                </em>
-              </span>
-              <input
-                value={memo}
-                maxLength={MEMO_MAX_LENGTH}
-                onChange={(event) =>
-                  setMemo(event.target.value.slice(0, MEMO_MAX_LENGTH))
-                }
-              />
-              <small
-                className="private-transfer__memo-count"
-                aria-live="polite"
-              >
-                {memo.length}/{MEMO_MAX_LENGTH}
-              </small>
-            </label>
-          </div>
-          {canSeal ? (
-            <div className="private-transfer__summary" role="group">
-              <span className="private-transfer__summary-title">
-                {t("summaryTitle")}
-              </span>
-              <dl className="private-transfer__summary-grid">
-                <div>
-                  <dt>{t("summaryRecipient")}</dt>
-                  <dd title={recipient.trim()}>{shortAddress(recipient)}</dd>
-                </div>
-                <div>
-                  <dt>{t("summaryAmount")}</dt>
-                  <dd className="private-transfer__summary-amount">
-                    {t("summaryAmountValue", {
-                      amount: normalizeAmount(amount, asset),
-                      asset,
-                    })}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t("summaryNetwork")}</dt>
-                  <dd>{networkLabelFor(network)}</dd>
-                </div>
-                <div>
-                  <dt>{t("summaryEncryption")}</dt>
-                  <dd className="private-transfer__summary-algo">
-                    {MORPHEUS_ENCRYPTION_ALGORITHM}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          ) : (
-            <div className="private-transfer__validation" role="status">
-              {t("validationHint")}
-            </div>
-          )}
-          <div className="private-transfer__no-funds" role="note">
-            {t("noFundsBanner")}
-          </div>
-          <button
-            type="button"
-            className="private-transfer__seal-button"
-            onClick={sealTransfer}
-            disabled={submitState.status === "sealing" || !canSeal}
-            aria-label={
-              submitState.status === "sealing"
-                ? t("sealAriaBusy")
-                : t("sealAriaIdle")
-            }
+          <div
+            className="pt-compose-slot pt-compose-slot--recipient"
+            data-ready={recipientReady ? "true" : "false"}
+            data-empty={!recipient ? "true" : undefined}
           >
-            {submitState.status === "sealing" ? t("sealing") : t("sealButton")}
-          </button>
+            <span><Send size={15} /> {t("formRecipientLabel")}</span>
+            <OpenUiTextField
+              className="pt-recipient-field"
+              inputClassName="pt-compose-input pt-compose-input--recipient"
+              label={t("formRecipientLabel")}
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              placeholder={t("formRecipientPlaceholder")}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {recipient && !recipientReady && <small>{t("errorInvalidAddress")}</small>}
+          </div>
         </div>
+      </section>
 
-        {!sealed && (
-          <aside
-            className={`private-transfer__route private-transfer__route--${routeVisualState}`}
-            aria-label={t("routeAria")}
-          >
-            <div className="private-transfer__route-head">
-              <span className="private-transfer__route-icon" aria-hidden="true">
-                <LockKeyhole size={20} />
-              </span>
-              <div>
-                <strong>{t("routeTitle")}</strong>
-                <p>{t("routeBody")}</p>
-              </div>
-            </div>
+      <div className="pt-scene__intent" aria-label={t("summaryTitle")}>
+        <span data-ready={recipientReady ? "true" : "false"}><Send size={14} /> {recipientReady ? shortHash(recipient) : t("summaryRecipient")}</span>
+        <span data-ready={amountReady ? "true" : "false"}><CoinArt size={16} variant={coinVariant(asset)} decorative /> {amountReady ? `${amount} ${asset}` : t("summaryAmount")}</span>
+        <span data-ready={hasSealed ? "true" : "false"}><ShieldCheck size={14} /> {hasSealed ? shortHash(lastNullifier || lastDigest) : t("introPointNoFunds")}</span>
+      </div>
+      <p className="pt-scene__status">
+        {isSealing ? t("statusSealingProgress") : hasSealed ? `${lastStatus || t("statusSealed")} · ${privacyMode}` : canSeal ? t("summaryTitle") : t("statusInitial")}
+      </p>
+    </div>
+  );
 
-            <div
-              className="private-transfer__route-stage"
-              data-state={routeVisualState}
-            >
-              <img src="./private-transfer-stage.jpg" alt="" aria-hidden="true" />
-              <div className="private-transfer__route-wash" aria-hidden="true" />
-              <div className="private-transfer__route-rail" aria-hidden="true">
-                <span style={{ width: `${routeProgressPercent}%` }} />
-              </div>
-              <div className="private-transfer__route-packet">
-                <span>{networkLabelFor(network)}</span>
-                <strong>{routeAmountLabel}</strong>
-                <small>{routeRecipientLabel}</small>
-              </div>
-            </div>
+  const score = [
+    { label: t("statRequests"), value: String(requestCount), accent: true },
+    { label: t("statPrivacy"), value: privacyMode },
+    { label: t("statNetwork"), value: networkLabel },
+  ];
 
-            <ol className="private-transfer__route-steps">
-              {routeSteps.map((step) => {
-                const Icon = step.icon;
-                return (
-                  <li
-                    key={step.key}
-                    className={step.ready ? "is-ready" : undefined}
-                  >
-                    <span aria-hidden="true">
-                      <Icon size={15} />
-                    </span>
-                    <strong>{step.label}</strong>
-                  </li>
-                );
-              })}
-            </ol>
-
-            <ul className="private-transfer__intro-points">
-              {(
-                [
-                  [t("introPointLocal"), t("introPointLocalDesc")],
-                  [t("introPointTee"), t("introPointTeeDesc")],
-                  [t("introPointNoFunds"), t("introPointNoFundsDesc")],
-                ] as const
-              ).map(([title, desc]) => (
-                <li key={title}>
-                  <span aria-hidden="true" className="private-transfer__intro-tick">
-                    <Check size={13} />
-                  </span>
-                  <div>
-                    <strong>{title}</strong>
-                    <span>{desc}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        )}
-
-        {sealed && (
-        <aside
-          className={`private-transfer__status private-transfer__status--${submitState.status}`}
+  const drawer = (
+    <OpenUiProvider>
+      <div className="pt-drawer">
+        <OpenUiNotice
+          className="pt-drawer__notice"
+          icon={<ShieldCheck size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("introPointNoFunds")}
         >
-          <div className="private-transfer__status-icon" aria-hidden="true">
-            <ShieldCheck size={20} />
-          </div>
-          <span>{t("statusBlockHeader")}</span>
-          <strong>{submitState.message}</strong>
-          {submitState.status === "error" && (
-            <>
-              <p className="private-transfer__safe-copy">{t("safeCopy")}</p>
-              {submitState.detail && (
-                <p className="private-transfer__error-detail">
-                  {t("errorDetailLabel")}: {submitState.detail}
-                </p>
-              )}
-            </>
-          )}
-          {submitState.status === "stored" && (
-            <dl>
-              {(
-                [
-                  ["secretRef", t("resultSecretRef"), submitState.secretRef, t("resultSecretRefHint")],
-                  ["commitment", t("resultCommitment"), submitState.noteCommitment, t("resultCommitmentHint")],
-                  ["nullifier", t("resultNullifier"), submitState.nullifier, t("resultNullifierHint")],
-                ] as const
-              ).map(([field, label, value, hint]) => (
-                <div key={field}>
-                  <dt>{label}</dt>
-                  <div className="private-transfer__copy-row">
-                    <dd>{value}</dd>
-                    <button
-                      type="button"
-                      className="private-transfer__copy-button"
-                      onClick={() => copyValue(field, value)}
-                      aria-label={
-                        copiedField === field
-                          ? t("copiedAria", { label })
-                          : t("copyAria", { label })
-                      }
-                      title={copiedField === field ? t("copiedAction") : t("copyAction")}
-                    >
-                      {copiedField === field ? (
-                        <Check size={13} aria-hidden="true" />
-                      ) : (
-                        <Copy size={13} aria-hidden="true" />
-                      )}
-                      <span>{copiedField === field ? t("copiedAction") : t("copyAction")}</span>
-                    </button>
-                  </div>
-                  <p className="private-transfer__result-hint">{hint}</p>
-                </div>
-              ))}
-            </dl>
-          )}
-        </aside>
-        )}
-      </section>
+          {t("noFundsBanner")}
+        </OpenUiNotice>
 
-      <section className="private-transfer__history">
-        <div className="private-transfer__history-head">
-          <div>
-            <span className="private-transfer__eyebrow">{t("historyTitle")}</span>
-            <p className="private-transfer__history-sub">{t("historySubtitle")}</p>
-          </div>
-          {history.length > 0 && (
-            <button
-              type="button"
-              className="private-transfer__history-clear"
-              onClick={handleClearHistory}
-              aria-label={t("historyClearAria")}
-            >
-                {t("historyClear")}
-              </button>
-            )}
-          </div>
-        {history.length === 0 ? (
-          <StateView
-            kind="empty"
-            className="private-transfer__history-empty"
-            title={t("historyEmpty")}
+        <OpenUiPanel
+          className="pt-drawer__panel pt-drawer__panel--memo"
+          icon={<FileLock2 size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("formMemoLabel")}
+          subtitle={t("formMemoOptional")}
+        >
+          <OpenUiTextField
+            className="pt-drawer__memo"
+            label={t("formMemoLabel")}
+            value={memo}
+            onChange={(event) => setMemo(event.target.value)}
+            placeholder={t("formMemoLabel")}
+            hint={t("introPointLocalDesc")}
           />
-        ) : (
-          <ul className="private-transfer__history-list">
-            {history.map((intent) => (
-              <li key={`${intent.secretRef}:${intent.ts}`} className="private-transfer__history-item">
-                <div className="private-transfer__history-meta">
-                  <span>
-                    {t("historyMetaNetwork")}: {networkLabelFor(intent.network)}
-                  </span>
-                  <span>
-                    {t("historyMetaAsset")}: {intent.asset}
-                  </span>
-                </div>
-                <dl>
-                  {(
-                    [
-                      ["secretRef", t("resultSecretRef"), intent.secretRef],
-                      ["commitment", t("resultCommitment"), intent.commitment],
-                    ] as const
-                  ).map(([field, label, value]) => {
-                    const rowKey = `${intent.secretRef}:${field}`;
-                    return (
-                      <div key={field}>
-                        <dt>{label}</dt>
-                        <div className="private-transfer__copy-row">
-                          <dd>{value}</dd>
-                          <button
-                            type="button"
-                            className="private-transfer__copy-button"
-                            onClick={() => copyValue(rowKey, value)}
-                            aria-label={
-                              copiedField === rowKey
-                                ? t("copiedAria", { label })
-                                : t("copyAria", { label })
-                            }
-                            title={copiedField === rowKey ? t("copiedAction") : t("copyAction")}
-                          >
-                            {copiedField === rowKey ? (
-                              <Check size={13} aria-hidden="true" />
-                            ) : (
-                              <Copy size={13} aria-hidden="true" />
-                            )}
-                            <span>{copiedField === rowKey ? t("copiedAction") : t("copyAction")}</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </dl>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        </OpenUiPanel>
 
-      <details className="private-transfer__steps">
-        <summary>
-          <span>{t("stepsTitle")}</span>
-          <ChevronDown
-            className="private-transfer__steps-chevron"
-            size={16}
-            aria-hidden="true"
-          />
-        </summary>
-        <div className="private-transfer__steps-grid">
-          {(
-            [
-              ["1", t("step1Title"), t("step1Body"), false],
-              ["2", t("step2Title"), t("step2Body"), true],
-              ["3", t("step3Title"), t("step3Body"), true],
-              ["4", t("step4Title"), t("step4Body"), false],
-            ] as const
-          ).map(([index, title, body, inApp]) => (
-            <article
-              key={index}
-              className={inApp ? "is-in-app" : "is-external"}
-            >
-              <span>{index}</span>
-              <strong>{title}</strong>
-              <span
-                className={`private-transfer__step-tag${
-                  inApp ? " is-in-app" : ""
-                }`}
-              >
-                {inApp ? t("stepInApp") : t("stepNotInApp")}
-              </span>
-              <p>{body}</p>
-            </article>
-          ))}
-        </div>
-      </details>
+        <OpenUiPanel
+          className="pt-drawer__panel pt-drawer__panel--receipt"
+          icon={<Send size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("summaryTitle")}
+          subtitle={canSeal ? t("packetReady") : t("summaryPendingAsset", { asset })}
+        >
+          <dl className="pt-drawer__facts">
+            <div><dt>{t("summaryRecipient")}</dt><dd>{recipientReady ? shortHash(recipient) : t("routeRecipientPending")}</dd></div>
+            <div><dt>{t("summaryAmount")}</dt><dd>{amountReady ? `${amount} ${asset}` : t(asset === "NEO" ? "routeAmountPendingNeo" : "routeAmountPendingGas")}</dd></div>
+            <div><dt>{t("summaryNetwork")}</dt><dd>{networkLabel || t("digestPlaceholder")}</dd></div>
+          </dl>
+        </OpenUiPanel>
+
+        <OpenUiPanel
+          className="pt-drawer__panel pt-drawer__panel--crypto"
+          icon={<LockKeyhole size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("summaryEncryption")}
+          subtitle="X25519 · AES-256-GCM"
+        >
+          <dl className="pt-drawer__facts">
+            <div><dt>{t("introPointLocal")}</dt><dd>{t("introPointLocalDesc")}</dd></div>
+            <div><dt>{t("introPointTee")}</dt><dd>{t("introPointTeeDesc")}</dd></div>
+            <div><dt>{t("statDigest")}</dt><dd>{hasSealed ? shortHash(lastDigest) : t("sealPreviewPending")}</dd></div>
+          </dl>
+        </OpenUiPanel>
+      </div>
+    </OpenUiProvider>
+  );
+
+  return (
+    <div className="private-transfer-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{ eyebrow: t("heroEyebrow"), title: t("heroTitle"), subtitle: t("heroBadge") }}
+        scene={scene}
+        score={score}
+        actions={{
+          primary: {
+            label: isSealing ? t("sealing") : t("sealCtaShort"),
+            onClick: () => void handleSeal(),
+            disabled: !canSeal,
+            loading: isSealing,
+          },
+        }}
+        drawerToggleLabel={t("composerTitle")}
+        drawer={{ title: t("composerTitle"), children: drawer }}
+      />
     </div>
   );
 }

@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-dailycheckin",
   "media": {
-    "icon": "/miniapp-assets/daily-checkin/logo.jpg",
-    "banner": "/miniapp-assets/daily-checkin/banner.jpg"
+    "icon": "/miniapp-assets/daily-checkin/logo.webp",
+    "banner": "/miniapp-assets/daily-checkin/banner.webp"
   },
   "permissions": {
     "payments": true

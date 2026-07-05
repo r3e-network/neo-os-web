@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { useLastSurvivor } from "./useLastSurvivor";
-import type { UseLastSurvivorOptions } from "./useLastSurvivor";
-import type { ContractArg, TxResult } from "@shared/services/ChainService";
+import { createMiniAppFramework } from "@shared/react";
+import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
@@ -111,14 +111,18 @@ function makeChain(
     ensureWallet: vi.fn(async () => PLAYER),
     invoke,
     read,
-  } as unknown as UseLastSurvivorOptions["chain"];
+  } as unknown as ChainService;
 
   return { chain, invoke, read };
 }
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
   const deps = makeChain(opts);
-  const game = useLastSurvivor({ chain: deps.chain, t });
+  const app = createMiniAppFramework(
+    { services: { chain: deps.chain }, t } as never,
+    { appId: "miniapp-last-survivor" },
+  );
+  const game = useLastSurvivor({ app, t });
   game.setAddress(PLAYER);
   return { game, ...deps };
 }

@@ -106,6 +106,29 @@ const SERVER_BACKED_FLOWS = new Map([
       ],
     },
   ],
+  ...[
+    "miniapp-aim-master",
+    "miniapp-color-clash",
+    "miniapp-flappy-dash",
+    "miniapp-game-2048",
+    "miniapp-jump-rush",
+    "miniapp-merge-kingdom",
+    "miniapp-pet-potion",
+    "miniapp-sheep-solitaire",
+    "miniapp-snake-bounty",
+    "miniapp-sudoku",
+  ].map((id) => [
+    id,
+    {
+      script: "deploy/scripts/live_validate_morpheus_game_liveness.mjs",
+      target: "morpheus-game-contract-runtime-liveness",
+      coveredBy: [
+        "testnet contract state",
+        "Morpheus oracle / TEE signer config",
+        "public Morpheus runtime health",
+      ],
+    },
+  ]),
 ]);
 
 function readJson(filePath) {

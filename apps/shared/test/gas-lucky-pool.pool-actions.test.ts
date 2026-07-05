@@ -7,6 +7,7 @@ import {
   addressToScriptHash,
   keyLaunch,
   launch,
+  makeApp,
   t,
   useGasLuckyPool,
 } from "./gas-lucky-pool.logic.test-utils";
@@ -48,7 +49,7 @@ describe("OneGate Vault runtime logic - status polling and pool actions", () => 
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -97,7 +98,7 @@ describe("OneGate Vault runtime logic - status polling and pool actions", () => 
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });
@@ -150,7 +151,7 @@ describe("OneGate Vault runtime logic - status polling and pool actions", () => 
         ]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });
@@ -206,7 +207,7 @@ describe("OneGate Vault runtime logic - status polling and pool actions", () => 
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });

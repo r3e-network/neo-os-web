@@ -3,6 +3,7 @@ import { resolve } from "path";
 import { describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
 import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
@@ -19,7 +20,11 @@ function fakeAnchorDeps() {
   };
   const eventBus = { emit: vi.fn() };
   const t = (key: string) => key;
-  return { chain, eventBus, t, invoke };
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-anchor" },
+  );
+  return { app, chain, eventBus, t, invoke };
 }
 
 describe("Anchor stake memo alignment", () => {
@@ -29,7 +34,7 @@ describe("Anchor stake memo alignment", () => {
     expect(profit.invoke).toHaveBeenCalledWith(
       "transfer",
       expect.arrayContaining([
-        { type: "Integer", value: 3 },
+        { type: "Integer", value: "3" },
         { type: "String", value: "stake:miniapp-profitanchor" },
       ]),
       expect.objectContaining({ scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH }),
@@ -40,7 +45,7 @@ describe("Anchor stake memo alignment", () => {
     expect(trust.invoke).toHaveBeenCalledWith(
       "transfer",
       expect.arrayContaining([
-        { type: "Integer", value: 2 },
+        { type: "Integer", value: "2" },
         { type: "String", value: "stake:miniapp-trustanchor" },
       ]),
       expect.objectContaining({ scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH }),

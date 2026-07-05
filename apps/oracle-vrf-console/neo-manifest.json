@@ -20,8 +20,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-vrf-console/index.html",
-    "icon": "/miniapps/oracle-vrf-console/logo.jpg",
-    "banner": "/miniapps/oracle-vrf-console/banner.jpg"
+    "icon": "/miniapps/oracle-vrf-console/logo.webp",
+    "banner": "/miniapps/oracle-vrf-console/banner.webp"
   },
   "permissions": ["read:blockchain"],
   "features": {

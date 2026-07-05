@@ -26,7 +26,7 @@ import {
   getLocalizedMiniAppName,
   getNetworkLabel,
 } from "@/lib/i18n/miniapp-display";
-import { interpolate, type Locale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
 import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
@@ -182,7 +182,7 @@ function MiniAppListingCard({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${statusClass}`}
+            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusClass}`}
           >
             <span className="relative flex h-1.5 w-1.5">
               {availability.tone === "live" && (
@@ -194,12 +194,12 @@ function MiniAppListingCard({
             </span>
             {availabilityLabel}
           </span>
-          <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-500">
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
             {categoryLabel}
           </span>
         </div>
 
-        <h3 className="m-0 mt-2 truncate text-lg font-black text-gray-950 transition-colors group-hover:text-emerald-700 sm:text-xl">
+        <h3 className="m-0 mt-2 truncate text-lg font-semibold text-gray-900 transition-colors group-hover:text-emerald-700 sm:text-xl">
           {appName}
         </h3>
 
@@ -215,7 +215,7 @@ function MiniAppListingCard({
       </div>
 
       <div className="hidden min-w-[150px] flex-col items-end gap-2 sm:flex">
-        <span className="text-xs font-bold uppercase text-gray-400">
+        <span className="text-xs font-medium text-gray-400">
           {getCategoryLabel(app.category, t)}
         </span>
         <span
@@ -388,50 +388,33 @@ export default function MiniAppsPage({
   ]);
 
   const hero = filteredApps[0];
+  const featuredApps = filteredApps.slice(0, 6);
   const networkLabel = getNetworkLabel(targetNetwork, t);
-  const statusCounts = useMemo(
-    () =>
-      listedApps.reduce(
-        (counts, app) => {
-          const key = getStatusFilterKey(app, targetNetwork) as StatusFilter;
-          counts[key] = (counts[key] ?? 0) + 1;
-          return counts;
-        },
-        {
-          all: listedApps.length,
-          live: 0,
-          tool: 0,
-          "other-network": 0,
-          pending: 0,
-        } satisfies Record<StatusFilter, number>,
-      ),
-    [listedApps, targetNetwork],
-  );
 
   const quickFilters = [
     {
       value: "live" as StatusFilter,
       label: t("catalog.filters.live", "host"),
-      count: statusCounts.live,
       icon: TrendingUp,
       iconClassName: "bg-[#DEF5E9] text-[#35B878]",
-      cardClassName: "hover:border-emerald-200",
     },
     {
       value: "tool" as StatusFilter,
       label: t("catalog.filters.tool", "host"),
-      count: statusCounts.tool,
       icon: Wrench,
       iconClassName: "bg-[#DFF0FF] text-[#4C9DE8]",
-      cardClassName: "hover:border-sky-200",
+    },
+    {
+      value: "other-network" as StatusFilter,
+      label: t("catalog.filters.otherNetwork", "host"),
+      icon: Radio,
+      iconClassName: "bg-[#E8EEFF] text-[#5A67D8]",
     },
     {
       value: "pending" as StatusFilter,
       label: t("catalog.filters.pending", "host"),
-      count: statusCounts.pending,
       icon: Sparkles,
       iconClassName: "bg-[#FFEBE4] text-[#FF8C5A]",
-      cardClassName: "hover:border-orange-200",
     },
   ];
 
@@ -443,25 +426,27 @@ export default function MiniAppsPage({
       </Head>
 
       <div
-        className="min-h-screen bg-[#f7f8fb] pt-20"
+        className="min-h-screen bg-[#faf9f7] pt-20"
         data-testid="miniapps-market-shell"
       >
         {/* ── Hero ──────────────────────────────────────────────────── */}
         <section className="px-4 py-6 sm:px-6 sm:py-8">
           <div className="mx-auto max-w-6xl">
-            <div className="p-0">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-stretch">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm shadow-gray-950/[0.03] sm:p-5 lg:p-6">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-start">
                 <div className="flex min-w-0 flex-col">
-                  <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                    </span>
-                    <span className="text-xs font-bold uppercase text-emerald-700">
-                      {networkLabel}
-                    </span>
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                      </span>
+                      <span className="text-xs font-semibold text-emerald-700">
+                        {networkLabel}
+                      </span>
+                    </div>
                   </div>
-                  <h1 className="m-0 text-3xl font-extrabold leading-tight tracking-tight text-gray-950 sm:text-4xl">
+                  <h1 className="m-0 text-3xl font-semibold leading-tight text-gray-900 sm:text-4xl">
                     {t("hero.title", "host")}
                   </h1>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
@@ -487,14 +472,26 @@ export default function MiniAppsPage({
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder={t("catalog.searchPlaceholder", "host")}
-                      className="h-14 w-full rounded-xl border border-gray-200 bg-white pl-14 pr-5 text-base font-semibold text-gray-900 shadow-sm outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-neo/60 focus:ring-4 focus:ring-neo/10"
+                      className="h-12 w-full rounded-lg border border-gray-200 bg-[#fbfcfe] pl-12 pr-5 text-sm font-semibold text-gray-900 outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:border-neo/60 focus:ring-4 focus:ring-neo/10"
                     />
                   </label>
 
                   <div
-                    className="mt-5 grid grid-cols-3 gap-2 sm:gap-3"
+                    className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden"
                     data-testid="miniapps-quick-filters"
                   >
+                    <button
+                      type="button"
+                      onClick={() => setStatusFilter("all")}
+                      className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                        statusFilter === "all"
+                          ? "border-emerald-200 bg-emerald-50 text-gray-900"
+                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Boxes className="h-4 w-4" aria-hidden="true" />
+                      {t("catalog.filters.all", "host")}
+                    </button>
                     {quickFilters.map((item) => {
                       const Icon = item.icon;
                       const active = statusFilter === item.value;
@@ -503,38 +500,74 @@ export default function MiniAppsPage({
                           key={item.value}
                           type="button"
                           onClick={() => setStatusFilter(item.value)}
-                          className={`group flex min-h-24 min-w-0 flex-col items-center justify-center rounded-xl border bg-white p-2 text-center shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:min-h-28 sm:p-4 ${item.cardClassName} ${
+                          className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                             active
-                              ? "border-gray-950 text-gray-950"
-                              : "border-gray-200 text-gray-700 hover:-translate-y-0.5"
+                              ? "border-emerald-200 bg-emerald-50 text-gray-900"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
                           }`}
                         >
                           <span
-                            className={`grid h-14 w-14 place-items-center rounded-full ${item.iconClassName}`}
+                            className={`grid h-6 w-6 place-items-center rounded-full ${active ? "bg-white text-emerald-700" : item.iconClassName}`}
                           >
-                            <Icon className="h-6 w-6" aria-hidden="true" />
+                            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                           </span>
-                          <span className="mt-3 text-sm font-black">
-                            {item.label}
-                          </span>
-                          <span className="mt-1 text-xs font-semibold text-gray-400">
-                            {item.count}
-                          </span>
+                          <span>{item.label}</span>
                         </button>
                       );
                     })}
                   </div>
+
+                  <div
+                    className="mt-5 rounded-lg border border-gray-200 bg-[#fbfcfe] p-3"
+                    data-testid="miniapps-featured-shelf"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold text-gray-500">
+                        {t("catalog.title", "host")}
+                      </span>
+                      <span className="text-xs font-medium text-gray-400">
+                        {t("catalog.filters.live", "host")}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                      {featuredApps.map((app) => (
+                        <Link
+                          key={app.app_id}
+                          href={buildMiniAppDetailHref(app.app_id, {
+                            network: targetNetwork,
+                          })}
+                          className="group grid min-w-0 gap-2 rounded-lg border border-transparent p-2 text-center transition hover:border-emerald-200 hover:bg-white"
+                        >
+                          <span className="mx-auto grid h-12 w-12 place-items-center overflow-hidden rounded-lg border border-gray-200 bg-white p-1.5 shadow-sm shadow-gray-950/5">
+                            <MiniAppLogo
+                              appId={app.app_id}
+                              category={app.category}
+                              entryUrl={app.entry_url}
+                              logoUrl={app.logo_url}
+                              manifest={app.manifest || null}
+                              alt={getLocalizedMiniAppName(app, locale)}
+                              size="lg"
+                              className="h-full w-full rounded-xl"
+                            />
+                          </span>
+                          <span className="truncate text-xs font-semibold text-gray-700 group-hover:text-emerald-700">
+                            {getLocalizedMiniAppName(app, locale)}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <aside
-                  className="flex min-h-[260px] flex-col justify-between rounded-3xl border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-violet-50 p-5 text-gray-900 shadow-sm sm:min-h-[340px]"
+                  className="flex min-h-[250px] flex-col justify-between rounded-lg border border-gray-200 bg-[#fbfcfe] p-4 text-gray-900 shadow-sm sm:min-h-[300px] sm:p-5"
                   data-testid="miniapps-lead-preview"
                 >
                   {hero ? (
                     <>
                       <div>
                         <div className="flex items-start justify-between gap-3">
-                          <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase text-emerald-700">
+                          <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                             {getAvailabilityLabel(
                               getMiniAppCatalogAvailability(hero, targetNetwork)
                                 .tone,
@@ -546,7 +579,7 @@ export default function MiniAppsPage({
                           <button
                             type="button"
                             onClick={() => setStatusFilter("all")}
-                            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-bold uppercase text-gray-500 transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                           >
                             {t("catalog.filters.all", "host")}
                           </button>
@@ -565,14 +598,14 @@ export default function MiniAppsPage({
                             />
                           </div>
                           <div className="min-w-0">
-                            <p className="m-0 text-xs font-bold uppercase tracking-wide text-gray-500">
+                            <p className="m-0 text-xs font-medium text-gray-500">
                               {getLocalizedMiniAppCategoryLabel(
                                 hero,
                                 locale,
                                 t,
                               )}
                             </p>
-                            <h2 className="m-0 mt-1 truncate text-2xl font-extrabold text-gray-900 sm:text-3xl">
+                            <h2 className="m-0 mt-1 truncate text-2xl font-semibold text-gray-900 sm:text-3xl">
                               {getLocalizedMiniAppName(hero, locale)}
                             </h2>
                           </div>
@@ -585,7 +618,7 @@ export default function MiniAppsPage({
                         href={buildMiniAppDetailHref(hero.app_id, {
                           network: targetNetwork,
                         })}
-                        className="mt-4 inline-flex h-12 items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:mt-6 sm:h-14"
+                        className="mt-4 inline-flex h-12 items-center justify-center rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:mt-6"
                       >
                         {t("catalog.openApp", "host")}
                         <ArrowUpRight
@@ -603,42 +636,6 @@ export default function MiniAppsPage({
                     </div>
                   )}
                 </aside>
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                {[
-                  ["all", t("catalog.filters.all", "host")],
-                  ["live", t("catalog.filters.live", "host")],
-                  ["tool", t("catalog.filters.tool", "host")],
-                  ["other-network", t("catalog.filters.otherNetwork", "host")],
-                  ["pending", t("catalog.filters.pending", "host")],
-                ].map(([value, label]) => {
-                  const active = statusFilter === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setStatusFilter(value as StatusFilter)}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
-                        active
-                          ? "border-emerald-600 bg-emerald-600 text-white"
-                          : "border-gray-200 bg-white text-gray-500 hover:text-gray-900"
-                      }`}
-                    >
-                      {label}
-                      <span className="ml-1 text-[10px] opacity-70">
-                        {statusCounts[value as StatusFilter] ?? 0}
-                      </span>
-                    </button>
-                  );
-                })}
-                <span className="ml-auto hidden items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-gray-500 sm:inline-flex">
-                  <Radio className="h-3.5 w-3.5 text-emerald-500" />
-                  {interpolate(t("catalog.shownCount", "host"), {
-                    shown: filteredApps.length,
-                    total: listedApps.length,
-                  })}
-                </span>
               </div>
             </div>
           </div>
@@ -660,14 +657,11 @@ export default function MiniAppsPage({
           <div className="mx-auto max-w-6xl">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="m-0 text-base font-bold text-gray-900">
+                <h2 className="m-0 text-base font-semibold text-gray-900">
                   {t("catalog.title", "host")}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  {interpolate(t("catalog.shownCount", "host"), {
-                    shown: filteredApps.length,
-                    total: listedApps.length,
-                  })}
+                <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500">
+                  {t("catalog.resultsDescription", "host")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-1.5 pb-1 sm:justify-end">

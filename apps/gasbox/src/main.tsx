@@ -22,6 +22,7 @@ defineMiniApp({
 
   setup(ctx) {
     const gasbox = useGasBox({
+      app: ctx.framework,
       chain: ctx.services.chain,
       t: ctx.t,
     });
@@ -106,7 +107,7 @@ defineMiniApp({
       );
     };
 
-    ctx.registerAction("pull", async (...args: unknown[]) => {
+    ctx.framework.actions.register("pull", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       const machine = findMachineById(id);
       if (!machine) {
@@ -132,7 +133,7 @@ defineMiniApp({
     // Reveal-retry: re-run settle against the persisted pending betId. Safe to
     // retry (settle is permissionless + pays exactly once). Counts the pull only
     // when the reveal newly settles a win here.
-    ctx.registerAction("reveal", async () => {
+    ctx.framework.actions.register("reveal", async () => {
       if (!gasbox.canReveal.get()) return;
       const settled = await ctx.services.notify.guard(
         () => gasbox.revealPending(),
@@ -144,7 +145,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("publishMachine", async (...args: unknown[]) => {
+    ctx.framework.actions.register("publishMachine", async (...args: unknown[]) => {
       const machineData = (args[0] ?? {}) as MachineData;
       // guard returns publishMachine's boolean on success, or undefined when it
       // swallows a thrown error. Propagate it so the view only clears the studio
@@ -158,13 +159,13 @@ defineMiniApp({
       return published === true;
     });
 
-    ctx.registerAction("selectMachine", async (...args: unknown[]) => {
+    ctx.framework.actions.register("selectMachine", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       const machine = findMachineById(id);
       if (machine) gasbox.selectMachine(machine);
     });
 
-    ctx.registerAction("withdrawRevenue", async (...args: unknown[]) => {
+    ctx.framework.actions.register("withdrawRevenue", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       if (!id) return;
       await ctx.services.notify.guard(
@@ -173,7 +174,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("topUpPool", async (...args: unknown[]) => {
+    ctx.framework.actions.register("topUpPool", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       const amount = String(args[1] ?? "");
       if (!id || !amount) return;
@@ -183,7 +184,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("setMachineActive", async (...args: unknown[]) => {
+    ctx.framework.actions.register("setMachineActive", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       const active = args[1] === true;
       if (!id) return;
@@ -193,20 +194,20 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("resetResult", async () => {
+    ctx.framework.actions.register("resetResult", async () => {
       gasbox.resetResult();
     });
 
-    ctx.registerAction("refreshMachines", async () => {
+    ctx.framework.actions.register("refreshMachines", async () => {
       await gasbox.loadAll();
     });
 
-    ctx.registerAction("openStudio", async () => {
+    ctx.framework.actions.register("openStudio", async () => {
       gasbox.openStudio();
       ctx.setStatus(ctx.t("studioGuidance"), "info");
     });
 
-    ctx.registerAction("closeStudio", async () => {
+    ctx.framework.actions.register("closeStudio", async () => {
       gasbox.closeStudio();
     });
 

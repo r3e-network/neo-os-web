@@ -23,7 +23,7 @@ defineMiniApp({
     const platformServices = ctx.services;
 
     const convert = useNeoConvert({
-      chain: platformServices.chain,
+      app: ctx.framework,
       balance: platformServices.balance,
       transfer: platformServices.transfer,
       eventBus: platformServices.events,
@@ -48,7 +48,7 @@ defineMiniApp({
       },
     });
 
-    ctx.registerAction("convert", async (...args: unknown[]) => {
+    ctx.framework.actions.register("convert", async (...args: unknown[]) => {
       const incoming = typeof args[0] === "string" ? args[0] : "";
       if (incoming) convert.inputKey.set(incoming);
       convert.convertInput();
@@ -59,15 +59,15 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("toggleGeneratedSecrets", async () => {
+    ctx.framework.actions.register("toggleGeneratedSecrets", async () => {
       convert.toggleGeneratedSecrets();
     });
 
-    ctx.registerAction("toggleConversionSecrets", async () => {
+    ctx.framework.actions.register("toggleConversionSecrets", async () => {
       convert.toggleConversionSecrets();
     });
 
-    ctx.registerAction("copy", async (...args: unknown[]) => {
+    ctx.framework.actions.register("copy", async (...args: unknown[]) => {
       const text = typeof args[0] === "string" ? args[0] : "";
       if (text) convert.copyToClipboard(text);
     });

@@ -1,28 +1,21 @@
 /**
- * PlayArea.tsx -- Red Envelope
+ * PlayArea.tsx -- Red Envelope (v2 scene-driven rebuild)
  *
- * Claim-first surface. Creating and diagnostics are secondary so a recipient
- * who arrives from OneGate QR sees the one job they came to do.
+ * The envelope IS the scene: a festive packet you tap to open (claim), with a
+ * burst of lucky coins on a win. Create is a secondary builder. Envelopes,
+ * recovery, and transaction safety are tucked into a drawer. Warm festive game
+ * identity, high contrast. Chain logic (useRedEnvelope) is untouched.
  */
-
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
-import {
-  ChevronDown,
-  Coins,
-  Gift,
-  Minus,
-  PackageOpen,
-  Plus,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  WalletCards,
-} from "lucide-react";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { OpenUiPanel, OpenUiProvider, PlayStage } from "@shared/components-react/v2";
+import { ArchiveRestore, Gift, History, Send, ShieldCheck, Ticket, type LucideIcon } from "lucide-react";
 import "./PlayArea.scss";
+
+const claimCardImageUrl = new URL("../public/red-envelope-claim-card.webp", import.meta.url).href;
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -65,14 +58,12 @@ interface Claim {
   amount?: number;
 }
 
-function shortId(value: string): string {
-  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
-}
+type DrawerMode = "active" | "claims" | "reclaim" | "safety";
 
 function formatGas(value: unknown): string {
-  const numberValue = Number(value ?? 0);
-  if (!Number.isFinite(numberValue)) return "0 GAS";
-  return `${numberValue.toLocaleString(undefined, { maximumFractionDigits: 4 })} GAS`;
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) return "0 GAS";
+  return `${n.toLocaleString(undefined, { maximumFractionDigits: 4 })} GAS`;
 }
 
 function getLaunchEnvelopeId(context: MiniAppLaunchContext): string {
@@ -92,95 +83,7 @@ function getLaunchCreateForm(context: MiniAppLaunchContext) {
 const AMOUNT_PRESETS = ["0.5", "1", "3"];
 const PACKET_PRESETS = ["4", "8", "16"];
 const EXPIRY_PRESETS = ["12", "24", "72"];
-
-interface CreateDialProps {
-  label: string;
-  value: string;
-  suffix: string;
-  min: number;
-  max?: number;
-  step: number;
-  precision?: number;
-  fill: string;
-  decreaseLabel: string;
-  increaseLabel: string;
-  onChange: (value: string) => void;
-}
-
-function formatDialValue(value: number, precision = 0): string {
-  if (!Number.isFinite(value)) return "";
-  if (precision <= 0) return String(Math.round(value));
-  return value.toFixed(precision).replace(/\.?0+$/, "");
-}
-
-function clampDialValue(value: number, min: number, max?: number): number {
-  const upper = max ?? Number.POSITIVE_INFINITY;
-  return Math.min(upper, Math.max(min, value));
-}
-
-function CreateDial({
-  label,
-  value,
-  suffix,
-  min,
-  max,
-  step,
-  precision = 0,
-  fill,
-  decreaseLabel,
-  increaseLabel,
-  onChange,
-}: CreateDialProps) {
-  const numericValue = Number(value);
-  const canDecrease = Number.isFinite(numericValue) && numericValue > min;
-  const canIncrease = Number.isFinite(numericValue) && (max === undefined || numericValue < max);
-
-  const nudge = (direction: 1 | -1) => {
-    const base = Number.isFinite(numericValue) ? numericValue : min;
-    const next = clampDialValue(base + direction * step, min, max);
-    onChange(formatDialValue(next, precision));
-  };
-
-  return (
-    <div className="redenv-machine-dial" style={{ "--redenv-dial-fill": fill } as CSSProperties}>
-      <div className="redenv-machine-dial__head">
-        <span>{label}</span>
-        <small>{suffix}</small>
-      </div>
-      <div className="redenv-machine-dial__control">
-        <button
-          type="button"
-          aria-label={decreaseLabel}
-          disabled={!canDecrease}
-          onClick={() => nudge(-1)}
-        >
-          <Minus size={14} />
-        </button>
-        <input
-          aria-label={label}
-          value={value}
-          type="number"
-          min={min}
-          max={max}
-          step={step}
-          inputMode={precision > 0 ? "decimal" : "numeric"}
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <button
-          type="button"
-          aria-label={increaseLabel}
-          disabled={!canIncrease}
-          onClick={() => nudge(1)}
-        >
-          <Plus size={14} />
-        </button>
-      </div>
-      <div className="redenv-machine-dial__track" aria-hidden="true">
-        <span />
-      </div>
-    </div>
-  );
-}
+const CLAIM_CARD_IMAGE = claimCardImageUrl;
 
 export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { bool, val } = useStateBindings(state);
@@ -189,92 +92,79 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const openingId = val<string | null>("openingId", null);
   const envelopes = (val("envelopes") ?? []) as Envelope[];
   const claims = (val("claims") ?? []) as Claim[];
-  const claimCount = val<number>("claimCount", claims.length) ?? claims.length;
-  const poolCount = val<number>("poolCount", 0) ?? 0;
-  const totalCreated = val<number>("totalCreated", 0) ?? 0;
-  const totalClaimed = val<number>("totalClaimed", 0) ?? 0;
   const prepaidCredit = val<number>("prepaidCredit", 0) ?? 0;
   const lastCreatedEnvelopeId = val<string>("lastCreatedEnvelopeId", "") ?? "";
+
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
-  const launchedCreateForm = useMemo(
-    () => getLaunchCreateForm(launchContext),
-    [launchContext],
-  );
+  const launchedCreateForm = useMemo(() => getLaunchCreateForm(launchContext), [launchContext]);
+
+  const [mode, setMode] = useState<"claim" | "create">("claim");
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("active");
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
-  const [activeTab, setActiveTab] = useState<"claim" | "create">("claim");
-  const [createForm, setCreateForm] = useState({
-    amount: "1",
-    count: "8",
-    expiryHours: "24",
+  const [claimIdInput, setClaimIdInput] = useState(launchedEnvelopeId);
+  const [createForm, setCreateForm] = useState(launchedCreateForm);
+  const [openPreview, setOpenPreview] = useState(false);
+  const [sendPreview, setSendPreview] = useState(false);
+  const openPreviewTimeout = useRef<number | null>(null);
+  const sendPreviewTimeout = useRef<number | null>(null);
+  const didHydrateDefaultClaim = useRef(Boolean(launchedEnvelopeId));
+
+  const activeEnvelopes = envelopes.filter((env) => {
+    if (env.active === false) return false;
+    return env.status === "active" || env.status === undefined || env.active === true;
   });
-  const [claimActionPreview, setClaimActionPreview] = useState(false);
-  const [createActionPreview, setCreateActionPreview] = useState(false);
-  const claimPreviewTimeout = useRef<number | null>(null);
-  const createPreviewTimeout = useRef<number | null>(null);
+  const activeEnvelopeIds = activeEnvelopes.map((env) => env.id).join("|");
+  const firstActiveEnvelopeId = activeEnvelopes[0]?.id ?? "";
+  const reclaimableEnvelopes = envelopes.filter((env) => env.reclaimable);
 
   useEffect(() => {
-    if (launchedEnvelopeId) setSelectedEnvelopeId(launchedEnvelopeId);
+    if (launchedEnvelopeId) {
+      setSelectedEnvelopeId(launchedEnvelopeId);
+      setClaimIdInput(launchedEnvelopeId);
+    }
   }, [launchedEnvelopeId]);
-
   useEffect(() => {
-    setCreateForm(launchedCreateForm);
-  }, [launchedCreateForm]);
-
+    if (!launchedEnvelopeId && !didHydrateDefaultClaim.current && !claimIdInput.trim() && firstActiveEnvelopeId) {
+      didHydrateDefaultClaim.current = true;
+      setSelectedEnvelopeId(firstActiveEnvelopeId);
+      setClaimIdInput(firstActiveEnvelopeId);
+    }
+  }, [activeEnvelopeIds, claimIdInput, firstActiveEnvelopeId, launchedEnvelopeId]);
+  useEffect(() => setCreateForm(launchedCreateForm), [launchedCreateForm]);
   useEffect(
     () => () => {
-      if (claimPreviewTimeout.current !== null) {
-        window.clearTimeout(claimPreviewTimeout.current);
-      }
-      if (createPreviewTimeout.current !== null) {
-        window.clearTimeout(createPreviewTimeout.current);
-      }
+      if (openPreviewTimeout.current !== null) window.clearTimeout(openPreviewTimeout.current);
+      if (sendPreviewTimeout.current !== null) window.clearTimeout(sendPreviewTimeout.current);
     },
     [],
   );
 
-  const startClaimActionPreview = () => {
-    if (claimPreviewTimeout.current !== null) {
-      window.clearTimeout(claimPreviewTimeout.current);
-    }
-    setClaimActionPreview(true);
-    claimPreviewTimeout.current = window.setTimeout(() => {
-      setClaimActionPreview(false);
-      claimPreviewTimeout.current = null;
+  const startOpenPreview = () => {
+    if (openPreviewTimeout.current !== null) window.clearTimeout(openPreviewTimeout.current);
+    setOpenPreview(true);
+    openPreviewTimeout.current = window.setTimeout(() => {
+      setOpenPreview(false);
+      openPreviewTimeout.current = null;
     }, 1200);
   };
-
-  const startCreateActionPreview = () => {
-    if (createPreviewTimeout.current !== null) {
-      window.clearTimeout(createPreviewTimeout.current);
-    }
-    setCreateActionPreview(true);
-    createPreviewTimeout.current = window.setTimeout(() => {
-      setCreateActionPreview(false);
-      createPreviewTimeout.current = null;
+  const startSendPreview = () => {
+    if (sendPreviewTimeout.current !== null) window.clearTimeout(sendPreviewTimeout.current);
+    setSendPreview(true);
+    sendPreviewTimeout.current = window.setTimeout(() => {
+      setSendPreview(false);
+      sendPreviewTimeout.current = null;
     }, 1100);
   };
 
-  const activeEnvelopes = envelopes.filter((env) => {
-    if (env.active === false) return false;
-    if (env.canOpen === false) return false;
-    return env.status === "active" || env.status === undefined || env.active === true;
-  });
+  const activeClaimId = (claimIdInput || selectedEnvelopeId || "").trim();
   const targetEnvelope =
-    activeEnvelopes.find((env) => String(env.id) === selectedEnvelopeId.trim()) ??
-    envelopes.find((env) => String(env.id) === selectedEnvelopeId.trim());
-  const recentClaims = claims.slice(0, 5);
+    activeEnvelopes.find((env) => String(env.id) === activeClaimId) ??
+    envelopes.find((env) => String(env.id) === activeClaimId);
   const claimableGas = activeEnvelopes.reduce(
     (sum, env) => sum + Number(env.remainingAmount ?? env.totalAmount ?? env.amount ?? 0),
     0,
   );
-  const selectedOpened = Number(targetEnvelope?.openedCount ?? 0);
-  const selectedTotal = Number(targetEnvelope?.packetCount ?? targetEnvelope?.count ?? 0);
-  const completionRate = selectedTotal > 0
-    ? Math.round((selectedOpened / selectedTotal) * 100)
-    : 0;
-  const selectedRemaining = Number(
-    targetEnvelope?.remainingPackets ?? targetEnvelope?.remaining ?? Math.max(0, selectedTotal - selectedOpened),
-  );
+
   const createAmount = Number(createForm.amount);
   const createCount = Number(createForm.count);
   const createExpiryHours = Number(createForm.expiryHours);
@@ -282,7 +172,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     Number.isFinite(createAmount) && Number.isFinite(createCount) && createCount > 0
       ? createAmount / createCount
       : 0;
-  const canCreateEnvelope =
+  const canCreate =
     Number.isFinite(createAmount) &&
     Number.isFinite(createCount) &&
     Number.isFinite(createExpiryHours) &&
@@ -291,713 +181,456 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     createCount <= 100 &&
     perPacketGas >= 0.01 &&
     createExpiryHours > 0;
-  const createAmountProgress = Number.isFinite(createAmount)
-    ? Math.max(6, Math.min(100, (createAmount / 3) * 100))
-    : 6;
-  const createCountProgress = Number.isFinite(createCount)
-    ? Math.max(6, Math.min(100, (createCount / 16) * 100))
-    : 6;
-  const createExpiryProgress = Number.isFinite(createExpiryHours)
-    ? Math.max(6, Math.min(100, (createExpiryHours / 72) * 100))
-    : 6;
-  const visualPacketCount = Number.isFinite(createCount)
-    ? Math.max(1, Math.min(12, Math.ceil(createCount / (createCount > 16 ? 8 : 2))))
-    : 1;
-  const createMachineStyle = {
-    "--redenv-amount-progress": `${createAmountProgress}%`,
-    "--redenv-count-progress": `${createCountProgress}%`,
-    "--redenv-expiry-progress": `${createExpiryProgress}%`,
-  } as CSSProperties;
+  const createError =
+    !Number.isFinite(createAmount) || createAmount < 0.1
+      ? t("invalidAmount")
+      : !Number.isFinite(createCount) || createCount < 1
+        ? t("invalidPackets")
+        : createCount > 100
+          ? t("countExceeded")
+          : perPacketGas < 0.01
+            ? t("invalidPerPacket")
+            : !Number.isFinite(createExpiryHours) || createExpiryHours <= 0
+              ? t("invalidExpiry")
+              : "";
 
-  // Inline validation feedback: surface WHY the send button is disabled so a
-  // user is never stuck staring at a greyed-out control with no guidance.
-  // Order mirrors the composable's create() guard checks so the message the
-  // user sees matches the error that would otherwise be thrown on submit.
-  const createValidationMessage = (() => {
-    if (canCreateEnvelope) return "";
-    if (!Number.isFinite(createAmount) || createAmount < 0.1) return t("invalidAmount");
-    if (!Number.isFinite(createCount) || createCount < 1 || createCount > 100)
-      return t("invalidPackets");
-    if (perPacketGas < 0.01) return t("invalidPerPacket");
-    if (!Number.isFinite(createExpiryHours) || createExpiryHours <= 0) return t("invalidExpiry");
-    return "";
-  })();
+  const isClaimBusy = isLoading || openingId != null;
+  const isOpening = isClaimBusy || openPreview;
+  const isPacketRolling = openPreview;
+  const isSending = isLoading || sendPreview;
+  const canClaim = activeClaimId.length > 0 && !isOpening;
+  const drawerModes: Array<{ mode: DrawerMode; label: string; title?: string; value: string; Icon: LucideIcon }> = [
+    { mode: "active", label: t("availableEnvelopes"), value: String(activeEnvelopes.length), Icon: Ticket },
+    { mode: "claims", label: t("recentClaimsTitle"), value: String(claims.length), Icon: History },
+    { mode: "reclaim", label: t("reclaimEnvelope"), title: t("reclaimableTitle"), value: String(reclaimableEnvelopes.length), Icon: ArchiveRestore },
+    { mode: "safety", label: t("safetyPanelTitle"), value: t("tokenGas"), Icon: ShieldCheck },
+  ];
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const ActiveDrawerIcon = activeDrawerMode.Icon;
 
-  const setCreateField = (key: keyof typeof createForm, value: string) => {
-    setCreateForm((current) => ({ ...current, [key]: value }));
+  const handleClaim = async () => {
+    const id = activeClaimId;
+    if (!id || isOpening) return;
+    setSelectedEnvelopeId(id);
+    setClaimIdInput(id);
+    startOpenPreview();
+    await dispatch("claimEnvelope", { envelopeId: id });
   };
-
-  const claimIsOpening = Boolean(openingId) || claimActionPreview;
-  const createIsSending = isLoading || createActionPreview;
-  const claimPreviewIsOpening = activeTab === "claim" && claimIsOpening;
-  const createPreviewIsSending = activeTab === "create" && createIsSending;
-  const previewActionStatus = claimPreviewIsOpening
-    ? t("opening")
-    : createPreviewIsSending
-      ? t("sendingRedEnvelope")
-      : "";
-
-  const claimSelectedEnvelope = () => {
-    if (!selectedEnvelopeId.trim() || claimIsOpening) return;
-    startClaimActionPreview();
-    void dispatch("claimEnvelope", {
-      envelopeId: selectedEnvelopeId.trim(),
+  const handleCreate = async () => {
+    if (!canCreate || isSending) return;
+    startSendPreview();
+    await dispatch("createEnvelope", {
+      amount: createForm.amount,
+      count: createForm.count,
+      expiryHours: createForm.expiryHours,
     });
   };
 
-  const createEnvelope = () => {
-    if (!canCreateEnvelope || createIsSending) return;
-    startCreateActionPreview();
-    void dispatch("createEnvelope", createForm);
-  };
-
-  const hasActivity = activeEnvelopes.length > 0 || recentClaims.length > 0;
-  const hasHeroStats = activeEnvelopes.length > 0 || claimCount > 0 || claimableGas > 0;
-  const reclaimables = envelopes.filter((env) => env.reclaimable);
-  const hasRecovery = reclaimables.length > 0 || prepaidCredit > 0;
-  const trimmedEnvelopeId = selectedEnvelopeId.trim();
-  const heroCardTitle = hasHeroStats
-    ? t("claimablePool")
-    : targetEnvelope
-      ? t("readyToClaim")
-      : t("claimTab");
-  const heroCardValue = hasHeroStats
-    ? formatGas(claimableGas)
-    : targetEnvelope
-      ? `#${shortId(String(targetEnvelope.id))}`
-      : trimmedEnvelopeId
-        ? `#${shortId(trimmedEnvelopeId)}`
-        : t("needsEnvelopeId");
-  const heroCardHint = hasHeroStats
-    ? `${t("availableEnvelopes")}: ${activeEnvelopes.length}`
-    : trimmedEnvelopeId
-      ? t("claimOperationDesc")
-      : t("claimNeedIdDesc");
-  const previewAmount =
-    activeTab === "create"
-      ? Number.isFinite(createAmount)
-        ? formatGas(createAmount)
-        : formatGas(0)
-      : targetEnvelope
-        ? formatGas(targetEnvelope.remainingAmount ?? targetEnvelope.totalAmount ?? targetEnvelope.amount)
-        : formatGas(claimableGas);
-  const previewPacketLabel =
-    activeTab === "create"
-      ? `${Number.isFinite(createCount) ? createCount : 0} ${t("packetCount")}`
-      : targetEnvelope
-        ? `${selectedRemaining}/${selectedTotal || "?"} ${t("remainingPacketsLabel")}`
-        : trimmedEnvelopeId
-          ? t("ready")
-          : t("needsEnvelopeId");
-  const previewTitle =
-    activeTab === "create"
-      ? t("createPreviewTitle")
-      : targetEnvelope
-        ? t("readyToClaim")
-        : trimmedEnvelopeId
-          ? t("readyToClaim")
-          : t("needsEnvelopeId");
-  const createStatusTitle = canCreateEnvelope
-    ? t("readyToSendEnvelope")
-    : t("adjustEnvelopeSetup");
-  const claimTicketTitle = targetEnvelope
-    ? t("claimTicketReady")
-    : trimmedEnvelopeId
-      ? t("claimTicketPrepared")
-      : t("claimTicketEmpty");
-  const claimTicketValue = targetEnvelope
-    ? formatGas(targetEnvelope.remainingAmount ?? targetEnvelope.totalAmount ?? targetEnvelope.amount)
-    : trimmedEnvelopeId
-      ? `#${shortId(trimmedEnvelopeId)}`
-      : t("scanOrPasteEnvelope");
-
-  return (
-    <div className="redenv-play-area">
-      <div className="redenv-shell">
-        <section className="redenv-main" aria-label={t("redEnvelopeHeroTitle")}>
-          <div className="redenv-hero">
-            <img
-              className="redenv-hero__image"
-              src="./red-envelope-stage.jpg"
-              alt=""
-              aria-hidden="true"
-            />
-            <div className="redenv-hero__shade" aria-hidden="true" />
-            <div className="redenv-hero-badge" aria-hidden="true">
-              <Gift size={24} />
+  // ----- The scene: a festive red envelope you open -----
+  const scene = (
+    <div
+      className="redenv-scene"
+      data-state={mode === "claim" ? (isOpening ? "opening" : luckyMessage ? "lucky" : "ready") : isSending ? "sending" : "ready"}
+    >
+      {mode === "claim" ? (
+        <>
+          <button
+            type="button"
+            key={`env-${selectedEnvelopeId}-${openPreview}-${openingId}`}
+            className={["redenv-scene__packet", isPacketRolling ? "redenv-scene__packet--opening mx2-roll" : null]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => void handleClaim()}
+            disabled={!canClaim}
+            aria-label={targetEnvelope ? t("claimTicketReady") : t("claimRedEnvelope")}
+          >
+            <img className="redenv-scene__packet-art" src={CLAIM_CARD_IMAGE} alt="" aria-hidden="true" />
+            <span className="redenv-scene__packet-scrim" aria-hidden="true" />
+            <div className="redenv-scene__seal">
+              <CoinArt size={36} variant="gas" />
             </div>
-            <div className="redenv-hero-copy">
-              <span>{t("shareReadyTitle")}</span>
-              <h2>{t("redEnvelopeHeroTitle")}</h2>
-              <p>{t("redEnvelopeHeroSubtitle")}</p>
-              <div className="redenv-hero-flow" aria-label={t("claimFlowTitle")}>
-                <span>
-                  <PackageOpen size={14} />
-                  {t("claimRouteOne")}
-                </span>
-                <span>
-                  <ShieldCheck size={14} />
-                  {t("claimRouteTwo")}
-                </span>
-                <span>
-                  <Coins size={14} />
-                  {t("claimRouteThree")}
-                </span>
-              </div>
+            <div className="redenv-scene__packet-label">
+              <span>{t("claimTicketTitle")}</span>
+              <strong>
+                {targetEnvelope
+                  ? formatGas(targetEnvelope.remainingAmount ?? targetEnvelope.totalAmount)
+                  : activeClaimId
+                    ? t("claimTicketPrepared")
+                    : t("claimTicketEmpty")}
+              </strong>
             </div>
-            <div className="redenv-hero-card" aria-label={heroCardTitle}>
-              <span>{heroCardTitle}</span>
-              <strong>{heroCardValue}</strong>
-              <small>{heroCardHint}</small>
+          </button>
+          <div className="redenv-scene__ticket">
+            <span>{activeClaimId ? activeClaimId.slice(0, 14) : t("scanOrPasteEnvelope")}</span>
+            <strong>{targetEnvelope ? t("claimTicketReady") : activeClaimId ? t("claimTicketPrepared") : t("claimTicketEmpty")}</strong>
+          </div>
+          {luckyMessage && <ParticleBurst coins count={12} />}
+          <p className="redenv-scene__status" aria-live="polite">
+            {isOpening
+              ? t("opening")
+              : luckyMessage
+                ? t("congratulations")
+                : targetEnvelope
+                  ? t("claimTicketReadyDesc")
+                  : activeClaimId
+                    ? t("claimTicketPreparedDesc")
+                    : t("claimTicketEmptyDesc")}
+          </p>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            className={["redenv-scene__gift", isSending ? "redenv-scene__gift--sending mx2-float" : "mx2-float"].join(" ")}
+            onClick={() => void handleCreate()}
+            disabled={!canCreate || isSending}
+            aria-label={t("sendRedEnvelope")}
+          >
+            <img className="redenv-scene__gift-art" src={CLAIM_CARD_IMAGE} alt="" aria-hidden="true" />
+            <span className="redenv-scene__packet-scrim" aria-hidden="true" />
+            <div className="redenv-scene__gift-copy">
+              <span>{t("giftMachineTitle")}</span>
+              <strong>{formatGas(createAmount)}</strong>
+              <em>{createCount || "?"} {t("packetUnit")} / {createExpiryHours || "?"}{t("hoursSuffix")}</em>
+            </div>
+            <div className="redenv-scene__gift-stack" aria-hidden="true">
+              <CoinArt size={34} variant="gas" />
+              <CoinArt size={34} variant="gas" />
+              <CoinArt size={34} variant="gas" />
+            </div>
+          </button>
+          {isSending && <ParticleBurst coins count={10} />}
+          <p className="redenv-scene__status" aria-live="polite">
+            {isSending ? t("sendingRedEnvelope") : canCreate ? t("createReadyDesc") : t("adjustEnvelopeSetup")}
+          </p>
+        </>
+      )}
+
+      {/* mode switch */}
+      <div className="redenv-scene__tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "claim"}
+          className={["redenv-tab", mode === "claim" ? "redenv-tab--active" : null].filter(Boolean).join(" ")}
+          onClick={() => setMode("claim")}
+        >
+          {t("claimTab")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "create"}
+          className={["redenv-tab", mode === "create" ? "redenv-tab--active" : null].filter(Boolean).join(" ")}
+          onClick={() => setMode("create")}
+        >
+          {t("createTab")}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ----- Primary interaction controls (under the scene) -----
+  const controls =
+    mode === "claim" ? (
+      <div className="redenv-claim-controls">
+        <label className="redenv-ticket-dock">
+          <span>{t("claimTicketTitle")}</span>
+          <input
+            className="redenv-id-input"
+            value={claimIdInput}
+            onChange={(e) => {
+              setClaimIdInput(e.target.value);
+              setSelectedEnvelopeId(e.target.value);
+            }}
+            placeholder={t("enterPoolId")}
+            disabled={isOpening}
+          />
+        </label>
+        <div className="redenv-pool-chips">
+          {activeEnvelopes.slice(0, 4).map((env) => (
+            <button
+              key={env.id}
+              type="button"
+              className={["redenv-pool-chip", selectedEnvelopeId === env.id ? "redenv-pool-chip--active" : null]
+                .filter(Boolean).join(" ")}
+              onClick={() => {
+                setSelectedEnvelopeId(env.id);
+                setClaimIdInput(env.id);
+              }}
+              disabled={isOpening}
+            >
+              <span>{env.id.slice(0, 8)}…</span>
+              <strong>{formatGas(env.remainingAmount ?? env.totalAmount)}</strong>
+            </button>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div className="redenv-create-controls">
+        <div className="redenv-presets" aria-label={t("giftMachineTitle")}>
+          <div className="redenv-presets__group">
+            <span className="redenv-presets__label">{t("totalGas")}</span>
+            <div className="redenv-presets__chips">
+              {AMOUNT_PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={["redenv-preset", createForm.amount === p ? "redenv-preset--active" : null].filter(Boolean).join(" ")}
+                  aria-label={`${t("totalGas")} ${p} GAS`}
+                  onClick={() => setCreateForm((f) => ({ ...f, amount: p }))}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
           </div>
-
-          {hasHeroStats && (
-            <div className="redenv-metrics" aria-label={t("claimablePool")}>
-              <div>
-                <span>{t("availableEnvelopes")}</span>
-                <strong>{activeEnvelopes.length}</strong>
-              </div>
-              <div>
-                <span>{t("claimablePool")}</span>
-                <strong>{formatGas(claimableGas)}</strong>
-              </div>
-              <div>
-                <span>{t("recentClaimsTitle")}</span>
-                <strong>{claimCount}</strong>
-              </div>
-            </div>
-          )}
-
-          <NeoCard variant="erobo" className="redenv-action-panel">
-            <div className="redenv-tabs" role="tablist" aria-label={t("claimFlowTitle")}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "claim"}
-                className={`redenv-tab${activeTab === "claim" ? " redenv-tab--active" : ""}`}
-                onClick={() => setActiveTab("claim")}
-              >
-                {t("claimTab")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "create"}
-                className={`redenv-tab${activeTab === "create" ? " redenv-tab--active" : ""}`}
-                onClick={() => setActiveTab("create")}
-              >
-                {t("createTab")}
-              </button>
-            </div>
-
-            <section
-              className={[
-                "redenv-envelope-preview",
-                `redenv-envelope-preview--${activeTab}`,
-                claimPreviewIsOpening && "redenv-envelope-preview--opening",
-                luckyMessage && "redenv-envelope-preview--lucky",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              aria-label={t("createPreviewTitle")}
-            >
-              <div className="redenv-envelope-preview__art" aria-hidden="true">
-                <img src="./red-envelope-claim-card.jpg" alt="" />
-                <div className="redenv-envelope-preview__packets">
-                  {["one", "two", "three", "four", "five"].map((packet) => (
-                    <span
-                      key={packet}
-                      className={`redenv-envelope-preview__packet redenv-envelope-preview__packet--${packet}`}
-                    >
-                      <img src="./red-envelope-claim-card.jpg" alt="" />
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div
-                className={[
-                  "redenv-action-burst",
-                  claimPreviewIsOpening && "is-opening",
-                  createPreviewIsSending && "is-sending",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                aria-hidden="true"
-              >
-                {[
-                  { key: "one", Icon: PackageOpen },
-                  { key: "two", Icon: Coins },
-                  { key: "three", Icon: Sparkles },
-                  { key: "four", Icon: Coins },
-                ].map(({ key, Icon }, index) => (
-                  <span
-                    key={key}
-                    className={`redenv-action-burst__spark redenv-action-burst__spark--${key}`}
-                    style={{ "--packet-index": index } as CSSProperties}
-                  >
-                    <Icon size={16} />
-                  </span>
-                ))}
-              </div>
-              <div className="redenv-envelope-preview__seal" aria-hidden="true">
-                <Gift size={20} />
-              </div>
-              <div className="redenv-envelope-preview__copy">
-                <span>{activeTab === "claim" ? t("claimTab") : t("createTab")}</span>
-                <strong>{previewTitle}</strong>
-                <div>
-                  <small>
-                    <Coins size={13} />
-                    {previewAmount}
-                  </small>
-                  <small>
-                    <Sparkles size={13} />
-                    {previewPacketLabel}
-                  </small>
-                </div>
-                {previewActionStatus && (
-                  <em className="redenv-action-status" role="status">
-                    {previewActionStatus}
-                  </em>
-                )}
-              </div>
-            </section>
-
-            {activeTab === "claim" ? (
-              <div className="redenv-claim-body">
-                <section className="redenv-claim-ticket" aria-label={t("claimTicketTitle")}>
-                  <div className="redenv-ticket-stamp" aria-hidden="true">
-                    <PackageOpen size={18} />
-                  </div>
-                  <div className="redenv-ticket-copy">
-                    <span>{claimTicketTitle}</span>
-                    <strong>{claimTicketValue}</strong>
-                    <small>
-                      {targetEnvelope
-                        ? t("claimTicketReadyDesc")
-                        : trimmedEnvelopeId
-                          ? t("claimTicketPreparedDesc")
-                          : t("claimTicketEmptyDesc")}
-                    </small>
-                  </div>
-                  <div
-                    className={`redenv-ticket-route${claimIsOpening ? " redenv-ticket-route--opening" : ""}`}
-                    aria-label={t("claimFlowTitle")}
-                  >
-                    <span className="redenv-ticket-route__step">{t("claimRouteOne")}</span>
-                    <span className="redenv-ticket-route__step">{t("claimRouteTwo")}</span>
-                    <span className="redenv-ticket-route__step">{t("claimRouteThree")}</span>
-                  </div>
-                </section>
-                {targetEnvelope && (
-                  <div className="redenv-selected-card">
-                    <div>
-                      <span>{t("envelopeId")}</span>
-                      <strong>{`#${shortId(selectedEnvelopeId)}`}</strong>
-                    </div>
-                    <div>
-                      <span>{t("remainingPacketsLabel")}</span>
-                      <strong>{`${selectedRemaining}/${selectedTotal || "?"}`}</strong>
-                    </div>
-                    <div>
-                      <span>{t("poolProgress")}</span>
-                      <strong>{completionRate}%</strong>
-                    </div>
-                  </div>
-                )}
-                <NeoInput
-                  value={selectedEnvelopeId}
-                  label={t("envelopeId")}
-                  placeholder={t("enterPoolId")}
-                  onChange={(value) => setSelectedEnvelopeId(value)}
-                />
-                <p className="redenv-helper">
-                  {targetEnvelope
-                    ? t("claimReadyDesc")
-                    : selectedEnvelopeId
-                    ? t("claimOperationDesc")
-                    : t("claimNeedIdDesc")}
-                </p>
-                {claimIsOpening && (
-                  <p className="redenv-submit-status" aria-live="polite">
-                    {t("opening")}
-                  </p>
-                )}
-                <NeoButton
-                  variant="primary"
-                  className="redenv-open-button"
-                  aria-label={claimIsOpening ? t("opening") : t("claimNow")}
-                  loading={claimIsOpening}
-                  disabled={isLoading || claimIsOpening || !selectedEnvelopeId.trim()}
-                  onClick={claimSelectedEnvelope}
+          <div className="redenv-presets__group">
+            <span className="redenv-presets__label">{t("packetCount")}</span>
+            <div className="redenv-presets__chips">
+              {PACKET_PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={["redenv-preset", createForm.count === p ? "redenv-preset--active" : null].filter(Boolean).join(" ")}
+                  aria-label={t("packetPreset", { count: p })}
+                  onClick={() => setCreateForm((f) => ({ ...f, count: p }))}
                 >
-                  <PackageOpen size={16} />
-                  {claimIsOpening ? t("opening") : t("claimNow")}
-                </NeoButton>
-              </div>
-            ) : (
-              <div className="redenv-create-body">
-                <section className="redenv-gift-builder" aria-label={t("giftBuilderTitle")}>
-                  <div className="redenv-gift-builder__head">
-                    <span>{t("giftBuilderTitle")}</span>
-                    <strong>{createStatusTitle}</strong>
-                  </div>
-                  <div
-                    className={[
-                      "redenv-gift-machine",
-                      canCreateEnvelope ? "redenv-gift-machine--ready" : "",
-                      createIsSending ? "redenv-gift-machine--sending" : "",
-                    ].filter(Boolean).join(" ")}
-                    style={createMachineStyle}
-                    aria-label={t("giftMachineTitle")}
-                  >
-                    <div className="redenv-gift-machine__window" aria-hidden="true">
-                      <img
-                        src="./red-envelope-claim-card.jpg"
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <span className="redenv-gift-machine__seal">
-                        <Gift size={18} />
-                      </span>
-                      <div className="redenv-gift-machine__chute">
-                        {Array.from({ length: visualPacketCount }, (_, index) => (
-                          <span
-                            key={index}
-                            style={{ "--packet-index": index } as CSSProperties}
-                          />
-                        ))}
-                      </div>
-                      <div className="redenv-gift-machine__launch-trail" aria-hidden="true">
-                        {Array.from({ length: 5 }, (_, index) => (
-                          <span
-                            key={index}
-                            style={{ "--packet-index": index } as CSSProperties}
-                          >
-                            <img src="./red-envelope-claim-card.jpg" alt="" />
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="redenv-gift-machine__console">
-                      <span>{t("giftMachineTitle")}</span>
-                      <strong>{t("giftMachineCopy")}</strong>
-                      <div className="redenv-gift-machine__reels" aria-hidden="true">
-                        <div className="redenv-gift-machine__reel redenv-gift-machine__reel--amount">
-                          <small>{t("totalGas")}</small>
-                          <b>{Number.isFinite(createAmount) ? formatGas(createAmount) : "--"}</b>
-                        </div>
-                        <div className="redenv-gift-machine__reel redenv-gift-machine__reel--count">
-                          <small>{t("packetCount")}</small>
-                          <b>{Number.isFinite(createCount) ? createCount : "--"}</b>
-                        </div>
-                        <div className="redenv-gift-machine__reel redenv-gift-machine__reel--expiry">
-                          <small>{t("expiryHours")}</small>
-                          <b>
-                            {Number.isFinite(createExpiryHours)
-                              ? `${createExpiryHours}${t("hoursSuffix")}`
-                              : "--"}
-                          </b>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="redenv-preset-board">
-                    <div className="redenv-preset-group">
-                      <span>{t("totalGas")}</span>
-                      <div>
-                        {AMOUNT_PRESETS.map((amount) => (
-                          <button
-                            key={amount}
-                            type="button"
-                            className={createForm.amount === amount ? "is-selected" : ""}
-                            onClick={() => setCreateField("amount", amount)}
-                          >
-                            {formatGas(amount)}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="redenv-preset-group">
-                      <span>{t("packetCount")}</span>
-                      <div>
-                        {PACKET_PRESETS.map((count) => (
-                          <button
-                            key={count}
-                            type="button"
-                            className={createForm.count === count ? "is-selected" : ""}
-                            onClick={() => setCreateField("count", count)}
-                          >
-                            {t("packetPreset", { count })}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="redenv-preset-group">
-                      <span>{t("expiryHours")}</span>
-                      <div>
-                        {EXPIRY_PRESETS.map((hours) => (
-                          <button
-                            key={hours}
-                            type="button"
-                            className={createForm.expiryHours === hours ? "is-selected" : ""}
-                            onClick={() => setCreateField("expiryHours", hours)}
-                          >
-                            {t("hourPreset", { hours })}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-                <div
-                  className="redenv-create-grid redenv-envelope-dials"
-                  aria-label={t("createPreviewTitle")}
-                >
-                  <CreateDial
-                    value={createForm.amount}
-                    min={0.1}
-                    step={0.1}
-                    precision={2}
-                    suffix="GAS"
-                    label={t("totalGas")}
-                    fill={`${createAmountProgress}%`}
-                    decreaseLabel={t("decreaseValue", { label: t("totalGas") })}
-                    increaseLabel={t("increaseValue", { label: t("totalGas") })}
-                    onChange={(value) => setCreateField("amount", value)}
-                  />
-                  <CreateDial
-                    value={createForm.count}
-                    min={1}
-                    max={100}
-                    step={1}
-                    suffix={t("packetUnit")}
-                    label={t("packetCount")}
-                    fill={`${createCountProgress}%`}
-                    decreaseLabel={t("decreaseValue", { label: t("packetCount") })}
-                    increaseLabel={t("increaseValue", { label: t("packetCount") })}
-                    onChange={(value) => setCreateField("count", value)}
-                  />
-                  <CreateDial
-                    value={createForm.expiryHours}
-                    min={1}
-                    step={1}
-                    suffix={t("hoursSuffix")}
-                    label={t("expiryHours")}
-                    fill={`${createExpiryProgress}%`}
-                    decreaseLabel={t("decreaseValue", { label: t("expiryHours") })}
-                    increaseLabel={t("increaseValue", { label: t("expiryHours") })}
-                    onChange={(value) => setCreateField("expiryHours", value)}
-                  />
-                </div>
-                <div className="redenv-create-summary" aria-label={t("createPreviewTitle")}>
-                  <div>
-                    <span>{t("perPacketLabel")}</span>
-                    <strong>{formatGas(perPacketGas)}</strong>
-                    <em className="redenv-per-packet-note">{t("perPacketRandomNote")}</em>
-                  </div>
-                  <div>
-                    <span>{t("expiryHours")}</span>
-                    <strong>{Number.isFinite(createExpiryHours) ? `${createExpiryHours} ${t("hoursSuffix")}` : "--"}</strong>
-                  </div>
-                </div>
-                {createValidationMessage ? (
-                  <p className="redenv-helper redenv-helper--error" role="alert">
-                    {createValidationMessage}
-                  </p>
-                ) : (
-                  <p className="redenv-helper">{t("createReadyDesc")}</p>
-                )}
-                {createIsSending && (
-                  <p className="redenv-submit-status" aria-live="polite">
-                    {t("sendingRedEnvelope")}
-                  </p>
-                )}
-                <NeoButton
-                  variant="primary"
-                  className="redenv-send-button"
-                  aria-label={createIsSending ? t("sendingRedEnvelope") : t("sendRedEnvelope")}
-                  loading={createIsSending}
-                  disabled={createIsSending || !canCreateEnvelope}
-                  onClick={createEnvelope}
-                >
-                  <Send size={16} />
-                  {createIsSending ? t("sendingRedEnvelope") : t("sendRedEnvelope")}
-                </NeoButton>
-
-                {/* Post-create share affordance — the OneGate-QR distribution
-                    journey the product is named for. The recipient opens the
-                    copied deep link and the envelope id prefills their claim. */}
-                {lastCreatedEnvelopeId && (
-                  <div className="redenv-share-card" role="status">
-                    <div className="redenv-share-copy">
-                      <span className="redenv-share-title">{t("shareTitle")}</span>
-                      <span className="redenv-share-hint">
-                        {t("shareHint", { id: lastCreatedEnvelopeId })}
-                      </span>
-                    </div>
-                    <div className="redenv-share-actions">
-                      <NeoButton
-                        variant="primary"
-                        size="sm"
-                        onClick={() =>
-                          dispatch("shareEnvelope", { envelopeId: lastCreatedEnvelopeId })
-                        }
-                      >
-                        <WalletCards size={15} />
-                        {t("copyShareLink")}
-                      </NeoButton>
-                      <NeoButton
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => dispatch("dismissShare")}
-                      >
-                        {t("dismiss")}
-                      </NeoButton>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </NeoCard>
-
-          {hasActivity && (
-            <NeoCard variant="erobo" className="redenv-activity-panel">
-              <div className="redenv-section-heading">
-                <span>{t("availablePools")}</span>
-                <strong>{poolCount || recentClaims.length}</strong>
-              </div>
-              <div className="redenv-activity-grid">
-                {activeEnvelopes.length > 0 && (
-                  <div className="redenv-list">
-                    {activeEnvelopes.slice(0, 6).map((env) => (
-                      <button
-                        key={env.id}
-                        type="button"
-                        className={`redenv-row${selectedEnvelopeId === String(env.id) ? " redenv-row--selected" : ""}`}
-                        onClick={() => {
-                          setSelectedEnvelopeId(String(env.id));
-                          setActiveTab("claim");
-                        }}
-                      >
-                        <span>#{shortId(String(env.id))}</span>
-                        <strong>{env.remainingPackets ?? env.remaining ?? "?"}/{env.packetCount ?? env.count ?? "?"}</strong>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {recentClaims.length > 0 && (
-                  <div className="redenv-list">
-                    {recentClaims.map((claim) => (
-                      <div key={claim.id} className="redenv-row redenv-row--static">
-                        {/* These are always the connected wallet's own claims;
-                            label them by envelope id + a localized "You" instead
-                            of a noisy raw script hash (and no English fallback). */}
-                        <span>
-                          {claim.poolId || claim.envelopeId
-                            ? `#${claim.poolId ?? claim.envelopeId} · ${t("you")}`
-                            : t("you")}
-                        </span>
-                        <strong>{formatGas(claim.amount)}</strong>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </NeoCard>
-          )}
-
-          {hasRecovery && (
-            <NeoCard variant="erobo" className="redenv-recovery-panel">
-              <div className="redenv-section-heading">
-                <span>{t("reclaimableTitle")}</span>
-                <strong>{reclaimables.length}</strong>
-              </div>
-              <div className="redenv-list">
-                {reclaimables.slice(0, 6).map((env) => (
-                  <div key={env.id} className="redenv-row redenv-row--static redenv-row--recovery">
-                    <span>#{shortId(String(env.id))}</span>
-                    <strong>{formatGas(env.remainingAmount)}</strong>
-                    <NeoButton
-                      variant="secondary"
-                      size="sm"
-                      disabled={isLoading}
-                      onClick={() => dispatch("reclaimEnvelope", { envelopeId: String(env.id) })}
-                    >
-                      {t("reclaimEnvelope")}
-                    </NeoButton>
-                  </div>
-                ))}
-                {prepaidCredit > 0 && (
-                  <div className="redenv-row redenv-row--static redenv-row--recovery">
-                    <span>{t("prepaidCreditLabel")}</span>
-                    <strong>{formatGas(prepaidCredit)}</strong>
-                    <NeoButton
-                      variant="secondary"
-                      size="sm"
-                      disabled={isLoading}
-                      onClick={() => dispatch("withdrawCredit")}
-                    >
-                      {t("withdrawCredit")}
-                    </NeoButton>
-                  </div>
-                )}
-              </div>
-            </NeoCard>
-          )}
-
-          <details className="redenv-details">
-            <summary>
-              <span className="redenv-summary-label">
-                <span className="redenv-summary-badge" aria-hidden="true">
-                  <ShieldCheck size={16} />
-                </span>
-                {t("safetyPanelTitle")}
-              </span>
-              <span className="redenv-summary-value">
-                <strong>{t("osGuarded")}</strong>
-                <ChevronDown className="redenv-summary-chevron" size={16} aria-hidden="true" />
-              </span>
-            </summary>
-            <div className="redenv-details-body">
-              <p>{t("safetyPanelCopy")}</p>
-              <div className="redenv-signal-row">
-                <span>{t("contractRoute")}</span>
-                <strong>{t("claimContractRoute")}</strong>
-              </div>
-              <div className="redenv-signal-row">
-                <span>{t("createdGasLabel")}</span>
-                <strong>{formatGas(totalCreated)}</strong>
-              </div>
-              <div className="redenv-signal-row">
-                <span>{t("claimedGasLabel")}</span>
-                <strong>{formatGas(totalClaimed)}</strong>
-              </div>
+                  {p}
+                </button>
+              ))}
             </div>
-          </details>
-        </section>
+          </div>
+          <div className="redenv-presets__group">
+            <span className="redenv-presets__label">{t("expiryHours")}</span>
+            <div className="redenv-presets__chips">
+              {EXPIRY_PRESETS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={["redenv-preset", createForm.expiryHours === p ? "redenv-preset--active" : null].filter(Boolean).join(" ")}
+                  aria-label={t("hourPreset", { hours: p })}
+                  onClick={() => setCreateForm((f) => ({ ...f, expiryHours: p }))}
+                >
+                  {p}{t("hoursSuffix")}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        {createError && <p className="redenv-create-error" role="alert">{createError}</p>}
+        <p className="redenv-create-summary">
+          {t("perPacketLabel")}: <strong>{perPacketGas > 0 ? formatGas(perPacketGas) : "—"}</strong>
+        </p>
       </div>
+    );
 
-      {luckyMessage && (
-        <div className="redenv-modal-backdrop">
-          <div className="redenv-modal redenv-modal--lucky">
-            <div className="redenv-modal-content">
-              <div className="redenv-modal-icon" aria-hidden="true">
-                <img src="./red-envelope-claim-card.jpg" alt="" />
-                <Sparkles size={22} />
+  const stageTitle =
+    mode === "claim"
+      ? isOpening
+        ? t("opening")
+        : luckyMessage
+          ? t("congratulations")
+          : t("claimRedEnvelope")
+	      : isSending
+	        ? t("sendingRedEnvelope")
+	        : t("sendRedEnvelope");
+
+  const drawerPanels: Record<DrawerMode, ReactNode> = {
+    active: (
+      <div className="redenv-drawer__panel-body" data-mode="active">
+        <div className="redenv-drawer__summary">
+          <span>{t("claimTicketEmptyDesc")}</span>
+          <strong>{formatGas(claimableGas)}</strong>
+        </div>
+        {activeEnvelopes.length > 0 ? (
+          <ul className="mx2-history redenv-drawer-list">
+            {activeEnvelopes.slice(0, 8).map((env) => (
+              <li key={env.id} className="mx2-history__item redenv-drawer-list__item">
+                <span className="mx2-history__face">{env.id.slice(0, 10)}…</span>
+                <span className="mx2-history__stake">{formatGas(env.remainingAmount ?? env.totalAmount)}</span>
+                <span className="mx2-history__result">{env.remainingPackets ?? env.packetCount ?? "?"} {t("packetCount").toLowerCase()}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="redenv-drawer__empty">{t("noEnvelopes")}</div>
+        )}
+      </div>
+    ),
+    claims: (
+      <div className="redenv-drawer__panel-body" data-mode="claims">
+        <div className="redenv-drawer__summary">
+          <span>{t("noActivityCopy")}</span>
+          <strong>{claims.length}</strong>
+        </div>
+        {claims.length > 0 ? (
+          <ul className="mx2-history redenv-drawer-list">
+            {claims.slice(0, 5).map((claim) => (
+              <li key={claim.id} className="mx2-history__item redenv-drawer-list__item" data-outcome="won">
+                <span className="mx2-history__face">{(claim.envelopeId ?? claim.id).slice(0, 10)}…</span>
+                <span className="mx2-history__result">{formatGas(claim.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="redenv-drawer__empty">{t("noActivity")}</div>
+        )}
+      </div>
+    ),
+    reclaim: (
+      <div className="redenv-drawer__panel-body" data-mode="reclaim">
+        <div className="redenv-drawer__summary">
+          <span>{t("reclaimableTitle")}</span>
+          <strong>{reclaimableEnvelopes.length}</strong>
+        </div>
+        {reclaimableEnvelopes.length > 0 ? (
+          <ul className="mx2-history redenv-drawer-list">
+            {reclaimableEnvelopes.map((env) => (
+              <li key={env.id} className="mx2-history__item redenv-drawer-list__item">
+                <span className="mx2-history__face">{env.id.slice(0, 10)}…</span>
+                <button
+                  type="button"
+                  className="mx2-btn mx2-btn--ghost"
+                  onClick={() => void dispatch("reclaimEnvelope", { envelopeId: env.id })}
+                >
+                  {t("reclaimEnvelope")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="redenv-drawer__empty">{t("noActivity")}</div>
+        )}
+      </div>
+    ),
+    safety: (
+      <div className="redenv-drawer__panel-body" data-mode="safety">
+        <div className="redenv-safety-card">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span>{t("safetyPanelCopy")}</span>
+        </div>
+        <div className="redenv-route">
+          <span>{t("contractRoute")}</span>
+          <code>{t("claimContractRoute")}</code>
+        </div>
+      </div>
+    ),
+  };
+
+  return (
+    <OpenUiProvider>
+    <div className="redenv-play-area mx2 mx2-cat-game">
+      <PlayStage
+        category="game"
+        stage={{
+          eyebrow: t("title"),
+          title: stageTitle,
+          subtitle: t("subtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge__dot" /> {t("tokenGas")}
+              </span>
+              {claimableGas > 0 && (
+                <span className="mx2-badge">
+                  <CoinArt size={14} variant="gas" /> {formatGas(claimableGas)}
+                </span>
+              )}
+            </>
+          ),
+        }}
+        scene={
+          <>
+            {scene}
+            {controls}
+          </>
+        }
+        score={
+          mode === "claim"
+            ? [
+                { label: t("availableEnvelopes"), value: String(activeEnvelopes.length), accent: activeEnvelopes.length > 0 },
+                { label: t("claimablePool"), value: formatGas(claimableGas) },
+                { label: t("recentClaimsTitle"), value: String(claims.length) },
+              ]
+            : [
+                { label: t("totalGas"), value: formatGas(createAmount), accent: true },
+                { label: t("packetCount"), value: String(createCount) },
+                { label: t("perPacketLabel"), value: formatGas(perPacketGas) },
+              ]
+        }
+        actions={{
+          primary: {
+            label: mode === "claim" ? (isOpening ? t("opening") : t("claimNow")) : isSending ? t("sendingRedEnvelope") : t("sendRedEnvelope"),
+            onClick: () => void (mode === "claim" ? handleClaim() : handleCreate()),
+            disabled: mode === "claim" ? !canClaim : !canCreate || isSending,
+            loading: mode === "claim" ? isOpening : isSending,
+            icon: mode === "claim" ? <Gift size={18} aria-hidden="true" /> : <Send size={18} aria-hidden="true" />,
+          },
+          secondary: [
+            ...(lastCreatedEnvelopeId
+              ? [{ label: t("copyShareLink"), onClick: () => void dispatch("shareEnvelope", {}), hint: t("shareHint") }]
+              : []),
+            ...(prepaidCredit > 0
+              ? [{ label: t("withdrawCredit"), onClick: () => void dispatch("withdrawCredit", {}), hint: t("prepaidCreditLabel") }]
+              : []),
+          ],
+        }}
+        drawerToggleLabel={t("myEnvelopes")}
+        drawer={{
+          title: t("myEnvelopes"),
+          children: (
+            <div className="redenv-drawer">
+              <div className="redenv-drawer-tabs" role="tablist" aria-label={t("myEnvelopes")}>
+                {drawerModes.map((item) => {
+                  const Icon = item.Icon;
+                  return (
+                    <button
+                      key={item.mode}
+                      type="button"
+                      role="tab"
+                      aria-selected={drawerMode === item.mode}
+                      className={drawerMode === item.mode ? "is-active" : undefined}
+                      onClick={() => setDrawerMode(item.mode)}
+                    >
+                      <span className="redenv-drawer-tabs__icon"><Icon size={15} /></span>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </button>
+                  );
+                })}
               </div>
-              <h3 className="redenv-modal-title">{t("congratulations")}</h3>
-              <p className="redenv-modal-caption">{t("luckyReceivedLabel")}</p>
-              <p className="redenv-modal-amount">{formatGas(luckyMessage.amount)}</p>
-              <button className="redenv-modal-button" type="button" onClick={() => dispatch("dismissOverlay")}>
-                {t("luckyReceivedClose")}
-              </button>
+              <OpenUiPanel
+                className="redenv-drawer__panel"
+                icon={<ActiveDrawerIcon size={18} />}
+                title={activeDrawerMode.title ?? activeDrawerMode.label}
+                subtitle={activeDrawerMode.value}
+              >
+                {drawerPanels[drawerMode]}
+              </OpenUiPanel>
             </div>
+          ),
+        }}
+      />
+
+      {/* Lucky modal overlay */}
+      {luckyMessage && (
+        <div className="redenv-lucky-modal" role="dialog" aria-modal="true" aria-label={t("congratulations")}>
+          <div className="redenv-lucky-modal__card mx2-rise-in">
+            <ParticleBurst coins count={14} />
+            <CoinArt size={56} variant="gas" className="mx2-float" />
+            <h3>{t("congratulations")}</h3>
+            <p className="redenv-lucky-modal__amount">{formatGas(luckyMessage.amount)}</p>
+            {luckyMessage.from && (
+              <p className="redenv-lucky-modal__from">{t("fromLabel")}: {luckyMessage.from.slice(0, 12)}…</p>
+            )}
+            <button type="button" className="mx2-btn mx2-btn--primary" onClick={() => void dispatch("dismissOverlay")}>
+              {t("luckyReceivedClose")}
+            </button>
           </div>
         </div>
       )}
     </div>
+    </OpenUiProvider>
   );
 }

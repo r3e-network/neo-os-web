@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { useGasLuckyPool } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { addressToScriptHash } from "@shared/utils/neo";
+import { createMiniAppFramework } from "@shared/react";
+import type { ChainService } from "@shared/services/ChainService";
 
 const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
 const ONEGATE_OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -10,6 +12,17 @@ const CLAIM_KEY = "ogv_test_key_1234567890";
 
 function t(key: string) {
   return key;
+}
+
+/**
+ * Wrap a mock chain in the framework SDK the composable consumes. The chain
+ * layer is a behavior-preserving passthrough, so recorded calls are unchanged.
+ */
+function makeApp(chain: unknown) {
+  return createMiniAppFramework(
+    { services: { chain: chain as ChainService }, t } as never,
+    { appId: "miniapp-gas-lucky-pool" },
+  );
 }
 
 function launch(poolId = "42") {
@@ -48,17 +61,25 @@ describe("OneGate Vault runtime logic", () => {
         .mockRejectedValue(new Error("unbounded history fetch")),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch(),
       t,
     });
 
     await pool.loadAll();
 
-    expect(chain.readArray).toHaveBeenCalledWith("getRangeGasPool", [
-      { type: "String", value: "miniapp-gas-lucky-pool" },
-      { type: "Integer", value: "42" },
-    ]);
+    // The framework's readArray passthrough forwards the optional `options`
+    // argument explicitly (undefined here); ChainService.readArray defaults it to
+    // undefined, so the on-chain read is identical — only the recorded trailing
+    // arg is added by the passthrough.
+    expect(chain.readArray).toHaveBeenCalledWith(
+      "getRangeGasPool",
+      [
+        { type: "String", value: "miniapp-gas-lucky-pool" },
+        { type: "Integer", value: "42" },
+      ],
+      undefined,
+    );
     expect(chain.listEvents).toHaveBeenCalledWith("RangeGasPoolCreated", {
       limit: 10,
     });
@@ -76,7 +97,7 @@ describe("OneGate Vault runtime logic", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch(),
       t,
     });
@@ -94,7 +115,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn().mockResolvedValue({ txid: "0xabc", success: true }),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch(""),
       t,
     });
@@ -118,7 +139,7 @@ describe("OneGate Vault runtime logic", () => {
   it("keeps the OneGate claim URL aligned with the selected pool and network", () => {
     const chain = {};
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });
@@ -142,7 +163,7 @@ describe("OneGate Vault runtime logic", () => {
   it("keeps scanned key and reward pool in compact OneGate claim URLs", () => {
     const chain = {};
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -192,7 +213,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -256,7 +277,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(CLAIM_KEY, `&walletAddress=${OWNER}`),
       t,
     });
@@ -316,7 +337,7 @@ describe("OneGate Vault runtime logic", () => {
     window.addEventListener("Neo.DapiProvider.request", emitProviderOnce);
 
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(CLAIM_KEY, `&walletAddress=${OWNER}`),
       t,
     });
@@ -335,7 +356,7 @@ describe("OneGate Vault runtime logic", () => {
       listEvents: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -380,7 +401,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -433,7 +454,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -482,7 +503,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -543,7 +564,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -623,7 +644,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -687,7 +708,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -766,7 +787,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -830,7 +851,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -898,7 +919,7 @@ describe("OneGate Vault runtime logic", () => {
     };
     window.addEventListener("Neo.DapiProvider.request", injectProvider);
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -965,7 +986,7 @@ describe("OneGate Vault runtime logic", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -1014,7 +1035,7 @@ describe("OneGate Vault runtime logic", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });
@@ -1067,7 +1088,7 @@ describe("OneGate Vault runtime logic", () => {
         ]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });
@@ -1123,7 +1144,7 @@ describe("OneGate Vault runtime logic", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });
@@ -1156,7 +1177,7 @@ describe("OneGate Vault runtime logic", () => {
       listEvents: vi.fn().mockResolvedValue([]),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: launch("42"),
       t,
     });

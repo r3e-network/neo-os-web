@@ -26,8 +26,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/timestamp-proof/index.html",
-    "icon": "/miniapps/timestamp-proof/logo.jpg",
-    "banner": "/miniapps/timestamp-proof/banner.jpg"
+    "icon": "/miniapps/timestamp-proof/logo.webp",
+    "banner": "/miniapps/timestamp-proof/banner.webp"
   },
   "permissions": [
     "invoke:primary",

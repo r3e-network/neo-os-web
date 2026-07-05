@@ -23,9 +23,9 @@
  *     features: { fireworks: true, walletRequired: true },
  *   },
  *   messages: { en: { checkin: "Check In", stats: "Stats" } },
- *   setup: async ({ services, registerAction }) => {
+ *   setup: async ({ services, framework }) => {
  *     const streak = createObservable(0);
- *     registerAction("checkin", async () => { ... });
+ *     framework.actions.register("checkin", async () => { ... });
  *     return {
  *       state: { currentStreak: streak },
  *       loadData: async () => { streak.set(await services.invoke(...)) },

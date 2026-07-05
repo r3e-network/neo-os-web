@@ -20,8 +20,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-http-console/index.html",
-    "icon": "/miniapps/oracle-http-console/logo.jpg",
-    "banner": "/miniapps/oracle-http-console/banner.jpg"
+    "icon": "/miniapps/oracle-http-console/logo.webp",
+    "banner": "/miniapps/oracle-http-console/banner.webp"
   },
   "permissions": ["read:blockchain"],
   "features": {

@@ -46,7 +46,7 @@ const MAX_ENUMERATE = 200;
 /** Static preview / hostless loads have no wallet contract binding yet. */
 export function isContractAddressUnavailableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /contract address (not configured|unavailable)/i.test(message);
+  return /contract address (not configured|unavailable)|wallet not detected|compatible neo wallet/i.test(message);
 }
 
 /** Normalized view of a getVaultDetails() Map. */

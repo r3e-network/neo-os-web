@@ -1,5 +1,6 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
+  title: { en: "aa-relay-console", zh: "aa-relay-console" },
   appName: { en: "AA Relay Console", zh: "AA Relay 控制台" },
   relayHeroTitle: {
     en: "Sponsored relay desk for AA payloads",
@@ -40,6 +41,13 @@ const appMessages = {
     zh: "paymaster 可以为此账户支付网络 GAS，使其无需持有 GAS 即可交易。先检查该地址是否被覆盖、请求覆盖额度，再提交经 relay 的交易。",
   },
   relayAccountEyebrow: { en: "Account routing", zh: "账户路由" },
+  relayAccountCapsule: { en: "AA account capsule", zh: "AA 账户胶囊" },
+  relayAccountWaiting: { en: "Route key waiting", zh: "路由密钥待接入" },
+  relayAccountReady: { en: "Route key locked", zh: "路由密钥已锁定" },
+  relayAccountCapsuleHint: {
+    en: "Attach an account to open the relay line.",
+    zh: "接入账户以打开 relay 线路。",
+  },
   relayAccountTitle: {
     en: "Set the account once, then move through the relay line.",
     zh: "先设定账户，再沿着 relay 流程推进。",
@@ -49,12 +57,17 @@ const appMessages = {
     zh: "Relay 就绪清单",
   },
   relayReady: { en: "Ready", zh: "已就绪" },
-  relayNeedsAA: { en: "Needs address", zh: "需要地址" },
+  relayNeedsAA: { en: "AA capsule waiting", zh: "AA 胶囊待接入" },
   relayNeedsAmount: { en: "Needs GAS amount", zh: "需要 GAS 额度" },
-  relayNeedsPayload: { en: "Needs valid JSON", zh: "需要有效 JSON" },
+  relayNeedsPayload: { en: "Payload packet needs JSON", zh: "Payload 数据包需要 JSON" },
   relayBoardLabel: { en: "Live AA relay board", zh: "实时 AA Relay 面板" },
   relayBoardKicker: { en: "Relay line", zh: "Relay 线路" },
-  relayBoardDraft: { en: "Set the AA account to open the relay line.", zh: "先设定 AA 账户以开启 relay 线路。" },
+  relayStationLabel: { en: "Relay station", zh: "Relay 工作站" },
+  relayStationCaption: {
+    en: "Paymaster coverage, AA identity, and payload broadcast stay on one guarded desk.",
+    zh: "Paymaster 覆盖、AA 身份与 payload 广播集中在一个带防护的工作台。",
+  },
+  relayBoardDraft: { en: "Attach an AA account to open the relay line.", zh: "接入 AA 账户以开启 relay 线路。" },
   relayBoardSponsor: { en: "Account found. Check sponsorship before requesting coverage.", zh: "账户已就绪。请求覆盖前先检查赞助资格。" },
   relayBoardFunding: { en: "Paymaster amount ready. Request sponsorship or submit a valid payload.", zh: "Paymaster 额度已就绪。可请求赞助或提交有效 payload。" },
   relayBoardReady: { en: "Relay payload ready for a sponsored on-chain submission.", zh: "Relay payload 已准备好进行赞助链上提交。" },
@@ -76,8 +89,8 @@ const appMessages = {
   aaCoreLabel: { en: "AA Core", zh: "AA Core" },
   aaAddress: { en: "AA Address", zh: "AA 地址" },
   aaAddressHint: {
-    en: "Required before sponsorship checks or relay submission.",
-    zh: "执行赞助检查或 relay 提交前必须填写。",
+    en: "This route key opens sponsor checks and relay broadcast.",
+    zh: "该路由密钥用于开启赞助检查与 relay 广播。",
   },
   aaAddressPlaceholder: { en: "N...", zh: "N..." },
   dappId: { en: "Paymaster Dapp ID", zh: "Paymaster Dapp ID" },
@@ -122,8 +135,8 @@ const appMessages = {
     zh: "请求赞助前请输入正数 GAS 额度（例如 0.1）。",
   },
   relayBlocked: {
-    en: "Enter an AA address and keep the payload JSON valid before submitting.",
-    zh: "提交前需填写 AA 地址，并保持 payload JSON 有效。",
+    en: "Account capsule and payload packet gate the broadcast.",
+    zh: "账户胶囊与 payload 数据包共同控制广播闸门。",
   },
   relayFlowLabel: { en: "AA relay workflow", zh: "AA relay 流程" },
   relayFlowSponsor: { en: "Check sponsorship", zh: "检查赞助" },
@@ -148,7 +161,7 @@ const appMessages = {
     en: "The console keeps dapp id optional, but blocks empty AA addresses and invalid JSON before a relayed write.",
     zh: "控制台保留 dapp id 可选，但会在 relay 写入前拦截空 AA 地址与无效 JSON。",
   },
-  relaySubmitTitle: { en: "Relay Payload", zh: "Relay Payload" },
+  relaySubmitTitle: { en: "Relay packet ready", zh: "Relay 数据包已就绪" },
   relayDraftLabel: { en: "Draft AA", zh: "草稿 AA" },
   sponsorCheckComplete: { en: "Sponsor check complete.", zh: "赞助检查完成。" },
   sponsorRequestComplete: {

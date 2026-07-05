@@ -47,28 +47,24 @@
 }
 
 .coin-rim {
+  inset: 3px;
   transform: translateZ(calc(var(--coin-depth) * -0.55));
-  background:
-    linear-gradient(90deg, rgba(95, 70, 18, 0.36), rgba(255, 244, 180, 0.95), rgba(87, 65, 18, 0.42)),
-    #cfa24b;
+  border: max(6px, calc(var(--coin-size) * 0.045)) solid rgba(207, 162, 75, 0.92);
+  background: transparent;
   box-shadow:
     0 16px 32px rgba(9, 18, 32, 0.18),
-    inset 0 0 0 8px rgba(255, 255, 255, 0.18);
+    inset 0 0 0 2px rgba(255, 255, 255, 0.18),
+    inset 0 0 0 9px rgba(87, 65, 18, 0.18);
 }
 
 .coin-face {
   display: grid;
-  overflow: hidden;
+  overflow: visible;
   place-items: center;
   backface-visibility: hidden;
-  background:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.82), transparent 34%),
-    linear-gradient(145deg, #f2d57f, #b88326 56%, #65420f);
-  border: 3px solid rgba(255, 234, 156, 0.88);
-  box-shadow:
-    inset 0 0 0 8px rgba(73, 49, 13, 0.22),
-    inset 0 10px 18px rgba(255, 255, 255, 0.28),
-    inset 0 -16px 24px rgba(45, 29, 8, 0.24);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .coin-face--heads {
@@ -77,25 +73,22 @@
 
 .coin-face--tails {
   transform: rotateY(180deg) translateZ(calc(var(--coin-depth) / 2));
-  background:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.82), transparent 34%),
-    linear-gradient(145deg, #f4f8ff, #8ea4bd 56%, #38475b);
-  border-color: rgba(228, 241, 255, 0.92);
 }
 
 .coin-face__image {
-  width: 126%;
-  height: 126%;
-  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   object-position: center;
+  filter: drop-shadow(0 8px 12px rgba(56, 37, 6, 0.16));
   pointer-events: none;
   user-select: none;
 }
 
 .coin-face--tails .coin-face__image {
-  width: 158%;
-  height: 158%;
-  object-position: center 43%;
+  width: 100%;
+  height: 100%;
+  object-position: center;
 }
 
 .coin-face::after {
@@ -103,9 +96,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background:
-    linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, 0.42) 48%, transparent 62%),
-    radial-gradient(circle at 50% 50%, transparent 62%, rgba(255, 255, 255, 0.32) 64%, rgba(53, 36, 10, 0.16) 100%);
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.26) 48%, transparent 61%);
   opacity: 0;
   pointer-events: none;
 }
@@ -127,7 +118,7 @@
   color: #ffffff;
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
   transform: translateX(50%);

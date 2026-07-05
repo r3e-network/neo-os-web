@@ -28,8 +28,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-neodid-console/index.html",
-    "icon": "/miniapps/oracle-neodid-console/logo.jpg",
-    "banner": "/miniapps/oracle-neodid-console/banner.jpg"
+    "icon": "/miniapps/oracle-neodid-console/logo.webp",
+    "banner": "/miniapps/oracle-neodid-console/banner.webp"
   },
   "permissions": [
     "read:blockchain",

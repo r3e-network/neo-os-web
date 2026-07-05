@@ -67,9 +67,9 @@
   ],
   "updatedAt": "2026-06-01T00:00:00Z",
   "urls": {
-    "banner": "/miniapps/event-ticket-pass/banner.jpg",
+    "banner": "/miniapps/event-ticket-pass/banner.webp",
     "entry": "/miniapps/event-ticket-pass/index.html",
-    "icon": "/miniapps/event-ticket-pass/logo.jpg"
+    "icon": "/miniapps/event-ticket-pass/logo.webp"
   },
   "version": "1.0.0"
 }

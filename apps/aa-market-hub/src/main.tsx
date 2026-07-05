@@ -18,14 +18,14 @@ defineMiniApp({
 
   setup(ctx) {
     const hub = useAAMarketHub({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
     const toActionString = (value: unknown) =>
       value === undefined || value === null ? "" : String(value);
 
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       const addr = await ctx.services.notify.guard(
         () => hub.connectWallet(),
         undefined,
@@ -35,7 +35,7 @@ defineMiniApp({
         ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
     });
 
-    ctx.registerAction("loadListings", async (marketHashInput: unknown) => {
+    ctx.framework.actions.register("loadListings", async (marketHashInput: unknown) => {
       hub.marketHash.set(String(marketHashInput));
       await ctx.services.notify.guard(
         () => hub.loadListings(),
@@ -44,12 +44,12 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("selectListing", async (listingId: unknown) => {
+    ctx.framework.actions.register("selectListing", async (listingId: unknown) => {
       const listing = hub.listings.get().find((l) => l.id === String(listingId));
       if (listing) hub.selectListing(listing);
     });
 
-    ctx.registerAction("createListing", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createListing", async (...args: unknown[]) => {
       const [
         marketHashInput,
         aaContractHash,
@@ -82,7 +82,7 @@ defineMiniApp({
       return result;
     });
 
-    ctx.registerAction("updatePrice", async (nextPriceGas: unknown) => {
+    ctx.framework.actions.register("updatePrice", async (nextPriceGas: unknown) => {
       hub.nextPriceGas.set(String(nextPriceGas));
       await ctx.services.notify.guard(
         () => hub.submitUpdatePrice(),
@@ -91,7 +91,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("cancelSelected", () =>
+    ctx.framework.actions.register("cancelSelected", () =>
       ctx.services.notify.guard(
         () => hub.submitCancelSelected(),
         "cancelListingSuccess",
@@ -99,7 +99,7 @@ defineMiniApp({
       ),
     );
 
-    ctx.registerAction("buySelected", async (newBackupOwner: unknown) => {
+    ctx.framework.actions.register("buySelected", async (newBackupOwner: unknown) => {
       hub.newBackupOwner.set(String(newBackupOwner));
       await ctx.services.notify.guard(
         () => hub.submitBuySelected(),
@@ -108,7 +108,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("refundSelected", () =>
+    ctx.framework.actions.register("refundSelected", () =>
       ctx.services.notify.guard(
         () => hub.submitRefundSelected(),
         "refundPendingSuccess",

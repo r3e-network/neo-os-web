@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useRedEnvelope } from "./useRedEnvelope";
+import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -125,7 +126,11 @@ function makeChain(opts: ChainOpts = {}) {
 
 function setup(opts: ChainOpts = {}) {
   const { chain, invoke, read } = makeChain(opts);
-  const app = useRedEnvelope({ chain, t });
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-redenvelope" },
+  );
+  const app = useRedEnvelope({ app: framework, t });
   app.setAddress(ALICE);
   return { app, invoke, read };
 }
@@ -316,7 +321,11 @@ describe("useRedEnvelope — paged refresh (newest page, bounded concurrency)", 
       read,
       readArray: vi.fn(async () => []),
     } as unknown as ChainService;
-    const app = useRedEnvelope({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-redenvelope" },
+    );
+    const app = useRedEnvelope({ app: framework, t });
     app.setAddress(ALICE);
 
     await app.loadEnvelopes();

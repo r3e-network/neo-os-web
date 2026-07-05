@@ -33,8 +33,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/flashloan/index.html",
-    "icon": "/miniapps/flashloan/logo.jpg",
-    "banner": "/miniapps/flashloan/banner.jpg"
+    "icon": "/miniapps/flashloan/logo.webp",
+    "banner": "/miniapps/flashloan/banner.webp"
   },
   "permissions": [
     "invoke:primary",

@@ -1,228 +1,79 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../automation-copilot/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-function t(key: string) {
+function t(k: string, p?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    actionName: "Action Name",
-    apiIdle: "Ready",
+    actionPlan: "Action plan",
     asset: "Asset",
-    automationGatewayHint:
-      "Registration is sent through the host automation gateway.",
+    automationActions: "Automation Actions",
     automationRoute: "Automation route",
     buildRecipe: "Build Recipe",
-    copyPayload: "Copy Payload",
     currentPrice: "Current Price",
-    datafeedHash: "Datafeed",
-    disabled: "Disabled",
-    disableTrigger: "Disable Trigger",
-    enabled: "Enabled",
-    enableTrigger: "Enable Trigger",
+    docSubtitle: "Inspect live data, assemble a recipe, and keep pricefeed separated from slower jobs.",
     fetchPrice: "Fetch Price",
-    latestResult: "Latest Result",
-    latestTriggerId: "Latest Trigger",
-    network: "Network",
-    nextExecution: "Next Execution",
-    noTriggerSelected: "Register or refresh a trigger to see its status.",
-    oracleHash: "Oracle",
-    payload: "Payload",
-    payloadEmpty: "Fetch a price or build a recipe first.",
-    recipeBuilder: "Recipe Builder",
-    refreshTriggers: "Refresh",
+    flowStateDraft: "Draft route",
+    flowStateRegistering: "Registering trigger",
+    latestPrice: "Latest Price",
+    priceRule: "Price rule",
+    recipePreview: "Recipe preview",
+    recipePreviewLine: `Watch ${p?.asset ?? "NEO"} around ${p?.price ?? "20"}, then run the selected action.`,
     registerTrigger: "Register Trigger",
     routeOperate: "Enable or disable",
     routePrice: "Read pricefeed",
     routeRegister: "Register trigger",
     schedule: "Schedule",
-    subtitle: "Create and operate price-triggered Morpheus automation triggers.",
-    targetPrice: "Target Price",
-    title: "Automation Copilot",
-    triggerCount: "Verified Triggers",
-    triggerRequestEmpty: "Build or register a trigger.",
-    triggerStatus: "Trigger Status",
-    verifyBeforeOperate: "Verify a gateway trigger before enabling or disabling it.",
-    manageTriggers: "Manage Triggers",
-    deleteTrigger: "Delete",
-    activeTrigger: "Active",
-    actionRepaySelfLoan: "Repay self-loan",
-    actionCustom: "Custom action…",
-    actionCustomLabel: "Custom Action Name",
-    schedulePresetHourly: "Hourly",
     schedulePresetEvery6h: "Every 6h",
-    schedulePresetDaily: "Daily",
+    targetPrice: "Target Price",
+    triggerCount: "Verified Triggers",
   };
-  return messages[key] ?? key;
+  return messages[k] ?? k;
 }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
+describe("automation-copilot PlayArea (v2)", () => {
+  it("renders a foreground automation rule board instead of a backdrop scene", () => {
+    const { container } = render(<PlayArea t={t} state={state({ currentPrice: "18.42", targetPrice: "20", latestTriggerState: "Draft" })} dispatch={vi.fn()} />);
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    asset: "NEO",
-    targetPrice: "20",
-    schedule: "0 */6 * * *",
-    actionName: "auto_repay_self_loan",
-    currentPrice: "$21.0000",
-    renderedPayload: "{}",
-    renderedTriggerRequest: "{}",
-    isRequesting: false,
-    isRegistering: false,
-    isRefreshing: false,
-    oracleHash: "0xoracle",
-    networkDisplay: "testnet",
-    datafeedHash: "0xdatafeed",
-    latestTriggerId: "notAvailable",
-    latestTriggerState: "Ready",
-    latestTrigger: null,
-    triggers: [],
-    triggerCount: 0,
-    apiStatus: "Ready",
-    lastError: "",
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
-}
+    expect(container.querySelector(".mx2-stage")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene__rule-board")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene__price-gate")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene__flow")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene__action-card")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene__backdrop")).toBeFalsy();
+    expect(screen.getByText("Register Trigger")).toBeTruthy();
+    expect(screen.getByText("Auto Repay Self Loan")).toBeTruthy();
+    expect(container.textContent).not.toMatch(/🎯/);
+  });
 
-function props(overrides: Partial<React.ComponentProps<typeof PlayArea>> = {}) {
-  return {
-    t,
-    state: state(),
-    dispatch: vi.fn(async () => undefined),
-    services: { clipboard: { copy: vi.fn(async () => true) } },
-    status: null,
-    setStatus: vi.fn(),
-    clearStatus: vi.fn(),
-    loadError: null,
-    retryLoad: vi.fn(async () => undefined),
-    launchContext: parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/automation-copilot",
-      "miniapp-automation-copilot",
-    ),
-    ...overrides,
-  } as React.ComponentProps<typeof PlayArea>;
-}
+  it("dispatches primary and secondary automation actions", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-describe("Automation Copilot PlayArea", () => {
-  it("dispatches host automation registration from the visible form", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea {...props({ dispatch })} />);
-
-    fireEvent.change(screen.getByLabelText("Target Price"), {
-      target: { value: "25" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Register Trigger/i }));
+    fireEvent.click(screen.getByText("Register Trigger"));
+    fireEvent.click(screen.getByText("Fetch Price"));
+    fireEvent.click(screen.getByText("Build Recipe"));
 
     expect(dispatch).toHaveBeenCalledWith("registerTrigger");
+    expect(dispatch).toHaveBeenCalledWith("fetchCurrentPrice");
+    expect(dispatch).toHaveBeenCalledWith("buildRecipePayload");
   });
 
-  it("shows trigger status controls and does not claim a real trigger for empty state", () => {
-    render(<PlayArea {...props()} />);
+  it("keeps automation styling foreground-led, animated, and motion guarded", () => {
+    const fs = require("node:fs");
+    const s = fs.readFileSync(`${process.cwd()}/../automation-copilot/src/PlayArea.scss`, "utf8");
 
-    expect(screen.getByText("Register or refresh a trigger to see its status.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Enable Trigger/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Disable Trigger/i })).toBeNull();
-    expect(screen.queryByText("[object Object]")).toBeNull();
-  });
-
-  it("renders a gateway handoff trigger without enabling status changes", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(
-      <PlayArea
-        {...props({
-          dispatch,
-          state: state({
-            latestTriggerId: "local-auto-1234567890abcdef",
-            latestTriggerState: "Host handoff prepared",
-            latestTrigger: {
-              id: "local-auto-1234567890abcdef",
-              name: "NEO trigger",
-              trigger_type: "threshold",
-              enabled: false,
-              created_at: "2026-06-01T00:00:00.000Z",
-              registration_state: "local_automation_intent",
-            },
-            triggerCount: 0,
-            renderedTriggerRequest: JSON.stringify({
-              name: "NEO trigger",
-              trigger_type: "threshold",
-            }, null, 2),
-          }),
-        })}
-      />,
-    );
-
-    expect(screen.getByText("local-auto...90abcdef")).toBeTruthy();
-    expect(
-      screen.getByText("Verify a gateway trigger before enabling or disabling it."),
-    ).toBeTruthy();
-    const enableButton = screen.getByRole("button", { name: /Enable Trigger/i });
-    expect(enableButton.hasAttribute("disabled")).toBe(true);
-    fireEvent.click(enableButton);
-    expect(dispatch).not.toHaveBeenCalledWith("toggleLatestTrigger");
-  });
-
-  it("renders the full trigger list and dispatches select + delete per row", () => {
-    const dispatch = vi.fn(async () => undefined);
-    const triggers = [
-      { id: "trig-1", name: "NEO repay", trigger_type: "threshold", enabled: true, created_at: "2026-06-01T00:00:00.000Z" },
-      { id: "trig-2", name: "GAS rebalance", trigger_type: "threshold", enabled: false, created_at: "2026-06-02T00:00:00.000Z" },
-    ];
-    render(
-      <PlayArea
-        {...props({
-          dispatch,
-          state: state({
-            triggers,
-            triggerCount: 2,
-            latestTrigger: triggers[0],
-            latestTriggerId: "trig-1",
-          }),
-        })}
-      />,
-    );
-
-    // Both triggers are listed (previously only the latest was visible).
-    expect(screen.getByText("NEO repay")).toBeTruthy();
-    expect(screen.getByText("GAS rebalance")).toBeTruthy();
-
-    // Selecting the older trigger makes it active.
-    fireEvent.click(screen.getByText("GAS rebalance"));
-    expect(dispatch).toHaveBeenCalledWith("selectTrigger", "trig-2");
-
-    // Deleting dispatches the per-row delete with the trigger id.
-    fireEvent.click(screen.getByRole("button", { name: /Delete GAS rebalance/i }));
-    expect(dispatch).toHaveBeenCalledWith("deleteTrigger", "trig-2");
-  });
-
-  it("offers a discoverable action vocabulary and reveals a custom field for unlisted actions", () => {
-    render(
-      <PlayArea {...props({ state: state({ actionName: "my_custom_action" }) })} />,
-    );
-
-    // An unlisted action name flips the action picker to Custom and reveals the field.
-    expect(screen.getByLabelText("Custom Action Name")).toBeTruthy();
-    // The radio-card picker exposes the known preset action.
-    expect(screen.getByRole("radio", { name: "Repay self-loan" })).toBeTruthy();
-  });
-
-  it("fills the schedule field from a preset chip", () => {
-    const setSchedule = vi.fn();
-    const baseState = state();
-    baseState.schedule.set = setSchedule;
-    render(<PlayArea {...props({ state: baseState })} />);
-
-    fireEvent.click(screen.getByRole("radio", { name: "Every 6h" }));
-    expect(setSchedule).toHaveBeenCalledWith("0 */6 * * *");
+    expect(s).toContain('@use "@shared/components-react/v2/v2" as *;');
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).toMatch(/\.copilot-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.copilot-scene__rule-board\s*\{[\s\S]*grid-template-columns/);
+    expect(s).toMatch(/@keyframes copilot-gauge-pulse/);
+    expect(s).toMatch(/@keyframes copilot-connector-run/);
+    expect(s).toMatch(/\.automation-copilot-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 188px/);
+    expect(s).not.toMatch(/AI-generated scene backdrop/);
+    expect(s).not.toMatch(/copilot-scene__backdrop|background-image:\s*url|var\(--mx2-scene-wash/);
+    expect(s).not.toMatch(/\.bridge-scene__backdrop/);
   });
 });

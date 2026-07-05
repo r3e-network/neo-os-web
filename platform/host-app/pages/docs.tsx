@@ -72,7 +72,7 @@ export default function DocsPage() {
   return (
     <Layout>
       <Head>
-        <title>Documentation | Yiwu MiniApps</title>
+        <title>Documentation | Neo Miniapps</title>
       </Head>
 
       <div className="min-h-screen bg-white">

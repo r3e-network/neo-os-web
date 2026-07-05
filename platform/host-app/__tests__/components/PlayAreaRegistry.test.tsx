@@ -1462,21 +1462,21 @@ describe("PlayAreaRegistry", () => {
             name: "The Fool",
             keyword: "Spark",
             meaning: "Leap",
-            image: "./cards/00-the-fool.svg",
+            image: "./cards/00-the-fool.webp",
           },
           {
             id: 1,
             name: "The Magician",
             keyword: "Protocol",
             meaning: "Intent",
-            image: "./cards/01-the-magician.svg",
+            image: "./cards/01-the-magician.webp",
           },
           {
             id: 2,
             name: "The High Priestess",
             keyword: "Oracle",
             meaning: "Signal",
-            image: "./cards/02-the-high-priestess.svg",
+            image: "./cards/02-the-high-priestess.webp",
           },
         ],
       } as Response),
@@ -1490,15 +1490,30 @@ describe("PlayAreaRegistry", () => {
     });
 
     expect(
-      screen.getByRole("heading", { name: "Draw, flip, read" }),
+      screen.getByRole("heading", { name: "Neo tarot table" }),
     ).toBeVisible();
     await waitFor(() =>
-      expect(screen.getByText("3 cards")).toBeInTheDocument(),
+      expect(screen.getByText("3 card spread source")).toBeInTheDocument(),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Past/i }));
+    expect(screen.getByAltText("Past sealed card")).toHaveAttribute(
+      "src",
+      "/miniapps/on-chain-tarot/cards/back.webp",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Reveal Past card" }));
     expect(
       screen.getAllByText(/The Fool|The Magician|The High Priestess/).length,
     ).toBeGreaterThan(0);
+    const revealedImages = screen.getAllByAltText(
+      /The Fool|The Magician|The High Priestess/,
+    );
+    expect(revealedImages[0]).toHaveAttribute(
+      "src",
+      expect.stringContaining("/miniapps/on-chain-tarot/cards/"),
+    );
+    expect(revealedImages[0]).toHaveAttribute(
+      "src",
+      expect.stringContaining(".webp"),
+    );
   });
 
   it("renders tool miniapps as native consoles", () => {

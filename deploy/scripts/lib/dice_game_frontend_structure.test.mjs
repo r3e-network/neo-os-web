@@ -13,130 +13,130 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-test("Dice Game renders a modern wallet-style VRF roll desk", () => {
+test("Dice Game renders a resource-led v2 roll table", () => {
   const playArea = read("apps/dice-game/src/PlayArea.tsx");
   const styles = read("apps/dice-game/src/PlayArea.scss");
   const messages = read("apps/dice-game/src/locale/messages.ts");
 
   for (const className of [
-    "dice-shell",
-    "dice-stage",
-    "dice-stage__visual",
-    "dice-stage__table",
-    "dice-stage__die",
-    "dice-stage__details",
-    "dice-metric-grid",
-    "dice-bet-panel",
-    "dice-face-grid",
-    "dice-route-panel",
-    "dice-history-panel",
-    // dice-status-bar is applied via a conditional template literal
-    // (className={`dice-status-bar${error ? " dice-status-bar--error" : ""}`}).
-    "dice-status-bar",
+    "dice-playarea",
+    "dice-scene",
+    "dice-scene__felt",
+    "dice-scene__hud",
+    "dice-scene__live-zone",
+    "dice-scene__die-anchor",
+    "dice-scene__die",
+    "dice-scene__side-die",
+    "dice-scene__throw-path",
+    "dice-scene__landing-ring",
+    "dice-scene__stake-chip",
+    "dice-scene__play-table",
+    "dice-bet-spots",
+    "dice-bet-spot",
+    "dice-bet-spot__die",
+    "dice-controls",
+    "dice-chip-tray",
+    "dice-chip-btn",
   ]) {
-    // Match the class in either a plain string literal (className="...")
-    // or a template-literal className ({`...`}); both apply a real class.
-    assert.match(
-      playArea,
-      new RegExp(`className=(?:"|\\{\`)[^"\`]*${className}`),
-      className,
-    );
+    assert.ok(playArea.includes(className), className);
   }
 
   // History list is driven by the rollHistory state binding and mapped to rows.
   assert.match(playArea, /val<RollHistoryItem\[\]>\("rollHistory",\s*\[\]\)/);
   assert.match(playArea, /rollHistory\.map/);
   assert.match(playArea, /FACES\.map/);
-  // Active face is reflected via aria-pressed against the local faceInput state.
-  assert.match(playArea, /aria-pressed=\{face === faceInput\}/);
-  assert.match(playArea, /formatHash\(lastTxid,\s*10,\s*8\)/);
-  // Hero title is state-driven across the VRF workflow: rolling -> result -> ready.
-  assert.match(playArea, /isResolving\s*\n?\s*\?\s*t\("resolvingTitle"\)/);
+  assert.match(playArea, /CHIP_PRESETS\.map/);
+  assert.doesNotMatch(playArea, /OpenUiSegmented/);
+  assert.match(playArea, /aria-pressed=\{active\}/);
+  assert.match(playArea, /onClick=\{\(\) => chooseFace\(face\)\}/);
+  assert.match(playArea, /onClick=\{\(\) => chooseStake\(chip\.amount\)\}/);
+  assert.match(playArea, /formatHash\(row\.txid,\s*6,\s*4\)/);
+  // Hero title is state-driven across the game workflow: rolling -> result -> ready.
+  assert.match(playArea, /isRolling\s*\n?\s*\?\s*t\("throwingTitle"\)/);
   assert.match(playArea, /t\("readyTitle"\)/);
-  // The settled roll is revealed (chain-aware result panel + network badge).
-  assert.match(playArea, /dice-result/);
-  assert.match(playArea, /dice-chain-badge/);
-  assert.match(playArea, /DiceFaceImage/);
-  assert.match(playArea, /dice-stage\.avif/);
-  assert.match(playArea, /dice-face-\$\{face\}/);
+  assert.match(playArea, /diceFaceUrl\(faceNum\)/);
+  assert.match(playArea, /diceFaceUrl\(face\)/);
+  assert.match(playArea, /chipAssetUrl\(selectedStakePreset \|\| normalizedAmount\)/);
+  assert.doesNotMatch(playArea, /dice-chip-rack\.jpg/);
+  assert.ok(fs.existsSync(path.join(ROOT, "apps/dice-game/public/art/ATTRIBUTION.md")));
+  for (const fileName of [
+    "chip-green.webp",
+    "chip-blue.webp",
+    "chip-red.webp",
+    "chip-black.webp",
+    "hero-die.webp",
+  ]) {
+    assert.ok(
+      fs.existsSync(path.join(ROOT, "apps/dice-game/public/art", fileName)),
+      `${fileName} must ship with the miniapp`,
+    );
+  }
+  for (const face of [1, 2, 3, 4, 5, 6]) {
+    assert.ok(
+      fs.existsSync(path.join(ROOT, `apps/dice-game/public/art/die-white-${face}.webp`)),
+      `dice face ${face} art must ship with the miniapp`,
+    );
+  }
+  assert.match(playArea, /mx2-roll/);
+  assert.match(playArea, /mx2-land/);
+  assert.match(playArea, /ParticleBurst/);
+  assert.doesNotMatch(playArea, /ChipArt/);
+  assert.doesNotMatch(playArea, /dice-stage\.(?:avif|webp|jpg)/);
+  assert.doesNotMatch(playArea, /dice-scene-art\.jpg/);
   // Bet placement is wired through the platform dispatch contract.
   assert.match(playArea, /dispatch\("placeDiceBet"/);
 
   for (const key of [
-    "diceHeroTitle",
-    "diceHeroSubtitle",
-    "diceWalletLabel",
-    "diceStakeDeskTitle",
-    "dicePayoutLabel",
+    "readyTitle",
+    "throwingTitle",
+    "pickYourFace",
+    "stakeRackTitle",
+    "customStakeHint",
+    "rollAction",
+    "selectedFace",
+    "stakeAmount",
+    "payoutPreview",
     "diceVrfRouteTitle",
-    "diceVrfRouteCopy",
     "diceHistoryTitle",
     "diceHistoryEmpty",
-    "diceCommitStep",
-    "diceOracleStep",
-    "diceSettleStep",
+    "diceRiskTitle",
+    "diceRiskCopy",
   ]) {
     assert.match(messages, new RegExp(`${key}:`), key);
   }
 
-  // Neo Soft light page surface driven by the --ns-bg token.
-  assert.match(styles, /\.dice-playarea\s*\{[^}]*var\(--ns-bg,\s*#f4f5f7\)/s);
-  // Asymmetric two-column desk: wide stage + bet rail.
-  assert.match(
-    styles,
-    /\.dice-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.62fr\)\s+minmax\(340px,\s*0\.44fr\)/s,
-  );
-  // Stage leads with a full-width game table, then the chain details below it.
-  assert.match(
-    styles,
-    /\.dice-stage\s*\{[^}]*grid-template-columns:\s*1fr/s,
-  );
-  // Stage and the other panels share a white surface token + soft shadow.
-  assert.match(
-    styles,
-    /\.dice-stage,[\s\S]*?\.dice-history-panel\s*\{[^}]*background:\s*var\(--dice-surface\)/s,
-  );
-  // The contained visual stage uses real game-table media, not CSS art.
-  assert.match(styles, /\.dice-stage__table img\s*\{[^}]*object-fit:\s*cover/s);
-  assert.match(styles, /\.dice-stage__die img\s*\{[^}]*object-fit:\s*cover/s);
-  assert.match(
-    styles,
-    /\.dice-stage__visual\s*\{[^}]*background:\s*#07170f/s,
-  );
-  assert.match(
-    styles,
-    /\.dice-metric-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
-  );
-  assert.match(
-    styles,
-    /\.dice-face-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
-  );
-  assert.match(styles, /\.dice-status-bar\s*\{[^}]*min-height:\s*52px/s);
-  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.dice-shell[\s\S]*grid-template-columns:\s*1fr/s);
-  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.dice-stage[\s\S]*grid-template-columns:\s*1fr/s);
+  // Light game table: real dice/chip resources, foreground controls, clean foundations.
+  assert.match(styles, /\.dice-playarea\s*\{[^}]*--mx2-stage-floor:\s*#ffffff/s);
+  assert.match(styles, /\.dice-scene\s*\{[^}]*background:\s*#fff9ec/s);
+  assert.match(styles, /\.dice-scene__felt\s*\{[^}]*#fff8e8/s);
+  assert.match(styles, /\.dice-scene__felt-track\s*\{[^}]*display:\s*none/s);
+  assert.match(styles, /\.dice-scene__felt-track\s*\{[^}]*background:\s*transparent/s);
+  assert.match(styles, /\.dice-scene__play-table\s*\{[^}]*min-height:\s*318px/s);
+  assert.match(styles, /\.dice-bet-spots\s*\{[^}]*pointer-events:\s*none/s);
+  assert.match(styles, /\.dice-bet-spot\s*\{[^}]*position:\s*absolute/s);
+  assert.match(styles, /\.dice-bet-spot--active\s*\{[^}]*background:\s*#f2fff8/s);
+  assert.match(styles, /\.dice-scene__live-zone\s*\{[^}]*grid-template-columns:\s*88px minmax\(188px,\s*230px\) 88px/s);
+  assert.match(styles, /\.dice-scene__die,\s*\n\.dice-scene__side-die\s*\{[^}]*object-fit:\s*contain/s);
+  assert.match(styles, /\.dice-scene__side-die\s*\{[^}]*opacity:\s*0\.36/s);
+  assert.match(styles, /\.dice-scene\[data-state="rolling"\] \.dice-scene__table-mat\s*\{[^}]*opacity:\s*0\.48/s);
+  assert.match(styles, /\.dice-scene\[data-state="rolling"\] \.dice-scene__throw-path\s*\{[^}]*opacity:\s*0\.12/s);
+  assert.match(styles, /\.dice-scene__die-anchor\.mx2-roll\s*\{[^}]*animation:\s*dice-clean-tumble/s);
+  assert.match(styles, /\.dice-controls\s*\{[^}]*max-width:\s*620px/s);
+  assert.match(styles, /\.dice-chip-tray\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.94\)/s);
+  assert.match(styles, /\.dice-chip-btn img\s*\{[^}]*object-fit:\s*contain/s);
+  assert.match(styles, /\.dice-playarea \.mx2-action-rail__row \.mx2-btn--primary\s*\{[^}]*flex:\s*0 0 154px/s);
+  assert.match(styles, /@keyframes dice-trail-sweep/);
+  assert.match(styles, /@keyframes dice-clean-tumble/);
+  assert.match(styles, /@keyframes dice-landing-ready/);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-scene__play-table[\s\S]*min-height:\s*278px/s);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-bet-spot[\s\S]*width:\s*64px/s);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-chip-btn[\s\S]*min-width:\s*48px/s);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.dice-scene__die-anchor\.mx2-roll/s);
 
-  // Neo Soft design language: concise eyebrow labels without stretched tracking.
-  assert.match(
-    styles,
-    /\.dice-eyebrow\s*\{[^}]*text-transform:\s*uppercase/s,
-  );
-  assert.match(
-    styles,
-    /\.dice-panel-heading\s*\{[^}]*text-transform:\s*uppercase/s,
-  );
-  assert.match(styles, /\.dice-eyebrow\s*\{[^}]*letter-spacing:\s*0/s);
-  // Type stays at fixed sizes (no fluid clamp), radii stay within the soft scale.
-  assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
-  assert.doesNotMatch(styles, /border-radius:\s*(?:2[0-9]|[3-9][0-9])px/);
-  assert.doesNotMatch(styles, /dice-cube|dice-winburst|dice-confetti|dice-sheen/);
-  // The accent halo is intentionally contained to the visual stage only; the
-  // flat soft surfaces (metric tiles, bet summary, status bar) never use a wash.
-  assert.doesNotMatch(
-    styles,
-    /\.dice-metric-grid span\s*\{[^}]*radial-gradient/s,
-  );
-  assert.doesNotMatch(
-    styles,
-    /\.dice-status-bar\s*\{[^}]*radial-gradient/s,
-  );
+  assert.doesNotMatch(styles, /backdrop-filter/);
+  assert.doesNotMatch(styles, /dice-stage|dice-scene-art|dice-cube|dice-winburst|dice-confetti|dice-sheen/);
+  assert.doesNotMatch(styles, /\.dice-scene__felt::after/);
+  assert.doesNotMatch(styles, /\.dice-controls__rail::after/);
+  assert.doesNotMatch(styles, /dice-controls__rail|dice-face-btn|semi-radioGroup/);
+  assert.doesNotMatch(styles, /opacity:\s*0\.06;/);
 });

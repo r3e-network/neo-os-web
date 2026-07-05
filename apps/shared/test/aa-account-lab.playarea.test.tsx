@@ -1,313 +1,134 @@
 import React from "react";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import path from "node:path";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../aa-account-lab/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-const VERIFIER_HASH = "0x5be915aea3ce85e4752d522632f0a9520e377aaf";
-const HOOK_HASH = "0x0000000000000000000000000000000000000000";
-const BACKUP_OWNER = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
-
-function t(key: string) {
+function t(k: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    accountHeroEyebrow: "Account Abstraction",
-    accountHeroTitle: "Account control center",
-    accountHeroCopy: "Inspect and register AA shells.",
-    accountMetricsLabel: "AA account environment summary",
-    network: "Network",
-    defaultVerifier: "Default Verifier",
-    accountMetricAccount: "Account Shell",
-    accountStageEyebrow: "AA shell assembly",
-    accountStageIdle: "Connect, inspect, then assemble the account shell",
-    accountStageReady: "Account shell ready for registration",
-    accountStageInspecting: "Reading AA Core account state...",
-    accountStageRegistering: "Registering AA account shell...",
-    accountStageConnecting: "Connecting wallet identity...",
-    accountStageCopy: "Verifier, backup owner, and escape window assemble into the deterministic AccountId accepted by AA Core.",
-    accountInspectorTitle: "Account Readiness",
-    accountId: "AccountId Hash",
-    accountIdHint: "Use the registered 20-byte AccountId hash, or a public key that can be normalized to one.",
-    accountIdPlaceholder: "20-byte AccountId hash or public key",
-    inspectBlocked: "Enter an account id before reading AA Core state.",
+    accountPlanTitle: "Account strategy",
+    accountPlanDaily: "Everyday shell",
+    accountPlanFast: "Fast recovery",
+    accountPlanCold: "Cold vault",
+    accountPlanDailyCopy: "Balanced recovery",
+    accountPlanFastCopy: "Fast recovery",
+    accountPlanColdCopy: "Long delay",
+    ownerNotSet: "Connect or set owner",
+    useConnectedWallet: "Use connected wallet",
+    recoveryWindow: "Recovery window",
+    register: "Register Account",
     inspect: "Inspect Account",
     connectWallet: "Connect Wallet",
-    accountFlowLabel: "AA account workflow",
-    accountFlowInspect: "Read live state",
-    accountFlowInspectDesc: "Resolve account state.",
-    accountFlowRegister: "Register shell",
-    accountFlowRegisterDesc: "Submit registerAccount.",
-    accountFlowRecovery: "Keep recovery clear",
-    accountFlowRecoveryDesc: "Pin backup owner.",
-    accountStateLabel: "Live AA Core",
-    accountStateTitle: "Account state",
-    currentVerifier: "Current Verifier",
-    currentHook: "Current Hook",
-    currentBackupOwner: "Current Backup Owner",
-    aaCore: "AA Core",
-    accountRiskTitle: "Registration guardrails",
-    accountRiskCopy: "Blocks empty required fields.",
-    registerTitle: "Register New Account",
-    accountShellLabel: "Draft Shell",
-    registerBlocked:
-      "Complete account id, verifier, backup owner, and timelock before submitting.",
-    verifier: "Verifier Hash",
-    verifierHint: "Required verifier.",
-    verifierPlaceholder: "0x...",
-    verifierParams: "Verifier Params Hex",
-    verifierParamsHint: "Optional hex.",
-    verifierParamsPlaceholder: "hex payload",
-    hook: "Hook Hash",
-    hookHint: "Optional guard hook.",
-    hookPlaceholder: "0x... or empty",
-    backupOwner: "Backup Owner",
-    backupOwnerHint: "Required recovery owner.",
-    backupOwnerPlaceholder: "N... or 0x...",
-    timelock: "Escape Timelock",
-    timelockHint: "Seconds before backup recovery.",
-    timelockPlaceholder: "2592000",
-    register: "Register Account",
-    notAvailable: "Not available",
-    accountIdSharedHint: "Shared with the inspector above.",
-    mainnetCaution: "You are on mainnet — Register Account is a real write.",
-    mainnetCautionLead: "You are on mainnet — Register Account is a ",
-    mainnetCautionEmphasis: "real write against mainnet AA Core and spends GAS",
-    mainnetCautionTail: ".",
-    alreadyRegisteredCaution: "This account already has a verifier registered.",
-    noVerifierRegistered: "No verifier registered.",
-    currentEscapeTimelock: "Escape Timelock",
-    currentEscapeStatus: "Escape Status",
-    derivedAccountIdLabel: "Derived AccountId",
-    derivedAccountIdHint: "The contract only accepts this id derived from the parameters above.",
-    backupOwnerMustSign: "The backup owner must sign this transaction.",
+    registerTitle: "Advanced",
+    accountStageNeedOwner: "Set a backup owner",
+    accountStageNeedVerifier: "Verifier needed",
+    accountStageNeedTimelock: "Set a recovery window",
+    accountShellProgress: "{count}/3 ready",
   };
-  return messages[key] ?? key;
+  let value = messages[k] ?? k;
+  for (const [name, replacement] of Object.entries(params ?? {})) {
+    value = value.replace(`{${name}}`, String(replacement));
+  }
+  return value;
 }
-
-function launch(url: string) {
-  return parseMiniAppLaunchContext(url, "miniapp-aa-account-lab");
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
 }
+describe("aa-account-lab PlayArea (v2)", () => {
+  it("renders a strategy-led account workbench without exposing advanced fields on the main surface", () => {
+    const { container } = render(<PlayArea t={t} state={state({ defaultVerifierDisplay: "0x2222222222222222222222222222222222222222" })} dispatch={vi.fn()} />);
+    expect(container.querySelector('.aa-visual-card img[src="account-control-center.webp"]')).toBeTruthy();
+    expect(container.querySelector(".aa-scene__stage-art")).toBeNull();
+    expect(container.querySelector(".aa-scene__wash")).toBeNull();
+    expect(container.querySelector(".aa-plan-panel")).toBeTruthy();
+    expect(container.querySelector(".aa-plan-panel__head")?.textContent).toContain("Everyday shell");
+    expect(container.querySelectorAll(".aa-plan-card")).toHaveLength(3);
+    expect(container.querySelector(".aa-drawer__field")).toBeFalsy();
+  });
 
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    isInspecting: false,
-    isSubmitting: false,
-    currentVerifier: "Not available",
-    currentHook: "Not available",
-    currentBackupOwner: "Not available",
-    aaCoreDisplay: "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
-    defaultVerifierDisplay: VERIFIER_HASH,
-    networkDisplay: "testnet",
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
-}
+  it("opens advanced account fields only from the drawer toggle", () => {
+    const { container } = render(<PlayArea t={t} state={state({ defaultVerifierDisplay: "0x2222222222222222222222222222222222222222" })} dispatch={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Advanced/ }));
+    expect(container.querySelector(".aa-drawer__field")).toBeTruthy();
+    expect(container.querySelectorAll(".aa-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(container.querySelectorAll(".aa-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toHaveLength(5);
+    expect(container.querySelector(".aa-drawer__caution.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".aa-drawer h4")).toBeNull();
+  });
 
-describe("AA Account Lab PlayArea launch flow", () => {
-  it("prefills inspect and register forms from host launch params", async () => {
+  it("dispatches register from the main strategy flow", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea t={t} state={state({
+      connectedWalletDisplay: "0x1111111111111111111111111111111111111111",
+      defaultVerifierDisplay: "0x2222222222222222222222222222222222222222",
+    })} dispatch={dispatch} />);
 
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-account-lab?network=testnet&accountIdInput=neo-aa-001&verifierHash=${VERIFIER_HASH}&verifierParamsHex=112233&hookHash=${HOOK_HASH}&backupOwner=${BACKUP_OWNER}&escapeTimelock=604800`,
-        )}
-      />,
-    );
+    await waitFor(() => expect((screen.getByRole("button", { name: /Register Account/ }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: /Fast recovery/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Register Account/ }));
 
-    expect(document.querySelector(".account-flow-stage")).toBeTruthy();
-    expect(screen.getByText("Account shell ready for registration")).toBeTruthy();
-    expect(document.querySelector('.account-flow-stage__media[src="./account-control-center.jpg"]')).toBeTruthy();
-
-    // Inspect card keeps the single editable AccountId input prefilled from the
-    // launch param; the register card derives its id from parameters instead.
-    expect(
-      (screen.getByLabelText("AccountId Hash") as HTMLInputElement).value,
-    ).toBe("neo-aa-001");
-    expect((screen.getByLabelText("Verifier Hash") as HTMLInputElement).value).toBe(
-      VERIFIER_HASH,
-    );
-    expect(
-      (screen.getByLabelText("Verifier Params Hex") as HTMLInputElement).value,
-    ).toBe("112233");
-    expect((screen.getByLabelText("Hook Hash") as HTMLInputElement).value).toBe(
-      HOOK_HASH,
-    );
-    expect((screen.getByLabelText("Backup Owner") as HTMLInputElement).value).toBe(
-      BACKUP_OWNER,
-    );
-    expect(
-      (screen.getByLabelText("Escape Timelock") as HTMLInputElement).value,
-    ).toBe("604800");
-
-    // The derived registration accountId preview renders the only id the
-    // contract will accept (a 0x 20-byte hash), not the free seed.
-    const derived = document.querySelector(".account-derived__value");
-    expect(derived?.textContent).toMatch(/^0x[0-9a-f]{40}$/i);
-
-    fireEvent.click(screen.getByRole("button", { name: "Register Account" }));
-
-    expect(document.querySelector(".account-flow-stage--registering")).toBeTruthy();
-    expect(screen.getByText("Registering AA account shell...")).toBeTruthy();
-
-    await waitFor(() => {
+    await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith(
         "register",
-        "neo-aa-001",
-        VERIFIER_HASH,
-        "112233",
-        HOOK_HASH,
-        BACKUP_OWNER,
+        "",
+        "0x2222222222222222222222222222222222222222",
+        "",
+        "",
+        "0x1111111111111111111111111111111111111111",
         "604800",
-      );
-    });
+      ),
+      { timeout: 2500 },
+    );
   });
 
-  it("previews inspect and wallet connect as AA account workflow actions", async () => {
-    let finishInspect: (() => void) | undefined;
-    const dispatch = vi.fn((name: string) => {
-      if (name === "inspect") {
-        return new Promise<void>((resolve) => {
-          finishInspect = resolve;
-        });
-      }
-      return Promise.resolve();
-    });
-
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-account-lab?accountIdInput=neo-aa-001",
-        )}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Inspect Account" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("inspect", "neo-aa-001");
-      expect(container.querySelector(".account-flow-stage--inspecting")).toBeTruthy();
-      expect(screen.getByText("Reading AA Core account state...")).toBeTruthy();
-    });
-    finishInspect?.();
-
-    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("connect");
-      expect(container.querySelector(".account-flow-stage--connecting")).toBeTruthy();
-      expect(screen.getByText("Connecting wallet identity...")).toBeTruthy();
-    });
-  });
-
-  it("keeps registration disabled until required launch fields are present", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-account-lab?accountIdInput=neo-aa-001&verifierHash=${VERIFIER_HASH}`,
-        )}
-      />,
-    );
-
-    expect(screen.getByText(/Complete account id/i)).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Register Account" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-  });
-
-  it("warns before a mainnet write but stays quiet on testnet", () => {
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={baseState({ networkDisplay: "mainnet" })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-account-lab?network=mainnet",
-        )}
-      />,
-    );
-
-    expect(screen.getByText(/You are on mainnet/i)).toBeTruthy();
-
-    rerender(
-      <PlayArea
-        t={t}
-        state={baseState({ networkDisplay: "testnet" })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-account-lab?network=testnet",
-        )}
-      />,
-    );
-
-    expect(screen.queryByText(/You are on mainnet/i)).toBeNull();
-  });
-
-  it("warns that a re-register will revert once an inspected account has a verifier", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          networkDisplay: "testnet",
-          hasInspected: true,
-          currentVerifier: VERIFIER_HASH,
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-account-lab?network=testnet",
-        )}
-      />,
-    );
-
-    expect(
-      screen.getByText(/This account already has a verifier registered/i),
-    ).toBeTruthy();
-  });
-
-  it("keeps AA account shell motion and reduced-motion fallback covered", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../aa-account-lab/src/PlayArea.scss"),
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes aa-account-packet-route");
-    expect(styles).toContain("@keyframes aa-account-route-scan");
-    expect(styles).toContain("@keyframes aa-account-shell-ready");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /\.account-flow-stage--registering \.account-flow-stage__packet[\s\S]*animation:\s*aa-account-packet-route/,
-    );
-    expect(styles).toMatch(
-      /\.account-flow-stage--inspecting \.account-flow-stage__route::after[\s\S]*animation:\s*aa-account-route-scan/,
-    );
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.account-flow-stage__packet[\s\S]*animation:\s*none/,
-    );
+  it("keeps the scene background low-noise with reduced-motion fallbacks", () => {
+    const s = playAreaStyles("aa-account-lab");
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).toMatch(/\.aa-workspace\s*\{[^}]*align-items:\s*start/);
+    expect(s).toMatch(/\.aa-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 190px/);
+    expect(s).toMatch(/\.aa-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*var\(--mx2-brand-hover\)/);
+    expect(s).toMatch(/\.aa-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.aa-scene\s*\{[\s\S]*min-height:\s*328px/);
+    expect(s).toMatch(/\.aa-scene__diagram\s*\{[\s\S]*grid-template-columns:\s*minmax\(144px,\s*0\.46fr\) minmax\(220px,\s*1fr\)/);
+    expect(s).toMatch(/\.aa-scene__segments\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.aa-scene__status\s*\{[\s\S]*grid-template-columns:\s*minmax\(128px,\s*auto\) minmax\(160px,\s*1fr\) minmax\(0,\s*1\.25fr\)/);
+    expect(s).toMatch(/\.aa-visual-card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.aa-visual-card\s*\{[\s\S]*grid-template-rows:\s*minmax\(150px,\s*auto\) auto/);
+    expect(s).toMatch(/\.aa-visual-card img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(s).toMatch(/\.aa-visual-card img\s*\{[\s\S]*opacity:\s*1/);
+    expect(s).toMatch(/\.aa-visual-card img\s*\{[\s\S]*filter:\s*none/);
+    expect(s).toMatch(/\.aa-visual-card::after\s*\{[\s\S]*content:\s*none/);
+    expect(s).toMatch(/\.aa-visual-card figcaption\s*\{[\s\S]*position:\s*relative/);
+    expect(s).not.toMatch(/\.aa-visual-card img\s*\{[\s\S]*opacity:\s*0\.74/);
+    expect(s).not.toMatch(/\.aa-visual-card::after\s*\{[\s\S]*rgba\(255,\s*255,\s*255,\s*0\.12\)/);
+    expect(s).toMatch(/\.aa-plan-panel\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.aa-plan-grid\s*\{[\s\S]*display:\s*flex/);
+    expect(s).toMatch(/\.aa-plan-card\s*\{[\s\S]*min-height:\s*62px/);
+    expect(s).toMatch(/\.aa-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.aa-drawer__panel--wide > \.semi-card-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(260px,\s*520px\)\s+minmax\(220px,\s*1fr\)/);
+    expect(s).not.toMatch(/\.aa-drawer__field input/);
+    expect(s).not.toMatch(/\.aa-drawer__intro/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-scene__core\s*\{[\s\S]*min-height:\s*64px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-scene__segments\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-scene__status p\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-visual-card\s*\{[\s\S]*grid-template-rows:\s*68px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-visual-card figcaption\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-plan-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-plan-card\s*\{[\s\S]*min-height:\s*50px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-owner-card button:disabled\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.aa-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*184px/);
+    expect(s).not.toMatch(/aa-scene__stage-art/);
+    expect(s).not.toMatch(/aa-scene__wash/);
+    expect(s).not.toMatch(/\.aa-workspace\s*\{[^}]*align-items:\s*stretch/);
+    expect(s).not.toMatch(/\.aa-plan-card\s*\{[\s\S]*min-height:\s*128px/);
+    expect(s).not.toMatch(/aa-plan-card[\s\S]*radial-gradient/);
   });
 });

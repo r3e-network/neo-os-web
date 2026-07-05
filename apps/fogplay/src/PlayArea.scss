@@ -1,753 +1,528 @@
-/**
- * FogPlay PlayArea — Polymarket-light treatment.
- */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-@use "@shared/styles/pm-light" as pm;
-@use "@shared/styles/playarea-base";
-
-.coinflip-play-area {
-  @include pm.pm-canvas;
-  position: relative;
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 1180px;
-  margin-inline: auto;
-  overflow: hidden;
-  isolation: isolate;
-
-  /* ----------------------------------------------------------------
-   *  Coin token bridge — the arena/wager/overlay components are styled
-   *  against a `--coin-*` palette that was only ever defined inside a
-   *  `.theme-fogplay` block that the standalone surface never applies,
-   *  so every var(--coin-*) fell back to an undefined value (black /
-   *  transparent), losing the green hue. Bind them to the live Neo Soft
-   *  `--ns-*` tokens here so the accent stays one coherent green and the
-   *  palette tracks the active light/dark theme.
-   * ---------------------------------------------------------------- */
-  --coin-success: var(--ns-brand-strong, #0fb174);
-  --coin-win: var(--ns-success, #16c784);
-  --coin-loss: var(--ns-danger, #ea3943);
-  --coin-text-primary: var(--ns-ink, #1e1e2e);
-  --coin-text-secondary: var(--ns-text-2, #5b6478);
-  --coin-text-muted: var(--ns-text-muted, #6b7180);
-  --coin-bg-primary: var(--ns-bg, #f4f5f7);
-  --coin-card-bg: var(--ns-surface, #ffffff);
-  --coin-card-border: var(--ns-border, rgba(20, 22, 38, 0.06));
-  --coin-panel-bg: var(--ns-surface-subtle, #f7f8fa);
-  --coin-choice-ring: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  --coin-arena-ambient: rgba(22, 199, 132, 0.07);
-  --coin-arena-ambient-flip: rgba(22, 199, 132, 0.16);
-  --coin-balance-pill-bg: var(--ns-brand-soft, #e4f8f0);
-  --coin-balance-pill-border: rgba(22, 199, 132, 0.22);
-  --coin-green-active-bg-light: rgba(22, 199, 132, 0.08);
+.fogplay-play-area {
+  display: block;
+  --mx2-stage-floor: #ffffff;
 }
 
-.coinflip-play-area::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(244, 245, 247, 0.9),
-      rgba(244, 245, 247, 0.98)
-    ),
-    radial-gradient(
-      circle at 22% 16%,
-      rgba(22, 199, 132, 0.16),
-      transparent 32%
-    ),
-    radial-gradient(circle at 82% 8%, rgba(245, 166, 35, 0.12), transparent 28%);
-}
-
-.coinflip-play-area::after {
-  content: "";
-  position: absolute;
-  top: 116px;
-  left: 50%;
-  z-index: -1;
-  width: min(860px, 92vw);
-  height: 500px;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(244, 245, 247, 0.1), rgba(244, 245, 247, 0.9)),
-    url("./static/bg_vault.png") center 48% / cover no-repeat;
-  border-radius: 38px;
-  opacity: 0.28;
-  filter: saturate(1.08);
-  transform: translateX(-50%);
-  animation: fogplay-vault-drift 18s ease-in-out infinite alternate;
-}
-
-/* ============================================================
- *  1. Hero — identity + top stats (Wins · Losses · Games · Won)
- * ============================================================ */
-
-.play-hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 1100px;
-  margin-inline: auto;
-  padding: 20px 20px 18px;
-  @include pm.card;
-  overflow: hidden;
-}
-
-.play-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    108deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.48) 48%,
-    transparent 62%
-  );
-  opacity: 0.5;
-  transform: translateX(-38%);
-  animation: fogplay-hero-sheen 6.4s ease-in-out infinite;
-}
-
-.play-hero__head {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-}
-
-.play-hero__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: pm.$neo-soft;
-  color: pm.$neo-strong;
-  box-shadow: 0 10px 24px rgba(22, 199, 132, 0.12);
-  animation: fogplay-token-idle 3.8s ease-in-out infinite;
-
-  img {
-    display: block;
-    width: 136%;
-    height: 136%;
-    object-fit: cover;
-    pointer-events: none;
-    user-select: none;
-  }
-}
-
-.play-hero__text {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.play-hero__eyebrow {
-  @include pm.section-eyebrow;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: pm.$neo-strong;
-}
-
-.play-hero__title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.15;
-  color: pm.$ink;
-}
-
-.play-hero__subtitle {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: pm.$text-2;
-}
-
-.stats-row {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 10px;
-}
-
-.stat-divider {
-  display: none;
-}
-
-.stat-cell {
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  background: pm.$surface;
-  border: 1px solid pm.$border;
-  border-radius: 14px;
-
-  &.win .stat-count {
-    color: pm.$green-text;
-  }
-  &.loss .stat-count {
-    color: pm.$red-text;
-  }
-  &.won .won-amount {
-    color: pm.$neo-strong;
-    font-size: 17px;
-    line-height: 1.25;
-    word-break: break-word;
-  }
-}
-
-.stat-count {
-  font-size: 20px;
-  font-weight: 800;
-  color: pm.$text;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.stat-label {
-  @include pm.section-eyebrow;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-@media (max-width: 480px) {
-  .stats-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* First-round invitation — replaces the flat 4x "0" stat strip until there's
- * play history, giving the empty hero an inviting call to action. */
-.first-round-prompt {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid pm.$border;
-  border-radius: 14px;
-  background: linear-gradient(135deg, pm.$neo-soft 0%, pm.$surface 100%);
-}
-
-.first-round-prompt__icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: pm.$surface;
-  border: 1px solid pm.$border;
-  color: pm.$neo-strong;
-  overflow: hidden;
-
-  img {
-    display: block;
-    width: 154%;
-    height: 154%;
-    object-fit: cover;
-    object-position: center 43%;
-    pointer-events: none;
-    user-select: none;
-  }
-}
-
-.first-round-prompt__text {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.first-round-prompt__title {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: pm.$ink;
-}
-
-.first-round-prompt__hint {
-  font-size: 12px;
-  line-height: 1.45;
-  color: pm.$text-2;
-}
-
-/* ============================================================
- *  2. Arena hero (coin flip visualization)
- * ============================================================ */
-
-.coinflip-play-area .arena-hero {
-  position: relative;
-  width: 100%;
-  margin-inline: auto;
-  padding: 0;
-}
-
-.coinflip-play-area .coin-stage {
-  width: 100%;
-}
-
-.coinflip-game-table__arena .premium-arena {
-  min-height: clamp(430px, 56vw, 570px);
-}
-
-.coinflip-game-table__arena .arena-content {
-  min-height: clamp(390px, 51vw, 526px);
-}
-
-.coinflip-game-table__wager .wager-panel {
-  position: sticky;
-  top: 18px;
-  animation: fogplay-wager-in 360ms ease-out both;
-}
-
-.coinflip-play-area--tossing .coinflip-game-table__wager .wager-panel {
-  border-color: rgba(22, 199, 132, 0.24);
-  box-shadow: 0 16px 40px rgba(22, 199, 132, 0.1);
-}
-
-.coinflip-game-table {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.82fr);
-  gap: 18px;
-  width: 100%;
-  max-width: 1100px;
-  margin-inline: auto;
-  align-items: stretch;
-}
-
-.coinflip-game-table::before {
-  content: "";
-  position: absolute;
-  inset: 18px 8% auto;
-  z-index: -1;
-  height: 280px;
-  border-radius: 999px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(22, 199, 132, 0.15),
-    transparent 68%
-  );
-  filter: blur(18px);
-  opacity: 0.78;
-}
-
-.coinflip-play-area--tossing .coinflip-game-table::before {
-  animation: fogplay-table-glow 1.2s ease-in-out infinite;
-}
-
-.coinflip-play-area--revealing .reveal-pending {
-  border-color: rgba(245, 158, 11, 0.38);
-  box-shadow:
-    0 10px 24px rgba(245, 158, 11, 0.12),
-    0 0 0 1px rgba(255, 255, 255, 0.65) inset;
-  animation: fogplay-reveal-panel-pulse 1.05s ease-in-out infinite;
-}
-
-.coinflip-play-area--revealing .play-hero__badge {
-  animation-duration: 1.15s;
-}
-
-.coinflip-game-table__arena,
-.coinflip-game-table__wager {
-  min-width: 0;
-}
-
-.coinflip-game-table__wager {
-  display: grid;
-  align-content: start;
-}
-
-/* The wager column is a control deck beside the game table on desktop. */
-.coinflip-play-area .bet-section {
-  max-width: none;
-  margin-inline: auto;
-}
-
-/* ============================================================
- *  3. History section
- * ============================================================ */
-
-.history-section {
-  display: grid;
-  gap: 10px;
-  width: 100%;
-  max-width: 1100px;
-  margin-inline: auto;
-  animation: fogplay-history-in 380ms ease-out both;
-}
-
-.history-header {
-  padding: 0 4px;
-}
-
-.history-title {
-  @include pm.section-eyebrow;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-}
-
-.history-empty {
-  display: flex;
+.fogplay-play-area .mx2-stage__scene {
+  min-height: 0;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 28px 18px;
-  text-align: center;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
-.history-empty__icon {
-  display: inline-flex;
+.fogplay-scene {
+  position: relative;
+  width: 100%;
+  min-height: 390px;
+  display: grid;
+  grid-template-rows: auto minmax(212px, 1fr) auto;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
+  justify-items: center;
+  gap: 12px;
+  isolation: isolate;
   overflow: hidden;
+  border: 1px solid rgba(17, 94, 89, 0.12);
+  border-radius: var(--mx2-r-lg);
+  padding: 18px;
+  background: #ffffff;
+}
+
+.fogplay-scene__arena {
+  position: absolute;
+  inset: 16px;
+  z-index: 0;
+  overflow: hidden;
+  border: 1px solid rgba(31, 41, 55, 0.05);
+  border-radius: calc(var(--mx2-r-lg) - 6px);
+  background: #ffffff;
+  pointer-events: none;
+}
+
+.fogplay-scene__orbit,
+.fogplay-scene__runway {
+  position: absolute;
+  left: 50%;
+  top: 55%;
   border-radius: 999px;
-  background: pm.$surface;
-  color: pm.$text-faint;
-
-  img {
-    display: block;
-    width: 136%;
-    height: 136%;
-    object-fit: cover;
-    pointer-events: none;
-    user-select: none;
-  }
+  transform: translate(-50%, -50%);
 }
 
-.history-empty__text {
-  font-size: 13px;
-  line-height: 1.5;
-  color: pm.$text-muted;
+.fogplay-scene__orbit {
+  width: min(560px, 78%);
+  height: 174px;
+  border: 1px dashed rgba(5, 150, 105, 0.14);
+  background: #ffffff;
+  opacity: 0;
 }
 
-.history-section :where(.NeoCard, [class*="card"]) {
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-
-  & > * {
-    @include pm.card;
-    padding: 14px 18px;
-  }
+.fogplay-scene__orbit--one {
+  transform: translate(-50%, -50%) rotate(-9deg);
 }
 
-.history-token-board {
+.fogplay-scene__orbit--two {
+  width: min(410px, 58%);
+  height: 122px;
+  border-color: rgba(245, 158, 11, 0.2);
+  transform: translate(-50%, -50%) rotate(13deg);
+}
+
+.fogplay-scene__runway {
+  width: min(360px, 52%);
+  height: 74px;
+  border: 1px solid rgba(15, 23, 42, 0.045);
+  background: #ffffff;
+  box-shadow: none;
+  opacity: 0.58;
+  transform: translate(-50%, -50%) rotate(-3deg);
+}
+
+.fogplay-scene__side-rail {
+  position: relative;
+  z-index: 4;
+  width: min(100%, 650px);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.history-token {
+.fogplay-choice-btn {
+  font: inherit;
+}
+
+.fogplay-choice-card {
+  position: relative;
+  min-height: 72px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 52px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid pm.$border;
-  border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 248, 250, 0.9)),
-    pm.$surface;
-  animation: fogplay-history-token-in 320ms ease-out both;
+  border: 1px solid rgba(17, 94, 89, 0.14);
+  border-radius: var(--mx2-r);
+  padding: 10px 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+  color: var(--mx2-ink);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease),
+    background var(--mx2-t-fast) var(--mx2-ease);
 }
 
-.history-token--win {
-  border-color: rgba(22, 199, 132, 0.2);
-  background:
-    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(255, 255, 255, 0.9)),
-    pm.$green-soft;
+.fogplay-choice-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(22, 199, 132, 0.42);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.045);
 }
 
-.history-token--loss {
-  border-color: rgba(234, 57, 67, 0.14);
+.fogplay-choice-card--active {
+  border-color: rgba(245, 158, 11, 0.75);
+  background: #ecfdf5;
+  box-shadow:
+    0 0 0 2px rgba(245, 158, 11, 0.14),
+    0 5px 14px rgba(15, 118, 110, 0.07);
 }
 
-.history-token__coin {
+.fogplay-choice-card:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.fogplay-choice-card__coin {
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
   overflow: hidden;
-  background: rgba(22, 199, 132, 0.08);
+  border-radius: 999px;
+  background: #ffffff;
   box-shadow:
-    0 8px 16px rgba(20, 22, 38, 0.08),
+    0 3px 8px rgba(15, 23, 42, 0.07),
     inset 0 0 0 1px rgba(22, 199, 132, 0.14);
-
-  img {
-    width: 132%;
-    height: 132%;
-    object-fit: cover;
-    pointer-events: none;
-    user-select: none;
-  }
 }
 
-.history-token--tails .history-token__coin img {
-  width: 164%;
-  height: 164%;
-  object-position: center 43%;
+.fogplay-choice-card__coin img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
 }
 
-.history-token__main,
-.history-token__amounts {
+.fogplay-choice-card--tails .fogplay-choice-card__coin img {
+  width: 100%;
+  height: 100%;
+  object-position: center;
+}
+
+.fogplay-choice-card__copy {
   min-width: 0;
   display: grid;
-}
-
-.history-token__main {
-  gap: 2px;
-}
-
-.history-token__id {
-  max-width: 100%;
-  overflow: hidden;
-  color: pm.$text-faint;
-  font-size: 10px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.history-token__choice {
-  color: pm.$text;
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 1.15;
-}
-
-.history-token__outcome {
-  color: pm.$text-2;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: capitalize;
-}
-
-.history-token__amounts {
-  justify-items: end;
   gap: 3px;
-  color: pm.$text-2;
+}
+
+.fogplay-choice-card__copy span {
+  color: var(--mx2-ink);
+  font-size: 17px;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.fogplay-choice-card__copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-text-muted);
   font-size: 11px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+  font-weight: 620;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.payout-win {
-  color: pm.$green-text;
+.fogplay-scene__table {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 74px;
+  width: 260px;
+  height: 154px;
+  overflow: hidden;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
-.payout-loss {
-  color: pm.$text-faint;
+.fogplay-scene__pedestal {
+  position: absolute;
+  left: 50%;
+  bottom: -98px;
+  width: 300px;
+  height: 300px;
+  object-fit: contain;
+  transform: translateX(-50%);
+  filter:
+    drop-shadow(0 10px 14px rgba(15, 23, 42, 0.1))
+    saturate(1.02)
+    brightness(1.03);
 }
 
-@keyframes fogplay-vault-drift {
+.fogplay-scene__coin {
+  position: relative;
+  z-index: 3;
+  grid-row: 2;
+  display: grid;
+  place-items: center;
+  transform-origin: center;
+}
+
+.fogplay-scene__coin .coin-scene {
+  --coin-size: 188px;
+  --coin-depth: 18px;
+}
+
+.fogplay-scene__coin--flipping .coin-scene {
+  filter: drop-shadow(0 16px 22px rgba(15, 23, 42, 0.16));
+}
+
+.fogplay-scene__coin--landed {
+  animation: fogplay-landed-pop 560ms var(--mx2-ease-settle) both;
+}
+
+.fogplay-scene[data-state="flipping"] .fogplay-scene__orbit {
+  opacity: 0.26;
+}
+
+.fogplay-scene[data-state="flipping"] .fogplay-scene__orbit--one {
+  animation: fogplay-orbit-spin 1.25s linear infinite;
+}
+
+.fogplay-scene[data-state="flipping"] .fogplay-scene__orbit--two {
+  animation: fogplay-orbit-spin-reverse 1.05s linear infinite;
+}
+
+.fogplay-scene[data-state="won"] .fogplay-scene__arena {
+  background: #f0fdf4;
+}
+
+.fogplay-scene[data-state="lost"] .fogplay-scene__arena {
+  background: #fff7ed;
+}
+
+.fogplay-scene__status {
+  position: relative;
+  z-index: 4;
+  grid-row: 3;
+  max-width: min(100%, 520px);
+  margin: 0;
+  border: 1px solid rgba(17, 94, 89, 0.12);
+  border-radius: var(--mx2-r-pill);
+  padding: 8px 16px;
+  background: #ffffff;
+  box-shadow: none;
+  color: var(--mx2-ink);
+  font-size: 14px;
+  font-weight: 620;
+  text-align: center;
+}
+
+.fogplay-controls {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.fogplay-controls__header {
+  width: min(100%, 500px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(22, 199, 132, 0.12);
+  border-radius: var(--mx2-r-pill);
+  padding: 8px 12px;
+  background: #ffffff;
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 620;
+  text-transform: uppercase;
+}
+
+.fogplay-controls__header strong {
+  color: var(--mx2-accent-strong);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fogplay-controls__bets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.fogplay-bet-chip {
+  min-width: 86px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 2px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px 6px 6px;
+  background: var(--mx2-surface);
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.035);
+  color: var(--mx2-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 680;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.fogplay-bet-chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--mx2-accent);
+  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.045);
+}
+
+.fogplay-bet-chip--active {
+  border-color: var(--mx2-accent);
+  background: var(--mx2-accent-soft);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+
+.fogplay-bet-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fogplay-controls__error {
+  margin: 0;
+  color: var(--mx2-danger);
+  font-size: 13px;
+  font-weight: 620;
+  text-align: center;
+}
+
+.fogplay-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 184px;
+  min-width: 184px;
+  white-space: nowrap;
+}
+
+.fogplay-win-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--mx2-overlay);
+}
+
+.fogplay-win-overlay__card {
+  position: relative;
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: var(--mx2-r-lg);
+  padding: 34px 30px 28px;
+  background: linear-gradient(180deg, #ffffff 0%, #fef3c7 100%);
+  box-shadow: var(--mx2-shadow-lg);
+  text-align: center;
+}
+
+.fogplay-win-overlay__coin {
+  width: 96px;
+  height: 96px;
+  display: block;
+  border-radius: 999px;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 14px 22px rgba(15, 23, 42, 0.18));
+}
+
+.fogplay-win-overlay__card h3 {
+  margin: 4px 0 0;
+  color: var(--mx2-ink);
+  font-size: 22px;
+  font-weight: 680;
+}
+
+.fogplay-win-overlay__amount {
+  margin: 0;
+  color: var(--mx2-accent-strong);
+  font-size: 28px;
+  font-weight: 680;
+}
+
+.fogplay-win-overlay__card .mx2-burst {
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes fogplay-orbit-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(-9deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(351deg);
+  }
+}
+
+@keyframes fogplay-orbit-spin-reverse {
+  from {
+    transform: translate(-50%, -50%) rotate(13deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-347deg);
+  }
+}
+
+@keyframes fogplay-landed-pop {
   0% {
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateY(-18px) scale(0.94);
   }
-
+  72% {
+    transform: translateY(2px) scale(1.03);
+  }
   100% {
-    transform: translateX(-50%) translateY(-10px) scale(1.025);
-  }
-}
-
-@keyframes fogplay-hero-sheen {
-  0%,
-  62% {
-    opacity: 0;
-    transform: translateX(-42%);
-  }
-
-  74% {
-    opacity: 0.5;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(42%);
-  }
-}
-
-@keyframes fogplay-token-idle {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  50% {
-    transform: translateY(-2px) rotate(-2deg);
-  }
-}
-
-@keyframes fogplay-table-glow {
-  0%,
-  100% {
-    opacity: 0.58;
-    transform: scale(0.98);
-  }
-
-  50% {
-    opacity: 0.9;
-    transform: scale(1.03);
-  }
-}
-
-@keyframes fogplay-reveal-panel-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 10px 24px rgba(245, 158, 11, 0.1),
-      0 0 0 1px rgba(255, 255, 255, 0.65) inset;
-  }
-
-  50% {
-    box-shadow:
-      0 14px 30px rgba(245, 158, 11, 0.18),
-      0 0 0 1px rgba(255, 255, 255, 0.85) inset;
-  }
-}
-
-@keyframes fogplay-wager-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fogplay-history-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fogplay-history-token-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
+@media (max-width: 680px) {
+  .fogplay-scene {
+    min-height: 492px;
+    grid-template-rows: auto minmax(214px, 1fr) auto;
+    padding: 14px;
+  }
+
+  .fogplay-scene__arena {
+    inset: 10px;
+  }
+
+  .fogplay-scene__side-rail {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .fogplay-choice-card {
+    min-height: 64px;
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .fogplay-choice-card__coin {
+    width: 46px;
+    height: 46px;
+  }
+
+  .fogplay-scene__coin .coin-scene {
+    --coin-size: 150px;
+    --coin-depth: 13px;
+  }
+
+  .fogplay-scene__table {
+    bottom: 82px;
+    width: 230px;
+    height: 138px;
+  }
+
+  .fogplay-scene__pedestal {
+    bottom: -104px;
+    width: 270px;
+    height: 270px;
+  }
+
+  .fogplay-scene__runway {
+    width: 62%;
+  }
+
+  .fogplay-controls__header {
+    border-radius: var(--mx2-r);
+  }
+
+  .fogplay-bet-chip {
+    min-width: 82px;
+  }
+}
+
+@media (max-width: 380px) {
+  .fogplay-controls__bets {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fogplay-bet-chip {
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .coinflip-play-area::after,
-  .play-hero::after,
-  .play-hero__badge,
-  .coinflip-play-area--revealing .reveal-pending,
-  .coinflip-game-table::before,
-  .coinflip-game-table__wager .wager-panel,
-  .history-section,
-  .history-token {
-    animation: none;
+  .fogplay-scene[data-state="flipping"] .fogplay-scene__orbit,
+  .fogplay-scene__coin--landed,
+  .fogplay-choice-card,
+  .fogplay-bet-chip {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
-}
-
-@media (max-width: 720px) {
-  .history-token-board {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 920px) {
-  .coinflip-game-table {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .coinflip-game-table__wager .wager-panel {
-    position: relative;
-    top: auto;
-  }
-
-  .coinflip-play-area .bet-section {
-    max-width: 620px;
-  }
-}
-
-@media (max-width: 520px) {
-  .coinflip-play-area {
-    padding: 14px 14px 24px;
-  }
-
-  .play-hero {
-    padding: 18px;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .play-hero__head {
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: start;
-  }
-
-  .coinflip-play-area .arena-hero {
-    padding: 16px;
-  }
-
-  .coinflip-game-table {
-    gap: 14px;
-  }
-
-  .coinflip-game-table__arena .premium-arena {
-    min-height: 348px;
-  }
-
-  .coinflip-game-table__arena .arena-content {
-    min-height: 316px;
-  }
-}
-
-/* ============================================================
- *  Status toast (StandaloneDappSurface)
- * ============================================================ */
-
-.standalone-dapp-root .status-toast {
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: pm.$bg;
-  color: pm.$text;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid pm.$border;
-  box-shadow: 0 12px 28px -10px rgba(20, 22, 38, 0.18);
 }

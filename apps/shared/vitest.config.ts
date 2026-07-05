@@ -22,5 +22,14 @@ export default defineConfig({
       },
     },
     setupFiles: [resolve(currentDir, "test-utils/vitest-setup.ts")],
+    server: {
+      deps: {
+        inline: [
+          "@douyinfe/semi-icons",
+          "@douyinfe/semi-ui",
+          /@douyinfe\/semi-foundation/,
+        ],
+      },
+    },
   },
 });

@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "Yiwu MiniApps",
+    "title": "Neo Miniapps",
     "subtitle": "Small, focused Neo MiniApps for practical wallet operations",
     "exploreApps": "Explore Apps",
     "launchApp": "Launch App"
@@ -113,12 +113,12 @@
       "nep21Ready": "OneGate / NeoLine ready",
       "onegateExport": "OneGate dApp export"
     },
-    "hero": {
-      "title": "Yiwu MiniApps, small tools for every Neo scenario.",
-      "body": "Like Yiwu's small-commodity market, this is a single production interface for small, focused MiniApps: games, payments, oracle tools, account abstraction, bridge workflows, ratings, comments, contract state, and wallet-safe operations.",
-      "catalogCta": "Open MiniApp Catalog",
-      "developerCta": "Developer Console"
-    },
+  "hero": {
+    "title": "Pick a Neo MiniApp and start.",
+    "body": "Games, DeFi desks, oracle tools, and wallet utilities open as focused app workspaces instead of long setup forms.",
+    "catalogCta": "Open MiniApp Catalog",
+    "developerCta": "Developer Console"
+  },
     "status": {
       "title": "Platform Status",
       "subtitle": "Live app shell with native play areas",
@@ -138,8 +138,13 @@
     "categories": {
       "all": "All Apps"
     },
-    "catalog": {
-      "description": "Browse polished apps by category, then open the unified detail view with the app-specific play area and shared action console.",
+  "catalog": {
+    "description": "Choose a category, open an app, and land directly in its play area or workflow.",
+      "previewEyebrow": "Quick discovery",
+      "previewTitle": "Pick a path, not a spreadsheet",
+      "previewBody": "A short launcher view for the most relevant apps in the selected category. Use the full catalog when you want the complete library.",
+      "previewCta": "Open full catalog",
+      "moreCount": "{count} more apps are available in the full catalog.",
       "searchPlaceholder": "Search apps, categories, or IDs",
       "ecosystems": "Ecosystems",
       "shownCount": "{shown} shown",

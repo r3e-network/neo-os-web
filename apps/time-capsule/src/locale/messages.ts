@@ -42,8 +42,8 @@ const appMessages = {
   letterDockLabel: { en: "Message sealing dock", zh: "消息封存坞" },
   letterDockKicker: { en: "Letter loading", zh: "信件装填" },
   letterDockEmpty: {
-    en: "Write a title or message to load the capsule.",
-    zh: "写入标题或消息后，胶囊会开始装填。",
+    en: "Message core waiting.",
+    zh: "消息核心待装填。",
   },
   letterDockCount: {
     en: "{count} characters ready to seal",
@@ -63,6 +63,16 @@ const appMessages = {
     zh: "控制解锁后谁可以揭示。",
   },
   sealPreview: { en: "Seal preview", zh: "封存预览" },
+  sealSettings: { en: "Seal settings", zh: "封存设置" },
+  sealSettingsCopy: {
+    en: "Tune the unlock date, intent, and visibility only when you need to.",
+    zh: "需要时再调整解锁时间、用途和可见性。",
+  },
+  drawerTitle: { en: "Capsule controls", zh: "胶囊控制台" },
+  drawerSeal: { en: "Seal", zh: "封存" },
+  drawerCapsules: { en: "Capsules", zh: "胶囊" },
+  drawerPublic: { en: "Public tips", zh: "公开打赏" },
+  drawerDeposit: { en: "Deposit", zh: "押金" },
   capsuleBoardTitle: { en: "Capsule seal board", zh: "胶囊封存棋盘" },
   capsuleBoardDraft: { en: "Draft slot", zh: "草稿槽" },
   capsuleBoardReadySeal: { en: "Ready to seal", zh: "准备封存" },
@@ -71,11 +81,11 @@ const appMessages = {
   depositLabel: { en: "Refundable deposit", zh: "可退还押金" },
   storageLabel: { en: "Chain record", zh: "链上记录" },
   titleLabel: { en: "Capsule Title", zh: "胶囊标题" },
-  titlePlaceholder: { en: "Give your capsule a name", zh: "给胶囊取个名字" },
+  titlePlaceholder: { en: "Capsule name", zh: "胶囊名称" },
   secretMessage: { en: "Secret Message", zh: "秘密消息" },
   secretMessagePlaceholder: {
-    en: "Enter your secret message",
-    zh: "输入你的秘密消息",
+    en: "Seal your future message",
+    zh: "封存给未来的消息",
   },
   contentStorageNote: {
     en: "Your full message is stored locally on this device. Keep a backup if you want to reveal it later.",
@@ -139,9 +149,17 @@ const appMessages = {
     en: "Create Capsule (0.2 GAS deposit)",
     zh: "创建胶囊 (0.2 GAS 押金)",
   },
+  sealCapsuleCta: {
+    en: "Seal Capsule",
+    zh: "封存胶囊",
+  },
   depositNote: {
     en: "The 0.2 GAS is a refundable deposit, locked in the vault and returned to you when you reveal — not a spent fee.",
     zh: "0.2 GAS 是可退还押金，会锁定在金库中，在你揭示胶囊时退回给你，并非花掉的手续费。",
+  },
+  depositShortNote: {
+    en: "0.2 GAS refundable deposit",
+    zh: "0.2 GAS 可退还押金",
   },
   creatingCapsule: { en: "Sealing capsule...", zh: "封存胶囊中..." },
   capsuleCreated: { en: "Capsule sealed on-chain!", zh: "胶囊已封存上链！" },

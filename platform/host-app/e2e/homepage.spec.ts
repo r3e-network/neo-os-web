@@ -9,7 +9,7 @@ test.describe("Homepage", () => {
   });
 
   test("should load homepage", async ({ page }) => {
-    await expect(page).toHaveTitle(/Yiwu|Neo/i);
+    await expect(page).toHaveTitle(/Neo/i);
   });
 
   test("should display navigation", async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe("Homepage", () => {
     await expect(connectBtn).toBeVisible();
   });
 
-  test("should enable every catalog miniapp while featuring only the flagship nine", async ({ page }) => {
+  test("should keep homepage curated while linking to the complete catalog", async ({ page }) => {
     const catalogResponse = await page.request.get("/api/miniapps/catalog?scope=all");
     expect(catalogResponse.ok()).toBeTruthy();
     const body = await catalogResponse.json();
@@ -34,16 +34,16 @@ test.describe("Homepage", () => {
       page
         .getByTestId("homepage-featured-apps")
         .locator(detailLinkSelector),
-    ).toHaveCount(9);
+    ).toHaveCount(6);
     await expect(
       page
         .getByTestId("homepage-catalog")
         .locator(detailLinkSelector),
-    ).toHaveCount(enabledApps.length);
+    ).toHaveCount(9);
     await expect(
       page
         .getByTestId("homepage-catalog")
-        .locator('a[href^="/miniapps/miniapp-onchaintarot?network="]'),
+        .getByRole("link", { name: /open full catalog/i }),
     ).toBeVisible();
   });
 

@@ -118,7 +118,7 @@ const appMessages = {
   amountPresets: { en: "Amount presets", zh: "金额预设" },
   intentTitle: { en: "Signing intent", zh: "签名意图" },
   intentReady: { en: "NEP-17 transfer ready", zh: "NEP-17 转账已就绪" },
-  intentWaiting: { en: "Waiting for payout details", zh: "等待支出详情" },
+  intentWaiting: { en: "Draft payout ticket", zh: "起草支出票据" },
   intentWaitingCopy: {
     en: "Enter an amount and recipient to preview the exact native contract, fixed amount, and Hash160 recipient before wallet signing.",
     zh: "输入金额和收款人后，可在钱包签名前预览原生合约、定点金额和 Hash160 收款人。",

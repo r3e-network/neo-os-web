@@ -2,12 +2,13 @@
  * useSoulbound - domain logic for the Soulbound Certificate miniapp.
  *
  * The app keeps OS storage as a read fallback, but write flows use the
- * dedicated MiniAppSoulboundCertificate contract so the frontend can issue,
- * activate/deactivate, verify, and revoke real NEP-11 soulbound certificates.
+ * dedicated MiniAppSoulboundCertificate contract (reached through the MiniApp
+ * framework SDK, ctx.framework) so the frontend can issue, activate/deactivate,
+ * verify, and revoke real NEP-11 soulbound certificates.
  */
 
 import { createDerived, createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import type { MiniAppFramework } from "@shared/react";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -20,29 +21,9 @@ import { parseBigInt, parseBool, encodeTokenId } from "@shared/utils/parsers";
 import type { CertificateItem, TemplateItem } from "../types";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
-type ContractArg = {
-  type: "String" | "Integer" | "Boolean" | "Hash160" | "Hash256" | "PublicKey" | "ByteArray" | "Array";
-  value: string | number | boolean;
-};
-
 type TxResult = {
   txid?: string;
   event?: unknown;
-};
-
-type ChainLike = {
-  address?: Observable<string | null> | Observable<string>;
-  ensureWallet: () => Promise<string>;
-  invoke: (
-    operation: string,
-    args: ContractArg[],
-    options?: { waitForEvent?: string; waitTimeoutMs?: number; scriptHash?: string },
-  ) => Promise<TxResult>;
-  read: (
-    operation: string,
-    args?: ContractArg[],
-    options?: { scriptHash?: string; cache?: boolean; cacheTtlMs?: number },
-  ) => Promise<unknown>;
 };
 
 export interface CreateTemplateForm {
@@ -75,7 +56,8 @@ export interface UseSoulboundOptions {
   badgeService: BadgeProxy;
   clipboard: ClipboardService;
   eventBus: { emit: (event: string, payload?: unknown) => void };
-  chain: ChainLike;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -132,6 +114,13 @@ function toDisplayHash(value: unknown): string {
 
 function txidFrom(result: TxResult | null | undefined): string {
   return stringValue(result?.txid);
+}
+
+function isStandaloneLocalDevRoot(): boolean {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+  const { hostname, pathname, port } = window.location;
+  const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+  return isLocalHost && port !== "" && pathname === "/";
 }
 
 function templateFromRecord(record: Record<string, unknown>): TemplateItem | null {
@@ -202,7 +191,7 @@ export function useSoulbound({
   badgeService,
   clipboard,
   eventBus,
-  chain,
+  app,
   t,
 }: UseSoulboundOptions) {
   const templates = createObservable<TemplateItem[]>([]);
@@ -264,10 +253,10 @@ export function useSoulbound({
   );
 
   const connectedAddress = () =>
-    stringValue(chain.address?.get?.()) || stringValue(address.get());
+    stringValue(app.chain.address?.get?.()) || stringValue(address.get());
 
   const ensureIssuer = async () => {
-    const wallet = await chain.ensureWallet();
+    const wallet = await app.chain.ensureWallet();
     const issuer = normalizeHash160(wallet) || wallet;
     address.set(wallet);
     return issuer;
@@ -286,6 +275,10 @@ export function useSoulbound({
   };
 
   const loadTemplatesFromStorage = async () => {
+    if (isStandaloneLocalDevRoot()) {
+      templates.set([]);
+      return;
+    }
     const templateMap = await storageService.list("templates:", 20);
     const items: TemplateItem[] = [];
     if (templateMap && typeof templateMap === "object") {
@@ -299,6 +292,10 @@ export function useSoulbound({
   };
 
   const loadCertificatesFromStorage = async () => {
+    if (isStandaloneLocalDevRoot()) {
+      certificates.set([]);
+      return;
+    }
     const certMap = await storageService.list("certificates:", 50);
     const items: CertificateItem[] = [];
     if (certMap && typeof certMap === "object") {
@@ -341,8 +338,8 @@ export function useSoulbound({
     }
 
     // Short-circuit: a wallet with no soulbound balance holds nothing to scan.
-    const rawBalance = await chain.read("balanceOf", [
-      { type: "Hash160", value: ownerHash },
+    const rawBalance = await app.chain.readRaw("balanceOf", [
+      app.chain.arg.hash160(ownerHash),
     ]);
     const balance = parseBigInt(rawBalance);
     if (balance <= 0n) {
@@ -351,7 +348,7 @@ export function useSoulbound({
     }
 
     const totalTemplates = Number(
-      parseBigInt(await chain.read("totalTemplates")),
+      parseBigInt(await app.chain.readRaw("totalTemplates")),
     );
     const templateCount = Number.isFinite(totalTemplates)
       ? Math.min(totalTemplates, CERT_SCAN_TEMPLATE_LIMIT)
@@ -366,8 +363,8 @@ export function useSoulbound({
     const issuedCounts = await Promise.all(
       templateIds.map(async (templateId) => {
         const record = asRecord(
-          await chain
-            .read("getTemplateDetails", [{ type: "Integer", value: String(templateId) }])
+          await app.chain
+            .readRaw("getTemplateDetails", [app.chain.arg.integer(templateId)])
             .catch(() => null),
         );
         const issued = record ? Number(parseBigInt(record.issued)) : 0;
@@ -390,8 +387,8 @@ export function useSoulbound({
     const ownedTokenIds: string[] = [];
     const wanted = Number(balance);
     for (const tokenId of candidateTokenIds) {
-      const rawOwner = await chain
-        .read("ownerOf", [{ type: "ByteArray", value: encodeTokenId(tokenId) }])
+      const rawOwner = await app.chain
+        .readRaw("ownerOf", [app.chain.arg.byteArray(encodeTokenId(tokenId))])
         .catch(() => null);
       if (parseHash160(rawOwner) === ownerHash) {
         ownedTokenIds.push(tokenId);
@@ -410,8 +407,8 @@ export function useSoulbound({
     // the whole list, so settle every promise and keep the resolvable ones.
     const settled = await Promise.allSettled(
       ownedTokenIds.map((tokenId) =>
-        chain.read("getCertificateDetails", [
-          { type: "ByteArray", value: encodeTokenId(tokenId) },
+        app.chain.readRaw("getCertificateDetails", [
+          app.chain.arg.byteArray(encodeTokenId(tokenId)),
         ]),
       ),
     );
@@ -427,16 +424,16 @@ export function useSoulbound({
   };
 
   const loadTemplatesFromChain = async (issuer: string) => {
-    const rawIds = await chain.read("getIssuerTemplates", [
-      { type: "Hash160", value: issuer },
-      { type: "Integer", value: "0" },
-      { type: "Integer", value: "20" },
+    const rawIds = await app.chain.readRaw("getIssuerTemplates", [
+      app.chain.arg.hash160(issuer),
+      app.chain.arg.integer("0"),
+      app.chain.arg.integer("20"),
     ]);
     const ids = Array.isArray(rawIds) ? rawIds : [];
     const details = await Promise.all(
       ids.map((id) =>
-        chain.read("getTemplateDetails", [
-          { type: "Integer", value: stringValue(id) },
+        app.chain.readRaw("getTemplateDetails", [
+          app.chain.arg.integer(stringValue(id)),
         ]),
       ),
     );
@@ -490,7 +487,7 @@ export function useSoulbound({
     if (isConnecting.get()) return;
     isConnecting.set(true);
     try {
-      const wallet = await chain.ensureWallet();
+      const wallet = await app.chain.ensureWallet();
       address.set(wallet);
       lastSuccess.set(t("walletConnected"));
       await Promise.all([refreshTemplates(), refreshCertificates()]);
@@ -512,15 +509,15 @@ export function useSoulbound({
     lastError.set("");
     try {
       const issuer = await ensureIssuer();
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "createTemplate",
         [
-          { type: "Hash160", value: issuer },
-          { type: "String", value: next.name },
-          { type: "String", value: next.issuerName },
-          { type: "String", value: next.category },
-          { type: "Integer", value: String(next.maxSupply) },
-          { type: "String", value: next.description },
+          app.chain.arg.hash160(issuer),
+          app.chain.arg.string(next.name),
+          app.chain.arg.string(next.issuerName),
+          app.chain.arg.string(next.category),
+          app.chain.arg.integer(next.maxSupply),
+          app.chain.arg.string(next.description),
         ],
         { waitForEvent: "TemplateCreated", waitTimeoutMs: 30_000 },
       );
@@ -548,15 +545,15 @@ export function useSoulbound({
     lastError.set("");
     try {
       const issuer = await ensureIssuer();
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "issueCertificate",
         [
-          { type: "Hash160", value: issuer },
-          { type: "Hash160", value: recipient },
-          { type: "Integer", value: next.templateId },
-          { type: "String", value: next.recipientName },
-          { type: "String", value: next.achievement },
-          { type: "String", value: next.memo },
+          app.chain.arg.hash160(issuer),
+          app.chain.arg.hash160(recipient),
+          app.chain.arg.integer(next.templateId),
+          app.chain.arg.string(next.recipientName),
+          app.chain.arg.string(next.achievement),
+          app.chain.arg.string(next.memo),
         ],
         { waitForEvent: "CertificateIssued", waitTimeoutMs: 30_000 },
       );
@@ -582,12 +579,12 @@ export function useSoulbound({
     lastError.set("");
     try {
       const issuer = await ensureIssuer();
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "setTemplateActive",
         [
-          { type: "Hash160", value: issuer },
-          { type: "Integer", value: tpl.id },
-          { type: "Boolean", value: !tpl.active },
+          app.chain.arg.hash160(issuer),
+          app.chain.arg.integer(tpl.id),
+          app.chain.arg.boolean(!tpl.active),
         ],
         { waitForEvent: "TemplateUpdated", waitTimeoutMs: 30_000 },
       );
@@ -621,8 +618,8 @@ export function useSoulbound({
     let issuerHash = template ? toDisplayHash(template.issuer) : "";
     if (!issuerHash) {
       const record = asRecord(
-        await chain
-          .read("getTemplateDetails", [{ type: "Integer", value: cert.templateId }])
+        await app.chain
+          .readRaw("getTemplateDetails", [app.chain.arg.integer(cert.templateId)])
           .catch(() => null),
       );
       issuerHash = record ? toDisplayHash(record.issuer) : "";
@@ -638,8 +635,8 @@ export function useSoulbound({
     isVerifying.set(true);
     lastError.set("");
     try {
-      const details = await chain.read("getCertificateDetails", [
-        { type: "ByteArray", value: encodeTokenId(tokenId) },
+      const details = await app.chain.readRaw("getCertificateDetails", [
+        app.chain.arg.byteArray(encodeTokenId(tokenId)),
       ]);
       const record = asRecord(details);
       const cert = record ? certificateFromRecord(record) : null;
@@ -673,11 +670,11 @@ export function useSoulbound({
     lastError.set("");
     try {
       const issuer = await ensureIssuer();
-      const result = await chain.invoke(
+      const result = await app.chain.invoke(
         "revokeCertificate",
         [
-          { type: "Hash160", value: issuer },
-          { type: "ByteArray", value: encodeTokenId(tokenId) },
+          app.chain.arg.hash160(issuer),
+          app.chain.arg.byteArray(encodeTokenId(tokenId)),
         ],
         { waitForEvent: "CertificateRevoked", waitTimeoutMs: 30_000 },
       );

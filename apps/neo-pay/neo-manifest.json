@@ -35,8 +35,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/neo-pay/index.html",
-    "icon": "/miniapps/neo-pay/logo.jpg",
-    "banner": "/miniapps/neo-pay/banner.jpg"
+    "icon": "/miniapps/neo-pay/logo.webp",
+    "banner": "/miniapps/neo-pay/banner.webp"
   },
   "permissions": [
     "invoke:primary",

@@ -1,9 +1,6 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../dev-tipping/src/PlayArea";
 
@@ -11,167 +8,166 @@ import PlayArea from "../../dev-tipping/src/PlayArea";
 
 afterEach(() => cleanup());
 
-function t(key: string) {
-  const messages: Record<string, string> = {
-    title: "Dev Tipping",
-    docSubtitle: "Support developers with direct GAS tips",
-    developers: "Developers",
-    totalDonated: "Total Donated",
-    recentTips: "Recent Tips",
-    topDevelopers: "Top Developers",
-    noDevelopers: "No developers yet",
-    noDevelopersHint: "Enter a registered developer ID to send a tip.",
-    howItWorks: "How it works",
-    step1: "Connect your Neo wallet",
-    step2: "Find a developer or project to support",
-    step3: "Enter tip amount and optional message",
-    step4: "Confirm transaction - tips go directly to developer",
-    sendTip: "Send Tip",
-    developerId: "Developer ID",
-    developerIdPlaceholder: "Registered developer ID",
-    directTipRoute: "Direct contract tip",
-    tipAmount: "Tip Amount",
-    customAmount: "Custom amount...",
-    quickTipLabel: "Quick tip",
-    tipPresetLabel: "Tip amount presets",
-    tipPreviewTitle: "Tip preview",
-    tipRecipientPending: "Choose a developer",
-    tipAmountPending: "Choose amount",
-    tokenGas: "GAS",
-    minTip: "Minimum tip is 0.001 GAS",
-    optionalMessage: "Optional Message",
-    messagePlaceholder: "Say thanks...",
-    tipperName: "Your Name (optional)",
-    tipperNamePlaceholder: "Anonymous",
-    anonymousOn: "Anonymous",
-    anonymousOff: "Show Name",
-    sending: "Sending...",
-    sendTipBtn: "Send Tip",
-  };
-  return messages[key] ?? key;
+function t(k: string, params?: Record<string, string | number>) {
+  if (!params) return k;
+  return Object.entries(params).reduce((text, [key, value]) => text.replace(`{${key}}`, String(value)), k);
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    developers: [],
-    recentTips: [],
-    totalDonated: 0,
-    isLoading: false,
-    address: "",
-    developerCount: 0,
-    totalDonatedDisplay: "0",
-    recentTipCount: 0,
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
 
-describe("Dev Tipping PlayArea", () => {
-  it("lets users enter a developer id when the developer list is empty", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    // With an empty registry the form exposes a manual developer-id field plus
-    // the tip amount. The free-text message and tipper-name inputs were removed
-    // because the on-chain tip() stores neither — so the tip dispatch carries
-    // only (devId, amount, anonymous).
-    fireEvent.change(screen.getByLabelText("Developer ID"), {
-      target: { value: "7" },
-    });
-    fireEvent.change(screen.getByLabelText("Tip Amount"), {
-      target: { value: "0.05" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Send Tip" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("sendTip", 7, "0.05", false);
-    });
-  });
-
-  it("offers quick tip presets that update the submitted amount", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.change(screen.getByLabelText("Developer ID"), {
-      target: { value: "7" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /0\.05\s+GAS/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Send Tip" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("sendTip", 7, "0.05", false);
-    });
-  });
-
-  it("renders the tipping banner assets in the hero", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn().mockResolvedValue(undefined)} />);
-
-    expect(document.querySelector('.tipping-hero__media img[src="./banner.jpg"]')).toBeTruthy();
-    expect(document.querySelector('.tipping-hero__badge img[src="./logo.jpg"]')).toBeTruthy();
-    expect(document.querySelector('.tipping-support-stage img[src="./support-board-stage.jpg"]')).toBeTruthy();
-  });
-
-  it("turns developer and amount selection into a visible ready-to-send flow", () => {
+describe("dev-tipping PlayArea (v2)", () => {
+  it("renders a foreground support desk instead of the old single-icon tool scene", () => {
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          developers: [
-            { id: 2, name: "Ada", role: "Core tools", totalTips: 3.25 },
-            { id: 7, name: "Lin", role: "Wallet UX", totalTips: 1.5 },
-          ],
-          developerCount: 2,
+          address: "NQ9exampleWalletAddress1111111111111",
+          developers: [{ id: 7, name: "Core Builder", role: "Protocol", totalTips: 12.5 }],
+          totalDonatedDisplay: "12.50 GAS",
         })}
-        dispatch={vi.fn().mockResolvedValue(undefined)}
+        dispatch={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Ada" }));
-    fireEvent.click(screen.getByRole("button", { name: /0\.10\s+GAS/i }));
-
-    expect(container.querySelector(".dev-tipping-play-area--ready")).toBeTruthy();
-    expect(container.querySelector(".dev-card-glass.is-selected")).toBeTruthy();
-    expect(container.querySelector(".tip-form--ready")).toBeTruthy();
-    expect(container.querySelector(".tip-preview-card--ready")).toBeTruthy();
-    expect(container.querySelectorAll(".tip-flow-lane__node.is-ready")).toHaveLength(2);
-    expect(container.querySelector(".tip-preset-chip.is-selected")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Send Tip" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(container.querySelector(".tip-scene")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".tip-scene__stage-image")?.getAttribute("src")).toContain("support-board-stage.webp");
+    expect(container.querySelector(".tip-scene__stage-card")).toBeTruthy();
+    expect(container.querySelector(".tip-scene__desk")).toBeTruthy();
+    expect(container.querySelector(".tip-scene__builder-rack")).toBeTruthy();
+    expect(container.querySelector(".tip-scene__direct-id")).toBeNull();
+    expect(container.querySelector(".tip-scene__amount-board")).toBeTruthy();
+    expect(container.querySelector(".tip-scene__custom-amount")).toBeTruthy();
+    expect(container.querySelector(".tip-scene__custom-control")).toBeTruthy();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".tool-scene__icon")).toBeFalsy();
   });
 
-  it("keeps support-board motion and reduced-motion fallbacks covered", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../dev-tipping/src/PlayArea.scss"),
-      "utf8",
+  it("keeps secondary support workflows tucked behind drawer tabs", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "NQ9exampleWalletAddress1111111111111",
+          developers: [{ id: 7, name: "Core Builder", role: "Protocol", totalTips: 12.5 }],
+          totalDonatedDisplay: "12.50 GAS",
+        })}
+        dispatch={vi.fn()}
+      />,
     );
 
-    expect(styles).toContain("@keyframes tipping-stage-drift");
-    expect(styles).toContain("@keyframes tipping-stage-scan");
-    expect(styles).toContain("@keyframes tipping-flow-pulse");
-    expect(styles).toContain("@keyframes tipping-selected-ring");
-    expect(styles).toContain("@keyframes tipping-chip-confirm");
-    expect(styles).toContain("@keyframes tipping-send-ready");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.tip-flow-lane__track span[\s\S]*animation:\s*none/,
-    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const drawer = container.querySelector(".tip-drawer");
+    expect(drawer).toBeTruthy();
+    const tabs = Array.from(container.querySelectorAll(".tip-drawer__tabs [role='tab']"));
+    expect(tabs).toHaveLength(4);
+    expect(container.querySelectorAll(".tip-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelector(".tip-drawer__panel--developers")).toBeTruthy();
+    expect(container.querySelector(".tip-drawer__panel--direct")).toBeNull();
+    expect(drawer?.querySelector("h4")).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: /supportTabDirect/ }));
+    expect(container.querySelector(".tip-drawer__panel--direct")).toBeTruthy();
+    expect(container.querySelectorAll(".tip-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(drawer?.textContent).toContain("directSupportTitle");
+    expect(drawer?.querySelector(".tip-drawer__field")).toBeNull();
+    expect(drawer?.querySelectorAll(".tip-drawer-field.mx2-open-field")).toHaveLength(1);
+    expect(drawer?.querySelector<HTMLInputElement>(".tip-drawer-input--developer-id input.semi-input")?.value).toBe("7");
+
+    fireEvent.click(screen.getByRole("tab", { name: /supportTabCreator/ }));
+    expect(container.querySelector(".tip-drawer__panel--developer")).toBeTruthy();
+    expect(drawer?.textContent).toContain("developerZone");
+
+    fireEvent.click(screen.getByRole("tab", { name: /supportTabHistory/ }));
+    expect(container.querySelector(".tip-drawer__panel--history")).toBeTruthy();
   });
 
-  it("does not let a default zero display hide a loaded donation total", () => {
+  it("sends the selected developer id, amount, and anonymous flag", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
     render(
       <PlayArea
         t={t}
-        state={state({ totalDonated: 1.25, totalDonatedDisplay: "0" })}
-        dispatch={vi.fn().mockResolvedValue(undefined)}
+        state={state({
+          address: "NQ9exampleWalletAddress1111111111111",
+          developers: [{ id: 7, name: "Core Builder", role: "Protocol", totalTips: 12.5 }],
+          totalDonatedDisplay: "12.50 GAS",
+        })}
+        dispatch={dispatch}
       />,
     );
 
-    expect(screen.getByText("1.25")).toBeTruthy();
+    let sendButton: HTMLButtonElement | null = null;
+    await waitFor(() => {
+      sendButton = screen.getByRole("button", { name: /sendTipBtn/ }) as HTMLButtonElement;
+      expect(sendButton.disabled).toBe(false);
+    });
+    fireEvent.click(sendButton!);
+
+    expect(dispatch).toHaveBeenCalledWith("sendTip", 7, "0.10", true);
+  });
+
+  it("registers a developer from the creator drawer with Open UI fields", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "NQ9exampleWalletAddress1111111111111",
+          developers: [],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(screen.getByRole("tab", { name: /supportTabCreator/ }));
+
+    expect(container.querySelectorAll(".tip-drawer-field.mx2-open-field")).toHaveLength(2);
+    fireEvent.change(container.querySelector(".tip-drawer-input--dev-name input.semi-input") as HTMLInputElement, {
+      target: { value: "Neo Core" },
+    });
+    fireEvent.change(container.querySelector(".tip-drawer-input--dev-role input.semi-input") as HTMLInputElement, {
+      target: { value: "Protocol Maintainer" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /registerBtn/ }));
+
+    expect(dispatch).toHaveBeenCalledWith("registerDeveloper", "Neo Core", "Protocol Maintainer");
+  });
+
+  it("has reduced-motion and keeps the support scene foreground-led", () => {
+    const fs = require("node:fs");
+    const styles = fs.readFileSync(`${process.cwd()}/../dev-tipping/src/PlayArea.scss`, "utf8");
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".tip-scene__backdrop")).toBeNull();
+    expect(styles).toMatch(/prefers-reduced-motion/);
+    expect(styles).toMatch(/0\.001ms/);
+    expect(styles).toMatch(/\.dev-tip-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff;/);
+    expect(styles).toMatch(/\.tip-scene\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.tip-scene__stage-card,[\s\S]*\.tip-scene__desk\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.tip-scene__stage-image\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).not.toContain(".tip-scene__direct-id");
+    expect(styles).not.toContain(".tip-drawer__field");
+    expect(styles).toMatch(/\.tip-scene__custom-control\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto/);
+    expect(styles).toMatch(/\.tip-drawer-field\.mx2-open-field\s*\{/);
+    expect(styles).toMatch(/\.tip-scene__amounts\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.dev-tip-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/\.dev-tip-play-area \.mx2-action-rail,[\s\S]*\.dev-tip-play-area \.mx2-drawer\s*\{[\s\S]*width:\s*min\(100%,\s*920px\)/);
+    expect(styles).toMatch(/\.dev-tip-play-area \.mx2-stage__title\s*\{[\s\S]*font-weight:\s*620/);
+    expect(styles).toMatch(/\.dev-tip-play-area \.mx2-stage__subtitle\s*\{[\s\S]*font-weight:\s*420/);
+    expect(styles).toMatch(/\.tip-drawer__tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.tip-drawer__tabs button\s*\{[\s\S]*grid-template-areas:/);
+    expect(styles).toMatch(/\.tip-drawer__tabs button\.is-active\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).not.toMatch(/\.tip-drawer__panel h4/);
+    expect(styles).not.toMatch(/gradient|background-image:\s*url/);
+    expect(styles).toMatch(/\.tip-scene__status\s*\{[\s\S]*white-space:\s*nowrap/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.tip-scene\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.dev-tip-play-area \.mx2-action-rail__row\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.dev-tip-play-area \.mx2-stage__title\s*\{[\s\S]*font-size:\s*20px/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.tip-scene__stage-caption small\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.tip-scene__amounts\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.tip-drawer__tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).not.toMatch(/tip-scene__backdrop/);
   });
 });

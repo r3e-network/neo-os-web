@@ -29,6 +29,7 @@ vi.mock("@shared/composables/useMorpheusDataFeed", () => ({
 }));
 
 import { useSwapEngine } from "../../neo-swap/src/hooks/useSwapEngine";
+import { createMiniAppFramework } from "../../../framework";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -59,7 +60,11 @@ function makeBalance(neo: number, gas: number) {
 function setup(opts: { router?: string | null; address?: string; neo?: number; gas?: number } = {}) {
   const chain = makeChain(opts);
   const balance = makeBalance(opts.neo ?? 100, opts.gas ?? 50);
-  const swap = useSwapEngine({ chain, balance, eventBus: new EventBus(), t });
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-neo-swap" },
+  );
+  const swap = useSwapEngine({ app, balance, eventBus: new EventBus(), t });
   return { swap, chain };
 }
 

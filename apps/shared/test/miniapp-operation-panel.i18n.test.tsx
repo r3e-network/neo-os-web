@@ -91,8 +91,8 @@ describe("MiniAppOperationPanel i18n routing", () => {
     const t = (key: string) => key;
     render(<MiniAppOperationPanel operations={[]} t={t} state={{}} />);
 
-    expect(screen.getByText("Focus action")).toBeTruthy();
-    expect(screen.getByText("Operations")).toBeTruthy();
+    expect(screen.getByText("Action")).toBeTruthy();
+    expect(screen.getByText("Choose what to do")).toBeTruthy();
     expect(screen.getByText("No transaction action required")).toBeTruthy();
     // The raw key must NOT leak into the UI.
     expect(screen.queryByText("operationsPanelEyebrow")).toBeNull();

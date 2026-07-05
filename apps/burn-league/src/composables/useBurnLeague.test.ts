@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { useBurnLeague } from "./useBurnLeague";
-import type { UseBurnLeagueOptions } from "./useBurnLeague";
-import type { ContractArg, TxResult } from "@shared/services/ChainService";
+import { createMiniAppFramework } from "@shared/react";
+import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
@@ -107,14 +107,18 @@ function makeChain(
     invoke,
     read,
     listEvents,
-  } as unknown as UseBurnLeagueOptions["chain"];
+  } as unknown as ChainService;
 
   return { chain, invoke, read };
 }
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
   const deps = makeChain(opts);
-  const burn = useBurnLeague({ chain: deps.chain, t, getAddress: () => PLAYER });
+  const app = createMiniAppFramework(
+    { services: { chain: deps.chain }, t } as never,
+    { appId: "miniapp-burn-league" },
+  );
+  const burn = useBurnLeague({ app, t, getAddress: () => PLAYER });
   burn.setAddress(PLAYER);
   return { burn, ...deps };
 }

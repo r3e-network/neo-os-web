@@ -453,7 +453,7 @@ export function ConnectButton() {
               </div>
 
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-black text-gray-900 mb-2">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
                   {interpolate(t("auth.welcome"), { brand: BRAND.name })}
                 </h2>
                 <p className="text-sm text-gray-500">
@@ -531,7 +531,7 @@ export function ConnectButton() {
                               {t(`walletOptions.${w.id}.name`)}
                             </span>
                             {w.recommended && (
-                              <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                              <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
                                 {t("auth.recommended")}
                               </span>
                             )}
@@ -540,7 +540,7 @@ export function ConnectButton() {
                             {t(`walletOptions.${w.id}.description`)}
                           </span>
                           <span
-                            className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700"
+                            className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700"
                           >
                             {t("walletOptions.protocol.nep21")}
                           </span>
@@ -594,7 +594,7 @@ export function ConnectButton() {
                           disabled={
                             !wifValue.trim() || wallet.loading || auth.loading
                           }
-                          className="h-11 shrink-0 rounded-xl bg-amber-600 px-4 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-60"
+                          className="h-11 shrink-0 rounded-xl bg-amber-600 px-4 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
                         >
                           {t("actions.connect")}
                         </Button>

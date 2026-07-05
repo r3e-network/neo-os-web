@@ -1,893 +1,864 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  BadgeCheck,
-  ChevronDown,
-  Copy,
-  FileBadge,
-  ScanLine,
-  Share2,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
-import { NeoButton, NeoCard } from "@shared/components-react";
-import { StateView } from "@shared/components";
+/**
+ * PlayArea.tsx — Soulbound Certificate
+ *
+ * NFT credential workbench. The certificate is the primary artifact, the
+ * issuer's fields sit beside it as a compact dossier, and template/verify work
+ * is secondary instead of flattening three form tabs onto the stage.
+ */
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { Award, BookOpenCheck, CalendarCheck, ScrollText, Search, ShieldCheck, type LucideIcon } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable, ObservableState } from "@shared/react/context";
-import { formatHash } from "@shared/utils/format";
-import TemplateList from "./components/TemplateList";
-import TokenQr from "./components/TokenQr";
+import type { Observable } from "@shared/react/context";
+import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import CertificatePreview from "./components/CertificatePreview";
-import type { CertificateItem, TemplateItem } from "./types";
+import TokenQr from "./components/TokenQr";
 import "./PlayArea.scss";
+
+const CERTIFICATE_PAPER_ART = new URL("../public/certificate-paper.webp", import.meta.url).href;
+const CERTIFICATE_ATELIER_ART = new URL("../public/certificate-atelier.webp", import.meta.url).href;
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable> | ObservableState;
+  state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-const EMPTY_TEMPLATES: TemplateItem[] = [];
-const EMPTY_CERTIFICATES: CertificateItem[] = [];
-
-function tokenLabel(tokenId: string) {
-  if (!tokenId) return "";
-  return tokenId.length > 18
-    ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}`
-    : tokenId;
+interface TemplateItem {
+  id: string;
+  name: string;
+  issuerName?: string;
+  active?: boolean;
+  category?: string;
+  [k: string]: unknown;
 }
 
-/**
- * Format an on-chain unix-seconds timestamp for display. Returns an empty
- * string for unset/zero timestamps so the caller can skip the row entirely.
- */
-function formatTimestamp(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "";
-  const date = new Date(seconds * 1000);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
+interface CertificateItem {
+  id?: string;
+  tokenId?: string;
+  name?: string;
+  templateName?: string;
+  recipient?: string;
+  recipientName?: string;
+  achievement?: string;
+  issuerName?: string;
+  owner?: string;
+  revoked?: boolean;
+  [k: string]: unknown;
+}
+
+type WorkMode = "issue" | "templates" | "verify";
+type DrawerMode = "templates" | "certificates" | "trust";
+
+interface BlueprintPreset {
+  key: string;
+  nameKey: string;
+  issuerKey: string;
+  categoryKey: string;
+  descriptionKey: string;
+  supply: string;
+  Icon: LucideIcon;
+}
+
+const BLUEPRINT_PRESETS: BlueprintPreset[] = [
+  {
+    key: "course",
+    nameKey: "blueprintCourseName",
+    issuerKey: "blueprintCourseIssuer",
+    categoryKey: "blueprintCourseCategory",
+    descriptionKey: "blueprintCourseDescription",
+    supply: "500",
+    Icon: BookOpenCheck,
+  },
+  {
+    key: "event",
+    nameKey: "blueprintEventName",
+    issuerKey: "blueprintEventIssuer",
+    categoryKey: "blueprintEventCategory",
+    descriptionKey: "blueprintEventDescription",
+    supply: "1200",
+    Icon: CalendarCheck,
+  },
+  {
+    key: "license",
+    nameKey: "blueprintLicenseName",
+    issuerKey: "blueprintLicenseIssuer",
+    categoryKey: "blueprintLicenseCategory",
+    descriptionKey: "blueprintLicenseDescription",
+    supply: "250",
+    Icon: ShieldCheck,
+  },
+];
+
+function compactAddress(address: string) {
+  const trimmed = address.trim();
+  if (trimmed.length <= 14) return trimmed;
+  return `${trimmed.slice(0, 7)}...${trimmed.slice(-5)}`;
+}
+
+function certificateToken(certificate: CertificateItem | null | undefined) {
+  return String(certificate?.tokenId ?? certificate?.id ?? "").trim();
+}
+
+function certificateTitle(certificate: CertificateItem | null | undefined, fallback: string) {
+  const title = String(certificate?.name ?? certificate?.templateName ?? certificate?.recipientName ?? "").trim();
+  return title || certificateToken(certificate) || fallback;
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num, str, bool, val } = useStateBindings(state as ObservableState);
-
+  const { num, str, bool, val } = useStateBindings(state);
   const templatesCount = num("templatesCount");
   const certificatesCount = num("certificatesCount");
-  const activeTemplatesCount = num("activeTemplatesCount");
-  const templates =
-    val<TemplateItem[]>("templates", EMPTY_TEMPLATES) ?? EMPTY_TEMPLATES;
-  const certificates =
-    val<CertificateItem[]>("certificates", EMPTY_CERTIFICATES) ??
-    EMPTY_CERTIFICATES;
-  const verifiedCertificate = val<CertificateItem | null>(
-    "verifiedCertificate",
-    null,
-  );
-  const verifiedIsIssuer = bool("verifiedIsIssuer");
   const address = str("address", "");
   const isConnecting = bool("isConnecting");
-  const isRefreshing = bool("isRefreshing");
-  const isLoading = bool("isLoading");
-  const isCreatingTemplate = bool("isCreatingTemplate");
   const isIssuing = bool("isIssuing");
+  const isCreatingTemplate = bool("isCreatingTemplate");
   const isVerifying = bool("isVerifying");
-  const isRevoking = bool("isRevoking");
-  const togglingId = str("togglingId", "");
-  const lastTxid = str("lastTxid", "");
   const lastError = str("lastError", "");
   const lastSuccess = str("lastSuccess", "");
+  const templatesValue = val("templates");
+  const certificatesValue = val("certificates");
+  const templates = useMemo(() => (templatesValue ?? []) as TemplateItem[], [templatesValue]);
+  const certificates = useMemo(() => (certificatesValue ?? []) as CertificateItem[], [certificatesValue]);
+  const verifiedCertificate = val<CertificateItem | null>("verifiedCertificate", null);
+  const verifiedIsIssuer = bool("verifiedIsIssuer");
   const deepLinkTemplateId = str("deepLinkTemplateId", "");
-  const deepLinkAutoIssue = bool("deepLinkAutoIssue");
   const deepLinkVerifyTokenId = str("deepLinkVerifyTokenId", "");
 
-  const [createForm, setCreateForm] = useState({
-    name: "Neo Course Completion",
-    issuerName: "Neo Academy",
-    category: "Course",
-    maxSupply: "1000",
-    description: "Issued to graduates who completed the Neo builder track.",
-  });
+  const [mode, setMode] = useState<WorkMode>(() =>
+    deepLinkVerifyTokenId
+      ? "verify"
+      : deepLinkTemplateId || templates.some((template) => template.active !== false)
+        ? "issue"
+        : "templates",
+  );
   const [issueForm, setIssueForm] = useState({
-    templateId: "",
+    templateId: deepLinkTemplateId || "",
     recipient: "",
     recipientName: "",
     achievement: "",
     memo: "",
   });
-  const [verifyTokenId, setVerifyTokenId] = useState("");
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    issuerName: "",
+    category: "",
+    maxSupply: "",
+    description: "",
+  });
+  const [verifyTokenId, setVerifyTokenId] = useState(deepLinkVerifyTokenId);
+  const [activeBlueprint, setActiveBlueprint] = useState("");
+  const [recipientDetailsOpen, setRecipientDetailsOpen] = useState(false);
+  const [templateDetailsOpen, setTemplateDetailsOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("templates");
 
-  const issuePanelRef = useRef<HTMLDivElement | null>(null);
-  const deepLinkApplied = useRef(false);
-  const verifyDeepLinkApplied = useRef(false);
-
-  // Read side of the Copy/Share Issue Link deep-link: when the app is opened
-  // with ?issueTemplateId=…, preselect that template in the Issue panel (and
-  // scroll it into view when the link asked to auto-draft) instead of leaving
-  // the recipient on the default state. Apply once, then clear the launch flag.
-  useEffect(() => {
-    if (deepLinkApplied.current) return;
-    const linkedTemplateId = deepLinkTemplateId.trim();
-    if (!linkedTemplateId) return;
-    deepLinkApplied.current = true;
-    setIssueForm((current) =>
-      current.templateId
-        ? current
-        : { ...current, templateId: linkedTemplateId },
-    );
-    // The anchor uses `display: contents` (no box of its own), so scroll the
-    // rendered NeoCard element it wraps. Guard scrollIntoView for environments
-    // (and older runtimes) where it is unavailable.
-    const panelEl = issuePanelRef.current?.firstElementChild;
-    if (
-      deepLinkAutoIssue &&
-      panelEl instanceof HTMLElement &&
-      typeof panelEl.scrollIntoView === "function"
-    ) {
-      panelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  const isConnected = address.length > 0;
+  const activeTemplates = templates.filter((tp) => tp.active !== false);
+  const selectedTemplate = templates.find((tp) => String(tp.id) === issueForm.templateId.trim());
+  const recentRecipientWallets = useMemo(() => {
+    const seen = new Set<string>();
+    const wallets: string[] = [];
+    for (const certificate of certificates) {
+      const wallet = String(certificate.owner ?? certificate.recipient ?? "").trim();
+      if (!wallet || seen.has(wallet)) continue;
+      seen.add(wallet);
+      wallets.push(wallet);
+      if (wallets.length >= 4) break;
     }
-    void dispatch("consumeDeepLink");
-  }, [deepLinkTemplateId, deepLinkAutoIssue, dispatch]);
+    return wallets;
+  }, [certificates]);
+  const templateReady = issueForm.templateId.trim().length > 0;
+  const recipientReady = issueForm.recipient.trim().length > 0;
+  const recipientProfileReady = issueForm.recipientName.trim().length > 0 && issueForm.achievement.trim().length > 0;
+  const issueReady = templateReady && recipientReady && recipientProfileReady;
+  const createSupply = Number(createForm.maxSupply.trim());
+  const createReady =
+    createForm.name.trim().length > 0 &&
+    createForm.issuerName.trim().length > 0 &&
+    createForm.category.trim().length > 0 &&
+    Number.isInteger(createSupply) &&
+    createSupply > 0 &&
+    createSupply <= 100000;
+  const verifyReady = verifyTokenId.trim().length > 0;
+  const selectedTemplateName = selectedTemplate?.name || (issueForm.templateId.trim() ? `${t("templateId")} #${issueForm.templateId.trim()}` : t("noTemplateSelected"));
+  const recipientDisplay = issueForm.recipientName.trim() || issueForm.recipient.trim() || t("awardedToPlaceholder");
+  const walletDisplay = isConnected ? compactAddress(address) : t("walletNotConnected");
 
-  // Recipient-facing verify deep-link (?verifyTokenId=…): prefill and run the
-  // permissionless Verify lookup once so a shared certificate opens already
-  // resolved instead of on the empty default state.
+  const handleIssue = () => {
+    if (!isConnected || !issueReady) return;
+    void dispatch("issueCertificate", issueForm);
+  };
+  const handleCreate = () => {
+    if (!isConnected || !createReady) return;
+    void dispatch("createTemplate", createForm);
+  };
+  const handleVerify = () => {
+    if (!verifyReady) return;
+    void dispatch("verifyCertificate", { tokenId: verifyTokenId.trim() });
+  };
+  const handleConnect = () => void dispatch("connectWallet");
+  const applyBlueprintPreset = (preset: BlueprintPreset) => {
+    setActiveBlueprint(preset.key);
+    setTemplateDetailsOpen(false);
+    setCreateForm({
+      name: t(preset.nameKey),
+      issuerName: t(preset.issuerKey),
+      category: t(preset.categoryKey),
+      maxSupply: preset.supply,
+      description: t(preset.descriptionKey),
+    });
+  };
+  const updateCreateForm = (field: keyof typeof createForm, value: string) => {
+    setActiveBlueprint("");
+    setCreateForm((form) => ({ ...form, [field]: value }));
+  };
+  const selectCertificateForVerify = (certificate: CertificateItem) => {
+    const tokenId = certificateToken(certificate);
+    if (!tokenId) return;
+    setVerifyTokenId(tokenId);
+    setMode("verify");
+  };
+
   useEffect(() => {
-    if (verifyDeepLinkApplied.current) return;
-    const linkedTokenId = deepLinkVerifyTokenId.trim();
-    if (!linkedTokenId) return;
-    verifyDeepLinkApplied.current = true;
-    setVerifyTokenId(linkedTokenId);
-    void dispatch("verifyCertificate", { tokenId: linkedTokenId });
+    if (!deepLinkVerifyTokenId) return;
+    setVerifyTokenId(deepLinkVerifyTokenId);
+    setMode("verify");
     void dispatch("consumeVerifyDeepLink");
   }, [deepLinkVerifyTokenId, dispatch]);
 
-  const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === issueForm.templateId),
-    [issueForm.templateId, templates],
-  );
-  const issuableTemplates = useMemo(
-    () => templates.filter((template) => template.active),
-    [templates],
-  );
-  const createFormValid =
-    createForm.name.trim() &&
-    createForm.issuerName.trim() &&
-    createForm.category.trim() &&
-    Number.isInteger(Number(createForm.maxSupply)) &&
-    Number(createForm.maxSupply) > 0 &&
-    Number(createForm.maxSupply) <= 100000;
-  const issueFormValid =
-    issueForm.templateId.trim() &&
-    issueForm.recipient.trim() &&
-    issueForm.recipientName.trim() &&
-    issueForm.achievement.trim();
-  const verifyFormValid = verifyTokenId.trim().length > 0;
-  const hasAddress = Boolean(address);
-  const hasMetrics =
-    templatesCount > 0 || certificatesCount > 0 || activeTemplatesCount > 0;
-  const issueTemplateLabel = selectedTemplate
-    ? `${selectedTemplate.name} #${selectedTemplate.id}`
-    : issueForm.templateId.trim()
-      ? `#${issueForm.templateId.trim()}`
-      : t("noTemplateSelected");
-  const issueRecipientLabel =
-    issueForm.recipientName.trim() || t("awardedToPlaceholder");
-  const issueWalletLabel = issueForm.recipient.trim()
-    ? formatHash(issueForm.recipient.trim(), 8, 6)
-    : t("issueRecipientPlaceholder");
-  const issueAchievementLabel =
-    issueForm.achievement.trim() || t("achievementPreviewPlaceholder");
-
-  const updateCreateForm = (key: keyof typeof createForm, value: string) => {
-    setCreateForm((current) => ({ ...current, [key]: value }));
+  const modeItems: Array<{ mode: WorkMode; label: string; helper: string; Icon: LucideIcon }> = [
+    { mode: "issue", label: t("issueTab"), helper: t("issueRecipientPassHint"), Icon: Award },
+    { mode: "templates", label: t("templatesTab"), helper: t("createTemplateDrawerHint"), Icon: ScrollText },
+    { mode: "verify", label: t("verifyTab"), helper: t("verifyDrawerHint"), Icon: Search },
+  ];
+  const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; Icon: LucideIcon }> = [
+    { mode: "templates", label: t("yourTemplates"), value: String(templates.length || templatesCount), Icon: ScrollText },
+    { mode: "certificates", label: t("certificatesTab"), value: String(certificates.length || certificatesCount), Icon: Award },
+    { mode: "trust", label: t("certificateTrustSignals"), value: t("soulboundBadge"), Icon: ShieldCheck },
+  ];
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const ActiveDrawerIcon = activeDrawerMode.Icon;
+  const setWorkbenchMode = (value: string) => {
+    if (value === "issue" || value === "templates" || value === "verify") {
+      setMode(value);
+    }
   };
-  const updateIssueForm = (key: keyof typeof issueForm, value: string) => {
-    setIssueForm((current) => ({ ...current, [key]: value }));
-  };
-  const selectTemplateForIssue = (template: TemplateItem) => {
-    setIssueForm((current) => ({
-      ...current,
-      templateId: template.id,
-      achievement: current.achievement || template.name,
-    }));
-  };
-  const submitCreateTemplate = () => {
-    if (!createFormValid || isCreatingTemplate) return;
-    void dispatch("createTemplate", createForm);
-  };
-  const submitIssueCertificate = () => {
-    if (!issueFormValid || isIssuing) return;
-    void dispatch("issueCertificate", issueForm);
-  };
-  const submitVerify = () => {
-    if (!verifyFormValid || isVerifying) return;
-    void dispatch("verifyCertificate", { tokenId: verifyTokenId });
-  };
-  const submitRevoke = (tokenId: string) => {
-    if (!tokenId || isRevoking) return;
-    void dispatch("revokeCertificate", { tokenId });
+  const setDetailMode = (value: string) => {
+    if (value === "templates" || value === "certificates" || value === "trust") {
+      setDrawerMode(value);
+    }
   };
 
-  return (
-    <div
-      className={`certificate-play-area${
-        isIssuing ? " certificate-play-area--issuing" : ""
-      }${isCreatingTemplate ? " certificate-play-area--creating" : ""}${
-        isVerifying ? " certificate-play-area--verifying" : ""
-      }`}
-    >
-      <section className="certificate-hero" aria-label={t("title")}>
-        <div className="hero-copy">
-          <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
-          <h2 className="hero-title">{t("certificateHeroTitle")}</h2>
-          <p className="hero-subtitle">{t("docSubtitle")}</p>
-          <div
-            className="hero-proof-row"
-            aria-label={t("certificateTrustSignals")}
-          >
-            <span>
-              <BadgeCheck aria-hidden="true" />
-              {t("soulboundBadge")}
-            </span>
-            <span>
-              <ShieldCheck aria-hidden="true" />
-              {t("certificateProofPermanent")}
-            </span>
-            <span>
-              <ScanLine aria-hidden="true" />
-              {t("certificateProofVerify")}
-            </span>
-          </div>
-          {hasMetrics && (
-            <p className="hero-metrics">
-              <span>
-                <strong>{templatesCount}</strong> {t("templatesTab")}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                <strong>{activeTemplatesCount}</strong> {t("sidebarActive")}
-              </span>
-              <span aria-hidden="true">·</span>
-              <span>
-                <strong>{certificatesCount}</strong> {t("certificatesTab")}
-              </span>
-            </p>
-          )}
-        </div>
-        <picture className="certificate-hero__art" aria-hidden="true">
-          <source srcSet="banner.avif" type="image/avif" />
-          <source srcSet="banner.webp" type="image/webp" />
-          <img src="banner.jpg" alt="" loading="eager" decoding="async" />
-        </picture>
-        <div className="connect-prompt">
-          {hasAddress ? (
-            <span className="wallet-chip">
-              {t("walletConnected")}: {formatHash(address, 8, 6)}
-            </span>
-          ) : (
-            <NeoButton
-              variant="primary"
-              loading={isConnecting}
-              disabled={isConnecting}
-              onClick={() => dispatch("connectWallet")}
-            >
-              {t("connectWallet")}
-            </NeoButton>
-          )}
-        </div>
-      </section>
+  const stepItems = [
+    { key: "template", label: t("issueFlowTemplate"), ready: templateReady },
+    { key: "recipient", label: t("issueFlowRecipient"), ready: recipientReady && recipientProfileReady },
+    { key: "seal", label: t("issueFlowMint"), ready: issueReady },
+  ];
 
-      {(lastSuccess || lastError || lastTxid) && (
-        <div
-          className={`certificate-status-strip${
-            lastError ? " certificate-status-strip--error" : ""
-          }`}
-          role={lastError ? "alert" : "status"}
-        >
-          <strong>{lastError || lastSuccess}</strong>
-          {lastTxid && <code>tx {formatHash(lastTxid, 10, 8)}</code>}
-        </div>
-      )}
+  const statusMessage = isIssuing
+    ? t("mintLaneSealing")
+    : !isConnected
+      ? t("walletRequiredIssueHint")
+      : issueReady
+        ? t("mintLaneReady")
+        : t("mintLaneDraft");
 
-      <div className="certificate-workspace">
-        <div className="certificate-column">
-          <div className="issue-panel-anchor" ref={issuePanelRef}>
-            <NeoCard
-              title={t("issueCertificate")}
-              className="certificate-panel"
-            >
-              <div className="issue-studio">
-                <div className="issue-artboard">
-                  <figure className="certificate-atelier">
-                    <img
-                      src="./certificate-atelier.jpg"
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    <figcaption>
-                      <span>{t("certificateAtelierLabel")}</span>
-                      <strong>{t("certificateAtelierCaption")}</strong>
-                    </figcaption>
-                  </figure>
-                  <div className="issue-artboard__head">
-                    <span>
-                      <FileBadge aria-hidden="true" />
-                      {t("certificatePreviewLabel")}
-                    </span>
-                    <strong>
-                      {selectedTemplate?.name ||
-                        t("certificateTitlePlaceholder")}
-                    </strong>
-                  </div>
-                  <CertificatePreview
-                    draft
-                    issuerName={selectedTemplate?.issuerName || ""}
-                    title={selectedTemplate?.name || ""}
-                    recipientName={issueForm.recipientName}
-                    achievement={issueForm.achievement}
-                    sealLabel={t("soulboundBadge")}
-                    awardedToLabel={t("awardedTo")}
-                    achievementLabel={t("forAchievement")}
-                    titlePlaceholder={t("certificateTitlePlaceholder")}
-                    recipientPlaceholder={t("awardedToPlaceholder")}
-                    achievementPlaceholder={t("achievementPreviewPlaceholder")}
-                    issuerPlaceholder={t("issuerPreviewPlaceholder")}
-                  />
-                </div>
+  const previewTitle = mode === "templates"
+    ? createForm.name.trim()
+    : mode === "verify" && verifiedCertificate
+      ? String(verifiedCertificate.name || verifiedCertificate.templateName || "")
+      : selectedTemplate?.name || (issueForm.templateId.trim() ? `${t("templateId")} #${issueForm.templateId.trim()}` : "");
+  const previewIssuer = mode === "templates"
+    ? createForm.issuerName
+    : mode === "verify" && verifiedCertificate
+      ? String(verifiedCertificate.issuerName || "")
+      : selectedTemplate?.issuerName || createForm.issuerName;
+  const previewRecipientName = mode === "templates"
+    ? createForm.category
+    : mode === "verify" && verifiedCertificate
+      ? String(verifiedCertificate.recipientName || verifiedCertificate.recipient || "")
+      : issueForm.recipientName;
+  const previewAchievement = mode === "templates"
+    ? createForm.description
+    : mode === "verify" && verifiedCertificate
+      ? String(verifiedCertificate.achievement || verifiedCertificate.name || "")
+      : issueForm.achievement;
+  const previewFooter = mode === "templates"
+    ? createForm.maxSupply.trim()
+      ? `${t("maxSupply")}: ${createForm.maxSupply.trim()}`
+      : t("templateBlueprintFoot")
+    : selectedTemplate
+      ? `${t("templateId")} #${selectedTemplate.id}`
+      : issueForm.memo.trim() || t("issueDossierLabel");
+  const previewDraft = mode === "templates" ? !createReady : mode === "verify" ? !verifiedCertificate : !issueReady;
+  const sealStateLabel = issueReady ? t("credentialReadyLabel") : t("credentialDraftLabel");
 
-                <div className="issue-controls">
-                  <div className="issue-flow-card">
-                    <p className="panel-copy">{t("issueHelp")}</p>
-                    <div
-                      className="issue-flow-steps"
-                      aria-label={t("issueFlowLabel")}
-                    >
-                      <span>{t("issueFlowTemplate")}</span>
-                      <span>{t("issueFlowRecipient")}</span>
-                      <span>{t("issueFlowMint")}</span>
-                    </div>
-                  </div>
+  const verifiedStatus = verifiedCertificate ? (
+    <span className={["cert-badge", verifiedCertificate.revoked ? "cert-badge--revoked" : "cert-badge--valid"].join(" ")}>
+      {verifiedCertificate.revoked ? t("certificateRevoked") : t("certificateValid")}
+    </span>
+  ) : null;
 
-                  <div
-                    className={`selected-template${
-                      selectedTemplate ? "" : " is-empty"
-                    }`}
-                  >
-                    <span>{t("selectedTemplate")}</span>
-                    <strong>
-                      {selectedTemplate
-                        ? `${selectedTemplate.name} #${selectedTemplate.id}`
-                        : t("noTemplateSelected")}
-                    </strong>
-                  </div>
+  const primary = (() => {
+    if (mode === "verify") {
+      return {
+        label: isVerifying ? t("lookingUp") : t("lookup"),
+        onClick: handleVerify,
+        disabled: !verifyReady,
+        loading: isVerifying,
+      };
+    }
 
-                  {!selectedTemplate && issuableTemplates.length > 0 && (
-                    <div className="template-picker" role="list">
-                      {issuableTemplates.map((template) => (
-                        <button
-                          key={template.id}
-                          type="button"
-                          role="listitem"
-                          className="template-chip"
-                          onClick={() => selectTemplateForIssue(template)}
-                        >
-                          <span className="template-chip__name">
-                            {template.name || `#${template.id}`}
-                          </span>
-                          <span className="template-chip__meta">
-                            #{template.id}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+    if (!isConnected) {
+      return {
+        label: isConnecting ? t("connecting") : t("connectWallet"),
+        onClick: handleConnect,
+        loading: isConnecting,
+      };
+    }
 
-                  <div className="certificate-form-grid certificate-form-grid--issue">
-                    <label className="certificate-field">
-                      <span>{t("issueRecipient")}</span>
-                      <input
-                        value={issueForm.recipient}
-                        placeholder={t("issueRecipientPlaceholder")}
-                        onChange={(event) =>
-                          updateIssueForm(
-                            "recipient",
-                            event.currentTarget.value,
-                          )
-                        }
-                      />
-                    </label>
-                    <label className="certificate-field">
-                      <span>{t("recipientName")}</span>
-                      <input
-                        value={issueForm.recipientName}
-                        maxLength={60}
-                        placeholder={t("recipientNamePlaceholder")}
-                        onChange={(event) =>
-                          updateIssueForm(
-                            "recipientName",
-                            event.currentTarget.value,
-                          )
-                        }
-                      />
-                    </label>
-                    <label className="certificate-field">
-                      <span>{t("achievement")}</span>
-                      <input
-                        value={issueForm.achievement}
-                        maxLength={120}
-                        placeholder={t("achievementPlaceholder")}
-                        onChange={(event) =>
-                          updateIssueForm(
-                            "achievement",
-                            event.currentTarget.value,
-                          )
-                        }
-                      />
-                    </label>
-                  </div>
+    if (mode === "issue") {
+      return {
+        label: isIssuing ? t("issuing") : t("issue"),
+        onClick: handleIssue,
+        disabled: !issueReady,
+        loading: isIssuing,
+        hint: statusMessage,
+      };
+    }
 
-                  {!hasAddress && (
-                    <div className="certificate-wallet-gate">
-                      <div>
-                        <strong>{t("walletRequiredTitle")}</strong>
-                        <span>{t("walletRequiredIssueHint")}</span>
-                      </div>
-                      <NeoButton
-                        variant="secondary"
-                        size="sm"
-                        loading={isConnecting}
-                        disabled={isConnecting}
-                        onClick={() => dispatch("connectWallet")}
-                      >
-                        {t("connectWallet")}
-                      </NeoButton>
-                    </div>
-                  )}
+    return {
+      label: isCreatingTemplate ? t("creating") : t("createTemplate"),
+      onClick: handleCreate,
+      disabled: !createReady,
+      loading: isCreatingTemplate,
+    };
+  })();
 
-                  <NeoButton
-                    variant="primary"
-                    block
-                    loading={isIssuing}
-                    disabled={!hasAddress || !issueFormValid || isIssuing}
-                    onClick={submitIssueCertificate}
-                  >
-                    {isIssuing ? t("issuing") : t("issue")}
-                  </NeoButton>
-
-                  <div
-                    className="issue-dossier"
-                    aria-label={t("issueDossierLabel")}
-                  >
-                    <div className="issue-dossier__head">
-                      <span>{t("issueDossierLabel")}</span>
-                      <strong>
-                        {selectedTemplate
-                          ? t("statusActive")
-                          : t("templateIdRequired")}
-                      </strong>
-                    </div>
-                    <div className="issue-dossier__grid">
-                      <span>
-                        <FileBadge aria-hidden="true" />
-                        <small>{t("selectedTemplate")}</small>
-                        <strong>{issueTemplateLabel}</strong>
-                      </span>
-                      <span>
-                        <BadgeCheck aria-hidden="true" />
-                        <small>{t("recipientName")}</small>
-                        <strong>{issueRecipientLabel}</strong>
-                      </span>
-                      <span>
-                        <ShieldCheck aria-hidden="true" />
-                        <small>{t("issueRecipient")}</small>
-                        <strong>{issueWalletLabel}</strong>
-                      </span>
-                      <span>
-                        <Sparkles aria-hidden="true" />
-                        <small>{t("achievement")}</small>
-                        <strong>{issueAchievementLabel}</strong>
-                      </span>
-                    </div>
-                  </div>
-
-                  <details className="certificate-drawer certificate-drawer--compact">
-                    <summary>
-                      <span>
-                        <FileBadge aria-hidden="true" />
-                        {t("issueAdvancedTitle")}
-                      </span>
-                      <strong>{t("issueAdvancedHint")}</strong>
-                      <ChevronDown aria-hidden="true" />
-                    </summary>
-                    <div className="certificate-form-grid certificate-form-grid--issue certificate-form-grid--drawer">
-                      <label className="certificate-field">
-                        <span>{t("templateId")}</span>
-                        <input
-                          value={issueForm.templateId}
-                          placeholder={t("templateIdPlaceholder")}
-                          onChange={(event) =>
-                            updateIssueForm(
-                              "templateId",
-                              event.currentTarget.value,
-                            )
-                          }
-                        />
-                      </label>
-                      <label className="certificate-field">
-                        <span>{t("memo")}</span>
-                        <input
-                          value={issueForm.memo}
-                          maxLength={160}
-                          placeholder={t("memoPlaceholder")}
-                          onChange={(event) =>
-                            updateIssueForm("memo", event.currentTarget.value)
-                          }
-                        />
-                      </label>
-                    </div>
-                  </details>
-                </div>
-              </div>
-            </NeoCard>
-          </div>
-
-          <NeoCard
-            title={t("certificatesTab")}
-            variant="default"
-            className="certificates-card"
-          >
-            {certificates.length > 0 ? (
-              <div className="certificates-grid">
-                {certificates.map((cert, idx) => (
-                  <div key={cert.tokenId || String(idx)} className="cert-item">
-                    <div className="cert-info">
-                      <span className="cert-name">
-                        {cert.templateName || `#${idx + 1}`}
-                      </span>
-                      <span className="cert-recipient">
-                        {cert.recipientName || tokenLabel(cert.tokenId)}
-                      </span>
-                    </div>
-                    <div className="cert-row-actions">
-                      <span
-                        className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}
-                      >
-                        {cert.revoked
-                          ? t("certificateRevoked")
-                          : t("certificateValid")}
-                      </span>
-                      <button
-                        type="button"
-                        className="certificate-button"
-                        onClick={() => {
-                          setVerifyTokenId(cert.tokenId);
-                          void dispatch("verifyCertificate", {
-                            tokenId: cert.tokenId,
-                          });
-                        }}
-                      >
-                        {t("lookup")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <StateView
-                kind="empty"
-                title={t("emptyCertificates")}
-                hint={t("emptyCertificatesHint")}
-              />
-            )}
-          </NeoCard>
-        </div>
-
-        <div className="certificate-column">
-          <TemplateList
-            templates={templates}
-            refreshing={isRefreshing}
-            togglingId={togglingId || null}
-            hasAddress={hasAddress}
-            onRefresh={() => dispatch("refreshTemplates")}
-            onIssue={selectTemplateForIssue}
-            onToggle={(template) => dispatch("toggleTemplate", template)}
-            onCopyIssueLink={(template) => dispatch("copyIssueLink", template)}
-            t={t}
-          />
-
-          <details className="certificate-drawer template-studio-drawer">
-            <summary>
-              <span>
-                <Sparkles aria-hidden="true" />
-                {t("createTemplate")}
-              </span>
-              <strong>{t("createTemplateDrawerHint")}</strong>
-              <ChevronDown aria-hidden="true" />
-            </summary>
-            <div className="drawer-copy-block">
-              <p className="panel-copy">{t("createTemplateHelp")}</p>
-            </div>
-            <div className="template-lab">
-              <div className="template-lab__preview">
-                <span className="template-lab__label">
-                  <Sparkles aria-hidden="true" />
-                  {t("templatePreviewLabel")}
+  const drawerPanels: Record<DrawerMode, ReactNode> = {
+    templates: (
+      <div className="cert-drawer-section" data-mode="templates">
+        {templates.length > 0 ? (
+          <ul className="cert-drawer-list" aria-label={t("yourTemplates")}>
+            {templates.slice(0, 10).map((tp) => (
+              <li key={tp.id} className="cert-drawer-item">
+                <span className="cert-drawer-item__copy">
+                  <strong>{tp.name}</strong>
+                  <small>{tp.issuerName || t("issuerPreviewPlaceholder")}</small>
                 </span>
-                <CertificatePreview
-                  draft
-                  issuerName={createForm.issuerName}
-                  title={createForm.name}
-                  recipientName={t("awardedToPlaceholder")}
-                  achievement={createForm.description || createForm.category}
-                  sealLabel={t("soulboundBadge")}
-                  awardedToLabel={t("awardedTo")}
-                  achievementLabel={t("forAchievement")}
-                  titlePlaceholder={t("certificateTitlePlaceholder")}
-                  recipientPlaceholder={t("awardedToPlaceholder")}
-                  achievementPlaceholder={t("achievementPreviewPlaceholder")}
-                  issuerPlaceholder={t("issuerPreviewPlaceholder")}
-                />
-              </div>
-              <div className="certificate-form-grid certificate-form-grid--template">
-                <label className="certificate-field">
-                  <span>{t("templateName")}</span>
-                  <input
-                    value={createForm.name}
-                    maxLength={60}
-                    placeholder={t("templateNamePlaceholder")}
-                    onChange={(event) =>
-                      updateCreateForm("name", event.currentTarget.value)
-                    }
-                  />
-                </label>
-                <label className="certificate-field">
-                  <span>{t("issuerName")}</span>
-                  <input
-                    value={createForm.issuerName}
-                    maxLength={60}
-                    placeholder={t("issuerNamePlaceholder")}
-                    onChange={(event) =>
-                      updateCreateForm("issuerName", event.currentTarget.value)
-                    }
-                  />
-                </label>
-                <label className="certificate-field">
-                  <span>{t("category")}</span>
-                  <input
-                    value={createForm.category}
-                    maxLength={32}
-                    placeholder={t("categoryPlaceholder")}
-                    onChange={(event) =>
-                      updateCreateForm("category", event.currentTarget.value)
-                    }
-                  />
-                </label>
-                <label className="certificate-field">
-                  <span>{t("maxSupply")}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100000"
-                    step="1"
-                    value={createForm.maxSupply}
-                    placeholder={t("maxSupplyPlaceholder")}
-                    aria-invalid={
-                      createForm.maxSupply !== "" &&
-                      !Number.isInteger(Number(createForm.maxSupply))
-                    }
-                    onChange={(event) =>
-                      updateCreateForm("maxSupply", event.currentTarget.value)
-                    }
-                  />
-                </label>
-                <label className="certificate-field certificate-field--wide">
-                  <span>{t("description")}</span>
-                  <textarea
-                    value={createForm.description}
-                    maxLength={240}
-                    placeholder={t("descriptionPlaceholder")}
-                    onChange={(event) =>
-                      updateCreateForm("description", event.currentTarget.value)
-                    }
-                  />
-                </label>
-              </div>
-            </div>
-            {!hasAddress && (
-              <div className="certificate-wallet-gate certificate-wallet-gate--drawer">
-                <div>
-                  <strong>{t("walletRequiredTitle")}</strong>
-                  <span>{t("walletRequiredTemplateHint")}</span>
-                </div>
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  loading={isConnecting}
-                  disabled={isConnecting}
-                  onClick={() => dispatch("connectWallet")}
-                >
-                  {t("connectWallet")}
-                </NeoButton>
-              </div>
-            )}
-            <NeoButton
-              variant="primary"
-              block
-              loading={isCreatingTemplate}
-              disabled={!hasAddress || !createFormValid || isCreatingTemplate}
-              onClick={submitCreateTemplate}
-            >
-              {isCreatingTemplate ? t("creating") : t("createTemplate")}
-            </NeoButton>
-          </details>
-
-          <details
-            className="certificate-drawer verify-drawer"
-            open={
-              Boolean(verifiedCertificate || deepLinkVerifyTokenId) || undefined
-            }
-          >
-            <summary>
-              <span>
-                <ScanLine aria-hidden="true" />
-                {t("verifyTab")}
-              </span>
-              <strong>{t("verifyDrawerHint")}</strong>
-              <ChevronDown aria-hidden="true" />
-            </summary>
-            <p className="panel-copy">{t("verifyHelp")}</p>
-            <div className="verify-row">
-              <label className="certificate-field certificate-field--grow">
-                <span>{t("verifyTokenId")}</span>
-                <input
-                  value={verifyTokenId}
-                  placeholder={t("verifyTokenIdPlaceholder")}
-                  onChange={(event) =>
-                    setVerifyTokenId(event.currentTarget.value)
-                  }
-                />
-              </label>
-              <NeoButton
-                variant="primary"
-                loading={isVerifying}
-                disabled={!verifyFormValid || isVerifying}
-                onClick={submitVerify}
-              >
-                {isVerifying ? t("lookingUp") : t("lookup")}
-              </NeoButton>
-            </div>
-
-            {isLoading && (
-              <div className="loading-content">
-                <div className="loading-spinner" />
-                <span className="loading-text">{t("lookingUp")}</span>
-              </div>
-            )}
-
-            {verifiedCertificate ? (
-              <div className="certificate-detail">
-                <CertificatePreview
-                  issuerName={verifiedCertificate.issuerName || ""}
-                  title={
-                    verifiedCertificate.templateName ||
-                    tokenLabel(verifiedCertificate.tokenId)
-                  }
-                  recipientName={verifiedCertificate.recipientName}
-                  achievement={verifiedCertificate.achievement}
-                  sealLabel={t("soulboundBadge")}
-                  awardedToLabel={t("awardedTo")}
-                  achievementLabel={t("forAchievement")}
-                  titlePlaceholder={t("certificateTitlePlaceholder")}
-                  recipientPlaceholder="—"
-                  achievementPlaceholder="—"
-                  issuerPlaceholder={t("issuerPreviewPlaceholder")}
-                  status={
-                    <span
-                      className={`cert-badge ${
-                        verifiedCertificate.revoked ? "revoked" : "valid"
-                      }`}
-                    >
-                      {verifiedCertificate.revoked
-                        ? t("certificateRevoked")
-                        : t("certificateValid")}
-                    </span>
-                  }
-                  footer={
-                    <dl className="certificate-artifact__facts">
-                      <div>
-                        <dt>{t("tokenId")}</dt>
-                        <dd>{tokenLabel(verifiedCertificate.tokenId)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t("issueRecipient")}</dt>
-                        <dd>{formatHash(verifiedCertificate.owner, 8, 6)}</dd>
-                      </div>
-                      {formatTimestamp(verifiedCertificate.issuedTime) && (
-                        <div>
-                          <dt>{t("issuedAt")}</dt>
-                          <dd>
-                            {formatTimestamp(verifiedCertificate.issuedTime)}
-                          </dd>
-                        </div>
-                      )}
-                      {verifiedCertificate.revoked &&
-                        formatTimestamp(verifiedCertificate.revokedTime) && (
-                          <div>
-                            <dt>{t("certificateRevoked")}</dt>
-                            <dd>
-                              {formatTimestamp(verifiedCertificate.revokedTime)}
-                            </dd>
-                          </div>
-                        )}
-                    </dl>
-                  }
-                />
-                <p className="certificate-detail__soulbound-note">
-                  {t("soulboundNote")}
-                </p>
-
-                <div className="certificate-detail__qr">
-                  <TokenQr
-                    value={verifiedCertificate.tokenId}
-                    label={t("tokenQrLabel")}
-                  />
-                  <span className="certificate-detail__qr-caption">
-                    {t("tokenQrCaption")}
-                  </span>
-                </div>
-
-                <div className="certificate-detail__share">
-                  <button
-                    type="button"
-                    className="certificate-button"
-                    onClick={() =>
-                      dispatch("copyVerifyLink", verifiedCertificate.tokenId)
-                    }
-                  >
-                    <Copy size={15} aria-hidden="true" />
-                    <span>{t("copyVerifyLink")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="certificate-button"
-                    onClick={() =>
-                      dispatch("shareVerifyLink", verifiedCertificate.tokenId)
-                    }
-                  >
-                    <Share2 size={15} aria-hidden="true" />
-                    <span>{t("shareVerifyLink")}</span>
-                  </button>
-                </div>
-
-                {!verifiedCertificate.revoked && verifiedIsIssuer && (
-                  <div className="certificate-detail__revoke">
-                    <NeoButton
-                      size="sm"
-                      variant="danger"
-                      loading={isRevoking}
-                      disabled={isRevoking}
-                      onClick={() => submitRevoke(verifiedCertificate.tokenId)}
-                    >
-                      {isRevoking ? t("revoking") : t("revoke")}
-                    </NeoButton>
-                  </div>
-                )}
-                {!verifiedCertificate.revoked && !verifiedIsIssuer && (
-                  <p className="certificate-detail__note">
-                    {t("onlyIssuerCanRevoke")}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <StateView
-                kind="empty"
-                title={t("certificateNotFound")}
-                hint={t("certificateNotFoundHint")}
-              />
-            )}
-          </details>
+                <button type="button" className="cert-drawer-action" onClick={() => void dispatch("toggleTemplate", tp)} disabled={!isConnected}>
+                  {tp.active === false ? t("activate") : t("deactivate")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="cert-drawer-empty">{t("emptyTemplates")}</div>
+        )}
+      </div>
+    ),
+    certificates: (
+      <div className="cert-drawer-section" data-mode="certificates">
+        {certificates.length > 0 ? (
+          <ul className="cert-drawer-list" aria-label={t("certificatesTab")}>
+            {certificates.slice(0, 10).map((cert) => (
+              <li key={certificateToken(cert) || certificateTitle(cert, t("certificateValid"))} className="cert-drawer-item">
+                <span className="cert-drawer-item__copy">
+                  <strong>{certificateTitle(cert, t("certificateValid"))}</strong>
+                  <small>{certificateToken(cert) || t("verifyTokenIdPlaceholder")}</small>
+                </span>
+                <span className={cert.revoked ? "cert-drawer-status cert-drawer-status--revoked" : "cert-drawer-status"}>
+                  {cert.revoked ? t("certificateRevoked") : t("certificateValid")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="cert-drawer-empty">{t("emptyCertificates")}</div>
+        )}
+      </div>
+    ),
+    trust: (
+      <div className="cert-drawer-section cert-drawer-section--trust" data-mode="trust">
+        <div className="cert-trust-stack">
+          <article>
+            <span>{t("soulboundBadge")}</span>
+            <strong>{t("certificateProofPermanent")}</strong>
+          </article>
+          <article>
+            <span>{t("verifyTab")}</span>
+            <strong>{t("certificateProofVerify")}</strong>
+          </article>
+          <article>
+            <span>{t("certificateValid")}</span>
+            <strong>{t("soulboundNote")}</strong>
+          </article>
         </div>
       </div>
+    ),
+  };
+
+  const scene = (
+    <div className="cert-workbench" data-mode={mode} data-state={isIssuing ? "sealing" : issueReady ? "ready" : "draft"}>
+      <div className="cert-workbench__foreground">
+        <section className={["cert-workbench__artifact", isIssuing ? "cert-workbench__artifact--sealing" : null].filter(Boolean).join(" ")}>
+          <CertificatePreview
+            issuerName={previewIssuer || ""}
+            title={previewTitle}
+            recipientName={previewRecipientName}
+            achievement={previewAchievement}
+            sealLabel={t("soulboundBadge")}
+            awardedToLabel={t("awardedTo")}
+            achievementLabel={t("forAchievement")}
+            titlePlaceholder={t("certificateTitlePlaceholder")}
+            recipientPlaceholder={t("awardedToPlaceholder")}
+            achievementPlaceholder={t("achievementPreviewPlaceholder")}
+            issuerPlaceholder={t("issuerPreviewPlaceholder")}
+            status={mode === "verify" ? verifiedStatus : <span className="cert-badge cert-badge--valid">{t("soulboundBadge")}</span>}
+            footer={<span>{previewFooter}</span>}
+            draft={previewDraft}
+            textureSrc={CERTIFICATE_PAPER_ART}
+          />
+          <div className="cert-credential-strip" aria-label={t("credentialStripLabel")}>
+            <span>
+              <small>{t("credentialStripTemplate")}</small>
+              <strong>{mode === "templates" ? createForm.name.trim() || t("templateNamePlaceholder") : selectedTemplateName}</strong>
+            </span>
+            <span>
+              <small>{t("credentialStripRecipient")}</small>
+              <strong>
+                {mode === "templates"
+                  ? createForm.category.trim() || t("categoryPlaceholder")
+                  : mode === "verify" && verifiedCertificate
+                    ? String(verifiedCertificate.recipientName || verifiedCertificate.recipient || "")
+                    : recipientDisplay}
+              </strong>
+            </span>
+            <span>
+              <small>{t("credentialStripSeal")}</small>
+              <strong>{mode === "templates" ? t("templateBlueprintLabel") : sealStateLabel}</strong>
+            </span>
+          </div>
+          <div className="cert-mint-lane" aria-label={t("mintLaneLabel")}>
+            {stepItems.map((step) => (
+              <span key={step.key} className={["cert-mint-lane__step", step.ready ? "cert-mint-lane__step--ready" : null].filter(Boolean).join(" ")}>
+                <span className="cert-mint-lane__dot" />
+                {step.label}
+              </span>
+            ))}
+          </div>
+          {mode === "templates" && (
+            <aside className="cert-atelier-card" aria-label={t("certificateAtelierLabel")}>
+              <img className="cert-atelier-card__image" src={CERTIFICATE_ATELIER_ART} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+              <span>
+                <small>{t("certificateAtelierLabel")}</small>
+                <strong>{t("certificateAtelierCaption")}</strong>
+              </span>
+            </aside>
+          )}
+        </section>
+
+        <aside className="cert-workbench__panel">
+          <OpenUiSegmented
+            className="cert-modebar"
+            label={t("certificateAtelierLabel")}
+            onChange={setWorkbenchMode}
+            options={modeItems.map((item) => {
+              const Icon = item.Icon;
+              return {
+                value: item.mode,
+                label: (
+                  <span className="cert-tab-label" aria-label={`${item.label}: ${item.helper}`}>
+                    <Icon size={16} strokeWidth={2.4} aria-hidden="true" />
+                    <strong>{item.label}</strong>
+                  </span>
+                ),
+              };
+            })}
+            segmentedClassName="cert-modebar__segmented"
+            value={mode}
+          />
+
+          {lastError && <p className="cert-controls__error" role="alert">{lastError}</p>}
+          {lastSuccess && <p className="cert-controls__success">{lastSuccess}</p>}
+
+          {mode === "issue" && (
+            <div className="cert-dossier" aria-label={t("issueDossierLabel")}>
+              <div className="cert-dossier__head">
+                <span>{t("issueRecipientPassLabel")}</span>
+                <small>{statusMessage}</small>
+              </div>
+              <div className="cert-pass-card">
+                <div className="cert-pass-card__main">
+                  <span>{t("credentialPassLabel")}</span>
+                  <strong>{selectedTemplateName}</strong>
+                  <small>{recipientDisplay}</small>
+                </div>
+                <dl>
+                  <div>
+                    <dt>{t("credentialPassWallet")}</dt>
+                    <dd>{walletDisplay}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("credentialPassSeal")}</dt>
+                    <dd>{sealStateLabel}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="cert-template-strip" aria-label={t("selectedTemplate")}>
+                {activeTemplates.slice(0, 6).map((tp) => (
+                  <button
+                    key={tp.id}
+                    type="button"
+                    className={["cert-template-chip", issueForm.templateId === String(tp.id) ? "cert-template-chip--active" : null].filter(Boolean).join(" ")}
+                    onClick={() => setIssueForm((f) => ({ ...f, templateId: String(tp.id) }))}
+                    disabled={isIssuing}
+                  >
+                    <strong>{tp.name}</strong>
+                    <span>{tp.issuerName || t("issuerPreviewPlaceholder")}</span>
+                  </button>
+                ))}
+                {activeTemplates.length === 0 && <span className="cert-controls__hint">{t("emptyTemplatesHint")}</span>}
+              </div>
+              {recentRecipientWallets.length > 0 && (
+                <div className="cert-recipient-rail" aria-label={t("recentRecipients")}>
+                  <span>{t("recentRecipients")}</span>
+                  <div>
+                    {recentRecipientWallets.map((wallet) => (
+                      <button
+                        key={wallet}
+                        type="button"
+                        className={issueForm.recipient === wallet ? "cert-recipient-chip cert-recipient-chip--active" : "cert-recipient-chip"}
+                        onClick={() => setIssueForm((form) => ({ ...form, recipient: wallet }))}
+                        disabled={isIssuing}
+                      >
+                        {compactAddress(wallet)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="cert-recipient-dossier">
+                <div>
+                  <span>{t("awardedTo")}</span>
+                  <strong>{recipientDisplay}</strong>
+                  <small>{issueForm.achievement.trim() || t("achievementPlaceholder")}</small>
+                </div>
+                <button
+                  type="button"
+                  className="cert-detail-toggle"
+                  onClick={() => setRecipientDetailsOpen((value) => !value)}
+                  aria-expanded={recipientDetailsOpen}
+                  disabled={isIssuing}
+                >
+                  {t("recipientDetails")}
+                </button>
+              </div>
+              {recipientDetailsOpen && (
+                <div className="cert-field-stack">
+                  <OpenUiTextField
+                    className="cert-field"
+                    inputClassName="cert-input"
+                    label={t("issueRecipient")}
+                    value={issueForm.recipient}
+                    onChange={(e) => setIssueForm((f) => ({ ...f, recipient: e.target.value }))}
+                    placeholder={t("issueRecipientPlaceholder")}
+                    disabled={isIssuing}
+                    spellCheck={false}
+                    mono
+                  />
+                  <div className="cert-field-grid cert-field-grid--recipient">
+                    <OpenUiTextField
+                      className="cert-field"
+                      inputClassName="cert-input"
+                      label={t("recipientName")}
+                      value={issueForm.recipientName}
+                      onChange={(e) => setIssueForm((f) => ({ ...f, recipientName: e.target.value }))}
+                      placeholder={t("recipientNamePlaceholder")}
+                      disabled={isIssuing}
+                    />
+                    <OpenUiTextField
+                      className="cert-field"
+                      inputClassName="cert-input"
+                      label={t("achievement")}
+                      value={issueForm.achievement}
+                      onChange={(e) => setIssueForm((f) => ({ ...f, achievement: e.target.value }))}
+                      placeholder={t("achievementPlaceholder")}
+                      disabled={isIssuing}
+                    />
+                  </div>
+                </div>
+              )}
+              <details className="cert-advanced">
+                <summary>{t("issueAdvancedHint")}</summary>
+                <OpenUiTextField
+                  className="cert-field"
+                  inputClassName="cert-input"
+                  label={t("templateId")}
+                  value={issueForm.templateId}
+                  onChange={(e) => setIssueForm((f) => ({ ...f, templateId: e.target.value }))}
+                  placeholder={t("templateIdPlaceholder")}
+                  disabled={isIssuing}
+                />
+                <OpenUiTextField
+                  className="cert-field"
+                  inputClassName="cert-input"
+                  label={t("memo")}
+                  value={issueForm.memo}
+                  onChange={(e) => setIssueForm((f) => ({ ...f, memo: e.target.value }))}
+                  placeholder={t("memoPlaceholder")}
+                  disabled={isIssuing}
+                />
+              </details>
+            </div>
+          )}
+
+          {mode === "templates" && (
+            <div className="cert-dossier cert-dossier--template">
+              <div className="cert-dossier__head">
+                <span>{t("createTemplate")}</span>
+                <small>{t("createTemplateHelp")}</small>
+              </div>
+              <div className="cert-blueprint-card" aria-label={t("templateBlueprintLabel")}>
+                <span>{t("templateBlueprintLabel")}</span>
+                <strong>{createForm.name.trim() || t("templateNamePlaceholder")}</strong>
+                <p>{createForm.description.trim() || t("templateBlueprintHint")}</p>
+                <dl>
+                  <div>
+                    <dt>{t("issuerName")}</dt>
+                    <dd>{createForm.issuerName.trim() || t("issuerNamePlaceholder")}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("maxSupply")}</dt>
+                    <dd>{createForm.maxSupply.trim() || t("maxSupplyPlaceholder")}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="cert-blueprint-presets" role="list" aria-label={t("blueprintPresetsLabel")}>
+                {BLUEPRINT_PRESETS.map((preset) => {
+                  const Icon = preset.Icon;
+                  const active = activeBlueprint === preset.key;
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      className={["cert-blueprint-preset", active ? "cert-blueprint-preset--active" : null].filter(Boolean).join(" ")}
+                      onClick={() => applyBlueprintPreset(preset)}
+                      disabled={isCreatingTemplate}
+                      aria-pressed={active}
+                    >
+                      <span className="cert-blueprint-preset__icon"><Icon size={18} strokeWidth={2.3} /></span>
+                      <span>
+                        <strong>{t(preset.nameKey)}</strong>
+                        <small>{t(preset.categoryKey)} · {preset.supply}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="cert-template-dossier">
+                <div>
+                  <span>{t("templateBlueprintLabel")}</span>
+                  <strong>{createForm.name.trim() || t("templateNamePlaceholder")}</strong>
+                  <small>
+                    {(createForm.category.trim() || t("categoryPlaceholder"))} · {createForm.maxSupply.trim() || t("maxSupplyPlaceholder")}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="cert-detail-toggle"
+                  onClick={() => setTemplateDetailsOpen((value) => !value)}
+                  aria-expanded={templateDetailsOpen}
+                  disabled={isCreatingTemplate}
+                >
+                  {t("templateDetails")}
+                </button>
+              </div>
+              {templateDetailsOpen && (
+                <div className="cert-field-stack">
+                  <div className="cert-field-grid cert-field-grid--priority">
+                    <OpenUiTextField
+                      className="cert-field"
+                      inputClassName="cert-input"
+                      label={t("templateName")}
+                      value={createForm.name}
+                      onChange={(e) => updateCreateForm("name", e.target.value)}
+                      placeholder={t("templateNamePlaceholder")}
+                      disabled={isCreatingTemplate}
+                    />
+                    <OpenUiTextField
+                      className="cert-field"
+                      inputClassName="cert-input"
+                      label={t("issuerName")}
+                      value={createForm.issuerName}
+                      onChange={(e) => updateCreateForm("issuerName", e.target.value)}
+                      placeholder={t("issuerNamePlaceholder")}
+                      disabled={isCreatingTemplate}
+                    />
+                  </div>
+                  <details className="cert-advanced cert-advanced--blueprint">
+                    <summary>{t("templateBlueprintDetails")}</summary>
+                    <div className="cert-field-grid">
+                      <OpenUiTextField
+                        className="cert-field"
+                        inputClassName="cert-input"
+                        label={t("category")}
+                        value={createForm.category}
+                        onChange={(e) => updateCreateForm("category", e.target.value)}
+                        placeholder={t("categoryPlaceholder")}
+                        disabled={isCreatingTemplate}
+                      />
+                      <OpenUiTextField
+                        className="cert-field"
+                        inputClassName="cert-input"
+                        label={t("maxSupply")}
+                        value={createForm.maxSupply}
+                        onChange={(e) => updateCreateForm("maxSupply", e.target.value)}
+                        placeholder={t("maxSupplyPlaceholder")}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        disabled={isCreatingTemplate}
+                      />
+                    </div>
+                    <OpenUiTextArea
+                      className="cert-field cert-field--textarea"
+                      textareaClassName="cert-input cert-input--textarea"
+                      label={t("description")}
+                      value={createForm.description}
+                      onChange={(e) => updateCreateForm("description", e.target.value)}
+                      placeholder={t("descriptionPlaceholder")}
+                      disabled={isCreatingTemplate}
+                      rows={3}
+                    />
+                  </details>
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === "verify" && (
+            <div className="cert-dossier cert-dossier--verify">
+              <div className="cert-dossier__head">
+                <span>{t("verifyTab")}</span>
+                <small>{t("verifyHelp")}</small>
+              </div>
+              <div className="cert-verifier-lens">
+                <span>{t("verifyLensLabel")}</span>
+                <strong>{verifyTokenId.trim() || t("verifyTokenIdPlaceholder")}</strong>
+                <small>{verifiedCertificate ? t("certificateValid") : t("certificateNotFoundHint")}</small>
+              </div>
+              {certificates.length > 0 && (
+                <div className="cert-certificate-rail" aria-label={t("certificateWalletLabel")}>
+                  <span>{t("certificateWalletLabel")}</span>
+                  <div>
+                    {certificates.slice(0, 5).map((certificate) => {
+                      const tokenId = certificateToken(certificate);
+                      const active = tokenId === verifyTokenId.trim();
+                      return (
+                        <button
+                          key={tokenId || certificateTitle(certificate, t("certificateValid"))}
+                          type="button"
+                          className={["cert-certificate-card", active ? "cert-certificate-card--active" : null].filter(Boolean).join(" ")}
+                          onClick={() => selectCertificateForVerify(certificate)}
+                          disabled={!tokenId}
+                          aria-pressed={active}
+                        >
+                          <span>{certificate.revoked ? t("certificateRevoked") : t("certificateValid")}</span>
+                          <strong>{certificateTitle(certificate, t("certificateValid"))}</strong>
+                          <small>{tokenId || t("verifyTokenIdPlaceholder")}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <OpenUiTextField
+                className="cert-field"
+                inputClassName="cert-input"
+                label={t("verifyTokenId")}
+                value={verifyTokenId}
+                onChange={(e) => setVerifyTokenId(e.target.value)}
+                placeholder={t("verifyTokenIdPlaceholder")}
+                spellCheck={false}
+                mono
+              />
+              {verifiedCertificate ? (
+                <div className="cert-verify-card">
+                  <div>
+                    <strong>{certificateTitle(verifiedCertificate, t("certificateValid"))}</strong>
+                    <span>{verifiedCertificate.revoked ? t("certificateRevoked") : t("soulboundNote")}</span>
+                  </div>
+                  <TokenQr value={certificateToken(verifiedCertificate)} size={86} label={t("tokenQrLabel")} />
+                  {verifiedIsIssuer && !verifiedCertificate.revoked && (
+                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("revokeCertificate", { tokenId: certificateToken(verifiedCertificate) })}>
+                      {t("revoke")}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="cert-controls__hint">{t("certificateNotFoundHint")}</p>
+              )}
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div className="certificate-play-area mx2 mx2-cat-nft">
+        <PlayStage
+          category="nft"
+          stage={{
+            eyebrow: t("issuerWorkspaceTitle"),
+            title: t("certificateHeroTitle"),
+            subtitle: t("docSubtitle"),
+            badges: (
+              <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge__dot" /> {templatesCount} {t("templatesTab").toLowerCase()}
+              </span>
+            ),
+          }}
+          scene={scene}
+          actions={{
+            primary,
+          }}
+          drawerToggleLabel={t("detailsLabel")}
+          drawer={{
+            title: t("certificatesTab"),
+            children: (
+              <div className="cert-drawer">
+                <OpenUiSegmented
+                  className="cert-drawer-tabs"
+                  label={t("detailsLabel")}
+                  onChange={setDetailMode}
+                  options={drawerModes.map((item) => ({
+                    value: item.mode,
+                    label: (
+                      <span className="cert-drawer-tab-label">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </span>
+                    ),
+                  }))}
+                  segmentedClassName="cert-drawer-segmented"
+                  value={drawerMode}
+                />
+                <OpenUiPanel
+                  className="cert-drawer__panel"
+                  icon={<ActiveDrawerIcon size={18} strokeWidth={2.35} aria-hidden="true" />}
+                  title={activeDrawerMode.label}
+                  subtitle={activeDrawerMode.value}
+                >
+                  <div className="cert-drawer__panel-body" data-mode={drawerMode}>
+                    {drawerPanels[drawerMode]}
+                  </div>
+                </OpenUiPanel>
+              </div>
+            ),
+          }}
+        />
+      </div>
+    </OpenUiProvider>
   );
 }

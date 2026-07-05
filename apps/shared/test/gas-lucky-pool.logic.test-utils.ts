@@ -3,6 +3,8 @@ import { afterEach, vi } from "vitest";
 import { useGasLuckyPool } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { addressToScriptHash } from "@shared/utils/neo";
+import { createMiniAppFramework } from "@shared/react";
+import type { ChainService } from "@shared/services/ChainService";
 
 export { addressToScriptHash, useGasLuckyPool };
 
@@ -12,6 +14,19 @@ export const CLAIM_KEY = "ogv_test_key_1234567890";
 
 export function t(key: string) {
   return key;
+}
+
+/**
+ * Wrap a mock chain in the MiniApp framework SDK the composable now consumes.
+ * The framework chain layer forwards read/readArray/events/invoke/
+ * invokeWithPayment/ensureWallet/address straight through, so every recorded
+ * call and its arg shapes are byte-identical to the pre-migration chain calls.
+ */
+export function makeApp(chain: unknown) {
+  return createMiniAppFramework(
+    { services: { chain: chain as ChainService }, t } as never,
+    { appId: "miniapp-gas-lucky-pool" },
+  );
 }
 
 export function launch(poolId = "42") {

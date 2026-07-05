@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useMilestoneEscrow } from "../../milestone-escrow/src/composables/useMilestoneEscrow";
-import type { EscrowItem } from "../../milestone-escrow/src/pages/index/components/EscrowList";
+import type { EscrowItem } from "../../milestone-escrow/src/composables/escrowTypes";
 import type { DepositConfirmation } from "../composables/useContractInteraction";
+import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -74,9 +75,17 @@ function setup(
   ) => Promise<DepositConfirmation>,
 ) {
   const { chain, invoke, read, readArray } = makeChain();
+  // Wrap the mock chain in the MiniApp framework (ctx.framework) the composable
+  // now takes; the raw chain is still passed for the array reads the framework
+  // has no helper for. Arg builders + passthroughs produce identical calls.
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-milestone-escrow" },
+  );
   // Tests inject an instant confirmation by default so the deposit-settle
   // wait never reaches the real N3Index poller.
   const app = useMilestoneEscrow({
+    app: framework,
     chain,
     t,
     confirmDeposit: confirmDeposit ?? (async () => "confirmed" as const),

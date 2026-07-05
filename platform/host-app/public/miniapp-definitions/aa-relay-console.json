@@ -28,8 +28,8 @@
   "entry_url": "mf://manifest?app=miniapp-aa-relay-console",
   "dapp_url": "/miniapps/aa-relay-console/index.html",
   "media": {
-    "icon": "/miniapps/aa-relay-console/logo.jpg",
-    "banner": "/miniapps/aa-relay-console/banner.jpg"
+    "icon": "/miniapps/aa-relay-console/logo.webp",
+    "banner": "/miniapps/aa-relay-console/banner.webp"
   },
   "permissions": {
     "aa": true

@@ -3,6 +3,7 @@ import {
   formatHash,
   parsePositiveFixed8,
   fromFixed8,
+  sleep,
 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -19,6 +20,8 @@ import {
 } from "./dice-logic";
 import type { RollOutcome } from "./dice-logic";
 import { addressToScriptHash } from "@shared/utils/neo";
+import { eventStateValue } from "@shared/utils/chain-events";
+import { eventHashMatches as addrEq } from "@shared/gamefi";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { createBetTracker } from "./bet-tracker";
 
@@ -99,36 +102,8 @@ function payoutFor(amount: string): string {
   return `${(numeric * PAYOUT_MULTIPLIER).toFixed(2)} GAS`;
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** Read a Neo event-state field value defensively across indexer shapes. */
-function eventStateValue(ev: unknown, index: number): unknown {
-  const state = (ev as { state?: unknown })?.state ?? ev;
-  if (Array.isArray(state)) {
-    const item = state[index];
-    return (item as { value?: unknown })?.value ?? item;
-  }
-  return undefined;
-}
 function asBool(value: unknown): boolean {
   return value === true || value === 1 || value === "1" || value === "true";
-}
-
-/** Normalize a Hash160-ish value (hex with/without 0x, big-endian, mixed case). */
-function normHash(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/^0x/, "");
-}
-/** Compare a Rolled-event player field (a script hash) to the player hash. */
-function addrEq(eventValue: unknown, playerHash: string): boolean {
-  const a = normHash(eventValue);
-  const b = normHash(playerHash);
-  if (!a || !b) return false;
-  // Indexers may serialize the Hash160 big- or little-endian; accept either.
-  const reversed = (b.match(/../g) ?? []).reverse().join("");
-  return a === b || a === reversed;
 }
 
 /**
@@ -167,6 +142,14 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    // Route the Neo N3 ad-hoc arg-building / reads / invokes / events through the
+    // MiniApp framework SDK. Behaviour-preserving: arg.* builders emit the
+    // identical stack items, and readRaw/invoke/invokeWithPayment/events/
+    // detectNetwork are raw passthroughs to the same ctx.services.chain the
+    // framework wraps. The EVM branch keeps ctx.services.chain directly — its
+    // isEvmNetwork / ensureEvmWallet / invokeEvmWithValue helpers are not part of
+    // the framework chain surface.
+    const app = ctx.framework;
     const launchFace = sanitizeFace(
       ctx.launchContext.params.face ?? ctx.launchContext.params.chosenNumber,
     );
@@ -222,17 +205,17 @@ defineMiniApp({
       let credit = 0;
       try {
         liquidity = fromFixed8(
-          parseBigInt(await ctx.services.chain.read("bankroll", [])),
+          parseBigInt(await app.chain.readRaw("bankroll", [])),
         );
       } catch {
         liquidity = houseLiquidity.get();
       }
       try {
-        const player = ctx.services.chain.address.get();
+        const player = app.chain.address.get();
         const playerHash = player ? addressToScriptHash(player) : "";
         if (playerHash) {
-          const creditRaw = await ctx.services.chain.read("creditOf", [
-            { type: "Hash160", value: playerHash },
+          const creditRaw = await app.chain.readRaw("creditOf", [
+            app.chain.arg.hash160(playerHash),
           ]);
           credit = fromFixed8(parseBigInt(creditRaw));
         }
@@ -250,7 +233,7 @@ defineMiniApp({
 
     const refreshNetwork = async (): Promise<string> => {
       try {
-        const net = await ctx.services.chain.detectNetwork();
+        const net = await app.chain.detectNetwork();
         chainLabel.set(chainLabelOf(net));
         maxStake.set(maxStakeOf(net));
         await refreshLiquidity(net);
@@ -272,11 +255,11 @@ defineMiniApp({
      */
     const hydrateHistory = async (network: string): Promise<void> => {
       if (ctx.services.chain.isEvmNetwork(network)) return;
-      const player = ctx.services.chain.address.get();
+      const player = app.chain.address.get();
       const playerHash = player ? addressToScriptHash(player) : "";
       if (!playerHash || rollHistory.get().length > 0) return;
       try {
-        const events = await ctx.services.chain.listEvents("Settled", {
+        const events = await app.chain.events("Settled", {
           limit: 60,
         });
         const mine = events
@@ -375,7 +358,7 @@ defineMiniApp({
     const findSettledEvent = async (betId: string): Promise<unknown | null> => {
       if (!betId) return null;
       try {
-        const events = await ctx.services.chain.listEvents("Settled", {
+        const events = await app.chain.events("Settled", {
           limit: 60,
         });
         const hit = [...events]
@@ -431,9 +414,9 @@ defineMiniApp({
         const prior = await findSettledEvent(betId);
         if (revealFromSettledEvent(rowId, prior, amount)) return;
         try {
-          const result = await ctx.services.chain.invoke(
+          const result = await app.chain.invoke(
             "settle",
-            [{ type: "Integer", value: betId }],
+            [app.chain.arg.integer(betId)],
             { waitForEvent: "Settled", waitTimeoutMs: 30_000 },
           );
           if (revealFromSettledEvent(rowId, result.event, amount)) return;
@@ -472,7 +455,7 @@ defineMiniApp({
       for (let i = 0; i < 6; i += 1) {
         await sleep(SETTLE_RETRY_DELAY_MS);
         try {
-          const events = await ctx.services.chain.listEvents("Committed", {
+          const events = await app.chain.events("Committed", {
             limit: 40,
           });
           const hit = txid
@@ -506,7 +489,7 @@ defineMiniApp({
     // (miniapp-dice-game:stake) so OnNEP17Payment credits the player. The credit
     // funds subsequent rolls and is fully WITHDRAWABLE via the Withdraw action.
     // Neo N3 only — the EVM path is atomic (no pre-funded credit).
-    ctx.registerAction("fundGameCredit", async (...args: unknown[]) => {
+    ctx.framework.actions.register("fundGameCredit", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { amount?: unknown };
       const network = await refreshNetwork();
       if (ctx.services.chain.isEvmNetwork(network)) {
@@ -518,20 +501,20 @@ defineMiniApp({
         ctx.setStatus(ctx.t("invalidStake"), "error");
         throw new Error(ctx.t("invalidStake"));
       }
-      const contractHash = ctx.services.chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
         return;
       }
       await ctx.services.notify.guard(async () => {
-        const player = await ctx.services.chain.ensureWallet();
-        await ctx.services.chain.invoke(
+        const player = await app.chain.ensureWallet();
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: player },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: amountFixed8 },
-            { type: "String", value: STAKE_MEMO },
+            app.chain.arg.hash160(player),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(amountFixed8),
+            app.chain.arg.string(STAKE_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
         );
@@ -544,13 +527,13 @@ defineMiniApp({
     // chip. This is the real refund for GAS stranded/over-deposited on the
     // contract (the core fix the kernel path lacked). Neo N3 only — the EVM path
     // is atomic and holds no withdrawable credit.
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       const network = await refreshNetwork();
       if (ctx.services.chain.isEvmNetwork(network)) {
         ctx.setStatus(ctx.t("statusNeoXNoCredit"), "error");
         return;
       }
-      const player = ctx.services.chain.address.get();
+      const player = app.chain.address.get();
       const playerHash = player ? addressToScriptHash(player) : "";
       if (!playerHash) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
@@ -561,17 +544,17 @@ defineMiniApp({
         return;
       }
       await ctx.services.notify.guard(async () => {
-        await ctx.services.chain.ensureWallet();
-        await ctx.services.chain.invoke(
+        await app.chain.ensureWallet();
+        await app.chain.invoke(
           "withdraw",
-          [{ type: "Hash160", value: playerHash }],
+          [app.chain.arg.hash160(playerHash)],
           { waitForEvent: "CreditWithdrawn" },
         );
         await refreshLiquidity(network);
       }, "creditWithdrawn");
     });
 
-    ctx.registerAction("placeDiceBet", async (...args: unknown[]) => {
+    ctx.framework.actions.register("placeDiceBet", async (...args: unknown[]) => {
       if (isSubmitting.get()) return;
       const form = (args[0] ?? {}) as {
         chosenNumber?: unknown;
@@ -658,7 +641,7 @@ defineMiniApp({
         }
 
         // -- Neo N3 v2 — COMMIT → wait one block → SETTLE (anti-abort) ---------
-        const player = await ctx.services.chain.ensureWallet();
+        const player = await app.chain.ensureWallet();
         const playerHash = addressToScriptHash(player);
         if (!playerHash) {
           throw new Error(ctx.t("statusFailed"));
@@ -686,14 +669,14 @@ defineMiniApp({
         // the betId from it. stakeSent flips the moment the wager transfer
         // broadcasts so a post-deposit commit fault is surfaced as recoverable
         // (and WITHDRAWABLE) credit.
-        const result = await ctx.services.chain.invokeWithPayment(
+        const result = await app.chain.invokeWithPayment(
           amountFixed8,
           STAKE_MEMO,
           "commit",
           [
-            { type: "Hash160", value: playerHash },
-            { type: "Integer", value: nextFace },
-            { type: "Integer", value: amountFixed8 },
+            app.chain.arg.hash160(playerHash),
+            app.chain.arg.integer(nextFace),
+            app.chain.arg.integer(amountFixed8),
           ],
           {
             waitForEvent: "Committed",
@@ -799,7 +782,7 @@ defineMiniApp({
     // reveal block isn't reached yet, and an "already settled" revert is
     // reconciled by re-reading the Settled event). The wager is escrowed and the
     // outcome is fixed once a later block exists, so this never loses funds.
-    ctx.registerAction("recheckSettlement", async () => {
+    ctx.framework.actions.register("recheckSettlement", async () => {
       if (!recheckActiveBet || isResolving.get()) return;
       isUnresolved.set(false);
       isResolving.set(true);

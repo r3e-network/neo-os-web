@@ -1,338 +1,472 @@
-/**
- * PlayArea.tsx -- Dev Tipping
- *
- * Uses all state: developers, recentTips, totalDonated, isLoading,
- * address, developerCount, totalDonatedDisplay, recentTipCount.
- * Actions: sendTip.
- * Keeps existing sub-components: TipList, TipForm.
- */
-
-import { useState } from "react";
-import { NeoCard } from "@shared/components-react";
-import { CategoryIcon } from "@shared/components-react/illustrations";
+import { useEffect, useMemo, useState } from "react";
+import { Code2, HeartHandshake, Send, Wallet } from "lucide-react";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import type { ObservableState } from "@shared/react/context";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import { formatNumber } from "@shared/utils/format";
-import TipList from "./components/TipList";
-import TipForm from "./components/TipForm";
-import DeveloperPanel from "./components/DeveloperPanel";
-import type { Developer } from "./composables/useDevTippingStats";
+import { formatHash } from "@shared/utils/format";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, num, str } = useStateBindings(state);
-  const formatNum = (n: number | string) => formatNumber(n, 2);
+interface Dev {
+  id: string | number;
+  name?: string;
+  role?: string;
+  wallet?: string;
+  totalTips?: number | string;
+  tipCount?: number;
+  balance?: number;
+}
 
-  const developers = (state.developers?.get() ?? []) as Developer[];
-  const recentTips = (state.recentTips?.get() ?? []) as Array<Record<string, unknown>>;
-  const totalDonated = num("totalDonated");
-  const isLoading = bool("isLoading");
-  const address = str("address", "");
-  const developerCount = num("developerCount");
-  const totalDonatedDisplay = str("totalDonatedDisplay", "0");
-  const recentTipCount = num("recentTipCount");
-  const isRegistering = bool("isRegistering");
-  const isWithdrawing = bool("isWithdrawing");
+interface RecentTip {
+  id: string;
+  tipperName?: string;
+  to?: string;
+  amount?: string;
+}
+
+type DrawerMode = "developers" | "direct" | "developer" | "history";
+
+const TIP_PRESETS = ["0.01", "0.10", "0.50", "1.00"];
+const EMPTY_DEVELOPERS: Dev[] = [];
+const EMPTY_RECENT_TIPS: RecentTip[] = [];
+
+function isValidTipAmount(value: string): boolean {
+  const trimmed = value.trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return false;
+  const amount = Number(trimmed);
+  return Number.isFinite(amount) && amount >= 0.001;
+}
+
+function gasDisplay(value: unknown): string {
+  const amount = Number(value ?? 0);
+  return Number.isFinite(amount) ? `${amount.toFixed(2)} GAS` : "0.00 GAS";
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, num, val } = useStateBindings(state);
+  const address = str("address");
+  const developers = val<Dev[]>("developers", EMPTY_DEVELOPERS) ?? EMPTY_DEVELOPERS;
+  const recentTips = val<RecentTip[]>("recentTips", EMPTY_RECENT_TIPS) ?? EMPTY_RECENT_TIPS;
+  const totalDonatedDisplay = str("totalDonatedDisplay") || gasDisplay(num("totalDonated"));
   const myDeveloperId = num("myDeveloperId");
   const myClaimableBalance = num("myClaimableBalance");
+  const myCredit = num("myCredit");
+  const isLoading = bool("isLoading");
+  const isRegistering = bool("isRegistering");
+  const isWithdrawing = bool("isWithdrawing");
   const isConnecting = bool("isConnecting");
 
-  const myCredit = num("myCredit");
+  const [selectedDevId, setSelectedDevId] = useState("");
+  const [tipAmount, setTipAmount] = useState("0.10");
+  const [anonymous, setAnonymous] = useState(true);
+  const [devName, setDevName] = useState("");
+  const [devRole, setDevRole] = useState("");
+  const [sendPulse, setSendPulse] = useState(0);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("developers");
 
-  const [selectedDevId, setSelectedDevId] = useState<number | null>(null);
-  const [tipAmount, setTipAmount] = useState("");
-  const [anonymous, setAnonymous] = useState(false);
-  const selectedDeveloper = developers.find((dev) => dev.id === selectedDevId);
-  const parsedTipAmount = Number.parseFloat(tipAmount);
-  const tipAmountReady = Number.isFinite(parsedTipAmount) && parsedTipAmount >= 0.001;
-  const tipReady = Boolean(selectedDevId) && tipAmountReady;
-  const playAreaClassName = [
-    "dev-tipping-play-area",
-    selectedDevId ? "dev-tipping-play-area--recipient-selected" : "",
-    tipAmountReady ? "dev-tipping-play-area--amount-ready" : "",
-    tipReady ? "dev-tipping-play-area--ready" : "",
-    recentTips.length > 0 ? "dev-tipping-play-area--has-recent-tips" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const staleZeroTotalDisplay =
-    totalDonated > 0 && /^0(?:[.,]0+)?(?:\s+GAS)?$/i.test(totalDonatedDisplay.trim());
-  const totalDonatedValue =
-    totalDonatedDisplay && !staleZeroTotalDisplay ? totalDonatedDisplay : formatNum(totalDonated);
-
-  const handleSelectDev = (dev: Developer) => {
-    // Selecting a developer is pure local state; no chain/notify round-trip.
-    setSelectedDevId(dev.id);
-  };
-
-  const handleSendTip = async () => {
-    if (!selectedDevId) return;
-    const ok = (await dispatch(
-      "sendTip",
-      selectedDevId,
-      tipAmount,
-      anonymous,
-    )) as unknown as boolean;
-    // dispatch resolves to the action's runtime result (true on success).
-    // Clear the form on success to prevent an accidental duplicate tip.
-    if (ok) {
-      setTipAmount("");
-      setSelectedDevId(null);
+  useEffect(() => {
+    if (!selectedDevId && developers[0]) {
+      setSelectedDevId(String(developers[0].id));
     }
+  }, [developers, selectedDevId]);
+
+  const selectedDeveloper = useMemo(
+    () => developers.find((dev) => String(dev.id) === selectedDevId),
+    [developers, selectedDevId],
+  );
+  const featuredDevelopers = developers.slice(0, 3);
+  const canTip = Boolean(address && selectedDevId && isValidTipAmount(tipAmount));
+  const busy = isLoading || isRegistering || isWithdrawing || isConnecting;
+  const supporterLabel = address ? formatHash(address, 6) : t("walletNotConnected");
+  const recipientLabel = selectedDeveloper?.name || (selectedDevId ? t("defaultDevName", { id: selectedDevId }) : t("tipRecipientPending"));
+  const sceneStatus = isLoading
+    ? t("sending")
+    : !address
+      ? t("connectWallet")
+      : canTip
+        ? t("directTipRoute")
+        : t("sendTipBtnIdle");
+  const drawerTabs = [
+    {
+      mode: "developers" as const,
+      label: t("developers"),
+      meta: `${developers.length} ${t("supportStageDevelopers")}`,
+      icon: <Code2 size={15} />,
+    },
+    {
+      mode: "direct" as const,
+      label: t("supportTabDirect"),
+      meta: selectedDevId ? `#${selectedDevId}` : t("developerIdPlaceholder"),
+      icon: <Send size={15} />,
+    },
+    {
+      mode: "developer" as const,
+      label: t("supportTabCreator"),
+      meta: myDeveloperId > 0 ? `#${myDeveloperId}` : t("registerHintShort"),
+      icon: <Wallet size={15} />,
+    },
+    {
+      mode: "history" as const,
+      label: t("supportTabHistory"),
+      meta: totalDonatedDisplay,
+      icon: <HeartHandshake size={15} />,
+    },
+  ];
+
+  const sendTip = async () => {
+    if (!canTip || busy) return;
+    setSendPulse((tick) => tick + 1);
+    await dispatch("sendTip", Number(selectedDevId), tipAmount.trim(), anonymous);
   };
 
-  const handleRegisterDeveloper = (name: string, role: string) =>
-    dispatch("registerDeveloper", name, role) as unknown as Promise<boolean>;
-
-  const handleWithdrawTips = () => {
-    if (myDeveloperId <= 0) return;
-    void dispatch("withdrawTips", myDeveloperId);
+  const registerDeveloper = () => {
+    if (!devName.trim() || isRegistering) return;
+    void dispatch("registerDeveloper", devName.trim(), devRole.trim());
   };
 
-  const handleWithdrawCredit = () => {
-    if (myCredit <= 0) return;
-    void dispatch("withdrawCredit");
-  };
+  const scene = (
+    <div className="tip-scene" data-state={isLoading ? "sending" : developers.length ? "active" : "empty"}>
+      <figure className="tip-scene__stage-card" aria-label={t("supportBoardStageLabel")}>
+        <img className="tip-scene__stage-image" src="./support-board-stage.webp" alt={t("supportBoardStageAlt")} />
+        <figcaption className="tip-scene__stage-caption">
+          <span>{t("supportStageEyebrow")}</span>
+          <strong>{recipientLabel}</strong>
+          <small>{selectedDeveloper?.role || t("supportDeskCopy")}</small>
+        </figcaption>
+        <div className="tip-scene__route-strip" aria-label={t("tipRouteTitle")}>
+          <span><Wallet size={15} /> {supporterLabel}</span>
+          <em>{tipAmount || "0"} GAS</em>
+          <span><Code2 size={15} /> {recipientLabel}</span>
+        </div>
+      </figure>
 
-  const handleConnectWallet = () => {
-    void dispatch("connect");
-  };
+      <section className="tip-scene__desk" aria-label={t("supportDeskTitle")}>
+        <header className="tip-scene__desk-head">
+          <span>{t("supportDeskTitle")}</span>
+          <strong>{tipAmount || "0"} GAS</strong>
+        </header>
 
-  const [addressCopied, setAddressCopied] = useState(false);
-  const handleCopyAddress = () => {
-    if (!address || !navigator.clipboard?.writeText) return;
-    navigator.clipboard
-      .writeText(address)
-      .then(() => {
-        setAddressCopied(true);
-        window.setTimeout(() => setAddressCopied(false), 1500);
-      })
-      .catch(() => {
-        setAddressCopied(false);
-      });
-  };
+        <div className="tip-scene__builder-rack" aria-label={t("selectDeveloper")}>
+          {featuredDevelopers.length ? (
+            featuredDevelopers.map((dev) => {
+              const active = String(dev.id) === selectedDevId;
+              return (
+                <button
+                  key={String(dev.id)}
+                  type="button"
+                  className={active ? "is-active" : ""}
+                  onClick={() => setSelectedDevId(String(dev.id))}
+                  disabled={busy}
+                >
+                  <span className="tip-scene__builder-face"><Code2 size={18} /></span>
+                  <span className="tip-scene__builder-copy">
+                    <strong>{dev.name || t("defaultDevName", { id: String(dev.id) })}</strong>
+                    <small>{dev.role || t("defaultDevRole")}</small>
+                  </span>
+                  <em>{gasDisplay(dev.totalTips)}</em>
+                </button>
+              );
+            })
+          ) : (
+            <div className="tip-scene__empty-board">
+              <strong>{t("supportBoardTitle")}</strong>
+              <span>{t("noDevelopersHint")}</span>
+            </div>
+          )}
+        </div>
+
+        <section className="tip-scene__amount-board" aria-label={t("tipPresetLabel")}>
+          <div className="tip-scene__amounts" role="radiogroup" aria-label={t("tipPresetLabel")}>
+            {TIP_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={tipAmount === preset ? "is-active" : ""}
+                aria-checked={tipAmount === preset}
+                role="radio"
+                onClick={() => setTipAmount(preset)}
+                disabled={busy}
+              >
+                <CoinArt size={30} variant="gas" />
+                <strong>{preset}</strong>
+              </button>
+            ))}
+          </div>
+          <div className="tip-scene__custom-amount" role="group" aria-label={t("customAmount")}>
+            <span>{t("customAmount")}</span>
+            <label className="tip-scene__custom-control">
+              <input
+                value={tipAmount}
+                onChange={(event) => setTipAmount(event.target.value)}
+                inputMode="decimal"
+                disabled={busy}
+                aria-label={t("tipAmount")}
+              />
+              <em>GAS</em>
+            </label>
+          </div>
+        </section>
+
+        <button
+          type="button"
+          className="tip-toggle tip-scene__visibility"
+          data-active={anonymous}
+          onClick={() => setAnonymous((value) => !value)}
+          disabled={busy}
+        >
+          <HeartHandshake size={18} />
+          <span>{anonymous ? t("anonymousOn") : t("anonymousOff")}</span>
+        </button>
+
+        {isLoading && (
+          <div className="tip-scene__coin-lane" aria-hidden="true" data-pulse={sendPulse}>
+            <span className="tip-scene__lane-line" />
+            <CoinArt size={30} variant="gas" className="mx2-fly-coin" />
+          </div>
+        )}
+      </section>
+
+      {isLoading && <ParticleBurst coins count={8} className="tip-scene__burst" />}
+      {(isLoading || canTip) && (
+        <p className="tip-scene__status" aria-live="polite">
+          {sceneStatus}
+        </p>
+      )}
+    </div>
+  );
+
+  const drawerPanel = (() => {
+    if (drawerMode === "developers") {
+      return (
+        <OpenUiPanel
+          className="tip-drawer__panel tip-drawer__panel--developers"
+          icon={<Code2 size={16} />}
+          title={t("developers")}
+          subtitle={`${developers.length} ${t("supportStageDevelopers")}`}
+          titleId="tip-drawer-developers"
+        >
+          {developers.length ? (
+            <div className="tip-builder-list">
+              {developers.slice(0, 8).map((dev) => {
+                const active = String(dev.id) === selectedDevId;
+                return (
+                  <button
+                    key={String(dev.id)}
+                    type="button"
+                    className={active ? "is-active" : ""}
+                    onClick={() => setSelectedDevId(String(dev.id))}
+                  >
+                    <span className="tip-builder-list__face"><Code2 size={18} /></span>
+                    <span>
+                      <strong>{dev.name || t("defaultDevName", { id: String(dev.id) })}</strong>
+                      <small>{dev.role || t("defaultDevRole")}</small>
+                    </span>
+                    <em>{gasDisplay(dev.totalTips)}</em>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <OpenUiNotice className="tip-drawer__notice" icon={<HeartHandshake size={17} />} title={t("supportBoardTitle")}>
+              {t("supportBoardHint")}
+            </OpenUiNotice>
+          )}
+        </OpenUiPanel>
+      );
+    }
+
+    if (drawerMode === "direct") {
+      return (
+        <OpenUiPanel
+          className="tip-drawer__panel tip-drawer__panel--direct"
+          icon={<Send size={16} />}
+          title={t("directSupportTitle")}
+          subtitle={selectedDevId ? t("defaultDevName", { id: selectedDevId }) : t("developerIdPlaceholder")}
+          titleId="tip-drawer-direct"
+        >
+          <OpenUiTextField
+            className="tip-drawer-field tip-drawer-field--id"
+            inputClassName="tip-drawer-input tip-drawer-input--developer-id"
+            label={t("developerIdPlaceholder")}
+            value={selectedDevId}
+            onChange={(event) => setSelectedDevId(event.target.value)}
+            inputMode="numeric"
+            placeholder="1"
+            disabled={busy}
+            hint={t("developerIdHelp")}
+          />
+        </OpenUiPanel>
+      );
+    }
+
+    if (drawerMode === "developer") {
+      return (
+        <OpenUiPanel
+          className="tip-drawer__panel tip-drawer__panel--developer"
+          icon={<Wallet size={16} />}
+          title={t("developerZone")}
+          subtitle={myDeveloperId > 0 ? `${t("registeredAs")} #${myDeveloperId}` : t("registerHint")}
+          titleId="tip-drawer-zone"
+        >
+          {myDeveloperId > 0 ? (
+            <div className="tip-dev-zone">
+              <strong>{t("registeredAs")} #{myDeveloperId}</strong>
+              <span>{t("claimableBalance")}: {gasDisplay(myClaimableBalance)}</span>
+              <button
+                type="button"
+                className="mx2-btn mx2-btn--ghost"
+                onClick={() => void dispatch("withdrawTips", myDeveloperId)}
+                disabled={myClaimableBalance <= 0 || isWithdrawing}
+              >
+                {isWithdrawing ? t("withdrawing") : t("withdrawTipsBtn")}
+              </button>
+            </div>
+          ) : (
+            <div className="tip-dev-zone">
+              <div className="tip-dev-zone__fields">
+                <OpenUiTextField
+                  className="tip-drawer-field tip-drawer-field--name"
+                  inputClassName="tip-drawer-input tip-drawer-input--dev-name"
+                  label={t("devNameLabel")}
+                  value={devName}
+                  onChange={(event) => setDevName(event.target.value)}
+                  placeholder={t("devNamePlaceholder")}
+                />
+                <OpenUiTextField
+                  className="tip-drawer-field tip-drawer-field--role"
+                  inputClassName="tip-drawer-input tip-drawer-input--dev-role"
+                  label={t("devRoleLabel")}
+                  value={devRole}
+                  onChange={(event) => setDevRole(event.target.value)}
+                  placeholder={t("devRolePlaceholder")}
+                />
+              </div>
+              <button
+                type="button"
+                className="mx2-btn mx2-btn--ghost"
+                onClick={registerDeveloper}
+                disabled={!address || !devName.trim() || isRegistering}
+              >
+                {isRegistering ? t("registering") : t("registerBtn")}
+              </button>
+            </div>
+          )}
+          {myCredit > 0 && (
+            <button
+              type="button"
+              className="mx2-btn mx2-btn--ghost"
+              onClick={() => void dispatch("withdrawCredit")}
+              disabled={isWithdrawing}
+            >
+              {t("withdrawCredit")} ({gasDisplay(myCredit)})
+            </button>
+          )}
+        </OpenUiPanel>
+      );
+    }
+
+    return (
+      <OpenUiPanel
+        className="tip-drawer__panel tip-drawer__panel--history"
+        icon={<HeartHandshake size={16} />}
+        title={t("recentTips")}
+        subtitle={totalDonatedDisplay}
+        titleId="tip-drawer-recent"
+      >
+        {recentTips.length ? (
+          <ul className="mx2-history">
+            {recentTips.slice(0, 8).map((tip) => (
+              <li key={tip.id} className="mx2-history__item">
+                <span className="mx2-history__face">{tip.tipperName || t("anonymousOn")}</span>
+                <span className="mx2-history__stake">{tip.to}</span>
+                <span className="mx2-history__result">{tip.amount} GAS</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <OpenUiNotice className="tip-drawer__notice" icon={<HeartHandshake size={17} />} title={t("noDevelopers")}>
+            {t("supportBoardHint")}
+          </OpenUiNotice>
+        )}
+      </OpenUiPanel>
+    );
+  })();
+
+  const drawer = (
+    <div className="tip-drawer">
+      <div className="tip-drawer__tabs" role="tablist" aria-label={t("supportOptions")}>
+        {drawerTabs.map((item) => (
+          <button
+            key={item.mode}
+            type="button"
+            role="tab"
+            aria-selected={drawerMode === item.mode}
+            className={drawerMode === item.mode ? "is-active" : ""}
+            onClick={() => setDrawerMode(item.mode)}
+          >
+            <span className="tip-drawer__tab-icon">{item.icon}</span>
+            <strong>{item.label}</strong>
+            <small>{item.meta}</small>
+          </button>
+        ))}
+      </div>
+      <div className="tip-drawer__active" data-mode={drawerMode}>
+        {drawerPanel}
+      </div>
+    </div>
+  );
 
   return (
-    <div className={playAreaClassName}>
-      {/* Hero: identity + stats + wallet */}
-      <NeoCard variant="erobo" className="tipping-hero">
-        <picture className="tipping-hero__media" aria-hidden="true">
-          <source srcSet="./banner.avif" type="image/avif" />
-          <source srcSet="./banner.webp" type="image/webp" />
-          <img src="./banner.jpg" alt="" loading="eager" decoding="async" />
-        </picture>
-        <div className="tipping-hero__shade" aria-hidden="true" />
-        <div className="tipping-hero__head">
-          <span className="tipping-hero__badge">
-            <picture aria-hidden="true">
-              <source srcSet="./logo.avif" type="image/avif" />
-              <source srcSet="./logo.webp" type="image/webp" />
-              <img src="./logo.jpg" alt="" loading="eager" decoding="async" />
-            </picture>
-          </span>
-          <div className="tipping-hero__text">
-            <span className="tipping-hero__eyebrow">{t("subtitle")}</span>
-            <h2 className="tipping-hero__title">{t("title")}</h2>
-            <p className="tipping-hero__subtitle">{t("docSubtitle") || t("subtitle")}</p>
-          </div>
-          <div className="tipping-hero__stats">
-            <div className="tipping-stat">
-              <span className="tipping-stat-value">{developerCount || developers.length}</span>
-              <span className="tipping-stat-label">{t("developers")}</span>
-            </div>
-            <div className="tipping-stat">
-              <span className="tipping-stat-value">{totalDonatedValue}</span>
-              <span className="tipping-stat-label">{t("totalDonated")}</span>
-            </div>
-            <div className="tipping-stat">
-              <span className="tipping-stat-value">{recentTipCount || recentTips.length}</span>
-              <span className="tipping-stat-label">{t("recentTips")}</span>
-            </div>
-          </div>
-        </div>
-        <div className="tipping-hero__route" aria-label={t("tipRouteTitle")}>
-          <span>{t("tipRouteDirect")}</span>
-          <span>{t("tipRouteClaimable")}</span>
-          <span>{t("tipRouteAnonymous")}</span>
-        </div>
-
-        <figure className="tipping-support-stage" aria-label={t("supportStageTitle")}>
-          <img src="./support-board-stage.jpg" alt="" loading="eager" decoding="async" />
-          <figcaption>
-            <span>{t("supportStageEyebrow")}</span>
-            <strong>{t("supportStageTitle")}</strong>
-            <small>{t("supportStageCopy")}</small>
-          </figcaption>
-          <div className="tipping-support-stage__metrics" aria-hidden="true">
-            <span>
-              <small>{t("supportStageDevelopers")}</small>
-              <strong>{developerCount || developers.length}</strong>
-            </span>
-            <span>
-              <small>{t("supportStageDirectTips")}</small>
-              <strong>{recentTipCount || recentTips.length}</strong>
-            </span>
-          </div>
-        </figure>
-
-        {address && (
-          <button
-            type="button"
-            className="wallet-row"
-            onClick={handleCopyAddress}
-            aria-label={`${t("wallet")} ${address}`}
-          >
-            <span className="wallet-label">{t("wallet")}</span>
-            <span className="wallet-value">
-              <span>{address.slice(0, 8)}...{address.slice(-6)}</span>
-              <span className="wallet-copy-hint" aria-hidden="true">{addressCopied ? "✓" : "⧉"}</span>
-            </span>
-          </button>
-        )}
-      </NeoCard>
-
-      {/* Two-column body: developer list (main) + tip form (side) */}
-      <div className="tipping-body">
-        <div className="tipping-col">
-          <h3 className="tipping-section-title">{t("topDevelopers")}</h3>
-          {developers.length > 0 ? (
-            <TipList
-              developers={developers}
-              selectedDevId={selectedDevId}
-              formatNum={formatNum}
-              onSelect={handleSelectDev}
-              t={t}
-            />
-          ) : (
-            <>
-              <div className="tipping-empty">
-                <span className="tipping-empty__badge" aria-hidden="true">
-                  <CategoryIcon name="social" size={58} title={t("title")} />
-                </span>
-                <span className="tipping-empty__title">{t("supportBoardTitle")}</span>
-                <span className="tipping-empty__hint">{t("supportBoardHint") || t("noDevelopersHint")}</span>
-                <div className="tipping-empty__route" aria-label={t("tipRouteTitle")}>
-                  <span>{t("step2")}</span>
-                  <span>{t("step3")}</span>
-                  <span>{t("step4")}</span>
-                </div>
-              </div>
-
-              <details className="tipping-guide">
-                <summary className="tipping-guide__summary">
-                  <span>{t("howItWorks")}</span>
-                  <span className="tipping-guide__chevron" aria-hidden="true">⌄</span>
-                </summary>
-                <ol className="tipping-guide__steps">
-                  <li className="tipping-guide__step">
-                    <span className="tipping-guide__num">1</span>
-                    <span className="tipping-guide__text">{t("step1")}</span>
-                  </li>
-                  <li className="tipping-guide__step">
-                    <span className="tipping-guide__num">2</span>
-                    <span className="tipping-guide__text">{t("step2")}</span>
-                  </li>
-                  <li className="tipping-guide__step">
-                    <span className="tipping-guide__num">3</span>
-                    <span className="tipping-guide__text">{t("step3")}</span>
-                  </li>
-                  <li className="tipping-guide__step">
-                    <span className="tipping-guide__num">4</span>
-                    <span className="tipping-guide__text">{t("step4")}</span>
-                  </li>
-                </ol>
-              </details>
-            </>
-          )}
-
-          {recentTips.length > 0 && (
-            <details className="recent-tips">
-              <summary className="recent-tips__summary">
-                <span>{t("recentTips")}</span>
-                <span className="recent-tips__count">{recentTips.length}</span>
-                <span className="recent-tips__chevron" aria-hidden="true">⌄</span>
-              </summary>
-              <div className="recent-tips-list">
-                {recentTips.slice(0, 5).map((tip, idx) => (
-                  <div key={idx} className="recent-tip-item">
-                    <span className="recent-tip-from">
-                      {String(tip.tipperName || t("anonymousOn"))}
-                      {tip.to ? (
-                        <span className="recent-tip-to" title={t("tipRecipientHint")}>
-                          {" → "}{String(tip.to)}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="recent-tip-amount">{formatNum(Number(tip.amount || 0))} GAS</span>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-
-        <div className="tipping-col">
-          <h3 className="tipping-section-title">{t("sendTip")}</h3>
-          <NeoCard variant="erobo">
-            <TipForm
-              developers={developers}
-              selectedDevId={selectedDevId}
-              selectedDeveloperName={selectedDeveloper?.name ?? ""}
-              amount={tipAmount}
-              anonymous={anonymous}
-              isLoading={isLoading}
-              onSelectDev={(id: number | null) => setSelectedDevId(id)}
-              onAmountChange={setTipAmount}
-              onAnonymousChange={setAnonymous}
-              onSubmit={handleSendTip}
-              t={t}
-            />
-          </NeoCard>
-
-          <h3 className="tipping-section-title">{t("developerZone")}</h3>
-          <NeoCard variant="erobo">
-            <DeveloperPanel
-              connected={Boolean(address)}
-              isConnecting={isConnecting}
-              myDeveloperId={myDeveloperId}
-              claimableBalance={myClaimableBalance}
-              isRegistering={isRegistering}
-              isWithdrawing={isWithdrawing}
-              onConnect={handleConnectWallet}
-              onRegister={handleRegisterDeveloper}
-              onWithdraw={handleWithdrawTips}
-              formatNum={formatNum}
-              t={t}
-            />
-
-            {/* Exit path for stranded tip credit: a deposit that landed but
-                whose tip step failed persists as reusable prepaid credit. The
-                contract exposes withdraw(account) — surface it so the money-out
-                path the tipPrepaidNoTip copy promises actually exists. */}
-            {myCredit > 0 && (
-              <div className="tipping-credit-row">
-                <span className="tipping-credit-label">
-                  {t("unusedCredit")}: <strong>{formatNum(myCredit)} {t("tokenGas")}</strong>
-                </span>
-                <button
-                  type="button"
-                  className="tipping-credit-withdraw"
-                  disabled={isWithdrawing}
-                  onClick={handleWithdrawCredit}
-                >
-                  {t("withdrawCredit")}
-                </button>
-              </div>
-            )}
-          </NeoCard>
-        </div>
-      </div>
+    <div className="dev-tip-play-area mx2 mx2-cat-tool">
+      <OpenUiProvider>
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t("supportStageEyebrow"),
+            title: t("supportStageTitle"),
+            subtitle: t("supportStageCopy"),
+            badges: (
+              <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge__dot" /> {developers.length} {t("supportStageDevelopers")}
+              </span>
+            ),
+          }}
+          scene={scene}
+          actions={{
+            primary: address
+              ? {
+                  label: isLoading ? t("sending") : t("sendTipBtn"),
+                  onClick: () => void sendTip(),
+                  disabled: !canTip || busy,
+                  loading: isLoading,
+                  icon: <Send size={17} />,
+                  hint: canTip ? undefined : t("sendTipHint"),
+                }
+              : {
+                  label: isConnecting ? t("connecting") : t("connectWallet"),
+                  onClick: () => void dispatch("connect"),
+                  loading: isConnecting,
+                  icon: <Wallet size={17} />,
+                },
+            secondary: address && myDeveloperId > 0
+              ? [{
+                  label: t("withdrawTipsBtn"),
+                  onClick: () => void dispatch("withdrawTips", myDeveloperId),
+                  disabled: myClaimableBalance <= 0 || isWithdrawing,
+                  loading: isWithdrawing,
+                }]
+              : undefined,
+          }}
+          drawerToggleLabel={t("supportOptions")}
+          drawer={{ title: t("supportOptions"), children: drawer }}
+        />
+      </OpenUiProvider>
     </div>
   );
 }

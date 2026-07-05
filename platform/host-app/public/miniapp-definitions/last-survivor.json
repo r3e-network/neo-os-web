@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-last-survivor",
   "media": {
-    "icon": "/miniapp-assets/last-survivor/logo.jpg",
-    "banner": "/miniapp-assets/last-survivor/banner.jpg"
+    "icon": "/miniapp-assets/last-survivor/logo.webp",
+    "banner": "/miniapp-assets/last-survivor/banner.webp"
   },
   "permissions": {
     "payments": true,

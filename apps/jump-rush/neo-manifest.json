@@ -1,0 +1,116 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "contracts": {
+    "neo-n3-testnet": "0xd98c65af1500cb17417db0ffd1d724f1ccd494cb"
+  },
+  "createdAt": "2026-07-02T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "Timed on-chain platform jumping game with provably fair platform layouts. Choose a route, hold to charge, release to jump to the next platform, and chase perfect center landings. Missing the platform ends the run. Pay a small GAS entry, conquer the route before the deadline, and win a fixed GAS reward: 0.1 for Meadow Hop, 0.5 for Cloud Dash, 1 for Summit Leap. Each jump sequence is verified inside the TEE enclave and every payout ranks on a global leaderboard rebuilt from chain events.",
+  "description_zh": "限时链上平台跳跃游戏，平台布局可验证公平。选择路线，按住蓄力，松开跳向下一个平台，并争取精准落在平台中央。未踩中平台则游戏结束。支付少量 GAS 报名费后，在截止时间前征服路线即可赢取固定 GAS 奖励：草地小跳 0.1、云端冲刺 0.5、山巅飞跃 1。每次跳跃序列都在 TEE 飞地内验证，每笔奖励都会进入由链上事件重建的全网积分榜。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": false,
+  "features": {
+    "deeplink": "neomainapp://jump-rush",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-jump-rush",
+  "name": "Jump Rush",
+  "name_zh": "跳一跳",
+  "operation_panel": {
+    "operations": [
+      {
+        "button_style": "primary",
+        "description": "Pay the entry fee and the Morpheus enclave generates a deterministic platform layout. Meadow 0.02 GAS entry wins 0.1; Cloud 0.10 wins 0.5; Summit 0.20 wins 1.",
+        "method": "startGame",
+        "name": "Start Run",
+        "params": [
+          {
+            "default_value": "0",
+            "hidden": true,
+            "label": "Jump Route",
+            "name": "difficulty",
+            "options": [
+              {
+                "label": "Meadow Hop — win 0.1 GAS",
+                "value": "0"
+              },
+              {
+                "label": "Cloud Dash — win 0.5 GAS",
+                "value": "1"
+              },
+              {
+                "label": "Summit Leap — win 1 GAS",
+                "value": "2"
+              }
+            ],
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "priority": "primary"
+      },
+      {
+        "button_style": "success",
+        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
+        "method": "withdrawWinnings",
+        "name": "Withdraw Winnings",
+        "params": [],
+        "priority": "secondary"
+      }
+    ],
+    "subtitle": "Hold to charge, release to jump. Conquer the selected route before the deadline to win GAS.",
+    "title": "Jump Rush"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain",
+    "compute",
+    "oracle"
+  ],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "jump",
+    "platform",
+    "leaderboard",
+    "gas",
+    "game",
+    "arcade"
+  ],
+  "technologies": {
+    "aa": {
+      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+      "enabled": false
+    },
+    "oracle": {
+      "description": "The game opens a Morpheus runtime session to generate hidden platform layouts and verify the recorded jump sequence before settlement. No callback is required; the contract verifies the TEE signer directly on-chain.",
+      "enabled": true
+    },
+    "tee": {
+      "description": "Morpheus TEE signs the hidden puzzle commitment and final settlement digest; the contract verifies the enclave signer directly without a Morpheus oracle callback.",
+      "enabled": true
+    }
+  },
+  "updatedAt": "2026-07-02T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/jump-rush/banner.webp",
+    "entry": "/miniapps/jump-rush/index.html",
+    "icon": "/miniapps/jump-rush/logo.webp"
+  },
+  "version": "1.0.0"
+}

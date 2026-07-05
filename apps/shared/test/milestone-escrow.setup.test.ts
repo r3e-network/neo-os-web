@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { NotificationService } from "../services/NotificationService";
 import type { EventBus } from "../services/EventBus";
+import { createMiniAppFramework } from "../../../framework";
 
 /**
  * Milestone Escrow setup wiring — every registered action must run through
@@ -107,6 +108,9 @@ function buildCtx(registeredActions: Map<string, ActionHandler>) {
       registeredActions.set(key, handler);
     },
   };
+  Object.assign(ctx, {
+    framework: createMiniAppFramework(ctx as never, { appId: "miniapp-milestone-escrow" }),
+  });
   return { ctx, emitted };
 }
 

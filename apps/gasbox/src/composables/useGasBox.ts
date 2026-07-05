@@ -2,7 +2,10 @@
  * useGasBox — Domain logic for the GasBox (gacha/mystery box) miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppGasBox) via
- * ctx.services.chain. The earlier path SIMULATED prizes client-side
+ * the MiniApp framework chain layer (ctx.framework.chain), with the shared
+ * ChainService retained only for prepayAndInvoke (deposit-then-commit) and the
+ * unbounded listAllEvents recovery reads. The earlier path SIMULATED prizes
+ * client-side
  * (os.game.placeBet + an os.storage machine catalog) and resolved the won item
  * with Math.random — players paid but never received a real on-chain prize. The
  * old PlatformGame gacha needed the Morpheus VRF oracle's off-chain signer to
@@ -28,7 +31,7 @@
  *
  * Contract interaction model (verified against the deployed v2 ABI):
  *
- *   READS (chain.read / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     lastMachineId()                 -> Integer (machines are ids 1..lastMachineId)
  *     getMachine(machineId)           -> Map{id,creator,name,prizeAsset,price,
  *                                            itemCount,totalWeight,maxPrize,
@@ -38,7 +41,7 @@
  *     getPendingBet(betId)            -> Map{machineId,player,commitIndex,settled,
  *                                            itemIndex,prize} (empty once cleared)
  *
- *   PLAYER MUTATIONS (chain.invoke):
+ *   PLAYER MUTATIONS (app.chain.invoke / chain.prepayAndInvoke):
  *     1. PREPAY play credit — a GAS transfer to the contract with the memo
  *        "miniapp-gasbox:play" so OnNEP17Payment credits the player's play
  *        balance (only when playCreditOf(player) < price):
@@ -56,7 +59,7 @@
  *        retry; a second settle on an already-settled bet reverts, in which case
  *        the recorded outcome is recovered from getPendingBet / the Settled log.
  *
- *   STUDIO/CREATOR MUTATIONS (chain.invoke):
+ *   STUDIO/CREATOR MUTATIONS (app.chain.invoke):
  *     createMachine(creator, name, prizeAsset, price) -> machineId
  *     addItem(creator, machineId, name, weight, amount) -> index
  *     FUND POOL — a prizeAsset transfer to the contract with the memo
@@ -81,10 +84,11 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
-import { formatGas, formatAddress } from "@shared/utils/format";
+import { formatGas, formatAddress, sleep } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -120,8 +124,6 @@ const MAX_ITEMS_PER_MACHINE = 100;
 const REVEAL_FIRST_WAIT_MS = 15_000;
 const REVEAL_RETRY_DELAY_MS = 6_000;
 const REVEAL_MAX_ATTEMPTS = 4;
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
  * A settle() reverts (rather than fails for another reason) when the reveal
@@ -174,7 +176,16 @@ export interface MachineData {
 }
 
 export interface UseGasBoxOptions {
-  /** Shared chain service from ctx.services.chain. */
+  /** MiniApp framework SDK from ctx.framework. Routes reads, invokes, wallet
+   *  address/contract accessors and ensureWallet through the framework chain
+   *  layer (behavior-preserving passthroughs). */
+  app: MiniAppFramework;
+  /**
+   * Shared chain service from ctx.services.chain. Still required for the two
+   * calls the framework chain layer does not expose: the deposit-then-commit
+   * `prepayAndInvoke` (confirms the deposit in a block before commit) and the
+   * unbounded `listAllEvents` recovery reads (Committed / Settled log walks).
+   */
   chain: ChainService;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -242,7 +253,7 @@ const rarityFromShare = (share: number): string => {
 // Composable
 // ============================================================================
 
-export function useGasBox({ chain, t }: UseGasBoxOptions) {
+export function useGasBox({ app, chain, t }: UseGasBoxOptions) {
   // ── Machine State ──────────────────────────────────────────────────
   const machines = createObservable<Machine[]>([]);
   const selectedMachine = createObservable<Machine | null>(null);
@@ -288,7 +299,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
   const studioOpen = createObservable(false);
 
   // ── Address State ──────────────────────────────────────────────────
-  const address = createObservable<string | null>(chain.address.get() ?? null);
+  const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
@@ -345,7 +356,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
 
   /** Read a machine + all its items into a normalized Machine. */
   const readMachine = async (id: number): Promise<Machine | null> => {
-    const raw = await chain.read("getMachine", [
+    const raw = await app.chain.readRaw("getMachine", [
       { type: "Integer", value: String(id) },
     ]);
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -369,7 +380,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       itemPromises.push(
         (async () => {
           try {
-            const itemRaw = await chain.read("getItem", [
+            const itemRaw = await app.chain.readRaw("getItem", [
               { type: "Integer", value: String(id) },
               { type: "Integer", value: String(index) },
             ]);
@@ -469,7 +480,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     if (isLoadingMachines.get()) return;
     isLoadingMachines.set(true);
     try {
-      const lastRaw = await chain.read("lastMachineId", []);
+      const lastRaw = await app.chain.readRaw("lastMachineId", []);
       const last = Math.min(asNumber(lastRaw), MAX_MACHINES);
 
       const ids: number[] = [];
@@ -521,7 +532,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     }
     try {
       playCreditBase.set(
-        parseBigInt(await chain.read("playCreditOf", [{ type: "Hash160", value: playerHash }])),
+        parseBigInt(await app.chain.readRaw("playCreditOf", [{ type: "Hash160", value: playerHash }])),
       );
     } catch (e) {
       console.warn(
@@ -532,7 +543,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
   };
 
   const loadAll = async () => {
-    setAddress(chain.address.get() ?? null);
+    setAddress(app.chain.address.get() ?? null);
     await Promise.all([loadMachines(), loadPlayCredit()]);
   };
 
@@ -573,7 +584,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     prize: bigint;
   } | null> => {
     try {
-      const raw = await chain.read("getPendingBet", [
+      const raw = await app.chain.readRaw("getPendingBet", [
         { type: "Integer", value: betId },
       ]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -654,7 +665,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
 
     if (!wonItem && Number.isInteger(itemIndex) && itemIndex >= 0) {
       try {
-        const itemRaw = await chain.read("getItem", [
+        const itemRaw = await app.chain.readRaw("getItem", [
           { type: "Integer", value: String(Math.trunc(Number(machineId))) },
           { type: "Integer", value: String(itemIndex) },
         ]);
@@ -756,7 +767,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < REVEAL_MAX_ATTEMPTS; attempt += 1) {
       try {
-        const result = await chain.invoke(
+        const result = await app.chain.invoke(
           "settle",
           [{ type: "Integer", value: String(betId) }],
           { waitForEvent: "Settled" },
@@ -866,7 +877,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       throw new Error(msg);
     }
 
-    const playerAddr = address.get() || (await chain.ensureWallet());
+    const playerAddr = address.get() || (await app.chain.ensureWallet());
     const playerHash = addressToScriptHash(playerAddr || "");
     if (!playerAddr || !playerHash) {
       const msg = t("connectWallet");
@@ -875,7 +886,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     }
     setAddress(playerAddr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) {
       const msg = t("machineNotFound");
       playError.set(msg);
@@ -898,7 +909,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("playCreditOf", [
+          await app.chain.readRaw("playCreditOf", [
             { type: "Hash160", value: playerHash },
           ]),
         );
@@ -924,7 +935,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
                 commitArgs,
                 { waitForEvent: "Committed" },
               )
-            : await chain.invoke("commit", commitArgs, {
+            : await app.chain.invoke("commit", commitArgs, {
                 waitForEvent: "Committed",
               });
       } catch (commitErr) {
@@ -1049,7 +1060,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       itemArgs.push({ name: String(item.name).trim().slice(0, 60), weight: weightInt, amount });
     }
 
-    const creatorAddr = address.get() || (await chain.ensureWallet());
+    const creatorAddr = address.get() || (await app.chain.ensureWallet());
     const creatorHash = addressToScriptHash(creatorAddr || "");
     if (!creatorAddr || !creatorHash) {
       setStatus(t("connectWallet"), "error");
@@ -1057,7 +1068,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     }
     setAddress(creatorAddr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) {
       setStatus(t("machineNotFound"), "error");
       throw new Error(t("machineNotFound"));
@@ -1069,7 +1080,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
 
       // Step 1: createMachine -> machineId (read from CreatedMachine-equivalent
       // or fall back to lastMachineId()).
-      const createResult = await chain.invoke(
+      const createResult = await app.chain.invoke(
         "createMachine",
         [
           { type: "Hash160", value: creatorHash },
@@ -1086,7 +1097,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
         machineId = Number(parseBigInt(eventValue(createResult.event, 1)));
       }
       if (!Number.isInteger(machineId) || machineId <= 0) {
-        machineId = asNumber(await chain.read("lastMachineId", []));
+        machineId = asNumber(await app.chain.readRaw("lastMachineId", []));
       }
       if (!Number.isInteger(machineId) || machineId <= 0) {
         throw new Error(t("createPending"));
@@ -1095,7 +1106,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
 
       // Step 2: addItem for each item.
       for (const item of itemArgs) {
-        await chain.invoke(
+        await app.chain.invoke(
           "addItem",
           [
             { type: "Hash160", value: creatorHash },
@@ -1112,7 +1123,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       // the pool memo so OnNEP17Payment credits this machine's pool. Funding to
       // maxPrize satisfies the contract's activation gate.
       if (maxPrize > 0n) {
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
             { type: "Hash160", value: creatorHash },
@@ -1127,7 +1138,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       // Step 4: setActive — the contract rejects activation if the pool cannot
       // cover the max prize; surface that cleanly.
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "setActive",
           [
             { type: "Hash160", value: creatorHash },
@@ -1161,12 +1172,12 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
 
   /** Withdraw accumulated revenue for a machine to the creator. */
   const withdrawRevenue = async (machineId: string) => {
-    const creatorAddr = address.get() || (await chain.ensureWallet());
+    const creatorAddr = address.get() || (await app.chain.ensureWallet());
     const creatorHash = addressToScriptHash(creatorAddr || "");
     if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
     setAddress(creatorAddr);
 
-    await chain.invoke(
+    await app.chain.invoke(
       "withdrawRevenue",
       [
         { type: "Hash160", value: creatorHash },
@@ -1195,16 +1206,16 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       throw new Error(asset === "NEO" ? t("invalidNeoAmount") : t("invalidAmount"));
     }
 
-    const creatorAddr = address.get() || (await chain.ensureWallet());
+    const creatorAddr = address.get() || (await app.chain.ensureWallet());
     const creatorHash = addressToScriptHash(creatorAddr || "");
     if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
     setAddress(creatorAddr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("machineNotFound"));
 
     const machineIdStr = String(Math.trunc(Number(machineId)));
-    await chain.invoke(
+    await app.chain.invoke(
       "transfer",
       [
         { type: "Hash160", value: creatorHash },
@@ -1226,13 +1237,13 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     machineId: string,
     active: boolean,
   ): Promise<void> => {
-    const creatorAddr = address.get() || (await chain.ensureWallet());
+    const creatorAddr = address.get() || (await app.chain.ensureWallet());
     const creatorHash = addressToScriptHash(creatorAddr || "");
     if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
     setAddress(creatorAddr);
 
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "setActive",
         [
           { type: "Hash160", value: creatorHash },

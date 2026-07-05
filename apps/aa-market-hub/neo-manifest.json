@@ -35,8 +35,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/aa-market-hub/index.html",
-    "icon": "/miniapps/aa-market-hub/logo.jpg",
-    "banner": "/miniapps/aa-market-hub/banner.jpg"
+    "icon": "/miniapps/aa-market-hub/logo.webp",
+    "banner": "/miniapps/aa-market-hub/banner.webp"
   },
   "permissions": [
     "read:blockchain",

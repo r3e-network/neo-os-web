@@ -112,10 +112,19 @@ const appMessages = {
     zh: "收款细节会保持封装，直到 Morpheus 在隐私计算中打开该意图。",
   },
   composerTitle: { en: "Seal desk", zh: "封装台" },
+  composerLead: { en: "Compose encrypted transfer details", zh: "编排加密转账细节" },
   composerSubtitle: {
     en: "Choose the lane, fill the intent, then create the encrypted reference.",
     zh: "选择通道、填写意图，然后生成加密引用。",
   },
+  packetDraft: { en: "Assemble a sealed packet", zh: "组装加密封装包" },
+  packetDraftGas: { en: "Assemble a sealed GAS packet", zh: "组装加密 GAS 封装包" },
+  packetDraftNeo: { en: "Assemble a sealed NEO packet", zh: "组装加密 NEO 封装包" },
+  packetReady: { en: "Packet ready to seal", zh: "封装包已就绪" },
+  packetSealed: { en: "Private packet sealed", zh: "隐私封装包已完成" },
+  packetRailGas: { en: "GAS packet", zh: "GAS 封装包" },
+  packetRailNeo: { en: "NEO packet", zh: "NEO 封装包" },
+  packetRailPrivate: { en: "Local encryption lane", zh: "本地加密通道" },
 
   // Form
   formNetworkLabel: { en: "Network", zh: "网络" },
@@ -147,13 +156,10 @@ const appMessages = {
     zh: "NEO 不可分割——请输入大于零的整数。",
   },
   errorInvalidAmount: { en: "Enter an amount greater than zero.", zh: "请输入大于零的金额。" },
-  validationHint: {
-    en: "Add a valid recipient and positive amount to enable local sealing.",
-    zh: "请填写有效的收款方与正数金额以启用本地封装。",
-  },
 
   // Seal button + busy state
   sealButton: { en: "Seal private transfer intent", zh: "封装隐私转账意图" },
+  sealCtaShort: { en: "Seal intent", zh: "封装意图" },
   sealing: { en: "Sealing...", zh: "封装中…" },
   sealAriaIdle: { en: "Seal private transfer intent", zh: "封装隐私转账意图" },
   sealAriaBusy: { en: "Sealing private transfer intent", zh: "正在封装隐私转账意图" },
@@ -172,8 +178,16 @@ const appMessages = {
   summaryNetwork: { en: "Network", zh: "网络" },
   summaryEncryption: { en: "Encryption", zh: "加密方式" },
   summaryPending: {
-    en: "Fill in a valid recipient and amount to preview the sealed intent.",
-    zh: "填写有效的收款方与金额，即可预览将封装的意图。",
+    en: "Recipient and amount are still local draft slots.",
+    zh: "收款方与金额仍是本地草稿槽位。",
+  },
+  summaryPendingAsset: {
+    en: "Recipient and {asset} amount are still local draft slots.",
+    zh: "收款方与 {asset} 金额仍是本地草稿槽位。",
+  },
+  sealPreviewPending: {
+    en: "Commitment appears after sealing.",
+    zh: "封装后显示承诺。",
   },
   summaryAmountValue: { en: "{amount} {asset}", zh: "{amount} {asset}" },
 
@@ -196,15 +210,17 @@ const appMessages = {
     en: "The lane reacts to your recipient, amount, network health, and sealing result.",
     zh: "这条路线会根据收款方、金额、网络健康状态与封装结果实时变化。",
   },
-  routeRecipientPending: { en: "Recipient pending", zh: "等待收款方" },
+  routeRecipientPending: { en: "Recipient slot", zh: "收款方槽位" },
   routeRecipientInvalid: { en: "Invalid recipient", zh: "收款方无效" },
-  routeAmountPending: { en: "Amount pending", zh: "等待金额" },
+  routeAmountPending: { en: "Amount slot", zh: "金额槽位" },
+  routeAmountPendingGas: { en: "GAS amount slot", zh: "GAS 金额槽位" },
+  routeAmountPendingNeo: { en: "NEO amount slot", zh: "NEO 金额槽位" },
   routeStepCompose: { en: "Compose intent", zh: "填写意图" },
   routeStepEncrypt: { en: "Encrypt locally", zh: "本地加密" },
   routeStepMorpheus: { en: "Store for Morpheus", zh: "交给 Morpheus" },
 
   // Submit status
-  statusInitial: { en: "Ready to seal private transfer details locally.", zh: "可在本地封装隐私转账细节。" },
+  statusInitial: { en: "Local lane idle. Details stay on this device until you seal.", zh: "本地通道待命。封装前细节只保留在此设备上。" },
   statusSealingProgress: {
     en: "Fetching Morpheus key, encrypting locally, and storing ciphertext.",
     zh: "正在获取 Morpheus 密钥、本地加密并存储密文。",
@@ -224,8 +240,8 @@ const appMessages = {
 
   // Validation before seal (status thrown)
   errorMissingInputs: {
-    en: "Enter a valid Neo N3 recipient and a positive transfer amount before sealing.",
-    zh: "封装前请输入有效的 Neo N3 收款方和正数转账金额。",
+    en: "Enter a valid Neo N3 recipient and a valid positive transfer amount before sealing.",
+    zh: "封装前请输入有效的 Neo N3 收款方和有效的正数转账金额。",
   },
 
   // Seal error messages (user-facing)

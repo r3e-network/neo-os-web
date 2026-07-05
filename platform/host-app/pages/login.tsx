@@ -84,7 +84,7 @@ export default function LoginPage() {
                       {t(`walletOptions.${w.id}.name`)}
                     </span>
                     {w.recommended && (
-                      <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                      <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700">
                         {t("auth.recommended")}
                       </span>
                     )}
@@ -93,7 +93,7 @@ export default function LoginPage() {
                     {t(`walletOptions.${w.id}.description`)}
                   </span>
                   <span
-                    className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700"
+                    className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700"
                   >
                     {t("walletOptions.protocol.nep21")}
                   </span>

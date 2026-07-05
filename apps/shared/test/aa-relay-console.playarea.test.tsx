@@ -1,309 +1,201 @@
 import React from "react";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import path from "node:path";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../aa-relay-console/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
-afterEach(() => cleanup());
-
-const AA_ADDRESS = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
-
-function t(key: string) {
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+function t(k: string) {
   const messages: Record<string, string> = {
-    relayHeroTitle: "Sponsored relay desk",
-    relayHeroCopy: "Check sponsorship and submit payloads.",
-    relayStageKicker: "Paymaster relay",
-    relayStageTitle: "Sponsor GAS, validate payload, then relay.",
-    relayMetricsLabel: "Relay environment summary",
-    network: "Network",
-    relayEndpointMetric: "Relay Endpoint",
-    paymasterLabel: "Paymaster",
-    relayCommandTitle: "Sponsor Preflight",
     aaCoreLabel: "AA Core",
     aaAddress: "AA Address",
-    aaAddressHint: "Required before sponsorship checks.",
+    aaAddressHint: "This route key opens sponsor checks and relay broadcast.",
     aaAddressPlaceholder: "N...",
-    sponsorCheck: "Check Sponsorship",
-    sponsorRequest: "Request Sponsorship",
-    sponsorBlocked: "Enter an AA address before checking sponsorship.",
-    relayFlowLabel: "AA relay workflow",
-    relayFlowSponsor: "Check sponsorship",
-    relayFlowSponsorDesc: "Resolve paymaster coverage.",
-    relayFlowRequest: "Request paymaster",
-    relayFlowRequestDesc: "Ask for sponsorship.",
-    relayFlowSubmit: "Submit relay",
-    relayFlowSubmitDesc: "Send validated JSON.",
-    relayStateLabel: "Relay Runtime",
-    relayStateTitle: "Sponsorship state",
-    labelAA: "AA",
-    labelSponsor: "Sponsor",
-    relayLabel: "Relay",
-    relayRiskTitle: "Submission guardrails",
-    relayRiskCopy: "Blocks empty AA addresses and invalid JSON.",
-    relaySubmitTitle: "Relay Payload",
-    relayDraftLabel: "Draft AA",
-    relayBlocked: "Enter an AA address and keep the payload JSON valid.",
-    payloadInvalid: "Fix the JSON payload before submitting.",
-    relayPayloadLens: "Payload lens",
-    relayPayloadReady: "Relay payload is readable",
-    relayPayloadOperation: "Operation",
-    relayPayloadTarget: "Target",
-    relayPayloadArgs: "Args",
-    relayBoardLabel: "Live AA relay board",
-    relayBoardKicker: "Relay line",
-    relayBoardDraft: "Set the AA account to open the relay line.",
-    relayBoardSponsor: "Account found. Check sponsorship before requesting coverage.",
-    relayBoardFunding: "Paymaster amount ready. Request sponsorship or submit a valid payload.",
-    relayBoardReady: "Relay payload ready for a sponsored on-chain submission.",
-    relayBoardChecking: "Checking paymaster coverage for this account.",
-    relayBoardRelaying: "Relayer is broadcasting the validated payload.",
-    relayBoardSubmitted: "Relay response received. Verify the returned transaction state.",
+    dappId: "dApp ID",
+    dappIdHint: "Optional app route for sponsor policy checks.",
+    dappIdPlaceholder: "miniapp-id",
+    network: "Network",
+    notAvailable: "not available",
+    payloadJson: "Relay Payload JSON",
+    payloadJsonPlaceholder: "{\"scriptHash\":\"...\",\"operation\":\"transfer\"}",
+    payloadInvalid: "Fix the JSON payload before submitting it to the relayer.",
+    relayAccountEyebrow: "Account routing",
+    relayAccountCapsule: "AA account capsule",
+    relayAccountWaiting: "Route key waiting",
+    relayAccountReady: "Route key locked",
+    relayAccountCapsuleHint: "Attach an account to open the relay line.",
     relayBoardAA: "AA account",
+    relayBoardDraft: "Attach an AA account to open the relay line.",
+    relayBoardKicker: "Relay line",
     relayBoardPaymaster: "Paymaster",
     relayBoardPayload: "Payload",
-    dappId: "Paymaster Dapp ID",
-    dappIdHint: "Optional paymaster scope.",
-    dappIdPlaceholder: "Optional dapp id",
+    relayCommandTitle: "Sponsor Preflight",
+    relayEndpointMetric: "Relay Endpoint",
+    relayFlowLabel: "AA relay workflow",
+    relayMetricsLabel: "Relay environment summary",
+    relayNeedsAA: "AA capsule waiting",
+    relayNeedsPayload: "Payload packet needs JSON",
+    relayPayloadReady: "Relay payload is readable",
+    relayRiskCopy: "The console keeps dapp id optional, but blocks empty AA addresses and invalid JSON before a relayed write.",
+    relayBlocked: "Account capsule and payload packet gate the broadcast.",
+    relaySubmitExplainer: "Submit sends the payload to a relayer that broadcasts the transaction on-chain on the account's behalf.",
+    relaySubmitTitle: "Relay packet ready",
+    relayStageKicker: "Paymaster relay",
+    relayStageTitle: "Sponsor GAS, validate the AA payload, then hand the transaction to the relayer.",
+    relayStationCaption: "Paymaster coverage, AA identity, and payload broadcast stay on one guarded desk.",
+    relayStationLabel: "Relay station",
+    relayStateLabel: "Relay Runtime",
+    relayStateTitle: "Sponsorship state",
+    relayHeroTitle: "Sponsored relay desk for AA payloads",
+    relayTxLabel: "On-chain transaction",
+    sponsorCheck: "Check Sponsorship",
     sponsorAmount: "Sponsor Amount",
-    sponsorAmountHint: "GAS amount requested from the paymaster.",
+    sponsorAmountHint: "GAS requested for the sponsored relay.",
     sponsorAmountPlaceholder: "0.1",
-    payloadJson: "Relay Payload JSON",
-    payloadJsonHint: "Must be valid JSON.",
-    payloadJsonPlaceholder: "{}",
+    sponsorDirectionNote: "Run sponsor checks before submitting a paid relay.",
+    sponsorRequest: "Request Sponsorship",
     submitRelay: "Submit Relay Payload",
-    notAvailable: "Not available",
     unset: "unset",
-    sponsorCheckComplete: "Sponsor check complete.",
-    sponsorEligible: "Eligible for sponsorship.",
-    serviceUnavailable: "Sponsorship service is currently unavailable.",
-    latestRelay: "Latest Relay Response",
-    aaAddressInvalid: "Enter a valid Neo address or 0x script hash.",
   };
-  let value = messages[key] ?? key;
-  return value;
+  return messages[k] ?? k;
 }
-
-function tParams(
-  key: string,
-  params?: Record<string, string | number>,
-): string {
-  const base = t(key);
-  if (key === "sponsorEligibleSummary") {
-    return `Eligible — ${params?.remaining} GAS of ${params?.dailyLimit} remaining today.`;
-  }
-  return base;
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
 }
-
-function launch(url: string) {
-  return parseMiniAppLaunchContext(url, "miniapp-aa-relay-console");
+function playAreaSource(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.tsx"), "utf8");
 }
+describe("aa-relay-console PlayArea (v2)", () => {
+  it("renders a foreground relay board instead of a backdrop desk", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    aaAddressDisplay: "Not available",
-    paymasterDisplay: "unset",
-    sponsorState: "{}",
-    relayResponse: "{}",
-    aaCoreDisplay: "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
-    relayUrlDisplay: "/api/aa/relay",
-    networkDisplay: "testnet",
-    isCheckingSponsorship: false,
-    isRelaying: false,
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
-}
+    expect(container.querySelector(".relay-scene__board")).toBeTruthy();
+    expect(container.querySelector(".relay-scene__account-panel")).toBeTruthy();
+    expect(container.querySelector(".relay-scene__account-capsule")).toBeTruthy();
+    expect(container.querySelector(".relay-scene__account-orb")).toBeTruthy();
+    expect(container.querySelector(".relay-scene__mode-strip-group.mx2-open-segmented.semi-radioGroup")).toBeTruthy();
+    expect(container.querySelectorAll(".relay-scene__mode-chip")).toHaveLength(3);
+    expect(container.querySelectorAll(".relay-scene__mode-strip-group .semi-radio")).toHaveLength(3);
+    expect(container.querySelectorAll('.relay-scene__mode-strip [role="tab"]')).toHaveLength(0);
+    expect(container.querySelector(".relay-scene__account-input")).toBeNull();
+    expect(container.querySelector(".relay-scene__station-card")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".relay-scene__station-card img")?.getAttribute("src")).toBe("aa-relay-station.webp");
+    expect(container.querySelector(".relay-scene__line-card")).toBeTruthy();
+    expect(container.querySelector(".relay-scene__track")).toBeTruthy();
+    expect(container.querySelector(".relay-scene__state-card")).toBeTruthy();
+    expect(container.querySelectorAll(".relay-scene__node")).toHaveLength(3);
+    expect(container.querySelectorAll(".relay-scene__node-icon svg")).toHaveLength(3);
+    expect(container.querySelector(".relay-scene__backdrop")).toBeFalsy();
+    expect(container.textContent).toContain("Route key waiting");
+    expect(container.textContent).toContain("Account capsule and payload packet gate the broadcast.");
+    expect(container.textContent).not.toContain("Enter an AA address");
+    expect(container.textContent).not.toMatch(/[📡⛽🚀]/u);
+  });
 
-describe("AA Relay Console PlayArea", () => {
-  it("prefills scoped relay fields from host launch params and dispatches them", async () => {
+  it("requires an AA address before submit relay dispatches", async () => {
+    vi.useFakeTimers();
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const payload = '{"metaInvocation":{"operation":"transfer"}}';
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const submit = screen.getByRole("button", { name: /Submit Relay Payload/ });
 
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-relay-console?network=testnet&aaAddress=${AA_ADDRESS}&dappId=miniapp-aa-relay-console&sponsorAmount=0.2&payloadJson=${encodeURIComponent(payload)}`,
-        )}
-      />,
-    );
+    expect((submit as HTMLButtonElement).disabled).toBe(true);
 
-    expect((screen.getByLabelText("AA Address") as HTMLInputElement).value).toBe(
-      AA_ADDRESS,
-    );
-    expect(
-      (screen.getByLabelText("Paymaster Dapp ID") as HTMLInputElement).value,
-    ).toBe("miniapp-aa-relay-console");
-    expect(
-      (screen.getByLabelText("Sponsor Amount") as HTMLInputElement).value,
-    ).toBe("0.2");
-    expect(
-      (screen.getByLabelText("Relay Payload JSON") as HTMLTextAreaElement)
-        .value,
-    ).toBe(payload);
-    expect(document.querySelector('.relay-hero__stage img[src="./aa-relay-station.jpg"]')).toBeTruthy();
-    expect(screen.getByLabelText("Live AA relay board")).toBeTruthy();
-    expect(document.querySelector(".relay-control-deck--ready")).toBeTruthy();
-    expect(document.querySelector('.relay-control-deck__media img[src="./aa-relay-station.jpg"]')).toBeTruthy();
-    expect(document.querySelectorAll(".relay-control-node--ready")).toHaveLength(3);
-    expect(document.querySelectorAll(".relay-control-deck__packet")).toHaveLength(2);
-    expect(screen.getByText("Relay payload ready for a sponsored on-chain submission.")).toBeTruthy();
-    expect(screen.getByLabelText("AA relay workflow")).toBeTruthy();
-    expect(document.querySelectorAll(".relay-route__step--ready")).toHaveLength(3);
-    expect(screen.getByLabelText("Payload lens")).toBeTruthy();
-    expect(screen.getAllByText("transfer").length).toBeGreaterThanOrEqual(2);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.change(container.querySelector(".relay-drawer__field .mx2-open-field__control input.semi-input") as Element, {
+      target: { value: "NZTbZjNcFVb5AkVVTT8knybCuhPhSmBCEH" },
+    });
+    expect((submit as HTMLButtonElement).disabled).toBe(false);
+    expect(document.querySelector(".relay-scene__account-capsule[data-ready='true']")).toBeTruthy();
+    expect(screen.getByText("Route key locked")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Check Sponsorship" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "checkSponsor",
-        AA_ADDRESS,
-        "miniapp-aa-relay-console",
-      );
+    fireEvent.click(submit);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1300);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Request Sponsorship" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "requestSponsor",
-        AA_ADDRESS,
-        "miniapp-aa-relay-console",
-        "0.2",
-      );
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Submit Relay Payload" }));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "submitRelay",
-        AA_ADDRESS,
-        "miniapp-aa-relay-console",
-        payload,
-      );
-    });
+    expect(dispatch).toHaveBeenCalledWith("submitRelay", "NZTbZjNcFVb5AkVVTT8knybCuhPhSmBCEH", "", "{}");
   });
 
-  it("blocks relay submission until the AA address and JSON payload are valid", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-relay-console?payloadJson=%7Bbad",
-        )}
-      />,
-    );
+  it("keeps relay command controls in one tabbed drawer panel at a time", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(
-      (screen.getByRole("button", { name: "Check Sponsorship" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-    expect(
-      (screen.getByRole("button", { name: "Submit Relay Payload" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-    expect(screen.getAllByText("Fix the JSON payload before submitting.").length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+
+    expect(container.querySelector(".relay-drawer-tabs__group.mx2-open-segmented.semi-radioGroup")).toBeTruthy();
+    expect(container.querySelectorAll(".relay-drawer-tabs__group .semi-radio")).toHaveLength(3);
+    expect(container.querySelectorAll('.relay-drawer-tabs [role="tab"]')).toHaveLength(0);
+    expect(container.querySelector(".relay-drawer__panel-shell")?.getAttribute("data-mode")).toBe("route");
+    expect(container.querySelectorAll(".relay-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelector(".relay-drawer__panel--route")).toBeTruthy();
+    expect(container.querySelectorAll(".relay-drawer__field.mx2-open-field")).toHaveLength(2);
+    expect(container.querySelectorAll(".relay-drawer__field .mx2-open-field__control input.semi-input")).toHaveLength(2);
+    expect(container.querySelector(".relay-drawer__facts")).toBeTruthy();
+    const tabs = container.querySelectorAll(".relay-drawer-tabs__group .semi-radio");
+    fireEvent.click(tabs[1]);
+    expect(container.querySelector(".relay-drawer__panel-shell")?.getAttribute("data-mode")).toBe("sponsor");
+    expect(container.querySelectorAll(".relay-drawer__field .mx2-open-field__control input.semi-input")).toHaveLength(1);
+    expect(container.querySelectorAll(".relay-drawer__row .mx2-btn.mx2-btn--ghost")).toHaveLength(2);
+    fireEvent.click(tabs[2]);
+    expect(container.querySelector(".relay-drawer__panel-shell")?.getAttribute("data-mode")).toBe("payload");
+    expect(container.querySelector(".mx2-open-field__control--textarea textarea.semi-input-textarea")).toBeTruthy();
+    expect(container.querySelector(".relay-drawer__payload.mx2-open-field--compact")).toBeTruthy();
+    expect(container.querySelector(".relay-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".relay-drawer__section")).toBeNull();
+    expect(container.querySelector(".relay-drawer__note")).toBeNull();
+    expect(container.querySelector(".relay-drawer h4")).toBeNull();
   });
 
-  it("promotes the eligibility answer to the result headline", () => {
-    render(
-      <PlayArea
-        t={tParams}
-        state={baseState({
-          sponsorState: JSON.stringify({
-            eligible: true,
-            remaining: "4",
-            dailyLimit: "10",
-          }),
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-relay-console?aaAddress=${AA_ADDRESS}`,
-        )}
-      />,
-    );
-    expect(
-      screen.getByText("Eligible — 4 GAS of 10 remaining today."),
-    ).toBeTruthy();
-  });
+  it("keeps the scene background clean and motion-accessible", () => {
+    const s = playAreaStyles("aa-relay-console");
+    const source = playAreaSource("aa-relay-console");
 
-  it("maps a host service-outage error to an honest unavailable message", () => {
-    render(
-      <PlayArea
-        t={tParams}
-        state={baseState({
-          sponsorState: JSON.stringify({
-            error: { code: "FORBIDDEN", message: "function not allowed" },
-          }),
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-relay-console?aaAddress=${AA_ADDRESS}`,
-        )}
-      />,
-    );
-    // The headline reads as a localized "unavailable" sentence; the raw body
-    // still lives in the collapsed <details> for debugging.
-    const headline = document.querySelector(".relay-result__text");
-    expect(headline?.textContent).toBe(
-      "Sponsorship service is currently unavailable.",
-    );
-  });
-
-  it("flags an invalid AA address inline", () => {
-    render(
-      <PlayArea
-        t={tParams}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-relay-console?aaAddress=abc",
-        )}
-      />,
-    );
-    expect(
-      screen.getByText("Enter a valid Neo address or 0x script hash."),
-    ).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Check Sponsorship" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-  });
-
-  it("keeps the relay board animated and reduced-motion safe", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../aa-relay-console/src/PlayArea.scss"),
-      "utf8",
-    );
-
-    expect(styles).toContain(".relay-control-deck");
-    expect(styles).toContain("@keyframes relay-deck-camera");
-    expect(styles).toContain("@keyframes relay-track-scan");
-    expect(styles).toContain("@keyframes relay-packet-run");
-    expect(styles).toContain("@keyframes relay-route-active");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.relay-control-deck__packet[\s\S]*animation:\s*none/,
-    );
+    expect(s).toMatch(/prefers-reduced-motion/);
+    expect(s).toMatch(/\.relay-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.relay-scene__board\s*\{[\s\S]*grid-template-columns/);
+    expect(s).toMatch(/\.relay-scene__account-panel\s*\{[\s\S]*min-height:\s*176px/);
+    expect(s).toMatch(/\.relay-scene__station-card\s*\{[\s\S]*grid-column:\s*1 \/ 4/);
+    expect(s).toMatch(/\.relay-scene__station-card img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(s).toMatch(/\.relay-scene__account-capsule\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(s).toMatch(/\.relay-scene__account-copy small\s*\{[\s\S]*white-space:\s*normal/);
+    expect(s).toMatch(/\.relay-scene__mode-strip-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*display:\s*grid/);
+    expect(s).toMatch(/\.relay-scene__mode-chip\s*\{[\s\S]*min-height:\s*34px/);
+    expect(s).not.toMatch(/relay-scene__account-input/);
+    expect(s).toMatch(/\.relay-scene__line-card\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(s).toMatch(/\.relay-scene__track\s*\{[\s\S]*display:\s*grid/);
+    expect(s).toMatch(/\.relay-scene__node-icon\s*\{[\s\S]*display:\s*grid/);
+    expect(s).toMatch(/\.relay-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 190px/);
+    expect(s).toMatch(/\.relay-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*var\(--mx2-brand-hover\)/);
+    expect(s).toMatch(/\.relay-play-area \.mx2-action-rail__row \.mx2-btn--primary:disabled\s*\{[\s\S]*background:\s*var\(--mx2-surface-hover\)/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.relay-scene__station-card\s*\{[\s\S]*height:\s*92px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.relay-scene__account-panel > p\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.relay-scene__state-card small\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/\.relay-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.relay-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*184px/);
+    expect(s).toMatch(/\.relay-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.relay-drawer__panel--route > \.semi-card-body\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.relay-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.relay-drawer \.mx2-open-panel__copy span\s*\{[\s\S]*white-space:\s*normal/);
+    expect(s).toMatch(/\.relay-drawer__row \.mx2-btn\s*\{[\s\S]*min-height:\s*38px/);
+    expect(s).toMatch(/\.relay-drawer__payload\.mx2-open-field--textarea \.mx2-open-field__control--textarea\s*\{[\s\S]*resize:\s*none/);
+    expect(s).toMatch(/\.relay-drawer__notice\s*\{[\s\S]*min-height:\s*72px/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.relay-drawer__panel--route > \.semi-card-body,[\s\S]*\.relay-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(s).toMatch(/@keyframes relay-line-flow/);
+    expect(source).toContain("OpenUiSegmented");
+    expect(source).not.toContain('role="tablist"');
+    expect(source).not.toContain('role="tab"');
+    expect(s).not.toMatch(/[📡⛽🚀]/u);
+    expect(s).not.toMatch(/relay-scene__backdrop|relay-drawer__section|relay-drawer__note|& textarea|background-image:\s*url|var\(--mx2-scene-wash/);
   });
 });

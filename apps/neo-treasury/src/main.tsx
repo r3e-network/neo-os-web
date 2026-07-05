@@ -35,7 +35,7 @@ defineMiniApp({
     // failed — drives the amber "showing cached data" signal instead of the
     // green "live synced" one.
     const stale = createObservable(false);
-    const address = createObservable(ctx.services.chain.address.get() ?? "");
+    const address = createObservable(ctx.framework.chain.address.get() ?? "");
     const disbursementSubmitting = createObservable(false);
     const disbursementStatus = createObservable(ctx.t("disbursementDraftReady"));
     const disbursementError = createObservable("");
@@ -116,19 +116,19 @@ defineMiniApp({
       }
     };
 
-    ctx.registerAction("refresh", async () => {
+    ctx.framework.actions.register("refresh", async () => {
       await loadData();
     });
 
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       disbursementError.set("");
-      const walletAddress = await ctx.services.chain.ensureWallet();
+      const walletAddress = await ctx.framework.chain.ensureWallet();
       address.set(walletAddress);
       disbursementStatus.set(ctx.t("walletConnected"));
       return { address: walletAddress };
     });
 
-    ctx.registerAction("submitDisbursement", async (...args: unknown[]) => {
+    ctx.framework.actions.register("submitDisbursement", async (...args: unknown[]) => {
       if (disbursementSubmitting.get()) return null;
       const form = (args[0] ?? {}) as Record<string, unknown>;
       disbursementSubmitting.set(true);
@@ -136,12 +136,15 @@ defineMiniApp({
       disbursementStatus.set(ctx.t("disbursementSigning"));
 
       try {
-        const walletAddress = await ctx.services.chain.ensureWallet();
+        const walletAddress = await ctx.framework.chain.ensureWallet();
         address.set(walletAddress);
         const intent = buildTreasuryTransferIntent(walletAddress, form);
         lastIntent.set(intent);
 
-        const result = await ctx.services.chain.invoke("transfer", intent.args, {
+        // Raw framework invoke (no notify/reload wrapper): this handler owns its
+        // own try/catch error reformatting (formatErrorMessage) and status set,
+        // so app.chain.write would pre-empt those custom messages.
+        const result = await ctx.framework.chain.invoke("transfer", intent.args, {
           scriptHash: intent.scriptHash,
         });
 
@@ -166,8 +169,8 @@ defineMiniApp({
       }
     });
 
-    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
-      address.set(ctx.services.chain.address.get() ?? "");
+    const stopAddressSync = ctx.framework.chain.address.subscribe(() => {
+      address.set(ctx.framework.chain.address.get() ?? "");
     });
 
     return {

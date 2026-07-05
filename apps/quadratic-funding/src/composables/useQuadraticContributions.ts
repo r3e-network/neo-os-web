@@ -14,8 +14,8 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { extractTxid } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS, resolveNeoNetwork } from "@shared/constants";
 import type { Network } from "@shared/utils/n3index";
-import type { RoundItem } from "../pages/index/components/RoundList";
-import type { ProjectItem } from "../pages/index/components/ProjectList";
+import type { RoundItem } from "./quadraticTypes";
+import type { ProjectItem } from "./quadraticTypes";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;

@@ -125,11 +125,11 @@ async function main() {
       }
     }
 
-    if (!asString(urls.icon) && !(await exists(path.join(appDir, "public/logo.jpg")))) {
-      failures.push({ slug, reason: "missing icon asset: set urls.icon or add public/logo.jpg" });
+    if (!asString(urls.icon) && !(await exists(path.join(appDir, "public/logo.webp")))) {
+      failures.push({ slug, reason: "missing icon asset: set urls.icon or add public/logo.webp" });
     }
-    if (!asString(urls.banner) && !(await exists(path.join(appDir, "public/banner.jpg")))) {
-      failures.push({ slug, reason: "missing banner asset: set urls.banner or add public/banner.jpg" });
+    if (!asString(urls.banner) && !(await exists(path.join(appDir, "public/banner.webp")))) {
+      failures.push({ slug, reason: "missing banner asset: set urls.banner or add public/banner.webp" });
     }
 
     const packagePath = path.join(appDir, "package.json");

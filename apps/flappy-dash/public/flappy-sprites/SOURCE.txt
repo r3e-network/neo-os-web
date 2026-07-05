@@ -1,0 +1,5 @@
+Source: https://github.com/NNBnh/flappybirdart
+License: CC0-1.0
+
+These sprites are used to give Flappy Dash a real arcade playfield: day
+background, scrolling ground, bird flap frames, and separate top/bottom pipes.

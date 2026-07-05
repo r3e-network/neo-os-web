@@ -269,6 +269,8 @@ const appMessages = {
   },
   agentCandidateLabel: { en: "candidate {id}", zh: "候选人 {id}" },
   stakingWorkspaceLabel: { en: "TrustAnchor staking workspace", zh: "TrustAnchor 质押工作区" },
+  recoverNeoCredit: { en: "Recover NEO", zh: "取回 NEO" },
+  refreshAnchor: { en: "Refresh", zh: "刷新" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

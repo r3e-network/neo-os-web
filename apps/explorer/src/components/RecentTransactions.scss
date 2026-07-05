@@ -9,7 +9,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   text-shadow: none;
 }
@@ -37,7 +37,7 @@
   width: 72px;
   height: 72px;
   overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.18);
+  border: 1px solid rgba(8, 145, 178, 0.18);
   border-radius: var(--ns-radius-md, 18px);
   background: var(--ns-brand-soft, #e4f8f0);
   box-shadow: 0 12px 26px rgba(11, 94, 62, 0.1);
@@ -78,7 +78,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 

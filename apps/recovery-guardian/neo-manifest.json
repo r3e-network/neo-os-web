@@ -58,8 +58,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/recovery-guardian/index.html",
-    "icon": "/miniapps/recovery-guardian/logo.jpg",
-    "banner": "/miniapps/recovery-guardian/banner.jpg"
+    "icon": "/miniapps/recovery-guardian/logo.webp",
+    "banner": "/miniapps/recovery-guardian/banner.webp"
   },
   "permissions": [
     "read:blockchain",

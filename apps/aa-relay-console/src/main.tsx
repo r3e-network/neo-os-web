@@ -33,7 +33,7 @@ defineMiniApp({
       relay.payloadJson.set(launchDefaults.payloadJson);
     }
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "checkSponsor",
       async (aaAddress: unknown, dappId: unknown) => {
         relay.aaAddress.set(String(aaAddress));
@@ -46,7 +46,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "requestSponsor",
       async (aaAddress: unknown, dappId: unknown, amount: unknown) => {
         relay.aaAddress.set(String(aaAddress));
@@ -60,7 +60,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "submitRelay",
       async (aaAddress: unknown, dappId: unknown, payloadJson: unknown) => {
         relay.aaAddress.set(String(aaAddress));

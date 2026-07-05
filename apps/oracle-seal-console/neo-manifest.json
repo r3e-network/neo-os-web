@@ -28,8 +28,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-seal-console/index.html",
-    "icon": "/miniapps/oracle-seal-console/logo.jpg",
-    "banner": "/miniapps/oracle-seal-console/banner.jpg"
+    "icon": "/miniapps/oracle-seal-console/logo.webp",
+    "banner": "/miniapps/oracle-seal-console/banner.webp"
   },
   "permissions": [
     "read:blockchain",

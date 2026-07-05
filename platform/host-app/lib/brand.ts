@@ -1,10 +1,10 @@
 export const BRAND = {
-  name: "Yiwu",
-  nameZh: "义乌",
-  productName: "Yiwu MiniApps",
-  productNameZh: "义乌小程序",
-  mark: "义乌",
-  title: "Yiwu | Small, focused MiniApps for Neo N3",
+  name: "Neo",
+  nameZh: "Neo",
+  productName: "Neo Miniapps",
+  productNameZh: "Neo Miniapps",
+  mark: "Neo",
+  title: "Neo Miniapps | Small, focused apps for Neo N3",
   description:
     "Discover small, focused, production-ready MiniApps for Neo N3: games, payments, oracle tools, account abstraction, bridge workflows, and OneGate-ready operations.",
   tagline:

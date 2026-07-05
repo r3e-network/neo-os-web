@@ -57,28 +57,47 @@ defineMiniApp({
       requestCount.set(requestCount.get() + 1);
     };
 
-    ctx.registerAction("prepareAssetBridge", async (formData) => {
-      const intent = buildAssetBridgeIntent(
-        formData as Record<string, unknown>,
-        undefined,
-        bridgeEnvironment,
-      );
-      recordIntent(intent);
-      ctx.setStatus(ctx.t("statusAssetReady"), "success");
+    const asForm = (formData: unknown): Record<string, unknown> =>
+      formData && typeof formData === "object" && !Array.isArray(formData)
+        ? formData as Record<string, unknown>
+        : {};
+    const hasText = (value: unknown): boolean => String(value ?? "").trim().length > 0;
+    const showBridgeError = (err: unknown) => {
+      ctx.setStatus(err instanceof Error ? err.message : ctx.t("errBridgeGeneric"), "error");
+    };
+
+    ctx.framework.actions.register("prepareAssetBridge", async (formData) => {
+      const form = asForm(formData);
+      if (!hasText(form.amount) || !hasText(form.recipient)) {
+        ctx.setStatus(ctx.t("hintAssetGate"), "error");
+        return;
+      }
+      try {
+        const intent = buildAssetBridgeIntent(form, undefined, bridgeEnvironment);
+        recordIntent(intent);
+        ctx.setStatus(ctx.t("statusAssetReady"), "success");
+      } catch (err) {
+        showBridgeError(err);
+      }
     });
 
-    ctx.registerAction("prepareMessageBridge", async (formData) => {
-      const intent = buildMessageBridgeIntent(
-        formData as Record<string, unknown>,
-        undefined,
-        bridgeEnvironment,
-      );
-      recordIntent(intent);
-      ctx.setStatus(ctx.t("statusMessageReady"), "success");
+    ctx.framework.actions.register("prepareMessageBridge", async (formData) => {
+      const form = asForm(formData);
+      if (!hasText(form.targetContract) || !hasText(form.message ?? form.payload)) {
+        ctx.setStatus(ctx.t("hintMessageGate"), "error");
+        return;
+      }
+      try {
+        const intent = buildMessageBridgeIntent(form, undefined, bridgeEnvironment);
+        recordIntent(intent);
+        ctx.setStatus(ctx.t("statusMessageReady"), "success");
+      } catch (err) {
+        showBridgeError(err);
+      }
     });
 
-    ctx.registerAction("trackBridgeOperation", async (formData) => {
-      const form = formData as Record<string, unknown>;
+    ctx.framework.actions.register("trackBridgeOperation", async (formData) => {
+      const form = asForm(formData);
       const bridgeKind = form.bridgeKind === "message" ? "message" : "asset";
       const direction = normalizeDirection(form.direction);
       const nextTimeline = buildStatusTimeline(form);

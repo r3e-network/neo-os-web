@@ -36,7 +36,7 @@ export default function ApiReferencePage() {
   return (
     <Layout>
       <Head>
-        <title>API Reference | Yiwu</title>
+        <title>API Reference | Neo Miniapps</title>
         <meta
           name="description"
           content="Host API reference for MiniApp catalog, RPC, health, and browser security endpoints."

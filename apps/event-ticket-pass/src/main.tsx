@@ -16,14 +16,14 @@ defineMiniApp({
 
   setup(ctx) {
     const ticket = useEventTicket({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
     ticket.address.set(ctx.services.chain.address.get() ?? "");
 
-    ctx.registerAction("connectWallet", async () => {
+    ctx.framework.actions.register("connectWallet", async () => {
       try {
         await ticket.connectWallet();
         ctx.setStatus(ctx.t("walletConnected"), "success");
@@ -34,7 +34,7 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("refreshEvents", async () => {
+    ctx.framework.actions.register("refreshEvents", async () => {
       try {
         await ticket.refreshEvents();
         ctx.setStatus(ctx.t("eventsLoaded"), "success");
@@ -45,7 +45,7 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("refreshTickets", async () => {
+    ctx.framework.actions.register("refreshTickets", async () => {
       try {
         await ticket.refreshTickets();
         ctx.setStatus(ctx.t("ticketsLoaded"), "success");
@@ -56,7 +56,7 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("createEvent", async () => {
+    ctx.framework.actions.register("createEvent", async () => {
       try {
         await ticket.createEvent();
         ctx.setStatus(ctx.t("eventCreated"), "success");
@@ -67,13 +67,13 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("selectEvent", async (eventId: unknown) => {
+    ctx.framework.actions.register("selectEvent", async (eventId: unknown) => {
       ticket.selectEvent(String(eventId || ""));
     });
-    ctx.registerAction("openIssueModal", async (event: unknown) => {
+    ctx.framework.actions.register("openIssueModal", async (event: unknown) => {
       ticket.openIssueModal(event);
     });
-    ctx.registerAction("issueTicket", async () => {
+    ctx.framework.actions.register("issueTicket", async () => {
       try {
         await ticket.issueTicket();
         ctx.setStatus(ctx.t("ticketIssued"), "success");
@@ -84,12 +84,12 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("toggleEvent", async (event: unknown) =>
+    ctx.framework.actions.register("toggleEvent", async (event: unknown) =>
       ctx.services.notify.guard(async () => {
         await ticket.toggleEvent(event);
       }),
     );
-    ctx.registerAction("lookupTicket", async () => {
+    ctx.framework.actions.register("lookupTicket", async () => {
       try {
         await ticket.lookupTicket();
         ctx.setStatus(ctx.t("ticketFound"), "success");
@@ -100,7 +100,7 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("checkInTicket", async () => {
+    ctx.framework.actions.register("checkInTicket", async () => {
       try {
         await ticket.checkInTicket();
         ctx.setStatus(ctx.t("checkinSuccess"), "success");
@@ -111,15 +111,15 @@ defineMiniApp({
         );
       }
     });
-    ctx.registerAction("startTransfer", async (item: unknown) => {
+    ctx.framework.actions.register("startTransfer", async (item: unknown) => {
       ticket.startTransfer(item);
     });
-    ctx.registerAction("copyTokenId", async (tokenId: unknown) => {
+    ctx.framework.actions.register("copyTokenId", async (tokenId: unknown) => {
       const value = String(tokenId ?? "");
       if (!value) return;
       await ctx.services.clipboard.copy(value, "tokenIdCopied");
     });
-    ctx.registerAction("transferTicket", async (input: unknown) => {
+    ctx.framework.actions.register("transferTicket", async (input: unknown) => {
       try {
         await ticket.transferTicket(
           input as { tokenId?: string; recipient?: string } | undefined,

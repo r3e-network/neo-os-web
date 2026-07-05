@@ -1,9 +1,8 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../daily-checkin/src/PlayArea";
 
@@ -11,352 +10,176 @@ import PlayArea from "../../daily-checkin/src/PlayArea";
 
 afterEach(() => cleanup());
 
-function t(key: string, params?: Record<string, string | number>) {
+function t(key: string, params: Record<string, string | number> = {}) {
   const messages: Record<string, string> = {
-    almostGone: "Almost gone",
     bestStreak: "Best",
-    checkInFee: "Check-in fee",
     checkInNow: "Check In Now",
     checkInReady: "Ready",
-    checkClaimable: "Claimable balance",
-    checkComplete: "Complete",
-    checkFeeVisible: "Fee visible",
-    checkReady: "Open",
-    checkUtcWindow: "UTC window",
-    checkedInToday: "Checked in today",
-    checkinChecklist: "Check-in checklist",
     claimRewards: "Claim Rewards",
-    claimPlan: "Claim plan",
-    countdownDefault: "Countdown",
     currentStreak: "Current Streak",
-    dailyWindow: "Daily window",
-    day: "Day",
     dayCompleted: "Completed",
     dayPending: "Pending",
     dayPrefix: "D",
     days: "Days",
     daysToReward: "{days} days to reward",
-    dayStreak: "Day Streak",
-    docSubtitle: "Earn GAS by checking in daily",
-    evidence: "Request and result evidence",
-    globalStats: "Global Stats",
     highestStreak: "Highest Streak",
-    hurryUp: "Hurry up",
-    latestRequest: "Latest Request",
-    latestResult: "Latest Result",
-    loading: "Loading...",
     milestoneReached: "Milestone reached",
-    milestoneImpact: "Milestone impact",
-    milestoneImpactPending: "{days} more UTC days until the next milestone payout.",
-    milestoneImpactReady: "This check-in reaches the day {day} reward.",
-    milestoneDonePending: "{days} more UTC days until the next milestone payout after today's check-in.",
-    milestoneRewardUnlocked: "Day {day} reward unlocked.",
     milestones: "Milestones",
-    milestoneSecured: "Day {day} secured",
-    milestoneSecuredCopy: "This UTC day is recorded. {days} more UTC days until the next milestone payout.",
-    noImmediateReward: "No instant GAS",
-    nextCheckin: "Next Check-in",
     nextReward: "Next reward",
-    noCheckins: "No check-ins yet",
-    plentyOfTime: "Plenty of time",
+    notCheckedIn: "Not checked in today",
     recentCheckins: "Recent Check-ins",
     refreshStatus: "Refresh Status",
-    requestEmpty: "No action submitted yet",
-    resultEmpty: "Response appears here",
     rewardPlanEmpty: "Nothing to claim",
     rewardPlanEmptyCopy: "Claim activates after a milestone reward is recorded.",
     rewardPlanReady: "Rewards claimable",
     rewardPlanReadyCopy: "{amount} is available through the claim wallet action.",
-    rewardProgress: "Reward Progress",
-    serviceRoute: "Service route",
-    serviceRouteCopy: "Check-in deposits the GAS fee to the on-chain contract; rewards claim directly from it.",
-    title: "Daily Check-in",
-    todayPlan: "Today plan",
-    todayPlanDone: "Secured today",
-    todayPlanDoneCopy: "Your streak is already protected until the next UTC reset.",
+    rewardPool: "Reward pool",
+    statusReady: "Complete your daily check-in now!",
+    streakStageCopy: "Today advances the chain-recorded path.",
+    streakStageEyebrow: "Streak plaza",
+    streakStageProgress: "Path progress",
+    streakStageTitle: "Complete the seven-day path.",
     todayPlanReady: "Check-in available",
-    todayPlanReadyCopy: "Submitting now records day {streak} for the current UTC cycle.",
-    todayPlanSubtitle: "Review the UTC window, reward impact, and wallet route before acting.",
-    tokenGas: "GAS",
-    total: "total",
-    totalCheckins: "Total Check-ins",
     totalClaimed: "Total Claimed",
-    totalRewarded: "Total Rewarded",
-    totalUsers: "Total Users",
     unclaimed: "Unclaimed",
-    utcLabel: "UTC",
     waitForNext: "Wait for Next",
-    workflowReady: "Ready",
+    workflowCheckingIn: "Submitting check-in",
+    workflowClaiming: "Claiming rewards",
     yourRewards: "Your Rewards",
     yourStats: "Your Stats",
   };
-  let value = messages[key] ?? key;
-  for (const [paramKey, paramValue] of Object.entries(params ?? {})) {
-    value = value.replace(`{${paramKey}}`, String(paramValue));
+  let text = messages[key] ?? key;
+  for (const [param, value] of Object.entries(params)) {
+    text = text.replace(`{${param}}`, String(value));
   }
-  return value;
+  return text;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    currentStreak: "6 Days",
-    highestStreak: "8 Days",
-    currentStreakRaw: 6,
-    highestStreakRaw: 8,
-    totalUserCheckins: 12,
-    unclaimedRewards: 100000000,
-    totalClaimed: 150000000,
-    checkInFee: 100000,
-    totalGlobalCheckins: 100,
-    totalGlobalUsers: 20,
-    totalGlobalRewarded: 1000000000,
-    canCheckIn: true,
-    hasLoadedStatus: true,
-    isLoading: false,
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    canCheckIn: false,
+    checkinHistory: [],
+    currentStreak: "0 Days",
+    currentStreakRaw: 0,
+    highestStreak: "0 Days",
+    isCheckingIn: false,
     isClaiming: false,
-    workflowStatus: "Ready",
-    lastError: "",
-    utcTimeDisplay: "11:15:36",
-    nextUtcMidnight: Date.now() + 3600_000,
-    checkinHistory: [
-      {
-        action: "checkin",
-        streak: 6,
-        time: "2026-06-01T00:00:00.000Z",
-        reward: 0,
-        txid: "0xhistory",
-      },
-    ],
-    latestRequest: { action: "refreshStatus" },
-    latestResult: { action: "refreshStatus", status: "success" },
-    ...overrides,
+    isPaused: false,
+    rewardPoolBalance: "0 GAS",
+    rewardsUnderfunded: false,
+    totalClaimed: "0 GAS",
+    unclaimedRewards: "0 GAS",
+    ...o,
   };
-
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
+    Object.entries(base).map(([key, value]) => [key, createObservable(value)]),
   );
 }
 
-describe("Daily Check-in PlayArea", () => {
-  it("renders the full check-in, reward, history, and evidence workflow", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+function appFile(app: string, ...segments: string[]): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return path.join(appsRoot, app, ...segments);
+}
 
-    expect(container.querySelector(".checkin-play-area.streak-can-checkin")).toBeTruthy();
-    expect(container.querySelector(".checkin-play-area.streak-milestone-ready")).toBeTruthy();
-    expect(container.querySelector(".checkin-week-day-slot.today-ready")).toBeTruthy();
-    expect(container.querySelector(".checkin-connector-fill")).toBeTruthy();
-    expect(container.querySelector(".checkin-route-runner--ready")).toBeTruthy();
-    expect(container.querySelectorAll(".checkin-route-spark").length).toBe(3);
-    expect(container.querySelector(".checkin-btn--ready")).toBeTruthy();
-    expect(document.querySelector('.checkin-streak-stage img[src="./streak-plaza.jpg"]')).toBeTruthy();
-    expect(screen.getAllByText("6 Day Streak").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Check In Now" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Claim Rewards" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Refresh Status" })).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Today plan" })).toBeTruthy();
-    expect(screen.getByText("Check-in available")).toBeTruthy();
-    // Day-7 milestone pays 0.01 GAS (matches the contract's DEFAULT_WEEK_REWARD
-    // = 1_000_000 base units); the ladder previously over-stated this as 1 GAS.
-    expect(screen.getAllByText("+0.01 GAS").length).toBeGreaterThan(0);
-    expect(screen.getByText("Rewards claimable")).toBeTruthy();
-    expect(screen.getByText("Check-in deposits the GAS fee to the on-chain contract; rewards claim directly from it.")).toBeTruthy();
-    expect(screen.getByText("Your Rewards")).toBeTruthy();
-    expect(screen.getByText("Recent Check-ins")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Request and result evidence" })).toBeTruthy();
-  });
+function playAreaStyles(app: string): string {
+  return readFileSync(appFile(app, "src/PlayArea.scss"), "utf8");
+}
 
-  it("keeps the weekly route animated and reduced-motion safe", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../daily-checkin/src/PlayArea.scss"),
-      "utf8",
+function playAreaSource(app: string): string {
+  return readFileSync(appFile(app, "src/PlayArea.tsx"), "utf8");
+}
+
+describe("daily-checkin PlayArea (v2)", () => {
+  it("renders an asset-led seven-day reward board instead of a flat card grid", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ currentStreakRaw: 3, currentStreak: "3 Days" })} dispatch={vi.fn()} />,
     );
 
-    expect(styles).toContain(".checkin-route-runner--ready");
-    expect(styles).toContain("@keyframes checkin-route-spark");
-    expect(styles).toContain("@keyframes checkin-today-token-hop");
-    expect(styles).toContain("@keyframes checkin-plaza-drift");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toContain(".streak-can-checkin .checkin-route-spark");
+    expect(container.querySelector(".dci-reward-board")).toBeTruthy();
+    expect(container.querySelector(".dci-streak-card")).toBeTruthy();
+    expect(container.querySelector(".dci-plaza-art")).toBeTruthy();
+    expect(container.querySelector(".dci-plaza-art img")?.getAttribute("src")).toBe("streak-plaza.webp");
+    expect(container.querySelector(".dci-plaza-art figcaption")).toBeTruthy();
+    expect(container.querySelector(".dci-plaza-art__meter")).toBeTruthy();
+    expect(container.querySelector(".dci-streak-card__summary")).toBeTruthy();
+    expect(container.querySelectorAll(".dci-day-node")).toHaveLength(7);
+    expect(container.querySelectorAll(".dci-day-node--complete")).toHaveLength(3);
+    expect(container.querySelector(".dci-side-panel")).toBeNull();
+    expect(container.querySelector(".dci-focus-card")).toBeNull();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".dci-chest-card")).toBeNull();
+    expect(container.querySelector(".dci-scene__backdrop")).toBeNull();
   });
 
-  it("dispatches all visible business actions", () => {
-    const dispatch = vi.fn(async () => undefined);
-    const checkInView = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+  it("uses check-in as the primary action when today is available", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea t={t} state={state({ canCheckIn: true })} dispatch={dispatch} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Check In Now" }));
+    fireEvent.click(screen.getByRole("button", { name: /Check In Now/ }));
+
     expect(dispatch).toHaveBeenCalledWith("doCheckIn");
-    checkInView.unmount();
-
-    const claimView = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Claim Rewards" }));
-    expect(dispatch).toHaveBeenCalledWith("claimRewards");
-    claimView.unmount();
-
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
-    expect(dispatch).toHaveBeenCalledWith("refreshStatus");
   });
 
-  it("previews check-in route motion immediately and locks peer actions", async () => {
-    let finishCheckIn: (() => void) | undefined;
-    const checkInPromise = new Promise<void>((resolve) => {
-      finishCheckIn = resolve;
-    });
-    const dispatch = vi.fn((name: string) =>
-      name === "doCheckIn" ? checkInPromise : Promise.resolve(),
-    );
-
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Check In Now" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("doCheckIn");
-      expect(container.querySelector(".checkin-play-area")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".checkin-week-wrapper")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".checkin-actions-grid")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".streak-checking-in")).toBeTruthy();
-      expect(container.querySelector(".checkin-route-runner--checking-in")).toBeTruthy();
-      expect(container.querySelector(".checkin-action-card--busy.checkin-action-card--checkin")).toBeTruthy();
-    });
-
-    const checkInButton = screen.getByRole("button", { name: "Check In Now" }) as HTMLButtonElement;
-    expect(checkInButton.disabled).toBe(true);
-    expect(checkInButton.getAttribute("aria-busy")).toBe("true");
-
-    expect((screen.getByRole("button", { name: "Claim Rewards" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement).disabled).toBe(true);
-
-    fireEvent.click(checkInButton);
-    fireEvent.click(screen.getByRole("button", { name: "Claim Rewards" }));
-    fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
-    expect(dispatch).toHaveBeenCalledTimes(1);
-
-    finishCheckIn?.();
-  });
-
-  it("previews claim and refresh actions with scoped busy states", async () => {
-    let finishClaim: (() => void) | undefined;
-    const claimPromise = new Promise<void>((resolve) => {
-      finishClaim = resolve;
-    });
-    const claimDispatch = vi.fn((name: string) =>
-      name === "claimRewards" ? claimPromise : Promise.resolve(),
-    );
-    const claimView = render(<PlayArea t={t} state={state()} dispatch={claimDispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Claim Rewards" }));
-
-    await waitFor(() => {
-      expect(claimDispatch).toHaveBeenCalledWith("claimRewards");
-      expect(claimView.container.querySelector(".checkin-action-card--busy.checkin-action-card--claim")).toBeTruthy();
-      expect(claimView.container.querySelector(".checkin-play-area")?.getAttribute("aria-busy")).toBe("true");
-    });
-    expect((screen.getByRole("button", { name: "Claim Rewards" }) as HTMLButtonElement).getAttribute("aria-busy")).toBe("true");
-    expect((screen.getByRole("button", { name: "Check In Now" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement).disabled).toBe(true);
-    finishClaim?.();
-    claimView.unmount();
-
-    let finishRefresh: (() => void) | undefined;
-    const refreshPromise = new Promise<void>((resolve) => {
-      finishRefresh = resolve;
-    });
-    const refreshDispatch = vi.fn((name: string) =>
-      name === "refreshStatus" ? refreshPromise : Promise.resolve(),
-    );
-    const refreshView = render(<PlayArea t={t} state={state()} dispatch={refreshDispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Refresh Status" }));
-
-    await waitFor(() => {
-      expect(refreshDispatch).toHaveBeenCalledWith("refreshStatus");
-      expect(refreshView.container.querySelector(".checkin-action-card--busy.checkin-action-card--refresh")).toBeTruthy();
-      expect(refreshView.container.querySelector(".checkin-actions-grid")?.getAttribute("aria-busy")).toBe("true");
-    });
-    expect((screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement).getAttribute("aria-busy")).toBe("true");
-    expect((screen.getByRole("button", { name: "Check In Now" }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole("button", { name: "Claim Rewards" }) as HTMLButtonElement).disabled).toBe(true);
-    finishRefresh?.();
-  });
-
-  it("marks the streak surface as celebrating when a milestone check-in lands", async () => {
-    const dispatch = vi.fn(async () => undefined);
-    const { container, rerender } = render(
-      <PlayArea t={t} state={state({ currentStreakRaw: 6, canCheckIn: true })} dispatch={dispatch} />,
-    );
-
-    rerender(
+  it("uses claim as the primary action only when rewards are claimable", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(
       <PlayArea
         t={t}
-        state={state({
-          currentStreakRaw: 7,
-          canCheckIn: false,
-          unclaimedRewards: 101000000,
-        })}
+        state={state({ canCheckIn: false, unclaimedRewards: "0.01 GAS" })}
         dispatch={dispatch}
       />,
     );
 
-    await waitFor(() => {
-      expect(container.querySelector(".checkin-play-area.streak-celebrating")).toBeTruthy();
-    });
-    expect(screen.getByText("Milestone reached")).toBeTruthy();
-    expect(screen.getByText("Day 7 reward unlocked.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Claim Rewards/ }));
+
+    expect(dispatch).toHaveBeenCalledWith("claimRewards");
   });
 
-  it("uses the wait state as the check-in button accessible name", () => {
-    render(<PlayArea t={t} state={state({ canCheckIn: false })} dispatch={vi.fn(async () => undefined)} />);
+  it("keeps the scene foreground-led, clean, and motion-accessible", () => {
+    const styles = playAreaStyles("daily-checkin");
+    const source = playAreaSource("daily-checkin");
+    const streakAsset = appFile("daily-checkin", "public/streak-plaza.webp");
 
-    expect((screen.getByRole("button", { name: "Wait for Next" }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it("keeps the check-in and refresh button labels during initial hydration (no bare spinners)", () => {
-    // Initial status read in flight: the global isLoading is true, but neither
-    // the user-initiated check-in nor refresh is running. Buttons must stay
-    // labelled (disabled) rather than collapsing to a label-less spinner.
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          hasLoadedStatus: false,
-          isLoading: true,
-          isCheckingIn: false,
-          isRefreshing: false,
-        })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
-
-    const checkInBtn = screen.getByRole("button", { name: "Loading..." }) as HTMLButtonElement;
-    expect(checkInBtn.textContent).toContain("Loading...");
-    expect(checkInBtn.disabled).toBe(true);
-    expect(checkInBtn.getAttribute("aria-busy")).toBeNull();
-
-    const refreshBtn = screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement;
-    expect(refreshBtn.textContent).toContain("Refresh Status");
-    expect(refreshBtn.disabled).toBe(true);
-    expect(refreshBtn.getAttribute("aria-busy")).toBeNull();
-  });
-
-  it("shows the spinner only on the action that is actually running", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({ isCheckingIn: true })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
-
-    // The check-in button is busy (spinner replaces its label) while the
-    // refresh button keeps its text label intact.
-    expect(screen.getByRole("button", { name: "Refresh Status" }).textContent).toContain(
-      "Refresh Status",
-    );
+    expect(existsSync(streakAsset)).toBe(true);
+    expect(statSync(streakAsset).size).toBeGreaterThan(50_000);
+    expect(source).toContain('const STREAK_IMAGE = "streak-plaza.webp";');
+    expect(source).toContain('className="dci-plaza-art"');
+    expect(source).not.toContain("checkin-scene-art.webp");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/animation-duration:\s*0\.001ms/);
+    expect(styles).toMatch(/\.daily-checkin-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
+    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*max-width:\s*880px/);
+    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*background:\s*#fffdf8/);
+    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*box-shadow:\s*0 1px 3px/);
+    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.dci-streak-card__summary\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.dci-plaza-art\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.dci-plaza-art img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.dci-plaza-art img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.dci-plaza-art figcaption\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.dci-plaza-art__meter span\s*\{[\s\S]*transition:\s*width 220ms/);
+    expect(styles).toMatch(/\.dci-path::before\s*\{[\s\S]*background:\s*rgba\(217,\s*119,\s*6,\s*0\.18\)/);
+    expect(styles).toMatch(/\.dci-day-node\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.dci-day-node--complete\s*\{[\s\S]*color:\s*#0f766e/);
+    expect(styles).toMatch(/\.dci-day-node--active\s*\{[\s\S]*color:\s*#92400e/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.daily-checkin-play-area \.mx2-action-rail\s*\{[\s\S]*padding:\s*0 14px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.daily-checkin-play-area \.mx2-action-rail__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.daily-checkin-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*width:\s*100%/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-plaza-art img\s*\{[\s\S]*height:\s*250px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-path\s*\{[\s\S]*grid-auto-columns:\s*66px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-path\s*\{[\s\S]*overflow-x:\s*auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-day-node\s*\{[\s\S]*scroll-snap-align:\s*start/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-day-node small\s*\{[\s\S]*display:\s*none/);
+    expect(styles).not.toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.daily-checkin-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*max-width:\s*168px/);
+    expect(styles).not.toMatch(/\.dci-chest-card/);
+    expect(styles).toMatch(/\.dci-streak-card__badge\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(source).not.toMatch(/dci-side-panel|dci-focus-card|dci-reward-card/);
+    expect(styles).not.toMatch(/dci-side-panel|dci-focus-card|dci-reward-card|mx2-score/);
+    expect(styles).not.toMatch(/__backdrop/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).not.toMatch(/radial-gradient/);
+    expect(styles).not.toMatch(/tool-scene/);
   });
 });

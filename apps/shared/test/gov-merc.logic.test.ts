@@ -6,6 +6,7 @@ import {
   useGovMerc,
   windowRevertKey,
 } from "../../gov-merc/src/hooks/useGovMerc";
+import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -160,7 +161,13 @@ function makeChain(opts: ChainOpts = {}) {
 
 function setup(opts: ChainOpts = {}) {
   const { chain, invoke, read, listEvents } = makeChain(opts);
-  const app = useGovMerc({ chain, t });
+  // Wrap the mock chain in the MiniApp framework the hook now takes; arg builders
+  // + passthroughs produce identical invoke/read/listEvents calls.
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-gov-merc" },
+  );
+  const app = useGovMerc({ app: framework, t });
   app.setAddress(ALICE);
   return { app, chain, invoke, read, listEvents };
 }

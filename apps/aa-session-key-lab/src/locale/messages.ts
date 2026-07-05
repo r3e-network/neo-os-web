@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "aa-session-key-lab", zh: "aa-session-key-lab" },
   appName: { en: "AA Session Key Lab", zh: "AA Session Key 实验室" },
   latestState: { en: "Latest Configuration", zh: "最近配置" },
   configureSession: { en: "Configure Session Key", zh: "配置 Session Key" },
@@ -226,6 +227,56 @@ const appMessages = {
   },
   sessionPassReady: { en: "Ready to configure", zh: "可以配置" },
   sessionPassDraft: { en: "Draft needs fields", zh: "草稿待补全" },
+  sessionStageNeedKey: {
+    en: "Generate a session key first",
+    zh: "先生成会话密钥",
+  },
+  sessionStageNeedTarget: {
+    en: "Set a target contract in details",
+    zh: "在详情里设置目标合约",
+  },
+  sessionStageNeedExpiry: {
+    en: "Choose a future expiry window",
+    zh: "选择未来的过期窗口",
+  },
+  sessionPresetRewards: { en: "Rewards bot", zh: "奖励机器人" },
+  sessionPresetRewardsCopy: {
+    en: "One-hour claimRewards pass with a small GAS cap.",
+    zh: "1 小时 claimRewards 通行证，较小 GAS 上限。",
+  },
+  sessionPresetMint: { en: "Mint window", zh: "铸造窗口" },
+  sessionPresetMintCopy: {
+    en: "Day-long mint permission for a single target contract.",
+    zh: "面向单个目标合约的 24 小时 mint 权限。",
+  },
+  sessionPresetOps: { en: "Ops delegate", zh: "运维代理" },
+  sessionPresetOpsCopy: {
+    en: "Seven-day execute scope; review the target carefully.",
+    zh: "7 天 execute 作用域；请认真核对目标合约。",
+  },
+  sessionTargetMissing: { en: "Set target in details", zh: "在详情里设置目标" },
+  sessionTargetHint: {
+    en: "Target stays off the main surface because it is the highest-risk raw contract field.",
+    zh: "目标合约是最高风险的原始字段，因此放在详情里编辑。",
+  },
+  sessionAdvancedTitle: { en: "Advanced session fields", zh: "高级 Session 字段" },
+  sessionAdvancedHint: {
+    en: "Use this drawer for raw account, public key, target contract, sponsorship, and manual expiry edits.",
+    zh: "在这里编辑原始账户、公钥、目标合约、赞助和手动过期时间。",
+  },
+  permissionRailTitle: { en: "Authorization path", zh: "授权路径" },
+  permissionRailReady: {
+    en: "Wallet review ready",
+    zh: "钱包复核已就绪",
+  },
+  permissionRailDraft: {
+    en: "Complete the missing permission pieces",
+    zh: "补全缺失的权限要素",
+  },
+  permissionRailAccount: { en: "Account", zh: "账户" },
+  permissionRailKey: { en: "Session key", zh: "会话密钥" },
+  permissionRailScope: { en: "Scope", zh: "作用域" },
+  permissionRailExpiry: { en: "Expiry", zh: "过期" },
   sessionMetricsLabel: {
     en: "Session key readiness",
     zh: "Session key 就绪状态",
@@ -251,6 +302,43 @@ const appMessages = {
   sessionFlowConfigureDesc: {
     en: "Submit only after account, key, target, and expiry are present.",
     zh: "账户、密钥、目标合约和过期时间齐全后再提交。",
+  },
+  sessionNextStepTitle: { en: "Next action", zh: "下一步操作" },
+  sessionNextGenerate: {
+    en: "Generate a local key",
+    zh: "生成本地密钥",
+  },
+  sessionNextGenerateCopy: {
+    en: "Create the browser-local session key first, then keep the private key somewhere safe.",
+    zh: "先创建仅保存在浏览器本地的 session key，再把私钥妥善保存。",
+  },
+  sessionNextScope: {
+    en: "Complete the scope",
+    zh: "补全作用域",
+  },
+  sessionNextScopeCopy: {
+    en: "Add account, target contract, and expiry so the session pass is reviewable before signing.",
+    zh: "填写账户、目标合约和过期时间，让 Session Pass 在签名前可被清楚核对。",
+  },
+  sessionNextSponsor: {
+    en: "Check sponsorship",
+    zh: "检查赞助",
+  },
+  sessionNextSponsorCopy: {
+    en: "Confirm or request GAS sponsorship before relay-style submission.",
+    zh: "在 relay 类提交前确认或请求 GAS 赞助。",
+  },
+  sessionNextSubmit: {
+    en: "Review and submit",
+    zh: "核对并提交",
+  },
+  sessionNextSubmitCopy: {
+    en: "The pass is ready. Submit only if the scoped account, contract, method, and expiry match your intent.",
+    zh: "Session Pass 已就绪。请确认账户、合约、方法和过期时间符合预期后再提交。",
+  },
+  sessionReadinessChecks: {
+    en: "Session readiness checks",
+    zh: "Session 就绪检查",
   },
   sessionStateLabel: { en: "Live state", zh: "实时状态" },
   sessionEmptyCopy: {

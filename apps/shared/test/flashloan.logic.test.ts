@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { useFlashloanCore } from "../../flashloan/src/composables/useFlashloanCore";
 
 // Script-hash form so normalizeHash160Input (used for provider-stats reads)
@@ -22,6 +23,14 @@ function t(key: string) {
     connectWallet: "Connect Wallet",
   };
   return messages[key] ?? key;
+}
+
+/** Wrap a mock chain in the MiniApp framework SDK the composable now consumes. */
+function makeApp(chain: unknown) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-flashloan" },
+  );
 }
 
 // Live getPlatformStats() shape, verified on mainnet 0xb5d8fb0d.
@@ -85,7 +94,7 @@ function setup(options: { network?: "mainnet" | "testnet" } = {}) {
   };
   const badge = { award: vi.fn(async () => undefined) };
   const flashloan = useFlashloanCore({
-    chainService: chain as never,
+    app: makeApp(chain),
     badgeService: badge as never,
     t,
     network: options.network,
@@ -179,9 +188,12 @@ describe("useFlashloanCore contract flow (deployed ABI)", () => {
 
     await flashloan.lookupLoan("2");
 
+    // The framework's readRaw forwards an (undefined) options slot positionally;
+    // the operation + Integer arg are unchanged.
     expect(read).toHaveBeenCalledWith(
       "getLoanDetails",
       [{ type: "Integer", value: "2" }],
+      undefined,
     );
     expect(flashloan.loanDetails.get()?.id).toBe("2");
   });
@@ -206,7 +218,7 @@ describe("useFlashloanCore contract flow (deployed ABI)", () => {
       })),
     };
     const emptyLoan = useFlashloanCore({
-      chainService: emptyChain as never,
+      app: makeApp(emptyChain),
       badgeService: { award: vi.fn(async () => undefined) } as never,
       t,
     });

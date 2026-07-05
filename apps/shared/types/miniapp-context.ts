@@ -7,11 +7,11 @@
  */
 
 import type { Observable } from "../react/context";
-import type { MiniAppManifest } from "./miniapp-manifest";
 import type { StatusType } from "../composables/useStatusMessage";
 import type { PlatformServices } from "../services";
 export type { PlatformServices } from "../services";
 import type { OSServices } from "../services/os/types";
+import type { MiniAppFramework } from "../../../framework";
 
 // ============================================================================
 // Platform Services
@@ -31,6 +31,8 @@ export interface MiniAppContext {
   setStatus: (msg: string, type: StatusType) => void;
   /** Clear the current status message */
   clearStatus: () => void;
+  /** Shared MiniApp framework SDK */
+  framework: MiniAppFramework;
   /** Register an action handler for operation panel buttons */
   registerAction: (
     key: string,
