@@ -1,21 +1,17 @@
-import { useState } from "react";
-import {
-  CircleDollarSign,
-  FileText,
-  FolderKanban,
-  HandCoins,
-  Link2,
-  Rocket,
-  Sparkles,
-} from "lucide-react";
-import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
+/**
+ * PlayArea.tsx -- Quadratic Funding (v2 scene-driven rebuild)
+ *
+ * The matching desk IS the product: donors pick a real project card, pledge a
+ * GAS tile, and watch the contribution flow into the public-goods pool. Manual
+ * IDs, memo, project registration, match review, and admin tools stay tucked in
+ * the drawer. Chain logic is untouched.
+ */
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, ClipboardList, FilePlus2, HandCoins, HeartHandshake, Landmark, ShieldCheck, Sprout, Users } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import { formatAddress } from "@shared/utils/format";
-import FundingHero from "./components/FundingHero";
-import RoundForm from "./pages/index/components/RoundForm";
-import RoundList from "./pages/index/components/RoundList";
-import RoundAdminPanel from "./pages/index/components/RoundAdminPanel";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { OpenUiPanel, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -24,744 +20,478 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-function formatTokenAmount(value: unknown) {
-  if (value === null || value === undefined || value === "") return "0";
-  if (typeof value === "number")
-    return Number.isFinite(value) ? String(value) : "0";
-  const raw = String(value);
-  if (raw.includes(".")) return raw;
-  try {
-    const amount = typeof value === "bigint" ? value : BigInt(raw);
-    if (amount < 100000000n) return amount.toString();
-    const padded = amount.toString().padStart(9, "0");
-    const whole = padded.slice(0, -8) || "0";
-    const fraction = padded.slice(-8).replace(/0+$/, "");
-    return fraction ? `${whole}.${fraction}` : whole;
-  } catch (_error) {
-    return raw;
+const AMOUNT_PRESETS = ["1", "2", "5", "10"];
+const FUNDING_DESK_IMAGE = "funding-desk.webp";
+type FundingAsset = "GAS" | "NEO";
+
+function normalizeFundingAsset(value: unknown): FundingAsset {
+  return String(value ?? "").toUpperCase() === "NEO" ? "NEO" : "GAS";
+}
+
+function normalizeAmountForAsset(value: string, asset: FundingAsset): string {
+  if (asset === "NEO") {
+    const whole = value.split(/[.,]/)[0] ?? "";
+    return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   }
+  return value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+}
+
+function isValidAmountForAsset(raw: string, asset: FundingAsset): boolean {
+  const value = raw.trim();
+  if (asset === "NEO") return /^[1-9]\d*$/.test(value);
+  return /^(?:\d+(?:\.\d{0,8})?|\.\d{1,8})$/.test(value) && Number(value) > 0;
+}
+
+function clampPledge(raw: string, delta: number, asset: FundingAsset): string {
+  if (asset === "NEO") {
+    const current = Number.parseInt(normalizeAmountForAsset(raw, asset), 10);
+    return String(Math.max(1, (Number.isFinite(current) && current > 0 ? current : 1) + delta));
+  }
+  const current = Number.parseFloat(raw);
+  const next = Math.max(0.00000001, (Number.isFinite(current) && current > 0 ? current : 1) + delta);
+  return next.toFixed(8).replace(/\.?0+$/, "");
+}
+
+function projectLabel(project: Record<string, unknown> | undefined, fallback: string) {
+  if (!project) return fallback;
+  return String(project.name ?? project.id ?? fallback);
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const rounds = val<Array<Record<string, unknown>>>("rounds") ?? [];
-  const selectedRoundId = val<string>("selectedRoundId") ?? "";
   const selectedRound = val<Record<string, unknown>>("selectedRound");
   const isRefreshingRounds = bool("isRefreshingRounds");
-  const isCreatingRound = bool("isCreatingRound");
-  const isRegisteringProject = bool("isRegisteringProject");
   const isContributing = bool("isContributing");
-  const isAddingMatching = bool("isAddingMatching");
-  const isFinalizing = bool("isFinalizing");
-  const isClaimingUnused = bool("isClaimingUnused");
-  const isCancelling = bool("isCancelling");
+  const isRegisteringProject = bool("isRegisteringProject");
   const isAdmin = bool("isAdmin");
   const canManageSelectedRound = bool("canManageSelectedRound");
   const canFinalizeSelectedRound = bool("canFinalizeSelectedRound");
   const canClaimUnused = bool("canClaimUnused");
   const canCancelSelectedRound = bool("canCancelSelectedRound");
-  const suggestedMatches =
-    val<
-      Array<{
-        id: string;
-        name: string;
-        contributedDisplay: string;
-        donors: string;
-        matchDisplay: string;
-        matchBaseUnits: string;
-      }>
-    >("suggestedMatches") ?? [];
-
-  const projects = val<Array<Record<string, unknown>>>("projects") ?? [];
-  const isRefreshingProjects = bool("isRefreshingProjects");
+  const suggestedMatches = val<Array<{ id: string; name: string; contributedDisplay: string; donors: string; matchDisplay: string }>>("suggestedMatches") ?? [];
+  const projectsValue = val<Array<Record<string, unknown>>>("projects");
+  const projects = useMemo(() => projectsValue ?? [], [projectsValue]);
   const claimableProjectIds = val<string[]>("claimableProjectIds") ?? [];
   const claimingProjectId = str("claimingProjectId", "");
-  const activeTab = str("activeTab", "contribute");
-  const matchingPoolDisplay = str("matchingPoolDisplay", "—");
-  const selectedRoundDisplay = str("selectedRoundDisplay", "—");
+  const matchingPoolDisplay = str("matchingPoolDisplay", "-");
+  const selectedRoundDisplay = str("selectedRoundDisplay", "-");
   const roundCount = num("roundCount", rounds.length);
   const projectCount = num("projectCount", projects.length);
-  const activeRoundCount = num(
-    "activeRoundCount",
-    rounds.filter((r) => r.status === "active").length,
-  );
-
   const roundsStatus = val<Record<string, unknown>>("roundsStatus");
-  const statusMessage = roundsStatus
-    ? String(roundsStatus.msg ?? roundsStatus.message ?? "")
-    : "";
-  const statusType = roundsStatus
-    ? String(roundsStatus.type ?? "info")
-    : "info";
+  const statusMessage = roundsStatus ? String(roundsStatus.msg ?? roundsStatus.message ?? "") : "";
+  const statusType = roundsStatus ? String(roundsStatus.type ?? "info") : "info";
 
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectLink, setProjectLink] = useState("");
   const [contributeProjectId, setContributeProjectId] = useState("");
-  const [contributeAmount, setContributeAmount] = useState("");
+  const [contributeAmount, setContributeAmount] = useState("2");
   const [contributionMemo, setContributionMemo] = useState("");
+  const [contributePreview, setContributePreview] = useState(false);
 
-  const roundProgressPct =
-    roundCount === 0 ? 0 : Math.round((activeRoundCount / roundCount) * 100);
-
-  // Form-reset counter handed to RoundForm; bumped only after a successful
-  // create so the round inputs clear (RoundForm owns its own field state).
-  const [roundResetKey, setRoundResetKey] = useState(0);
-  const selectedContributionProject = projects.find(
-    (project) => String(project.id ?? "") === contributeProjectId.trim(),
-  );
-  const selectedContributionProjectName = selectedContributionProject
-    ? String(
-        selectedContributionProject.name ||
-          `#${selectedContributionProject.id}`,
-      )
-    : t("selectProjectHint");
-  const selectedContributionDonors = selectedContributionProject
-    ? String(selectedContributionProject.contributorCount ?? 0)
-    : "0";
-  const selectedContributionMatch = selectedContributionProject
-    ? formatTokenAmount(selectedContributionProject.matchedAmount)
-    : "0";
-  const contributionAmountLabel = contributeAmount.trim()
-    ? `${contributeAmount.trim()} GAS`
-    : "— GAS";
-  const trimmedProjectName = projectName.trim();
-  const trimmedProjectDescription = projectDescription.trim();
-  const trimmedProjectLink = projectLink.trim();
-  const contributionAmountPresets = ["1", "2", "5", "10"];
-  const canRegisterProject = Boolean(
-    selectedRound &&
-      trimmedProjectName &&
-      !isRegisteringProject,
-  );
-  const projectLaunchReady = Boolean(selectedRound && trimmedProjectName);
-  const canContribute = Boolean(
-    selectedRound &&
-      contributeProjectId.trim() &&
-      contributeAmount.trim() &&
-      !isContributing,
-  );
-
-  const workflowTabs = [
-    {
-      id: "contribute",
-      label: t("tabContribute"),
-      Icon: HandCoins,
-    },
-    {
-      id: "projects",
-      label: `${t("tabProjects")} (${projectCount})`,
-      Icon: FolderKanban,
-    },
-    {
-      id: "rounds",
-      label: `${t("tabRounds")} (${roundCount})`,
-      Icon: CircleDollarSign,
-    },
+  const hasRound = Boolean(selectedRound);
+  const contributionAsset = normalizeFundingAsset(selectedRound?.assetSymbol ?? selectedRound?.asset);
+  const contributionAssetIcon = contributionAsset.toLowerCase() as "gas" | "neo";
+  const hasProjects = projects.length > 0;
+  const normalizedProjectId = contributeProjectId.trim();
+  const selectedProject = projects.find((p) => String(p.id) === normalizedProjectId);
+  const selectedProjectLabel = selectedProject ? projectLabel(selectedProject, "-") : hasProjects ? t("qfPickProject") : "-";
+  const canContribute = hasRound && Boolean(selectedProject) && isValidAmountForAsset(contributeAmount, contributionAsset);
+  const canRegisterProject = hasRound && projectName.trim() !== "";
+  const contributeAnimating = isContributing || contributePreview;
+  const setupBlocked = !hasRound || !hasProjects;
+  const setupTitle = !hasRound ? t("qfFundingNeedsRoundTitle") : !hasProjects ? t("qfFundingNeedsProjectsTitle") : t("qfDonationDeskReady");
+  const setupBody = !hasRound ? t("qfFundingNeedsRoundBody") : !hasProjects ? t("qfFundingNeedsProjectsBody") : t("qfAmplifyCopy");
+  const setupSteps = [
+    { key: "round", label: t("tabRounds"), ready: hasRound },
+    { key: "projects", label: t("tabProjects"), ready: hasRound && hasProjects },
+    { key: "donate", label: t("quickContribute"), ready: canContribute },
   ];
 
-  // dispatch is typed Promise<void> but resolves to the handler's runtime
-  // payload (see MiniAppRoot.dispatch); handlers return success booleans.
-  const submitCreateRound = async (...args: unknown[]) => {
-    const ok = (await dispatch("createRound", ...args)) as unknown as boolean;
-    if (ok) setRoundResetKey((key) => key + 1);
-  };
-
-  const submitRegisterProject = async () => {
-    if (!canRegisterProject) return;
-    const ok = (await dispatch("registerProject", {
-      name: projectName,
-      description: projectDescription,
-      link: projectLink,
-    })) as unknown as boolean;
-    if (ok) {
-      setProjectName("");
-      setProjectDescription("");
-      setProjectLink("");
+  useEffect(() => {
+    if (projects.length === 0) {
+      if (contributeProjectId) setContributeProjectId("");
+      return;
     }
-  };
+
+    const stillAvailable = projects.some((project) => String(project.id) === normalizedProjectId);
+    if (!stillAvailable && projects[0]?.id != null) {
+      setContributeProjectId(String(projects[0].id));
+    }
+  }, [contributeProjectId, normalizedProjectId, projects]);
+
+  useEffect(() => {
+    setContributeAmount((value) => normalizeAmountForAsset(value, contributionAsset));
+  }, [contributionAsset]);
 
   const submitContribute = async () => {
-    if (!canContribute) return;
+    if (!canContribute || isContributing || !selectedProject) return;
+    setContributePreview(true);
     const ok = (await dispatch("contribute", {
-      projectId: contributeProjectId,
-      amount: contributeAmount,
+      projectId: String(selectedProject.id),
+      amount: normalizeAmountForAsset(contributeAmount, contributionAsset).trim(),
       memo: contributionMemo,
     })) as unknown as boolean;
+    setContributePreview(false);
     if (ok) {
-      setContributeProjectId("");
-      setContributeAmount("");
       setContributionMemo("");
     }
   };
-
-  const switchTab = (tab: string) => {
-    state.activeTab?.set(tab);
-    void dispatch("switchTab", tab);
+  const submitRegisterProject = async () => {
+    if (!canRegisterProject) return;
+    const ok = (await dispatch("registerProject", { name: projectName, description: projectDescription, link: projectLink })) as unknown as boolean;
+    if (ok) { setProjectName(""); setProjectDescription(""); setProjectLink(""); }
   };
-
   const selectRound = (round: Record<string, unknown>) => {
     state.selectedRoundId?.set(String(round.id ?? ""));
     void dispatch("selectRound", round);
   };
 
-  const roundStatusLabel = (round: Record<string, unknown>) =>
-    String(round.statusLabel ?? round.status ?? t("roundStatusActive"));
+  const setupCard = (
+    <figure className="qf-setup-card">
+      <img src={FUNDING_DESK_IMAGE} alt="" aria-hidden="true" loading="eager" decoding="async" />
+      <figcaption>
+        <span>{t("qfFundingGateEyebrow")}</span>
+        <strong>{setupTitle}</strong>
+        <em>{setupBody}</em>
+      </figcaption>
+      {!hasRound && (
+        <button type="button" className="qf-setup-card__action" onClick={() => void dispatch("refreshRounds")} disabled={isRefreshingRounds}>
+          {isRefreshingRounds ? t("qfDonationDeskWaiting") : t("refresh")}
+        </button>
+      )}
+      {statusMessage && (
+        <div className="qf-setup-card__notice" data-type={statusType}>
+          <span>{t("qfSetupStatus")}</span>
+          <strong>{statusMessage}</strong>
+        </div>
+      )}
+      <div className="qf-setup-card__lane" aria-label={t("qfSetupLaneLabel")}>
+        {setupSteps.map((step) => (
+          <span key={step.key} className={step.ready ? "qf-setup-card__step qf-setup-card__step--ready" : "qf-setup-card__step"}>
+            <i aria-hidden="true" />
+            {step.label}
+          </span>
+        ))}
+      </div>
+    </figure>
+  );
 
-  const formatSchedule = (value: unknown) => {
-    if (typeof value === "string" && value.length > 0) return value;
-    // Round timestamps are milliseconds on-chain — pass straight to Date.
-    if (typeof value === "number" && value > 0) {
-      return new Intl.DateTimeFormat(undefined, {
-        month: "short",
-        day: "numeric",
-      }).format(new Date(value));
-    }
-    return t("dateUnknown");
-  };
+  const scene = (
+    <div className={["qf-scene", setupBlocked ? "qf-scene--setup" : null].filter(Boolean).join(" ")} data-state={contributeAnimating ? "contributing" : canContribute ? "ready" : "idle"}>
+      {setupBlocked ? (
+        setupCard
+      ) : (
+        <>
+          <div className="qf-scene__desk">
+            <section className="qf-scene__node qf-scene__node--donor" aria-label={t("qfDonationTicket")}>
+              <span className="qf-scene__icon"><HandCoins size={22} /></span>
+              <span>{t("qfDonationTicket")}</span>
+              <strong>{contributeAmount || "-"} {contributionAsset}</strong>
+            </section>
 
-  return (
-    <div className="qf-play-area">
-      <div className="qf-shell">
-        <div className="qf-main-column">
-          <FundingHero
-            t={t}
-            progressPct={roundProgressPct}
-            matchingPoolDisplay={matchingPoolDisplay}
-            roundCount={roundCount}
-            activeRoundCount={activeRoundCount}
-            selectedRoundDisplay={selectedRoundDisplay}
-            hasSelectedRound={Boolean(selectedRound)}
-            isRefreshing={isRefreshingRounds}
-            onRefresh={() => dispatch("refreshRounds")}
-            onContribute={() => switchTab("contribute")}
-          />
+            <ArrowRight className="qf-scene__arrow qf-scene__arrow--left" size={24} aria-hidden="true" />
 
-          {statusMessage && (
-            <div className={`qf-status-banner qf-status-${statusType}`}>
-              <span className="qf-status-dot" aria-hidden="true" />
-              <span>{statusMessage}</span>
-            </div>
-          )}
+            <section className="qf-scene__pool" aria-label={t("qfGasPoolLabel")}>
+              <span className="qf-scene__pool-ring" aria-hidden="true" />
+              <Landmark size={28} />
+              <span>{t("qfGasPoolLabel")}</span>
+              <strong>{matchingPoolDisplay}</strong>
+              {contributeAnimating && (
+                <span className="qf-scene__flow" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              )}
+            </section>
 
-          <div className="qf-action-tabs" aria-label={t("qfTabsLabel")}>
-            {workflowTabs.map(({ id, label, Icon }) => (
-              <NeoButton
-                key={id}
-                size="sm"
-                variant={activeTab === id ? "primary" : "secondary"}
-                onClick={() => switchTab(id)}
-              >
-                <Icon aria-hidden="true" />
-                {label}
-              </NeoButton>
-            ))}
+            <ArrowRight className="qf-scene__arrow qf-scene__arrow--right" size={24} aria-hidden="true" />
+
+            <section className="qf-scene__node qf-scene__node--project" aria-label={t("qfPickProject")}>
+              <span className="qf-scene__icon"><Sprout size={22} /></span>
+              <span>{t("qfPickProject")}</span>
+              <strong>{selectedProjectLabel}</strong>
+            </section>
           </div>
 
-          {activeTab === "rounds" && (
-            <div
-              className={`qf-content-grid${
-                rounds.length === 0 && !selectedRound
-                  ? " qf-content-grid--single"
-                  : ""
-              }`}
+          <div className="qf-scene__amplifier">
+            <HeartHandshake size={16} />
+            <span>{contributeAnimating ? t("contributing") : t("qfAmplifyTitle")}</span>
+          </div>
+
+          {contributeAnimating && <ParticleBurst coins count={10} />}
+          <p className="qf-scene__status" aria-live="polite">
+            {contributeAnimating ? t("contributing") : t("qfDonationDeskReady")}
+          </p>
+        </>
+      )}
+    </div>
+  );
+
+  const controls = (
+    <div className="qf-controls">
+      {statusMessage && !setupBlocked && <p className="qf-controls__status" data-type={statusType}>{statusMessage}</p>}
+
+      {rounds.length > 0 && (
+        <div className="qf-round-strip" aria-label={t("tabRounds")}>
+          {rounds.slice(0, 5).map((round) => (
+            <button
+              key={String(round.id)}
+              type="button"
+              className={["qf-round-chip", String(selectedRound?.id) === String(round.id) ? "qf-round-chip--active" : null].filter(Boolean).join(" ")}
+              onClick={() => selectRound(round)}
+              disabled={isRefreshingRounds}
             >
-              <RoundForm
-                onSubmit={submitCreateRound}
-                resetKey={roundResetKey}
-                t={t}
-                loading={isCreatingRound}
-              />
-              <div className="qf-side-stack">
-                <RoundList
-                  rounds={rounds}
-                  selectedRoundId={selectedRoundId}
-                  isRefreshing={isRefreshingRounds}
-                  roundStatusLabel={roundStatusLabel}
-                  formatAmount={formatTokenAmount}
-                  formatSchedule={formatSchedule}
-                  formatAddress={formatAddress}
-                  onRefresh={() => dispatch("refreshRounds")}
-                  onSelect={selectRound}
-                  t={t}
-                />
-                {selectedRound && (
-                  <RoundAdminPanel
-                    round={selectedRound}
-                    knownProjectIds={projects
-                      .map((project) => String(project.id ?? ""))
-                      .filter((id) => id !== "")}
-                    suggestedMatches={suggestedMatches}
-                    canManage={canManageSelectedRound}
-                    canFinalize={canFinalizeSelectedRound}
-                    canClaimUnused={canClaimUnused}
-                    canCancel={canCancelSelectedRound}
-                    isAdmin={isAdmin}
-                    isAddingMatching={isAddingMatching}
-                    isFinalizing={isFinalizing}
-                    isClaimingUnused={isClaimingUnused}
-                    isCancelling={isCancelling}
-                    onAddMatching={(...args: unknown[]) =>
-                      dispatch("addMatching", ...args)
-                    }
-                    onFinalize={(...args: unknown[]) =>
-                      dispatch("finalize", ...args)
-                    }
-                    onFinalizeSuggested={() => dispatch("finalizeSuggested")}
-                    onClaimUnused={() => dispatch("claimUnused")}
-                    onCancel={() => dispatch("cancelRound")}
-                    t={t}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "projects" && (
-            <div className="qf-content-grid">
-              <NeoCard
-                title={t("registerProject")}
-                className="qf-form-panel qf-project-launch-panel"
-              >
-                <p className="qf-panel-hint qf-project-launch-hint">
-                  {selectedRound
-                    ? selectedRoundDisplay
-                    : t("qfSelectRoundBeforeProject")}
-                </p>
-                <div
-                  className={`qf-project-launch-stage${
-                    trimmedProjectName ? " is-named" : ""
-                  }${trimmedProjectDescription ? " is-described" : ""}${
-                    trimmedProjectLink ? " is-linked" : ""
-                  }${projectLaunchReady ? " is-ready" : ""}`}
-                  aria-label={t("registerProject")}
-                >
-                  <img
-                    className="qf-project-launch-stage__image"
-                    src="./funding-desk.jpg"
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div
-                    className="qf-project-launch-stage__scrim"
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="qf-project-launch-stage__beam"
-                    aria-hidden="true"
-                  />
-                  <div className="qf-project-launch-card">
-                    <span>
-                      <FolderKanban aria-hidden="true" />
-                      {t("registerProject")}
-                    </span>
-                    <strong>
-                      {trimmedProjectName || t("projectNamePlaceholder")}
-                    </strong>
-                    <small>
-                      {trimmedProjectDescription ||
-                        t("projectDescriptionPlaceholder")}
-                    </small>
-                    {trimmedProjectLink && (
-                      <em>
-                        <Link2 aria-hidden="true" />
-                        {trimmedProjectLink}
-                      </em>
-                    )}
-                  </div>
-                  <div
-                    className="qf-project-launch-signals"
-                    aria-hidden="true"
-                  >
-                    <span className={trimmedProjectName ? "is-ready" : ""}>
-                      <Rocket />
-                    </span>
-                    <span
-                      className={trimmedProjectDescription ? "is-ready" : ""}
-                    >
-                      <FileText />
-                    </span>
-                    <span className={trimmedProjectLink ? "is-ready" : ""}>
-                      <Link2 />
-                    </span>
-                  </div>
-                </div>
-
-                <div className="qf-project-launch-fields">
-                  <section
-                    className={`qf-project-field qf-project-field--name${
-                      trimmedProjectName ? " is-active" : ""
-                    }`}
-                  >
-                    <div className="qf-project-field__icon" aria-hidden="true">
-                      <FolderKanban />
-                    </div>
-                    <div className="qf-project-field__body">
-                      <div className="qf-project-field__head">
-                        <span>{t("projectName")}</span>
-                        <small>01</small>
-                      </div>
-                      <NeoInput
-                        value={projectName}
-                        aria-label={t("projectName")}
-                        placeholder={t("projectNamePlaceholder")}
-                        className="qf-project-field__input"
-                        onChange={setProjectName}
-                      />
-                    </div>
-                  </section>
-
-                  <section
-                    className={`qf-project-field qf-project-field--description${
-                      trimmedProjectDescription ? " is-active" : ""
-                    }`}
-                  >
-                    <div className="qf-project-field__icon" aria-hidden="true">
-                      <FileText />
-                    </div>
-                    <div className="qf-project-field__body">
-                      <div className="qf-project-field__head">
-                        <span>{t("projectDescription")}</span>
-                        <small>02</small>
-                      </div>
-                      <NeoInput
-                        value={projectDescription}
-                        aria-label={t("projectDescription")}
-                        placeholder={t("projectDescriptionPlaceholder")}
-                        className="qf-project-field__input"
-                        onChange={setProjectDescription}
-                      />
-                    </div>
-                  </section>
-
-                  <section
-                    className={`qf-project-field qf-project-field--link${
-                      trimmedProjectLink ? " is-active" : ""
-                    }`}
-                  >
-                    <div className="qf-project-field__icon" aria-hidden="true">
-                      <Link2 />
-                    </div>
-                    <div className="qf-project-field__body">
-                      <div className="qf-project-field__head">
-                        <span>{t("projectLink")}</span>
-                        <small>03</small>
-                      </div>
-                      <NeoInput
-                        value={projectLink}
-                        aria-label={t("projectLink")}
-                        placeholder={t("projectLinkPlaceholder")}
-                        className="qf-project-field__input"
-                        onChange={setProjectLink}
-                      />
-                    </div>
-                  </section>
-                </div>
-                <div className="qf-panel-footer qf-project-launch-footer">
-                  <NeoButton
-                    variant="primary"
-                    loading={isRegisteringProject}
-                    disabled={!canRegisterProject}
-                    onClick={submitRegisterProject}
-                  >
-                    {isRegisteringProject
-                      ? t("registeringProject")
-                      : t("registerProject")}
-                  </NeoButton>
-                </div>
-              </NeoCard>
-
-              <NeoCard
-                title={t("projectsList") || t("tabProjects")}
-                className="qf-project-panel"
-              >
-                {isRefreshingProjects && (
-                  <div className="qf-loading-row">
-                    {t("loading") || "Loading..."}
-                  </div>
-                )}
-                {projects.length === 0 && !isRefreshingProjects ? (
-                  <div className="qf-empty-ledger">
-                    <strong>{t("qfNoProjectsTitle")}</strong>
-                    <span>{t("qfNoProjectsBody")}</span>
-                  </div>
-                ) : (
-                  <div className="qf-project-grid">
-                    {projects.map((project) => (
-                      <div key={String(project.id)} className="qf-project-card">
-                        <div className="qf-project-header">
-                          <strong>
-                            {String(project.name || `#${project.id}`)}
-                          </strong>
-                          <span
-                            className={`qf-status-pill ${project.active ? "active" : "inactive"}`}
-                          >
-                            {project.active
-                              ? t("projectStatusActive")
-                              : t("projectStatusInactive")}
-                          </span>
-                        </div>
-                        <span>
-                          {String(
-                            project.description ||
-                              t("projectDescriptionPlaceholder"),
-                          )}
-                        </span>
-                        <div className="qf-project-stats">
-                          <span>
-                            {t("totalContributed")}:{" "}
-                            {formatTokenAmount(project.totalContributed)}
-                          </span>
-                          <span>
-                            {t("donors")}:{" "}
-                            {String(project.contributorCount ?? 0)}
-                          </span>
-                          <span>
-                            {t("matchedAmount")}:{" "}
-                            {formatTokenAmount(project.matchedAmount)}
-                          </span>
-                        </div>
-                        {Boolean(project.link) && (
-                          <span className="qf-project-link">
-                            {String(project.link)}
-                          </span>
-                        )}
-                        <div className="qf-project-actions">
-                          <NeoButton
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => {
-                              setContributeProjectId(String(project.id ?? ""));
-                              switchTab("contribute");
-                            }}
-                          >
-                            {t("contributeNow")}
-                          </NeoButton>
-                          {project.claimed ? (
-                            <span className="qf-status-pill claimed">
-                              {t("projectStatusClaimed")}
-                            </span>
-                          ) : (
-                            claimableProjectIds.includes(
-                              String(project.id ?? ""),
-                            ) && (
-                              <NeoButton
-                                size="sm"
-                                variant="primary"
-                                loading={
-                                  claimingProjectId === String(project.id ?? "")
-                                }
-                                onClick={() =>
-                                  dispatch("claimProject", project)
-                                }
-                              >
-                                {t("claimProject")}
-                              </NeoButton>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </NeoCard>
-            </div>
-          )}
-
-          {activeTab === "contribute" && (
-            <section className="qf-donor-workbench" aria-label={t("quickContribute")}>
-              <div className="qf-donor-head">
-                <div>
-                  <span>{t("quickContribute")}</span>
-                  <strong>{t("qfDonorDeskTitle")}</strong>
-                  <p>{t("qfDonorDeskSubtitle")}</p>
-                </div>
-                <div className="qf-contribute-summary">
-                  <span>{t("sidebarSelectedRound")}</span>
-                  <strong>
-                    {selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}
-                  </strong>
-                  <small>{selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}</small>
-                </div>
-              </div>
-
-              <div
-                className={`qf-flow-stage${
-                  selectedContributionProject ? " is-project-selected" : ""
-                }${contributeAmount.trim() ? " is-funded" : ""}${
-                  isContributing ? " is-contributing" : ""
-                }`}
-                aria-label={t("qfAmplifyTitle")}
-              >
-                <img
-                  className="qf-flow-stage__image"
-                  src="./funding-desk.jpg"
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="qf-flow-stage__scrim" aria-hidden="true" />
-                <div className="qf-flow-stage__nodes">
-                  <div className="qf-flow-node qf-flow-node--donor">
-                    <span>
-                      <HandCoins aria-hidden="true" />
-                      {t("qfDonationTicket")}
-                    </span>
-                    <strong>{contributionAmountLabel}</strong>
-                    <small>{t("qfAmountPresets")}</small>
-                  </div>
-                  <div className="qf-flow-node qf-flow-node--pool">
-                    <span>
-                      <Sparkles aria-hidden="true" />
-                      {t("sidebarMatchingPool")}
-                    </span>
-                    <strong>{matchingPoolDisplay}</strong>
-                    <small>{t("qfMatchSignal")}</small>
-                  </div>
-                  <div className="qf-flow-node qf-flow-node--project">
-                    <span>
-                      <FolderKanban aria-hidden="true" />
-                      {t("qfPickProject")}
-                    </span>
-                    <strong>{selectedContributionProjectName}</strong>
-                    <small>
-                      {t("donors")}: {selectedContributionDonors} ·{" "}
-                      {t("matchedAmount")}: {selectedContributionMatch}
-                    </small>
-                  </div>
-                </div>
-                <div className="qf-flow-stage__river" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-
-              <div className="qf-donor-grid">
-                <div className="qf-project-market">
-                  <div className="qf-amplify-note" role="note">
-                    <strong>{t("qfAmplifyTitle")}</strong>
-                    <p>{t("qfAmplifyCopy")}</p>
-                    {(() => {
-                      const id = contributeProjectId.trim();
-                      if (!id) return null;
-                      const match = suggestedMatches.find((m) => m.id === id);
-                      if (!match) return null;
-                      return (
-                        <p className="qf-amplify-estimate">
-                          {t("qfProjectMatchEstimate", {
-                            id,
-                            match: match.matchDisplay,
-                          })}
-                          <span className="qf-amplify-estimate-hint">
-                            {t("qfProjectMatchHint")}
-                          </span>
-                        </p>
-                      );
-                    })()}
-                  </div>
-
-                  <div className="qf-project-picks" aria-label={t("qfPickProject")}>
-                    <div className="qf-project-picks__head">
-                      <span>{t("qfPickProject")}</span>
-                      <strong>{projects.length ? t("projectsList") : t("emptyProjects")}</strong>
-                    </div>
-                    {projects.length ? (
-                      projects.slice(0, 4).map((project) => {
-                        const id = String(project.id ?? "");
-                        const active = id === contributeProjectId.trim();
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            className={`qf-project-pick${active ? " is-selected" : ""}`}
-                            aria-pressed={active}
-                            onClick={() => setContributeProjectId(id)}
-                          >
-                            <span className="qf-project-pick__title">
-                              <strong>{String(project.name || `#${id}`)}</strong>
-                              <em>
-                                {formatTokenAmount(project.totalContributed)} GAS
-                              </em>
-                            </span>
-                            <span>{String(project.description || t("projectDescriptionPlaceholder"))}</span>
-                            <small>
-                              {t("donors")}: {String(project.contributorCount ?? 0)}
-                            </small>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="qf-empty-ledger qf-empty-ledger--market">
-                        <strong>{t("qfNoProjectsTitle")}</strong>
-                        <span>{t("qfNoProjectsBody")}</span>
-                        <NeoButton
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => switchTab("projects")}
-                        >
-                          {t("registerProject")}
-                        </NeoButton>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="qf-donation-ticket">
-                  <span>{t("qfDonationTicket")}</span>
-                  <strong>
-                    {selectedContributionProject
-                      ? String(selectedContributionProject.name || `#${selectedContributionProject.id}`)
-                      : t("selectProjectHint")}
-                  </strong>
-                  <div className="qf-amount-presets" aria-label={t("qfAmountPresets")}>
-                    {contributionAmountPresets.map((amount) => (
-                      <button
-                        key={amount}
-                        type="button"
-                        className={contributeAmount === amount ? "is-selected" : ""}
-                        onClick={() => setContributeAmount(amount)}
-                      >
-                        {amount} GAS
-                      </button>
-                    ))}
-                  </div>
-                  <div className="qf-form-grid qf-form-grid--donation">
-                    <NeoInput
-                      value={contributeProjectId}
-                      label={t("contributionProjectId")}
-                      placeholder={t("selectProjectHint")}
-                      onChange={setContributeProjectId}
-                    />
-                    <NeoInput
-                      value={contributeAmount}
-                      label={t("contributionAmount")}
-                      placeholder={t("contributionAmountPlaceholder")}
-                      onChange={setContributeAmount}
-                    />
-                    <NeoInput
-                      value={contributionMemo}
-                      label={t("contributionMemo")}
-                      placeholder={t("contributionMemoPlaceholder")}
-                      onChange={setContributionMemo}
-                    />
-                  </div>
-                  <NeoButton
-                    variant="primary"
-                    loading={isContributing}
-                    disabled={!canContribute}
-                    onClick={submitContribute}
-                  >
-                    {isContributing ? t("contributing") : t("contribute")}
-                  </NeoButton>
-                </div>
-              </div>
-            </section>
-          )}
+              <span>{String(round.title ?? round.id)}</span>
+              <strong>{String(round.status ?? selectedRoundDisplay)}</strong>
+            </button>
+          ))}
         </div>
-      </div>
+      )}
+
+      {hasRound && hasProjects && (
+        <>
+          <div className="qf-project-board" aria-label={t("qfPickProject")}>
+            {projects.slice(0, 6).map((project) => {
+              const id = String(project.id);
+              const active = contributeProjectId === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={["qf-project-card", active ? "qf-project-card--active" : null].filter(Boolean).join(" ")}
+                  onClick={() => setContributeProjectId(id)}
+                  disabled={contributeAnimating}
+                  aria-pressed={active}
+                >
+                  <span className="qf-project-card__image" aria-hidden="true">
+                    <Sprout size={20} />
+                  </span>
+                  <span className="qf-project-card__copy">
+                    <strong>{projectLabel(project, id)}</strong>
+                    <em>{String(project.totalContributedDisplay ?? project.totalContributed ?? t("qfProjectMatchHint"))}</em>
+                  </span>
+                  <span className="qf-project-card__donors">
+                    <Users size={13} />
+                    {String(project.contributorCount ?? project.donors ?? "-")}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="qf-pledge" aria-label={t("qfAmountPresets")}>
+            <div className="qf-pledge__tiles">
+              {AMOUNT_PRESETS.map((amount) => (
+                <button
+                  key={amount}
+                  type="button"
+                  className={["qf-amount-tile", contributeAmount === amount ? "qf-amount-tile--active" : null].filter(Boolean).join(" ")}
+                  onClick={() => setContributeAmount(normalizeAmountForAsset(amount, contributionAsset))}
+                  disabled={contributeAnimating}
+                >
+                  <CoinArt size={18} variant={contributionAssetIcon} />
+                  <span>{amount}</span>
+                  <em>{contributionAsset}</em>
+                </button>
+              ))}
+            </div>
+            <div className="qf-pledge-stepper">
+              <button type="button" onClick={() => setContributeAmount((v) => clampPledge(v, -1, contributionAsset))} disabled={contributeAnimating} aria-label={t("contributionAmount")}>-</button>
+              <label className="qf-pledge-stepper__amount">
+                <span className="qf-pledge-stepper__label">{t("contributionAmount")}</span>
+                <input
+                  value={contributeAmount}
+                  onChange={(e) => setContributeAmount(normalizeAmountForAsset(e.target.value, contributionAsset))}
+                  inputMode={contributionAsset === "NEO" ? "numeric" : "decimal"}
+                  placeholder={t("contributionAmountPlaceholder")}
+                  disabled={contributeAnimating}
+                  aria-label={t("contributionAmount")}
+                />
+                <span className="qf-pledge-stepper__unit">{contributionAsset}</span>
+              </label>
+              <button type="button" onClick={() => setContributeAmount((v) => clampPledge(v, 1, contributionAsset))} disabled={contributeAnimating} aria-label={t("contributionAmount")}>+</button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="qf-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{
+          eyebrow: t("qfHeroTitle"),
+          title: hasRound ? t("qfDonorDeskTitle") : t("selectRoundFirst"),
+          subtitle: t("qfHeroSubtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {selectedRoundDisplay}</span>
+              <span className="mx2-badge">{matchingPoolDisplay}</span>
+            </>
+          ),
+        }}
+        scene={<>{scene}{controls}</>}
+        score={[
+          { label: t("qfGasPoolLabel"), value: matchingPoolDisplay, accent: true },
+          { label: t("projectCount"), value: String(projectCount) },
+          { label: t("tabRounds"), value: String(roundCount) },
+        ]}
+        actions={{
+          primary: {
+            label: !hasRound
+              ? isRefreshingRounds ? t("qfDonationDeskWaiting") : t("refresh")
+              : contributeAnimating ? t("contributing") : t("quickContribute"),
+            onClick: () => {
+              if (!hasRound) {
+                void dispatch("refreshRounds");
+                return;
+              }
+              void submitContribute();
+            },
+            disabled: !hasRound ? isRefreshingRounds : contributeAnimating || !canContribute,
+            loading: !hasRound ? isRefreshingRounds : contributeAnimating,
+          },
+        }}
+        drawerToggleLabel={t("tabProjects")}
+        drawer={{
+          title: t("tabProjects"),
+          children: (
+            <div className="qf-drawer-shell">
+              <OpenUiPanel
+                className="qf-drawer-panel qf-drawer-panel--donation"
+                icon={<HandCoins size={16} />}
+                title={t("qfDonationDetails")}
+                subtitle={t("qfDonationDetailsHint")}
+                titleId="qf-drawer-donation"
+              >
+                <div className="qf-drawer-grid qf-drawer-grid--donation">
+                  <OpenUiTextField
+                    className="qf-drawer-field"
+                    label={t("qfPickProject")}
+                    value={contributeProjectId}
+                    onChange={(e) => setContributeProjectId(e.target.value)}
+                    placeholder={t("contributionProjectId")}
+                    disabled={contributeAnimating}
+                  />
+                  <OpenUiTextField
+                    className="qf-drawer-field"
+                    label={t("contributionMemo")}
+                    value={contributionMemo}
+                    onChange={(e) => setContributionMemo(e.target.value)}
+                    placeholder={t("contributionMemoPlaceholder")}
+                    disabled={contributeAnimating}
+                  />
+                </div>
+              </OpenUiPanel>
+
+              <OpenUiPanel
+                className="qf-drawer-panel qf-drawer-panel--register"
+                icon={<FilePlus2 size={16} />}
+                title={t("registerProject")}
+                subtitle={hasRound ? t("qfRegisterProjectHint") : t("qfFundingNeedsRoundTitle")}
+                titleId="qf-drawer-register"
+              >
+                <div className="qf-project-form">
+                  <OpenUiTextField
+                    className="qf-drawer-field"
+                    label={t("projectName")}
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder={t("projectNamePlaceholder")}
+                    disabled={isRegisteringProject}
+                  />
+                  <OpenUiTextArea
+                    className="qf-drawer-field qf-drawer-field--description mx2-open-field--compact"
+                    label={t("projectDescription")}
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
+                    placeholder={t("projectDescriptionPlaceholder")}
+                    disabled={isRegisteringProject}
+                    rows={2}
+                  />
+                  <OpenUiTextField
+                    className="qf-drawer-field"
+                    label={t("projectLink")}
+                    value={projectLink}
+                    onChange={(e) => setProjectLink(e.target.value)}
+                    placeholder={t("projectLinkPlaceholder")}
+                    disabled={isRegisteringProject}
+                  />
+                </div>
+                <button type="button" className="qf-drawer-action" onClick={() => void submitRegisterProject()} disabled={!canRegisterProject || isRegisteringProject}>{isRegisteringProject ? t("registeringProject") : t("registerProject")}</button>
+              </OpenUiPanel>
+
+              <OpenUiPanel
+                className="qf-drawer-panel qf-drawer-panel--ledger"
+                icon={<ClipboardList size={16} />}
+                title={t("projectsList")}
+                subtitle={`${projects.length} ${t("projectCount").toLowerCase()}`}
+                titleId="qf-drawer-projects"
+              >
+                {projects.length > 0 ? (
+                  <ul className="qf-drawer-list">
+                    {projects.slice(0, 8).map((p) => (
+                      <li key={String(p.id)} className="qf-drawer-list__item">
+                        <button
+                          type="button"
+                          className={["qf-project-list__select", contributeProjectId === String(p.id) ? "qf-project-list__select--active" : null].filter(Boolean).join(" ")}
+                          onClick={() => setContributeProjectId(String(p.id))}
+                          disabled={contributeAnimating}
+                        >
+                          <span className="qf-drawer-list__face">{String(p.name ?? p.id)}</span>
+                          <span className="qf-drawer-list__stake">{String(p.totalContributedDisplay ?? p.totalContributed ?? "0")}</span>
+                        </button>
+                        {claimableProjectIds.includes(String(p.id)) && (
+                          <button type="button" className="qf-drawer-action qf-drawer-action--small" onClick={() => void dispatch("claimProject", p)} disabled={claimingProjectId === String(p.id)}>{t("claimProject")}</button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="qf-drawer-empty">{t("emptyProjects")}</p>}
+              </OpenUiPanel>
+
+              {(suggestedMatches.length > 0 || canManageSelectedRound) && (
+                <OpenUiPanel
+                  className="qf-drawer-panel qf-drawer-panel--admin"
+                  icon={<ShieldCheck size={16} />}
+                  title={suggestedMatches.length > 0 ? t("finalizeSuggested") : t("adminTools")}
+                  subtitle={canManageSelectedRound ? t("adminTools") : t("finalizeSuggested")}
+                  titleId="qf-drawer-admin"
+                >
+                  {suggestedMatches.length > 0 && (
+                    <>
+                      <ul className="qf-drawer-list">
+                        {suggestedMatches.slice(0, 6).map((m) => (
+                          <li key={m.id} className="qf-drawer-list__item">
+                            <span className="qf-drawer-list__face">{m.name}</span>
+                            <span className="qf-drawer-list__stake">{m.contributedDisplay}</span>
+                            <span className="qf-drawer-list__result">{m.matchDisplay}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {isAdmin && canFinalizeSelectedRound && (
+                        <button type="button" className="qf-drawer-action" onClick={() => void dispatch("finalizeSuggested")}>{t("finalizeSuggested")}</button>
+                      )}
+                    </>
+                  )}
+                  {canManageSelectedRound && (
+                    <div className="qf-admin-actions">
+                      {canClaimUnused && <button type="button" className="qf-drawer-action" onClick={() => void dispatch("claimUnused")}>{t("claimUnused")}</button>}
+                      {canCancelSelectedRound && <button type="button" className="qf-drawer-action qf-drawer-action--danger" onClick={() => void dispatch("cancelRound")}>{t("cancelRound")}</button>}
+                    </div>
+                  )}
+                </OpenUiPanel>
+              )}
+            </div>
+          ),
+        }}
+      />
     </div>
   );
 }

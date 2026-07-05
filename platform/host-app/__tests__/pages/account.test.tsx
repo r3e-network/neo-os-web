@@ -88,9 +88,9 @@ describe("AccountPage", () => {
     render(<AccountPage />);
 
     expect(
-      screen.getByText("Profile Settings - Yiwu MiniApps"),
+      screen.getByText("Profile Settings - Neo Miniapps"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Account - Yiwu")).not.toBeInTheDocument();
+    expect(screen.queryByText("Account - Neo")).not.toBeInTheDocument();
   });
 
   it("shows connected state and gives clipboard feedback after copy", async () => {

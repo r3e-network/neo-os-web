@@ -327,7 +327,7 @@ function FactoryPreviewCard({
       <div className="domain-factory-preview__nft">
         <div className="domain-factory-preview__art" aria-hidden="true">
           <img
-            src="./nft-drop-preview.jpg"
+            src="./nft-drop-preview.webp"
             alt=""
             loading="lazy"
             decoding="async"
@@ -336,7 +336,7 @@ function FactoryPreviewCard({
             {[0, 1, 2].map((edition) => (
               <img
                 key={edition}
-                src="./nft-drop-preview.jpg"
+                src="./nft-drop-preview.webp"
                 alt=""
                 loading="lazy"
                 decoding="async"
@@ -381,7 +381,7 @@ function FactoryPreviewCard({
       <div className="domain-factory-preview__token domain-factory-preview__token--asset">
         <div className="domain-factory-preview__token-art" aria-hidden="true">
           <img
-            src="./token-mint-studio.jpg"
+            src="./token-mint-studio.webp"
             alt=""
             loading="lazy"
             decoding="async"
@@ -422,7 +422,7 @@ function FactoryPreviewCard({
       <div className="domain-factory-preview__miniapp">
         <div className="domain-factory-preview__miniapp-art" aria-hidden="true">
           <img
-            src="./miniapp-launch-studio.jpg"
+            src="./miniapp-launch-studio.webp"
             alt=""
             loading="lazy"
             decoding="async"
@@ -501,10 +501,10 @@ function FactoryStudioFlow({
 }) {
   const imageSrc =
     kind === "nep11"
-      ? "./nft-drop-preview.jpg"
+      ? "./nft-drop-preview.webp"
       : kind === "miniapp"
-        ? "./miniapp-launch-studio.jpg"
-        : "./token-mint-studio.jpg";
+        ? "./miniapp-launch-studio.webp"
+        : "./token-mint-studio.webp";
 
   return (
     <section
@@ -529,7 +529,7 @@ function FactoryStudioFlow({
             {[0, 1, 2].map((edition) => (
               <img
                 key={edition}
-                src="./nft-drop-preview.jpg"
+                src="./nft-drop-preview.webp"
                 alt=""
                 loading="eager"
                 decoding="async"
@@ -980,8 +980,8 @@ export function FactoryPlayArea({
     {
       key: "draft",
       label: t("draft"),
-      detail: draftHasBlockingIssues ? readinessDetail : kindLabel,
-      state: !storedPlan && draftHasBlockingIssues ? "active" : "done",
+      detail: storedPlan && draftHasBlockingIssues ? readinessDetail : kindLabel,
+      state: storedPlan ? "done" : "active",
       icon: PackagePlus,
     },
     {
@@ -992,9 +992,7 @@ export function FactoryPlayArea({
         ? "active"
         : storedPlan
           ? "done"
-          : draftHasBlockingIssues
-            ? "blocked"
-            : "active",
+          : "waiting",
       icon: BadgeCheck,
     },
     {
@@ -1135,7 +1133,7 @@ export function FactoryPlayArea({
               >
                 <img
                   className="domain-factory-token-rail__image"
-                  src="./token-mint-studio.jpg"
+                  src="./token-mint-studio.webp"
                   alt=""
                   loading="eager"
                   decoding="async"
@@ -1173,7 +1171,7 @@ export function FactoryPlayArea({
               >
                 <img
                   className="domain-factory-app-rail__image"
-                  src="./miniapp-launch-studio.jpg"
+                  src="./miniapp-launch-studio.webp"
                   alt=""
                   loading="eager"
                   decoding="async"
@@ -1296,7 +1294,7 @@ export function FactoryPlayArea({
                 >
                   <img
                     className="domain-factory-drop-rail__image"
-                    src="./nft-drop-preview.jpg"
+                    src="./nft-drop-preview.webp"
                     alt=""
                     loading="eager"
                     decoding="async"
@@ -1308,7 +1306,7 @@ export function FactoryPlayArea({
                     {[0, 1, 2].map((edition) => (
                       <img
                         key={edition}
-                        src="./nft-drop-preview.jpg"
+                        src="./nft-drop-preview.webp"
                         alt=""
                         loading="eager"
                         decoding="async"
@@ -1470,7 +1468,7 @@ export function FactoryPlayArea({
                                 aria-hidden="true"
                               >
                                 <img
-                                  src="./nft-drop-preview.jpg"
+                                  src="./nft-drop-preview.webp"
                                   alt=""
                                   loading="lazy"
                                   decoding="async"
@@ -1682,17 +1680,6 @@ export function FactoryPlayArea({
                 )}
               </>
             )}
-
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              disabled={isGenerating}
-              loading={isGenerating}
-              onClick={generatePlan}
-            >
-              {t("generatePlan")}
-            </NeoButton>
           </div>
         </NeoCard>
 
@@ -1749,6 +1736,20 @@ export function FactoryPlayArea({
                   )}
                 </div>
               </section>
+
+              {!storedPlan ? (
+                <div className="domain-factory-actions domain-factory-actions--generate">
+                  <NeoButton
+                    variant="primary"
+                    className="domain-factory-actions__generate"
+                    disabled={isGenerating}
+                    loading={isGenerating}
+                    onClick={generatePlan}
+                  >
+                    {t("generatePlan")}
+                  </NeoButton>
+                </div>
+              ) : null}
 
               {storedPlan ? (
                 <div

@@ -45,6 +45,29 @@ function ensureLocalStorage(): void {
 
 ensureLocalStorage();
 
+function ensureResizeObserver(): void {
+  if (typeof globalThis.ResizeObserver !== "undefined") return;
+
+  class TestResizeObserver implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    configurable: true,
+    value: TestResizeObserver,
+  });
+  if (typeof window !== "undefined") {
+    Object.defineProperty(window, "ResizeObserver", {
+      configurable: true,
+      value: TestResizeObserver,
+    });
+  }
+}
+
+ensureResizeObserver();
+
 // Mock console methods to reduce noise in tests
 global.console = {
   ...console,

@@ -27,8 +27,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/explorer/index.html",
-    "icon": "/miniapps/explorer/logo.jpg",
-    "banner": "/miniapps/explorer/banner.jpg"
+    "icon": "/miniapps/explorer/logo.webp",
+    "banner": "/miniapps/explorer/banner.webp"
   },
   "permissions": [
     "invoke:primary",

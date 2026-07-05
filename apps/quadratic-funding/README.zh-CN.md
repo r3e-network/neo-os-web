@@ -21,7 +21,7 @@
 - 入口：`src/pages/index/index.vue`
 - 文档：`src/pages/docs/index.vue`
 - i18n：`src/locale/messages.ts`
-- 资源：`src/static/logo.jpg`、`src/static/banner.jpg`
+- 资源：`src/static/logo.webp`、`src/static/banner.webp`
 
 ## 网络配置
 

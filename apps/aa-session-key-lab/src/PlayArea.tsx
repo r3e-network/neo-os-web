@@ -1,905 +1,459 @@
 /**
- * PlayArea.tsx - AA Session Key Lab
+ * PlayArea.tsx -- AA Session Key Lab
  *
- * Wallet-style session-key workspace for configuring scoped AA permissions.
+ * The main surface is a scoped permission pass, not a raw parameter form.
+ * Users choose an authorization shape, generate the session key, and review
+ * expiry/spend limits before signing. Account/target/sponsor internals stay in
+ * the details drawer.
  */
-
-import { useEffect, useMemo, useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import {
-  ChevronDown,
-  Clock3,
-  Copy,
-  HandCoins,
-  KeyRound,
-  RotateCcw,
-  Search,
-  ShieldCheck,
-  WalletCards,
-  WandSparkles,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
-import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
-import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
-import { getNetwork } from "@shared/constants/rpc";
-import { getSessionKeyLaunchDefaults } from "./launch";
-import type { OnChainSessionView } from "./composables/useAASessionKeyLab";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { HandCoins, KeyRound, Search, ShieldOff, SlidersHorizontal } from "lucide-react";
+import {
+  DEFAULT_SESSION_ACCOUNT_SEED,
+  DEFAULT_SESSION_ALLOWED_METHOD,
+  getDefaultSessionExpiryTimestamp,
+} from "./launch";
 import "./PlayArea.scss";
 
-/** Live Account ID Hash preview for the seed the user is typing. */
-function previewAccountIdHash(seed: string): string {
-  const trimmed = seed.trim();
-  if (!trimmed) return "";
-  try {
-    return `0x${deriveAAAccountIdHash(trimmed)}`;
-  } catch {
-    return "";
-  }
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-/** Live normalized target-contract preview (address or script hash). */
-function previewTargetContract(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  try {
-    const normalized = trimmed.startsWith("N")
-      ? addressToScriptHash(trimmed)
-      : normalizeScriptHash(trimmed);
-    return /^0x[0-9a-f]{40}$/i.test(normalized) ? normalized.toLowerCase() : "";
-  } catch {
-    return "";
-  }
+interface OnChainView {
+  decoded: {
+    pubKey: string;
+    targetContract: string;
+    method: string;
+    expirySeconds: number;
+    expiryDisplay: string;
+    spendingLimitGas: string;
+    spendingLimitUnlimited: boolean;
+  };
+  spentGas: string;
 }
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext: MiniAppLaunchContext;
+const SCOPE_PRESETS = [
+  { key: "rewards", label: "sessionPresetRewards", copy: "sessionPresetRewardsCopy", method: DEFAULT_SESSION_ALLOWED_METHOD, spend: "0.1", seconds: 3600 },
+  { key: "mint", label: "sessionPresetMint", copy: "sessionPresetMintCopy", method: "mint", spend: "1", seconds: 86400 },
+  { key: "ops", label: "sessionPresetOps", copy: "sessionPresetOpsCopy", method: "execute", spend: "0", seconds: 604800 },
+] as const;
+
+const EXPIRY_PRESETS = [
+  { key: "1h", seconds: 3600 },
+  { key: "24h", seconds: 86400 },
+  { key: "7d", seconds: 604800 },
+] as const;
+
+const SPEND_PRESETS = ["0", "0.1", "1"] as const;
+const SESSION_ART = "session-key-control.webp";
+
+function compactHash(value: string): string {
+  const v = String(value || "").trim();
+  if (!v || v === "—") return "—";
+  if (v.length <= 14) return v;
+  return `${v.slice(0, 8)}…${v.slice(-6)}`;
 }
 
-const DASH = "—";
+function futureTimestamp(secondsFromNow: number): string {
+  return String(Math.floor(Date.now() / 1000) + secondsFromNow);
+}
 
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-}: PlayAreaProps) {
-  const { bool, str, val } = useStateBindings(state);
-  const launchDefaults = useMemo(
-    () => getSessionKeyLaunchDefaults(launchContext),
-    // Keep form defaults keyed to the normalized param signature so user edits
-    // are not reset if the host recreates the launch context object.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [launchContext.signature],
-  );
+function formatExpiry(value: string): string {
+  const expiry = Number.parseInt(value, 10);
+  if (!Number.isFinite(expiry) || expiry <= 0) return "—";
+  const remaining = expiry - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) return "expired";
+  if (remaining < 86400) return `${Math.max(1, Math.round(remaining / 3600))}h`;
+  return `${Math.max(1, Math.round(remaining / 86400))}d`;
+}
 
+function spendLabel(value: string, t: P["t"]): string {
+  return value === "0" || !value ? t("spendUnlimited") : `${value} GAS`;
+}
+
+function presetWindowLabel(seconds: number): string {
+  if (seconds < 86400) return `${Math.max(1, Math.round(seconds / 3600))}h`;
+  return `${Math.max(1, Math.round(seconds / 86400))}d`;
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, val } = useStateBindings(state);
+
+  const sessionStatus = str("sessionStatusDisplay");
+  const sessionVerifier = str("sessionVerifierDisplay");
+  const derivedAccountIdHash = str("derivedAccountIdHash");
+  const sponsorStatus = str("sponsorStatusDisplay");
+  const aaCoreDisplay = str("aaCoreDisplay");
+  const walletDisplay = str("walletDisplay");
+  const generatedPublicKey = str("generatedPublicKey");
+  const hasOnChainSession = bool("hasOnChainSession");
   const isSubmitting = bool("isSubmitting");
   const isRevoking = bool("isRevoking");
-  const hasOnChainSession = bool("hasOnChainSession");
-  const onChainSession = str("onChainSession");
-  const onChainSessionView = val<OnChainSessionView | null>(
-    "onChainSessionView",
-  );
   const isCheckingSponsorship = bool("isCheckingSponsorship");
-  const detailItems =
-    val<Array<{ label: string; value: unknown }>>("detailItems") ?? [];
-  const aaCoreDisplay = str("aaCoreDisplay");
-  const sessionStatusDisplay = str("sessionStatusDisplay");
-  const sessionVerifierDisplay = str("sessionVerifierDisplay");
-  const walletDisplay = str("walletDisplay");
-  const sponsorStatusDisplay = str("sponsorStatusDisplay");
+  const onChainView = val<OnChainView>("onChainSessionView");
 
-  // Mainnet SessionKeyVerifier requires spendingLimit + description params.
-  const isMainnet = getNetwork() === "mainnet";
-
-  const [accountSeed, setAccountSeed] = useState(launchDefaults.accountSeed);
-  const [sessionPublicKey, setSessionPublicKey] = useState(
-    launchDefaults.sessionPublicKey,
-  );
-  const [targetContract, setTargetContract] = useState(
-    launchDefaults.targetContract,
-  );
-  const [allowedMethod, setAllowedMethod] = useState(
-    launchDefaults.allowedMethod,
-  );
-  const [expiresAt, setExpiresAt] = useState(launchDefaults.expiresAt);
-  const [spendingLimit, setSpendingLimit] = useState("0");
-  const [description, setDescription] = useState("");
-  const [dappId, setDappId] = useState(launchDefaults.dappId);
-  const [sponsorAmount, setSponsorAmount] = useState(
-    launchDefaults.sponsorAmount,
-  );
-  const [generatedPrivateKey, setGeneratedPrivateKey] = useState("");
-  const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
-  const [privateKeyRevealed, setPrivateKeyRevealed] = useState(false);
-  const [copyFailed, setCopyFailed] = useState(false);
-  // Two-step guard so a destructive Revoke is never a one-click peer of a read.
-  const [confirmingRevoke, setConfirmingRevoke] = useState(false);
-  // Collapse mainnet-only Limits behind a disclosure to shorten the form.
-  const [limitsOpen, setLimitsOpen] = useState(false);
+  const [draftAccount, setDraftAccount] = useState(DEFAULT_SESSION_ACCOUNT_SEED);
+  const [draftPubKey, setDraftPubKey] = useState("");
+  const [draftTarget, setDraftTarget] = useState("");
+  const [draftMethod, setDraftMethod] = useState(DEFAULT_SESSION_ALLOWED_METHOD);
+  const [draftExpiry, setDraftExpiry] = useState(getDefaultSessionExpiryTimestamp);
+  const [draftSpendLimit, setDraftSpendLimit] = useState("0.1");
+  const [activePreset, setActivePreset] = useState<(typeof SCOPE_PRESETS)[number]["key"]>("rewards");
 
   useEffect(() => {
-    setAccountSeed(launchDefaults.accountSeed);
-    setSessionPublicKey(launchDefaults.sessionPublicKey);
-    setTargetContract(launchDefaults.targetContract);
-    setAllowedMethod(launchDefaults.allowedMethod);
-    setExpiresAt(launchDefaults.expiresAt);
-    setDappId(launchDefaults.dappId);
-    setSponsorAmount(launchDefaults.sponsorAmount);
-  }, [launchContext.signature, launchDefaults]);
+    if (generatedPublicKey && !draftPubKey.trim()) setDraftPubKey(generatedPublicKey);
+  }, [generatedPublicKey, draftPubKey]);
 
-  const canConfigure =
-    Boolean(accountSeed.trim()) &&
-    Boolean(sessionPublicKey.trim()) &&
-    Boolean(targetContract.trim()) &&
-    Boolean(expiresAt.trim()) &&
-    !isSubmitting;
+  const configured = sessionStatus === t("configured") || hasOnChainSession;
+  const busy = isSubmitting || isRevoking || isCheckingSponsorship;
 
-  // Sponsor amount is a free numeric input; guard against empty/zero/negative
-  // values before they reach requestSponsor (which only falls back to a default
-  // on a falsy empty string, so "0"/"-1" would otherwise pass straight through).
-  const sponsorAmountParsed = Number(sponsorAmount.trim());
-  const sponsorAmountValid =
-    sponsorAmount.trim() !== "" &&
-    Number.isFinite(sponsorAmountParsed) &&
-    sponsorAmountParsed > 0;
-  const sponsorAmountError =
-    sponsorAmount.trim() !== "" && !sponsorAmountValid
-      ? t("invalidSponsorAmount")
-      : "";
+  const passPublicKey = onChainView?.decoded?.pubKey || draftPubKey || generatedPublicKey;
+  const scopeTarget = onChainView?.decoded?.targetContract || draftTarget;
+  const scopeMethod = onChainView?.decoded?.method || draftMethod;
+  const scopeExpiryDisplay =
+    onChainView?.decoded?.expiryDisplay ||
+    (draftExpiry && /^\d+$/.test(draftExpiry) ? formatExpiry(draftExpiry) : "");
+  const scopeLimit = onChainView?.decoded
+    ? onChainView.decoded.spendingLimitUnlimited
+      ? t("spendUnlimited")
+      : onChainView.decoded.spendingLimitGas
+    : spendLabel(draftSpendLimit, t);
 
-  // Derive previews from the live inputs so the environment grid, scope metric,
-  // and account-hash update as the user types — not only after a dispatch.
-  const derivedAccountIdHash = useMemo(
-    () => previewAccountIdHash(accountSeed),
-    [accountSeed],
-  );
-  const normalizedTargetContract = useMemo(
-    () => previewTargetContract(targetContract),
-    [targetContract],
-  );
-  const methodDisplay = allowedMethod.trim() || t("anyMethod");
-
-  // Expiry quick-picks write a computed epoch; the preview humanizes the value
-  // so changing the window no longer requires epoch arithmetic.
-  const setExpiryIn = (seconds: number) => {
-    setExpiresAt(String(Math.floor(Date.now() / 1000) + seconds));
+  const seg = {
+    account: draftAccount.trim().length > 0 || !!derivedAccountIdHash,
+    key: passPublicKey.trim().length > 0,
+    target: draftTarget.trim().length > 0 || Boolean(onChainView?.decoded?.targetContract),
+    expiry: /^\d+$/.test(draftExpiry.trim()) && Number(draftExpiry) > Math.floor(Date.now() / 1000),
   };
-  const expiryPreview = useMemo(() => {
-    const parsed = Number.parseInt(expiresAt.trim(), 10);
-    if (!Number.isFinite(parsed) || parsed <= 0) return "";
-    return t("expiryPreview", {
-      date: new Date(parsed * 1000).toLocaleString(),
-    });
-  }, [expiresAt, t]);
-
-  // A session is only truly configured once the on-chain submit succeeds; the
-  // composable reflects that through sessionStatusDisplay === t("configured").
-  const isConfigured = sessionStatusDisplay === t("configured");
-
-  // Glanceable per-metric status tone derived purely from the already-displayed
-  // values (no new state) so the hero row reads green = settled / amber = still
-  // pending or broad. Sponsor is "complete" only when explicitly eligible or
-  // approved; Scope is "complete" when a single method (not "Any method") binds.
-  const sessionTone = isConfigured ? "ok" : "pending";
-  const sponsorTone =
-    sponsorStatusDisplay === t("sponsorApproved") ||
-    sponsorStatusDisplay === t("sponsorEligible")
-      ? "ok"
-      : "pending";
-  const scopeTone =
-    allowedMethod.trim() && methodDisplay !== t("anyMethod") ? "ok" : "pending";
-  const sessionPassReady =
-    Boolean(accountSeed.trim()) &&
-    Boolean(sessionPublicKey.trim()) &&
-    Boolean(targetContract.trim()) &&
-    Boolean(expiresAt.trim());
-  const sessionPassExpiry = expiryPreview || expiresAt.trim() || DASH;
-  const sessionPassTarget = normalizedTargetContract || targetContract.trim() || DASH;
-  const sessionPassKey = sessionPublicKey.trim()
-    ? `${sessionPublicKey.trim().slice(0, 10)}…${sessionPublicKey.trim().slice(-6)}`
-    : t("sessionKeyMissing");
-
-  const environmentItems = [
+  const filledCount = [seg.account, seg.key, seg.target, seg.expiry].filter(Boolean).length;
+  const scopeReady = filledCount >= 4;
+  const passCharge = Math.max(10, Math.round((filledCount / 4) * 100));
+  const activeScope = SCOPE_PRESETS.find((preset) => preset.key === activePreset) ?? SCOPE_PRESETS[0];
+  const missingStatus = !seg.key
+    ? t("sessionStageNeedKey")
+    : !seg.target
+      ? t("sessionStageNeedTarget")
+      : !seg.expiry
+        ? t("sessionStageNeedExpiry")
+        : t("sessionPassDraft");
+  const sessionModules = [
     {
-      label: t("aaCore"),
-      value: aaCoreDisplay || DASH,
+      key: "account",
+      label: t("accountSeed"),
+      value: compactHash(derivedAccountIdHash || draftAccount),
+      ready: seg.account || configured,
     },
     {
-      label: t("sessionVerifier"),
-      value: sessionVerifierDisplay || DASH,
+      key: "key",
+      label: t("sessionPublicKey"),
+      value: compactHash(passPublicKey),
+      ready: seg.key || configured,
     },
     {
-      label: t("derivedAccountId"),
-      value: derivedAccountIdHash || DASH,
+      key: "method",
+      label: t("allowedMethod"),
+      value: scopeMethod || t("anyMethod"),
+      ready: Boolean(scopeMethod) || configured,
     },
     {
+      key: "target",
       label: t("targetContract"),
-      value: normalizedTargetContract || DASH,
+      value: compactHash(scopeTarget),
+      ready: seg.target || configured,
+    },
+    {
+      key: "expiry",
+      label: t("expiresAt"),
+      value: scopeExpiryDisplay || "—",
+      ready: seg.expiry || configured,
+    },
+    {
+      key: "limit",
+      label: t("spendingLimit"),
+      value: scopeLimit,
+      ready: configured || seg.expiry,
     },
   ];
 
-  const handleGenerateKey = async () => {
-    const result = (await dispatch("generateKey")) as unknown as {
-      publicKey?: string;
-      privateKey?: string;
-    };
-    if (result?.publicKey) {
-      setSessionPublicKey(result.publicKey);
-    }
-    if (result?.privateKey) {
-      setGeneratedPrivateKey(result.privateKey);
-      setPrivateKeyCopied(false);
-      setPrivateKeyRevealed(false);
-      setCopyFailed(false);
-    }
+  const applyScopePreset = (preset: typeof SCOPE_PRESETS[number]) => {
+    if (busy) return;
+    setActivePreset(preset.key);
+    setDraftMethod(preset.method);
+    setDraftSpendLimit(preset.spend);
+    setDraftExpiry(futureTimestamp(preset.seconds));
   };
 
-  const handleCopyPrivateKey = async () => {
-    if (!generatedPrivateKey) return;
-    const writeText = navigator.clipboard?.writeText?.bind(navigator.clipboard);
-    if (!writeText) {
-      // No clipboard API available (insecure context / older host): surface a
-      // real failure instead of silently flipping the button to "Copied".
-      setCopyFailed(true);
-      setPrivateKeyRevealed(true);
-      return;
-    }
-    try {
-      await writeText(generatedPrivateKey);
-      setPrivateKeyCopied(true);
-      setCopyFailed(false);
-    } catch {
-      setCopyFailed(true);
-      setPrivateKeyRevealed(true);
-    }
+  const setExpiryPreset = (seconds: number) => {
+    if (!busy) setDraftExpiry(futureTimestamp(seconds));
   };
 
-  const maskedPrivateKey = generatedPrivateKey
-    ? `${generatedPrivateKey.slice(0, 6)}…${generatedPrivateKey.slice(-4)}`
-    : "";
+  const handleGenerate = () => { void dispatch("generateKey"); };
+  const handleInspect = () => { void dispatch("inspectSession", draftAccount); };
+  const handleRevoke = () => { void dispatch("revokeSession", draftAccount); };
+  const handleConfigure = () => {
+    void dispatch(
+      "configureSessionKey",
+      draftAccount,
+      draftPubKey || generatedPublicKey,
+      draftTarget,
+      draftMethod,
+      draftExpiry,
+      draftSpendLimit,
+      "",
+    );
+  };
+  const handleCheckSponsor = () => { void dispatch("checkSponsor", draftAccount, ""); };
+  const handleRequestSponsor = () => { void dispatch("requestSponsor", draftAccount, "", draftSpendLimit); };
 
-  return (
-    <div className="session-play-area">
-      {/* Hero: the single status surface for Session, Sponsor, and Scope. */}
-      <section className="session-hero">
-        <div className="session-hero__copy">
-          <div className="session-hero__head">
-            <div className="session-hero__badge" aria-hidden="true">
-              <KeyRound />
-            </div>
-            <div className="session-hero__heading">
-              <span className="session-hero__eyebrow">
-                {t("sessionHeroEyebrow")}
-              </span>
-              <h2>{t("sessionHeroTitle")}</h2>
-              <p>{t("sessionHeroCopy")}</p>
-            </div>
-          </div>
-          <div
-            className="session-hero__metrics"
-            aria-label={t("sessionMetricsLabel")}
-          >
-            <div className={`session-metric session-metric--${sessionTone}`}>
-              <span>
-                <i className="session-metric__dot" aria-hidden="true" />
-                {t("sessionMetricStatus")}
-              </span>
-              <strong>{sessionStatusDisplay || DASH}</strong>
-            </div>
-            <div className={`session-metric session-metric--${sponsorTone}`}>
-              <span>
-                <i className="session-metric__dot" aria-hidden="true" />
-                {t("sessionMetricSponsor")}
-              </span>
-              <strong>{sponsorStatusDisplay || DASH}</strong>
-            </div>
-            <div
-              className={`session-metric session-metric--scope session-metric--${scopeTone}`}
-            >
-              <span>
-                <i className="session-metric__dot" aria-hidden="true" />
-                {t("sessionMetricScope")}
-              </span>
-              <strong>{methodDisplay}</strong>
-            </div>
-          </div>
-        </div>
+  const sceneState = isRevoking
+    ? "revoking"
+    : isSubmitting
+      ? "submitting"
+      : configured
+        ? "configured"
+        : scopeReady
+          ? "ready"
+          : "draft";
+
+  const statusText = busy
+    ? isRevoking ? `${t("revokeSession")}...` : isSubmitting ? `${t("configureSession")}...` : `${t("checkSponsor")}...`
+    : configured
+      ? t("configured")
+      : scopeReady
+        ? t("sessionPassReady")
+        : missingStatus;
+
+  const scene = (
+    <div className="sess-scene" data-state={sceneState}>
+      <div className="sess-scene__pass-wrap">
         <div
-          className="session-hero__visual"
-          role="img"
-          aria-label={t("sessionHeroVisualAlt")}
+          className={[
+            "sess-scene__pass",
+            configured ? "is-issued" : "",
+            isRevoking ? "is-tearing" : "",
+            busy && !isRevoking ? "is-minting" : "",
+          ].filter(Boolean).join(" ")}
         >
-          <img
-            src="./session-key-control.jpg"
-            alt=""
-            loading="eager"
-            decoding="async"
-          />
-          <span>
-            <Clock3 aria-hidden="true" />
-            {t("sessionHeroVisualBadge")}
-          </span>
-        </div>
-      </section>
-
-      <SessionPassStage
-        t={t}
-        ready={sessionPassReady}
-        account={derivedAccountIdHash || accountSeed.trim() || DASH}
-        sessionKey={sessionPassKey}
-        target={sessionPassTarget}
-        method={methodDisplay}
-        expiry={sessionPassExpiry}
-        sponsor={sponsorStatusDisplay || DASH}
-      />
-
-      {/* Linear flow: first generate key and sponsorship, then configure scope. */}
-      <section className="session-flow-stack">
-        <div className="session-flow-col">
-          {/* Step 1: generate key and check/request sponsorship. */}
-          <NeoCard
-            variant="erobo"
-            title={t("sessionCommandTitle")}
-            className="session-command"
-          >
-            <div className="session-command__status">
-              <span>{t("wallet")}</span>
-              <strong>{walletDisplay || t("notConnected")}</strong>
+          <div className="sess-scene__pass-head">
+            <div className="sess-scene__pass-icon">
+              <div className={["sess-scene__ring", busy && !isRevoking ? "is-spinning" : ""].filter(Boolean).join(" ")} />
+              <CoinArt size={24} variant="gas" />
             </div>
-            <div className="session-action-grid">
-              <NeoButton
-                variant="primary"
-                aria-label={t("generateKey")}
-                onClick={handleGenerateKey}
-              >
-                <WandSparkles aria-hidden="true" />
-                {t("generateKey")}
-              </NeoButton>
-              <NeoButton
-                variant="secondary"
-                loading={isCheckingSponsorship}
-                disabled={isCheckingSponsorship}
-                aria-label={t("checkSponsor")}
-                onClick={() => dispatch("checkSponsor", accountSeed, dappId)}
-              >
-                <Search aria-hidden="true" />
-                {t("checkSponsor")}
-              </NeoButton>
-              <NeoButton
-                variant="secondary"
-                loading={isCheckingSponsorship}
-                disabled={isCheckingSponsorship || !sponsorAmountValid}
-                aria-label={t("requestSponsor")}
-                onClick={() => {
-                  if (!sponsorAmountValid) return;
-                  dispatch(
-                    "requestSponsor",
-                    accountSeed,
-                    dappId,
-                    sponsorAmount,
-                  );
-                }}
-              >
-                <HandCoins aria-hidden="true" />
-                {t("requestSponsor")}
-              </NeoButton>
+            <div className="sess-scene__pass-meta">
+              <span className="sess-scene__pass-label">{t("sessionLabel")}</span>
+              <span className="sess-scene__pass-status">{configured ? t("configured") : t("pending")}</span>
             </div>
-            <div className="session-form session-form--compact">
-              <NeoInput
-                value={dappId}
-                label={t("dappId")}
-                placeholder={t("dappIdPlaceholder")}
-                onChange={(v: string) => setDappId(v)}
-              />
-              <NeoInput
-                type="number"
-                min={0}
-                value={sponsorAmount}
-                label={t("sponsorAmount")}
-                placeholder={t("sponsorAmountPlaceholder")}
-                error={sponsorAmountError}
-                onChange={(v: string) => setSponsorAmount(v)}
-              />
-            </div>
-          </NeoCard>
-
-          {/* Compact static reference filling the left column under the shorter
-            Key & Sponsorship card — orients the three-step flow without adding
-            competing actions. */}
-          <NeoCard
-            variant="erobo"
-            title={t("sessionFlowLabel")}
-            className="session-guide-card"
-          >
-            <ol className="session-guide">
-              <li className="session-guide__step">
-                <span className="session-guide__num" aria-hidden="true">
-                  <KeyRound />
-                </span>
-                <div className="session-guide__text">
-                  <strong>{t("sessionFlowKey")}</strong>
-                  <span>{t("sessionFlowKeyDesc")}</span>
-                </div>
-              </li>
-              <li className="session-guide__step">
-                <span className="session-guide__num" aria-hidden="true">
-                  <HandCoins />
-                </span>
-                <div className="session-guide__text">
-                  <strong>{t("sessionFlowSponsor")}</strong>
-                  <span>{t("sessionFlowSponsorDesc")}</span>
-                </div>
-              </li>
-              <li className="session-guide__step">
-                <span className="session-guide__num" aria-hidden="true">
-                  <ShieldCheck />
-                </span>
-                <div className="session-guide__text">
-                  <strong>{t("sessionFlowConfigure")}</strong>
-                  <span>{t("sessionFlowConfigureDesc")}</span>
-                </div>
-              </li>
-            </ol>
-          </NeoCard>
-        </div>
-
-        {/* Step 2: configure scope and submit the primary business action. */}
-        <NeoCard
-          variant="erobo"
-          title={t("configureSession")}
-          className="session-config-card"
-        >
-          {!canConfigure && (
-            <p className="session-hint">{t("configureSessionBlocked")}</p>
-          )}
-          <div className="session-form">
-            {/* Group A — Identity: who/what key is being delegated */}
-            <NeoInput
-              value={accountSeed}
-              label={t("accountSeed")}
-              placeholder={t("accountSeedPlaceholder")}
-              onChange={(v: string) => setAccountSeed(v)}
-            />
-            <NeoInput
-              value={sessionPublicKey}
-              label={t("sessionPublicKey")}
-              placeholder={t("sessionPublicKeyPlaceholder")}
-              onChange={(v: string) => setSessionPublicKey(v)}
-            />
-
-            {/* Group B — Scope: what the key may call and for how long */}
-            <div className="session-fieldgroup">
-              <span className="session-fieldgroup__label">
-                {t("scopeGroupLabel")}
-              </span>
-              <NeoInput
-                value={targetContract}
-                label={t("targetContract")}
-                placeholder={t("targetContractPlaceholder")}
-                onChange={(v: string) => setTargetContract(v)}
-              />
-              <NeoInput
-                value={allowedMethod}
-                label={t("allowedMethod")}
-                placeholder={t("allowedMethodPlaceholder")}
-                onChange={(v: string) => setAllowedMethod(v)}
-              />
-              {!allowedMethod.trim() && (
-                <p className="session-hint session-hint--warn" role="status">
-                  {t("anyMethodCaution")}
-                </p>
-              )}
-              <NeoInput
-                value={expiresAt}
-                label={t("expiresAt")}
-                placeholder={t("expiresAtPlaceholder")}
-                onChange={(v: string) => setExpiresAt(v)}
-              />
-              <div className="session-expiry-quick">
-                <button
-                  type="button"
-                  className="session-expiry-quick__chip"
-                  onClick={() => setExpiryIn(3600)}
-                >
-                  {t("expiryQuick1h")}
-                </button>
-                <button
-                  type="button"
-                  className="session-expiry-quick__chip"
-                  onClick={() => setExpiryIn(86400)}
-                >
-                  {t("expiryQuick24h")}
-                </button>
-                <button
-                  type="button"
-                  className="session-expiry-quick__chip"
-                  onClick={() => setExpiryIn(604800)}
-                >
-                  {t("expiryQuick7d")}
-                </button>
-              </div>
-              {expiryPreview && (
-                <p className="session-hint session-hint--muted">
-                  {expiryPreview}
-                </p>
-              )}
-            </div>
-
-            {/* Group C — Limits (mainnet only): collapsed behind a disclosure so
-                the optional GAS cap + label don't lengthen the default form. */}
-            {isMainnet && (
-              <details
-                className="session-limits"
-                open={limitsOpen}
-                onToggle={(e) =>
-                  setLimitsOpen((e.target as HTMLDetailsElement).open)
-                }
-              >
-                <summary>
-                  <span>{t("limitsGroupLabel")}</span>
-                  <ChevronDown
-                    className="session-disclosure__chevron"
-                    aria-hidden="true"
-                  />
-                </summary>
-                <div className="session-limits__body">
-                  <NeoInput
-                    type="number"
-                    min={0}
-                    value={spendingLimit}
-                    label={t("spendingLimit")}
-                    hint={t("spendingLimitHint")}
-                    placeholder={t("spendingLimitPlaceholder")}
-                    onChange={(v: string) => setSpendingLimit(v)}
-                  />
-                  <NeoInput
-                    value={description}
-                    label={t("sessionDescription")}
-                    placeholder={t("sessionDescriptionPlaceholder")}
-                    onChange={(v: string) => setDescription(v)}
-                  />
-                </div>
-              </details>
-            )}
-
-            <NeoButton
-              variant="primary"
-              loading={isSubmitting}
-              disabled={!canConfigure}
-              aria-label={t("configureSession")}
-              onClick={() =>
-                dispatch(
-                  "configureSessionKey",
-                  accountSeed,
-                  sessionPublicKey,
-                  targetContract,
-                  allowedMethod,
-                  expiresAt,
-                  spendingLimit,
-                  description,
-                )
-              }
-            >
-              <ShieldCheck aria-hidden="true" />
-              {t("configureSession")}
-            </NeoButton>
+            <strong className="sess-scene__readiness">{filledCount}/4</strong>
           </div>
-        </NeoCard>
-      </section>
 
-      {/* One-time private-key export — its own prominent card so the
-          irreversible "copy now or lose it" moment never competes with the
-          dapp-id / sponsor-amount fields it used to be nested inside. */}
-      {generatedPrivateKey && (
-        <NeoCard
-          variant="erobo"
-          title={t("privateKeyCardTitle")}
-          className="session-private-card"
-        >
-          <div className="session-private-export">
-            <p className="session-private-export__caution" role="alert">
-              {t("privateKeyCaution")}
-            </p>
-            <div className="session-private-export__head">
-              <span className="session-private-export__label">
-                {t("privateKeyReady")}
-              </span>
-              <button
-                type="button"
-                className="session-private-export__toggle"
-                aria-pressed={privateKeyRevealed}
-                onClick={() => setPrivateKeyRevealed((prev) => !prev)}
-              >
-                {privateKeyRevealed ? t("hidePrivateKey") : t("showPrivateKey")}
-              </button>
-            </div>
-            <code
-              className="session-private-export__value"
-              aria-label={t("sessionPrivateKey")}
-            >
-              {privateKeyRevealed ? generatedPrivateKey : maskedPrivateKey}
-            </code>
-            <NeoButton
-              variant="secondary"
-              aria-label={t("copyPrivateKey")}
-              onClick={handleCopyPrivateKey}
-            >
-              <Copy aria-hidden="true" />
-              {privateKeyCopied ? t("copiedPrivateKey") : t("copyPrivateKey")}
-            </NeoButton>
-            {copyFailed && (
+          <div className="sess-scene__scope" aria-label={t("sessionReadinessChecks")}>
+            {sessionModules.map((item) => (
               <span
-                className="session-private-export__error"
-                role="alert"
-                aria-live="assertive"
+                key={item.key}
+                className={[
+                  "sess-scene__badge",
+                  `sess-scene__badge--${item.key}`,
+                  item.ready ? "is-on" : "",
+                ].filter(Boolean).join(" ")}
               >
-                {t("copyPrivateKeyFailed")}
-              </span>
-            )}
-          </div>
-        </NeoCard>
-      )}
-
-      {/* Consolidated result region — the single place to read "what is live
-          on-chain now": the manage actions, the on-chain readback, and the
-          latest submitted configuration, instead of three scattered surfaces. */}
-      <section className="session-summary">
-        <div className="session-section-heading">
-          <span>{t("sessionMetricStatus")}</span>
-          <h3>{t("latestState")}</h3>
-        </div>
-
-        <NeoCard variant="erobo" className="session-result-card">
-          {/* On-chain session manage subsection: a read (Inspect) and a
-              destructive call (Revoke) are grouped and visually separated so
-              Revoke is no longer a peer of an inspect/submit. */}
-          <div className="session-manage">
-            <div className="session-manage__head">
-              <span className="session-manage__label">
-                {t("onChainSessionTitle")}
-              </span>
-              <div className="session-manage__actions">
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  disabled={!accountSeed.trim()}
-                  aria-label={t("inspectSession")}
-                  onClick={() => dispatch("inspectSession", accountSeed)}
-                >
-                  <Search aria-hidden="true" />
-                  {t("inspectSession")}
-                </NeoButton>
-                {confirmingRevoke ? (
-                  <div
-                    className="session-manage__confirm"
-                    role="group"
-                    aria-label={t("revokeConfirmPrompt")}
-                  >
-                    <span className="session-manage__confirm-text">
-                      {t("revokeConfirmPrompt")}
-                    </span>
-                    <NeoButton
-                      variant="ghost"
-                      size="sm"
-                      aria-label={t("revokeCancel")}
-                      onClick={() => setConfirmingRevoke(false)}
-                    >
-                      {t("revokeCancel")}
-                    </NeoButton>
-                    <NeoButton
-                      variant="danger"
-                      size="sm"
-                      loading={isRevoking}
-                      disabled={!accountSeed.trim() || isRevoking}
-                      aria-label={t("revokeConfirm")}
-                      onClick={async () => {
-                        await dispatch("revokeSession", accountSeed);
-                        setConfirmingRevoke(false);
-                      }}
-                    >
-                      <RotateCcw aria-hidden="true" />
-                      {t("revokeConfirm")}
-                    </NeoButton>
-                  </div>
-                ) : (
-                  <NeoButton
-                    variant="danger"
-                    size="sm"
-                    disabled={
-                      !accountSeed.trim() || !hasOnChainSession || isRevoking
-                    }
-                    aria-label={t("revokeSession")}
-                    onClick={() => setConfirmingRevoke(true)}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                    {t("revokeSession")}
-                  </NeoButton>
-                )}
-              </div>
-            </div>
-            <div className="session-onchain" role="status">
-              {hasOnChainSession ? (
-                onChainSessionView ? (
-                  <div className="session-onchain__fields">
-                    <div className="session-onchain__field">
-                      <span>{t("targetContract")}</span>
-                      <strong>
-                        {onChainSessionView.decoded.targetContract || DASH}
-                      </strong>
-                    </div>
-                    <div className="session-onchain__field">
-                      <span>{t("onChainScopeLabel")}</span>
-                      <strong>
-                        {onChainSessionView.decoded.method || t("anyMethod")}
-                      </strong>
-                    </div>
-                    <div className="session-onchain__field">
-                      <span>{t("onChainExpiryLabel")}</span>
-                      <strong>
-                        {onChainSessionView.decoded.expiryDisplay || DASH}
-                      </strong>
-                    </div>
-                    <div className="session-onchain__field">
-                      <span>{t("onChainSpendLabel")}</span>
-                      <strong>
-                        {onChainSessionView.decoded.spendingLimitUnlimited
-                          ? t("spendValueUnlimited", {
-                              spent: onChainSessionView.spentGas || "0",
-                            })
-                          : t("spendValue", {
-                              spent: onChainSessionView.spentGas || "0",
-                              limit:
-                                onChainSessionView.decoded.spendingLimitGas,
-                            })}
-                      </strong>
-                    </div>
-                  </div>
-                ) : (
-                  <code className="session-onchain__value">
-                    {onChainSession}
-                  </code>
-                )
-              ) : (
-                <span className="session-onchain__empty">
-                  {t("noOnChainSession")}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Latest submitted configuration: detail rows once a submit has
-              confirmed, otherwise a compact empty-state prompt. */}
-          {isConfigured ? (
-            <div className="session-detail-list">
-              {detailItems.map((item) => (
-                <div key={item.label} className="session-detail-row">
-                  <span>{item.label}</span>
-                  <strong>{String(item.value ?? DASH)}</strong>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="session-empty-state">
-              <span className="session-empty-state__badge" aria-hidden="true">
-                <WalletCards />
-              </span>
-              <p>{t("sessionEmptyCopy")}</p>
-            </div>
-          )}
-        </NeoCard>
-
-        <details className="session-environment">
-          <summary>
-            <span>{t("sessionStateLabel")}</span>
-            <ChevronDown
-              className="session-disclosure__chevron"
-              aria-hidden="true"
-            />
-          </summary>
-          <div className="session-env-grid">
-            {environmentItems.map((item) => (
-              <div key={item.label} className="session-env-item">
-                <span>{item.label}</span>
+                <em>{item.label}</em>
                 <strong>{item.value}</strong>
-              </div>
+              </span>
             ))}
           </div>
-        </details>
-      </section>
+
+          <div className="sess-scene__footer">
+            <p className="sess-scene__status">{statusText}</p>
+            <div className="sess-scene__meter" aria-hidden="true">
+              <span style={{ width: `${passCharge}%` }} />
+            </div>
+          </div>
+          {configured && isRevoking && <div className="sess-scene__tear" aria-hidden="true" />}
+        </div>
+      </div>
     </div>
   );
-}
 
-function SessionPassStage({
-  t,
-  ready,
-  account,
-  sessionKey,
-  target,
-  method,
-  expiry,
-  sponsor,
-}: {
-  t: PlayAreaProps["t"];
-  ready: boolean;
-  account: string;
-  sessionKey: string;
-  target: string;
-  method: string;
-  expiry: string;
-  sponsor: string;
-}) {
+  const controls = (
+    <div className="sess-controls">
+      <figure className="sess-visual-card">
+        <img src={SESSION_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
+        <figcaption>
+          <span>{t("sessionHeroEyebrow")}</span>
+          <strong>{t("sessionPassTitle")}</strong>
+        </figcaption>
+      </figure>
+      <section className="sess-scope-panel" aria-label={t("sessionScopeTitle")}>
+        <header className="sess-scope-panel__head">
+          <div>
+            <span>{t("sessionScopeTitle")}</span>
+            <strong>{t(activeScope.label)}</strong>
+          </div>
+          <em>{activeScope.method}</em>
+        </header>
+        <p>{t(activeScope.copy)}</p>
+        <div className="sess-preset-grid" role="list" aria-label={t("sessionScopeTitle")}>
+          {SCOPE_PRESETS.map((preset) => (
+            <button
+              key={preset.key}
+              type="button"
+              className={["sess-preset-card", activePreset === preset.key ? "sess-preset-card--active" : null].filter(Boolean).join(" ")}
+              onClick={() => applyScopePreset(preset)}
+              disabled={busy}
+            >
+              <span>{t(preset.label)}</span>
+              <strong>{preset.method}</strong>
+              <em>{spendLabel(preset.spend, t)} · {presetWindowLabel(preset.seconds)}</em>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <div className="sess-control-grid">
+        <div className="sess-status-card">
+          <span>{t("sessionPublicKey")}</span>
+          <strong>{passPublicKey ? compactHash(passPublicKey) : t("sessionKeyMissing")}</strong>
+          <button type="button" onClick={handleGenerate} disabled={busy}>
+            {passPublicKey ? t("generateKey") : t("sessionNextGenerate")}
+          </button>
+        </div>
+        <div className="sess-chip-card">
+          <span>{t("expiresAt")}</span>
+          <div>
+            {EXPIRY_PRESETS.map((preset) => (
+              <button key={preset.key} type="button" onClick={() => setExpiryPreset(preset.seconds)} disabled={busy}>
+                {preset.key}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sess-chip-card">
+          <span>{t("spendingLimit")}</span>
+          <div>
+            {SPEND_PRESETS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={draftSpendLimit === value ? "is-active" : ""}
+                onClick={() => setDraftSpendLimit(value)}
+                disabled={busy}
+              >
+                {spendLabel(value, t)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sess-endpoint-card">
+          <span>{t("targetContract")}</span>
+          <strong>{scopeTarget ? compactHash(scopeTarget) : t("sessionTargetMissing")}</strong>
+          <em>{t("sessionTargetHint")}</em>
+        </div>
+      </div>
+    </div>
+  );
+
+  const readout = configured
+    ? [
+        { label: t("sessionMetricStatus"), value: sessionStatus, accent: true },
+        { label: t("sponsor"), value: sponsorStatus },
+        { label: t("sessionVerifier"), value: compactHash(sessionVerifier) },
+        { label: t("wallet"), value: walletDisplay && walletDisplay !== t("notConnected") ? compactHash(walletDisplay) : t("notConnected") },
+      ]
+    : [
+        { label: t("sessionMetricStatus"), value: `${filledCount}/4`, accent: true },
+        { label: t("sessionVerifier"), value: compactHash(sessionVerifier) },
+        { label: t("aaCore"), value: compactHash(aaCoreDisplay) },
+        { label: t("wallet"), value: walletDisplay && walletDisplay !== t("notConnected") ? compactHash(walletDisplay) : t("notConnected") },
+      ];
+
+  const drawer = (
+    <div className="sess-drawer">
+      <OpenUiPanel
+        className="sess-drawer-panel sess-drawer-panel--ops"
+        icon={<KeyRound size={16} />}
+        title={t("sessionCommandTitle")}
+        subtitle={t("sessionAdvancedHint")}
+        titleId="sess-drawer-ops"
+      >
+        <div className="sess-command-grid">
+          <button type="button" className="sess-command-card" onClick={handleGenerate}>
+            <KeyRound size={16} />
+            <span>{t("generateKey")}</span>
+          </button>
+          <button type="button" className="sess-command-card" onClick={handleInspect} disabled={!draftAccount}>
+            <Search size={16} />
+            <span>{t("inspectSession")}</span>
+          </button>
+          <button type="button" className="sess-command-card sess-command-card--danger" onClick={handleRevoke} disabled={!configured}>
+            <ShieldOff size={16} />
+            <span>{t("revokeSession")}</span>
+          </button>
+        </div>
+        <OpenUiNotice
+          className="sess-sponsor-card"
+          icon={<HandCoins size={16} />}
+          title={t("sponsorship")}
+        >
+          <p className="sess-drawer__note">{t("sessionFlowSponsorDesc")}</p>
+          <div className="sess-sponsor-card__actions">
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleCheckSponsor} disabled={!draftAccount}>{t("checkSponsor")}</button>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleRequestSponsor} disabled={!draftAccount}>{t("requestSponsor")}</button>
+          </div>
+        </OpenUiNotice>
+      </OpenUiPanel>
+
+      <OpenUiPanel
+        className="sess-drawer-panel sess-drawer-panel--scope"
+        icon={<SlidersHorizontal size={16} />}
+        title={t("sessionAdvancedTitle")}
+        subtitle={t("sessionTargetHint")}
+        titleId="sess-drawer-scope"
+      >
+        <div className="sess-drawer-grid">
+          <OpenUiTextField className="sess-drawer__field" label={t("accountSeed")} value={draftAccount} onChange={(e) => setDraftAccount(e.target.value)} placeholder={t("accountSeedPlaceholder")} mono />
+          <OpenUiTextField className="sess-drawer__field sess-drawer__field--wide" label={t("sessionPublicKey")} value={draftPubKey} onChange={(e) => setDraftPubKey(e.target.value)} placeholder={t("sessionPublicKeyPlaceholder")} mono />
+          <OpenUiTextField className="sess-drawer__field sess-drawer__field--wide" label={t("targetContract")} value={draftTarget} onChange={(e) => setDraftTarget(e.target.value)} placeholder={t("targetContractPlaceholder")} mono />
+          <OpenUiTextField className="sess-drawer__field" label={t("allowedMethod")} value={draftMethod} onChange={(e) => setDraftMethod(e.target.value)} placeholder={t("allowedMethodPlaceholder")} hint={!draftMethod ? t("anyMethodCaution") : undefined} mono />
+          <OpenUiTextField className="sess-drawer__field" label={t("expiresAt")} value={draftExpiry} onChange={(e) => setDraftExpiry(e.target.value)} placeholder={t("expiresAtPlaceholder")} inputMode="numeric" mono />
+          <OpenUiTextField className="sess-drawer__field" label={t("spendingLimit")} value={draftSpendLimit} onChange={(e) => setDraftSpendLimit(e.target.value)} placeholder={t("spendingLimitPlaceholder")} hint={t("spendingLimitHint")} inputMode="decimal" mono />
+        </div>
+      </OpenUiPanel>
+    </div>
+  );
+
+  const needsKey = !seg.key;
+
   return (
-    <section
-      className={`session-pass-stage${ready ? " session-pass-stage--ready" : ""}`}
-      aria-label={t("sessionPassAria")}
-    >
-      <img
-        className="session-pass-stage__image"
-        src="./session-key-control.jpg"
-        alt=""
-        aria-hidden="true"
-        loading="eager"
-        decoding="async"
-      />
-      <div className="session-pass-stage__shade" aria-hidden="true" />
-      <div className="session-pass-stage__card">
-        <span className="session-pass-stage__kicker">
-          {t("sessionPassKicker")}
-        </span>
-        <strong>{t("sessionPassTitle")}</strong>
-        <span className="session-pass-stage__status">
-          <i aria-hidden="true" />
-          {ready ? t("sessionPassReady") : t("sessionPassDraft")}
-        </span>
-      </div>
-      <div className="session-pass-stage__route" aria-hidden="true">
-        <span>
-          <KeyRound />
-          {t("sessionFlowKey")}
-        </span>
-        <i />
-        <span>
-          <HandCoins />
-          {t("sessionFlowSponsor")}
-        </span>
-        <i />
-        <span>
-          <ShieldCheck />
-          {t("sessionFlowConfigure")}
-        </span>
-      </div>
-      <dl className="session-pass-stage__facts">
-        <div>
-          <dt>{t("derivedAccountId")}</dt>
-          <dd>{account}</dd>
-        </div>
-        <div>
-          <dt>{t("sessionPublicKey")}</dt>
-          <dd>{sessionKey}</dd>
-        </div>
-        <div>
-          <dt>{t("targetContract")}</dt>
-          <dd>{target}</dd>
-        </div>
-        <div>
-          <dt>{t("allowedMethod")}</dt>
-          <dd>{method}</dd>
-        </div>
-        <div>
-          <dt>{t("expiresAt")}</dt>
-          <dd>{expiry}</dd>
-        </div>
-        <div>
-          <dt>{t("sessionMetricSponsor")}</dt>
-          <dd>{sponsor}</dd>
-        </div>
-      </dl>
-    </section>
+    <div className="sess-play-area mx2 mx2-cat-tool">
+      <OpenUiProvider>
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t("sessionHeroEyebrow"),
+            title: t("sessionHeroTitle"),
+            subtitle: t("sessionPassTitle"),
+          }}
+          scene={<div className="sess-workspace">{scene}{controls}</div>}
+          score={readout}
+          actions={{
+            primary: {
+              label: busy ? "..." : needsKey ? t("sessionNextGenerate") : t("configureSession"),
+              onClick: needsKey ? handleGenerate : handleConfigure,
+              disabled: !needsKey && !scopeReady,
+              loading: busy,
+              hint: !needsKey && !scopeReady ? t("configureSessionBlocked") : undefined,
+            },
+          }}
+          drawerToggleLabel={t("sessionCommandTitle")}
+          drawer={{ title: t("sessionCommandTitle"), children: drawer }}
+        />
+      </OpenUiProvider>
+    </div>
   );
 }

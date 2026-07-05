@@ -28,8 +28,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-compute-lab/index.html",
-    "icon": "/miniapps/oracle-compute-lab/logo.jpg",
-    "banner": "/miniapps/oracle-compute-lab/banner.jpg"
+    "icon": "/miniapps/oracle-compute-lab/logo.webp",
+    "banner": "/miniapps/oracle-compute-lab/banner.webp"
   },
   "permissions": [
     "read:blockchain",

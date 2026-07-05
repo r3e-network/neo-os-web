@@ -20,22 +20,20 @@ defineMiniApp({
 
   setup(ctx) {
     const checkin = useCheckin({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t,
     });
 
     checkin.startTimer();
 
-    ctx.registerAction("doCheckIn", async () => {
-      await ctx.services.notify.guard(() => checkin.doCheckIn(), "checkinSuccess");
+    ctx.framework.actions.register("doCheckIn", () => checkin.doCheckIn(), {
+      successKey: "checkinSuccess",
     });
-
-    ctx.registerAction("claimRewards", async () => {
-      await ctx.services.notify.guard(() => checkin.claimRewards(), "claimSuccess");
+    ctx.framework.actions.register("claimRewards", () => checkin.claimRewards(), {
+      successKey: "claimSuccess",
     });
-
-    ctx.registerAction("refreshStatus", async () => {
-      await ctx.services.notify.guard(() => checkin.refreshStatus(), "statusLoaded");
+    ctx.framework.actions.register("refreshStatus", () => checkin.refreshStatus(), {
+      successKey: "statusLoaded",
     });
 
     return {

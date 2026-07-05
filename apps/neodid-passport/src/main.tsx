@@ -79,12 +79,12 @@ defineMiniApp({
       state.lastError.set("");
     }
 
-    ctx.registerAction("resetPassport", async () => {
+    ctx.framework.actions.register("resetPassport", async () => {
       resetState();
       ctx.setStatus(ctx.t("statusReady"), "info");
     });
 
-    ctx.registerAction("buildPassport", async (formData: unknown) => {
+    ctx.framework.actions.register("buildPassport", async (formData: unknown) => {
       const form = normalizePassportForm(formData, ctx.launchContext.params);
       const validationKey = validatePassportForm(form);
       if (validationKey) {
@@ -126,7 +126,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("signPassport", async () => {
+    ctx.framework.actions.register("signPassport", async () => {
       const payload = state.passportPayload.get();
       if (!payload) {
         const message = ctx.t("passportNoPayload");

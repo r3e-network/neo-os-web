@@ -199,6 +199,7 @@ const appMessages = {
   tabVrf: { en: "VRF", zh: "VRF" },
   panelEyebrow: { en: "Verifiable randomness", zh: "可验证随机数" },
   panelTitle: { en: "VRF Request Builder", zh: "VRF 请求构建器" },
+  buildRequest: { en: "Build Request", zh: "构建请求" },
   panelDescription: {
     en: "Prepare randomness requests with consumer, salt, proof mode, and repeat count. This request id is what you submit to the Morpheus VRF lane (or your consumer contract); the returned proof matches back to this id — the draw and verification happen there, not in this preview.",
     zh: "用消费者、盐值、证明模式和轮次准备随机数请求。此请求 ID 即你提交给 Morpheus VRF 通道（或你的消费者合约）的标识；返回的证明会与该 ID 对应——抽取与验证发生在那里，而非本预览中。",
@@ -289,6 +290,22 @@ const appMessages = {
     zh: "把种子、抽取轮次和证明方式锁定为一个可验证请求。",
   },
   vrfTicketReady: { en: "Ticket ready", zh: "票据已准备" },
+  vrfPresetTitle: { en: "Use case presets", zh: "使用场景预设" },
+  vrfPresetGame: { en: "Game round", zh: "游戏回合" },
+  vrfPresetGameHint: {
+    en: "Final match, several random picks.",
+    zh: "决赛回合，多次随机选取。",
+  },
+  vrfPresetRaffle: { en: "Raffle draw", zh: "抽奖开奖" },
+  vrfPresetRaffleHint: {
+    en: "One winner, one callback.",
+    zh: "一个赢家，一次回调。",
+  },
+  vrfPresetLoot: { en: "Loot drop", zh: "掉落发放" },
+  vrfPresetLootHint: {
+    en: "Batch proofs for reward packs.",
+    zh: "奖励包使用批量证明。",
+  },
   vrfSeedIdentity: { en: "Seed identity", zh: "种子身份" },
   vrfSeedIdentityCopy: {
     en: "Use stable values so proofs can be matched after callback.",
@@ -335,8 +352,8 @@ const appMessages = {
   },
   feature2Name: { en: "Game Ready", zh: "游戏就绪" },
   feature2Desc: {
-    en: "The form is tuned for game rounds, raffles, and randomized app flows.",
-    zh: "表单适合游戏回合、抽奖和随机化应用流程。",
+    en: "Use case presets cover game rounds, raffles, loot drops, and randomized app flows.",
+    zh: "场景预设覆盖游戏回合、抽奖、掉落发放和随机化应用流程。",
   },
   feature3Name: { en: "Proof Aware", zh: "证明感知" },
   feature3Desc: {

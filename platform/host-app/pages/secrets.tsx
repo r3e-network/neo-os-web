@@ -11,7 +11,7 @@ export default function SecretsPage() {
   return (
     <Layout>
       <Head>
-        <title>Secrets - Yiwu MiniApps</title>
+        <title>Secrets - Neo Miniapps</title>
       </Head>
       <PageHero
         align="center"

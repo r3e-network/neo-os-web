@@ -1,7 +1,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import path from "node:path";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -12,633 +12,311 @@ import PlayArea from "../../gas-lucky-pool/src/PlayArea";
 
 afterEach(() => cleanup());
 
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
+}
+
+function playAreaSource(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.tsx"), "utf8");
+}
+
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    title: "OneGate Vault",
-    subtitle: "Bounded random GAS rewards via OneGate QR",
-    poolOverview: "Pool overview",
-    activePools: "Active pools",
-    claims: "Claims",
-    ownerWorkspaceTitle: "Reward pool workspace",
+    vaultName: "OneGate Vault",
+    workspaceHeroEyebrow: "Campaign owner",
     createPoolTitle: "Create reward pool",
-    createPoolDescription:
-      "Campaign owners configure 1-50 GAS rewards and single-use claim keys in the backend, then distribute OneGate QR codes.",
+    createPoolDescription: "Configure 1-50 GAS rewards.",
+    createPool: "Create Pool",
+    creatingPool: "Creating...",
     rewardMachineDraft: "Set amount and slots to charge the vault",
-    rewardMachineReady: "Vault charged and ready to launch",
-    rewardPlanIncomplete:
-      "Set the total GAS and claim slots to unlock the launch button.",
-    rewardPlanInvalidRange:
-      "The maximum reward must be greater than or equal to the minimum reward.",
-    rewardPlanReadyHint:
-      "The reward machine is charged. Review it once, then create the pool.",
-    rewardRouteTitle: "Reward machine route",
+    rewardMachineReady: "Vault charged and ready",
+    rewardRangeDefault: "1-50 GAS",
+    rewardRange: "Reward range",
     rewardRouteCharge: "Charge",
     rewardRouteSplit: "Split",
     rewardRouteScan: "Scan",
     rewardRouteUnwrap: "Unwrap",
-    claimRangeSmall: "Small gifts",
+    rewardPlanTitle: "Reward plan",
+    rewardPresetCta: "Choose a reward package",
+    rewardPresetHint: "Pick a preset now. Fine-tune amount, slots, range, and expiry in Manage.",
+    claimRangeSmall: "Small",
     claimRangeBalanced: "Balanced",
     claimRangeJackpot: "Jackpot",
+    claimRangeHint: "Reward range",
+    totalAmount: "Total GAS",
     decreaseTotalAmount: "Decrease total GAS",
     increaseTotalAmount: "Increase total GAS",
+    maxClaims: "Claim slots",
     decreaseMaxClaims: "Decrease claim slots",
     increaseMaxClaims: "Increase claim slots",
-    decreaseExpiryHours: "Decrease expiry hours",
-    increaseExpiryHours: "Increase expiry hours",
-    claimPoolTitle: "Claim with OneGate",
-    claimKey: "Claim key",
-    poolId: "Pool ID",
-    inspectClaim: "Check reward",
-    inspectPool: "Inspect pool",
-    claimOnce: "Claim once",
+    expiryHours: "Expiry hours",
+    expiryHoursHint: "When the offer closes",
+    rewardExpiryHours: "{hours}h",
+    rewardSlotsCount: "{count} slots",
+    rewardSlotsUnset: "— slots",
+    rewardPoolUnset: "— GAS",
+    claimPoolTitle: "Claim Reward",
+    claimPoolDescription: "Enter your claim key to receive GAS.",
     claimReward: "Claim Reward",
-    scanClaimReady: "OneGate scan detected",
-    scanClaimPool: "Reward key is ready",
-    scanClaimReview:
-      "Submit the key and wallet address; the server sends GAS from the reward wallet.",
-    rewardRange: "1-50",
-    noPoolSelected: "Enter a reward key or scan a OneGate QR code.",
-    claimConsoleHint: "Primary action lives in the right action console.",
-    docOneGateFlow:
-      "The claim QR opens OneGate app 23 directly and only carries key, pool, and network.",
-    claimProgressTitle: "Claim progress",
-    claimProgressWallet: "Wallet ready",
-    claimProgressSubmitting: "Submitting claim",
-    claimProgressConfirming: "Waiting for GAS transfer",
-    claimProgressPaid: "GAS received",
-    claimProgressFailed: "Claim needs retry",
-    claimSubmitted: "Reward payout submitted",
-    claimPaid: "Reward paid",
-    claimFailed: "Claim failed.",
-    shareQr: "OneGate QR claim",
-    oneGateReady: "OneGate ready",
-    shareLink: "Claim link",
-    totalPools: "Total pools",
-    claimCongratsTitle: "Congratulations, your claim is in",
-    claimCongratsBody: "Reward key {claimKey} awarded {amount} GAS.",
-    luckPercentLabel: "Luck beat {percent}% of users.",
-    claimedAmount: "Claimed {amount} GAS",
-    claimReceiptTitle: "Claim receipt",
+    claimCongratsTitle: "Congratulations!",
+    claimCongratsBody: "Reward paid.",
     claimAmountLabel: "Reward",
     claimKeyLabel: "Claim key",
     claimNetworkLabel: "Network",
-    networkMainnet: "Neo N3 MainNet",
-    networkTestnet: "Neo N3 TestNet",
-    transactionIdLabel: "Transaction ID",
-    totalAmount: "Total GAS",
-    maxClaims: "Claim slots",
-    minClaim: "Minimum claim",
-    maxClaim: "Maximum claim",
-    expiryHours: "Expiry hours",
-    contractGuarded: "Contract guarded",
-    perAddressOnce: "One claim per address per pool",
-    createPool: "Create pool",
-    creatingPool: "Creating pool",
-    gasCredit: "Recoverable GAS",
-    gasCreditTitle: "Recover prepaid GAS",
-    gasCreditDescription: "Recover interrupted prepaid GAS.",
-    checkGasCredit: "Check credit",
-    checkingGasCredit: "Checking credit",
-    withdrawGasCredit: "Withdraw credit",
-    withdrawingGasCredit: "Withdrawing credit",
-    refundPool: "Recover remaining GAS",
-    recoveringGas: "Recovering GAS",
+    claimProgressSubmitting: "Submitting...",
+    luckPercentLabel: "Luck",
+    networkMainnet: "Mainnet",
+    networkTestnet: "Testnet",
+    viewOnExplorer: "View on explorer",
+    manageExistingTitle: "Manage pools",
+    managePoolShort: "Manage",
     poolControlsTitle: "Pool controls",
+    poolControlsHint: "Inspect, top up, or refund.",
     poolIdLabel: "Pool ID",
-    poolIdPlaceholder: "e.g. 42",
-    poolControlsHint:
-      "Enter a pool ID to inspect, top up, or recover a pool you created.",
-    poolStateEmpty: "Enter a pool id and inspect it to load live pool state.",
-    poolNotSelected: "No pool selected",
-    recentPoolsTitle: "Recent pools",
-    recentPoolsEmpty: "No recent pool events found yet.",
-    recentClaimsTitle: "Recent claims",
-    recentClaimsEmpty: "No recent claim events found yet.",
-    claimedSlots: "Claimed slots",
-    topUpAmount: "Top up amount",
-    topUpPool: "Add GAS",
-    addingGas: "Adding GAS",
-    loadingPool: "Loading pool",
-    refundCongratsTitle: "Remaining GAS returned",
-    refundCongratsBody: "Pool #{poolId} returned {amount} GAS to the creator.",
-    fundCongratsTitle: "Pool topped up",
-    fundCongratsBody: "Pool #{poolId} received {amount} GAS.",
-    campaignOwnerTitle: "Campaign owner setup",
-    campaignOwnerStep1:
-      "Create the campaign in the backend and fund the server payout wallet.",
-    campaignOwnerStep2:
-      "Generate one independent claim key per recipient and embed it in the OneGate QR code.",
-    campaignOwnerStep3:
-      "Recipients scan, claim once, then this dApp watches the payout and shows the result.",
+    poolIdPlaceholder: "Pool id",
+    inspectPool: "Inspect",
+    refundPool: "Refund",
+    topUpAmount: "Top-up amount",
+    topUpPool: "Top up",
+    gasCreditTitle: "GAS credit",
+    gasCreditDescription: "Check or withdraw credit.",
+    gasCredit: "Credit",
+    checkGasCredit: "Check credit",
+    withdrawGasCredit: "Withdraw",
+    howItWorks: "How it works",
+    oneGateReady: "OneGate ready",
+    contractGuarded: "Server guarded",
+    shareQr: "OneGate QR claim",
+    safetyModel: "Safety model",
+    oneGateFlow: "OneGate flow",
+    distributionPathsTitle: "Two ways to distribute",
+    pathOnChain: "On-chain pool.",
+    docHowItWorks: "How it works.",
+    docSafetyModel: "Safety model.",
+    docOneGateFlow: "OneGate flow.",
   };
   let value = messages[key] ?? key;
-  for (const [paramKey, paramValue] of Object.entries(params ?? {})) {
-    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
-  }
+  if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
   return value;
 }
 
-function launch(claimKey = "ogv_test_key_1234567890") {
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    currentClaimKey: "",
+    currentPoolId: "",
+    currentRange: "1-50 GAS",
+    lastTxid: "",
+    lastClaimAmount: 0n,
+    lastClaimKey: "",
+    lastClaimLuckPercent: "",
+    claimStatus: "",
+    claimProgress: "",
+    isClaiming: false,
+    isCreating: false,
+    isLoading: false,
+    isFunding: false,
+    isRefunding: false,
+    isCreditLoading: false,
+    isWithdrawingCredit: false,
+    gasCredit: 0n,
+    lastSuccessType: "",
+    lastError: "",
+    ...overrides,
+  };
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
+}
+
+function claimLaunch(claimKey: string) {
   return parseMiniAppLaunchContext(
-    `https://onegate.space/app/23?key=${claimKey}&pool=pool-001&network=testnet`,
+    `https://onegate.space/app/23?source=onegate&operation=claimOneGateVault&key=${claimKey}&network=testnet`,
     "miniapp-gas-lucky-pool",
   );
 }
-
-function launchWithOperation(
-  operation: string,
-  claimKey = "ogv_test_key_1234567890",
-) {
-  return parseMiniAppLaunchContext(
-    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=${operation}&network=testnet&claimKey=${claimKey}`,
-    "miniapp-gas-lucky-pool",
-  );
-}
-
-function regularLaunch() {
+function creatorLaunch() {
   return parseMiniAppLaunchContext(
     "https://neomini.app/miniapps/gas-lucky-pool/index.html?network=testnet",
     "miniapp-gas-lucky-pool",
   );
 }
 
-function baseState(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    currentPoolId: "42",
-    currentClaimKey: "ogv_test_key_1234567890",
-    currentPool: null,
-    recentPools: [],
-    recentClaims: [],
-    isCreating: false,
-    isClaiming: false,
-    isRefunding: false,
-    isFunding: false,
-    isLoading: false,
-    isCreditLoading: false,
-    isWithdrawingCredit: false,
-    currentShareUrl: "",
-    lastTxid: "",
-    lastClaimAmount: 0n,
-    lastClaimPoolId: "",
-    lastClaimKey: "",
-    lastClaimLuckPercent: "",
-    claimStatus: "",
-    claimProgress: "",
-    lastRefundAmount: 0n,
-    lastRefundPoolId: "",
-    lastFundAmount: 0n,
-    lastFundPoolId: "",
-    lastSuccessType: "",
-    lastError: "",
-    gasCredit: 0n,
-    activePoolCount: 0,
-    claimCount: 0,
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
-}
+describe("OneGate Vault PlayArea (v2 scene-driven)", () => {
+  it("renders the creator workspace with the vault scene", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} launchContext={creatorLaunch()} />);
+    expect(container.querySelector(".vault-scene")).toBeTruthy();
+    expect(container.querySelector(".vault-scene__vault-art")?.getAttribute("src")).toContain("gas-vault-stage.webp");
+    expect(container.querySelector(".vault-scene__stage-art")).toBeNull();
+    expect(container.querySelector(".vault-scene__wash")).toBeNull();
+    expect(container.querySelector(".vault-scene__chest")).toBeFalsy();
+    expect(container.querySelector(".vault-controls__input")).toBeFalsy();
+    expect(container.querySelector(".gas-pool-playstage--creator")).toBeTruthy();
+    expect(container.querySelector(".vault-plan-card")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-plan-card__coin")).toHaveLength(3);
+    expect(container.querySelector(".vault-stepper")).toBeFalsy();
+    expect(container.querySelector(".vault-drawer__advanced")).toBeFalsy();
+    expect(container.querySelector(".mx2-btn--primary")).toBeTruthy();
+  });
 
-describe("OneGate Vault PlayArea launch flow", () => {
-  it("prefills the claim key from OneGate scan params and submits the backend claim", async () => {
+  it("dispatches createPool from a reward plan card without a form-style amount input", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} launchContext={creatorLaunch()} />);
 
+    const balancedPlan = container.querySelectorAll(".vault-plan-card")[1];
+    fireEvent.click(balancedPlan);
+
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith(
+        "createPool",
+        expect.objectContaining({
+          totalAmount: "50",
+          minClaim: "1",
+          maxClaim: "5",
+          maxClaims: "25",
+          expiryHours: "72",
+        }),
+      ),
+    );
+  });
+
+  it("renders the claim screen on a OneGate claim-key launch", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={vi.fn()} launchContext={claimLaunch("ogv_test_key_1234567890")} />,
+    );
+    // Claim screen shows the vault scene + claim-key readout.
+    expect(container.querySelector(".vault-scene")).toBeTruthy();
+    expect(container.querySelector(".vault-scene__vault-art")?.getAttribute("src")).toContain("gas-vault-stage.webp");
+    expect(container.querySelector(".vault-scene__stage-art")).toBeNull();
+    expect(container.querySelector(".vault-scene__wash")).toBeNull();
+    expect(container.querySelector(".gas-pool-playstage--claim")).toBeTruthy();
+    expect(container.textContent).toContain("Claim Reward");
+  });
+
+  it("dispatches claimPool on the claim screen", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state()} dispatch={dispatch} launchContext={claimLaunch("ogv_test_key_1234567890")} />,
+    );
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("claimPool", expect.objectContaining({ claimKey: "ogv_test_key_1234567890" })),
+    );
+  });
+
+  it("shows the success state when a claim is paid", () => {
     const { container } = render(
       <PlayArea
         t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch("ogv_test_key_1234567890")}
-      />,
-    );
-
-    expect(screen.getByText("OneGate scan detected")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Claim Reward" })).toBeTruthy();
-    expect(container.querySelector(".gas-pool-claim-only--ready")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-claim-stage__ticket")).toBeTruthy();
-    expect(screen.queryByLabelText("Claim key")).toBeNull();
-    expect(screen.queryByText("Create reward pool")).toBeNull();
-    expect(screen.queryByText("OneGate QR claim")).toBeNull();
-
-    const claimButton = screen.getByRole("button", { name: "Claim Reward" });
-    fireEvent.click(claimButton);
-    expect(container.querySelector(".gas-pool-claim-only--claiming")).toBeTruthy();
-    expect(
-      container.querySelector(".gas-pool-claim-only")?.getAttribute("aria-busy"),
-    ).toBe("true");
-    expect(claimButton.getAttribute("aria-busy")).toBe("true");
-    expect(claimButton).toHaveProperty("disabled", true);
-    expect(screen.getByText("Claim progress")).toBeTruthy();
-    expect(screen.getAllByText("Wallet ready").length).toBeGreaterThan(0);
-    expect(dispatch).toHaveBeenCalledWith("claimPool", {
-      claimKey: "ogv_test_key_1234567890",
-      poolId: "pool-001",
-      oneGateAppId: "",
-      appId: "miniapp-gas-lucky-pool",
-    });
-  });
-
-  it("treats the legacy OneGate Vault operation name as a claim launch", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launchWithOperation("claimOneGateVault")}
-      />,
-    );
-
-    expect(screen.getByText("OneGate scan detected")).toBeTruthy();
-    expect(screen.queryByText("Create reward pool")).toBeNull();
-  });
-
-  it("shows an explicit waiting state while the backend payout is pending", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          isClaiming: true,
-          claimStatus: "submitted",
-          claimProgress: "confirming",
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("ogv_test_key_1234567890")}
-      />,
-    );
-
-    expect(screen.getByText("Claim progress")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-claim-only--claiming")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-claim-stage__beam")).toBeTruthy();
-    expect(
-      screen.getAllByText("Waiting for GAS transfer").length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByText("Wallet ready")).toBeTruthy();
-    expect(screen.getByText("Submitting claim")).toBeTruthy();
-    expect(screen.queryByText("Congratulations, your claim is in")).toBeNull();
-  });
-
-  it("keeps OneGate claim failures inside the claim card with diagnostics separated", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          claimStatus: "failed",
-          claimProgress: "failed",
-          lastError: "OneGate address missing.\n[ogvdiag v=2 provider=none]",
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("ogv_test_key_1234567890")}
-      />,
-    );
-
-    expect(screen.getByRole("alert").textContent).toContain(
-      "OneGate address missing.",
-    );
-    expect(screen.getByText("[ogvdiag v=2 provider=none]")).toBeTruthy();
-    expect(screen.queryByText("GAS received")).toBeNull();
-    expect(container.querySelector(".gas-pool-toast")).toBeNull();
-  });
-
-  it("shows a clear congratulations state after a successful claim", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          lastTxid:
-            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-          lastClaimAmount: 350000001n,
-          lastClaimKey: "ogv_test_key_1234567890",
-          lastClaimLuckPercent: "7.00",
-          claimStatus: "paid",
+        state={state({
           lastSuccessType: "claim",
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch("ogv_test_key_1234567890")}
-      />,
-    );
-
-    expect(screen.getByText("Congratulations, your claim is in")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-claim-only--success")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-prize-burst")).toBeTruthy();
-    expect(
-      screen.getByText(
-        /Reward key ogv_tes\.\.\.7890 awarded 3\.5[0-9]* GAS/,
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText("3.50000001 GAS")).toBeTruthy();
-    expect(screen.getByText("Luck beat 7.00% of users.")).toBeTruthy();
-    expect(screen.getByText("Transaction ID")).toBeTruthy();
-    expect(
-      screen.getByText(
-        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText("Neo N3 TestNet")).toBeTruthy();
-    expect(screen.queryByText(/Claimed 3\.5[0-9]* GAS/)).toBeNull();
-  });
-
-  it("does not expose legacy pool management controls in the recipient play area", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch("ogv_test_key_1234567890")}
-      />,
-    );
-
-    expect(screen.queryByText("Create reward pool")).toBeNull();
-    expect(screen.queryByText("Recover remaining GAS")).toBeNull();
-    expect(screen.queryByText("Add GAS")).toBeNull();
-    expect(screen.queryByText("Claim link")).toBeNull();
-  });
-
-  it("exposes creator and pool management actions outside the OneGate claim-only launch", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentClaimKey: "",
-          currentPoolId: "42",
-          gasCredit: 150000000n,
-          poolCount: 1,
-          activePoolCount: 1,
-          totalRemaining: 500000000n,
-        })}
-        dispatch={dispatch}
-        launchContext={regularLaunch()}
-      />,
-    );
-
-    expect(
-      screen.getByRole("region", { name: "Reward pool workspace" }),
-    ).toBeTruthy();
-    expect(container.querySelector(".gas-pool-create-summary__stage")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-create-summary--draft")).toBeTruthy();
-    expect(
-      screen.getByText("Set amount and slots to charge the vault"),
-    ).toBeTruthy();
-    expect(container.querySelector(".gas-pool-create-summary__reels")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-create-summary__prize")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-create-summary__scan")).toBeTruthy();
-    expect(container.querySelector(".gas-pool-create-summary__route")).toBeTruthy();
-    expect(
-      container.querySelectorAll(".gas-pool-create-summary__route span"),
-    ).toHaveLength(4);
-    expect(
-      container.querySelectorAll(".gas-pool-create-summary__tickets span"),
-    ).toHaveLength(4);
-    const createButton = screen.getByRole("button", { name: "Create pool" });
-    expect(screen.getByText("Create reward pool")).toBeTruthy();
-    expect(createButton).toHaveProperty("disabled", true);
-    expect(
-      screen.getByText(
-        "Set the total GAS and claim slots to unlock the launch button.",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText("Pool controls")).toBeTruthy();
-    expect(container.textContent).not.toContain("inspectPool");
-    expect(container.textContent).not.toContain("gasCreditTitle");
-
-    expect(screen.getByRole("button", { name: "Decrease total GAS" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Increase total GAS" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Small gifts" }));
-    expect(screen.getByLabelText("Minimum claim")).toHaveProperty("value", "1");
-    expect(screen.getByLabelText("Maximum claim")).toHaveProperty("value", "3");
-    fireEvent.click(screen.getByRole("button", { name: "Balanced" }));
-    expect(screen.getByLabelText("Maximum claim")).toHaveProperty("value", "5");
-
-    fireEvent.change(screen.getByLabelText("Total GAS"), {
-      target: { value: "12" },
-    });
-    fireEvent.change(screen.getByLabelText("Claim slots"), {
-      target: { value: "4" },
-    });
-    expect(container.querySelector(".gas-pool-create-summary--ready")).toBeTruthy();
-    expect(screen.getByText("Vault charged and ready to launch")).toBeTruthy();
-    expect(createButton).toHaveProperty("disabled", false);
-    expect(
-      screen.getByText(
-        "The reward machine is charged. Review it once, then create the pool.",
-      ),
-    ).toBeTruthy();
-    expect(
-      container.querySelectorAll(".gas-pool-create-summary__route span.is-active")
-        .length,
-    ).toBeGreaterThanOrEqual(3);
-    fireEvent.click(createButton);
-    expect(container.querySelector(".gas-pool-create-summary--launching")).toBeTruthy();
-    expect(
-      container
-        .querySelector(".gas-pool-create-summary")
-        ?.getAttribute("aria-busy"),
-    ).toBe("true");
-    expect(createButton.getAttribute("aria-busy")).toBe("true");
-    expect(createButton).toHaveProperty("disabled", true);
-    expect(screen.getByRole("button", { name: "Creating pool" })).toBeTruthy();
-    expect(dispatch).toHaveBeenCalledWith("createPool", {
-      totalAmount: "12",
-      minClaim: "1",
-      maxClaim: "5",
-      maxClaims: "4",
-      expiryHours: "24",
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Inspect pool" }));
-    expect(dispatch).toHaveBeenCalledWith("loadPool", { poolId: "42" });
-
-    fireEvent.change(screen.getByLabelText("Top up amount"), {
-      target: { value: "2.5" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add GAS" }));
-    expect(dispatch).toHaveBeenCalledWith("topUpPool", {
-      poolId: "42",
-      amount: "2.5",
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Recover remaining GAS" }));
-    expect(dispatch).toHaveBeenCalledWith("refundPool", { poolId: "42" });
-
-    fireEvent.click(screen.getByRole("button", { name: "Check credit" }));
-    expect(dispatch).toHaveBeenCalledWith("loadGasCredit");
-
-    fireEvent.click(screen.getByRole("button", { name: "Withdraw credit" }));
-    expect(dispatch).toHaveBeenCalledWith("withdrawGasCredit");
-  });
-
-  it("lets a returning owner target any pool by typing a Pool ID", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentClaimKey: "",
-          currentPoolId: "",
-        })}
-        dispatch={dispatch}
-        launchContext={regularLaunch()}
-      />,
-    );
-
-    const poolIdInput = screen.getByLabelText("Pool ID");
-    fireEvent.change(poolIdInput, { target: { value: "108" } });
-
-    fireEvent.click(screen.getByRole("button", { name: "Inspect pool" }));
-    expect(dispatch).toHaveBeenCalledWith("loadPool", { poolId: "108" });
-
-    fireEvent.change(screen.getByLabelText("Top up amount"), {
-      target: { value: "3" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add GAS" }));
-    expect(dispatch).toHaveBeenCalledWith("topUpPool", {
-      poolId: "108",
-      amount: "3",
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Recover remaining GAS" }),
-    );
-    expect(dispatch).toHaveBeenCalledWith("refundPool", { poolId: "108" });
-  });
-
-  it("disables pool controls and shows a hint when no pool is selected", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentClaimKey: "",
-          currentPoolId: "",
-        })}
-        dispatch={dispatch}
-        launchContext={regularLaunch()}
-      />,
-    );
-
-    expect(
-      screen.getByText(
-        "Enter a pool ID to inspect, top up, or recover a pool you created.",
-      ),
-    ).toBeTruthy();
-
-    const inspect = screen.getByRole("button", { name: "Inspect pool" });
-    const addGas = screen.getByRole("button", { name: "Add GAS" });
-    const recover = screen.getByRole("button", {
-      name: "Recover remaining GAS",
-    });
-    expect(inspect).toHaveProperty("disabled", true);
-    expect(addGas).toHaveProperty("disabled", true);
-    expect(recover).toHaveProperty("disabled", true);
-
-    fireEvent.click(inspect);
-    fireEvent.click(addGas);
-    fireEvent.click(recover);
-    expect(dispatch).not.toHaveBeenCalledWith(
-      "loadPool",
-      expect.anything(),
-    );
-    expect(dispatch).not.toHaveBeenCalledWith(
-      "topUpPool",
-      expect.anything(),
-    );
-    expect(dispatch).not.toHaveBeenCalledWith(
-      "refundPool",
-      expect.anything(),
-    );
-  });
-
-  it("uses action-specific working copy in the creator workspace", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentClaimKey: "",
-          currentPoolId: "42",
-          gasCredit: 150000000n,
-          isCreating: true,
-          isFunding: true,
-          isRefunding: true,
-          isLoading: true,
-          isCreditLoading: true,
-          isWithdrawingCredit: true,
-        })}
-        dispatch={vi.fn()}
-        launchContext={regularLaunch()}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "Creating pool" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Loading pool" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Adding GAS" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Recovering GAS" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Checking credit" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Withdrawing credit" }),
-    ).toBeTruthy();
-    expect(container.textContent).not.toContain("Legacy Pool ID");
-    expect(container.textContent).not.toContain("Waiting for GAS transfer");
-  });
-
-  it("keeps a manual claim inside the regular creator workspace after success", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentClaimKey: "ogv_browser_claim_001",
-          currentPoolId: "42",
-          lastTxid:
-            "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-          lastClaimAmount: 350000000n,
-          lastClaimKey: "ogv_browser_claim_001",
-          lastClaimLuckPercent: "7.00",
           claimStatus: "paid",
-          lastSuccessType: "claim",
+          lastTxid: "0xabc123",
+          lastClaimAmount: 500000000n,
+          lastClaimLuckPercent: "72",
         })}
         dispatch={vi.fn()}
-        launchContext={regularLaunch()}
+        launchContext={claimLaunch("ogv_test_key_1234567890")}
       />,
     );
-
-    expect(
-      screen.getByRole("region", { name: "Reward pool workspace" }),
-    ).toBeTruthy();
-    expect(screen.getByText("Reward paid")).toBeTruthy();
-    expect(
-      screen.queryByText("Congratulations, your claim is in"),
-    ).toBeNull();
+    expect(container.querySelector('.vault-scene[data-state="success"]')).toBeTruthy();
+    expect(container.textContent).toContain("Congratulations");
   });
 
-  it("keeps the creator reward machine animated and reduced-motion safe", () => {
-    const scss = readFileSync(
-      resolve(process.cwd(), "../gas-lucky-pool/src/PlayArea.scss"),
-      "utf8",
-    );
+  it("keeps secondary creator tools behind drawer modes", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByText } = render(<PlayArea t={t} state={state()} dispatch={dispatch} launchContext={creatorLaunch()} />);
 
-    expect(scss).toContain("@keyframes gas-pool-reel-ready");
-    expect(scss).toContain("@keyframes gas-pool-reel-launch");
-    expect(scss).toContain("@keyframes gas-pool-prize-ready");
-    expect(scss).toContain("@keyframes gas-pool-prize-launch");
-    expect(scss).toContain("@keyframes gas-pool-machine-scan");
-    expect(scss).toContain("@keyframes gas-pool-route-ready");
-    expect(scss).toContain("@keyframes gas-pool-route-launch");
-    expect(scss).toContain("@keyframes gas-pool-claim-stage-awake");
-    expect(scss).toContain("gas-pool-create-summary--launching");
-    expect(scss).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(scss).toContain(".gas-pool-create-summary__reels span");
-    expect(scss).toContain(".gas-pool-create-summary__route span");
-    expect(scss).toContain(".gas-pool-create-summary__scan");
-    expect(scss).toContain(".gas-pool-stepper");
-    expect(scss).toContain(".gas-pool-range-presets");
-    expect(scss).toContain(".gas-pool-create-submit:disabled");
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-drawer-tabs__group .semi-radio")).toHaveLength(4);
+    expect(container.querySelector(".vault-drawer-tabs__group .semi-radio-checked .vault-drawer-tab")?.textContent).toBe("Reward plan");
+    expect(container.querySelector(".vault-drawer__advanced")).toBeTruthy();
+    expect(container.querySelector(".vault-stepper")).toBeTruthy();
+    expect(container.querySelector(".vault-drawer-panel--pool")).toBeFalsy();
+    expect(container.querySelector(".vault-drawer__input")).toBeFalsy();
+    expect(container.querySelector(".mx2-drawer__body h4")).toBeFalsy();
+
+    fireEvent.click(getByText("Pool controls"));
+    await waitFor(() => expect(container.querySelector(".vault-drawer-panel--pool")).toBeTruthy());
+    expect(container.querySelector(".vault-drawer-tabs__group .semi-radio-checked .vault-drawer-tab")?.textContent).toBe("Pool controls");
+    expect(container.querySelector(".vault-drawer__advanced")).toBeFalsy();
+    expect(container.querySelector(".vault-drawer-field--pool input.semi-input")).toBeTruthy();
+    expect(container.querySelector(".vault-drawer-field--topup input.semi-input")).toBeTruthy();
+
+    fireEvent.change(container.querySelector(".vault-drawer-field--pool input") as HTMLInputElement, { target: { value: "42" } });
+    fireEvent.click(getByText("Inspect"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("loadPool", { poolId: "42" }));
+
+    fireEvent.click(getByText("GAS credit"));
+    await waitFor(() => expect(container.querySelector(".vault-drawer-panel--credit")).toBeTruthy());
+    expect(container.querySelector(".vault-drawer-panel--pool")).toBeFalsy();
+    fireEvent.click(getByText("Check credit"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("loadGasCredit"));
+
+    fireEvent.click(getByText("How it works"));
+    await waitFor(() => expect(container.querySelector(".vault-drawer-panel--docs")).toBeTruthy());
+    expect(container.textContent).toContain("Safety model.");
+  });
+
+  it("keeps motion backed by reduced-motion fallbacks", () => {
+    const styles = playAreaStyles("gas-lucky-pool");
+    const source = playAreaSource("gas-lucky-pool");
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toContain("vaultCoinFlight");
+    expect(styles).not.toContain("vault-scene__chest");
+    expect(styles).not.toContain("vault-scene__stage-art");
+    expect(styles).not.toContain("vault-scene__wash");
+    expect(styles).toMatch(/\.vault-scene__vault-shell\s*\{[\s\S]*aspect-ratio:\s*4\s*\/\s*3/);
+    expect(styles).toMatch(/\.vault-scene__vault-shell\s*\{[\s\S]*overflow:\s*hidden/);
+    expect(styles).toMatch(/\.vault-scene__vault-shell\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).toMatch(/\.vault-scene__vault-art\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.vault-scene__vault-art\s*\{[\s\S]*object-position:\s*center/);
+    expect(styles).toMatch(/\.vault-scene__vault-art\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.vault-scene__vault-art\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/\.vault-scene__vault-art\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.vault-scene__vault-art\s*\{[\s\S]*transform:\s*none/);
+    expect(styles).not.toMatch(/\.vault-scene__vault-art\s*\{[^}]*object-fit:\s*cover/);
+    expect(styles).not.toMatch(/\.vault-scene__vault-art\s*\{[^}]*transform:\s*scale/);
+    expect(styles).toMatch(/\.vault-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.vault-scene\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(styles).toMatch(/\.vault-plan-card\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.vault-plan-card\s*\{[\s\S]*min-height:\s*78px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.gas-pool-playstage--creator \.vault-plan-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.gas-pool-playstage--creator \.vault-plan-card\s*\{[\s\S]*min-height:\s*84px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.gas-pool-playstage--creator \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.gas-pool-playstage--creator \.mx2-action-rail__row\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/\.vault-plan-card__coin\s*\{[\s\S]*background:\s*#fffbeb/);
+    expect(styles).toMatch(/\.vault-plan-card--active\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.vault-plan-card--active\s*\{[\s\S]*box-shadow:\s*inset 4px 0 0 #14b8a6/);
+    expect(styles).toMatch(/\.vault-drawer-grid\s*\{[\s\S]*align-content:\s*start/);
+    expect(styles).toMatch(/\.vault-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.vault-drawer-tabs__group \.semi-radio-checked \.vault-drawer-tab\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.vault-controls__presets \.semi-radio-checked \.vault-preset\s*\{[\s\S]*background:\s*#0f766e/);
+    expect(styles).toMatch(/\.vault-controls__presets \.semi-radio-checked \.vault-preset \*\s*\{[\s\S]*color:\s*#ffffff !important/);
+    expect(styles).toMatch(/\.vault-controls__presets--range\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.vault-preset--range\s*\{[\s\S]*min-width:\s*0/);
+    expect(styles).toMatch(/\.vault-drawer__chips \.semi-radio-checked \.vault-drawer__chip\s*\{[\s\S]*background:\s*#0f766e/);
+    expect(styles).toMatch(/\.vault-drawer-panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.vault-drawer-field-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*0\.9fr\)\s*minmax\(0,\s*1\.1fr\)/);
+    expect(styles).toMatch(/\.vault-drawer-field \.mx2-open-field__control\.semi-input-wrapper\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).not.toContain(".vault-drawer__input");
+    expect(styles).not.toContain("blur(1px)");
+    expect(styles).not.toContain("backdrop-filter");
+    expect(styles).not.toMatch(/vault-plan-card[\s\S]*radial-gradient/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
+    expect(source).toContain("OpenUiSegmented");
+    expect(source).not.toMatch(/<(input|textarea|select)\b/);
+    expect(source).not.toContain('role="tab"');
+    expect(source).not.toContain('role="tablist"');
+    expect(source).not.toContain('role="radio"');
+    expect(source).not.toContain('role="radiogroup"');
+    expect(source).not.toContain("vault-preset--active");
+    expect(source).not.toContain("vault-drawer__chip--active");
   });
 });

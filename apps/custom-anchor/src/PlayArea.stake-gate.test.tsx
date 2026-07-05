@@ -1,4 +1,6 @@
 import React from "react";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +16,16 @@ afterEach(() => cleanup());
 // is independent of wording.
 function t(key: string) {
   return key;
+}
+
+function readPlayAreaStyles() {
+  const candidates = [
+    resolve(process.cwd(), "src/PlayArea.scss"),
+    resolve(process.cwd(), "apps/custom-anchor/src/PlayArea.scss"),
+  ];
+  const stylePath = candidates.find((candidate) => existsSync(candidate));
+  if (!stylePath) throw new Error("PlayArea.scss was not found from the current test working directory.");
+  return readFileSync(stylePath, "utf8");
 }
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
@@ -47,13 +59,6 @@ function renderPlayArea(overrides: Partial<Record<string, unknown>> = {}, dispat
       t={t}
       state={state(overrides)}
       dispatch={dispatch}
-      status={null}
-      services={{} as never}
-      setStatus={vi.fn()}
-      clearStatus={vi.fn()}
-      loadError={null}
-      retryLoad={vi.fn()}
-      launchContext={{ params: {} } as never}
     />,
   );
   return dispatch;
@@ -101,5 +106,43 @@ describe("Custom Anchor stake gate (0-agent inert anchor)", () => {
   it("does not show the no-agents gate for an unregistered anchor (handled by the not-registered notice)", () => {
     renderPlayArea({ anchorMode: 0, agentCount: 0 });
     expect(screen.queryByText("noAgentsTitle")).toBeNull();
+  });
+
+  it("keeps NEO stake amounts whole-number only before dispatch", async () => {
+    const dispatch = renderPlayArea({ anchorMode: 1, agentCount: 21 });
+
+    fireEvent.click(screen.getByRole("button", { name: /discoverLabel/i }));
+
+    const amountInput = document.querySelector<HTMLInputElement>(".anchor-input--amount input.semi-input");
+    expect(amountInput).toBeTruthy();
+    expect(amountInput?.inputMode).toBe("numeric");
+
+    fireEvent.change(amountInput as HTMLInputElement, { target: { value: "12.9" } });
+    expect(amountInput?.value).toBe("12");
+
+    fireEvent.click(screen.getByRole("button", { name: "stakeAction" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("stake", {
+        anchorAppId: "custom-anchor:team:nonce",
+        amount: "12",
+      });
+    });
+  });
+
+  it("styles drawer controls as compact designed panels instead of raw form rows", () => {
+    const styles = readPlayAreaStyles();
+
+    expect(styles).toMatch(/\.anchor-drawer__panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*20px/);
+    expect(styles).toMatch(/\.anchor-drawer__panel\.mx2-open-panel\.semi-card > \.semi-card-body\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/\.anchor-drawer \.anchor-field\.mx2-open-field\s*\{[\s\S]*border-radius:\s*16px/);
+    expect(styles).toMatch(/\.anchor-drawer \.anchor-field\.mx2-open-field:focus-within\s*\{[\s\S]*box-shadow:/);
+    expect(styles).toMatch(/\.anchor-field > \.mx2-open-field__label\s*\{/);
+    expect(styles).not.toMatch(/\.anchor-field span\s*\{/);
+    expect(styles).toMatch(/\.anchor-drawer \.anchor-input,[\s\S]*\.anchor-candidates-input,[\s\S]*\.anchor-candidates-input \.semi-input-textarea\s*\{[\s\S]*border:\s*0/);
+    expect(styles).toMatch(/\.anchor-drawer__notice\.mx2-open-notice\.semi-banner\s*\{[\s\S]*align-items:\s*flex-start/);
+    expect(styles).toMatch(/\.anchor-mode\.mx2-open-field\s*\{[\s\S]*border-radius:\s*16px/);
+    expect(styles).toMatch(/\.anchor-mode \.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*border-radius:\s*14px/);
+    expect(styles).toMatch(/\.anchor-mode \.mx2-open-segmented\.semi-radioGroup \.semi-radio-checked\s*\{[\s\S]*box-shadow:/);
+    expect(styles).not.toMatch(/\.anchor-mode button\[data-active="true"\]/);
   });
 });

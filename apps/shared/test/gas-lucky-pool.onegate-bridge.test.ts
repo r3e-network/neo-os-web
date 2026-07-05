@@ -7,6 +7,7 @@ import {
   addressToScriptHash,
   keyLaunch,
   launch,
+  makeApp,
   t,
   useGasLuckyPool,
 } from "./gas-lucky-pool.logic.test-utils";
@@ -36,7 +37,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -85,7 +86,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -146,7 +147,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -224,7 +225,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -292,7 +293,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -356,7 +357,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -437,7 +438,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -501,7 +502,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });
@@ -569,7 +570,7 @@ describe("OneGate Vault runtime logic - OneGate provider discovery", () => {
     };
     window.addEventListener("Neo.DapiProvider.request", injectProvider);
     const pool = useGasLuckyPool({
-      chain: chain as any,
+      app: makeApp(chain as any),
       launchContext: keyLaunch(),
       t,
     });

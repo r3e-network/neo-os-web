@@ -23,7 +23,7 @@ test.describe("MiniApps List", () => {
         .first()
         .getByText(/Neo N3 (Mainnet|Testnet)/),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Yiwu MiniApps/i);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Neo Miniapps/i);
     await expect(
       page.getByText(
         "Browse small, focused MiniApps for Neo N3. Pick one, open the play area, and operate from the shared action console.",

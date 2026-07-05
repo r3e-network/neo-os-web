@@ -137,15 +137,3 @@ export function clearPriceCache(): void {
   priceCache = null;
   cacheTimestamp = 0;
 }
-
-/**
- * Formats a price value with currency symbol
- */
-export function formatPrice(value: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}

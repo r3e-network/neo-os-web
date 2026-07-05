@@ -39,6 +39,7 @@ const appMessages = {
   timelineListening: { en: "Listening", zh: "监听中" },
   timelineWaiting: { en: "Waiting", zh: "等待" },
   timelineResultReady: { en: "Ready", zh: "已就绪" },
+  timelineReveal: { en: "Reveal", zh: "揭晓" },
   timelineWon: { en: "Win paid", zh: "胜局赔付" },
   timelineLost: { en: "Closed", zh: "已结束" },
   timelineNeedsRetry: { en: "Retry", zh: "重试" },

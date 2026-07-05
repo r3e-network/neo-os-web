@@ -1,926 +1,418 @@
-.anchor-admin-playarea {
-  // Neo Soft tokens (green accent for this app)
-  --ns-surface: #ffffff;
-  --ns-surface-subtle: #f7f8fa;
-  --ns-border: rgba(20, 22, 38, 0.06);
-  --ns-shadow-md: 0 8px 24px rgba(20, 22, 38, 0.06);
-  --ns-ink: #1e1e2e;
-  --ns-text-2: #5b6478;
-  --ns-text-muted: #8a92a6;
-  // Canonical: top-level cards radius-lg (20), nested elements radius-md (16)
-  --ns-radius-lg: 20px;
-  --ns-radius-md: 16px;
+/**
+ * TrustAnchor Admin -- precise trust-routing operator console.
+ *
+ * Theme: serious, bright financial control room. No decorative backdrop; the
+ * AA route, selected agents, and transaction ticket are the foreground.
+ */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-  --anchor-accent: var(--ns-brand, #16c784);
-  --anchor-accent-strong: var(--ns-brand-strong, #0fb174);
-  --anchor-accent-soft: var(--ns-brand-soft, #e4f8f0);
-  // Darker shade of the same green hue for accent TEXT on light surfaces,
-  // so labels/values meet WCAG AA (>=4.5:1) while keeping one coherent accent.
-  --anchor-accent-ink: #097d52;
-
-  min-height: 100%;
-  padding: 20px;
-  color: var(--ns-ink);
-
-  // Tie the primary CTA to this app's green identity hue (single coherent accent)
-  .neo-btn--primary:not(:disabled) {
-    // AA: white-on-#16c784 is ~2.2:1. The CTA uses the darker brand green
-    // (#0a8050 = 4.98:1, hover #086a45); --anchor-accent stays for labels/borders.
-    background: #0a8050;
-    box-shadow: 0 2px 10px rgba(10, 128, 80, 0.28);
-
-    &:hover:not(:disabled) {
-      background: #086a45;
-      box-shadow: 0 4px 16px rgba(10, 128, 80, 0.32);
-    }
-  }
-
-  // Soft-tinted disabled state so a not-yet-ready CTA reads as "waiting on input",
-  // keeping the green affordance instead of looking flat/broken grey
-  .neo-btn--primary:disabled {
-    background: var(--anchor-accent-soft);
-    border-color: transparent;
-    color: var(--anchor-accent-strong);
-    opacity: 0.78;
-  }
-
-  // Green focus ring on inputs to match the app identity hue
-  .neo-input input:focus,
-  .neo-input input:focus-visible {
-    border-color: var(--anchor-accent);
-    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
-    outline: none;
-  }
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #57534e;
+  --mx2-brand-hover: #44403c;
+  --mx2-brand-light: #efedea;
+  --mx2-brand-subtle: #d6d3d1;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #0891b2;
+  --mx2-accent-strong: #0e7490;
+  --mx2-accent-soft: #e2f4f9;
+  --mx2-accent-ink: #0b3a45;
 }
 
-.anchor-admin-shell {
+
+.anchor-admin-play-area {
+  display: block;
+}
+
+.anchor-admin-play-area .mx2-stage__scene {
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+.admin-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 0.78fr) minmax(320px, 0.42fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.anchor-admin-main,
-.anchor-admin-side {
-  display: grid;
-  gap: 20px;
-  min-width: 0;
-}
-
-.anchor-admin-hero,
-.anchor-admin-agent-strip,
-.anchor-admin-safety-card {
-  border: 1px solid var(--ns-border);
-  border-radius: var(--ns-radius-lg);
-  background: var(--ns-surface);
-  box-shadow: var(--ns-shadow-md);
-}
-
-/* ── Hero ─────────────────────────────────────────────── */
-.anchor-admin-hero {
-  display: grid;
-  gap: 20px;
-  padding: 24px;
-}
-
-.anchor-admin-hero--staged {
-  grid-template-columns: minmax(0, 0.96fr) minmax(300px, 0.82fr);
-  align-items: stretch;
-  gap: 22px;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 253, 247, 0.94)),
-    var(--ns-surface);
-}
-
-.anchor-admin-hero-panel {
-  display: grid;
-  align-content: center;
-  gap: 20px;
-  min-width: 0;
-}
-
-.anchor-admin-hero-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  min-width: 0;
-}
-
-.anchor-admin-hero-badge {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--anchor-accent-soft);
-  color: var(--anchor-accent-strong);
-}
-
-.anchor-admin-hero-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.anchor-admin-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ns-text-muted);
-}
-
-.anchor-admin-hero h2 {
-  margin: 0;
-  color: var(--ns-ink);
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.02em;
-}
-
-.anchor-admin-hero p {
-  margin: 0;
-  color: var(--ns-text-2);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
-.anchor-admin-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(360px, 0.98fr) minmax(340px, 1.02fr);
   gap: 12px;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-lg);
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: none;
 }
 
-.anchor-admin-hero-stat {
+.admin-command,
+.admin-ledger,
+.admin-policy {
+  min-width: 0;
+  border: 1px solid var(--mx2-border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.admin-command,
+.admin-ledger {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.admin-command__head,
+.admin-ledger__head {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding: 14px 16px;
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle);
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.anchor-admin-hero--staged .anchor-admin-hero-stat {
-  border: 1px solid rgba(22, 199, 132, 0.12);
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 10px 22px rgba(20, 22, 38, 0.04);
-}
-
-.anchor-admin-hero-stat span {
+.admin-command__head span,
+.admin-ledger__head span,
+.admin-policy span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--mx2-text-muted);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 680;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: var(--ns-text-muted);
 }
 
-.anchor-admin-hero-stat strong {
+.admin-command__head strong,
+.admin-ledger__head strong {
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px;
+  background: #f9fafb;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.admin-mode {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--mx2-border);
+  border-radius: 15px;
+  padding: 4px;
+  background: #f9fafb;
+}
+
+.admin-mode button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--mx2-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.admin-mode button[data-active="true"] {
+  border-color: rgba(29, 78, 216, 0.18);
+  background: #ffffff;
+  color: var(--mx2-accent-strong);
+  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.045);
+}
+
+.admin-route-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.admin-agent-card,
+.admin-candidate-card {
   min-width: 0;
-  color: var(--ns-ink);
-  font-size: 18px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--mx2-border);
+  border-radius: 17px;
+  padding: 12px;
+  background: #ffffff;
+  color: var(--mx2-text);
+  font: inherit;
+  text-align: left;
+}
+
+.admin-agent-card {
+  cursor: pointer;
+}
+
+.admin-agent-card[data-active="true"] {
+  border-color: rgba(29, 78, 216, 0.24);
+  background: #f8fbff;
+  box-shadow: inset 3px 0 0 var(--mx2-accent);
+}
+
+.admin-agent-card span,
+.admin-candidate-card span,
+.admin-operation-ticket span {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 680;
   letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.admin-agent-card strong,
+.admin-candidate-card strong {
   overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 17px;
+  font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-// "awaiting data" caption under the all-zero resting hero so the console reads
-// as pending-connect rather than inert/broken
-.anchor-admin-hero-caption {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--ns-text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.45;
-
-  &::before {
-    content: "";
-    flex: 0 0 auto;
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: var(--anchor-accent);
-  }
-}
-
-.anchor-admin-route-stage {
-  position: relative;
-  isolation: isolate;
-  min-width: 0;
-  min-height: 300px;
-  margin: 0;
+.admin-agent-card em,
+.admin-candidate-card em {
   overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: #f4fbf6;
-  box-shadow:
-    0 18px 42px rgba(13, 112, 76, 0.14),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.anchor-admin-route-stage picture,
-.anchor-admin-route-stage img {
-  display: block;
-  width: 100%;
-  height: 100%;
+.admin-agent-card small {
+  width: fit-content;
+  border: 1px solid rgba(5, 150, 105, 0.16);
+  border-radius: var(--mx2-r-pill);
+  padding: 4px 7px;
+  background: #ecfdf5;
+  color: var(--mx2-success);
+  font-size: 11px;
+  font-weight: 680;
 }
 
-.anchor-admin-route-stage picture {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
+.admin-route-link {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  gap: 5px;
+  color: var(--mx2-accent-strong);
 }
 
-.anchor-admin-route-stage img {
-  object-fit: cover;
-  object-position: 58% center;
-  filter: saturate(1.04) brightness(1.03);
-  transform-origin: 58% 50%;
-  animation: anchor-admin-stage-drift 18s ease-in-out infinite alternate;
+.admin-candidate-card {
+  grid-column: span 2;
+  background: #f9fafb;
 }
 
-.anchor-admin-route-stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(247, 255, 250, 0.78)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.16) 52%, rgba(255, 255, 255, 0.76) 100%);
-  pointer-events: none;
+.admin-operation-ticket {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.45fr);
+  gap: 10px;
+  align-items: end;
+  border: 1px solid rgba(29, 78, 216, 0.16);
+  border-radius: 17px;
+  padding: 12px;
+  background: #f8fbff;
 }
 
-.anchor-admin-route-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 40%,
-    rgba(255, 255, 255, 0.54) 50%,
-    transparent 62%,
-    transparent 100%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-76%);
-  animation: anchor-admin-stage-scan 7.2s ease-in-out infinite;
-}
-
-.anchor-admin-route-stage figcaption {
-  position: absolute;
-  z-index: 4;
-  top: 16px;
-  right: 16px;
-  left: 16px;
+.admin-operation-ticket > div {
   display: grid;
   gap: 4px;
-  min-width: 0;
-  padding: 13px 15px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: var(--ns-radius-md, 16px);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16px 30px rgba(20, 22, 38, 0.12);
-  backdrop-filter: blur(10px);
 }
 
-.anchor-admin-route-stage figcaption span {
-  color: var(--anchor-accent-ink);
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.anchor-admin-route-stage figcaption strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--ns-ink);
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 1.08;
-}
-
-.anchor-admin-route-stage figcaption small {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--ns-text-2);
-  font-size: 12px;
-  font-weight: 700;
+.admin-operation-ticket strong {
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 620;
   line-height: 1.35;
 }
 
-.anchor-admin-route-steps {
-  position: absolute;
-  z-index: 4;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
+.admin-operation-ticket label {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-operation-ticket input {
+  width: 100%;
+  border: 1.5px solid var(--mx2-border-strong);
+  border-radius: 13px;
+  padding: 10px 11px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.admin-operation-ticket__candidate {
+  grid-column: span 1;
+}
+
+.admin-operation-ticket p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.4;
+}
+
+.admin-agent-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  max-height: 306px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
-.anchor-admin-route-steps li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
+.admin-agent-grid button {
   min-width: 0;
-  min-height: 56px;
-  padding: 9px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: var(--ns-radius-md, 16px);
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--ns-text-2);
-  box-shadow: 0 12px 24px rgba(20, 22, 38, 0.1);
-  backdrop-filter: blur(8px);
-  transition:
-    border-color 180ms ease,
-    background 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--mx2-border);
+  border-radius: 14px;
+  padding: 9px;
+  background: #ffffff;
+  color: var(--mx2-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
 }
 
-.anchor-admin-route-steps li > span {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-muted);
+.admin-agent-grid button[data-selected="true"] {
+  border-color: rgba(29, 78, 216, 0.24);
+  background: #eff6ff;
+}
+
+.admin-agent-grid span {
+  color: var(--mx2-ink);
   font-size: 12px;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
+  font-weight: 680;
 }
 
-.anchor-admin-route-steps li strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: currentColor;
-  font-size: 11px;
-  font-weight: 850;
-  line-height: 1.18;
-}
-
-.anchor-admin-route-steps li.is-ready {
-  border-color: rgba(22, 199, 132, 0.32);
-  background: rgba(228, 248, 240, 0.92);
-  color: var(--anchor-accent-ink);
-  transform: translateY(-1px);
-  animation: anchor-admin-route-ready 2.6s ease-in-out infinite;
-}
-
-.anchor-admin-route-steps li.is-ready > span {
-  background: var(--anchor-accent);
-  color: #ffffff;
-}
-
-.anchor-admin-route-beam {
-  position: absolute;
-  z-index: 3;
-  right: 34px;
-  bottom: 48px;
-  left: 34px;
-  height: 5px;
+.admin-agent-grid strong,
+.admin-agent-grid em {
   overflow: hidden;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.anchor-admin-route-beam::after {
-  content: "";
-  display: block;
-  width: 48%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(22, 199, 132, 0), var(--anchor-accent), #f6c86a);
-  animation: anchor-admin-route-beam 2.2s ease-in-out infinite;
+.admin-agent-grid strong {
+  color: var(--mx2-accent-strong);
+  font-size: 11px;
+  font-weight: 680;
 }
 
-/* ── Sections ─────────────────────────────────────────── */
-.anchor-admin-agent-strip,
-.anchor-admin-safety-card {
+.admin-agent-grid em {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 620;
+}
+
+.admin-policy {
+  grid-column: 1 / -1;
   display: grid;
-  gap: 16px;
-  padding: 22px;
+  gap: 7px;
+  padding: 12px 14px;
+  background: #f9fafb;
 }
 
-.anchor-admin-section-heading {
+.admin-policy p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.45;
+}
+
+.admin-drawer {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-drawer section {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-drawer p {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: baseline;
-  min-width: 0;
-}
-
-.anchor-admin-section-heading span {
-  color: var(--ns-ink);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.anchor-admin-section-heading strong {
-  min-width: 0;
-  color: var(--anchor-accent-ink);
-  font-size: 14px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// Directory count "21 / 21" as a green-soft pill, matching sibling
-// profitanchor-admin so the admin pair shares one count-badge convention.
-.anchor-admin-count-pill {
-  flex: 0 0 auto;
-  padding: 4px 11px;
-  border-radius: 999px;
-  background: var(--anchor-accent-soft);
-  color: var(--anchor-accent-ink) !important;
-  font-size: 12px;
-  font-weight: 700;
-  overflow: visible !important;
-}
-
-// "Manual only" is a status label, not a count — render it as a neutral pill
-// rather than accent link-style text so it stops reading as another accent application
-.anchor-admin-safety-card .anchor-admin-section-heading strong {
-  flex-shrink: 0;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-2);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.anchor-admin-vote-preview > span {
-  display: block;
-  color: var(--ns-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.anchor-admin-vote-preview strong {
-  min-width: 0;
-  color: var(--ns-ink);
-  font-size: 18px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-  letter-spacing: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.anchor-admin-role-banner {
-  display: grid;
-  gap: 4px;
-  padding: 16px 18px;
-  border: 1px solid var(--ns-warning-border, rgba(185, 121, 26, 0.30));
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-warning-soft, #fff3dd);
-
-  &__eyebrow {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ns-warning-strong, #b9791a);
-  }
-
-  strong {
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    color: var(--ns-ink, #1e1e2e);
-  }
-
-  p {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ns-text-2, #5b6478);
-  }
-}
-
-.anchor-admin-command-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-
-  &.is-readonly {
-    opacity: 0.72;
-  }
-}
-
-.anchor-admin-workflow-card {
-  min-width: 0;
-  border-radius: var(--ns-radius-lg);
-}
-
-.anchor-admin-workflow-card .neo-card__body {
-  display: grid;
-  gap: 14px;
-}
-
-.anchor-admin-workflow-card p,
-.anchor-admin-safety-card p {
   margin: 0;
-  color: var(--ns-text-2);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.5;
+  border: 1px solid var(--mx2-border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #ffffff;
 }
 
-.anchor-admin-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.anchor-admin-form-grid .neo-input:last-child {
-  grid-column: 1 / -1;
-}
-
-.anchor-admin-vote-preview {
-  display: grid;
-  gap: 5px;
-  padding: 14px 16px;
-  border-radius: var(--ns-radius-md);
-  // Neutral surface so this isn't a third competing accent block; accent stays on the value only
-  background: var(--ns-surface-subtle);
-}
-
-.anchor-admin-vote-preview strong {
-  color: var(--anchor-accent-ink);
-}
-
-/* ── Agent directory ──────────────────────────────────── */
-.anchor-admin-agent-scroll {
-  position: relative;
-  min-width: 0;
-
-  // No scroll fade when the directory is resting on a single placeholder card
-  &:has(.anchor-admin-agent-list.is-resting)::after {
-    display: none;
-  }
-
-  // Bottom fade so the scroll region reads as a contained, scrollable list
-  // instead of a hard-clipped row cut off mid-card
-  &::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 4px;
-    bottom: 0;
-    height: 36px;
-    border-radius: 0 0 var(--ns-radius-md) var(--ns-radius-md);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0), var(--ns-surface) 88%);
-    pointer-events: none;
-  }
-}
-
-.anchor-admin-agent-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  max-height: 416px;
-  overflow-y: auto;
-  padding: 0 4px 10px 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(22, 199, 132, 0.32) transparent;
-}
-
-.anchor-admin-agent-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.anchor-admin-agent-list::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(22, 199, 132, 0.28);
-}
-
-.anchor-admin-agent-row {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle);
-  transition: background var(--ns-t-fast, 0.16s) var(--ns-ease-smooth, ease);
-}
-
-.anchor-admin-agent-row:hover {
-  background: var(--anchor-accent-soft);
-}
-
-.anchor-admin-agent-row:hover code {
-  color: var(--ns-ink);
-}
-
-.anchor-admin-agent-row__top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.anchor-admin-agent-row span {
-  flex-shrink: 0;
-  color: var(--ns-text-muted);
+.admin-drawer span {
+  color: var(--mx2-text-muted);
   font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  font-weight: 620;
 }
 
-.anchor-admin-agent-row__balance {
-  margin-left: auto;
-  color: var(--ns-ink) !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
-  font-variant-numeric: tabular-nums;
-}
-
-.anchor-admin-agent-row__flag {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(138, 146, 166, 0.16);
-  color: var(--ns-text-muted) !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-
-  &.is-active {
-    background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--anchor-accent-ink) !important;
-  }
-}
-
-.anchor-admin-agent-row__candidate {
-  // Darkened from --ns-text-muted to --ns-text-2 so this 11px label meets WCAG AA
-  // (>=4.5:1) against the row's --ns-surface-subtle background
-  color: var(--ns-text-2) !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  overflow-wrap: anywhere;
-}
-
-.anchor-admin-agent-row code {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ns-text-2);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+.admin-drawer strong {
+  color: var(--mx2-ink);
   font-size: 12px;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 680;
 }
 
-.anchor-admin-move-hint {
-  margin: 0 0 4px;
-  color: var(--ns-text-muted);
-  font-size: 12px;
-  line-height: 1.45;
-
-  strong {
-    color: var(--ns-ink);
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.anchor-admin-move-error {
-  margin: 0 0 4px;
-  color: #b42318;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.anchor-admin-witness-note {
-  display: grid;
-  gap: 4px;
-  margin: 4px 0;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-md, 14px);
-  background: #fff7ed;
-  border: 1px solid rgba(217, 119, 6, 0.26);
-
-  strong {
-    color: #b45309;
-    font-size: 12px;
-    font-weight: 800;
+@media (max-width: 980px) {
+  .admin-workspace,
+  .admin-route-board,
+  .admin-operation-ticket {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  span {
-    color: var(--ns-text-2);
-    font-size: 12px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
+  .admin-candidate-card,
+  .admin-policy,
+  .admin-operation-ticket__candidate {
+    grid-column: auto;
+  }
+
+  .admin-route-link {
+    transform: rotate(90deg);
   }
 }
 
-.anchor-admin-yield-causality {
-  margin: 8px 0 0;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-md, 14px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--anchor-accent-ink);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-// Resting (pre-load) directory: collapse the 2-col grid so the single
-// StateView card spans the full strip instead of sitting in one narrow column.
-.anchor-admin-agent-list.is-resting {
-  grid-template-columns: 1fr;
-  max-height: none;
-  overflow-y: visible;
-}
-
-// Shared StateView placeholder inside the directory strip — compact card so the
-// resting console shows one tidy empty/loading state, not a wall of rows.
-.anchor-admin-agent-state {
-  grid-column: 1 / -1;
-  padding: 28px 16px;
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle);
-}
-
-/* ── Operator rule ────────────────────────────────────── */
-.anchor-admin-safety-list {
-  display: grid;
-  gap: 10px;
-}
-
-.anchor-admin-safety-list span {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 12px 16px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-2);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-// Green leading dot per operator-rule item, matching sibling profitanchor-admin.
-.anchor-admin-safety-list span::before {
-  content: "";
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--anchor-accent);
-}
-
-@media (max-width: 1060px) {
-  .anchor-admin-command-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 560px) {
+  .anchor-admin-play-area .mx2-stage__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .anchor-admin-hero--staged {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 880px) {
-  .anchor-admin-shell {
-    grid-template-columns: 1fr;
+  .anchor-admin-play-area .mx2-stage__badges {
+    justify-content: flex-start;
   }
 
-  .anchor-admin-side {
-    grid-template-columns: 1fr 1fr;
+  .admin-workspace,
+  .admin-command,
+  .admin-ledger {
+    padding: 12px;
   }
 
-  .anchor-admin-agent-list {
-    max-height: none;
-    overflow-y: visible;
-  }
-
-  .anchor-admin-agent-scroll::after {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .anchor-admin-playarea {
-    padding: 14px;
-  }
-
-  .anchor-admin-hero {
-    padding: 20px;
-  }
-
-  .anchor-admin-route-stage {
-    min-height: 360px;
-  }
-
-  .anchor-admin-route-steps {
-    grid-template-columns: 1fr;
-  }
-
-  .anchor-admin-route-beam {
-    display: none;
-  }
-
-  .anchor-admin-hero-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .anchor-admin-command-grid,
-  .anchor-admin-side,
-  .anchor-admin-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .anchor-admin-agent-list {
-    grid-template-columns: 1fr;
-  }
-}
-
-@keyframes anchor-admin-stage-drift {
-  from {
-    transform: scale(1.02) translate3d(0, 0, 0);
-  }
-  to {
-    transform: scale(1.06) translate3d(-10px, 0, 0);
-  }
-}
-
-@keyframes anchor-admin-stage-scan {
-  0%,
-  52% {
-    opacity: 0;
-    transform: translateX(-76%);
-  }
-  66% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(78%);
-  }
-}
-
-@keyframes anchor-admin-route-ready {
-  0%,
-  100% {
-    box-shadow: 0 12px 24px rgba(20, 22, 38, 0.1);
-  }
-  50% {
-    box-shadow: 0 14px 28px rgba(10, 128, 80, 0.16);
-  }
-}
-
-@keyframes anchor-admin-route-beam {
-  from {
-    transform: translateX(-108%);
-  }
-  to {
-    transform: translateX(220%);
+  .admin-agent-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .anchor-admin-route-stage img,
-  .anchor-admin-route-stage::after,
-  .anchor-admin-route-steps li.is-ready,
-  .anchor-admin-route-beam::after {
-    animation: none;
+  .admin-workspace *,
+  .admin-workspace *::before,
+  .admin-workspace *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,8 +1,6 @@
 import React from "react";
-import fs from "node:fs";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../neo-swap/src/PlayArea";
 
@@ -10,237 +8,249 @@ import PlayArea from "../../neo-swap/src/PlayArea";
 
 afterEach(() => cleanup());
 
-const neoToken = {
-  symbol: "NEO",
-  hash: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-  balance: 12,
-  decimals: 0,
-};
-
-const gasToken = {
-  symbol: "GAS",
-  hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
-  balance: 28.42,
-  decimals: 8,
-};
+const tokens = [
+  { symbol: "NEO", hash: "neo", balance: 24, decimals: 0 },
+  { symbol: "GAS", hash: "gas", balance: 421.54321, decimals: 8 },
+];
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     balance: "Balance",
-    connectToPreview: "Connect wallet to preview",
-    dismiss: "Close",
-    enterAmount: "Enter amount",
-    estSettlement: "Est. settlement",
-    estSettlementValue: "~15s after wallet confirmation",
-    exchangeRate: "Exchange rate",
+    connectToPreview: "Connect wallet",
+    dismiss: "Dismiss",
+    docSubtitle: "Swap tokens with a protected route.",
+    enterAmount: "Amount",
+    exchangeRate: "Rate",
+    exchangeRateShort: "Rate",
     from: "From",
-    introBody: "Connect your Neo wallet to preview the trade.",
-    introHeading: "Preview before you sign",
-    introStepRate: "Live cross-rate",
-    introStepRateBody: "Pulled from the Morpheus data feed.",
-    introStepSettle: "Settle in your wallet",
-    introStepSettleBody: "Review before signing.",
-    introStepSlippage: "Adjustable slippage",
-    introStepSlippageBody: "Minimum received updates instantly.",
-    liquidityPool: "Route liquidity",
-    loadingRate: "Loading rate...",
-    marketPairs: "Market",
+    marketPairs: "Market pairs",
     max: "MAX",
-    minReceived: "Minimum received",
-    networkFeeLabel: "Network fee",
-    networkFeeValue: "Paid in GAS at signing",
-    networkLabel: "Network",
-    payAmountLabel: "Amount to pay",
+    minReceived: "Min received",
+    minReceivedShort: "Min received",
+    payAmountLabel: "You pay",
     payWith: "Pay with",
-    popularPairs: "Popular pairs",
-    pricePreviewAwaiting: "Refresh to load the live rate",
-    pricePreviewBody: "This is a planning quote until a router is deployed.",
-    pricePreviewOnly:
-      "Preview only — review every figure in your wallet before you sign.",
-    pricePreviewRate: "1 {from} buys",
-    pricePreviewTitle: "Live price preview",
-    quoteHealth: "Quote health",
-    quoteSummary: "Quote summary",
-    rateAsOf: "Rate as of {time}",
-    rateStale: "Rate may be stale",
-    rateSourceAsOf: "Rate via Morpheus data feed, as of {time}",
-    rateSourceStaleAsOf:
-      "Rate via Morpheus data feed, as of {time} — may be out of date",
-    rateUnavailable: "Rate unavailable",
-    receiveEstimated: "You receive (estimated)",
-    refreshRate: "Refresh rate",
-    routeDirectValue: "Direct {pair}",
-    routeModeLive: "Ready for wallet settlement",
-    routeModeLiveBody: "A router is configured for this network.",
-    routeModePreview: "Planning mode only",
-    routeModePreviewBody: "No router is deployed on this network yet.",
+    pricePreviewAwaiting: "Awaiting amount",
+    rateAsOf: `Rate as of ${params?.time ?? ""}`,
+    rateStale: "Rate stale",
+    receiveEstimated: "Receive estimated",
+    refreshRate: "Refresh",
+    routeModeLive: "Live route",
+    routeModeLiveBody: "Quote routes through the wallet.",
+    routeModePreview: "Preview route",
+    routeModePreviewBody: "Connect a wallet for a live route.",
     routeReview: "Route review",
-    routeSourceAwaiting: "Refresh to load the quote",
-    routeSourceMorpheus: "Morpheus quote loaded",
-    routeStepPair: "Direct pair",
-    routeStepQuote: "Oracle quote",
-    routeStepWallet: "Wallet review",
+    routeReviewShort: "Route",
+    routeSourceAwaiting: "Enter an amount",
+    routeSourceMorpheus: "Morpheus quote",
+    routeStepPair: "Pair",
+    routeStepQuote: "Quote",
+    routeStepWallet: "Wallet",
     selectToken: "Select token",
-    setupTradeSummary: "Set up the trade (settles when a route is enabled)",
-    settlementUnavailable: "Settlement unavailable",
-    slippage: "Slippage tolerance",
+    slippage: "Slippage",
+    slippageShort: "Slippage",
     slippageControl: "Slippage guard",
-    slippageCustom: "Custom",
-    slippageCustomLabel: "Custom slippage in percent",
-    slippageHigh: "High slippage — you may receive notably less than quoted.",
-    slippageHint:
-      "Your trade reverts if you receive less than the minimum below.",
-    slippagePreset: "Set slippage to {pct}",
-    swapArrow: "to",
-    subtitle: "Plan a NEO/GAS trade with live quotes.",
-    swapRouteStatus: "Route status",
+    slippageHint: "Choose the maximum route movement.",
     swapRouteReady: "Route ready",
-    swapRouteSyncing: "Syncing quote",
-    swapRouteUnavailable: "Planning only",
+    swapRouteSyncing: "Syncing route",
+    swapRouteUnavailable: "Route unavailable",
     switchTokens: "Switch tokens",
-    tabPool: "Route",
     tabSwap: "Swap",
-    title: "Neo Swap",
     to: "To",
-    tokenNeo: "NEO",
-    tradeTicket: "Swap ticket",
   };
-
-  let value = messages[key] ?? key;
-  for (const [paramKey, paramValue] of Object.entries(params ?? {})) {
-    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
-  }
-  return value;
+  return messages[key] ?? key;
 }
 
-function state(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    availableTokens: [neoToken, gasToken],
-    canSwap: false,
-    exchangeRate: "1.98183469",
-    fromAmount: "10",
-    fromToken: neoToken,
-    isSwapping: false,
-    loading: false,
-    minReceived: "19.719",
-    rateAsOf: "12:30",
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const defaults: Record<string, unknown> = {
+    fromToken: tokens[0],
+    toToken: tokens[1],
+    fromAmount: "",
+    toAmount: "",
+    exchangeRate: "",
     rateLoading: false,
-    rateStale: false,
-    routerAvailable: false,
-    selectorTarget: "",
-    showSelector: false,
+    loading: false,
+    isSwapping: false,
+    canSwap: false,
+    swapButtonText: "Swap",
     slippage: "0.5%",
     slippageValue: 50,
-    swapButtonText: "Swap NEO to GAS",
-    toAmount: "19.8183469",
-    toToken: gasToken,
+    minReceived: "",
+    selectedPairDisplay: "NEO/GAS",
+    availableTokens: tokens,
+    showSelector: false,
+    selectorTarget: "from",
+    routerAvailable: true,
+    rateStale: false,
     walletConnected: true,
-    ...overrides,
+    rateAsOf: "",
   };
-
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
+    Object.entries({ ...defaults, ...overrides }).map(([key, value]) => [key, createObservable(value)]),
   );
 }
 
-describe("Neo Swap PlayArea", () => {
-  it("renders a DeFi trade desk while keeping no-router settlement unavailable", () => {
-    const dispatch = vi.fn();
-    const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={dispatch} />,
-    );
+describe("Neo Swap PlayArea (v2)", () => {
+  it("renders a focused NeoBurger-style swap station instead of a flat token form", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(screen.getByRole("region", { name: "Swap ticket" })).toBeTruthy();
-    expect(container.querySelector(".neo-swap-play-area--quoted")).toBeTruthy();
-    expect(
-      screen.getByRole("region", { name: "Route liquidity" }),
-    ).toBeTruthy();
-    expect(
-      container.querySelector(
-        '.neo-swap-liquidity-stage__image[src="./swap-liquidity-stage.jpg"]',
-      ),
-    ).toBeTruthy();
-    expect(container.querySelectorAll(".neo-swap-token-orb").length).toBe(2);
-    expect(
-      container.querySelectorAll(".neo-swap-liquidity-lane__pulse").length,
-    ).toBe(3);
-    expect(
-      container.querySelector(".neo-swap-liquidity-stage__status"),
-    ).toBeTruthy();
-    expect(screen.getByText("Live price preview")).toBeTruthy();
-    expect(screen.getAllByText("Planning mode only").length).toBeGreaterThan(0);
-    expect(screen.getByText("Morpheus quote loaded")).toBeTruthy();
-    expect(screen.getByText("Minimum received")).toBeTruthy();
-
-    fireEvent.click(
-      screen.getByText("Set up the trade (settles when a route is enabled)"),
-    );
-
-    expect(container.querySelector(".neo-swap-flow-amount-panel.is-armed.is-quoted")).toBeTruthy();
-    expect(container.querySelector(".neo-swap-flow-rail")).toBeTruthy();
-    expect(container.querySelectorAll(".neo-swap-flow-token .neo-swap-token-icon").length).toBe(4);
-    expect(container.querySelector(".neo-swap-amount-input")).toBeNull();
-    expect((screen.getByLabelText("Amount to pay") as HTMLInputElement).value).toBe("10");
-
-    fireEvent.change(screen.getByLabelText("Amount to pay"), {
-      target: { value: "4.5" },
-    });
-    expect(dispatch).toHaveBeenCalledWith("setFromAmount", "4.5");
-
-    fireEvent.click(screen.getByRole("button", { name: "MAX" }));
-    expect(dispatch).toHaveBeenCalledWith("setMaxAmount");
-
-    expect(
-      (
-        screen.getByRole("button", {
-          name: "Settlement unavailable",
-        }) as HTMLButtonElement
-      ).disabled,
-    ).toBe(true);
-    expect(screen.queryByText("routeModePreview")).toBeNull();
+    expect(container.querySelector(".swap-scene")).toBeTruthy();
+    expect(container.querySelector(".swap-scene__image")).toBeFalsy();
+    expect(container.querySelector(".swap-scene__shade")).toBeFalsy();
+    expect(container.querySelector(".swap-terminal")).toBeTruthy();
+    expect(container.querySelector(".swap-terminal__header")?.textContent).toContain("0.5%");
+    expect(container.querySelector(".swap-station")).toBeTruthy();
+    expect(container.querySelector(".swap-quote-card")).toBeTruthy();
+    expect((container.querySelector(".swap-quote-card__art") as HTMLImageElement)?.src).toContain("swap-liquidity-stage.webp");
+    expect(container.querySelectorAll(".swap-leg")).toHaveLength(2);
+    expect(container.querySelectorAll(".swap-route-core__bead")).toHaveLength(2);
+    expect(container.querySelector(".swap-scene__metrics")).toBeNull();
+    expect(container.querySelectorAll(".swap-quote-card__metrics span")).toHaveLength(3);
+    expect(container.querySelector(".swap-quote-card__metrics")?.textContent).toContain("Min received");
+    expect(container.querySelector(".swap-quote-card__metrics")?.textContent).toContain("Slippage");
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".swap-station")?.textContent).toContain("NEO");
+    expect(container.querySelector(".swap-station")?.textContent).toContain("GAS");
+    expect(container.querySelectorAll(".swap-leg .neo-swap-token-icon")).toHaveLength(2);
+    expect(container.querySelectorAll(".swap-station__review span")).toHaveLength(2);
+    expect(container.querySelector(".swap-token-list")).toBeNull();
+    expect(container.querySelector(".swap-slippage-grid")).toBeNull();
+    expect(container.querySelector(".swap-amount-field")).toBeTruthy();
+    expect(container.querySelector<HTMLInputElement>(".swap-input .semi-input")?.placeholder).toBe("0");
+    expect(container.textContent).toContain("NEO/GAS");
+    expect(container.textContent).not.toContain("[object Object]");
   });
 
-  it("keeps popular-pair selection wired to the existing action", () => {
+  it("dispatches setFromAmount on input", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /GAS\/NEO/ }));
+    fireEvent.change(container.querySelector(".swap-input .semi-input") as Element, { target: { value: "10" } });
 
-    expect(dispatch).toHaveBeenCalledWith("selectPair", "gas-neo");
+    expect(dispatch).toHaveBeenCalledWith("setFromAmount", "10");
   });
 
-  it("keeps the DeFi desk motion backed by reduced-motion fallbacks", () => {
-    const playAreaStyles = fs.readFileSync(
-      `${process.cwd()}/../neo-swap/src/PlayArea.scss`,
-      "utf8",
-    );
-    const heroStyles = fs.readFileSync(
-      `${process.cwd()}/../neo-swap/src/components/SwapHero.scss`,
-      "utf8",
+  it("keeps NEO input numeric and strips fractional input before dispatch", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const input = container.querySelector<HTMLInputElement>(".swap-input .semi-input")!;
+
+    expect(input.inputMode).toBe("numeric");
+    fireEvent.change(input, { target: { value: "10.75" } });
+
+    expect(dispatch).toHaveBeenCalledWith("setFromAmount", "10");
+  });
+
+  it("dispatches executeSwap when the route is ready", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ canSwap: true, fromAmount: "10", toAmount: "50" })} dispatch={dispatch} />,
     );
 
-    expect(playAreaStyles).toContain("@keyframes neo-swap-stage-drift");
-    expect(playAreaStyles).toContain("@keyframes neo-swap-liquidity-pulse");
-    expect(playAreaStyles).toContain("@keyframes neo-swap-orb-from");
-    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-panel-scan");
-    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-token-route");
-    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-token-route-mobile");
-    expect(playAreaStyles).toContain("@keyframes neo-swap-flow-rail-live");
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neo-swap-liquidity-lane__pulse/,
-    );
-    expect(playAreaStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neo-swap-flow-token/,
-    );
-    expect(heroStyles).toContain("@keyframes swap-hero-drift");
-    expect(heroStyles).toContain("@keyframes swap-token-float");
-    expect(heroStyles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.swap-hero-token/,
-    );
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("executeSwap"));
+  });
+
+  it("dispatches connectWallet before execution when the wallet is disconnected", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ walletConnected: false })} dispatch={dispatch} />);
+
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("connectWallet"));
+    expect(dispatch).not.toHaveBeenCalledWith("executeSwap");
+  });
+
+  it("dispatches swapTokens and setMaxAmount from the focused swap station controls", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(container.querySelector(".swap-switch-btn") as Element);
+    fireEvent.click(container.querySelector(".swap-max-btn") as Element);
+
+    expect(dispatch).toHaveBeenCalledWith("swapTokens");
+    expect(dispatch).toHaveBeenCalledWith("setMaxAmount");
+  });
+
+  it("selects token objects from the inline selector", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ showSelector: true })} dispatch={dispatch} />);
+    const tokenButtons = container.querySelectorAll(".swap-selector__token");
+
+    fireEvent.click(tokenButtons[1]);
+
+    expect(dispatch).toHaveBeenCalledWith("selectToken", expect.objectContaining({ symbol: "GAS" }));
+  });
+
+  it("keeps secondary route controls behind drawer mode tabs", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    expect(Array.from(container.querySelectorAll(".mx2-action-rail__row button")).map((button) => button.textContent)).not.toContain("Refresh");
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+
+    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.querySelectorAll(".swap-drawer-tabs__group .semi-radio")).toHaveLength(3);
+    expect(container.querySelector(".swap-drawer-panel--route")).toBeTruthy();
+    expect(container.querySelector(".swap-slippage-grid")).toBeNull();
+
+    expect(dispatch).not.toHaveBeenCalledWith("setSlippage", 0.1);
+
+    const drawerTabs = container.querySelectorAll(".swap-drawer-tab");
+    fireEvent.click(container.querySelector(".swap-refresh-btn") as Element);
+    fireEvent.click(drawerTabs[1]);
+    fireEvent.click(container.querySelector(".swap-slippage-option") as Element);
+    fireEvent.click(drawerTabs[2]);
+    fireEvent.click(container.querySelector(".swap-token-list button") as Element);
+
+    expect(dispatch).toHaveBeenCalledWith("refreshRate");
+    expect(dispatch).toHaveBeenCalledWith("setSlippage", 0.1);
+    expect(dispatch).toHaveBeenCalledWith("selectToken", expect.objectContaining({ symbol: "NEO" }));
+  });
+
+  it("guards against cross-miniapp style pollution and preserves reduced motion", () => {
+    const fs = require("node:fs");
+    const scss = fs.readFileSync(`${process.cwd()}/../neo-swap/src/PlayArea.scss`, "utf8");
+    const source = fs.readFileSync(`${process.cwd()}/../neo-swap/src/PlayArea.tsx`, "utf8");
+
+    expect(source).toContain("OpenUiProvider");
+    expect(source).toContain("OpenUiSegmented");
+    expect(source).toContain("OpenUiTextField");
+    expect(source).not.toMatch(/<(input|textarea|select)\b/);
+    expect(source).not.toContain('role="tab"');
+    expect(source).not.toContain('role="tablist"');
+    expect(scss).toMatch(/prefers-reduced-motion/);
+    expect(scss).toMatch(/0\.001ms/);
+    expect(scss).toMatch(/\.neo-swap-play-area \.mx2-stage__scene\s*\{[\s\S]*display:\s*block/);
+    expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*width:\s*min\(100%,\s*860px\)/);
+    expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*border:\s*0/);
+    expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*background:\s*transparent/);
+    expect(scss).toMatch(/\.swap-terminal\s*\{[\s\S]*width:\s*min\(100%,\s*820px\)/);
+    expect(scss).toMatch(/\.swap-terminal\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(scss).toMatch(/\.swap-terminal__body\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.14fr\) minmax\(230px,\s*0\.86fr\)/);
+    expect(scss).toMatch(/\.swap-station\s*\{[\s\S]*width:\s*100%/);
+    expect(scss).toMatch(/\.swap-quote-card__art\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(scss).toMatch(/\.swap-route-core__bead\s*\{[\s\S]*animation:\s*swap-flow-bead-y/);
+    expect(scss).toMatch(/\.swap-route-core__line\s*\{[\s\S]*filter:\s*none/);
+    expect(scss).toMatch(/\.swap-route-core__line\s*\{[\s\S]*pointer-events:\s*none/);
+    expect(scss).toMatch(/\.swap-quote-card__metrics\s*\{[\s\S]*display:\s*grid/);
+    expect(scss).toMatch(/\.swap-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(scss).toMatch(/\.swap-leg\s*\{[\s\S]*background:\s*var\(--mx2-brand-light\)/);
+    expect(scss).toMatch(/\.swap-input\.mx2-open-field__control\s*\{[\s\S]*border:\s*0/);
+    expect(scss).toMatch(/\.swap-input \.semi-input\s*\{[\s\S]*font-size:\s*30px/);
+    expect(scss).toMatch(/\.swap-slippage-grid__group \.semi-radio-checked \.swap-slippage-option\s*\{[\s\S]*background:\s*var\(--mx2-brand-light\)/);
+    expect(scss).not.toMatch(/gradient/);
+    expect(scss).not.toMatch(/font-size:\s*clamp/);
+    expect(scss).toMatch(/\.swap-station__review\s*\{[\s\S]*display:\s*flex/);
+    expect(scss).toMatch(/\.swap-leg__amount-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(scss).toMatch(/\.swap-drawer__head\s*\{[\s\S]*display:\s*flex/);
+    expect(scss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*\.swap-terminal__body\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(scss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*\.swap-quote-card__metrics\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(scss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*\.neo-swap-play-area \.mx2-action-rail__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 96px/);
+    expect(scss).not.toMatch(/swap-scene__image|swap-scene__shade|swap-scene__metrics|stageImageUrl|swap-ticket/);
+    expect(scss).not.toMatch(/\.swap-max-btn\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
+    expect(scss).not.toMatch(/backdrop-filter/);
+    expect(scss).not.toMatch(/ticket-scene__backdrop|redenv-scene__backdrop|!important[^;]*(?:ticket|redenv)/);
   });
 });

@@ -64,9 +64,9 @@
   ],
   "updatedAt": "2026-05-08T12:10:43Z",
   "urls": {
-    "banner": "/miniapps/soulbound-certificate/banner.jpg",
+    "banner": "/miniapps/soulbound-certificate/banner.webp",
     "entry": "/miniapps/soulbound-certificate/index.html",
-    "icon": "/miniapps/soulbound-certificate/logo.jpg"
+    "icon": "/miniapps/soulbound-certificate/logo.webp"
   },
   "version": "1.0.0"
 }

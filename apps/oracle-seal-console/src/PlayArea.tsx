@@ -1,675 +1,396 @@
+/**
+ * PlayArea.tsx - Oracle Seal Console
+ *
+ * Reference-envelope builder for oracle request metadata. The UI keeps the
+ * critical truth visible: this creates a checksum reference, not encryption.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle,
-  Check,
-  ChevronDown,
-  Copy,
-  FileJson2,
+  BadgeCheck,
+  CircleAlert,
+  ClipboardCheck,
+  FileCheck2,
   Fingerprint,
   KeyRound,
-  LockKeyhole,
-  MailCheck,
   PackageCheck,
-  Play,
-  RotateCcw,
+  RefreshCw,
   Route,
   ShieldAlert,
-  Sparkles,
+  type LucideIcon,
 } from "lucide-react";
-import {
-  NeoButton,
-  NeoInput,
-  type ConsoleFieldOption,
-  type ConsoleResult,
-} from "@shared/components-react";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
-import { consoleConfig } from "./appConfig";
+import {
+  OpenUiNotice,
+  OpenUiPanel,
+  OpenUiProvider,
+  OpenUiSegmented,
+  OpenUiTextArea,
+  OpenUiTextField,
+  PlayStage,
+} from "@shared/components-react/v2";
+import { appMeta, consoleConfig } from "./appConfig";
 import "./PlayArea.scss";
 
-type SealActionPreview = "build" | "copy";
-
-function initialValues(
-  launchParams: Record<string, string> = {},
-): Record<string, string> {
-  return consoleConfig.fields.reduce<Record<string, string>>((acc, field) => {
-    acc[field.key] = launchParams[field.key] ?? field.defaultValue ?? "";
-    return acc;
-  }, {});
+interface PlayAreaProps {
+  t: (key: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-function setObservable(state: ObservableState, key: string, value: unknown) {
-  const observable = state[key];
-  if (observable && typeof observable.set === "function") {
-    observable.set(value);
+const STAGE_IMAGE = "seal-reference-stage.webp";
+
+const PURPOSES = [
+  { value: "oracle-input", labelKey: "purposeInput", hintKey: "purposeInputHint" },
+  { value: "callback-secret", labelKey: "purposeCallback", hintKey: "purposeCallbackHint" },
+  { value: "attestation", labelKey: "purposeAttestation", hintKey: "purposeAttestationHint" },
+] as const;
+
+type PurposeValue = (typeof PURPOSES)[number]["value"];
+type DrawerMode = "receipt" | "flow" | "source";
+
+const PURPOSE_ICONS: Record<PurposeValue, LucideIcon> = {
+  "oracle-input": ClipboardCheck,
+  "callback-secret": KeyRound,
+  attestation: BadgeCheck,
+};
+
+function compact(value: string, empty = "-") {
+  const text = String(value || "").trim();
+  if (!text) return empty;
+  return text.length > 30 ? `${text.slice(0, 14)}...${text.slice(-10)}` : text;
+}
+
+function isJson(value: string) {
+  try {
+    JSON.parse(value || "{}");
+    return true;
+  } catch {
+    return false;
   }
 }
 
-function readObservable(state: ObservableState, key: string, fallback: string) {
-  const value = state[key]?.get?.();
-  return value == null || value === "" ? fallback : String(value);
-}
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+  const { str, num } = useStateBindings(state);
+  const networkLabel = str("networkLabel", appMeta.networkLabel);
+  const endpointLabel = str("endpointLabel", appMeta.endpointLabel);
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const lastDigest = str("lastDigest", t("digestPlaceholder"));
+  const requestCount = num("requestCount");
 
-function optionLabel(option: ConsoleFieldOption, t: PlayAreaProps["t"]) {
-  return option.labelKey ? t(option.labelKey) : (option.label ?? option.value);
-}
+  const [purpose, setPurpose] = useState("oracle-input");
+  const [recipient, setRecipient] = useState("");
+  const [payload, setPayload] = useState("{\n  \"source\": \"oracle\",\n  \"ttl\": 60\n}");
+  const [actionPreview, setActionPreview] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("receipt");
+  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-function boolLabel(value: unknown, t: PlayAreaProps["t"]) {
-  return value === true ? t("yes") : t("no");
-}
+  useEffect(() => () => {
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+  }, []);
 
-function purposeHint(value: string, t: PlayAreaProps["t"]) {
-  if (value === "callback-secret") return t("purposeCallbackHint");
-  if (value === "attestation") return t("purposeAttestationHint");
-  return t("purposeInputHint");
-}
+  const selectedPurpose = useMemo(
+    () => PURPOSES.find((item) => item.value === purpose) ?? PURPOSES[0],
+    [purpose],
+  );
+  const payloadValid = isJson(payload);
+  const payloadSize = t("sealPayloadChars", { count: payload.length });
+  const hasDigest = lastDigest && lastDigest !== t("digestPlaceholder");
+  const statusTone = payloadValid ? "ready" : "invalid";
 
-function purposeIcon(value: string) {
-  if (value === "callback-secret") return <KeyRound size={18} />;
-  if (value === "attestation") return <ShieldAlert size={18} />;
-  return <PackageCheck size={18} />;
-}
+  const startPreview = () => {
+    if (previewTimeout.current) clearTimeout(previewTimeout.current);
+    setActionPreview(true);
+    previewTimeout.current = setTimeout(() => {
+      setActionPreview(false);
+      previewTimeout.current = null;
+    }, 950);
+  };
 
-export default function PlayArea({
-  t,
-  state,
-  services,
-  setStatus,
-  launchContext,
-}: PlayAreaProps) {
-  const [values, setValues] = useState(() =>
-    initialValues(launchContext?.params),
-  );
-  const [result, setResult] = useState<ConsoleResult | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [actionPreview, setActionPreview] = useState<SealActionPreview | null>(
-    null,
-  );
-  const actionPreviewTimeout = useRef<number | null>(null);
-  const copiedTimeout = useRef<number | null>(null);
-  const [initialDigest] = useState(() =>
-    readObservable(state, "lastDigest", t("digestPlaceholder")),
-  );
-  const [initialStatus] = useState(() =>
-    readObservable(state, "lastStatus", t("statusReady")),
-  );
+  const handleBuild = () => {
+    startPreview();
+    void dispatch("buildRequest", {
+      purpose,
+      recipient: recipient.trim(),
+      payload,
+    });
+  };
 
-  const payloadText = useMemo(
-    () => (result ? JSON.stringify(result.payload, null, 2) : ""),
-    [result],
-  );
-  const draftResult = useMemo(
-    () => consoleConfig.buildResult(values, t),
-    [values, t],
-  );
-  const networkLabel = readObservable(state, "networkLabel", t("notAvailable"));
-  const endpointLabel = readObservable(
-    state,
-    "endpointLabel",
-    t("notAvailable"),
-  );
-  const lastDigest = readObservable(state, "lastDigest", initialDigest);
-  const requestCount = readObservable(state, "requestCount", "0");
-  const purposeField = consoleConfig.fields.find(
-    (field) => field.key === "purpose",
-  );
-  const purposeOptions = purposeField?.options ?? [];
-  const selectedPurpose =
-    purposeOptions.find((option) => option.value === values.purpose) ??
-    purposeOptions[0];
-  const selectedPurposeLabel = selectedPurpose
-    ? optionLabel(selectedPurpose, t)
-    : values.purpose;
-  const payloadValid = draftResult.payload.payloadValid === true;
-  const draftOk = draftResult.payload.status !== "input_required";
-  const resultOk = result?.payload.status !== "input_required";
-  const payloadDigest = String(draftResult.payload.payloadDigest ?? "");
-  const recipientValue = values.recipient ?? "";
-  const payloadValue = values.payload ?? "";
-  const payloadStateLabel = payloadValid
-    ? t("sealPayloadStateReady")
-    : t("sealPayloadStateInvalid");
-  const recipientLabel = recipientValue.trim() || t("digestPlaceholder");
-  const isBuilding = actionPreview === "build";
-  const isCopying = actionPreview === "copy";
-  const stageStatus = isBuilding
-    ? t("sealStageBuilding")
-    : isCopying
-      ? t("sealStageCopying")
-      : result
-        ? t("sealStageReady")
-        : t("sealStageIdle");
-  const stageClassName = [
-    "seal-process-stage",
-    isBuilding ? "seal-process-stage--building" : "",
-    isCopying ? "seal-process-stage--copying" : "",
-    result ? "seal-process-stage--ready" : "",
-    !draftOk ? "seal-process-stage--warning" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const summaryItems = [
-    {
-      key: "protection",
-      label: t("protectionLabel"),
-      value: t("sealReferenceOnly"),
-    },
-    {
-      key: "purpose",
-      label: t("purpose"),
-      value: selectedPurposeLabel,
-    },
-    {
-      key: "recipient",
-      label: t("recipient"),
-      value: recipientLabel,
-    },
-    {
-      key: "payload",
-      label: t("payloadValid"),
-      value: boolLabel(payloadValid, t),
-    },
+  const resetDraft = () => {
+    setPurpose("oracle-input");
+    setRecipient("");
+    setPayload("{\n  \"source\": \"oracle\",\n  \"ttl\": 60\n}");
+    setDrawerMode("receipt");
+  };
+
+  const drawerModes: Array<{ id: DrawerMode; label: string; value: string }> = [
+    { id: "receipt", label: t("sealReceipt"), value: hasDigest ? compact(lastDigest) : t("sealEmptyTitle") },
+    { id: "flow", label: t("sealFlowTitle"), value: t(selectedPurpose.labelKey) },
+    { id: "source", label: t("sealComposerTitle"), value: payloadSize },
   ];
+  const setDrawerModeSafe = (mode: string) => {
+    if (drawerModes.some((item) => item.id === mode)) setDrawerMode(mode as DrawerMode);
+  };
 
-  useEffect(
-    () => () => {
-      if (actionPreviewTimeout.current !== null) {
-        window.clearTimeout(actionPreviewTimeout.current);
-      }
-      if (copiedTimeout.current !== null) {
-        window.clearTimeout(copiedTimeout.current);
-      }
-    },
-    [],
-  );
+  const scene = (
+    <div className="seal-workspace" data-state={actionPreview ? "building" : statusTone}>
+      <section className="seal-envelope" aria-label={t("sealStageTitle")}>
+        <div className="seal-envelope__head">
+          <span><PackageCheck size={16} />{t("sealPlan")}</span>
+          <strong>{actionPreview ? t("sealStageBuilding") : payloadValid ? t("sealValidationReady") : t("sealPayloadStateInvalid")}</strong>
+        </div>
 
-  function startActionPreview(action: SealActionPreview) {
-    if (actionPreviewTimeout.current !== null) {
-      window.clearTimeout(actionPreviewTimeout.current);
-    }
-    setActionPreview(action);
-    actionPreviewTimeout.current = window.setTimeout(() => {
-      setActionPreview(null);
-      actionPreviewTimeout.current = null;
-    }, 1200);
-  }
+        <div className="seal-envelope__body">
+          <figure className="seal-envelope__asset">
+            <img className="seal-preview__image" src={STAGE_IMAGE} alt="" aria-hidden="true" />
+            <figcaption><Fingerprint size={14} />{t("sealReferenceOnly")}</figcaption>
+          </figure>
 
-  function updateValue(key: string, value: string) {
-    setValues((current) => ({ ...current, [key]: value }));
-  }
-
-  function applyResult(next: ConsoleResult) {
-    setResult(next);
-    const ok = next.payload.status !== "input_required";
-    setObservable(state, "lastStatus", next.status);
-    const digest = next.payload.digest ?? next.payload.requestId;
-    if (ok && digest != null && digest !== "") {
-      setObservable(state, "lastDigest", String(digest));
-    } else if (!ok) {
-      setObservable(
-        state,
-        "lastDigest",
-        readObservable(state, "lastDigest", t("notAvailable")),
-      );
-    }
-    if (ok) {
-      const count = Number(state.requestCount?.get?.() ?? 0);
-      setObservable(state, "requestCount", count + 1);
-    }
-    if (!ok) {
-      setStatus(next.status, "warning");
-    }
-  }
-
-  function buildPreview() {
-    startActionPreview("build");
-    applyResult(consoleConfig.buildResult(values, t));
-  }
-
-  function reset() {
-    setValues(initialValues(launchContext?.params));
-    setResult(null);
-    setObservable(state, "lastStatus", initialStatus);
-    setObservable(state, "lastDigest", initialDigest);
-    setObservable(state, "requestCount", 0);
-  }
-
-  async function copyPayload() {
-    if (!payloadText) return;
-    startActionPreview("copy");
-    await services.clipboard.copy(payloadText, consoleConfig.copiedKey);
-    setCopied(true);
-    if (copiedTimeout.current !== null) {
-      window.clearTimeout(copiedTimeout.current);
-    }
-    copiedTimeout.current = window.setTimeout(() => {
-      setCopied(false);
-      copiedTimeout.current = null;
-    }, 1600);
-  }
-
-  return (
-    <div
-      className={[
-        "seal-play-area",
-        isBuilding ? "seal-play-area--building" : "",
-        isCopying ? "seal-play-area--copying" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <section className="seal-hero" aria-label={t("panelTitle")}>
-        <img
-          className="seal-hero__media"
-          src="./seal-reference-stage.jpg"
-          alt={t("sealHeroAlt")}
-          loading="eager"
-          decoding="async"
-        />
-        <div className="seal-hero__shade" aria-hidden="true" />
-        <div className="seal-hero__copy">
-          <span className="seal-hero__badge" aria-hidden="true">
-            <MailCheck size={24} />
-          </span>
-          <span className="seal-eyebrow">{t("panelEyebrow")}</span>
-          <h2>{t("panelTitle")}</h2>
-          <p>{t("sealHeroCopy")}</p>
-          <div className="seal-hero__pills" aria-label={t("sealStatusLabel")}>
-            <span>
-              <AlertTriangle size={15} aria-hidden="true" />
-              {t("protectionValue")}
-            </span>
-            <span>
-              <Fingerprint size={15} aria-hidden="true" />
-              {lastDigest}
-            </span>
+          <div className="seal-envelope__lanes">
+            <div className="seal-envelope__lane seal-envelope__lane--active">
+              <span>{t("purpose")}</span>
+              <strong>{t(selectedPurpose.labelKey)}</strong>
+              <small>{t(selectedPurpose.hintKey)}</small>
+            </div>
+            <div className={["seal-envelope__lane", recipient.trim() ? "seal-envelope__lane--active" : ""].filter(Boolean).join(" ")}>
+              <span>{t("recipient")}</span>
+              <strong>{compact(recipient, t("digestPlaceholder"))}</strong>
+              <small>{recipient.trim() ? t("sealFlowRouteDesc") : t("recipientHint")}</small>
+            </div>
+            <div className={["seal-envelope__lane", payloadValid ? "seal-envelope__lane--active" : "seal-envelope__lane--warn"].join(" ")}>
+              <span>{t("payloadValid")}</span>
+              <strong>{payloadValid ? t("yes") : t("no")}</strong>
+              <small>{payloadValid ? payloadSize : t("payloadInvalidHint")}</small>
+            </div>
           </div>
         </div>
-        <div className="seal-hero__metrics" aria-label={t("statistics")}>
-          <span>
-            <small>{t("statNetwork")}</small>
-            <strong>{networkLabel}</strong>
-          </span>
-          <span>
-            <small>{t("statEndpoint")}</small>
-            <strong>{endpointLabel}</strong>
-          </span>
-          <span>
-            <small>{t("statRequests")}</small>
-            <strong>{requestCount}</strong>
-          </span>
+
+        <div className="seal-preview__receipt">
+          <div>
+            <span>{t("purpose")}</span>
+            <strong>{t(selectedPurpose.labelKey)}</strong>
+          </div>
+          <div>
+            <span>{t("recipient")}</span>
+            <strong>{compact(recipient, t("digestPlaceholder"))}</strong>
+          </div>
+          <div>
+            <span>{t("statDigest")}</span>
+            <strong>{hasDigest ? compact(lastDigest) : t("sealEmptyTitle")}</strong>
+          </div>
+        </div>
+
+        <div className="seal-truth">
+          <ShieldAlert size={18} />
+          <div>
+            <strong>{t("protectionValue")}</strong>
+            <p>{t("sealProtectionCopy")}</p>
+          </div>
         </div>
       </section>
 
-      <section className="seal-flow" aria-label={t("sealFlowTitle")}>
-        <span>
-          <AlertTriangle size={18} aria-hidden="true" />
-          <strong>{t("sealFlowPlain")}</strong>
-          <small>{t("sealFlowPlainDesc")}</small>
-        </span>
-        <span>
-          <Route size={18} aria-hidden="true" />
-          <strong>{t("sealFlowRoute")}</strong>
-          <small>{t("sealFlowRouteDesc")}</small>
-        </span>
-        <span>
-          <Fingerprint size={18} aria-hidden="true" />
-          <strong>{t("sealFlowChecksum")}</strong>
-          <small>{t("sealFlowChecksumDesc")}</small>
-        </span>
-      </section>
-
-      <section className="seal-workspace">
-        <div className="seal-request-card" aria-label={t("sealPlan")}>
-          <header className="seal-card-head">
-            <span aria-hidden="true">
-              <Sparkles size={19} />
-            </span>
-            <div>
-              <small>{t("sealPlan")}</small>
-              <strong>{t("sealPlanCopy")}</strong>
-            </div>
-          </header>
-
-          <div
-            className="seal-warning-band"
-            role="note"
-            aria-label={t("sealProtectionTitle")}
-          >
-            <AlertTriangle size={18} aria-hidden="true" />
-            <span>
-              <strong>{t("sealProtectionTitle")}</strong>
-              <small>{t("sealProtectionCopy")}</small>
-            </span>
+      <section className="seal-builder" aria-label={t("sealComposerTitle")}>
+        <div className="seal-purpose">
+          <div className="seal-source-head">
+            <span>{t("sealPurposeTitle")}</span>
+            <strong>{t("sealComposerTitle")}</strong>
           </div>
-
-          <div
-            className="seal-summary-strip"
-            aria-label={t("consoleSelectedValues")}
-          >
-            {summaryItems.map((item) => (
-              <span key={item.key}>
-                <small>{item.label}</small>
-                <strong>{item.value}</strong>
-              </span>
-            ))}
-          </div>
-
-          <section
-            className={stageClassName}
-            aria-label={t("sealStageTitle")}
-            aria-live="polite"
-          >
-            <img
-              className="seal-process-stage__media"
-              src="./seal-reference-stage.jpg"
-              alt=""
-              loading="lazy"
-              decoding="async"
-              aria-hidden="true"
-            />
-            <div className="seal-process-stage__shade" aria-hidden="true" />
-            <div className="seal-process-stage__rail" aria-hidden="true">
-              <span className="seal-process-stage__node seal-process-stage__node--source">
-                <FileJson2 size={18} />
-              </span>
-              <span className="seal-process-stage__route" />
-              <span className="seal-process-stage__packet">
-                <MailCheck size={19} />
-              </span>
-              <span className="seal-process-stage__node seal-process-stage__node--checksum">
-                <Fingerprint size={18} />
-              </span>
-            </div>
-            <div className="seal-process-stage__copy">
-              <small>{t("sealStageTitle")}</small>
-              <strong>{stageStatus}</strong>
-              <span>{t("sealStageCopy")}</span>
-            </div>
-          </section>
-
-          <section
-            className="seal-purpose-panel"
-            aria-label={t("sealPurposeTitle")}
-          >
-            <div className="seal-section-copy">
-              <small>{t("sealPurposeTitle")}</small>
-              <strong>{t("sealPurposeCopy")}</strong>
-            </div>
-            <div
-              className="seal-purpose-track"
-              role="radiogroup"
-              aria-label={t("purpose")}
-            >
-              {purposeOptions.map((option) => {
-                const selected = values.purpose === option.value;
-                const label = optionLabel(option, t);
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    aria-label={`${t("purpose")}: ${label}`}
-                    className={`seal-purpose-chip${
-                      selected ? " seal-purpose-chip--selected" : ""
-                    }`}
-                    onClick={() => updateValue("purpose", option.value)}
-                  >
-                    <span
-                      className="seal-purpose-chip__icon"
-                      aria-hidden="true"
-                    >
-                      {purposeIcon(option.value)}
+          <OpenUiSegmented
+            className="seal-purpose__options"
+            segmentedClassName="seal-purpose__options-group"
+            label={t("sealPurposeTitle")}
+            value={purpose}
+            onChange={setPurpose}
+            options={PURPOSES.map((item) => {
+              const Icon = PURPOSE_ICONS[item.value];
+              return {
+                value: item.value,
+                label: (
+                  <span className="seal-purpose-card">
+                    <span className="seal-purpose__option-icon" aria-hidden="true">
+                      <Icon size={16} strokeWidth={2.4} />
                     </span>
-                    <span className="seal-purpose-chip__copy">
-                      <strong>{label}</strong>
-                      <small>{purposeHint(option.value, t)}</small>
-                    </span>
-                    {selected && (
-                      <span
-                        className="seal-purpose-chip__check"
-                        aria-hidden="true"
-                      >
-                        <Check size={14} />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section
-            className="seal-composer-panel"
-            aria-label={t("sealComposerTitle")}
-          >
-            <div className="seal-composer-head">
-              <div className="seal-section-copy">
-                <small>{t("sealComposerTitle")}</small>
-                <strong>{t("sealComposerCopy")}</strong>
-              </div>
-              <span
-                className={`seal-valid-chip${
-                  payloadValid
-                    ? " seal-valid-chip--ok"
-                    : " seal-valid-chip--warn"
-                }`}
-              >
-                {payloadValid ? (
-                  <Check size={15} aria-hidden="true" />
-                ) : (
-                  <FileJson2 size={15} aria-hidden="true" />
-                )}
-                {t("payloadValid")}: {boolLabel(payloadValid, t)}
-              </span>
-            </div>
-
-            <div className="seal-composer-grid">
-              <div className="seal-route-lane">
-                <div className="seal-lane-head">
-                  <Route size={17} aria-hidden="true" />
-                  <span>
-                    <small>{t("sealRecipientTitle")}</small>
-                    <strong>{t("sealRecipientCopy")}</strong>
+                    <span className="seal-purpose__option-label">{t(item.labelKey)}</span>
                   </span>
-                </div>
-                <NeoInput
-                  label={t("recipient")}
-                  value={recipientValue}
-                  placeholder={t("recipientPlaceholder")}
-                  hint={t("recipientHint")}
-                  onChange={(value) => updateValue("recipient", value)}
-                />
-              </div>
-
-              <div className="seal-editor-lane">
-                <div className="seal-lane-head">
-                  <FileJson2 size={17} aria-hidden="true" />
-                  <span>
-                    <small>{t("sealPayloadTitle")}</small>
-                    <strong>{t("sealPayloadCopy")}</strong>
-                  </span>
-                </div>
-                <div
-                  className={`seal-payload-chamber${
-                    payloadValid
-                      ? " seal-payload-chamber--ready"
-                      : " seal-payload-chamber--invalid"
-                  }`}
-                  role="group"
-                  aria-label={t("sealPayloadChamberLabel")}
-                >
-                  <div className="seal-payload-chamber__toolbar">
-                    <span className="seal-payload-chamber__title">
-                      <FileJson2 size={15} aria-hidden="true" />
-                      {t("sealPayloadChamberTitle")}
-                    </span>
-                    <span
-                      className={`seal-payload-chamber__state${
-                        payloadValid
-                          ? " seal-payload-chamber__state--ready"
-                          : " seal-payload-chamber__state--invalid"
-                      }`}
-                    >
-                      {payloadValid ? (
-                        <Check size={14} aria-hidden="true" />
-                      ) : (
-                        <AlertTriangle size={14} aria-hidden="true" />
-                      )}
-                      {payloadStateLabel}
-                    </span>
-                  </div>
-                  <NeoInput
-                    className="seal-payload-input"
-                    type="textarea"
-                    label={t("payload")}
-                    value={payloadValue}
-                    placeholder={t("payloadPlaceholder")}
-                    hint={payloadValid ? t("payloadReadyHint") : ""}
-                    error={payloadValid ? "" : t("payloadInvalidHint")}
-                    onChange={(value) => updateValue("payload", value)}
-                  />
-                  <div className="seal-digest-strip">
-                    <span>
-                      <small>{t("payloadDigest")}</small>
-                      <strong>{payloadDigest}</strong>
-                    </span>
-                    <span>
-                      <small>{t("sealPayloadSize")}</small>
-                      <strong>
-                        {t("sealPayloadChars", { count: payloadValue.length })}
-                      </strong>
-                    </span>
-                    <span>
-                      <small>{t("protectionLabel")}</small>
-                      <strong>{t("sealReferenceOnly")}</strong>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <div className="seal-actions">
-            <NeoButton
-              variant="primary"
-              size="lg"
-              loading={isBuilding}
-              onClick={buildPreview}
-            >
-              <Play size={18} aria-hidden="true" />
-              <span>
-                {isBuilding
-                  ? t("sealBuildActionActive")
-                  : t(consoleConfig.primaryActionKey)}
-              </span>
-            </NeoButton>
-            <NeoButton variant="ghost" size="lg" onClick={reset}>
-              <RotateCcw size={18} aria-hidden="true" />
-              <span>{t(consoleConfig.resetActionKey)}</span>
-            </NeoButton>
-          </div>
+                ),
+              };
+            })}
+          />
+          <p className="seal-purpose__active-hint" aria-live="polite">{t(selectedPurpose.hintKey)}</p>
         </div>
 
-        <aside
-          className={[
-            "seal-result-card",
-            isBuilding ? "is-building" : "",
-            isCopying ? "is-copying" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          aria-live="polite"
-        >
-          <header className="seal-card-head">
-            <span aria-hidden="true">
-              <LockKeyhole size={19} />
-            </span>
+        <div className="seal-source-summary" data-valid={payloadValid ? "true" : undefined}>
+          <article className="seal-source-summary__card">
+            <span>{t("sealRecipientTitle")}</span>
+            <strong>{compact(recipient, t("digestPlaceholder"))}</strong>
+            <small>{recipient.trim() ? t("sealFlowRouteDesc") : t("recipientHint")}</small>
+          </article>
+
+          <article className="seal-source-summary__card">
+            <span>{t("sealPayloadTitle")}</span>
+            <strong>{payloadSize}</strong>
+            <small>{payloadValid ? t("payloadReadyHint") : t("payloadInvalidHint")}</small>
+          </article>
+
+          <div className="seal-validation" role="status" data-valid={payloadValid ? "true" : undefined}>
+            {payloadValid ? <FileCheck2 size={18} /> : <CircleAlert size={18} />}
             <div>
-              <small>{t("sealReceipt")}</small>
-              <strong>{result ? result.status : t("previewWaiting")}</strong>
+              <strong>{payloadValid ? t("sealPayloadStateReady") : t("sealPayloadStateInvalid")}</strong>
+              <p>{payloadValid ? t("payloadReadyHint") : t("payloadInvalidHint")}</p>
             </div>
-          </header>
-
-          <div
-            className={`seal-readiness${
-              draftOk ? " seal-readiness--ok" : " seal-readiness--warn"
-            }`}
-          >
-            <span>
-              {draftOk ? t("sealValidationReady") : draftResult.status}
-            </span>
-            <strong>{t("sealReferenceOnly")}</strong>
+            <span>{payloadSize}</span>
           </div>
-
-          {result ? (
-            <>
-              <div
-                className={`seal-result-hero${
-                  resultOk ? " seal-result-hero--ok" : " seal-result-hero--warn"
-                }`}
-              >
-                <span>{selectedPurposeLabel}</span>
-                <strong>{resultOk ? result.summary : result.status}</strong>
-                <small>
-                  {String(
-                    result.payload.digest ?? result.payload.requestId ?? "",
-                  )}
-                </small>
-              </div>
-              <div className="seal-result-rows">
-                {result.rows.map((row) => (
-                  <span key={row.label}>
-                    <small>{row.label}</small>
-                    <strong>{row.value}</strong>
-                  </span>
-                ))}
-              </div>
-              <div className="seal-payload-actions">
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  loading={isCopying}
-                  onClick={copyPayload}
-                >
-                  {copied ? (
-                    <Check size={16} aria-hidden="true" />
-                  ) : (
-                    <Copy size={16} aria-hidden="true" />
-                  )}
-                  <span>
-                    {isCopying
-                      ? t("sealCopyActionActive")
-                      : copied
-                        ? t(consoleConfig.copiedKey)
-                        : t(consoleConfig.copyActionKey)}
-                  </span>
-                </NeoButton>
-              </div>
-              <details className="seal-payload-card console-tool__payload-card">
-                <summary>
-                  <span>{t("consolePayload")}</span>
-                  <ChevronDown
-                    className="seal-payload-card__icon"
-                    size={15}
-                    aria-hidden="true"
-                  />
-                </summary>
-                <pre>{payloadText}</pre>
-              </details>
-            </>
-          ) : (
-            <div className="seal-empty-state">
-              <span aria-hidden="true">
-                <MailCheck size={24} />
-              </span>
-              <strong>{t("sealEmptyTitle")}</strong>
-              <p>{t("sealEmptyCopy")}</p>
-            </div>
-          )}
-        </aside>
+        </div>
       </section>
     </div>
+  );
+
+  const drawer = (
+    <div className="seal-drawer">
+      <OpenUiSegmented
+        className="seal-drawer__switcher"
+        segmentedClassName="seal-drawer__switcher-group"
+        label={t("sealReceipt")}
+        value={drawerMode}
+        onChange={setDrawerModeSafe}
+        options={drawerModes.map((mode) => ({
+          value: mode.id,
+          label: (
+            <span className="seal-drawer-tab">
+              <span>{mode.label}</span>
+              <strong>{mode.value}</strong>
+            </span>
+          ),
+        }))}
+      />
+
+      {drawerMode === "receipt" && (
+        <OpenUiPanel
+          className="seal-drawer__panel"
+          icon={<ClipboardCheck size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("sealReceipt")}
+          subtitle={hasDigest ? t("sealValidationReady") : t("sealEmptyTitle")}
+        >
+          {hasDigest ? (
+            <dl className="seal-drawer__receipt">
+              <div><dt>{t("protectionLabel")}</dt><dd>{t("protectionValue")}</dd></div>
+              <div><dt>{t("purpose")}</dt><dd>{t(selectedPurpose.labelKey)}</dd></div>
+              <div><dt>{t("recipient")}</dt><dd>{recipient || t("digestPlaceholder")}</dd></div>
+              <div><dt>{t("payloadValid")}</dt><dd>{payloadValid ? t("yes") : t("no")}</dd></div>
+              <div><dt>{t("statDigest")}</dt><dd><code>{lastDigest}</code></dd></div>
+            </dl>
+          ) : (
+            <OpenUiNotice
+              className="seal-drawer__empty"
+              icon={<ShieldAlert size={18} strokeWidth={2.4} aria-hidden="true" />}
+              title={t("sealEmptyTitle")}
+            >
+              {t("sealEmptyCopy")}
+            </OpenUiNotice>
+          )}
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "flow" && (
+        <OpenUiPanel
+          className="seal-drawer__panel"
+          icon={<Route size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("sealFlowTitle")}
+          subtitle={t("sealFlowChecksumDesc")}
+        >
+          <ol className="seal-flow">
+            <li><strong>{t("sealFlowPlain")}</strong><span>{t("sealFlowPlainDesc")}</span></li>
+            <li><strong>{t("sealFlowRoute")}</strong><span>{t("sealFlowRouteDesc")}</span></li>
+            <li><strong>{t("sealFlowChecksum")}</strong><span>{t("sealFlowChecksumDesc")}</span></li>
+          </ol>
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "source" && (
+        <OpenUiPanel
+          className="seal-drawer__panel"
+          icon={<FileCheck2 size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("sealComposerTitle")}
+          subtitle={payloadValid ? t("sealPayloadStateReady") : t("sealPayloadStateInvalid")}
+        >
+          <div className="seal-drawer__source">
+            <OpenUiTextField
+              className="seal-field seal-field--route"
+              inputClassName="seal-input seal-input--recipient"
+              label={t("sealRecipientTitle")}
+              value={recipient}
+              onChange={(event) => setRecipient(event.target.value)}
+              placeholder={t("recipientPlaceholder")}
+              spellCheck={false}
+              mono
+            />
+
+            <OpenUiTextArea
+              className="seal-field seal-field--payload"
+              textareaClassName="seal-input seal-input--payload"
+              label={t("sealPayloadTitle")}
+              value={payload}
+              onChange={(event) => setPayload(event.target.value)}
+              placeholder={t("payloadPlaceholder")}
+              rows={4}
+              spellCheck={false}
+              hint={payloadValid ? t("payloadReadyHint") : t("payloadInvalidHint")}
+            />
+
+            <div className="seal-validation" role="status" data-valid={payloadValid ? "true" : undefined}>
+              {payloadValid ? <FileCheck2 size={18} /> : <CircleAlert size={18} />}
+              <div>
+                <strong>{payloadValid ? t("sealPayloadStateReady") : t("sealPayloadStateInvalid")}</strong>
+                <p>{payloadValid ? t("payloadReadyHint") : t("payloadInvalidHint")}</p>
+              </div>
+              <span>{payloadSize}</span>
+            </div>
+          </div>
+        </OpenUiPanel>
+      )}
+    </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div className="oracle-console-play-area mx2 mx2-cat-tool">
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t(consoleConfig.eyebrowKey),
+            title: t(consoleConfig.titleKey),
+            subtitle: t("sealHeroCopy"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkLabel}</span>,
+          }}
+          scene={scene}
+          score={[
+            { label: t("statRequests"), value: String(requestCount), accent: true },
+            { label: t("lastStatus"), value: lastStatus },
+            { label: t("statEndpoint"), value: endpointLabel },
+          ]}
+          actions={{
+            primary: {
+              label: actionPreview ? t("sealBuildActionActive") : t("runAction"),
+              onClick: handleBuild,
+              loading: actionPreview,
+              icon: <BadgeCheck size={17} />,
+            },
+            secondary: [
+              {
+                label: t("reset"),
+                onClick: resetDraft,
+                icon: <RefreshCw size={16} />,
+              },
+            ],
+          }}
+          drawerToggleLabel={t("sealReceipt")}
+          drawer={{ title: t("sealReceipt"), children: drawer }}
+        />
+        <p className="seal-status-line" role="status">
+          <KeyRound size={14} />
+          {lastStatus}
+        </p>
+      </div>
+    </OpenUiProvider>
   );
 }

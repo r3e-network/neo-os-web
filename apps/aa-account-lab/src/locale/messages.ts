@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "aa-account-lab", zh: "aa-account-lab" },
   appName: { en: "AA Account Lab", zh: "AA 注册实验室" },
   accountHeroEyebrow: { en: "Account Abstraction", zh: "账户抽象" },
   accountHeroTitle: {
@@ -91,6 +92,18 @@ const appMessages = {
     en: "Connect, inspect, then assemble the account shell",
     zh: "连接、查询，然后组装账户壳",
   },
+  accountStageNeedVerifier: {
+    en: "Verifier needed",
+    zh: "需要 Verifier",
+  },
+  accountStageNeedOwner: {
+    en: "Set a backup owner",
+    zh: "设置 Backup Owner",
+  },
+  accountStageNeedTimelock: {
+    en: "Set a recovery window",
+    zh: "设置恢复窗口",
+  },
   accountStageReady: {
     en: "Account shell ready for registration",
     zh: "账户壳已可注册",
@@ -110,6 +123,32 @@ const appMessages = {
   accountStageCopy: {
     en: "Verifier, backup owner, and escape window assemble into the deterministic AccountId accepted by AA Core.",
     zh: "Verifier、backup owner 与逃生窗口会组装为 AA Core 接受的确定性 AccountId。",
+  },
+  accountPlanTitle: { en: "Account strategy", zh: "账户策略" },
+  accountPlanDaily: { en: "Everyday shell", zh: "日常账户壳" },
+  accountPlanDailyCopy: {
+    en: "Balanced recovery for normal wallet use.",
+    zh: "适合日常钱包使用的均衡恢复策略。",
+  },
+  accountPlanFast: { en: "Fast recovery", zh: "快速恢复" },
+  accountPlanFastCopy: {
+    en: "Shorter escape window when fast lockout recovery matters.",
+    zh: "需要更快找回时使用较短逃生窗口。",
+  },
+  accountPlanCold: { en: "Cold vault", zh: "冷钱包策略" },
+  accountPlanColdCopy: {
+    en: "Longer delay for accounts expected to hold more value.",
+    zh: "面向更高价值账户，使用更长恢复延迟。",
+  },
+  recoveryWindow: { en: "Recovery window", zh: "恢复窗口" },
+  useConnectedWallet: { en: "Use connected wallet", zh: "使用已连接钱包" },
+  ownerNotSet: { en: "Connect or set owner", zh: "连接或设置 owner" },
+  noHook: { en: "No hook", zh: "无 hook" },
+  accountShellProgress: { en: "{count}/3 ready", zh: "{count}/3 就绪" },
+  advancedAccountFields: { en: "Advanced account fields", zh: "高级账户字段" },
+  advancedAccountFieldsHint: {
+    en: "Only edit raw hashes when you are using a custom verifier, hook, or account inspector target.",
+    zh: "仅在使用自定义 verifier、hook 或查询目标时编辑原始哈希。",
   },
   accountFlowInspect: { en: "Read live state", zh: "读取链上状态" },
   accountFlowInspectDesc: {

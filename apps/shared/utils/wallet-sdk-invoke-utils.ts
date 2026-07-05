@@ -11,46 +11,10 @@ import type {
   WalletSigner,
 } from "./wallet-sdk-types";
 
-const SIGNER_SCOPE_MAP: Record<string, number> = {
-  none: 0,
-  calledbyentry: 1,
-  customcontracts: 16,
-  customgroups: 32,
-  rules: 64,
-  global: 128,
-};
-
 export function normalizeOperationName(operation: string): string {
   const raw = String(operation || "").trim();
   if (!raw) throw new Error("Contract operation name is required.");
   return raw;
-}
-
-function normalizeSignerScope(scope: string | number): number {
-  if (typeof scope === "number" && Number.isFinite(scope)) {
-    return scope;
-  }
-
-  const raw = String(scope ?? "").trim();
-  if (/^\d+$/.test(raw)) {
-    return parseInt(raw, 10);
-  }
-
-  return SIGNER_SCOPE_MAP[raw.toLowerCase()] ?? 1;
-}
-
-export function mapSigners(signers?: WalletSigner[]) {
-  return signers?.map((signer) => ({
-    account: signer.account,
-    scopes: normalizeSignerScope(signer.scopes),
-    ...(signer.allowedContracts?.length
-      ? { allowedContracts: signer.allowedContracts }
-      : {}),
-    ...(signer.allowedGroups?.length
-      ? { allowedGroups: signer.allowedGroups }
-      : {}),
-    ...(signer.rules?.length ? { rules: signer.rules } : {}),
-  }));
 }
 
 const DAPI_SCOPE_BY_NUMBER: Record<number, string> = {

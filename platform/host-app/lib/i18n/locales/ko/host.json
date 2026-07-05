@@ -50,6 +50,7 @@
     "pageTitle": "미니앱",
     "title": "미니앱 카탈로그",
     "description": "Neo N3용 작고 집중된 미니앱을 찾아 플레이 영역을 열고 공용 액션 콘솔에서 작업하세요.",
+    "resultsDescription": "상태, 카테고리 또는 검색어로 필터링해 열고 싶은 앱을 빠르게 찾으세요.",
     "searchLabel": "미니앱 검색",
     "searchPlaceholder": "이름, 카테고리, 앱 ID로 검색",
     "fetchError": "불러오지 못했습니다. 다시 시도하세요.",
@@ -83,7 +84,7 @@
       "onegateExport": "OneGate dApp 내보내기"
     },
     "hero": {
-      "title": "Yiwu MiniApps, 모든 Neo 시나리오를 위한 작은 도구.",
+      "title": "Neo Miniapps, 모든 Neo 시나리오를 위한 세련된 앱.",
       "body": "게임, 결제, 오라클 도구, 계정 추상화, 브리지, 평점, 댓글, 컨트랙트 상태, 지갑 안전 작업을 하나의 프로덕션 인터페이스로 제공합니다.",
       "catalogCta": "미니앱 카탈로그 열기",
       "developerCta": "개발자 콘솔"
@@ -109,6 +110,11 @@
     },
     "catalog": {
       "description": "카테고리별로 정제된 앱을 둘러보고 전용 플레이 영역과 공용 액션 콘솔을 여세요.",
+      "previewEyebrow": "목적별 탐색",
+      "previewTitle": "맞는 MiniApp 찾기",
+      "previewBody": "지금의 목적에 가장 가까운 앱부터 시작하세요. 전체 목록이 필요하면 전체 카탈로그를 열면 됩니다.",
+      "previewCta": "전체 카탈로그 열기",
+      "moreCount": "전체 카탈로그에 앱 {count}개가 더 있습니다.",
       "searchPlaceholder": "앱, 카테고리 또는 ID 검색",
       "ecosystems": "생태계",
       "shownCount": "{shown}개 표시",

@@ -5,6 +5,7 @@ module.exports = {
   moduleFileExtensions: ["ts", "tsx", "js", "jsx"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "\\.(avif|gif|jpg|jpeg|png|svg|webp)$": "<rootDir>/__mocks__/fileMock.js",
   },
   collectCoverageFrom: [
     "components/**/*.{ts,tsx}",

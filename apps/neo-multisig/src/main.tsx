@@ -72,8 +72,8 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const chain = ctx.services.chain;
-    const api = createVaultApi(chain);
+    const app = ctx.framework;
+    const api = createVaultApi(app);
 
     const {
       history,
@@ -87,7 +87,7 @@ defineMiniApp({
     const totalActions = createDerived(() => history.get().length, [history]);
 
     const connectedAddress = createObservable<string>(
-      chain.address.get() ?? "",
+      app.chain.address.get() ?? "",
     );
     const activeVault = createObservable<VaultView | null>(null);
     const activeRequest = createObservable<RequestView | null>(null);
@@ -149,11 +149,11 @@ defineMiniApp({
     };
 
     const syncConnectedAddress = () => {
-      connectedAddress.set(chain.address.get() ?? "");
+      connectedAddress.set(app.chain.address.get() ?? "");
       void refreshGating();
     };
     syncConnectedAddress();
-    const stopAddressSync = chain.address.subscribe(syncConnectedAddress);
+    const stopAddressSync = app.chain.address.subscribe(syncConnectedAddress);
 
     // -- Read refreshers ------------------------------------------------------
 
@@ -230,7 +230,7 @@ defineMiniApp({
 
     // -- Actions --------------------------------------------------------------
 
-    ctx.registerAction("createVault", async (rawPayload: unknown) => {
+    ctx.framework.actions.register("createVault", async (rawPayload: unknown) => {
       const payload = asRecord(rawPayload);
       const signers = Array.isArray(payload.signers)
         ? payload.signers.map(asString).filter(Boolean)
@@ -247,7 +247,7 @@ defineMiniApp({
 
       isCreatingVault.set(true);
       try {
-        const creator = await chain.ensureWallet();
+        const creator = await app.chain.ensureWallet();
         const result = await api.createVault({ creator, signers, threshold });
         // The new vaultId is the contract's lastVaultId after creation.
         const vaultId = await api.lastVaultId();
@@ -262,7 +262,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("deposit", async (rawPayload: unknown) => {
+    ctx.framework.actions.register("deposit", async (rawPayload: unknown) => {
       const payload = asRecord(rawPayload);
       const vaultId = parseVaultId(payload.vaultId);
       const asset = asAsset(payload.asset);
@@ -279,7 +279,7 @@ defineMiniApp({
 
       isDepositing.set(true);
       try {
-        const from = await chain.ensureWallet();
+        const from = await app.chain.ensureWallet();
         const result = await api.deposit({ from, vaultId, amount, asset });
         await refreshVault(vaultId);
         ctx.setStatus(
@@ -295,7 +295,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("proposeRequest", async (rawPayload: unknown) => {
+    ctx.framework.actions.register("proposeRequest", async (rawPayload: unknown) => {
       const payload = asRecord(rawPayload);
       const vaultId = parseVaultId(payload.vaultId);
       const asset = asAsset(payload.asset);
@@ -318,7 +318,7 @@ defineMiniApp({
 
       isProposing.set(true);
       try {
-        const creator = await chain.ensureWallet();
+        const creator = await app.chain.ensureWallet();
         const result = await api.createRequest({
           vaultId,
           creator,
@@ -340,7 +340,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("approveRequest", async (...args: unknown[]) => {
+    ctx.framework.actions.register("approveRequest", async (...args: unknown[]) => {
       const reqId = parseVaultId(args[0] ?? activeRequest.get()?.id);
       if (reqId <= 0) {
         ctx.setStatus(ctx.t("toastNoRequest"), "error");
@@ -349,7 +349,7 @@ defineMiniApp({
 
       isApproving.set(true);
       try {
-        const signer = await chain.ensureWallet();
+        const signer = await app.chain.ensureWallet();
         const result = await api.approve(reqId, signer);
         const request = await refreshRequest(reqId);
         if (request?.vaultId) await refreshVault(request.vaultId);
@@ -385,7 +385,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("cancelRequest", async (...args: unknown[]) => {
+    ctx.framework.actions.register("cancelRequest", async (...args: unknown[]) => {
       const reqId = parseVaultId(args[0] ?? activeRequest.get()?.id);
       if (reqId <= 0) {
         ctx.setStatus(ctx.t("toastNoRequest"), "error");
@@ -394,7 +394,7 @@ defineMiniApp({
 
       isCancelling.set(true);
       try {
-        const caller = await chain.ensureWallet();
+        const caller = await app.chain.ensureWallet();
         const result = await api.cancel(reqId, caller);
         await refreshRequest(reqId);
         ctx.setStatus(ctx.t("toastCancelled"), "success");
@@ -407,7 +407,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("loadVault", async (...args: unknown[]) => {
+    ctx.framework.actions.register("loadVault", async (...args: unknown[]) => {
       const vaultId = parseVaultId(args[0]);
       if (vaultId <= 0) {
         ctx.setStatus(ctx.t("toastNoVault"), "error");
@@ -430,7 +430,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("loadRequest", async (...args: unknown[]) => {
+    ctx.framework.actions.register("loadRequest", async (...args: unknown[]) => {
       const reqId = parseVaultId(args[0]);
       if (reqId <= 0) {
         ctx.setStatus(ctx.t("toastNoRequest"), "error");

@@ -1,8 +1,9 @@
 /**
  * useGovMerc — Domain logic for the Gov Merc (mercenary governance market) miniapp.
  *
- * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppGovMerc) via
- * ctx.services.chain. The earlier path kept NEO deposits and per-epoch GAS bids
+ * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppGovMerc)
+ * through the MiniApp framework SDK (ctx.framework → app). The earlier path kept
+ * NEO deposits and per-epoch GAS bids
  * in OS StorageProxy/PaymentProxy that no contract enforced — "settlement" only
  * wrote a record and the bid GAS was never paid out or refunded (a latent
  * strand). This composable drives the dedicated contract, a two-sided market:
@@ -21,7 +22,7 @@
  *
  * Contract interaction model (verified against MiniAppGovMerc.cs / ABI):
  *
- *   READS (chain.read, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     totalStaked()              -> Integer (whole NEO — NOT scaled)
  *     stakeOf(user)              -> Integer (whole NEO — NOT scaled)
  *     currentEpoch()             -> Integer
@@ -36,7 +37,7 @@
  *     epochDeadline(epoch)       -> Integer (ms timestamp; 0 until the epoch's
  *                                   first bid opens its bidding window) [v2]
  *
- *   EVENTS (chain.listEvents):
+ *   EVENTS (app.chain.events):
  *     BidPlaced(epoch, bidder, totalBid) — leaderboard source for the CURRENT
  *       epoch: state slots [0]=epoch, [1]=bidder(address), [2]=totalBid(GAS base
  *       units). Board is the LATEST totalBid per bidder for the current epoch,
@@ -52,7 +53,7 @@
  *   deadline — the contract reverts "epoch not ended". Both reverts are mapped
  *   to friendly messages here, and mirrored locally as pre-flight guards.
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     STAKE — a NEO transfer to the contract with memo "govmerc:stake". The whole
  *       NEO integer is the amount; NEO is INDIVISIBLE so it is NEVER scaled.
  *         transfer(from, CONTRACT, neoInteger, "govmerc:stake") { scriptHash: NEO_HASH }
@@ -76,11 +77,11 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { gasToBaseUnits, neoToInteger } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { formatNum } from "@shared/utils/format";
-import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import { combineBusy } from "@shared/utils/observables";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -210,8 +211,8 @@ export interface ReclaimableBid {
 }
 
 export interface UseGovMercOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -220,7 +221,7 @@ export interface UseGovMercOptions {
 // Composable
 // ============================================================================
 
-export function useGovMerc({ chain, t }: UseGovMercOptions) {
+export function useGovMerc({ app, t }: UseGovMercOptions) {
   // ── Inputs ────────────────────────────────────────────────────────────
   const depositAmount = createObservable("");
   const withdrawAmount = createObservable("");
@@ -270,11 +271,24 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     address.set(addr ?? "");
   };
 
-  const myHash = (): string | null => {
-    const addr = address.get();
+  // Build a Hash160 arg for an address, or null when empty/invalid. arg.hash160
+  // THROWS on an empty/invalid address, so this swallows a build failure into
+  // null — mirroring the old `addr ? addressToScriptHash(addr) : null` guard
+  // (which yielded null for a missing or malformed address).
+  const safeHash160Arg = (
+    addr: string | null | undefined,
+  ): ReturnType<typeof app.chain.arg.hash160> | null => {
     if (!addr) return null;
-    return addressToScriptHash(addr) || null;
+    try {
+      return app.chain.arg.hash160(addr);
+    } catch {
+      return null;
+    }
   };
+
+  // The connected wallet's Hash160 arg (or null when disconnected/invalid).
+  const myHashArg = (): ReturnType<typeof app.chain.arg.hash160> | null =>
+    safeHash160Arg(address.get());
 
   // ── Data loading (direct chain reads + events) ─────────────────────────
 
@@ -285,8 +299,8 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
    */
   const loadStats = async () => {
     const [totalStakedRaw, epochRaw] = await Promise.all([
-      chain.read("totalStaked", []),
-      chain.read("currentEpoch", []),
+      app.chain.readRaw("totalStaked", []),
+      app.chain.readRaw("currentEpoch", []),
     ]);
 
     // totalStaked is WHOLE NEO — Number() directly, NO ÷1e8.
@@ -300,8 +314,8 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     // — the contract stays the authority via its own reverts.
     try {
       const [deadlineRaw, durationRaw] = await Promise.all([
-        chain.read("epochDeadline", [{ type: "Integer", value: String(epoch) }]),
-        chain.read("epochDuration", []),
+        app.chain.readRaw("epochDeadline", [app.chain.arg.integer(epoch)]),
+        app.chain.readRaw("epochDuration", []),
       ]);
       epochDeadline.set(Math.max(0, Number(parseBigInt(deadlineRaw))));
       const duration = Number(parseBigInt(durationRaw));
@@ -316,8 +330,8 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     // feed is empty/stale (the leaderboard alone could wrongly disable settle
     // while highestBid > 0 proves the epoch is settleable).
     try {
-      const highestRaw = await chain.read("highestBid", [
-        { type: "Integer", value: String(epoch) },
+      const highestRaw = await app.chain.readRaw("highestBid", [
+        app.chain.arg.integer(epoch),
       ]);
       const highestBase = parseBigInt(highestRaw);
       hasLiveBid.set(highestBase > 0n);
@@ -330,12 +344,12 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       highestBid.set(0);
     }
 
-    const hash = myHash();
-    if (hash) {
+    const hashArg = myHashArg();
+    if (hashArg) {
       const [stakeRaw, pendingRaw, creditRaw] = await Promise.all([
-        chain.read("stakeOf", [{ type: "Hash160", value: hash }]),
-        chain.read("pendingRewards", [{ type: "Hash160", value: hash }]),
-        chain.read("gasCreditOf", [{ type: "Hash160", value: hash }]),
+        app.chain.readRaw("stakeOf", [hashArg]),
+        app.chain.readRaw("pendingRewards", [hashArg]),
+        app.chain.readRaw("gasCreditOf", [hashArg]),
       ]);
       // stakeOf is WHOLE NEO — NO ÷1e8.
       userDeposits.set(Math.max(0, Number(parseBigInt(stakeRaw))));
@@ -359,7 +373,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
   const loadBids = async () => {
     const epoch = currentEpoch.get();
     try {
-      const events = await chain.listEvents("BidPlaced", { limit: BID_EVENTS_LIMIT });
+      const events = await app.chain.events("BidPlaced", { limit: BID_EVENTS_LIMIT });
       const latestByBidder = new Map<string, number>();
       for (const event of events) {
         const evtEpoch = Number(parseBigInt(eventValue(event, 0)));
@@ -395,8 +409,8 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     const settledEpoch = epoch - 1;
     try {
       const [winnerRaw, amountRaw] = await Promise.all([
-        chain.read("settlementWinner", [{ type: "Integer", value: String(settledEpoch) }]),
-        chain.read("settlementAmount", [{ type: "Integer", value: String(settledEpoch) }]),
+        app.chain.readRaw("settlementWinner", [app.chain.arg.integer(settledEpoch)]),
+        app.chain.readRaw("settlementAmount", [app.chain.arg.integer(settledEpoch)]),
       ]);
       const winner = String(winnerRaw ?? "").trim();
       if (isZeroAddress(winner)) {
@@ -423,9 +437,9 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
    */
   const RECLAIM_LOOKBACK = 12;
   const loadReclaimable = async () => {
-    const hash = myHash();
+    const hashArg = myHashArg();
     const epoch = currentEpoch.get();
-    if (!hash || epoch <= 0) {
+    if (!hashArg || epoch <= 0) {
       reclaimableBids.set([]);
       return;
     }
@@ -437,14 +451,14 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       const results = await Promise.all(
         epochs.map(async (e): Promise<ReclaimableBid | null> => {
           try {
-            const bidRaw = await chain.read("bidOf", [
-              { type: "Integer", value: String(e) },
-              { type: "Hash160", value: hash },
+            const bidRaw = await app.chain.readRaw("bidOf", [
+              app.chain.arg.integer(e),
+              hashArg,
             ]);
             const bidBase = parseBigInt(bidRaw);
             if (bidBase <= 0n) return null; // never bid, or already reclaimed
-            const winnerRaw = await chain.read("settlementWinner", [
-              { type: "Integer", value: String(e) },
+            const winnerRaw = await app.chain.readRaw("settlementWinner", [
+              app.chain.arg.integer(e),
             ]);
             const winner = String(winnerRaw ?? "").trim();
             // The winner cannot reclaim; their bid funds the staker payout.
@@ -495,24 +509,25 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     const neoInt = neoToInteger(depositAmount.get());
     if (neoInt <= 0n) throw new Error(t("enterNeoAmount"));
 
-    const addr = address.get() || (await chain.ensureWallet());
-    const hash = addr ? addressToScriptHash(addr) : null;
-    if (!addr || !hash) throw new Error(t("walletStatusIdle"));
+    const addr = address.get() || (await app.chain.ensureWallet());
+    if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
+    const bidderArg = safeHash160Arg(addr);
+    if (!bidderArg) throw new Error(t("walletStatusIdle"));
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     isProcessing.set(true);
     try {
       // NEO transfer carries the WHOLE integer — no scaling.
-      await chain.invoke(
+      await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: hash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: neoInt.toString() },
-          { type: "String", value: STAKE_MEMO },
+          bidderArg,
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(neoInt),
+          app.chain.arg.string(STAKE_MEMO),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH, waitForEvent: "Staked" },
       );
@@ -534,18 +549,19 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     if (neoInt <= 0n) throw new Error(t("enterNeoAmount"));
     if (Number(neoInt) > userDeposits.get()) throw new Error(t("withdrawExceeds"));
 
-    const addr = address.get() || (await chain.ensureWallet());
-    const hash = addr ? addressToScriptHash(addr) : null;
-    if (!addr || !hash) throw new Error(t("walletStatusIdle"));
+    const addr = address.get() || (await app.chain.ensureWallet());
+    if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
+    const userArg = safeHash160Arg(addr);
+    if (!userArg) throw new Error(t("walletStatusIdle"));
 
     isProcessing.set(true);
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "withdrawStake",
         [
-          { type: "Hash160", value: hash },
-          { type: "Integer", value: neoInt.toString() },
+          userArg,
+          app.chain.arg.integer(neoInt),
         ],
         { waitForEvent: "Unstaked" },
       );
@@ -577,12 +593,13 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     const addBase = gasToBaseUnits(bidAmount.get());
     if (addBase <= 0n) throw new Error(t("enterAmount"));
 
-    const addr = address.get() || (await chain.ensureWallet());
-    const bidderHash = addr ? addressToScriptHash(addr) : null;
-    if (!addr || !bidderHash) throw new Error(t("walletStatusIdle"));
+    const addr = address.get() || (await app.chain.ensureWallet());
+    if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
+    const bidderArg = safeHash160Arg(addr);
+    if (!bidderArg) throw new Error(t("walletStatusIdle"));
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     const epoch = currentEpoch.get();
@@ -610,7 +627,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("gasCreditOf", [{ type: "Hash160", value: bidderHash }]),
+          await app.chain.readRaw("gasCreditOf", [bidderArg]),
         );
       } catch {
         credit = 0n;
@@ -620,13 +637,13 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
         // Wait for the contract's "Credited" event so the deposit is confirmed
         // in a block before bid() consumes it — an unconfirmed deposit lets the
         // bid execute first and fault with "insufficient prepaid asset".
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: bidderHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: addBase.toString() },
-            { type: "String", value: BID_MEMO },
+            bidderArg,
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(addBase),
+            app.chain.arg.string(BID_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
@@ -637,11 +654,11 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       // this reverts, the credit persists as reusable prepaid bid credit
       // (reclaimable via withdraw); surface that distinctly.
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "bid",
           [
-            { type: "Hash160", value: bidderHash },
-            { type: "Integer", value: addBase.toString() },
+            bidderArg,
+            app.chain.arg.integer(addBase),
           ],
           { waitForEvent: "BidPlaced" },
         );
@@ -687,17 +704,17 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     const deadline = epochDeadline.get();
     if (deadline > 0 && Date.now() < deadline) throw new Error(t("epochNotEnded"));
 
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     isProcessing.set(true);
     try {
       try {
-        await chain.invoke("settleEpoch", [], { waitForEvent: "EpochSettled" });
+        await app.chain.invoke("settleEpoch", [], { waitForEvent: "EpochSettled" });
       } catch (settleErr) {
         const mapped = windowRevertKey(settleErr);
         if (mapped) throw new Error(t(mapped));
@@ -721,16 +738,17 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     if (isBusy.get()) return;
     if (pendingRewards.get() <= 0) throw new Error(t("noRewards"));
 
-    const addr = address.get() || (await chain.ensureWallet());
-    const hash = addr ? addressToScriptHash(addr) : null;
-    if (!addr || !hash) throw new Error(t("walletStatusIdle"));
+    const addr = address.get() || (await app.chain.ensureWallet());
+    if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
+    const userArg = safeHash160Arg(addr);
+    if (!userArg) throw new Error(t("walletStatusIdle"));
 
     isProcessing.set(true);
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "claimRewards",
-        [{ type: "Hash160", value: hash }],
+        [userArg],
         { waitForEvent: "RewardsClaimed" },
       );
       await loadData();
@@ -751,18 +769,19 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     const epoch = Math.trunc(Number(settledEpoch));
     if (!Number.isInteger(epoch) || epoch < 0) throw new Error(t("error"));
 
-    const addr = address.get() || (await chain.ensureWallet());
-    const hash = addr ? addressToScriptHash(addr) : null;
-    if (!addr || !hash) throw new Error(t("walletStatusIdle"));
+    const addr = address.get() || (await app.chain.ensureWallet());
+    if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
+    const userArg = safeHash160Arg(addr);
+    if (!userArg) throw new Error(t("walletStatusIdle"));
 
     isProcessing.set(true);
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "reclaimBid",
         [
-          { type: "Hash160", value: hash },
-          { type: "Integer", value: String(epoch) },
+          userArg,
+          app.chain.arg.integer(epoch),
         ],
         { waitForEvent: "BidReclaimed" },
       );
@@ -782,16 +801,17 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     if (isBusy.get()) return;
     if (gasCredit.get() <= 0) throw new Error(t("noCredit"));
 
-    const addr = address.get() || (await chain.ensureWallet());
-    const hash = addr ? addressToScriptHash(addr) : null;
-    if (!addr || !hash) throw new Error(t("walletStatusIdle"));
+    const addr = address.get() || (await app.chain.ensureWallet());
+    if (!addr) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
+    const userArg = safeHash160Arg(addr);
+    if (!userArg) throw new Error(t("walletStatusIdle"));
 
     isProcessing.set(true);
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: hash }],
+        [userArg],
         { waitForEvent: "CreditWithdrawn" },
       );
       await loadData();

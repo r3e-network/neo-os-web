@@ -54,11 +54,6 @@ export interface RelayResult {
   raw?: Record<string, unknown>;
 }
 
-export interface SessionKeyConfig {
-  permissions: unknown;
-  expiresAt: number;
-}
-
 const ACCEPTED_RELAY_STATUSES = new Set(["accepted", "pending", "queued"]);
 
 function cleanRelayString(value: unknown): string {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTimeCapsule } from "../../time-capsule/src/composables/useTimeCapsule";
 import type { ChainService, ContractArg, TxResult } from "../services";
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { addressToScriptHash } from "../utils/neo";
 
 /**
@@ -86,7 +87,12 @@ interface InvokeCall {
 
 function setup(
   capsules: ChainCapsule[],
-  opts?: { wallet?: string | null; failBury?: boolean; credit?: Record<string, string> },
+  opts?: {
+    wallet?: string | null;
+    failBury?: boolean;
+    credit?: Record<string, string>;
+    readError?: string;
+  },
 ) {
   // Authoritative on-chain store keyed by capsule id.
   const store = new Map<string, ChainCapsule>();
@@ -113,6 +119,7 @@ function setup(
       .map((c) => c.id);
 
   const read = vi.fn(async (operation: string, args?: ContractArg[]) => {
+    if (opts?.readError) throw new Error(opts.readError);
     if (operation === "lastCapsuleId") return lastId;
     if (operation === "creditOf") {
       const ownerHash = String(args?.[0]?.value ?? "").toLowerCase();
@@ -222,7 +229,11 @@ function setup(
     },
   };
 
-  const composable = useTimeCapsule({ chainService: chain, eventBus, t });
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-time-capsule" },
+  );
+  const composable = useTimeCapsule({ app, eventBus, t });
 
   return { composable, chain, invokes, events, store };
 }
@@ -480,6 +491,20 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
     const ids = composable.fishCandidates.get().map((c) => c.id);
     // Newest-first, own + revealed excluded.
     expect(ids).toEqual(["3", "2"]);
+  });
+
+  it("keeps the optional public list quiet when the contract is not configured", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const { composable } = setup([], { readError: "Contract address not configured" });
+
+      await composable.loadFishCandidates();
+
+      expect(composable.fishCandidates.get()).toEqual([]);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("fishCapsule(targetId) tips the chosen capsule, not just the newest", async () => {

@@ -144,7 +144,7 @@ function ProfileMarketPanel({
 function ProfileWorkflowPanel({ profile }: { profile: PlayAreaProfile }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-      <h3 className="m-0 flex items-center gap-2 text-sm font-black text-gray-950">
+      <h3 className="m-0 flex items-center gap-2 text-sm font-semibold text-gray-900">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100 text-gray-700">
           {profile.icon}
         </span>
@@ -153,7 +153,7 @@ function ProfileWorkflowPanel({ profile }: { profile: PlayAreaProfile }) {
       <div className="mt-4 space-y-3">
         {profile.steps.map((step, index) => (
           <div key={step} className="flex items-center gap-3">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700">
               {index + 1}
             </span>
             <span className="text-sm font-semibold text-gray-700">{step}</span>
@@ -168,7 +168,7 @@ function ProfileModelPanel({ profile }: { profile: PlayAreaProfile }) {
   if (profile.cards.length === 0) return null;
   return (
     <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-      <h3 className="m-0 text-sm font-black text-gray-950">
+      <h3 className="m-0 text-sm font-semibold text-gray-900">
         What this MiniApp controls
       </h3>
       <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -180,7 +180,7 @@ function ProfileModelPanel({ profile }: { profile: PlayAreaProfile }) {
             <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-500">
               {card.label}
             </p>
-            <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">
+            <p className="m-0 mt-1 break-words text-sm font-semibold text-gray-900">
               {card.value}
             </p>
           </div>
@@ -210,7 +210,7 @@ function ProfileLaunchParamsPanel({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-      <h3 className="m-0 text-sm font-black text-gray-950">
+      <h3 className="m-0 text-sm font-semibold text-gray-900">
         URL launch parameters
       </h3>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">

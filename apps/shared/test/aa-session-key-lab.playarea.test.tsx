@@ -1,388 +1,249 @@
 import React from "react";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import path from "node:path";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
+import {
+  DEFAULT_SESSION_ACCOUNT_SEED,
+  DEFAULT_SESSION_ALLOWED_METHOD,
+} from "../../aa-session-key-lab/src/launch";
 import PlayArea from "../../aa-session-key-lab/src/PlayArea";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-const SESSION_PUBLIC_KEY = `02${"11".repeat(32)}`;
-const TARGET_CONTRACT = "0xaba84da240a55410d284a656fc8dae044e6ec1a5";
-const EXPIRES_AT = "1893456000";
-
-function t(key: string) {
+function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    notAvailable: "Not available",
-    notConnected: "not connected",
-    pending: "pending",
-    idle: "idle",
-    anyMethod: "Any method",
-    sessionKeyReady: "ready",
-    sessionKeyMissing: "missing",
-    sessionHeroTitle: "Scoped session keys for safer AA actions",
-    sessionHeroCopy: "Generate and bind scoped session keys.",
-    sessionPassAria: "Session pass authorization preview",
-    sessionPassKicker: "Live session pass",
-    sessionPassTitle: "Scope before you sign",
-    sessionPassReady: "Ready to configure",
-    sessionPassDraft: "Draft needs fields",
-    sessionMetricsLabel: "Session key readiness",
-    sessionMetricStatus: "Session",
-    sessionMetricSponsor: "Sponsor",
-    sessionMetricScope: "Scope",
-    sessionCommandTitle: "Key & sponsorship",
-    wallet: "Wallet",
-    sessionPublicKey: "Session Public Key",
-    sessionPublicKeyPlaceholder: "33-byte compressed public key",
-    privateKeyReady: "Ready for one-time copy",
-    copyPrivateKey: "Copy Private Key",
-    copiedPrivateKey: "Copied",
-    showPrivateKey: "Show",
-    hidePrivateKey: "Hide",
-    copyPrivateKeyFailed: "Copy failed — select and copy the key manually.",
-    sessionPrivateKey: "Session Private Key",
-    dappId: "Paymaster dApp ID",
-    dappIdPlaceholder: "miniapp-aa-session-key-lab",
-    sponsorAmount: "Sponsor Amount",
-    sponsorAmountPlaceholder: "0.1",
-    invalidSponsorAmount: "Sponsor amount must be a positive number.",
-    generateKey: "Generate Key",
-    checkSponsor: "Check Sponsorship",
-    requestSponsor: "Request Sponsorship",
-    sessionFlowLabel: "Session setup workflow",
-    sessionFlowKey: "Generate key",
-    sessionFlowKeyDesc: "Create a browser-local key.",
-    sessionFlowSponsor: "Check sponsor",
-    sessionFlowSponsorDesc: "Confirm sponsorship.",
-    sessionFlowConfigure: "Configure scope",
-    sessionFlowConfigureDesc: "Submit after fields are present.",
-    sessionStateLabel: "Live state",
-    latestState: "Latest Configuration",
     aaCore: "AA Core",
-    sessionVerifier: "Session Verifier",
-    derivedAccountId: "Account ID Hash",
-    normalizedTarget: "Target Contract",
-    normalizedMethod: "Allowed Method",
-    noDetails: "No details",
-    sessionEmptyCopy: "Generate a key or submit a configuration.",
-    configureSession: "Configure Session Key",
-    sessionScopeTitle: "Target scope",
-    configureSessionBlocked:
-      "Add an account ID/hash, session public key, target contract, and expiry before submitting.",
     accountSeed: "Account ID / Hash",
     accountSeedPlaceholder: "seed string or 0x hash",
-    targetContract: "Target Contract",
-    targetContractPlaceholder: "0x... or N...",
     allowedMethod: "Allowed Method",
     allowedMethodPlaceholder: "symbol",
+    anyMethod: "Any method",
+    anyMethodCaution: "Blank method allows any method.",
+    checkSponsor: "Check Sponsorship",
+    configureSession: "Configure Session Key",
+    configureSessionBlocked: "Complete the missing scope first.",
+    configured: "configured",
     expiresAt: "Expiry Timestamp",
     expiresAtPlaceholder: "unix seconds",
+    generateKey: "Generate Key",
+    inspectSession: "Inspect Session Key",
+    notConnected: "not connected",
+    pending: "pending",
+    requestSponsor: "Request Sponsorship",
+    revokeSession: "Revoke Session Key",
+    sessionAdvancedHint: "Raw fields stay in details.",
+    sessionAdvancedTitle: "Advanced session fields",
+    sessionCommandTitle: "Key & sponsorship",
+    sessionHeroEyebrow: "Session Keys",
+    sessionHeroTitle: "Scoped session keys",
+    sessionKeyMissing: "missing",
+    sessionLabel: "Session",
+    sessionMetricStatus: "Session",
+    sessionNextGenerate: "Generate a local key",
+    sessionPassDraft: "Draft needs fields",
+    sessionPassReady: "Ready to configure",
+    sessionPassTitle: "Scope before you sign",
+    sessionReadinessChecks: "Session readiness checks",
+    sessionStageNeedExpiry: "Choose a future expiry window",
+    sessionStageNeedKey: "Generate a session key first",
+    sessionStageNeedTarget: "Set a target contract in details",
+    sessionPresetMint: "Mint window",
+    sessionPresetMintCopy: "Day-long mint permission.",
+    sessionPresetOps: "Ops delegate",
+    sessionPresetOpsCopy: "Seven-day execute scope.",
+    sessionPresetRewards: "Rewards bot",
+    sessionPresetRewardsCopy: "One-hour rewards pass.",
+    sessionPublicKey: "Session Public Key",
+    sessionPublicKeyPlaceholder: "33-byte compressed public key",
+    sessionScopeTitle: "Session scope",
+    sessionTargetHint: "Target stays in details.",
+    sessionTargetMissing: "Set target in details",
+    sessionVerifier: "Session Verifier",
+    spendUnlimited: "unlimited",
+    spendingLimit: "Spending Limit (GAS)",
+    spendingLimitHint: "0 leaves the key uncapped.",
+    spendingLimitPlaceholder: "0 = unlimited",
+    sponsorship: "Sponsorship",
+    targetContract: "Target Contract",
+    targetContractPlaceholder: "0x... or N...",
+    wallet: "Wallet",
   };
-  return messages[key] ?? key;
+  let value = messages[key] ?? key;
+  for (const [name, replacement] of Object.entries(params ?? {})) {
+    value = value.replaceAll(`{${name}}`, String(replacement));
+  }
+  return value;
 }
 
-function launch(url: string) {
-  return parseMiniAppLaunchContext(url, "miniapp-aa-session-key-lab");
-}
-
-function baseState(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
-    isSubmitting: false,
-    isCheckingSponsorship: false,
-    detailItems: [],
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    aaCoreDisplay: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     derivedAccountIdHash: "",
-    normalizedTargetContract: "",
-    normalizedAllowedMethod: "",
-    aaCoreDisplay: "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
-    sessionStatusDisplay: "pending",
-    sessionVerifierDisplay: "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
-    walletDisplay: "not connected",
+    generatedPublicKey: "",
+    hasOnChainSession: false,
+    isCheckingSponsorship: false,
+    isRevoking: false,
+    isSubmitting: false,
+    sessionStatusDisplay: "",
+    sessionVerifierDisplay: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     sponsorStatusDisplay: "idle",
+    walletDisplay: "not connected",
     ...overrides,
   };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([key, value]) => [key, createObservable(value)])) as ObservableState;
 }
 
-describe("AA Session Key Lab PlayArea launch flow", () => {
-  it("prefills session key forms from host launch params and dispatches real fields", async () => {
+function playAreaStyles(app: string): string {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
+}
+
+describe("aa-session-key-lab PlayArea (session pass workflow)", () => {
+  it("renders a clean session pass with presets instead of raw fields on the main surface", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector('.sess-visual-card img[src="session-key-control.webp"]')).toBeTruthy();
+    expect(container.querySelector(".sess-scene__stage-art")).toBeNull();
+    expect(container.querySelector(".sess-scene__wash")).toBeNull();
+    expect(container.querySelector(".sess-scope-panel")).toBeTruthy();
+    expect(container.querySelector(".sess-scope-panel__head")?.textContent).toContain("Rewards bot");
+    expect(container.querySelectorAll(".sess-preset-card")).toHaveLength(3);
+    expect(container.querySelectorAll(".sess-scene__badge")).toHaveLength(6);
+    expect(container.querySelector(".sess-scene__status")?.textContent).toContain("Generate a session key first");
+    expect(container.querySelector(".sess-drawer__field")).toBeFalsy();
+    expect(container.querySelector(".mx2-btn--primary")?.textContent).toContain("Generate a local key");
+  });
+
+  it("opens raw account and contract fields only from the details drawer", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Key & sponsorship/ }));
+
+    expect(container.querySelector(".sess-drawer-panel--ops")).toBeTruthy();
+    expect(container.querySelector(".sess-drawer-panel--scope")).toBeTruthy();
+    expect(container.querySelectorAll(".sess-drawer-panel.mx2-open-panel.semi-card")).toHaveLength(2);
+    expect(container.querySelector(".sess-sponsor-card.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".sess-command-grid")).toBeTruthy();
+    expect(container.querySelector(".sess-drawer-grid")).toBeTruthy();
+    expect(container.querySelector(".sess-drawer__field")).toBeTruthy();
+    expect(container.querySelectorAll(".sess-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toHaveLength(6);
+    expect(container.querySelector(".sess-drawer-input")).toBeNull();
+    expect(container.querySelector(".sess-drawer__row")).toBeFalsy();
+    expect(screen.getByPlaceholderText("seed string or 0x hash")).toBeTruthy();
+    expect(screen.getByPlaceholderText("0x... or N...")).toBeTruthy();
+  });
+
+  it("uses the generated public key and selected scope when configuring the session", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    const generatedPublicKey = `02${"11".repeat(32)}`;
+    const targetContract = "0x1234567890abcdef1234567890abcdef12345678";
+    render(<PlayArea t={t} state={state({ generatedPublicKey })} dispatch={dispatch} />);
 
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-session-key-lab?network=testnet&accountSeed=neo-aa-001&sessionPublicKey=${SESSION_PUBLIC_KEY}&targetContract=${TARGET_CONTRACT}&allowedMethod=claimRewards&expiresAt=${EXPIRES_AT}&dappId=miniapp-aa-session-key-lab&sponsorAmount=0.2`,
-        )}
-      />,
+    fireEvent.click(screen.getByRole("button", { name: /Key & sponsorship/ }));
+    fireEvent.change(screen.getByPlaceholderText("0x... or N..."), {
+      target: { value: targetContract },
+    });
+
+    await waitFor(() =>
+      expect((screen.getByRole("button", { name: /Configure Session Key/ }) as HTMLButtonElement).disabled).toBe(false),
     );
+    fireEvent.click(screen.getByRole("button", { name: /Configure Session Key/ }));
 
-    const passStage = container.querySelector(".session-pass-stage");
-    expect(passStage).toBeTruthy();
-    expect(passStage?.classList.contains("session-pass-stage--ready")).toBe(
-      true,
-    );
-    expect(
-      passStage?.querySelector('.session-pass-stage__image[src="./session-key-control.jpg"]'),
-    ).toBeTruthy();
-    expect(passStage?.querySelectorAll(".session-pass-stage__facts div").length).toBe(6);
-    expect(screen.getByText("Scope before you sign")).toBeTruthy();
-    expect(screen.getByText("Ready to configure")).toBeTruthy();
-
-    expect(
-      (screen.getByLabelText("Account ID / Hash") as HTMLInputElement).value,
-    ).toBe("neo-aa-001");
-    expect(
-      (screen.getByLabelText("Session Public Key") as HTMLInputElement).value,
-    ).toBe(SESSION_PUBLIC_KEY);
-    expect(
-      (screen.getByLabelText("Target Contract") as HTMLInputElement).value,
-    ).toBe(TARGET_CONTRACT);
-    expect(
-      (screen.getByLabelText("Allowed Method") as HTMLInputElement).value,
-    ).toBe("claimRewards");
-    expect(
-      (screen.getByLabelText("Expiry Timestamp") as HTMLInputElement).value,
-    ).toBe(EXPIRES_AT);
-    expect(
-      (screen.getByLabelText("Paymaster dApp ID") as HTMLInputElement).value,
-    ).toBe("miniapp-aa-session-key-lab");
-    expect(
-      (screen.getByLabelText("Sponsor Amount") as HTMLInputElement).value,
-    ).toBe("0.2");
-
-    fireEvent.click(screen.getByRole("button", { name: "Check Sponsorship" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Request Sponsorship" }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Configure Session Key" }),
-    );
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "checkSponsor",
-        "neo-aa-001",
-        "miniapp-aa-session-key-lab",
-      );
-      expect(dispatch).toHaveBeenCalledWith(
-        "requestSponsor",
-        "neo-aa-001",
-        "miniapp-aa-session-key-lab",
-        "0.2",
-      );
-      // Configure now forwards spendingLimit + description too (mainnet needs
-      // them; testnet ignores the extras). Defaults: "0" limit, "" description.
+    await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith(
         "configureSessionKey",
-        "neo-aa-001",
-        SESSION_PUBLIC_KEY,
-        TARGET_CONTRACT,
-        "claimRewards",
-        EXPIRES_AT,
-        "0",
+        DEFAULT_SESSION_ACCOUNT_SEED,
+        generatedPublicKey,
+        targetContract,
+        DEFAULT_SESSION_ALLOWED_METHOD,
+        expect.any(String),
+        "0.1",
         "",
-      );
-    });
-  });
-
-  it("refreshes visible fields when launch params change in the same mount", () => {
-    const nextKey = `03${"22".repeat(32)}`;
-    const { rerender } = render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-001&sessionPublicKey=${SESSION_PUBLIC_KEY}`,
-        )}
-      />,
-    );
-
-    rerender(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-002&sessionPublicKey=${nextKey}&allowedMethod=transfer`,
-        )}
-      />,
-    );
-
-    expect(
-      (screen.getByLabelText("Account ID / Hash") as HTMLInputElement).value,
-    ).toBe("neo-aa-002");
-    expect(
-      (screen.getByLabelText("Session Public Key") as HTMLInputElement).value,
-    ).toBe(nextKey);
-    expect(
-      (screen.getByLabelText("Allowed Method") as HTMLInputElement).value,
-    ).toBe("transfer");
-  });
-
-  it("masks the generated private key until the user reveals it", async () => {
-    const privateKey = `0x${"ab".repeat(32)}`;
-    const dispatch = vi.fn().mockResolvedValue({
-      publicKey: SESSION_PUBLIC_KEY,
-      privateKey,
-    });
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-001",
-        )}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Generate Key" }));
-
-    expect(await screen.findByText("Ready for one-time copy")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Copy Private Key" }),
-    ).toBeTruthy();
-    // Full key is masked by default so the user can verify a fingerprint
-    // without exposing the whole secret.
-    expect(screen.queryByText(privateKey)).toBeNull();
-    expect(screen.getByLabelText("Session Private Key").textContent).toContain(
-      "…",
-    );
-
-    // Toggle reveal exposes the full key so the user can verify what they copy.
-    fireEvent.click(screen.getByRole("button", { name: "Show" }));
-    expect(screen.getByLabelText("Session Private Key").textContent).toBe(
-      privateKey,
+      ),
     );
   });
 
-  it("keeps the session pass stage animated and reduced-motion safe", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../aa-session-key-lab/src/PlayArea.scss"),
-      "utf8",
-    );
-
-    expect(styles).toContain("@keyframes session-pass-image-drift");
-    expect(styles).toContain("@keyframes session-pass-route");
-    expect(styles).toContain("@keyframes session-pass-dot");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.session-pass-stage__route i[\s\S]*animation:\s*none/,
-    );
-  });
-
-  it("surfaces a copy failure when the clipboard API is unavailable", async () => {
-    const privateKey = `0x${"cd".repeat(32)}`;
-    const dispatch = vi.fn().mockResolvedValue({
-      publicKey: SESSION_PUBLIC_KEY,
-      privateKey,
-    });
-    const originalClipboard = navigator.clipboard;
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: undefined,
-    });
-
-    try {
-      render(
-        <PlayArea
-          t={t}
-          state={baseState()}
-          dispatch={dispatch}
-          launchContext={launch(
-            "https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-001",
-          )}
-        />,
-      );
-
-      fireEvent.click(screen.getByRole("button", { name: "Generate Key" }));
-      await screen.findByText("Ready for one-time copy");
-
-      fireEvent.click(screen.getByRole("button", { name: "Copy Private Key" }));
-
-      // Button must NOT flip to "Copied"; instead a real failure is surfaced
-      // and the full key is revealed for manual copy.
-      expect(screen.queryByText("Copied")).toBeNull();
-      expect(
-        await screen.findByText(
-          "Copy failed — select and copy the key manually.",
-        ),
-      ).toBeTruthy();
-      expect(screen.getByLabelText("Session Private Key").textContent).toBe(
-        privateKey,
-      );
-    } finally {
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: originalClipboard,
-      });
-    }
-  });
-
-  it("blocks sponsor requests for empty, zero, or negative amounts", () => {
+  it("keeps scope preset choices wired to the configure action", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    const generatedPublicKey = `02${"22".repeat(32)}`;
+    const targetContract = "0x9999999999999999999999999999999999999999";
+    render(<PlayArea t={t} state={state({ generatedPublicKey })} dispatch={dispatch} />);
 
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={dispatch}
-        launchContext={launch(
-          "https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-001&sponsorAmount=0",
-        )}
-      />,
-    );
-
-    const requestButton = screen.getByRole("button", {
-      name: "Request Sponsorship",
-    }) as HTMLButtonElement;
-
-    // "0" is invalid -> button disabled, validation error shown, no dispatch.
-    expect(requestButton.disabled).toBe(true);
-    expect(
-      screen.getByText("Sponsor amount must be a positive number."),
-    ).toBeTruthy();
-    fireEvent.click(requestButton);
-    expect(dispatch).not.toHaveBeenCalledWith(
-      "requestSponsor",
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-    );
-
-    // A positive amount re-enables the request flow.
-    fireEvent.change(screen.getByLabelText("Sponsor Amount"), {
-      target: { value: "0.2" },
+    fireEvent.click(screen.getByText("Mint window").closest("button") as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: /Key & sponsorship/ }));
+    fireEvent.change(screen.getByPlaceholderText("0x... or N..."), {
+      target: { value: targetContract },
     });
-    expect(requestButton.disabled).toBe(false);
-    fireEvent.click(requestButton);
-    expect(dispatch).toHaveBeenCalledWith(
-      "requestSponsor",
-      "neo-aa-001",
-      expect.any(String),
-      "0.2",
+
+    await waitFor(() =>
+      expect((screen.getByRole("button", { name: /Configure Session Key/ }) as HTMLButtonElement).disabled).toBe(false),
     );
+    fireEvent.click(screen.getByRole("button", { name: /Configure Session Key/ }));
+
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith(
+        "configureSessionKey",
+        DEFAULT_SESSION_ACCOUNT_SEED,
+        generatedPublicKey,
+        targetContract,
+        "mint",
+        expect.any(String),
+        "1",
+        "",
+      ),
+    );
+  });
+
+  it("keeps the PlayArea background quiet and motion-accessible", () => {
+    const styles = playAreaStyles("aa-session-key-lab");
+
+    expect(styles).toMatch(/prefers-reduced-motion/);
+    expect(styles).toMatch(/\.sess-workspace\s*\{[^}]*align-items:\s*start/);
+    expect(styles).toMatch(/\.sess-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 190px/);
+    expect(styles).toMatch(/\.sess-scene\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).toMatch(/\.sess-scene__pass\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.sess-scene__scope\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.sess-visual-card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.sess-visual-card\s*\{[\s\S]*grid-template-columns:\s*minmax\(132px,\s*0\.42fr\) minmax\(0,\s*0\.58fr\)/);
+    expect(styles).toMatch(/\.sess-visual-card img\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.sess-visual-card img\s*\{[\s\S]*opacity:\s*1/);
+    expect(styles).toMatch(/\.sess-visual-card img\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.sess-visual-card img\s*\{[\s\S]*max-height:\s*124px/);
+    expect(styles).toMatch(/\.sess-visual-card::after\s*\{[\s\S]*content:\s*none/);
+    expect(styles).toMatch(/\.sess-visual-card figcaption\s*\{[\s\S]*position:\s*relative/);
+    expect(styles).not.toMatch(/\.sess-visual-card img\s*\{[\s\S]*opacity:\s*0\.72/);
+    expect(styles).not.toMatch(/\.sess-visual-card::after\s*\{[\s\S]*rgba\(255,\s*255,\s*255,\s*0\.14\)/);
+    expect(styles).toMatch(/\.sess-scope-panel\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.sess-preset-grid\s*\{[\s\S]*display:\s*flex/);
+    expect(styles).toMatch(/\.sess-preset-card\s*\{[\s\S]*min-height:\s*62px/);
+    expect(styles).toMatch(/\.sess-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(12,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.sess-drawer-panel--ops\s*\{[\s\S]*grid-column:\s*span 4/);
+    expect(styles).toMatch(/\.sess-drawer-panel--scope\s*\{[\s\S]*grid-column:\s*span 8/);
+    expect(styles).toMatch(/\.sess-command-card\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.sess-drawer-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.sess-drawer__field\s*\{[\s\S]*min-width:\s*0/);
+    expect(styles).toMatch(/\.sess-sponsor-card\.mx2-open-notice\.semi-banner\s*\{[\s\S]*align-items:\s*flex-start/);
+    expect(styles).not.toMatch(/\.sess-drawer-input/);
+    expect(styles).not.toMatch(/\.sess-drawer-panel__head/);
+    expect(styles).not.toMatch(/\.sess-drawer-panel__icon/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-scene__scope\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-scene__badge em\s*\{[\s\S]*white-space:\s*normal/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-preset-grid\s*\{[\s\S]*overflow-x:\s*auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-preset-card\s*\{[\s\S]*flex:\s*1 0 108px/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-control-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-drawer\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*820px\)[\s\S]*\.sess-command-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).not.toMatch(/sess-scene__stage-art/);
+    expect(styles).not.toMatch(/sess-scene__wash/);
+    expect(styles).not.toMatch(/repeating-linear-gradient/);
+    expect(styles).not.toMatch(/\.sess-preset-card\s*\{[\s\S]*min-height:\s*128px/);
+    expect(styles).not.toMatch(/sess-preset-card[\s\S]*radial-gradient/);
   });
 });

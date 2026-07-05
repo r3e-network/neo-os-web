@@ -389,6 +389,23 @@ function attachAdapterListeners(
     : null;
 }
 
+const WALLET_STORAGE_KEY = "neo-wallet";
+
+function parsePersistedWalletSnapshot(
+  raw: string | null,
+): Partial<WalletState> | null | undefined {
+  if (raw === null) return null;
+  try {
+    const parsed = JSON.parse(raw) as { state?: unknown };
+    if (!parsed || typeof parsed !== "object") return undefined;
+    return parsed.state && typeof parsed.state === "object"
+      ? (parsed.state as Partial<WalletState>)
+      : undefined;
+  } catch (_err: unknown) {
+    return undefined;
+  }
+}
+
 export const useWalletStore = create<WalletStore>()(
   persist(
     (set, get) => ({
@@ -642,7 +659,7 @@ export const useWalletStore = create<WalletStore>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: "neo-wallet",
+      name: WALLET_STORAGE_KEY,
       // Persist the session identity (never secrets) so a reload can resume
       // the connection instead of forcing a fresh wallet popup.
       partialize: (state) => {
@@ -685,6 +702,78 @@ export const useWalletStore = create<WalletStore>()(
     },
   ),
 );
+
+/**
+ * Keep the in-memory wallet store in sync with another tab that mutated the
+ * persisted session.
+ *
+ * Zustand's `persist` writes to localStorage but only reads it back on the
+ * originating tab's page load. Without this listener, a disconnect / account
+ * switch / network change performed in tab A leaves tab B (and every miniapp
+ * embedded in it) rendering a stale "connected" state — its `useWalletStore`
+ * never learns the persisted identity changed. The `storage` event fires in
+ * every *other* same-origin tab when localStorage is written, which is exactly
+ * the cross-tab fan-out the navbar, action console, and embedded bridge need to
+ * converge on the same wallet truth.
+ *
+ * Two cases:
+ *  - Another tab cleared the persisted identity (disconnect): drop the local
+ *    connection immediately. We deliberately do NOT call restoreSession here,
+ *    because the user just signed out — silently re-prompting would be wrong.
+ *  - Another tab changed the persisted identity (connect / account switch):
+ *    synchronously adopt the persisted identity so the navbar/balance converge,
+ *    then let the guard surface a reconnect only if the silent read is unavailable.
+ */
+let crossTabSyncInstalled = false;
+
+function installCrossTabWalletSync(): void {
+  if (crossTabSyncInstalled || typeof window === "undefined") return;
+  crossTabSyncInstalled = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== WALLET_STORAGE_KEY) return;
+    const snapshot = parsePersistedWalletSnapshot(event.newValue);
+    if (typeof snapshot === "undefined") return;
+    const store = useWalletStore.getState();
+    // A developer-key (WIF) session is intentionally never persisted, so the
+    // shared storage key never describes it. Ignore cross-tab writes while this
+    // tab holds a live in-memory WIF session — otherwise a disconnect in another
+    // tab would wrongly tear down this tab's local dev-key connection.
+    if (store.provider === "wif") return;
+    const provider = isPersistableWalletProvider(snapshot?.provider)
+      ? snapshot.provider
+      : null;
+    // If nothing about the shared identity actually changed for this tab, do not
+    // churn the store (and re-fire bridge/balance side effects) on unrelated
+    // storage writes that happened to re-serialize the same snapshot.
+    const identityUnchanged =
+      store.provider === provider &&
+      store.address === (provider && typeof snapshot?.address === "string" ? snapshot.address : "") &&
+      store.network === (provider && isNeoNetwork(snapshot?.network) ? snapshot.network : null);
+    if (identityUnchanged && !store.connected && !store.restorePending) return;
+    if (store.connected || store.restorePending) {
+      clearWalletEventCleanup();
+      stopBalanceAutoRefresh();
+    }
+    useWalletStore.setState({
+      connected: false,
+      address: provider && typeof snapshot?.address === "string" ? snapshot.address : "",
+      accountHash:
+        provider && typeof snapshot?.accountHash === "string"
+          ? snapshot.accountHash
+          : "",
+      publicKey:
+        provider && typeof snapshot?.publicKey === "string" ? snapshot.publicKey : "",
+      network: provider && isNeoNetwork(snapshot?.network) ? snapshot.network : null,
+      provider,
+      balance: null,
+      loading: false,
+      restorePending: false,
+      error: null,
+    });
+  });
+}
+
+installCrossTabWalletSync();
 
 /** Get adapter for current provider */
 export function getWalletAdapter(): WalletAdapter | null {

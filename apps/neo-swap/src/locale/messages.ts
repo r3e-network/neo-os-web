@@ -11,12 +11,15 @@ title: { en: "Neo Swap — NEO/GAS liquidity desk", zh: "Neo 兑换 — NEO/GAS 
   to: { en: "To", zh: "到" },
   balance: { en: "Balance", zh: "余额" },
   exchangeRate: { en: "Exchange Rate", zh: "兑换率" },
+  exchangeRateShort: { en: "Rate", zh: "汇率" },
   priceImpact: { en: "Price Impact", zh: "价格影响" },
   notAvailable: { en: "Unavailable", zh: "不可用" },
   approxEqual: { en: "≈", zh: "≈" },
   slippage: { en: "Slippage Tolerance", zh: "滑点容差" },
+  slippageShort: { en: "Slippage", zh: "滑点" },
   liquidityPool: { en: "Route Liquidity", zh: "路由流动性" },
   minReceived: { en: "Minimum Received", zh: "最少收到" },
+  minReceivedShort: { en: "Min received", zh: "最少收到" },
   enterAmount: { en: "Enter amount", zh: "输入数量" },
   max: { en: "MAX", zh: "最大" },
   rateUnavailable: { en: "Rate unavailable", zh: "汇率不可用" },
@@ -69,6 +72,7 @@ title: { en: "Neo Swap — NEO/GAS liquidity desk", zh: "Neo 兑换 — NEO/GAS 
   },
   slippageControl: { en: "Slippage guard", zh: "滑点保护" },
   routeReview: { en: "Route review", zh: "路由复核" },
+  routeReviewShort: { en: "Route", zh: "路由" },
   routeModeLive: { en: "Ready for wallet settlement", zh: "可在钱包中结算" },
   routeModePreview: { en: "Planning mode only", zh: "仅规划模式" },
   routeModeLiveBody: {
@@ -163,8 +167,8 @@ title: { en: "Neo Swap — NEO/GAS liquidity desk", zh: "Neo 兑换 — NEO/GAS 
 
   // -- Quote / preview transparency ------------------------------------------
   pricePreviewOnly: {
-    en: "Preview only — review every figure in your wallet before you sign.",
-    zh: "仅为预览 — 签名前请在钱包中核对每一项数据。",
+    en: "Review quote — confirm every figure in your wallet before signing.",
+    zh: "复核报价 — 签名前请在钱包中确认每一项数据。",
   },
   estSettlement: { en: "Est. settlement", zh: "预计结算" },
   estSettlementValue: { en: "~15s after wallet confirmation", zh: "钱包确认后约 15 秒" },

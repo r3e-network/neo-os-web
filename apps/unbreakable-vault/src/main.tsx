@@ -30,7 +30,7 @@ defineMiniApp({
       t,
     });
 
-    ctx.registerAction("loadVault", async (vaultId: unknown) => {
+    ctx.framework.actions.register("loadVault", async (vaultId: unknown) => {
       const result = vaultId
         ? await breaker.selectVault(String(vaultId))
         : await breaker.loadVault();
@@ -39,7 +39,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("attemptBreak", async () => {
+    ctx.framework.actions.register("attemptBreak", async () => {
       const result = await breaker.attemptBreak();
       if (!result) return; // guard not satisfied — no attempt was made
       if (result.success) {
@@ -49,7 +49,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("settleVault", async () => {
+    ctx.framework.actions.register("settleVault", async () => {
       const result = await breaker.settleVault();
       if (!result) return; // guard not satisfied — creator-of-expired only
       if (result.success) {
@@ -59,7 +59,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("createVault", async (form: unknown) => {
+    ctx.framework.actions.register("createVault", async (form: unknown) => {
       await creator.createVault(
         form as Parameters<typeof creator.createVault>[0],
         (vaultId: string) => {
@@ -70,7 +70,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("increaseBounty", async (...args: unknown[]) => {
+    ctx.framework.actions.register("increaseBounty", async (...args: unknown[]) => {
       const [vaultId, amountGas] = args;
       await ctx.services.notify.guard(async () => {
         const result = await creator.increaseBounty(

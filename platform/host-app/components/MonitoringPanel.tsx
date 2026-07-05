@@ -435,7 +435,7 @@ function StatCard({
 }) {
   return (
     <div className="bg-white/50 border border-gray-200/50 rounded-2xl p-4 text-center hover:border-neo/30 transition-colors">
-      <div className={`text-3xl font-black ${color}`}>{value}</div>
+      <div className={`text-3xl font-semibold ${color}`}>{value}</div>
       <div className="text-[10px] uppercase font-bold text-gray-500 mt-1">
         {label}
       </div>

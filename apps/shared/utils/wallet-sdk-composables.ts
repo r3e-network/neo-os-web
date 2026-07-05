@@ -315,7 +315,7 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
           }
         }
         if (!contractHash) {
-          throw new Error(`missing contract hash for ${params.app_id}`);
+          return fetchEvents(params, platformApi, signal);
         }
         const url = new URL(
           `${N3INDEX_API}/indexer/v1/networks/${network}/contracts/${contractHash}/events`,

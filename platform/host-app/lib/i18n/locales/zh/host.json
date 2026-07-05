@@ -1,6 +1,6 @@
 {
   "hero": {
-    "title": "义乌小程序",
+    "title": "Neo Miniapps",
     "subtitle": "小而美的 Neo 小程序，覆盖真实钱包操作场景",
     "exploreApps": "探索应用",
     "launchApp": "启动应用"
@@ -50,6 +50,7 @@
     "pageTitle": "小程序",
     "title": "小程序目录",
     "description": "浏览面向 Neo N3 的小而专注的小程序。选择一个应用，打开操作区，并通过统一操作台完成链上流程。",
+    "resultsDescription": "按状态、分类或关键词筛选，快速找到要打开的小程序。",
     "searchLabel": "搜索小程序",
     "searchPlaceholder": "按名称、分类或应用 ID 搜索",
     "fetchError": "加载失败，请重试。",
@@ -83,8 +84,8 @@
       "onegateExport": "OneGate dApp 已导出"
     },
     "hero": {
-      "title": "义乌小程序，为每个 Neo 场景准备的小工具。",
-      "body": "像义乌小商品市场一样，这里把游戏、支付、预言机工具、账户抽象、跨链流程、评分评论、合约状态和钱包安全操作集中到一个真实可用的生产界面。",
+      "title": "Neo Miniapps，为每个 Neo 场景准备的精致应用。",
+      "body": "这里把游戏、支付、预言机工具、账户抽象、跨链流程、评分评论、合约状态和钱包安全操作集中到一个真实可用的生产界面。",
       "catalogCta": "打开小程序目录",
       "developerCta": "开发者控制台"
     },
@@ -109,6 +110,11 @@
     },
     "catalog": {
       "description": "按分类浏览经过打磨的小程序，进入统一详情页后即可使用应用专属操作区和共享操作台。",
+      "previewEyebrow": "按目标探索",
+      "previewTitle": "找到合适的小程序",
+      "previewBody": "优先展示最贴近当前目标的小程序。需要完整列表时，再进入完整目录查看。",
+      "previewCta": "打开完整目录",
+      "moreCount": "完整目录里还有 {count} 个小程序。",
       "searchPlaceholder": "搜索应用、分类或 ID",
       "ecosystems": "生态分类",
       "shownCount": "已显示 {shown} 个",

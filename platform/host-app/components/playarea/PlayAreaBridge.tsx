@@ -228,7 +228,7 @@ export function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
           ]}
         />
         <section className="rounded-lg border border-sky-100 bg-white/85 p-4">
-          <h3 className="m-0 text-sm font-black text-gray-950">
+          <h3 className="m-0 text-sm font-semibold text-gray-900">
             Generated handoff
           </h3>
           {hostIntent.payloadText ? (
@@ -249,12 +249,12 @@ export function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
 function NeoXBridgeStatusPanel({ timeline }: { timeline: TimelineStep[] }) {
   return (
     <div className="rounded-lg border border-sky-100 bg-white/85 p-4">
-      <h3 className="m-0 text-sm font-black text-gray-950">Operation status</h3>
+      <h3 className="m-0 text-sm font-semibold text-gray-900">Operation status</h3>
       <div className="mt-4 space-y-3">
         {timeline.map((step, index) => (
           <div key={step.key} className="flex items-start gap-3">
             <span
-              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${
+              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${
                 step.state === "done"
                   ? "bg-emerald-100 text-emerald-700"
                   : step.state === "active"

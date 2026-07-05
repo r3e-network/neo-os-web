@@ -1,1 +1,0 @@
-export { TwitterFeed } from "./TwitterFeed";

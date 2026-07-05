@@ -27,8 +27,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/neodid-passport/index.html",
-    "icon": "/miniapps/neodid-passport/logo.jpg",
-    "banner": "/miniapps/neodid-passport/banner.jpg"
+    "icon": "/miniapps/neodid-passport/logo.webp",
+    "banner": "/miniapps/neodid-passport/banner.webp"
   },
   "permissions": [
     "read:blockchain",

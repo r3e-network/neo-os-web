@@ -10,12 +10,12 @@ import {
   createDerived,
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
-import { formatNumber } from "@shared/utils/format";
+import { formatNum, formatNumber } from "@shared/utils/format";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useProfitAnchor } from "./hooks/useProfitAnchor";
-import { PROFITANCHOR_AGENT_ACCOUNTS } from "./pages/index/data/agentAccounts";
+import { PROFITANCHOR_AGENT_ACCOUNTS } from "./data/agentAccounts";
 
 type AnchorActionHistoryItem = {
   action: string;
@@ -37,14 +37,13 @@ defineMiniApp({
 
   setup(ctx) {
     const { notify } = ctx.services;
-    const formatNum = (n: number | string) => formatNumber(n, 2);
     const workflowStatus = createObservable(ctx.t("workflowReady"));
     const lastTxid = createObservable("");
     const lastError = createObservable("");
     const actionHistory = createObservable<AnchorActionHistoryItem[]>([]);
 
     const anchor = useProfitAnchor({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -155,7 +154,7 @@ defineMiniApp({
       }
     };
 
-    ctx.registerAction("stakeNeo", async (...args: unknown[]) => {
+    ctx.framework.actions.register("stakeNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const amount = String(form.amount ?? "");
       return runAnchorAction(
@@ -165,7 +164,7 @@ defineMiniApp({
         amount,
       );
     });
-    ctx.registerAction("withdrawNeo", async (...args: unknown[]) => {
+    ctx.framework.actions.register("withdrawNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const amount = String(form.amount ?? "");
       return runAnchorAction(
@@ -175,21 +174,21 @@ defineMiniApp({
         amount,
       );
     });
-    ctx.registerAction("claimRewards", async () => {
+    ctx.framework.actions.register("claimRewards", async () => {
       return runAnchorAction(
         "submitClaim",
         "rewardsClaimSubmitted",
         () => anchor.claimRewards(),
       );
     });
-    ctx.registerAction("recoverNeoCredit", async () => {
+    ctx.framework.actions.register("recoverNeoCredit", async () => {
       return runAnchorAction(
         "recoverCredit",
         "creditRecovered",
         () => anchor.recoverNeoCredit(),
       );
     });
-    ctx.registerAction("refreshAnchor", async () => {
+    ctx.framework.actions.register("refreshAnchor", async () => {
       if (submitting.get()) return;
       submitting.set(true);
       workflowStatus.set(ctx.t("workflowSubmitting"));

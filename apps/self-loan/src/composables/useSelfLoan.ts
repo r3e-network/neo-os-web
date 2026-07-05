@@ -2,7 +2,7 @@
  * useSelfLoan — Domain logic for the Self-Loan miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppSelfLoan) via
- * ctx.services.chain. The earlier path delegated the collateral lock, the GAS
+ * the MiniApp framework SDK (ctx.framework). The earlier path delegated the collateral lock, the GAS
  * disbursement, the debt and the repayment to OS PaymentProxy/EscrowProxy/
  * StorageProxy/BadgeProxy edge functions that no contract enforced — the synchronous
  * escrow id never materialized, so the loan position degraded to a local record and
@@ -30,7 +30,7 @@
  *     against; withdrawRepayCredit(account) reclaims GAS repay-credit never applied.
  *     These are the recovery paths the deposit-then-act model needs.
  *
- *   READS (chain.read, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     neoPrice()                 -> Integer (GAS base units per 1 NEO; 0 = unset)
  *     pool()                     -> Integer (GAS base units)
  *     collateralCreditOf(user)   -> Integer (WHOLE NEO — never scaled)
@@ -66,7 +66,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { gasToBaseUnits, neoToInteger } from "@shared/utils/amounts";
 import { formatNumber } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
@@ -107,6 +107,11 @@ function warnLoadFailure(scope: string, error: unknown): void {
 // ============================================================================
 // gasToBaseUnits / neoToInteger come from @shared/utils/amounts — the SINGLE
 // GAS scaling point (the contract scales nothing); NEO is never ×1e8.
+// Kept ad-hoc (NOT swapped for app.amount.gasToFixed8 / neoToUnits): the GAS
+// scaler here IS ×1e8, but these return 0n on invalid/zero input so the actions
+// can raise their own localized t(...) errors (e.g. enterValidAmount,
+// neoMustBeInteger); the framework helpers THROW a different, non-localized
+// message, so swapping would change the observable error semantics.
 
 /** Convert a GAS base-unit Integer to whole GAS as a number (÷ 1e8). */
 const gasFromBaseUnits = (base: bigint): number => Number(base) / 1e8;
@@ -141,8 +146,8 @@ export interface LoanStats {
 }
 
 export interface UseSelfLoanOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -151,7 +156,7 @@ export interface UseSelfLoanOptions {
 // Composable
 // ============================================================================
 
-export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
+export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
   // ── Helpers ──────────────────────────────────────────────────────────
   const fmt = (n: number, d = 2) => formatNumber(n, d);
 
@@ -385,10 +390,10 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   const loadPlatformStats = async () => {
     try {
       const [t1, t2, t3, fee] = await Promise.all([
-        chain.read("ltvTierBps", [{ type: "Integer", value: "1" }]),
-        chain.read("ltvTierBps", [{ type: "Integer", value: "2" }]),
-        chain.read("ltvTierBps", [{ type: "Integer", value: "3" }]),
-        chain.read("feeBps", []),
+        app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(1)]),
+        app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(2)]),
+        app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(3)]),
+        app.chain.readRaw("feeBps", []),
       ]);
       const prev = platformStats.get();
       platformStats.set({
@@ -412,7 +417,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
    */
   const loadNeoPrice = async () => {
     try {
-      const raw = await chain.read("neoPrice", []);
+      const raw = await app.chain.readRaw("neoPrice", []);
       const base = parseBigInt(raw);
       neoPriceBase.set(base > 0n ? base : 0n);
       neoPrice.set(base > 0n ? gasFromBaseUnits(base) : 0);
@@ -430,7 +435,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
    */
   const loadPool = async () => {
     try {
-      const raw = await chain.read("pool", []);
+      const raw = await app.chain.readRaw("pool", []);
       poolGas.set(Math.max(0, gasFromBaseUnits(parseBigInt(raw))));
     } catch (e) {
       warnLoadFailure("loadPool", e);
@@ -446,9 +451,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       return;
     }
     try {
-      const raw = await chain.read(
+      const raw = await app.chain.readRaw(
         "balanceOf",
-        [{ type: "Hash160", value: hash }],
+        [app.chain.arg.hash160(hash)],
         { scriptHash: NEO_HASH },
       );
       neoBalance.set(Math.max(0, Number(parseBigInt(raw))));
@@ -468,7 +473,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       return;
     }
     try {
-      const raw = await chain.read("getLoan", [{ type: "Hash160", value: hash }]);
+      const raw = await app.chain.readRaw("getLoan", [app.chain.arg.hash160(hash)]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
         loan.set({ borrowed: 0, collateralLocked: 0, active: false });
         return;
@@ -505,8 +510,8 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     }
     try {
       const [collRaw, repayRaw] = await Promise.all([
-        chain.read("collateralCreditOf", [{ type: "Hash160", value: hash }]),
-        chain.read("repayCreditOf", [{ type: "Hash160", value: hash }]),
+        app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
+        app.chain.readRaw("repayCreditOf", [app.chain.arg.hash160(hash)]),
       ]);
       // collateralCredit is WHOLE NEO — never ÷1e8.
       collateralCredit.set(Math.max(0, Number(parseBigInt(collRaw))));
@@ -523,9 +528,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   const loadStats = async () => {
     try {
       const [loansRaw, borrowedRaw, repaidRaw] = await Promise.all([
-        chain.read("totalLoans", []),
-        chain.read("totalBorrowed", []),
-        chain.read("totalRepaid", []),
+        app.chain.readRaw("totalLoans", []),
+        app.chain.readRaw("totalBorrowed", []),
+        app.chain.readRaw("totalRepaid", []),
       ]);
       stats.set({
         totalLoans: Math.max(0, Number(parseBigInt(loansRaw))),
@@ -581,12 +586,12 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       }
     }
 
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
     if (!addr || !hash) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     isLoading.set(true);
@@ -599,7 +604,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("collateralCreditOf", [{ type: "Hash160", value: hash }]),
+          await app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
         );
       } catch {
         credit = 0n;
@@ -622,13 +627,13 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // no scaling.
       const shortfall = neoInt - credit;
       if (shortfall > 0n) {
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: hash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: shortfall.toString() },
-            { type: "String", value: COLLATERAL_MEMO },
+            app.chain.arg.hash160(hash),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(shortfall),
+            app.chain.arg.string(COLLATERAL_MEMO),
           ],
           { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
         );
@@ -640,11 +645,11 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // credit (withdraw); surface that distinctly so the user knows to reclaim.
       let borrowResult: { verified?: boolean };
       try {
-        borrowResult = await chain.invoke(
+        borrowResult = await app.chain.invoke(
           "borrow",
           [
-            { type: "Hash160", value: hash },
-            { type: "Integer", value: String(selectedTier.get()) },
+            app.chain.arg.hash160(hash),
+            app.chain.arg.integer(selectedTier.get()),
           ],
           { waitForEvent: "LoanTaken" },
         );
@@ -702,12 +707,12 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     const neoInt = neoToInteger(amount);
     if (neoInt <= 0n) throw new Error(t("neoMustBeInteger"));
 
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
     if (!addr || !hash) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     isAddingCollateral.set(true);
@@ -716,7 +721,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("collateralCreditOf", [{ type: "Hash160", value: hash }]),
+          await app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
         );
       } catch {
         credit = 0n;
@@ -738,13 +743,13 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // exactly what addCollateral moves into the loan.
       const shortfall = neoInt - credit;
       if (shortfall > 0n) {
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: hash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: shortfall.toString() },
-            { type: "String", value: COLLATERAL_MEMO },
+            app.chain.arg.hash160(hash),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(shortfall),
+            app.chain.arg.string(COLLATERAL_MEMO),
           ],
           { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
         );
@@ -752,9 +757,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       }
 
       try {
-        await chain.invoke(
+        await app.chain.invoke(
           "addCollateral",
-          [{ type: "Hash160", value: hash }],
+          [app.chain.arg.hash160(hash)],
           { waitForEvent: "CollateralAdded" },
         );
       } catch (addErr) {
@@ -801,12 +806,12 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       throw new Error(t("repayExceedsDebt", { amount: fmt(outstanding) }));
     }
 
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
     if (!addr || !hash) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
 
-    const contractHash = chain.contractAddress.get();
+    const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
     isRepaying.set(true);
@@ -817,20 +822,20 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       let credit = 0n;
       try {
         credit = parseBigInt(
-          await chain.read("repayCreditOf", [{ type: "Hash160", value: hash }]),
+          await app.chain.readRaw("repayCreditOf", [app.chain.arg.hash160(hash)]),
         );
       } catch {
         credit = 0n;
       }
 
       if (credit < baseAmount) {
-        await chain.invoke(
+        await app.chain.invoke(
           "transfer",
           [
-            { type: "Hash160", value: hash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: baseAmount.toString() },
-            { type: "String", value: REPAY_MEMO },
+            app.chain.arg.hash160(hash),
+            app.chain.arg.hash160(contractHash),
+            app.chain.arg.integer(baseAmount),
+            app.chain.arg.string(REPAY_MEMO),
           ],
           { scriptHash: GAS_HASH, waitForEvent: "RepayCredited" },
         );
@@ -843,9 +848,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // (withdrawRepayCredit); surface that distinctly.
       let repayResult: { verified?: boolean };
       try {
-        repayResult = await chain.invoke(
+        repayResult = await app.chain.invoke(
           "repay",
-          [{ type: "Hash160", value: hash }],
+          [app.chain.arg.hash160(hash)],
           { waitForEvent: "Repaid" },
         );
       } catch (repayErr) {
@@ -877,16 +882,16 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     if (isProcessing.get()) return;
     if (collateralCredit.get() <= 0) throw new Error(t("noCollateralCredit"));
 
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
     if (!addr || !hash) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
 
     isProcessing.set(true);
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: hash }],
+        [app.chain.arg.hash160(hash)],
         { waitForEvent: "CollateralWithdrawn" },
       );
       await loadAll();
@@ -903,16 +908,16 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     if (isProcessing.get()) return;
     if (repayCredit.get() <= 0) throw new Error(t("noRepayCredit"));
 
-    const addr = address.get() || (await chain.ensureWallet());
+    const addr = address.get() || (await app.chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
     if (!addr || !hash) throw new Error(t("walletStatusIdle"));
     setAddress(addr);
 
     isProcessing.set(true);
     try {
-      await chain.invoke(
+      await app.chain.invoke(
         "withdrawRepayCredit",
-        [{ type: "Hash160", value: hash }],
+        [app.chain.arg.hash160(hash)],
         { waitForEvent: "CollateralWithdrawn" },
       );
       await loadAll();

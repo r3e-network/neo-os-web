@@ -36,7 +36,7 @@
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-secondary, #6b7280);
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
 }
 
 // Stat value text (found in 15+ components)
@@ -69,7 +69,7 @@
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0;
 }
 
 // Empty state container

@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-fogplay",
   "media": {
-    "icon": "/miniapp-assets/fogplay/logo.jpg",
-    "banner": "/miniapp-assets/fogplay/banner.jpg"
+    "icon": "/miniapp-assets/fogplay/logo.webp",
+    "banner": "/miniapp-assets/fogplay/banner.webp"
   },
   "permissions": {
     "payments": true,

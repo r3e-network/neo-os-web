@@ -41,8 +41,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-custom-anchor",
   "media": {
-    "icon": "/miniapp-assets/custom-anchor/logo.jpg",
-    "banner": "/miniapp-assets/custom-anchor/banner.jpg"
+    "icon": "/miniapp-assets/custom-anchor/logo.webp",
+    "banner": "/miniapp-assets/custom-anchor/banner.webp"
   },
   "permissions": {
     "payments": true,

@@ -6,7 +6,7 @@ export default function Custom404() {
   return (
     <>
       <Head>
-        <title>Page not found · Yiwu MiniApps</title>
+        <title>Page not found · Neo Miniapps</title>
       </Head>
       <main
         className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-800"
@@ -24,7 +24,7 @@ export default function Custom404() {
           </p>
           <h1
             id="not-found-heading"
-            className="mt-3 text-5xl font-black text-gray-900 sm:text-6xl"
+            className="mt-3 text-5xl font-semibold text-gray-900 sm:text-6xl"
           >
             Page not found
           </h1>

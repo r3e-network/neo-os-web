@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "App", zh: "应用" },
   tabOverview: { en: "Overview", zh: "概览" },
   appName: { en: "TrustAnchor Admin", zh: "TrustAnchor 管理台" },
   noneFallback: { en: "None", zh: "无" },
@@ -50,6 +51,7 @@ const appMessages = {
   },
   agentBalanceLabel: { en: "NEO", zh: "NEO" },
   agentBalanceUnknown: { en: "—", zh: "—" },
+  agentBalancePending: { en: "Balance pending", zh: "余额待加载" },
   agentActive: { en: "Active", zh: "已启用" },
   agentInactive: { en: "Inactive", zh: "未启用" },
   agentCandidateLabel: { en: "Candidate", zh: "候选人" },
@@ -76,6 +78,17 @@ const appMessages = {
   agentCount: { en: "Agents", zh: "Agent 数" },
   selectedRoute: { en: "Selected route", zh: "当前路由" },
   reserve: { en: "Reserve", zh: "储备" },
+  directoryAwaitConnect: {
+    en: "Live trust routes, balances and candidates load once an operator connects.",
+    zh: "实时信任路由、余额和候选人会在运营方连接后加载。",
+  },
+  directoryRosterNote: {
+    en: "{count} provisioned routes",
+    zh: "已配置 {count} 条路由",
+  },
+  stepLabel: { en: "Step {step}", zh: "第 {step} 步" },
+  cardRuleCandidate: { en: "Candidate key is set explicitly", zh: "候选人公钥需显式填写" },
+  cardRuleVote: { en: "Vote sync is a separate transaction", zh: "投票同步独立发交易" },
   moveNeo: { en: "Move NEO", zh: "移动 NEO" },
   moveNeoDesc: {
     en: "Move whole NEO from one TrustAnchor AA agent to another.",
@@ -101,6 +114,7 @@ const appMessages = {
   neoAmount: { en: "NEO amount", zh: "NEO 数量" },
   candidatePublicKey: { en: "Candidate public key", zh: "候选人公钥" },
   operatorRule: { en: "Operator rule", zh: "运营边界" },
+  operationMode: { en: "Operation mode", zh: "操作模式" },
   manualOnly: { en: "Manual only", zh: "仅人工" },
   operatorRuleDesc: {
     en: "TrustAnchor Admin does only three things: move NEO between the app's own 21 AA agents, update an agent's vote target, and sync that vote.",

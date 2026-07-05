@@ -211,7 +211,7 @@ defineMiniApp({
       recoveryTemplateId,
     };
 
-    ctx.registerAction("setField", async (field: unknown, value: unknown) => {
+    ctx.framework.actions.register("setField", async (field: unknown, value: unknown) => {
       const r = fieldRefs[String(field)];
       if (r) r.set(String(value ?? ""));
     });
@@ -236,7 +236,7 @@ defineMiniApp({
       return text;
     };
 
-    ctx.registerAction("queryGuardianState", async () => {
+    ctx.framework.actions.register("queryGuardianState", async () => {
       const locator = accountAddress.get().trim();
       if (!isAccountLocator(locator)) return;
       isQuerying.set(true);
@@ -349,11 +349,11 @@ defineMiniApp({
       urlRef: Observable<string>,
       keys: { copied: string; shared: string },
     ) => {
-      ctx.registerAction(`open${prefix}`, async () => {
+      ctx.framework.actions.register(`open${prefix}`, async () => {
         const u = urlRef.get();
         if (u) openExternal(u);
       });
-      ctx.registerAction(`copy${prefix}`, async () => {
+      ctx.framework.actions.register(`copy${prefix}`, async () => {
         const u = urlRef.get();
         if (!u) return;
         try {
@@ -363,7 +363,7 @@ defineMiniApp({
           ctx.services.notify.error(e, ctx.t("clipboardFailed"));
         }
       });
-      ctx.registerAction(`share${prefix}`, async () => {
+      ctx.framework.actions.register(`share${prefix}`, async () => {
         const u = urlRef.get();
         if (!u) return;
         const nav = typeof navigator !== "undefined" ? navigator : undefined;
@@ -396,13 +396,13 @@ defineMiniApp({
     // The neo-identity.app / neo-aa.app domains do not resolve and the generic
     // docs.neo.org/recovery-guardian path 301s to the docs index. Route to the
     // live AA frontend surfaces the README documents instead.
-    ctx.registerAction("openIdentityWorkspace", async () => {
+    ctx.framework.actions.register("openIdentityWorkspace", async () => {
       openExternal(getAAIdentityWorkspaceUrl(getNetwork()));
     });
-    ctx.registerAction("openAaWorkspace", async () => {
+    ctx.framework.actions.register("openAaWorkspace", async () => {
       openExternal(getAAAppWorkspaceUrl(getNetwork()));
     });
-    ctx.registerAction("openRecoveryDocs", async () => {
+    ctx.framework.actions.register("openRecoveryDocs", async () => {
       openExternal(getAADocsUrl(getNetwork()));
     });
 

@@ -33,8 +33,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/council-governance/index.html",
-    "icon": "/miniapps/council-governance/logo.jpg",
-    "banner": "/miniapps/council-governance/banner.jpg"
+    "icon": "/miniapps/council-governance/logo.webp",
+    "banner": "/miniapps/council-governance/banner.webp"
   },
   "permissions": [
     "invoke:primary",

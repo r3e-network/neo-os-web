@@ -1,144 +1,120 @@
 /**
- * PlayArea.tsx - Flash Loan
+ * PlayArea.tsx -- Flash Loan execution desk.
  *
- * Contract-backed request workspace, on-chain loan lookup, recent execution
- * history, and a liquidity-provider surface for the deployed MiniAppFlashLoan
- * contract (requestLoan / getLoanDetails / getPlatformStats / deposit / withdraw).
+ * The loan ticket is the product surface: choose capital, inspect the atomic
+ * route, set the callback target, then sign. Liquidity tools, lookup, history,
+ * and contract parameters stay tucked into the drawer.
  */
-
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
-  BadgeCheck,
-  Banknote,
-  CircuitBoard,
-  Coins,
-  Droplets,
-  Gauge,
+  ArrowDownRight,
+  CheckCircle2,
   History,
-  Landmark,
-  SearchCheck,
-  ShieldAlert,
+  Layers3,
+  Search,
   ShieldCheck,
   Wallet,
   Zap,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import { formatGas, parsePositiveFixed8 } from "@shared/utils/format";
-import { getLaunchParam } from "@shared/utils/launch-params";
+import type { Observable } from "@shared/react/context";
+import type { StatusType } from "@shared/react";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-const CALLBACK_METHOD = "onFlashLoan";
-const FEE_BPS = 9;
-const AMOUNT_PRESETS = [
-  { amount: "1", labelKey: "loanPackageProbe", tone: "probe" },
-  { amount: "10", labelKey: "loanPackageRoute", tone: "route" },
-  { amount: "100", labelKey: "loanPackageScale", tone: "scale" },
-] as const;
+interface PlayAreaProps {
+  t: (key: string, params?: Record<string, string | number>) => string;
+  state: Record<string, Observable>;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext?: MiniAppLaunchContext;
+  setStatus?: (message: string, kind: StatusType) => void;
+}
 
 interface LoanDetails {
-  id: string;
-  borrower: string;
-  amount: string;
-  fee: string;
-  callbackContract: string;
-  callbackMethod: string;
-  timestamp: string;
-  status: "pending" | "success" | "failed";
+  id?: number | string;
+  amount?: number | string;
+  fee?: number | string;
+  status?: string;
+  borrower?: string;
 }
-
 interface ExecutedLoan {
-  id: number;
-  amount: number;
-  fee: number;
-  status: "success" | "failed";
-  timestamp: string;
+  id?: number | string;
+  amount?: number | string;
+  fee?: number | string;
+  status?: string;
 }
-
+interface LastRequest {
+  loanId?: number | string;
+  amount?: number | string;
+  fee?: number | string;
+  txid?: string;
+}
 interface ContractStats {
   minLoan: number;
   maxLoan: number;
   feeBasisPoints: number;
   cooldownMs: number;
   maxDailyLoans: number;
-  providerFeeShare?: number;
+  providerFeeShare: number;
 }
-
 interface ProviderStats {
   currentBalance: number;
   totalDeposited: number;
   totalFeesEarned: number;
 }
 
-interface LastRequest {
-  txid: string;
-  amount: string;
-  fee: string;
-  borrower: string;
-  callbackContract: string;
-  callbackMethod: string;
-}
+const FEE_BPS = 9;
+const CALLBACK_METHOD = "onFlashLoan";
+const FLASH_DESK_IMAGE = "./flashloan-desk.webp";
+const AMOUNT_PRESETS = [
+  { value: "1", labelKey: "loanPackageProbe" },
+  { value: "10", labelKey: "loanPackageRoute" },
+  { value: "100", labelKey: "loanPackageScale" },
+] as const;
 
-function estimateFee(amount: string, bps: number) {
-  try {
-    const raw = BigInt(parsePositiveFixed8(amount) ?? "0");
-    return formatGas((raw * BigInt(bps)) / 10_000n);
-  } catch {
-    return "0";
-  }
-}
+type DrawerMode = "setup" | "liquidity" | "lookup" | "history" | "params";
 
-function estimateRepayment(amount: string, bps: number) {
-  try {
-    const raw = BigInt(parsePositiveFixed8(amount) ?? "0");
-    const fee = (raw * BigInt(bps)) / 10_000n;
-    return formatGas(raw + fee);
-  } catch {
-    return "0";
-  }
+function estimateFee(amount: string, bps: number): string {
+  const n = Number(amount);
+  if (!Number.isFinite(n) || n <= 0) return "0.00";
+  return ((n * bps) / 10000).toFixed(4);
 }
-
+function estimateRepayment(amount: string, bps: number): string {
+  const n = Number(amount);
+  if (!Number.isFinite(n) || n <= 0) return "0.00";
+  return (n + (n * bps) / 10000).toFixed(4);
+}
 function compactTxid(value: string) {
-  if (!value) return "";
-  return value.length > 18
-    ? `${value.slice(0, 10)}...${value.slice(-8)}`
-    : value;
+  return value.length > 18 ? `${value.slice(0, 10)}…${value.slice(-8)}` : value;
+}
+function getLaunchParam(context: MiniAppLaunchContext | undefined, keys: string[]): string {
+  if (!context?.params) return "";
+  for (const k of keys) {
+    const v = (context.params as Record<string, unknown>)[k];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return "";
 }
 
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-  setStatus,
-}: PlayAreaProps) {
+export default function PlayArea({ t, state, dispatch, launchContext, setStatus }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const isLoading = bool("isLoading");
   const address = str("address");
   const poolBalance = num("poolBalance");
-  const totalLoans = num("totalLoans");
-  const totalVolume = num("totalVolume");
-  const totalFees = num("totalFees");
   const validationError = str("validationError");
   const serviceNotice = str("serviceNotice");
   const loanDetails = val<LoanDetails | null>("loanDetails", null);
   const recentLoans = val<ExecutedLoan[]>("recentLoans", []) ?? [];
   const lastRequest = val<LastRequest | null>("lastRequest", null);
   const contractStats = val<ContractStats>("contractStats", {
-    minLoan: 1,
-    maxLoan: 100000,
-    feeBasisPoints: FEE_BPS,
-    cooldownMs: 300000,
-    maxDailyLoans: 10,
-    providerFeeShare: 80,
+    minLoan: 1, maxLoan: 100000, feeBasisPoints: FEE_BPS,
+    cooldownMs: 300000, maxDailyLoans: 10, providerFeeShare: 80,
   })!;
   const providerStats = val<ProviderStats>("providerStats", {
-    currentBalance: 0,
-    totalDeposited: 0,
-    totalFeesEarned: 0,
+    currentBalance: 0, totalDeposited: 0, totalFeesEarned: 0,
   })!;
 
   const feeBps = contractStats.feeBasisPoints || FEE_BPS;
@@ -146,122 +122,92 @@ export default function PlayArea({
   const protocolFeeShare = Math.max(0, 100 - providerFeeShare);
   const isMainnet = launchContext?.network === "mainnet";
 
-  const [loanAmount, setLoanAmount] = useState("");
+  const [loanAmount, setLoanAmount] = useState("10");
   const [callbackContract, setCallbackContract] = useState("");
   const [lookupId, setLookupId] = useState("");
   const [liquidityAmount, setLiquidityAmount] = useState("");
   const [depositReceiptId, setDepositReceiptId] = useState("");
+  const [requestPreview, setRequestPreview] = useState(false);
+  const [customAmountOpen, setCustomAmountOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("setup");
 
   useEffect(() => {
-    const launchedAmount = getLaunchParam(launchContext, [
-      "amount",
-      "borrow",
-      "borrowAmount",
-      "loanAmount",
-    ]);
-    const launchedCallback = getLaunchParam(launchContext, [
-      "callbackContract",
-      "callback",
-      "contract",
-      "targetContract",
-    ]);
+    const launchedAmount = getLaunchParam(launchContext, ["amount", "borrow", "borrowAmount", "loanAmount"]);
+    const launchedCallback = getLaunchParam(launchContext, ["callbackContract", "callback", "contract", "targetContract"]);
     const launchedLoanId = getLaunchParam(launchContext, ["loanId", "id"]);
-
     if (launchedAmount) setLoanAmount(launchedAmount);
     if (launchedCallback) setCallbackContract(launchedCallback);
     if (launchedLoanId) setLookupId(launchedLoanId);
   }, [launchContext]);
 
-  const canRequest = loanAmount.trim() !== "" && callbackContract.trim() !== "";
-  const feePreview = useMemo(
-    () => estimateFee(loanAmount, feeBps),
-    [loanAmount, feeBps],
-  );
-  const repaymentPreview = useMemo(
-    () => estimateRepayment(loanAmount, feeBps),
-    [loanAmount, feeBps],
-  );
-  const requestActionLabel = address
-    ? t("signRequestFlashLoan")
-    : t("connectAndSign");
+  const amountReady = loanAmount.trim() !== "";
+  const callbackReady = callbackContract.trim() !== "";
+  const canRequest = amountReady && callbackReady;
+  const feePreview = useMemo(() => estimateFee(loanAmount, feeBps), [loanAmount, feeBps]);
+  const repaymentPreview = useMemo(() => estimateRepayment(loanAmount, feeBps), [loanAmount, feeBps]);
   const cooldownMinutes = Math.round((contractStats.cooldownMs || 0) / 60000);
-  const canDeposit =
-    liquidityAmount.trim() !== "" &&
-    (!isMainnet || depositReceiptId.trim() !== "");
+  const canDeposit = liquidityAmount.trim() !== "" && (!isMainnet || depositReceiptId.trim() !== "");
   const canWithdraw = liquidityAmount.trim() !== "";
   const displayLoanAmount = loanAmount.trim() || "0";
-  const callbackDisplay = callbackContract.trim()
+  const requestAnimating = isLoading || requestPreview;
+  const selectedPreset = AMOUNT_PRESETS.find((preset) => preset.value === loanAmount.trim());
+  const callbackTargetLabel = callbackReady
     ? compactTxid(callbackContract.trim())
-    : t("readinessCallbackMissing");
-
-  const requestReadiness = [
+    : t("callbackSocketOpen");
+  const callbackSocketState = callbackReady ? t("callbackSocketReady") : t("callbackSocketOpen");
+  const drawerTabs = [
     {
-      key: "wallet",
-      icon: Wallet,
-      label: t("readinessWallet"),
-      value: address ? t("readinessWalletReady") : t("readinessWalletAction"),
-      ready: !!address,
+      mode: "setup" as const,
+      label: t("executionSetup"),
+      meta: callbackReady ? t("callbackSocketReady") : t("callbackSocketOpen"),
+      icon: <Zap size={15} />,
     },
     {
-      key: "callback",
-      icon: CircuitBoard,
-      label: t("readinessCallback"),
-      value: callbackContract.trim()
-        ? t("readinessCallbackReady")
-        : t("readinessCallbackMissing"),
-      ready: callbackContract.trim() !== "",
+      mode: "liquidity" as const,
+      label: t("liquidityTitle"),
+      meta: `${providerStats.currentBalance.toFixed(2)} GAS`,
+      icon: <Layers3 size={15} />,
     },
     {
-      key: "repay",
-      icon: ShieldCheck,
-      label: t("readinessRepayment"),
-      value: t("readinessRepaymentGuard"),
-      ready: true,
-    },
-  ];
-
-  const routeSteps = [
-    {
-      key: "borrow",
-      icon: Landmark,
-      label: t("borrow"),
-      detail: `${displayLoanAmount} GAS`,
+      mode: "lookup" as const,
+      label: t("statusLookup"),
+      meta: lookupId.trim() ? `#${lookupId.trim()}` : t("loanId"),
+      icon: <Search size={15} />,
     },
     {
-      key: "execute",
-      icon: CircuitBoard,
-      label: t("execute"),
-      detail: CALLBACK_METHOD,
+      mode: "history" as const,
+      label: t("recentLoans"),
+      meta: `${recentLoans.length}`,
+      icon: <History size={15} />,
     },
     {
-      key: "repay",
-      icon: ShieldCheck,
-      label: t("repay"),
-      detail: `${repaymentPreview} GAS`,
+      mode: "params" as const,
+      label: t("contractInfo"),
+      meta: t("callbackMethodFixed"),
+      icon: <ShieldCheck size={15} />,
     },
   ];
-
-  const handleConnect = async () => {
-    await dispatch("connectWallet");
-  };
 
   const handleRequestLoan = async () => {
     if (!canRequest) {
-      setStatus(t("flashloanFormIncomplete"), "error");
+      setStatus?.(t("flashloanFormIncomplete"), "error");
       return;
     }
-    await dispatch("requestLoan", {
-      amount: loanAmount.trim(),
-      callbackContract: callbackContract.trim(),
-      callbackMethod: CALLBACK_METHOD,
-    });
+    setRequestPreview(true);
+    try {
+      await dispatch("requestLoan", {
+        amount: loanAmount.trim(),
+        callbackContract: callbackContract.trim(),
+        callbackMethod: CALLBACK_METHOD,
+      });
+    } finally {
+      setRequestPreview(false);
+    }
   };
-
   const handleLookup = async () => {
     if (!lookupId.trim()) return;
     await dispatch("lookupLoan", lookupId.trim());
   };
-
   const handleDeposit = async () => {
     if (!canDeposit) return;
     await dispatch("provideLiquidity", {
@@ -271,673 +217,404 @@ export default function PlayArea({
     setLiquidityAmount("");
     setDepositReceiptId("");
   };
-
   const handleWithdraw = async () => {
     if (!canWithdraw) return;
     await dispatch("withdrawLiquidity", { amount: liquidityAmount.trim() });
     setLiquidityAmount("");
   };
 
-  const loanStatusClass = (status: string) => {
-    switch (status) {
-      case "success":
-        return "flashloan-status--repaid";
-      case "failed":
-        return "flashloan-status--liquidated";
-      case "pending":
-        return "flashloan-status--active";
-      default:
-        return "";
+  const flowSteps = [
+    {
+      key: "pool",
+      label: t("poolBalance"),
+      detail: `${poolBalance.toFixed(2)} GAS`,
+      icon: <Layers3 size={20} />,
+    },
+    {
+      key: "borrow",
+      label: t("borrow"),
+      detail: `${displayLoanAmount} GAS`,
+      icon: <ArrowDownRight size={20} />,
+    },
+    {
+      key: "execute",
+      label: t("execute"),
+      detail: CALLBACK_METHOD,
+      icon: <Zap size={20} />,
+    },
+    {
+      key: "repay",
+      label: t("repay"),
+      detail: `${repaymentPreview} GAS`,
+      icon: <CheckCircle2 size={20} />,
+    },
+  ];
+
+  const drawerPanel = (() => {
+    if (drawerMode === "setup") {
+      return (
+        <OpenUiPanel
+          className="flash-drawer__panel flash-drawer__panel--wide flash-drawer__panel--setup"
+          icon={<Zap size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("executionSetup")}
+          subtitle={t("executionSetupHint")}
+        >
+          <dl className="flash-setup-summary">
+            <div><dt>{t("loanAmount")}</dt><dd>{displayLoanAmount} GAS</dd></div>
+            <div><dt>{t("estimatedFee")}</dt><dd>{feePreview} GAS</dd></div>
+            <div><dt>{t("totalRepayment")}</dt><dd>{repaymentPreview} GAS</dd></div>
+          </dl>
+          <OpenUiTextField
+            className="flash-drawer__field flash-drawer__field--callback"
+            label={t("callbackContract")}
+            value={callbackContract}
+            onChange={(e) => setCallbackContract(e.target.value)}
+            placeholder={t("callbackContractPlaceholder")}
+            hint={t("callbackPrerequisite")}
+            spellCheck={false}
+            mono
+          />
+          <OpenUiNotice className="flash-drawer__notice flash-drawer__notice--callback" icon={<ShieldCheck size={16} aria-hidden="true" />} title={t("callbackMethod")}>
+            {t("callbackMethodFixed")}
+          </OpenUiNotice>
+        </OpenUiPanel>
+      );
     }
-  };
 
-  return (
-    <div className="flashloan-play-area">
-      <NeoCard variant="erobo" className="flashloan-hero">
-        <div className="flashloan-hero__layout">
-          <div className="flashloan-hero__content">
-            <div className="flashloan-hero__lead">
-              <div className="flashloan-hero__badge" aria-hidden="true">
-                <Zap size={25} strokeWidth={2.1} />
-              </div>
-              <div className="flashloan-hero__text">
-                <p className="flashloan-hero__eyebrow">{t("eyebrow")}</p>
-                <h2 className="flashloan-hero__title">{t("title")}</h2>
-                <p className="flashloan-hero__subtitle">{t("flashloanInfo")}</p>
-              </div>
-            </div>
-
-            <div
-              className={`flashloan-wallet ${address ? "flashloan-wallet--connected" : ""}`}
-            >
-              <Wallet size={16} aria-hidden="true" />
-              <span className="flashloan-wallet__label">
-                {address ? t("walletConnected") : t("walletRequired")}
-              </span>
-              <span className="flashloan-wallet__value">
-                {address || t("walletNotConnected")}
-              </span>
-            </div>
-
-            {serviceNotice && (
-              <div className="flashloan-service-notice" role="status">
-                <ShieldAlert size={16} aria-hidden="true" />
-                <span className="flashloan-service-notice__title">
-                  {t("statsStaleTitle")}
-                </span>
-                <span>{serviceNotice}</span>
-              </div>
+    if (drawerMode === "liquidity") {
+      return (
+        <OpenUiPanel
+          className="flash-drawer__panel flash-drawer__panel--wide flash-drawer__panel--liquidity"
+          icon={<Layers3 size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("liquidityTitle")}
+          subtitle={t("liquidityInfo")}
+        >
+          <dl className="flash-drawer__lp-stats">
+            <div><dt>{t("yourLiquidity")}</dt><dd>{providerStats.currentBalance.toFixed(4)} GAS</dd></div>
+            <div><dt>{t("feesEarned")}</dt><dd>{providerStats.totalFeesEarned.toFixed(4)} GAS</dd></div>
+            <div><dt>{t("providerShare")}</dt><dd>{providerFeeShare}%</dd></div>
+            <div><dt>{t("protocolShare")}</dt><dd>{protocolFeeShare}%</dd></div>
+          </dl>
+          <div className="flash-drawer__field-row">
+            <OpenUiTextField
+              className="flash-drawer__field"
+              label={t("liquidityAmount")}
+              value={liquidityAmount}
+              onChange={(e) => setLiquidityAmount(e.target.value)}
+              placeholder={t("liquidityAmountPlaceholder")}
+              inputMode="decimal"
+            />
+            {isMainnet && (
+              <OpenUiTextField
+                className="flash-drawer__field"
+                label={t("receiptIdLabel")}
+                value={depositReceiptId}
+                onChange={(e) => setDepositReceiptId(e.target.value)}
+                placeholder={t("receiptIdPlaceholder")}
+              />
             )}
+          </div>
+          <div className="flash-drawer__lp-actions">
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void handleDeposit()} disabled={!canDeposit}>
+              {t("deposit")}
+            </button>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void handleWithdraw()} disabled={!canWithdraw}>
+              {t("withdraw")}
+            </button>
+          </div>
+          <p className="flash-drawer__hint">{t("liquidityFeeShareNote", { share: providerFeeShare, protocol: protocolFeeShare })}</p>
+        </OpenUiPanel>
+      );
+    }
 
-            <div className="flashloan-hero__stats">
-              <div className="flashloan-stat">
-                <Droplets size={17} aria-hidden="true" />
-                <span className="flashloan-stat__value">
-                  {poolBalance.toFixed(4)}
-                </span>
-                <span className="flashloan-stat__label">
-                  {t("poolBalance")}
-                </span>
-              </div>
-              <div className="flashloan-stat">
-                <BadgeCheck size={17} aria-hidden="true" />
-                <span className="flashloan-stat__value">{totalLoans}</span>
-                <span className="flashloan-stat__label">{t("totalLoans")}</span>
-              </div>
-              <div className="flashloan-stat">
-                <Banknote size={17} aria-hidden="true" />
-                <span className="flashloan-stat__value">
-                  {totalVolume.toFixed(2)}
-                </span>
-                <span className="flashloan-stat__label">
-                  {t("totalVolume")}
-                </span>
-              </div>
-              <div className="flashloan-stat">
-                <Coins size={17} aria-hidden="true" />
-                <span className="flashloan-stat__value">
-                  {totalFees.toFixed(4)}
-                </span>
-                <span className="flashloan-stat__label">{t("totalFees")}</span>
-              </div>
+    if (drawerMode === "lookup") {
+      return (
+        <OpenUiPanel
+          className="flash-drawer__panel flash-drawer__panel--lookup"
+          icon={<Search size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("statusLookup")}
+          subtitle={t("statusHint")}
+        >
+          <div className="flash-drawer__lookup">
+            <OpenUiTextField
+              className="flash-drawer__field flash-drawer__field--lookup"
+              label={t("loanId")}
+              value={lookupId}
+              onChange={(e) => setLookupId(e.target.value)}
+              placeholder={t("loanIdPlaceholder")}
+            />
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void handleLookup()} disabled={!lookupId.trim()}>
+              {t("checkStatus")}
+            </button>
+          </div>
+          {loanDetails ? (
+            <dl className="flash-drawer__loan-detail">
+              <div><dt>{t("loanId")}</dt><dd>#{loanDetails.id}</dd></div>
+              <div><dt>{t("amount")}</dt><dd>{loanDetails.amount} GAS</dd></div>
+              <div><dt>{t("statusLabel")}</dt><dd>{t(`status${loanDetails.status ? loanDetails.status.charAt(0).toUpperCase() + loanDetails.status.slice(1) : "Pending"}`)}</dd></div>
+            </dl>
+          ) : (
+            <OpenUiNotice className="flash-drawer__notice" icon={<Search size={16} aria-hidden="true" />} title={t("statusLookupEyebrow")}>
+              {t("statusHint")}
+            </OpenUiNotice>
+          )}
+        </OpenUiPanel>
+      );
+    }
+
+    if (drawerMode === "history") {
+      return (
+        <OpenUiPanel
+          className="flash-drawer__panel flash-drawer__panel--history"
+          icon={<History size={18} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("recentLoans")}
+          subtitle={t("sidebarRecentLoans")}
+        >
+          {recentLoans.length > 0 ? (
+            <ul className="mx2-history">
+              {recentLoans.slice(0, 5).map((loan) => (
+                <li key={loan.id ?? loan.amount} className="mx2-history__item" data-outcome={loan.status === "success" ? "won" : undefined}>
+                  <span className="mx2-history__face">#{loan.id}</span>
+                  <span className="mx2-history__stake">{loan.amount} GAS</span>
+                  <span className="mx2-history__result">{loan.status}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <OpenUiNotice className="flash-drawer__notice" icon={<History size={16} aria-hidden="true" />} title={t("recentLoansEyebrow")}>
+              {t("noHistory")}
+            </OpenUiNotice>
+          )}
+        </OpenUiPanel>
+      );
+    }
+
+    return (
+      <OpenUiPanel
+        className="flash-drawer__panel flash-drawer__panel--wide flash-drawer__panel--params"
+        icon={<ShieldCheck size={18} strokeWidth={2.35} aria-hidden="true" />}
+        title={t("contractInfo")}
+        subtitle={t("callbackMethodFixed")}
+      >
+        <dl className="flash-drawer__params-grid">
+          <div><dt>{t("minLoan")}</dt><dd>{contractStats.minLoan} GAS</dd></div>
+          <div><dt>{t("maxLoan")}</dt><dd>{contractStats.maxLoan} GAS</dd></div>
+          <div><dt>{t("cooldown")}</dt><dd>{cooldownMinutes}{t("minutes")}</dd></div>
+          <div><dt>{t("dailyLimit")}</dt><dd>{contractStats.maxDailyLoans}</dd></div>
+        </dl>
+        <OpenUiNotice className="flash-drawer__notice flash-drawer__notice--callback" icon={<Zap size={16} aria-hidden="true" />} title={t("callbackContract")}>
+          {t("callbackPrerequisite")}
+        </OpenUiNotice>
+      </OpenUiPanel>
+    );
+  })();
+
+  const drawer = (
+    <OpenUiProvider>
+      <div className="flash-drawer">
+        <div className="flash-drawer__tabs" role="tablist" aria-label={t("toolsDockTitle")}>
+          {drawerTabs.map((tab) => (
+            <button
+              key={tab.mode}
+              type="button"
+              role="tab"
+              aria-selected={drawerMode === tab.mode}
+              className={drawerMode === tab.mode ? "is-active" : ""}
+              onClick={() => setDrawerMode(tab.mode)}
+            >
+              <span className="flash-drawer__tab-icon">{tab.icon}</span>
+              <strong>{tab.label}</strong>
+              <small>{tab.meta}</small>
+            </button>
+          ))}
+        </div>
+        <div className="flash-drawer__active" data-mode={drawerMode}>
+          {drawerPanel}
+        </div>
+      </div>
+    </OpenUiProvider>
+  );
+
+  const scene = (
+    <div className="flash-scene" data-state={requestAnimating ? "executing" : "ready"}>
+      <div className="flash-scene__workspace">
+        <section className="flash-ticket" aria-label={t("requestTicketTitle")}>
+          <div className="flash-ticket__head">
+            <div>
+              <p>{t("requestTicketEyebrow")}</p>
+              <h3>{t("requestTicketTitle")}</h3>
+            </div>
+            <div className="flash-ticket__amount">
+              <CoinArt size={38} variant="gas" />
+              <span>{t("loanAmount")}</span>
+              <strong>{displayLoanAmount} GAS</strong>
             </div>
           </div>
 
-          <figure className="flashloan-hero__art">
+          <div className="flash-ticket__preset-grid" aria-label={t("amountPresets")}>
+            {AMOUNT_PRESETS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                className="flash-ticket__preset"
+                data-selected={loanAmount.trim() === preset.value ? "true" : undefined}
+                onClick={() => {
+                  setLoanAmount(preset.value);
+                  setCustomAmountOpen(false);
+                }}
+              >
+                <span>{t(preset.labelKey)}</span>
+                <strong>{preset.value} GAS</strong>
+              </button>
+            ))}
+            <button
+              type="button"
+              className="flash-ticket__preset flash-ticket__preset--custom"
+              data-selected={!selectedPreset || customAmountOpen ? "true" : undefined}
+              onClick={() => setCustomAmountOpen((value) => !value)}
+            >
+              <span>{t("customAmount")}</span>
+              <strong>{selectedPreset ? t("exactAmount") : `${displayLoanAmount} GAS`}</strong>
+            </button>
+          </div>
+
+          {(customAmountOpen || !selectedPreset) && (
+            <label className="flash-ticket__field">
+              <span>{t("exactAmount")}</span>
+              <input
+                className="flash-input"
+                value={loanAmount}
+                onChange={(e) => setLoanAmount(e.target.value)}
+                placeholder={t("amountPlaceholder")}
+                inputMode="decimal"
+              />
+            </label>
+          )}
+
+          <div className="flash-callback-socket" data-ready={callbackReady ? "true" : undefined}>
+            <span className="flash-callback-socket__port" aria-hidden="true">
+              <Zap size={18} />
+            </span>
+            <span className="flash-callback-socket__copy">
+              <span className="flash-callback-socket__label">{t("callbackSocketLabel")}</span>
+              <strong>{callbackSocketState}</strong>
+              <small>{callbackReady ? callbackTargetLabel : t("callbackSocketHint")}</small>
+            </span>
+            <span className="flash-callback-socket__row">
+              <span className="flash-callback-socket__rail-dot" aria-hidden="true" />
+              <span className="flash-callback-socket__target">
+                {callbackReady ? callbackTargetLabel : t("executionSetupHint")}
+              </span>
+            </span>
+          </div>
+
+          <div className="flash-ticket__repayment">
+            <span>{t("estimatedFee")}: <strong>{feePreview} GAS</strong></span>
+            <span>{t("totalRepayment")}: <strong>{repaymentPreview} GAS</strong></span>
+          </div>
+        </section>
+
+        <section className="flash-pool" aria-label={t("poolBalance")}>
+          <span className="flash-pool__asset"><CoinArt size={42} variant="gas" /></span>
+          <span className="flash-pool__kicker">{t("poolReservoir")}</span>
+          <strong>{poolBalance.toFixed(2)} GAS</strong>
+          <span>{t("poolBalanceNote")}</span>
+        </section>
+
+        <section className="flash-route" aria-label={t("capitalRouteTitle")}>
+          <div className="flash-route__head">
+            <div>
+              <p>{t("capitalRouteTitle")}</p>
+              <span>{t("capitalRouteHint")}</span>
+            </div>
+            <ShieldCheck size={22} aria-hidden="true" />
+          </div>
+          <figure className="flash-route__visual">
             <img
-              src="./flashloan-desk.jpg"
+              src={FLASH_DESK_IMAGE}
               alt={t("flashloanHeroImageAlt")}
               loading="eager"
-              decoding="sync"
+              decoding="async"
+              draggable={false}
             />
-            <figcaption>
-              <span>{t("flashloanHeroArtKicker")}</span>
-              <strong>{t("flashloanHeroArtTitle")}</strong>
-            </figcaption>
           </figure>
-        </div>
-      </NeoCard>
-
-      <section
-        className="flashloan-guidance-strip"
-        aria-label={t("instructionMode")}
-      >
-        <span className="flashloan-guidance-strip__icon" aria-hidden="true">
-          <ShieldAlert size={18} />
-        </span>
-        <div>
-          <strong>{t("instructionMode")}</strong>
-          <p>
-            {t("instructionNote")} {t("instructionLpHint")}
-          </p>
-        </div>
-      </section>
-
-      <div className="flashloan-workspace">
-        <NeoCard variant="erobo" className="flashloan-request-card">
-          <div className="flashloan-card-head">
-            <div className="flashloan-card-heading">
-              <p className="flashloan-card-eyebrow">
-                {t("requestLoanEyebrow")}
-              </p>
-              <h3 className="flashloan-section-title">
-                {t("requestLoanTitle")}
-              </h3>
-            </div>
-            <span className="flashloan-method-pill">requestLoan</span>
-          </div>
-
-          <div
-            className="flashloan-deal-ticket"
-            aria-label={t("requestTicketTitle")}
-          >
-            <div className="flashloan-deal-ticket__amount">
-              <span>{t("requestTicketEyebrow")}</span>
-              <strong>{displayLoanAmount} GAS</strong>
-              <small>{t("amountTicketHint")}</small>
-            </div>
-            <div className="flashloan-deal-ticket__route">
-              {routeSteps.map(({ key, icon: Icon, label, detail }, index) => (
-                <div className="flashloan-route-node-wrap" key={key}>
-                  <div className="flashloan-route-node">
-                    <Icon size={16} aria-hidden="true" />
-                    <span>{label}</span>
-                    <strong>{detail}</strong>
-                  </div>
-                  {index < routeSteps.length - 1 && (
-                    <ArrowRight
-                      className="flashloan-route-arrow"
-                      size={17}
-                      aria-hidden="true"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={`flashloan-capital-lane${canRequest ? " flashloan-capital-lane--armed" : ""}`}
-            aria-label={t("capitalRouteTitle")}
-          >
-            <div className="flashloan-capital-lane__head">
-              <span>{t("capitalRouteTitle")}</span>
-              <strong>{t("capitalRouteHint")}</strong>
-            </div>
-            <div className="flashloan-capital-lane__stage">
-              <span className="flashloan-capital-lane__media" aria-hidden="true">
-                <img src="./flashloan-desk.jpg" alt="" loading="lazy" />
-              </span>
-              <div className="flashloan-capital-lane__rail" aria-hidden="true">
-                <span className="flashloan-capital-lane__pulse flashloan-capital-lane__pulse--one" />
-                <span className="flashloan-capital-lane__pulse flashloan-capital-lane__pulse--two" />
-                <span className="flashloan-capital-lane__pulse flashloan-capital-lane__pulse--three" />
-              </div>
-              <div className="flashloan-capital-lane__nodes" role="list">
-                <article
-                  className="flashloan-capital-node flashloan-capital-node--pool"
-                  role="listitem"
-                >
-                  <Landmark size={16} aria-hidden="true" />
-                  <span>{t("poolReservoir")}</span>
-                  <strong>{poolBalance.toFixed(4)} GAS</strong>
-                </article>
-                <article
-                  className="flashloan-capital-node flashloan-capital-node--callback"
-                  role="listitem"
-                >
-                  <CircuitBoard size={16} aria-hidden="true" />
-                  <span>{t("callbackContract")}</span>
-                  <strong title={callbackContract.trim() || undefined}>
-                    {callbackDisplay}
-                  </strong>
-                </article>
-                <article
-                  className="flashloan-capital-node flashloan-capital-node--guard"
-                  role="listitem"
-                >
-                  <ShieldCheck size={16} aria-hidden="true" />
-                  <span>{t("totalRepayment")}</span>
-                  <strong>{repaymentPreview} GAS</strong>
-                </article>
-              </div>
-            </div>
-            <div className="flashloan-capital-lane__ledger">
-              <span>
-                <small>{t("amount")}</small>
-                <strong>{displayLoanAmount} GAS</strong>
-              </span>
-              <span>
-                <small>{t("estimatedFee")}</small>
-                <strong>{feePreview} GAS</strong>
-              </span>
-              <span>
-                <small>{t("callbackMethod")}</small>
-                <strong>{CALLBACK_METHOD}</strong>
-              </span>
-            </div>
-          </div>
-
-          <div className="flashloan-readiness-grid">
-            {requestReadiness.map(
-              ({ key, icon: Icon, label, value, ready }) => (
-                <div
-                  key={key}
-                  className={`flashloan-readiness ${ready ? "flashloan-readiness--ready" : ""}`}
-                >
-                  <Icon size={16} aria-hidden="true" />
-                  <span>{label}</span>
-                  <strong>{value}</strong>
-                </div>
-              ),
-            )}
-          </div>
-
-          <div className="flashloan-loan-form">
-            <div
-              className="flashloan-loan-package-deck"
-              aria-label={t("loanPackageDeck")}
-            >
-              {AMOUNT_PRESETS.map((preset) => {
-                const selected = loanAmount === preset.amount;
-                return (
-                  <button
-                    key={preset.amount}
-                    type="button"
-                    aria-pressed={selected}
-                    className={[
-                      "flashloan-loan-package",
-                      `flashloan-loan-package--${preset.tone}`,
-                      selected ? "flashloan-loan-package--active" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => setLoanAmount(preset.amount)}
-                  >
-                    <span
-                      className="flashloan-loan-package__media"
-                      aria-hidden="true"
-                    >
-                      <img
-                        src="./flashloan-desk.jpg"
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </span>
-                    <span className="flashloan-loan-package__copy">
-                      <small>{t(preset.labelKey)}</small>
-                      <strong>{preset.amount} GAS</strong>
-                    </span>
-                    <span className="flashloan-loan-package__facts">
-                      <span>
-                        <small>{t("estimatedFee")}</small>
-                        <strong>{estimateFee(preset.amount, feeBps)} GAS</strong>
-                      </span>
-                      <span>
-                        <small>{t("repay")}</small>
-                        <strong>
-                          {estimateRepayment(preset.amount, feeBps)} GAS
-                        </strong>
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flashloan-control-panel">
-              <NeoInput
-                type="text"
-                value={loanAmount}
-                placeholder={t("amountPlaceholder")}
-                label={t("loanAmount")}
-                inputMode="decimal"
-                pattern="[0-9]*[.]?[0-9]*"
-                onChange={setLoanAmount}
-              />
-            </div>
-
-            <div className="flashloan-control-panel">
-              <NeoInput
-                value={callbackContract}
-                placeholder={t("callbackContractPlaceholder")}
-                label={t("callbackContract")}
-                onChange={setCallbackContract}
-              />
-              <div className="flashloan-fixed-callback">
-                <span>{t("callbackMethod")}</span>
-                <strong>{CALLBACK_METHOD}</strong>
-              </div>
-            </div>
-
-            <p className="flashloan-callback-note">
-              {t("callbackPrerequisite")}{" "}
-              <a
-                className="flashloan-callback-link"
-                href="https://docs.neo.org/docs/n3/develop/write/basics"
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                {t("viewCallbackExample")}
-              </a>
-            </p>
-            {validationError && (
-              <p className="flashloan-validation-error" role="alert">
-                {validationError}
-              </p>
-            )}
-            <div className="flashloan-actions">
-              {!address && (
-                <NeoButton
-                  variant="secondary"
-                  size="md"
-                  loading={isLoading}
-                  disabled={isLoading}
-                  onClick={handleConnect}
-                >
-                  {t("connectWallet")}
-                </NeoButton>
-              )}
-              <NeoButton
-                variant="primary"
-                size="lg"
-                block
-                loading={isLoading}
-                disabled={isLoading || !canRequest}
-                onClick={handleRequestLoan}
-              >
-                {requestActionLabel}
-              </NeoButton>
-            </div>
-          </div>
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="flashloan-preview-card">
-          <div className="flashloan-card-head">
-            <div className="flashloan-card-heading">
-              <p className="flashloan-card-eyebrow">
-                {t("loanCalculatorEyebrow")}
-              </p>
-              <h3 className="flashloan-section-title">{t("loanCalculator")}</h3>
-            </div>
-            <span className="flashloan-method-pill flashloan-method-pill--rate">
-              {feeBps / 100}%
-            </span>
-          </div>
-
-          <div className="flashloan-preview-grid">
-            <div className="flashloan-preview-item">
-              <span>
-                <Gauge size={14} aria-hidden="true" />
-                {t("minLoan")}
-              </span>
-              <strong>{contractStats.minLoan.toLocaleString()} GAS</strong>
-            </div>
-            <div className="flashloan-preview-item">
-              <span>
-                <Landmark size={14} aria-hidden="true" />
-                {t("maxLoan")}
-              </span>
-              <strong>{contractStats.maxLoan.toLocaleString()} GAS</strong>
-            </div>
-            <div className="flashloan-preview-item">
-              <span>
-                <Zap size={14} aria-hidden="true" />
-                {t("cooldownLabel")}
-              </span>
-              <strong>
-                {t("cooldownValue", { minutes: cooldownMinutes })}
-              </strong>
-            </div>
-            <div className="flashloan-preview-item">
-              <span>
-                <History size={14} aria-hidden="true" />
-                {t("dailyLimitLabel")}
-              </span>
-              <strong>
-                {t("dailyLimitValue", { count: contractStats.maxDailyLoans })}
-              </strong>
-            </div>
-            <div className="flashloan-preview-item">
-              <span>
-                <Coins size={14} aria-hidden="true" />
-                {t("estimatedFee")}
-              </span>
-              <strong>{feePreview} GAS</strong>
-            </div>
-            <div className="flashloan-preview-item flashloan-preview-item--total">
-              <span>
-                <ShieldCheck size={14} aria-hidden="true" />
-                {t("totalRepayment")}
-              </span>
-              <strong>{repaymentPreview} GAS</strong>
-            </div>
-          </div>
-
-          <div className="flashloan-flow" aria-label={t("flashLoanFlow")}>
-            <span>
-              <Landmark size={14} aria-hidden="true" />
-              {t("borrow")}
-            </span>
-            <ArrowRight
-              className="flashloan-flow-arrow"
-              size={15}
-              aria-hidden="true"
-            />
-            <span>
-              <CircuitBoard size={14} aria-hidden="true" />
-              {t("execute")}
-            </span>
-            <ArrowRight
-              className="flashloan-flow-arrow"
-              size={15}
-              aria-hidden="true"
-            />
-            <span>
-              <ShieldCheck size={14} aria-hidden="true" />
-              {t("repay")}
-            </span>
-          </div>
-
-          <div className="flashloan-request-summary" aria-live="polite">
-            {lastRequest ? (
-              <>
-                <div>
-                  <span>{t("latestTx")}</span>
-                  <strong title={lastRequest.txid}>
-                    {compactTxid(lastRequest.txid)}
-                  </strong>
-                </div>
-                <div>
-                  <span>{t("borrower")}</span>
-                  <strong>{lastRequest.borrower}</strong>
-                </div>
-                <div>
-                  <span>{t("amount")}</span>
-                  <strong>{lastRequest.amount} GAS</strong>
-                </div>
-              </>
-            ) : (
-              <p>{t("noRequestYet")}</p>
-            )}
-          </div>
-        </NeoCard>
-      </div>
-
-      <NeoCard variant="erobo" className="flashloan-liquidity-card">
-        <div className="flashloan-card-head">
-          <div className="flashloan-card-heading">
-            <p className="flashloan-card-eyebrow">{t("liquidityEyebrow")}</p>
-            <h3 className="flashloan-section-title">{t("liquidityTitle")}</h3>
-          </div>
-          <span className="flashloan-method-pill">deposit / withdraw</span>
-        </div>
-
-        <div className="flashloan-liquidity-layout">
-          <div className="flashloan-liquidity-media">
-            <img
-              src="./flashloan-desk.jpg"
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-            />
-            <div className="flashloan-liquidity-media__caption">
-              <span>{t("poolReservoir")}</span>
-              <strong>{poolBalance.toFixed(4)} GAS</strong>
-            </div>
-          </div>
-
-          <div className="flashloan-liquidity-copy">
-            <p className="flashloan-liquidity-info">{t("liquidityInfo")}</p>
-            <p className="flashloan-liquidity-info flashloan-liquidity-info--share">
-              {t("liquidityFeeShareNote", {
-                share: providerFeeShare,
-                protocol: protocolFeeShare,
-              })}
-            </p>
-            <div className="flashloan-liquidity-stats">
-              <div className="flashloan-preview-item">
+          <div className="flash-route__steps">
+            {flowSteps.map((step) => (
+              <div key={step.key} className="flash-route__step" data-active={requestAnimating ? "true" : undefined}>
+                <span className="flash-route__icon">{step.icon}</span>
                 <span>
-                  <Droplets size={14} aria-hidden="true" />
-                  {t("yourLiquidity")}
+                  <strong>{step.label}</strong>
+                  <small>{step.detail}</small>
                 </span>
-                <strong>{providerStats.currentBalance.toFixed(4)} GAS</strong>
               </div>
-              <div className="flashloan-preview-item">
-                <span>
-                  <Coins size={14} aria-hidden="true" />
-                  {t("feesEarned")}
-                </span>
-                <strong>{providerStats.totalFeesEarned.toFixed(4)} GAS</strong>
-              </div>
-              <div className="flashloan-preview-item">
-                <span>{t("providerShare")}</span>
-                <strong>{providerFeeShare}%</strong>
-              </div>
-              <div className="flashloan-preview-item">
-                <span>{t("protocolShare")}</span>
-                <strong>{protocolFeeShare}%</strong>
-              </div>
-            </div>
+            ))}
+          </div>
+        </section>
 
-            <div className="flashloan-liquidity-form">
-              <NeoInput
-                type="text"
-                value={liquidityAmount}
-                placeholder={t("liquidityAmountPlaceholder")}
-                label={t("liquidityAmount")}
-                inputMode="decimal"
-                pattern="[0-9]*[.]?[0-9]*"
-                onChange={setLiquidityAmount}
-              />
-              {isMainnet && (
-                <NeoInput
-                  value={depositReceiptId}
-                  placeholder={t("receiptIdPlaceholder")}
-                  label={t("receiptIdLabel")}
-                  onChange={setDepositReceiptId}
-                />
-              )}
-              <div className="flashloan-liquidity-actions">
-                <NeoButton
-                  variant="primary"
-                  size="md"
-                  loading={isLoading}
-                  disabled={isLoading || !canDeposit}
-                  onClick={handleDeposit}
-                >
-                  {t("deposit")}
-                </NeoButton>
-                <NeoButton
-                  variant="secondary"
-                  size="md"
-                  loading={isLoading}
-                  disabled={isLoading || !canWithdraw}
-                  onClick={handleWithdraw}
-                >
-                  {t("withdraw")}
-                </NeoButton>
-              </div>
-            </div>
+        <section className="flash-readiness" aria-label={t("callbackPrerequisite")}>
+          <div className="flash-readiness__item" data-ready={address ? "true" : undefined}>
+            <Wallet size={17} aria-hidden="true" />
+            <span>{t("readinessWallet")}</span>
+            <strong>{address ? t("readinessWalletReady") : t("readinessWalletAction")}</strong>
           </div>
-        </div>
-      </NeoCard>
-
-      <div className="flashloan-workspace flashloan-workspace--secondary">
-        <NeoCard variant="erobo" className="flashloan-lookup-card">
-          <div className="flashloan-card-head">
-            <div className="flashloan-card-heading">
-              <p className="flashloan-card-eyebrow">
-                {t("statusLookupEyebrow")}
-              </p>
-              <h3 className="flashloan-section-title">{t("statusLookup")}</h3>
-            </div>
-            <span className="flashloan-method-pill">getLoanDetails</span>
+          <div className="flash-readiness__item" data-ready={callbackReady ? "true" : undefined}>
+            <Zap size={17} aria-hidden="true" />
+            <span>{t("readinessCallback")}</span>
+            <strong>{callbackTargetLabel}</strong>
           </div>
-          <p className="flashloan-lookup-hint">{t("statusHint")}</p>
-          <div className="flashloan-lookup-row">
-            <NeoInput
-              value={lookupId}
-              placeholder={t("loanIdPlaceholder")}
-              label={t("loanId")}
-              onChange={setLookupId}
-            />
-            <NeoButton
-              variant="secondary"
-              size="md"
-              disabled={!lookupId.trim() || isLoading}
-              onClick={handleLookup}
-            >
-              <SearchCheck size={16} aria-hidden="true" />
-              {t("checkStatus")}
-            </NeoButton>
+          <div className="flash-readiness__item" data-ready="true">
+            <ShieldCheck size={17} aria-hidden="true" />
+            <span>{t("readinessRepayment")}</span>
+            <strong>{t("readinessRepaymentGuard")}</strong>
           </div>
-          {loanDetails && (
-            <div className="flashloan-loan-details">
-              <div className="flashloan-loan-row">
-                <span className="flashloan-cell-pool">#{loanDetails.id}</span>
-                <span className="flashloan-cell-amount">
-                  {loanDetails.amount} GAS
-                </span>
-                <span className="flashloan-cell-fee">
-                  +{loanDetails.fee} GAS
-                </span>
-                <span
-                  className={`flashloan-cell-status ${loanStatusClass(loanDetails.status)}`}
-                >
-                  {t(
-                    `status${loanDetails.status[0]?.toUpperCase()}${loanDetails.status.slice(1)}`,
-                  )}
-                </span>
-              </div>
-              <p className="flashloan-loan-callback">
-                <strong>{t("callbackContract")}:</strong>{" "}
-                {loanDetails.callbackContract}
-                <ArrowRight size={13} aria-hidden="true" />{" "}
-                {loanDetails.callbackMethod}
-              </p>
-            </div>
-          )}
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="flashloan-recent-card">
-          <div className="flashloan-card-heading flashloan-card-heading--solo">
-            <p className="flashloan-card-eyebrow">{t("recentLoansEyebrow")}</p>
-            <h3 className="flashloan-section-title">{t("recentLoans")}</h3>
-          </div>
-          {recentLoans.length > 0 ? (
-            <div className="flashloan-table">
-              <div className="flashloan-table-header">
-                <span>{t("loanId")}</span>
-                <span>{t("amount")}</span>
-                <span>{t("feeShort")}</span>
-                <span>{t("statusLabel")}</span>
-              </div>
-              {recentLoans.map((loan) => (
-                <div key={loan.id} className="flashloan-table-row">
-                  <span className="flashloan-cell-pool">#{loan.id}</span>
-                  <span className="flashloan-cell-amount">
-                    {loan.amount.toFixed(4)} GAS
-                  </span>
-                  <span className="flashloan-cell-fee">
-                    {loan.fee.toFixed(4)} GAS
-                  </span>
-                  <span
-                    className={`flashloan-cell-status ${loanStatusClass(loan.status)}`}
-                  >
-                    {t(
-                      `status${loan.status[0]?.toUpperCase()}${loan.status.slice(1)}`,
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="flashloan-empty">{t("noHistory")}</p>
-          )}
-        </NeoCard>
+        </section>
       </div>
+      {lastRequest && requestAnimating && <ParticleBurst coins count={8} />}
+      <p className="flash-scene__status" aria-live="polite">
+        {requestAnimating ? t("requesting") : lastRequest ? t("loanRequested") : serviceNotice || t("flowNote")}
+      </p>
+      {validationError && <p className="flash-scene__error" role="alert">{validationError}</p>}
+    </div>
+  );
+
+  return (
+    <div className="flashloan-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{
+          eyebrow: t("eyebrow"),
+          title: t("requestLoanTitle"),
+          subtitle: t("flowNote"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge__dot" /> {address ? t("walletConnected") : t("walletRequired")}
+              </span>
+              <span className="mx2-badge">{feeBps / 100}% {t("protocolFee")}</span>
+            </>
+          ),
+        }}
+        scene={scene}
+        score={[
+          { label: t("poolBalance"), value: `${poolBalance.toFixed(2)} GAS`, accent: true },
+          { label: t("estimatedFee"), value: `${feePreview} GAS` },
+          { label: t("totalRepayment"), value: `${repaymentPreview} GAS` },
+        ]}
+        actions={{
+          primary: {
+            label: address ? (requestAnimating ? t("requesting") : t("signRequestFlashLoan")) : t("connectAndSign"),
+            onClick: () => void (address ? handleRequestLoan() : dispatch("connectWallet")),
+            disabled: address ? (requestAnimating || !canRequest) : false,
+            loading: requestAnimating,
+            hint: t("requestLoan"),
+          },
+        }}
+        drawerToggleLabel={t("toolsDockTitle")}
+        drawer={{
+          title: t("toolsDockTitle"),
+          children: drawer,
+        }}
+      />
     </div>
   );
 }

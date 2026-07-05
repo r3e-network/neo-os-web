@@ -1,71 +1,145 @@
-import { useState } from "react";
+/**
+ * PlayArea.tsx -- Event Ticket Pass
+ *
+ * The pass is the product: organizers design a keepsake ticket, issue it to a
+ * guest wallet, then run the same pass through the door scanner. Secondary
+ * event setup, transfer, evidence, and lists stay in the drawer.
+ */
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
-  ClipboardCheck,
-  Copy,
+  DoorOpen,
+  IdCard,
   MapPin,
   QrCode,
   RefreshCw,
-  ScanLine,
   Send,
-  Sparkles,
   Ticket,
   UserPlus,
-  Users,
-  X,
+  WalletCards,
+  Wand2,
+  type LucideIcon,
 } from "lucide-react";
-import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import TokenQr from "./components/TokenQr";
-import { explorerTxUrl } from "./utils/explorer";
-import type { EventItem, TicketItem } from "./types";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
+  t: (key: string, p?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-function short(value: string) {
-  if (!value) return "—";
-  if (value.length <= 18) return value;
-  return `${value.slice(0, 8)}…${value.slice(-8)}`;
+interface EventItem {
+  id: string;
+  name?: string;
+  venue?: string;
+  startTime?: number;
+  endTime?: number;
+  maxSupply?: bigint | number | string;
+  minted?: bigint | number | string;
+  active?: boolean;
+  [k: string]: unknown;
 }
 
-function formatDate(seconds: number, fallback: string) {
-  if (!seconds) return fallback;
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(seconds * 1000));
+interface TicketItem {
+  id?: string;
+  tokenId?: string;
+  eventName?: string;
+  venue?: string;
+  seat?: string;
+  owner?: string;
+  used?: boolean;
+  checkedIn?: boolean;
+  [k: string]: unknown;
 }
 
-function json(value: unknown) {
-  if (!value) return "";
-  return JSON.stringify(value, null, 2);
+type DeskMode = "create" | "issue" | "checkin";
+type DrawerMode = "event" | "issue" | "tickets" | "events" | "transfer" | "evidence";
+
+const PASS_ART = "pass-artwork.webp";
+const SEAT_PRESETS = ["General", "VIP", "Row A", "Backstage"];
+
+interface EventBlueprint {
+  key: string;
+  nameKey: string;
+  venueKey: string;
+  startKey: string;
+  endKey: string;
+  notesKey: string;
+  supply: string;
+  Icon: LucideIcon;
+}
+
+const EVENT_BLUEPRINTS: EventBlueprint[] = [
+  {
+    key: "summit",
+    nameKey: "blueprintSummitName",
+    venueKey: "blueprintSummitVenue",
+    startKey: "blueprintSummitStart",
+    endKey: "blueprintSummitEnd",
+    notesKey: "blueprintSummitNotes",
+    supply: "500",
+    Icon: Ticket,
+  },
+  {
+    key: "workshop",
+    nameKey: "blueprintWorkshopName",
+    venueKey: "blueprintWorkshopVenue",
+    startKey: "blueprintWorkshopStart",
+    endKey: "blueprintWorkshopEnd",
+    notesKey: "blueprintWorkshopNotes",
+    supply: "120",
+    Icon: CalendarDays,
+  },
+  {
+    key: "backstage",
+    nameKey: "blueprintBackstageName",
+    venueKey: "blueprintBackstageVenue",
+    startKey: "blueprintBackstageStart",
+    endKey: "blueprintBackstageEnd",
+    notesKey: "blueprintBackstageNotes",
+    supply: "80",
+    Icon: DoorOpen,
+  },
+];
+
+function displayCount(value: unknown, fallback = "0") {
+  if (typeof value === "bigint") return value.toString();
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function formatEventDate(value: unknown, fallback: string) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return fallback;
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(seconds * 1000);
+}
+
+function compactAddress(value: string) {
+  const text = value.trim();
+  return text.length > 14 ? `${text.slice(0, 6)}...${text.slice(-5)}` : text;
+}
+
+function eventTitle(event: EventItem | null | undefined, fallback: string) {
+  return String(event?.name ?? event?.id ?? fallback);
+}
+
+function ticketId(ticket: TicketItem | null | undefined) {
+  return String(ticket?.tokenId ?? ticket?.id ?? "");
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num, str, bool, val } = useStateBindings(state);
-  const [deskTab, setDeskTab] = useState<"issue" | "checkin">("issue");
+  const { str, bool, num, val } = useStateBindings(state);
 
-  const events = val<EventItem[]>("events", []) ?? [];
-  const tickets = val<TicketItem[]>("tickets", []) ?? [];
-  const selectedEvent = val<EventItem>("selectedEvent");
-  const lookup = val<TicketItem>("lookup");
-  const latestRequest = val<Record<string, unknown>>("latestRequest");
-  const latestResult = val<Record<string, unknown>>("latestResult");
   const eventsCount = num("eventsCount");
   const ticketsCount = num("ticketsCount");
   const activeEventsCount = num("activeEventsCount");
   const address = str("address");
-  const selectedEventId = str("selectedEventId");
+  const selectedEventId = str("selectedEventId", "");
   const eventName = str("eventName");
   const eventVenue = str("eventVenue");
   const eventStart = str("eventStart");
@@ -81,865 +155,731 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const workflowStatus = str("workflowStatus", t("ready"));
   const lastError = str("lastError");
   const isLoading = bool("isLoading");
-  const isRefreshing = bool("isRefreshing");
-  const isRefreshingTickets = bool("isRefreshingTickets");
   const isCreating = bool("isCreating");
   const isIssuing = bool("isIssuing");
-  const isLookingUp = bool("isLookingUp");
   const isCheckingIn = bool("isCheckingIn");
+  const isLookingUp = bool("isLookingUp");
   const isTransferring = bool("isTransferring");
-  const transferringTokenId = str("transferringTokenId");
   const canIssueTicket = bool("canIssueTicket");
   const canCheckInTicket = bool("canCheckInTicket");
   const canTransferTicket = bool("canTransferTicket");
-  const togglingId = str("togglingId");
-  const requestJson = json(latestRequest);
-  const resultJson = json(latestResult);
-  const resultTxid = String(
-    (latestResult as { txid?: unknown } | undefined)?.txid ?? "",
-  ).trim();
-  const eventSchedulePreview =
-    eventStart && eventEnd
-      ? `${eventStart} - ${eventEnd}`
-      : eventStart || eventEnd || t("eventStartPlaceholder");
-  const ticketSupplyPreview = maxSupply || t("maxSupplyPlaceholder");
-  const issuePassTitle = selectedEvent?.name || eventName || t("eventNamePlaceholder");
-  const issuePassSeat = issueSeat || t("seatFallback");
-  const issuePassHolder = issueRecipient ? short(issueRecipient) : t("issueRecipientPlaceholder");
-  const isLifecycleBusy =
-    isCreating || isIssuing || isLookingUp || isCheckingIn || isTransferring;
-  const lifecycleState = isCreating
-    ? "creating"
-    : isIssuing
-      ? "issuing"
-      : isCheckingIn
-        ? "checking"
-        : isLookingUp
-          ? "lookup"
-          : isTransferring
-            ? "transfer"
-            : tickets.length
-              ? "complete"
-              : events.length
-                ? "ready"
-                : "draft";
-  const lifecycleStatus =
-    lifecycleState === "creating"
-      ? t("lifecycleCreating")
-      : lifecycleState === "issuing"
-        ? t("lifecycleIssuing")
-        : lifecycleState === "checking"
-          ? t("lifecycleChecking")
-          : lifecycleState === "lookup"
-            ? t("lifecycleLookup")
-            : lifecycleState === "transfer"
-              ? t("lifecycleTransfer")
-              : lifecycleState === "complete"
-                ? t("lifecycleComplete")
-                : lifecycleState === "ready"
-                  ? t("lifecycleReady")
-                  : t("lifecycleDraft");
+  const selectedEvent = val<EventItem | null>("selectedEvent");
+  const lookupValue = val<TicketItem | null>("lookup");
+  const latestRequest = val<Record<string, unknown> | null>("latestRequest");
+  const latestResult = val<Record<string, unknown> | null>("latestResult");
+  const eventsValue = val("events");
+  const ticketsValue = val("tickets");
+  const events = useMemo(() => (eventsValue ?? []) as EventItem[], [eventsValue]);
+  const tickets = useMemo(() => (ticketsValue ?? []) as TicketItem[], [ticketsValue]);
+  const lookupTicket = lookupValue && typeof lookupValue === "object" ? lookupValue : null;
 
-  const hasMetrics =
-    eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
-  const hasEvidence = Boolean(requestJson || resultJson);
+  const [mode, setMode] = useState<DeskMode>(() => (events.length > 0 ? "issue" : "create"));
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>(() => (events.length > 0 ? "issue" : "event"));
+  const [activeBlueprint, setActiveBlueprint] = useState("");
+  const [customDetailsOpen, setCustomDetailsOpen] = useState(false);
 
-  return (
-    <div className="ticket-play-area">
-      <section className="ticket-hero" aria-labelledby="event-ticket-title">
-        <img
-          className="ticket-hero__image"
-          src="./event-pass-stage.jpg"
-          alt=""
-          loading="eager"
-          decoding="async"
-        />
-        <div className="ticket-hero__shade" aria-hidden="true" />
-        <div className="ticket-hero__copy">
-          <span className="ticket-hero__badge" aria-hidden="true">
-            <Ticket size={24} />
+  const activeEvent = selectedEvent ?? events.find((event) => String(event.id) === selectedEventId) ?? events[0] ?? null;
+  const activeTicket = tickets[0] ?? null;
+  const checkinTicket = lookupTicket ?? tickets.find((ticket) => ticketId(ticket) === checkinTokenId) ?? null;
+  const guestWallets = useMemo(() => {
+    const seen = new Set<string>();
+    const wallets: string[] = [];
+    for (const ticket of tickets) {
+      const owner = String(ticket.owner ?? "").trim();
+      if (!owner || seen.has(owner)) continue;
+      seen.add(owner);
+      wallets.push(owner);
+      if (wallets.length >= 4) break;
+    }
+    return wallets;
+  }, [tickets]);
+  const busy = isLoading || isCreating || isIssuing || isCheckingIn || isLookingUp || isTransferring;
+  const passName = eventTitle(activeEvent, eventName || t("eventNamePlaceholder"));
+  const passVenue = String(activeEvent?.venue ?? eventVenue ?? t("eventVenuePlaceholder"));
+  const passDate = formatEventDate(activeEvent?.startTime, eventStart || t("eventStartPlaceholder"));
+  const selectedToken = ticketId(activeTicket) || checkinTokenId || "1-001";
+  const sceneState = isCheckingIn || isLookingUp ? "scanning" : isIssuing ? "issuing" : isCreating ? "publishing" : "idle";
+  const hasLiveEvent = Boolean(activeEvent);
+  const hasTransferContext = tickets.length > 0 || transferTokenId.trim().length > 0 || transferRecipient.trim().length > 0;
+
+  useEffect(() => {
+    if (events.length === 0) return;
+    if (!selectedEventId && events[0]?.id) {
+      state.selectedEventId?.set(String(events[0].id));
+      void dispatch("selectEvent", events[0].id);
+    }
+  }, [dispatch, events, selectedEventId, state.selectedEventId]);
+
+  useEffect(() => {
+    setDrawerMode(mode === "create" ? "event" : mode === "issue" ? "issue" : "tickets");
+  }, [mode]);
+
+  const selectEvent = (event: EventItem) => {
+    state.selectedEventId?.set(String(event.id));
+    void dispatch("selectEvent", event.id);
+    if (mode === "create") setMode("issue");
+  };
+
+  const selectTicketForGate = (ticket: TicketItem) => {
+    const id = ticketId(ticket);
+    if (!id) return;
+    state.checkinTokenId?.set(id);
+    setMode("checkin");
+  };
+
+  const updateEventDraft = (
+    key: "eventName" | "eventVenue" | "eventStart" | "eventEnd" | "maxSupply" | "notes",
+    value: string,
+  ) => {
+    setActiveBlueprint("");
+    state[key]?.set(value);
+  };
+
+  const applyEventBlueprint = (blueprint: EventBlueprint) => {
+    setActiveBlueprint(blueprint.key);
+    state.eventName?.set(t(blueprint.nameKey));
+    state.eventVenue?.set(t(blueprint.venueKey));
+    state.eventStart?.set(t(blueprint.startKey));
+    state.eventEnd?.set(t(blueprint.endKey));
+    state.maxSupply?.set(blueprint.supply);
+    state.notes?.set(t(blueprint.notesKey));
+    setCustomDetailsOpen(false);
+  };
+
+  const primaryAction = (() => {
+    if (mode === "create") {
+      return {
+        label: isCreating ? t("creatingEvent") : t("createEvent"),
+        onClick: () => void dispatch("createEvent"),
+        disabled: isCreating || isLoading,
+        loading: isCreating,
+      };
+    }
+    if (mode === "checkin") {
+      return {
+        label: isCheckingIn ? t("checkingIn") : t("checkIn"),
+        onClick: () => void dispatch("checkInTicket"),
+        disabled: busy || !canCheckInTicket,
+        loading: isCheckingIn,
+      };
+    }
+    return {
+      label: isIssuing ? t("issuing") : t("issueTicket"),
+      onClick: () => void dispatch("issueTicket"),
+      disabled: busy || !canIssueTicket,
+      loading: isIssuing,
+    };
+  })();
+
+  const scene = (
+    <div className="ticket-scene" data-state={sceneState}>
+      <div className="ticket-scene__phone" aria-hidden="true">
+        <QrCode size={34} />
+        <span>{selectedToken}</span>
+      </div>
+
+      <article className="ticket-pass" aria-label={passName}>
+        <img className="ticket-pass__texture" src={PASS_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
+        <div className="ticket-pass__main">
+          <span className="ticket-pass__eyebrow">{t("eventPass")}</span>
+          <strong>{passName}</strong>
+          <span><MapPin size={14} /> {passVenue}</span>
+          <span><CalendarDays size={14} /> {passDate}</span>
+        </div>
+        <div className="ticket-pass__stub">
+          <span>{t("sampleAdmitOne")}</span>
+          <strong>{issueSeat || activeTicket?.seat || t("seatFallback")}</strong>
+        </div>
+        <span className="ticket-pass__scanline" aria-hidden="true" />
+      </article>
+
+      <div className="ticket-gate" aria-label={t("lifecycleTitle")}>
+        <span className="ticket-gate__step ticket-gate__step--active"><Wand2 size={15} />{t("studioStepCreate")}</span>
+        <span className={["ticket-gate__beam", isIssuing ? "ticket-gate__beam--active" : null].filter(Boolean).join(" ")} />
+        <span className={["ticket-gate__step", mode !== "create" ? "ticket-gate__step--active" : null].filter(Boolean).join(" ")}><WalletCards size={15} />{t("studioStepIssue")}</span>
+        <span className={["ticket-gate__beam", isCheckingIn || mode === "checkin" ? "ticket-gate__beam--active" : null].filter(Boolean).join(" ")} />
+        <span className={["ticket-gate__step", mode === "checkin" ? "ticket-gate__step--active" : null].filter(Boolean).join(" ")}><DoorOpen size={15} />{t("studioStepCheckin")}</span>
+      </div>
+
+      <p className="ticket-scene__status" aria-live="polite">{workflowStatus}</p>
+    </div>
+  );
+
+  const eventCards = (
+    <div className="ticket-event-rail" aria-label={t("eventsCountLabel", { count: eventsCount })}>
+      {events.slice(0, 6).map((event) => {
+        const active = String(activeEvent?.id) === String(event.id);
+        return (
+          <button
+            key={event.id}
+            type="button"
+            className={["ticket-event-card", active ? "ticket-event-card--active" : null].filter(Boolean).join(" ")}
+            onClick={() => selectEvent(event)}
+            disabled={busy}
+            aria-pressed={active}
+          >
+            <span className="ticket-event-card__icon"><Ticket size={18} /></span>
+            <span className="ticket-event-card__copy">
+              <strong>{eventTitle(event, t("eventNamePlaceholder"))}</strong>
+              <em>{String(event.venue ?? t("venueFallback"))}</em>
+            </span>
+            <span className={["ticket-event-card__status", event.active ? "ticket-event-card__status--live" : null].filter(Boolean).join(" ")}>
+              {event.active ? t("statusActive") : t("statusInactive")}
+            </span>
+          </button>
+        );
+      })}
+      {events.length === 0 && (
+        <button type="button" className="ticket-event-card ticket-event-card--empty" onClick={() => setMode("create")}>
+          <span className="ticket-event-card__icon"><Wand2 size={18} /></span>
+          <span className="ticket-event-card__copy">
+            <strong>{t("modeCreateTitle")}</strong>
+            <em>{t("modeCreateHint")}</em>
           </span>
-          <div>
-            <span className="ticket-hero__eyebrow">{t("heroTagline")}</span>
-            <h2 id="event-ticket-title">{t("title")}</h2>
-            <p>{t("docSubtitle")}</p>
-            <div className="ticket-hero__flow" aria-label={t("workflow")}>
-              <span>
-                <CalendarDays size={14} aria-hidden="true" />
-                {t("flowCreate")}
-              </span>
-              <span>
-                <UserPlus size={14} aria-hidden="true" />
-                {t("flowIssue")}
-              </span>
-              <span>
-                <ScanLine size={14} aria-hidden="true" />
-                {t("flowCheckin")}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="ticket-hero__side">
-          <div className="ticket-hero__mini-pass" aria-label={t("eventPass")}>
-            <div className="ticket-hero__mini-art" aria-hidden="true" />
-            <div>
-              <span>{t("eventPass")}</span>
-              <strong>
-                {selectedEvent?.name || eventName || t("eventNamePlaceholder")}
-              </strong>
-              <small>
-                {selectedEvent?.venue ||
-                  eventVenue ||
-                  t("eventVenuePlaceholder")}
-              </small>
-            </div>
-          </div>
-          <div className="ticket-hero__wallet">
-            <span>{t("wallet")}</span>
-            <strong>
-              {address ? short(address) : t("walletNotConnected")}
-            </strong>
-            <small>{isLoading ? t("lookingUp") : workflowStatus}</small>
-          </div>
-          <NeoButton
-            variant="secondary"
-            onClick={() => dispatch("connectWallet")}
-          >
-            <CheckCircle2 size={17} aria-hidden="true" />
-            <span>{address ? t("refresh") : t("connectWallet")}</span>
-          </NeoButton>
-        </div>
-      </section>
+        </button>
+      )}
+    </div>
+  );
 
-      {hasMetrics ? (
-        <section className="ticket-metrics" aria-label={t("serviceStatus")}>
-          <div>
-            <span>{t("sidebarEvents")}</span>
-            <strong>{eventsCount}</strong>
-          </div>
-          <div>
-            <span>{t("sidebarTickets")}</span>
-            <strong>{ticketsCount}</strong>
-          </div>
-          <div>
-            <span>{t("sidebarActive")}</span>
-            <strong>{activeEventsCount}</strong>
-          </div>
-        </section>
-      ) : null}
-
-      {lastError ? (
-        <div className="ticket-alert" role="alert">
-          {lastError}
-        </div>
-      ) : null}
-
-      <section className="ticket-studio" aria-label={t("studioTitle")}>
-        <div className="ticket-studio__head">
-          <div>
-            <span>{t("studioEyebrow")}</span>
-            <strong>{t("studioTitle")}</strong>
-            <p>{t("studioSubtitle")}</p>
-          </div>
-          <div className="ticket-studio__steps" aria-label={t("workflow")}>
-            <span>
-              <CalendarDays size={14} aria-hidden="true" />
-              {t("studioStepCreate")}
+  const modePanel = (
+    <div className="ticket-desk">
+      {lastError && <p className="ticket-desk__error" role="alert">{lastError}</p>}
+      <OpenUiSegmented
+        className="ticket-mode-switch"
+        label={t("studioModeLabel")}
+        onChange={(value) => setMode(value === "issue" ? "issue" : value === "checkin" ? "checkin" : "create")}
+        options={([
+          ["create", Wand2, t("studioStepCreate")],
+          ["issue", UserPlus, t("studioStepIssue")],
+          ["checkin", DoorOpen, t("studioStepCheckin")],
+        ] as const).map(([id, Icon, label]) => ({
+          value: id,
+          label: (
+            <span className="ticket-mode-label">
+              <Icon size={16} />
+              <span>{label}</span>
             </span>
-            <span>
-              <UserPlus size={14} aria-hidden="true" />
-              {t("studioStepIssue")}
-            </span>
-            <span>
-              <ScanLine size={14} aria-hidden="true" />
-              {t("studioStepCheckin")}
-            </span>
-          </div>
-        </div>
+          ),
+        }))}
+        segmentedClassName="ticket-mode-segmented"
+        value={mode}
+      />
 
-        <section
-          className={`ticket-lifecycle ticket-lifecycle--${lifecycleState}`}
-          aria-label={t("lifecycleTitle")}
-          aria-busy={isLifecycleBusy || undefined}
-        >
-          <div className="ticket-lifecycle__copy">
-            <span>{t("lifecycleEyebrow")}</span>
-            <strong>{t("lifecycleTitle")}</strong>
-            <p>{t("lifecycleCopy")}</p>
+      {mode === "create" && (
+        <div className="ticket-work-card ticket-work-card--create">
+          <div className="ticket-work-card__icon"><Wand2 size={19} /></div>
+          <div className="ticket-work-card__copy">
+            <strong>{t("modeCreateTitle")}</strong>
+            <span>{t("modeCreateHint")}</span>
           </div>
-          <div className="ticket-lifecycle__status" role="status" aria-live="polite">
-            <Sparkles size={15} aria-hidden="true" />
-            <span>{lifecycleStatus}</span>
-          </div>
-          <div className="ticket-lifecycle__board" aria-hidden="true">
-            <span className="ticket-lifecycle__rail" />
-            <span className="ticket-lifecycle__moving-pass" />
-            <article className="ticket-lifecycle__node ticket-lifecycle__node--event">
-              <img
-                className="ticket-lifecycle__art"
-                src="./pass-artwork.jpg"
-                alt=""
-                loading="lazy"
-                decoding="async"
-              />
-              <span>{t("lifecycleEvent")}</span>
-              <strong>{issuePassTitle}</strong>
-              <small>{eventSchedulePreview}</small>
-            </article>
-            <article className="ticket-lifecycle__node ticket-lifecycle__node--wallet">
-              <Users size={20} />
-              <span>{t("lifecycleWallet")}</span>
-              <strong>{issuePassHolder}</strong>
-              <small>{issuePassSeat}</small>
-            </article>
-            <article className="ticket-lifecycle__node ticket-lifecycle__node--gate">
-              <ScanLine size={20} />
-              <span>{t("lifecycleGate")}</span>
-              <strong>{checkinTokenId || t("checkinTokenIdPlaceholder")}</strong>
-              <small>{lifecycleStatus}</small>
-            </article>
-          </div>
-        </section>
 
-        <div
-          className={`ticket-studio__grid${
-            events.length ? " ticket-studio__grid--has-events" : ""
-          }`}
-        >
-          <form
-            className="ticket-stage"
-            aria-label={t("createEvent")}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void dispatch("createEvent");
-            }}
-          >
-            <section
-              className="ticket-create-preview ticket-create-preview--stage"
-              aria-label={t("eventPass")}
-            >
-              <div className="ticket-create-preview__art" aria-hidden="true" />
-              <div className="ticket-create-preview__body">
-                <span>
-                  <Sparkles size={14} aria-hidden="true" />
-                  {t("eventPass")}
-                </span>
-                <strong>{eventName || t("eventNamePlaceholder")}</strong>
-                <p>{eventVenue || t("eventVenuePlaceholder")}</p>
-                <div className="ticket-create-preview__meta">
-                  <div>
-                    <CalendarDays size={14} aria-hidden="true" />
-                    <span>{eventSchedulePreview}</span>
-                  </div>
-                  <div>
-                    <Ticket size={14} aria-hidden="true" />
-                    <span>
-                      {ticketSupplyPreview} {t("sidebarTickets")}
+          <div className="ticket-blueprint-picker">
+            <span className="ticket-blueprint-picker__label">{t("eventBlueprintsLabel")}</span>
+            <div className="ticket-blueprint-row" role="list" aria-label={t("eventBlueprintsLabel")}>
+              {EVENT_BLUEPRINTS.map((blueprint) => {
+                const Icon = blueprint.Icon;
+                const active = activeBlueprint === blueprint.key;
+                return (
+                  <button
+                    key={blueprint.key}
+                    type="button"
+                    className={["ticket-blueprint-card", active ? "ticket-blueprint-card--active" : null].filter(Boolean).join(" ")}
+                    onClick={() => applyEventBlueprint(blueprint)}
+                    disabled={busy}
+                    aria-pressed={active}
+                  >
+                    <span className="ticket-blueprint-card__icon"><Icon size={18} strokeWidth={2.35} /></span>
+                    <span className="ticket-blueprint-card__copy">
+                      <strong>{t(blueprint.nameKey)}</strong>
+                      <em>{t(blueprint.venueKey)}</em>
+                      <small>{blueprint.supply} {t("ticketsCount").toLowerCase()}</small>
                     </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="ticket-pass-dossier">
+            <div>
+              <span>{t("eventIdentity")}</span>
+              <strong>{eventName || t("eventNamePlaceholder")}</strong>
+              <em>{eventVenue || t("eventVenuePlaceholder")}</em>
+            </div>
+            <button
+              type="button"
+              className="ticket-detail-toggle"
+              onClick={() => setCustomDetailsOpen((value) => !value)}
+              aria-expanded={customDetailsOpen}
+              disabled={busy}
+            >
+              {t("eventDetails")}
+            </button>
+          </div>
+          {customDetailsOpen && (
+            <div className="ticket-quick-fields">
+              <label className="ticket-field">
+                <span>{t("eventName")}</span>
+                <input value={eventName} onChange={(e) => updateEventDraft("eventName", e.target.value)} placeholder={t("eventNamePlaceholder")} disabled={busy} />
+              </label>
+              <label className="ticket-field">
+                <span>{t("eventVenue")}</span>
+                <input value={eventVenue} onChange={(e) => updateEventDraft("eventVenue", e.target.value)} placeholder={t("eventVenuePlaceholder")} disabled={busy} />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === "issue" && (
+        <div className="ticket-work-card ticket-work-card--issue">
+          <div className="ticket-work-card__icon"><UserPlus size={19} /></div>
+          <div className="ticket-work-card__copy">
+            <strong>{t("issueTicketTitle")}</strong>
+            <span>{activeEvent ? eventTitle(activeEvent, t("eventNamePlaceholder")) : t("modeOperateDisabled")}</span>
+          </div>
+          {activeEvent ? (
+            <div className="ticket-guest-lane" aria-label={t("guestLaneLabel")}>
+              <label className="ticket-address-strip">
+                <span className="ticket-address-strip__meta"><WalletCards size={15} />{t("issueRecipient")}</span>
+                <input value={issueRecipient} onChange={(e) => state.issueRecipient?.set(e.target.value)} placeholder={t("issueRecipientPlaceholder")} disabled={busy} />
+              </label>
+              {guestWallets.length > 0 && (
+                <div className="ticket-recipient-picks" aria-label={t("recentGuests")}>
+                  <span>{t("recentGuests")}</span>
+                  <div>
+                    {guestWallets.map((wallet) => (
+                      <button
+                        key={wallet}
+                        type="button"
+                        className={issueRecipient === wallet ? "ticket-recipient-chip ticket-recipient-chip--active" : "ticket-recipient-chip"}
+                        onClick={() => state.issueRecipient?.set(wallet)}
+                        disabled={busy}
+                      >
+                        {compactAddress(wallet)}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </section>
-
-            <div className="ticket-stage__controls">
-              <div className="ticket-panel__head">
-                <div>
-                  <span>{t("createTab")}</span>
-                  <strong>{t("createEvent")}</strong>
-                </div>
-                <CalendarDays size={20} aria-hidden="true" />
-              </div>
-
-              <div
-                className="ticket-create-fields ticket-create-fields--identity"
-                aria-label={t("eventIdentity")}
-              >
-                <NeoInput
-                  value={eventName}
-                  label={t("eventName")}
-                  placeholder={t("eventNamePlaceholder")}
-                  onChange={(value) => state.eventName?.set(value)}
-                />
-                <NeoInput
-                  value={eventVenue}
-                  label={t("eventVenue")}
-                  placeholder={t("eventVenuePlaceholder")}
-                  onChange={(value) => state.eventVenue?.set(value)}
-                />
-              </div>
-
-              <div
-                className="ticket-create-fields ticket-create-fields--schedule"
-                aria-label={t("eventDetails")}
-              >
-                <NeoInput
-                  value={eventStart}
-                  label={t("eventStart")}
-                  placeholder={t("eventStartPlaceholder")}
-                  onChange={(value) => state.eventStart?.set(value)}
-                />
-                <NeoInput
-                  value={eventEnd}
-                  label={t("eventEnd")}
-                  placeholder={t("eventEndPlaceholder")}
-                  onChange={(value) => state.eventEnd?.set(value)}
-                />
-                <NeoInput
-                  value={maxSupply}
-                  type="number"
-                  label={t("maxSupply")}
-                  placeholder={t("maxSupplyPlaceholder")}
-                  min={1}
-                  onChange={(value) => state.maxSupply?.set(value)}
-                />
-              </div>
-
-              <details className="ticket-create-advanced">
-                <summary>
-                  <span>
-                    <ClipboardCheck size={15} aria-hidden="true" />
-                    {t("notes")}
-                  </span>
-                  <small>{t("notesPlaceholder")}</small>
-                  <ChevronDown size={16} aria-hidden="true" />
-                </summary>
-                <NeoInput
-                  value={notes}
-                  type="textarea"
-                  label={t("notes")}
-                  placeholder={t("notesPlaceholder")}
-                  onChange={(value) => state.notes?.set(value)}
-                />
-              </details>
-
-              <NeoButton
-                variant="primary"
-                loading={isCreating}
-                onClick={() => dispatch("createEvent")}
-              >
-                <CheckCircle2 size={17} aria-hidden="true" />
-                <span>{t("createEvent")}</span>
-              </NeoButton>
-            </div>
-          </form>
-
-          <section className="ticket-gate" aria-label={t("gateDesk")}>
-            <div className="ticket-gate__head">
-              <div>
-                <span>{t("gateDesk")}</span>
-                <strong>
-                  {events.length
-                    ? selectedEvent?.name ||
-                      t("eventsCountLabel", { count: events.length })
-                    : t("emptyEvents")}
-                </strong>
-                <p>{t("gateDeskSubtitle")}</p>
-              </div>
-              <NeoButton
-                variant="ghost"
-                size="sm"
-                loading={isRefreshing}
-                onClick={() => dispatch("refreshEvents")}
-              >
-                <RefreshCw size={15} aria-hidden="true" />
-                <span>{t("refresh")}</span>
-              </NeoButton>
-            </div>
-
-            {events.length ? (
-              <div className="ticket-event-list ticket-event-list--rail">
-                {events.map((event) => {
-                  const active = event.id === selectedEventId;
-                  const soldOut = event.minted >= event.maxSupply;
-                  return (
-                    <article
-                      key={event.id}
-                      className={`ticket-event${active ? " is-selected" : ""}`}
+              )}
+              <div className="ticket-seat-board">
+                <span className="ticket-seat-board__label">{t("seatLaneLabel")}</span>
+                <div className="ticket-seat-picks" aria-label={t("issueSeat")}>
+                  {SEAT_PRESETS.map((seat) => (
+                    <button
+                      key={seat}
+                      type="button"
+                      className={["ticket-seat", issueSeat === seat ? "ticket-seat--active" : null].filter(Boolean).join(" ")}
+                      onClick={() => state.issueSeat?.set(seat)}
+                      disabled={busy}
                     >
-                      <button
-                        type="button"
-                        className="ticket-event__main"
-                        onClick={() => dispatch("selectEvent", event.id)}
-                      >
-                        <span>{event.name || event.id}</span>
-                        <strong>
-                          <MapPin size={14} aria-hidden="true" />
-                          {event.venue || t("venueFallback")}
-                        </strong>
-                      </button>
-                      <div className="ticket-event__meta">
-                        <span>
-                          <CalendarDays size={13} aria-hidden="true" />
-                          {formatDate(event.startTime, t("dateUnknown"))}
-                        </span>
-                        <span>
-                          <Users size={13} aria-hidden="true" />
-                          {event.minted.toString()} /{" "}
-                          {event.maxSupply.toString()} {t("minted")}
-                        </span>
-                        <span className={event.active ? "is-live" : "is-muted"}>
-                          {event.active
-                            ? t("statusActive")
-                            : t("statusInactive")}
-                        </span>
-                      </div>
-                      <div className="ticket-event__actions">
-                        <NeoButton
-                          variant="secondary"
-                          size="sm"
-                          disabled={soldOut}
-                          onClick={() => dispatch("openIssueModal", event)}
-                        >
-                          <UserPlus size={15} aria-hidden="true" />
-                          <span>{t("issueTicket")}</span>
-                        </NeoButton>
-                        <NeoButton
-                          variant="ghost"
-                          size="sm"
-                          loading={togglingId === event.id}
-                          onClick={() => dispatch("toggleEvent", event)}
-                        >
-                          <span>
-                            {event.active ? t("deactivate") : t("activate")}
-                          </span>
-                        </NeoButton>
-                      </div>
-                    </article>
+                      {seat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="ticket-memo-chip">
+                <span>{t("issueMemo")}</span>
+                <input value={issueMemo} onChange={(e) => state.issueMemo?.set(e.target.value)} placeholder={t("issueMemoPlaceholder")} disabled={busy} />
+              </label>
+            </div>
+          ) : (
+            <div className="ticket-empty-prompt">
+              <span className="ticket-empty-prompt__icon"><Ticket size={17} /></span>
+              <div>
+                <strong>{t("modeCreateTitle")}</strong>
+                <p>{t("modeCreateHint")}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === "checkin" && (
+        <div className="ticket-work-card ticket-work-card--checkin">
+          <div className="ticket-work-card__icon"><QrCode size={19} /></div>
+          <div className="ticket-work-card__copy">
+            <strong>{t("doorScanner")}</strong>
+            <span>{t("checkinHint")}</span>
+          </div>
+          <div className="ticket-scanner-console" aria-label={t("scannerSlotLabel")}>
+            <span className="ticket-scanner-console__sensor"><QrCode size={18} /></span>
+            <label className="ticket-scan-slot">
+              <span>{t("checkinTokenId")}</span>
+              <input value={checkinTokenId} onChange={(e) => state.checkinTokenId?.set(e.target.value)} placeholder={t("checkinTokenIdPlaceholder")} disabled={busy} />
+            </label>
+            <button type="button" className="ticket-secondary-action" onClick={() => void dispatch("lookupTicket")} disabled={busy || !checkinTokenId.trim()}>
+              <RefreshCw size={15} />
+              {isLookingUp ? t("lookingUp") : t("lookup")}
+            </button>
+          </div>
+          {tickets.length > 0 ? (
+            <div className="ticket-gate-queue" aria-label={t("gateQueueLabel")}>
+              <span className="ticket-gate-queue__label">{t("gateQueueLabel")}</span>
+              <div className="ticket-gate-queue__list">
+                {tickets.slice(0, 4).map((ticket) => {
+                  const id = ticketId(ticket);
+                  const used = Boolean(ticket.used ?? ticket.checkedIn);
+                  const active = id === checkinTokenId;
+                  return (
+                    <button
+                      key={id || String(ticket.eventName)}
+                      type="button"
+                      className={["ticket-gate-pass", active ? "ticket-gate-pass--active" : null].filter(Boolean).join(" ")}
+                      onClick={() => selectTicketForGate(ticket)}
+                      disabled={busy || !id}
+                      aria-pressed={active}
+                    >
+                      <span className="ticket-gate-pass__mark"><Ticket size={14} /></span>
+                      <span className="ticket-gate-pass__copy">
+                        <strong>{String(ticket.eventName ?? id)}</strong>
+                        <em>{String(ticket.seat ?? t("seatFallback"))} · {used ? t("ticketUsed") : t("ticketValid")}</em>
+                      </span>
+                      <span className="ticket-gate-pass__id">{id}</span>
+                    </button>
                   );
                 })}
               </div>
-            ) : (
-              <div className="ticket-empty ticket-empty--gate">
-                <CalendarDays size={28} aria-hidden="true" />
-                <span>{t("emptyEventsHint")}</span>
-              </div>
-            )}
-
-            <div className="ticket-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={deskTab === "issue"}
-                className={`ticket-tab${deskTab === "issue" ? " is-active" : ""}`}
-                onClick={() => setDeskTab("issue")}
-              >
-                <UserPlus size={16} aria-hidden="true" />
-                <span>{t("issueTicketTitle")}</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={deskTab === "checkin"}
-                className={`ticket-tab${deskTab === "checkin" ? " is-active" : ""}`}
-                onClick={() => setDeskTab("checkin")}
-              >
-                <ClipboardCheck size={16} aria-hidden="true" />
-                <span>{t("checkinTab")}</span>
-              </button>
             </div>
-
-            {deskTab === "issue" ? (
-              <form
-                className="ticket-desk__panel ticket-desk__panel--issue"
-                aria-label={t("issueTicketTitle")}
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void dispatch("issueTicket");
-                }}
-              >
-                {events.length ? (
-                  <>
-                    <section
-                      className={`ticket-issue-runway${canIssueTicket ? " is-ready" : ""}${isIssuing ? " is-issuing" : ""}`}
-                      aria-label={t("issuePreview")}
-                    >
-                      <span className="ticket-issue-runway__rail" aria-hidden="true" />
-                      <span className="ticket-issue-runway__ticket" aria-hidden="true" />
-                      <div className="ticket-issue-runway__node ticket-issue-runway__node--event">
-                        <span className="ticket-issue-runway__art" aria-hidden="true" />
-                        <small>{t("eventPass")}</small>
-                        <strong>{issuePassTitle}</strong>
-                      </div>
-                      <div className="ticket-issue-runway__node ticket-issue-runway__node--mint">
-                        <Ticket size={18} aria-hidden="true" />
-                        <small>{t("issuePreview")}</small>
-                        <strong>{issuePassSeat}</strong>
-                      </div>
-                      <div className="ticket-issue-runway__node ticket-issue-runway__node--holder">
-                        <Users size={18} aria-hidden="true" />
-                        <small>{t("ticketOwner")}</small>
-                        <strong>{issuePassHolder}</strong>
-                      </div>
-                      <div className="ticket-issue-runway__caption">
-                        <Sparkles size={14} aria-hidden="true" />
-                        <div>
-                          <span>{canIssueTicket ? t("issueTicketTitle") : t("selectEventFirst")}</span>
-                          <strong>{issuePassSeat} · {issuePassHolder}</strong>
-                        </div>
-                      </div>
-                    </section>
-                    <NeoInput
-                      value={issueRecipient}
-                      label={t("issueRecipient")}
-                      placeholder={t("issueRecipientPlaceholder")}
-                      onChange={(value) => state.issueRecipient?.set(value)}
-                    />
-                    <div className="ticket-form-grid">
-                      <NeoInput
-                        value={issueSeat}
-                        label={t("issueSeat")}
-                        placeholder={t("issueSeatPlaceholder")}
-                        onChange={(value) => state.issueSeat?.set(value)}
-                      />
-                      <NeoInput
-                        value={issueMemo}
-                        label={t("issueMemo")}
-                        placeholder={t("issueMemoPlaceholder")}
-                        onChange={(value) => state.issueMemo?.set(value)}
-                      />
-                    </div>
-                    <NeoButton
-                      variant="primary"
-                      loading={isIssuing}
-                      disabled={!canIssueTicket}
-                      onClick={() => dispatch("issueTicket")}
-                    >
-                      <Ticket size={17} aria-hidden="true" />
-                      <span>{t("issue")}</span>
-                    </NeoButton>
-                    <p className="ticket-free-note">{t("freePassesNote")}</p>
-                  </>
-                ) : (
-                  <div className="ticket-empty ticket-empty--compact">
-                    <CalendarDays size={28} aria-hidden="true" />
-                    <span>{t("selectEventFirst")}</span>
-                  </div>
-                )}
-              </form>
-            ) : (
-              <form
-                className="ticket-desk__panel ticket-desk__panel--scan"
-                aria-label={t("checkinTab")}
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void dispatch("lookupTicket");
-                }}
-              >
-                <div className="ticket-scan-frame">
-                  <QrCode size={34} aria-hidden="true" />
-                  <span>{t("doorScanner")}</span>
-                  <strong>{checkinTokenId || t("checkinTokenIdPlaceholder")}</strong>
-                </div>
-                <NeoInput
-                  value={checkinTokenId}
-                  label={t("checkinTokenId")}
-                  placeholder={t("checkinTokenIdPlaceholder")}
-                  onChange={(value) => {
-                    state.checkinTokenId?.set(value);
-                    // Clear any prior lookup so the check-in button reflects the
-                    // current token id and can't act on a stale ticket.
-                    if (lookup) state.lookup?.set(null);
-                  }}
-                />
-                {lookup ? (
-                  <div className="ticket-lookup">
-                    <div>
-                      <span>{t("ticketTokenId")}</span>
-                      <strong>{short(lookup.tokenId)}</strong>
-                    </div>
-                    <div>
-                      <span>{t("eventName")}</span>
-                      <strong>{lookup.eventName || lookup.eventId}</strong>
-                    </div>
-                    <div>
-                      <span>{t("ticketSeat")}</span>
-                      <strong>{lookup.seat || t("seatFallback")}</strong>
-                    </div>
-                    <div>
-                      <span>{t("ticketOwner")}</span>
-                      <strong>{short(lookup.owner)}</strong>
-                    </div>
-                    <span
-                      className={`ticket-badge ${lookup.used ? "used" : "valid"}`}
-                    >
-                      {lookup.used ? t("ticketUsed") : t("ticketValid")}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="ticket-empty ticket-empty--compact">
-                    <ScanLine size={28} aria-hidden="true" />
-                    <span>{t("checkinHint")}</span>
-                  </div>
-                )}
-                <div className="ticket-actions">
-                  <NeoButton
-                    variant="secondary"
-                    loading={isLookingUp}
-                    disabled={!canCheckInTicket}
-                    onClick={() => dispatch("lookupTicket")}
-                  >
-                    <ScanLine size={17} aria-hidden="true" />
-                    <span>{t("lookup")}</span>
-                  </NeoButton>
-                  <NeoButton
-                    variant="primary"
-                    loading={isCheckingIn}
-                    disabled={!lookup || lookup.used}
-                    onClick={() => dispatch("checkInTicket")}
-                  >
-                    <CheckCircle2 size={17} aria-hidden="true" />
-                    <span>{t("checkIn")}</span>
-                  </NeoButton>
-                </div>
-              </form>
-            )}
-          </section>
-        </div>
-      </section>
-
-      <section
-        className="ticket-panel ticket-panel--tickets"
-        aria-label={t("ticketsTab")}
-      >
-        <div className="ticket-panel__head ticket-panel__head--row">
-          <div>
-            <span>{t("ticketsTab")}</span>
-            <strong>
-              {tickets.length ? t("ticketsLoaded") : t("emptyTickets")}
-            </strong>
-          </div>
-          <NeoButton
-            variant="ghost"
-            size="sm"
-            loading={isRefreshingTickets}
-            onClick={() => dispatch("refreshTickets")}
-          >
-            <RefreshCw size={15} aria-hidden="true" />
-            <span>{t("refresh")}</span>
-          </NeoButton>
-        </div>
-        {tickets.length ? (
-          <div className="ticket-grid">
-            {tickets.map((ticket) => {
-              const isTransferTarget = transferTokenId === ticket.tokenId;
-              const isThisTransferring = transferringTokenId === ticket.tokenId;
-              return (
-                <article
-                  key={ticket.tokenId}
-                  className={`ticket-pass${ticket.used ? " ticket-pass--used" : ""}`}
-                >
-                  <div className="ticket-pass__art" aria-hidden="true" />
-                  <div className="ticket-pass__stub">
-                    <Ticket size={18} aria-hidden="true" />
-                    <span>{t("sampleAdmitOne")}</span>
-                  </div>
-                  <div className="ticket-pass__body">
-                    <div className="ticket-pass__head">
-                      <div>
-                        <span>{ticket.eventName || ticket.eventId}</span>
-                        <strong>{ticket.seat || t("seatFallback")}</strong>
-                      </div>
-                      <span
-                        className={`ticket-badge ${ticket.used ? "used" : "valid"}`}
-                      >
-                        {ticket.used ? t("ticketUsed") : t("ticketValid")}
-                      </span>
-                    </div>
-
-                    {/* Show the token-ID QR the door/check-in flow expects, so an
-                        attendee can present it instead of reading the id aloud. */}
-                    <div className="ticket-pass__qr">
-                      <TokenQr
-                        value={ticket.tokenId}
-                        label={t("ticketQrLabel")}
-                      />
-                    </div>
-
-                    <div className="ticket-pass__id">
-                      <code>{ticket.tokenId}</code>
-                      <button
-                        type="button"
-                        className="ticket-icon-button"
-                        aria-label={t("copyTokenId")}
-                        title={t("copyTokenId")}
-                        onClick={() => dispatch("copyTokenId", ticket.tokenId)}
-                      >
-                        <Copy size={14} aria-hidden="true" />
-                      </button>
-                    </div>
-
-                    {!ticket.used && (
-                      <div className="ticket-pass__transfer">
-                        {isTransferTarget ? (
-                          <form
-                            className="ticket-transfer-form"
-                            onSubmit={(event) => {
-                              event.preventDefault();
-                              void dispatch("transferTicket", {
-                                tokenId: ticket.tokenId,
-                                recipient: transferRecipient,
-                              });
-                            }}
-                          >
-                            <NeoInput
-                              value={transferRecipient}
-                              label={t("transferRecipient")}
-                              placeholder={t("transferRecipientPlaceholder")}
-                              onChange={(value) =>
-                                state.transferRecipient?.set(value)
-                              }
-                            />
-                            <div className="ticket-transfer-form__actions">
-                              <NeoButton
-                                variant="primary"
-                                size="sm"
-                                loading={isThisTransferring}
-                                disabled={!canTransferTicket || isTransferring}
-                                onClick={() =>
-                                  dispatch("transferTicket", {
-                                    tokenId: ticket.tokenId,
-                                    recipient: transferRecipient,
-                                  })
-                                }
-                              >
-                                <Send size={14} aria-hidden="true" />
-                                <span>{t("transferTicket")}</span>
-                              </NeoButton>
-                              <NeoButton
-                                variant="ghost"
-                                size="sm"
-                                disabled={isThisTransferring}
-                                onClick={() => state.transferTokenId?.set("")}
-                              >
-                                <X size={14} aria-hidden="true" />
-                                <span>{t("cancel")}</span>
-                              </NeoButton>
-                            </div>
-                          </form>
-                        ) : (
-                          <NeoButton
-                            variant="secondary"
-                            size="sm"
-                            disabled={isTransferring}
-                            onClick={() => dispatch("startTransfer", ticket)}
-                          >
-                            <Send size={14} aria-hidden="true" />
-                            <span>{t("transferTicket")}</span>
-                          </NeoButton>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="ticket-empty-state">
-            <div
-              className="ticket-sample"
-              aria-label={t("samplePreviewHeading")}
-            >
-              <span className="ticket-sample__flag">
-                {t("samplePreviewLabel")}
+          ) : (
+            <div className="ticket-empty-prompt ticket-empty-prompt--gate">
+              <span className="ticket-empty-prompt__icon"><IdCard size={17} /></span>
+              <div>
+                <strong>{t("emptyTickets")}</strong>
+                <p>{t("emptyTicketsHint")}</p>
+              </div>
+            </div>
+          )}
+          {checkinTicket && (
+            <div className={["ticket-verdict-card", checkinTicket.used || checkinTicket.checkedIn ? "ticket-verdict-card--used" : null].filter(Boolean).join(" ")}>
+              <span className="ticket-verdict-card__icon">
+                <CheckCircle2 size={18} />
               </span>
-              <article
-                className="ticket-pass ticket-pass--sample"
-                aria-hidden="true"
-              >
-                <div className="ticket-pass__art" aria-hidden="true" />
-                <div className="ticket-pass__stub">
-                  <Ticket size={18} aria-hidden="true" />
-                  <span>{t("sampleAdmitOne")}</span>
+              <div className="ticket-verdict-card__copy">
+                <strong>{t("ticketFound")}</strong>
+                <span>{String(checkinTicket.eventName ?? ticketId(checkinTicket))}</span>
+              </div>
+              <dl>
+                <div>
+                  <dt>{t("ticketSeat")}</dt>
+                  <dd>{String(checkinTicket.seat ?? t("seatFallback"))}</dd>
                 </div>
-                <div className="ticket-pass__body">
-                  <div className="ticket-pass__head">
-                    <div>
-                      <span>{t("sampleVenue")}</span>
-                      <strong>{t("sampleEventName")}</strong>
-                    </div>
-                    <span className="ticket-badge valid">
-                      {t("ticketValid")}
-                    </span>
-                  </div>
-                  <div className="ticket-pass__sample-rows">
-                    <div>
-                      <span>{t("ticketSeat")}</span>
-                      <strong>{t("sampleSeat")}</strong>
-                    </div>
-                    <div>
-                      <span>{t("sampleHolder")}</span>
-                      <strong>{t("sampleHolderName")}</strong>
-                    </div>
-                  </div>
-                  <div className="ticket-pass__sample-foot">
-                    <TokenQr
-                      value="sample-pass-1042"
-                      label={t("ticketQrLabel")}
-                    />
-                    <code>1-1042</code>
-                  </div>
+                <div>
+                  <dt>{t("ticketOwner")}</dt>
+                  <dd>{compactAddress(String(checkinTicket.owner ?? "")) || "-"}</dd>
                 </div>
-              </article>
+                <div>
+                  <dt>{t("statusActive")}</dt>
+                  <dd>{checkinTicket.used || checkinTicket.checkedIn ? t("ticketUsed") : t("ticketValid")}</dd>
+                </div>
+              </dl>
             </div>
-            <div className="ticket-empty-state__copy">
-              <strong>{t("samplePreviewHeading")}</strong>
-              <p>{t("samplePreviewCaption")}</p>
-            </div>
-          </div>
-        )}
-      </section>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
-      <section className="ticket-evidence" aria-label={t("evidence")}>
-        <details className="ticket-evidence__details" open={hasEvidence}>
-          <summary>
-            <span>{t("evidence")}</span>
-            <ChevronDown size={16} aria-hidden="true" />
-          </summary>
-          <div className="ticket-evidence__grid">
-            <div className="ticket-evidence__col">
-              <div className="ticket-evidence__head">
-                <span>{t("latestRequest")}</span>
-                <strong>
-                  {requestJson ? t("latestResult") : t("payloadEmpty")}
-                </strong>
-              </div>
-              {requestJson ? (
-                <pre>{requestJson}</pre>
-              ) : (
-                <div className="ticket-empty ticket-empty--line">
-                  {t("requestEmpty")}
+  const drawerNotice = (Icon: LucideIcon, title: string, copy: string) => (
+    <OpenUiNotice className="ticket-drawer-notice" icon={<Icon size={17} />} title={title}>
+      {copy}
+    </OpenUiNotice>
+  );
+
+  const drawerTabs: Array<{ id: DrawerMode; label: string; Icon: LucideIcon }> = [
+    { id: "event", label: t("eventIdentity"), Icon: Wand2 },
+    { id: "issue", label: t("issueTicketTitle"), Icon: UserPlus },
+    { id: "tickets", label: t("ticketsTab"), Icon: WalletCards },
+    { id: "events", label: t("sidebarEvents"), Icon: Ticket },
+    { id: "transfer", label: t("transferTicket"), Icon: Send },
+    { id: "evidence", label: t("evidenceShort"), Icon: IdCard },
+  ];
+
+  const eventDrawerPanel = (
+    <OpenUiPanel
+      className="ticket-drawer-panel ticket-drawer-panel--event"
+      icon={<Wand2 size={16} />}
+      title={t("eventIdentity")}
+      subtitle={passName}
+      titleId="ticket-drawer-event"
+    >
+      <div className="ticket-drawer-fields">
+        <OpenUiTextField
+          className="ticket-drawer-field ticket-drawer-field--wide"
+          label={t("eventName")}
+          value={eventName}
+          onChange={(e) => updateEventDraft("eventName", e.target.value)}
+          placeholder={t("eventNamePlaceholder")}
+          disabled={busy}
+        />
+        <OpenUiTextField
+          className="ticket-drawer-field ticket-drawer-field--wide"
+          label={t("eventVenue")}
+          value={eventVenue}
+          onChange={(e) => updateEventDraft("eventVenue", e.target.value)}
+          placeholder={t("eventVenuePlaceholder")}
+          disabled={busy}
+        />
+        <div className="ticket-drawer-grid">
+          <OpenUiTextField
+            className="ticket-drawer-field"
+            label={t("eventStart")}
+            value={eventStart}
+            onChange={(e) => updateEventDraft("eventStart", e.target.value)}
+            placeholder={t("eventStartPlaceholder")}
+            disabled={busy}
+          />
+          <OpenUiTextField
+            className="ticket-drawer-field"
+            label={t("eventEnd")}
+            value={eventEnd}
+            onChange={(e) => updateEventDraft("eventEnd", e.target.value)}
+            placeholder={t("eventEndPlaceholder")}
+            disabled={busy}
+          />
+        </div>
+        <OpenUiTextField
+          className="ticket-drawer-field"
+          label={t("maxSupply")}
+          value={maxSupply}
+          onChange={(e) => updateEventDraft("maxSupply", e.target.value)}
+          placeholder={t("maxSupplyPlaceholder")}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          disabled={busy}
+        />
+        <OpenUiTextArea
+          className="ticket-drawer-field ticket-drawer-field--wide mx2-open-field--compact"
+          label={t("notes")}
+          value={notes}
+          onChange={(e) => updateEventDraft("notes", e.target.value)}
+          placeholder={t("notesPlaceholder")}
+          disabled={busy}
+          rows={2}
+        />
+      </div>
+    </OpenUiPanel>
+  );
+
+  const issueDrawerPanel = (
+    <OpenUiPanel
+      className="ticket-drawer-panel ticket-drawer-panel--issue"
+      icon={<UserPlus size={16} />}
+      title={t("issueTicketTitle")}
+      subtitle={activeEvent ? eventTitle(activeEvent, t("eventNamePlaceholder")) : t("modeOperateDisabled")}
+      titleId="ticket-drawer-issue"
+    >
+      {hasLiveEvent ? (
+        <div className="ticket-drawer-fields">
+          <OpenUiTextField
+            className="ticket-drawer-field ticket-drawer-field--wide"
+            label={t("issueRecipient")}
+            value={issueRecipient}
+            onChange={(e) => state.issueRecipient?.set(e.target.value)}
+            placeholder={t("issueRecipientPlaceholder")}
+            disabled={busy}
+          />
+          <OpenUiTextField
+            className="ticket-drawer-field"
+            label={t("issueSeat")}
+            value={issueSeat}
+            onChange={(e) => state.issueSeat?.set(e.target.value)}
+            placeholder={t("issueSeatPlaceholder")}
+            disabled={busy}
+          />
+          <OpenUiTextField
+            className="ticket-drawer-field"
+            label={t("issueMemo")}
+            value={issueMemo}
+            onChange={(e) => state.issueMemo?.set(e.target.value)}
+            placeholder={t("issueMemoPlaceholder")}
+            disabled={busy}
+          />
+        </div>
+      ) : drawerNotice(Ticket, t("modeCreateTitle"), t("modeCreateHint"))}
+    </OpenUiPanel>
+  );
+
+  const ticketsDrawerPanel = (
+    <OpenUiPanel
+      className="ticket-drawer-panel ticket-drawer-panel--tickets"
+      icon={<WalletCards size={16} />}
+      title={t("ticketsTab")}
+      subtitle={`${tickets.length} ${t("ticketsCount")}`}
+      titleId="ticket-drawer-tickets"
+    >
+      {tickets.length > 0 ? (
+        <ul className="ticket-list">
+          {tickets.slice(0, 8).map((ticket) => {
+            const id = ticketId(ticket);
+            const used = Boolean(ticket.used ?? ticket.checkedIn);
+            return (
+              <li key={id || String(ticket.eventName)} className="ticket-list__item">
+                <div>
+                  <strong>{String(ticket.eventName ?? id)}</strong>
+                  <span>{String(ticket.seat ?? t("seatFallback"))} · {used ? t("ticketUsed") : t("ticketValid")}</span>
                 </div>
-              )}
-            </div>
-            <div className="ticket-evidence__col">
-              <div className="ticket-evidence__head">
-                <span>{t("latestResult")}</span>
-                <strong>
-                  {resultJson ? t("serviceStatus") : t("payloadEmpty")}
-                </strong>
-              </div>
-              {resultTxid ? (
-                <a
-                  className="ticket-evidence__txlink"
-                  href={explorerTxUrl(resultTxid)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("viewOnExplorer")}
-                </a>
-              ) : null}
-              {resultJson ? (
-                <pre>{resultJson}</pre>
-              ) : (
-                <div className="ticket-empty ticket-empty--line">
-                  {t("resultEmpty")}
-                </div>
-              )}
-            </div>
+                {id && <TokenQr value={id} size={64} label={t("ticketQrLabel")} />}
+                <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("copyTokenId", id)} disabled={!id}>{t("copyTokenId")}</button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : <p className="ticket-drawer-empty">{t("emptyTickets")}</p>}
+    </OpenUiPanel>
+  );
+
+  const eventsDrawerPanel = (
+    <OpenUiPanel
+      className="ticket-drawer-panel ticket-drawer-panel--events"
+      icon={<Ticket size={16} />}
+      title={t("eventsCountLabel", { count: events.length })}
+      subtitle={activeEvent ? eventTitle(activeEvent, t("eventNamePlaceholder")) : t("emptyEvents")}
+      titleId="ticket-drawer-events"
+    >
+      {eventCards}
+      {events.length > 0 ? (
+        <ul className="mx2-history ticket-drawer-history">
+          {events.slice(0, 8).map((event) => (
+            <li key={event.id} className="mx2-history__item">
+              <button type="button" className="ticket-event-list__select" onClick={() => selectEvent(event)}>
+                <span className="mx2-history__face">{eventTitle(event, t("eventNamePlaceholder"))}</span>
+                <span className="mx2-history__stake">{displayCount(event.minted)} / {displayCount(event.maxSupply)}</span>
+              </button>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("toggleEvent", event)}>
+                {event.active ? t("deactivate") : t("activate")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="ticket-drawer-empty">{t("emptyEvents")}</p>}
+    </OpenUiPanel>
+  );
+
+  const transferDrawerPanel = (
+    <OpenUiPanel
+      className="ticket-drawer-panel ticket-drawer-panel--transfer"
+      icon={<Send size={16} />}
+      title={t("transferTicket")}
+      subtitle={hasTransferContext ? transferTokenId || t("ticketTokenId") : t("emptyTickets")}
+      titleId="ticket-drawer-transfer"
+    >
+      {hasTransferContext ? (
+        <>
+          <div className="ticket-drawer-fields">
+            <OpenUiTextField
+              className="ticket-drawer-field"
+              label={t("ticketTokenId")}
+              value={transferTokenId}
+              onChange={(e) => state.transferTokenId?.set(e.target.value)}
+              placeholder={t("ticketTokenId")}
+              disabled={busy}
+            />
+            <OpenUiTextField
+              className="ticket-drawer-field"
+              label={t("transferRecipient")}
+              value={transferRecipient}
+              onChange={(e) => state.transferRecipient?.set(e.target.value)}
+              placeholder={t("transferRecipientPlaceholder")}
+              disabled={busy}
+            />
           </div>
-        </details>
-      </section>
+          <button type="button" className="mx2-btn mx2-btn--ghost ticket-drawer-action" onClick={() => void dispatch("transferTicket", { tokenId: transferTokenId, recipient: transferRecipient })} disabled={busy || !canTransferTicket}>
+            <Send size={14} />
+            {isTransferring ? t("lifecycleTransfer") : t("transferTicket")}
+          </button>
+        </>
+      ) : drawerNotice(WalletCards, t("emptyTickets"), t("emptyTicketsHint"))}
+    </OpenUiPanel>
+  );
+
+  const evidenceDrawerPanel = (
+    <OpenUiPanel
+      className="ticket-drawer-panel ticket-drawer-panel--evidence"
+      icon={<IdCard size={16} />}
+      title={t("evidence")}
+      subtitle={workflowStatus}
+      titleId="ticket-drawer-evidence"
+    >
+      <div className="ticket-evidence-grid">
+        <div className="ticket-evidence">
+          <span><IdCard size={14} />{t("latestRequest")}</span>
+          <code>{latestRequest ? JSON.stringify(latestRequest) : t("requestEmpty")}</code>
+        </div>
+        <div className="ticket-evidence">
+          <span><CheckCircle2 size={14} />{t("latestResult")}</span>
+          <code>{latestResult ? JSON.stringify(latestResult) : t("resultEmpty")}</code>
+        </div>
+      </div>
+    </OpenUiPanel>
+  );
+
+  const activeDrawerPanel = {
+    event: eventDrawerPanel,
+    issue: issueDrawerPanel,
+    tickets: ticketsDrawerPanel,
+    events: eventsDrawerPanel,
+    transfer: transferDrawerPanel,
+    evidence: evidenceDrawerPanel,
+  }[drawerMode];
+
+  const drawerContent = (
+    <div className="ticket-drawer-shell" data-mode={drawerMode}>
+      <OpenUiSegmented
+        className="ticket-drawer-tabs"
+        label={t("detailsLabel")}
+        onChange={(value) => {
+          if (["event", "issue", "tickets", "events", "transfer", "evidence"].includes(value)) {
+            setDrawerMode(value as DrawerMode);
+          }
+        }}
+        options={drawerTabs.map(({ id, label, Icon }) => ({
+          value: id,
+          label: (
+            <span className="ticket-drawer-tab-label">
+              <Icon size={15} />
+              <span>{label}</span>
+            </span>
+          ),
+        }))}
+        segmentedClassName="ticket-drawer-segmented"
+        value={drawerMode}
+      />
+      <div className="ticket-drawer-active-panel">
+        {activeDrawerPanel}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="event-ticket-pass-play-area mx2 mx2-cat-nft">
+      <OpenUiProvider>
+        <PlayStage
+          category="nft"
+          stage={{
+            eyebrow: t("studioEyebrow"),
+            title: mode === "checkin" ? t("gateDesk") : mode === "issue" ? t("modeOperateTitle") : t("studioTitle"),
+            subtitle: mode === "checkin" ? t("gateDeskSubtitle") : t("studioSubtitle"),
+            badges: (
+              <>
+                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {eventsCount} {t("sidebarEvents")}</span>
+                <span className="mx2-badge">{address ? compactAddress(address) : t("walletNotConnected")}</span>
+              </>
+            ),
+          }}
+          scene={<div className="ticket-stage-stack">{scene}{modePanel}</div>}
+          score={[
+            { label: t("sidebarEvents"), value: String(eventsCount), accent: true },
+            { label: t("ticketsCount"), value: String(ticketsCount) },
+            { label: t("active"), value: String(activeEventsCount) },
+          ]}
+          actions={{ primary: primaryAction }}
+          drawerToggleLabel={t("detailsLabel")}
+          drawer={{
+            title: t("gateDesk"),
+            children: drawerContent,
+          }}
+        />
+      </OpenUiProvider>
     </div>
   );
 }

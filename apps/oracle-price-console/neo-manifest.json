@@ -28,8 +28,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-price-console/index.html",
-    "icon": "/miniapps/oracle-price-console/logo.jpg",
-    "banner": "/miniapps/oracle-price-console/banner.jpg"
+    "icon": "/miniapps/oracle-price-console/logo.webp",
+    "banner": "/miniapps/oracle-price-console/banner.webp"
   },
   "permissions": [
     "read:blockchain"

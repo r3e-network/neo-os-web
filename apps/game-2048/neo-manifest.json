@@ -1,0 +1,115 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "contracts": {
+    "neo-n3-testnet": "0x7511eefa066820a440db5f94d9cbc1d711a598f9"
+  },
+  "createdAt": "2026-07-02T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "Race the clock in provably fair 2048. Pay a small GAS entry and the contract seeds every tile spawn from an immutable block beacon — then reach the target tile before the deadline to win a fixed reward: 512 in 4 minutes pays 0.1 GAS, 1024 in 8 pays 0.5, 2048 in 15 pays 1. Your whole move log is replayed and verified on-chain. Moves are final — each on-chain undo rescues the run but burns 30% of the base reward (three max). Winnings accrue as withdrawable credit and every verified run climbs a global leaderboard rebuilt from chain events.",
+  "description_zh": "与时间赛跑的可验证公平 2048。支付少量 GAS 报名费后，每一次新方块的出现都由不可变的区块信标种子决定——在截止时间前合成目标方块即可赢得固定奖励：4 分钟内合成 512 得 0.1 GAS，8 分钟内 1024 得 0.5，15 分钟内 2048 得 1。完整操作序列会在链上重放验证。操作即锁定——每次链上撤回可挽救残局，但会扣除基础奖励的 30%（最多三次）。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": false,
+  "features": {
+    "deeplink": "neomainapp://game-2048",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-game-2048",
+  "name": "2048 Rush",
+  "name_zh": "2048 冲刺",
+  "operation_panel": {
+    "operations": [
+      {
+        "button_style": "primary",
+        "description": "Pay the entry fee and start a beacon-seeded run. 512 target: 0.02 GAS entry wins 0.1; 1024: 0.10 wins 0.5; 2048: 0.20 wins 1.",
+        "method": "startGame",
+        "name": "Start Run",
+        "params": [
+          {
+            "default_value": "0",
+            "hidden": true,
+            "label": "Target",
+            "name": "difficulty",
+            "options": [
+              {
+                "label": "512 in 4 min — win 0.1 GAS",
+                "value": "0"
+              },
+              {
+                "label": "1024 in 8 min — win 0.5 GAS",
+                "value": "1"
+              },
+              {
+                "label": "2048 in 15 min — win 1 GAS",
+                "value": "2"
+              }
+            ],
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "priority": "primary"
+      },
+      {
+        "button_style": "success",
+        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
+        "method": "withdrawWinnings",
+        "name": "Withdraw Winnings",
+        "params": [],
+        "priority": "secondary"
+      }
+    ],
+    "subtitle": "Deposit the entry, start a timed run, and reach the target tile before the deadline to win GAS.",
+    "title": "2048 Rush"
+  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain",
+    "compute",
+    "oracle"
+  ],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "2048",
+    "puzzle",
+    "leaderboard",
+    "gas",
+    "game"
+  ],
+  "technologies": {
+    "aa": {
+      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+      "enabled": false
+    },
+    "oracle": {
+      "description": "Tile spawns come from a counter-mode SHA-256 stream over a block-beacon seed: the seed hashes the first block after the start transaction with the player and game id, so neither side can pick the spawn sequence, and the full move log is replayed on-chain at submission. Seed grinding cannot mint rewards — any seed still yields a run that must reach the target within the same limits.",
+      "enabled": true
+    },
+    "tee": {
+      "enabled": true,
+      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+    }
+  },
+  "updatedAt": "2026-07-02T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/game-2048/banner.webp",
+    "entry": "/miniapps/game-2048/index.html",
+    "icon": "/miniapps/game-2048/logo.webp"
+  },
+  "version": "1.0.0"
+}

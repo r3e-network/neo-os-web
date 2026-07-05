@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useGovMerc } from "./useGovMerc";
+import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 
@@ -71,10 +72,19 @@ function makeChain(f: Fixture) {
   return { chain };
 }
 
+/** Wrap a mock chain in the MiniApp framework the hook now takes. */
+function makeApp(chain: ChainService) {
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-gov-merc" },
+  );
+  return useGovMerc({ app: framework, t });
+}
+
 describe("useGovMerc — settle gate reads highestBid, not only events", () => {
   it("reports a live bid from highestBid even when the events feed is empty", async () => {
     const { chain } = makeChain({ highestBid: "500000000" }); // 5 GAS
-    const app = useGovMerc({ chain, t });
+    const app = makeApp(chain);
     app.setAddress(ALICE);
     await app.loadData();
 
@@ -88,7 +98,7 @@ describe("useGovMerc — settle gate reads highestBid, not only events", () => {
 
   it("reports no live bid when highestBid is zero", async () => {
     const { chain } = makeChain({ highestBid: "0" });
-    const app = useGovMerc({ chain, t });
+    const app = makeApp(chain);
     app.setAddress(ALICE);
     await app.loadData();
     expect(app.hasLiveBid.get()).toBe(false);
@@ -100,7 +110,7 @@ describe("useGovMerc — winner-exclusion guard matches the LE hash winner", () 
   it("excludes the connected wallet from reclaimables when it won (hash == its address)", async () => {
     // Alice bid on epoch 4 AND won it (settlementWinner returns her LE hash).
     const { chain } = makeChain({ prevWinner: ALICE_HASH, aliceBid: "300000000" });
-    const app = useGovMerc({ chain, t });
+    const app = makeApp(chain);
     app.setAddress(ALICE);
     await app.loadData();
 
@@ -112,7 +122,7 @@ describe("useGovMerc — winner-exclusion guard matches the LE hash winner", () 
   it("keeps a genuine losing bid reclaimable", async () => {
     const otherWinner = addressToScriptHash("NUuJw4C4XJFzxAvSZnFTfsNoWZytmQKXQP");
     const { chain } = makeChain({ prevWinner: otherWinner, aliceBid: "300000000" });
-    const app = useGovMerc({ chain, t });
+    const app = makeApp(chain);
     app.setAddress(ALICE);
     await app.loadData();
 

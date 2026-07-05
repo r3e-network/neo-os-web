@@ -10,9 +10,17 @@ interface ThreeDCoinProps {
   headsLabel?: string;
   /** Localized label for the tails face (e.g. "Tails"). */
   tailsLabel?: string;
+  /** Keep the art clean when surrounding controls already label the sides. */
+  showLabels?: boolean;
 }
 
-export default function ThreeDCoin({ result, flipping, headsLabel, tailsLabel }: ThreeDCoinProps) {
+export default function ThreeDCoin({
+  result,
+  flipping,
+  headsLabel,
+  tailsLabel,
+  showLabels = true,
+}: ThreeDCoinProps) {
   const settledSide = result ?? "heads";
   const accessibleLabel = useMemo(() => {
     if (flipping) return `${headsLabel ?? "Heads"} / ${tailsLabel ?? "Tails"}`;
@@ -37,7 +45,7 @@ export default function ThreeDCoin({ result, flipping, headsLabel, tailsLabel }:
               draggable={false}
               decoding="async"
             />
-            {headsLabel ? <span className="coin-face-label">{headsLabel}</span> : null}
+            {showLabels && headsLabel ? <span className="coin-face-label">{headsLabel}</span> : null}
           </div>
           <div className="coin-face coin-face--tails">
             <img
@@ -47,7 +55,7 @@ export default function ThreeDCoin({ result, flipping, headsLabel, tailsLabel }:
               draggable={false}
               decoding="async"
             />
-            {tailsLabel ? <span className="coin-face-label">{tailsLabel}</span> : null}
+            {showLabels && tailsLabel ? <span className="coin-face-label">{tailsLabel}</span> : null}
           </div>
         </div>
       </div>

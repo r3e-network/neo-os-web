@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGraveyard } from "../../graveyard/src/composables/useGraveyard";
 import type { ChainService } from "../services/ChainService";
+import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 import { sha256Hex } from "../utils/hash";
 
@@ -81,7 +82,13 @@ function chainMock(opts: {
 function app(chainOpts: Parameters<typeof chainMock>[0] = {}) {
   const { chain, mock } = chainMock(chainOpts);
   const eventBus = { emit: vi.fn() };
-  const graveyard = useGraveyard({ chain, eventBus, t });
+  // The composable now consumes the MiniApp framework; its arg builders and raw
+  // passthroughs are behavior-preserving, so every recorded chain call matches.
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-graveyard" },
+  );
+  const graveyard = useGraveyard({ app: framework, eventBus, t });
   return { graveyard, mock, eventBus };
 }
 

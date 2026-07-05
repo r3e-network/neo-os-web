@@ -20,7 +20,7 @@ defineMiniApp({
   setup(ctx) {
     const lab = useAASessionKeyLab({
       aa: ctx.services.aa,
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -33,7 +33,7 @@ defineMiniApp({
     lab.form.dappId = launchDefaults.dappId;
     lab.form.sponsorAmount = launchDefaults.sponsorAmount;
 
-    ctx.registerAction("generateKey", async () => {
+    ctx.framework.actions.register("generateKey", async () => {
       const result = await ctx.services.notify.guard(
         async () => {
           lab.generateSessionKey();
@@ -48,7 +48,7 @@ defineMiniApp({
       return result;
     });
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "checkSponsor",
       (accountSeed: unknown, dappId: unknown) => {
         lab.form.accountSeed = String(accountSeed);
@@ -61,7 +61,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "requestSponsor",
       (accountSeed: unknown, dappId: unknown, sponsorAmount: unknown) => {
         lab.form.accountSeed = String(accountSeed);
@@ -75,7 +75,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "configureSessionKey",
       async (
         accountSeed: unknown,
@@ -105,7 +105,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction("inspectSession", async (accountSeed: unknown) => {
+    ctx.framework.actions.register("inspectSession", async (accountSeed: unknown) => {
       lab.form.accountSeed = String(accountSeed);
       await ctx.services.notify.guard(
         () => lab.inspectSessionKey(),
@@ -114,7 +114,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("revokeSession", async (accountSeed: unknown) => {
+    ctx.framework.actions.register("revokeSession", async (accountSeed: unknown) => {
       lab.form.accountSeed = String(accountSeed);
       await ctx.services.notify.guard(
         () => lab.revokeSessionKey(),
@@ -130,6 +130,7 @@ defineMiniApp({
         hasOnChainSession: lab.hasOnChainSession,
         onChainSession: lab.onChainSession,
         onChainSessionView: lab.onChainSessionView,
+        generatedPublicKey: lab.generatedPublicKey,
         isCheckingSponsorship: lab.isCheckingSponsorship,
         detailItems: lab.detailItems,
         derivedAccountIdHash: lab.derivedAccountIdHash,

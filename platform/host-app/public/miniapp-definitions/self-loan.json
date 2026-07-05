@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-self-loan",
   "media": {
-    "icon": "/miniapp-assets/self-loan/logo.jpg",
-    "banner": "/miniapp-assets/self-loan/banner.jpg"
+    "icon": "/miniapp-assets/self-loan/logo.webp",
+    "banner": "/miniapp-assets/self-loan/banner.webp"
   },
   "permissions": {
     "payments": true,

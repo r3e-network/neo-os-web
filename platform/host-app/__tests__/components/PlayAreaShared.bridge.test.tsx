@@ -239,6 +239,39 @@ describe("useEmbeddedWalletBridge origin gating", () => {
     });
   });
 
+  it("republishes a disconnected state to the frame when the wallet drops", async () => {
+    // This mirrors the cross-tab scenario: a storage event in another tab
+    // rehydrates the wallet store to a disconnected identity, the store
+    // setState fans out, and the embedded bridge must tell the miniapp.
+    const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+    await flushBridgeHandlers();
+    postSpy.mockClear();
+
+    jest.requireMock("@/lib/wallet/store").useWalletStore.setState({
+      connected: false,
+      address: "",
+      accountHash: "",
+      network: null,
+    });
+
+    await waitFor(() => expect(postSpy).toHaveBeenCalledTimes(1));
+    const call = postSpy.mock.calls[0] as [Record<string, unknown>, string];
+    expect(call[0]).toMatchObject({
+      type: HOST_WALLET_BRIDGE_STATE,
+      state: {
+        connected: false,
+        address: "",
+        accountHash: "",
+        // The target chain stays stable so a testnet miniapp does not flip to
+        // the SDK's mainnet fallback when the wallet disconnects.
+        network: 894710606,
+        networkName: "testnet",
+        networkVerified: false,
+      },
+    });
+  });
+
   it("publishes a disconnected state immediately when the host target network changes", async () => {
     const { frame, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     const { rerender } = render(
@@ -429,6 +462,73 @@ describe("useEmbeddedWalletBridge origin gating", () => {
     );
     const prompt = String(confirmSpy.mock.calls[0][0]);
     expect(prompt).toContain(TARGET_CONTRACT);
+  });
+
+  it("refuses to sign if the wallet disconnects between preflight and execution", async () => {
+    // Race regression: a cross-tab / route event can drop the wallet after the
+    // preflight network check passes but before the post-confirm execution
+    // re-reads the store. The execution path must re-validate and refuse rather
+    // than sign with a now-disconnected identity.
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    // Confirm approves — but simulates the wallet dropping mid-request (the
+    // window between preflight and the execution's own requireFreshBridgeWallet).
+    confirmSpy.mockImplementation(() => {
+      jest.requireMock("@/lib/wallet/store").useWalletStore.setState({
+        connected: false,
+        address: "",
+      });
+      return true;
+    });
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("invoke", {
+        invocations: [
+          { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+        ],
+      }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /Connect wallet/i,
+    );
+    expect(mockAdapter.invoke).not.toHaveBeenCalled();
+  });
+
+  it("refuses to sign if the wallet switches network between preflight and execution", async () => {
+    // Race regression: the wallet's network flips after the preflight read. The
+    // execution path re-reads the network and must reject instead of signing on
+    // the wrong chain.
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    confirmSpy.mockImplementation(() => {
+      mockAdapter.getNetwork.mockResolvedValue("mainnet");
+      jest.requireMock("@/lib/wallet/store").useWalletStore.setState({
+        network: "mainnet",
+      });
+      return true;
+    });
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("invoke", {
+        invocations: [
+          { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+        ],
+      }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /Wallet is on mainnet but this embedded dApp targets testnet/i,
+    );
+    expect(mockAdapter.invoke).not.toHaveBeenCalled();
   });
 
   it("validates the wallet BEFORE prompting for confirmation (disconnected)", async () => {

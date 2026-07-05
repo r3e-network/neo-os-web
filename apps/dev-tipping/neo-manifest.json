@@ -115,9 +115,9 @@
   ],
   "updatedAt": "2026-06-01T00:00:00Z",
   "urls": {
-    "banner": "/miniapps/dev-tipping/banner.jpg",
+    "banner": "/miniapps/dev-tipping/banner.webp",
     "entry": "/miniapps/dev-tipping/index.html",
-    "icon": "/miniapps/dev-tipping/logo.jpg"
+    "icon": "/miniapps/dev-tipping/logo.webp"
   },
   "version": "1.0.0"
 }

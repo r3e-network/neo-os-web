@@ -17,7 +17,7 @@ defineMiniApp({
 
   setup(ctx) {
     const sponsor = useGasSponsorApp({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       balance: ctx.services.balance,
       eventBus: ctx.services.events,
       t: ctx.t,
@@ -26,7 +26,7 @@ defineMiniApp({
 
     const { notify } = ctx.services;
 
-    ctx.registerAction("requestSponsorship", async (...args: unknown[]) => {
+    ctx.framework.actions.register("requestSponsorship", async (...args: unknown[]) => {
       sponsor.requestAmount.set(String(args[0] ?? ""));
       notify.info("requestingSponsorship");
       const result = await notify.guard(
@@ -42,12 +42,12 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("donate", async (...args: unknown[]) => {
+    ctx.framework.actions.register("donate", async (...args: unknown[]) => {
       sponsor.donateAmount.set(String(args[0] ?? ""));
       await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "donateFailed");
     });
 
-    ctx.registerAction("send", async (...args: unknown[]) => {
+    ctx.framework.actions.register("send", async (...args: unknown[]) => {
       sponsor.recipientAddress.set(String(args[0] ?? ""));
       sponsor.sendAmount.set(String(args[1] ?? ""));
       await notify.guard(() => sponsor.handleSend(), "sendSuccess", "sendFailed");

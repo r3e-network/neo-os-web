@@ -3,8 +3,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
 import type { ChainService } from "../services";
 import type { StorageProxy } from "../services/os/StorageProxy";
+import { createMiniAppFramework } from "../react";
 import { useAAAccountLab } from "../../aa-account-lab/src/composables/useAAAccountLab";
 import { deriveRegistrationAccountIdHash } from "../utils/aa-account";
+
+function makeApp(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-aa-account-lab" },
+  );
+}
 
 // Valid Neo address whose script hash the contract can witness as backup owner.
 const WALLET_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
@@ -76,7 +84,7 @@ describe("AA Account Lab composable register flow", () => {
     chain.read = vi
       .fn()
       .mockResolvedValue({ type: "ByteString", value: verifierBase64 });
-    const lab = useAAAccountLab({ chain, storageService: makeStorage(), t });
+    const lab = useAAAccountLab({ app: makeApp(chain), storageService: makeStorage(), t });
     baseForm(lab);
 
     const pending = lab.submitRegister();
@@ -100,7 +108,7 @@ describe("AA Account Lab composable register flow", () => {
   it("blocks registration when the backup owner is not the connected wallet", async () => {
     // Connected wallet differs from the entered backup owner -> witness fails.
     const chain = makeChain("NgaiKFjurmNmiRzDRQGs44yzByXuSkdGPF");
-    const lab = useAAAccountLab({ chain, storageService: makeStorage(), t });
+    const lab = useAAAccountLab({ app: makeApp(chain), storageService: makeStorage(), t });
     baseForm(lab);
 
     await expect(lab.submitRegister()).rejects.toThrow(
@@ -127,7 +135,7 @@ describe("AA Account Lab composable register flow", () => {
       .mockResolvedValueOnce({ type: "Boolean", value: false });
 
     const inspectLab = useAAAccountLab({
-      chain,
+      app: makeApp(chain),
       storageService: makeStorage(),
       t,
     });

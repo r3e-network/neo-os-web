@@ -14,6 +14,7 @@ function t(key: string) {
     fundPool: "Fund Pool",
     fundAction: "Fund",
     amount: "Amount",
+    stakeNeo: "Stake NEO",
     fieldInvalidFormat: "Invalid format",
     fieldRequired: "Required",
   };
@@ -32,6 +33,24 @@ const fundOperation = {
       labelKey: "amount",
       required: true,
       default: "1",
+    },
+  ],
+};
+
+const neoStakeOperation = {
+  key: "stakeNeo",
+  titleKey: "stakeNeo",
+  actionKey: "stakeNeo",
+  actionMethod: "stakeNeo",
+  fields: [
+    {
+      key: "amount",
+      type: "amount" as const,
+      asset: "NEO" as const,
+      labelKey: "amount",
+      required: true,
+      default: "1",
+      validation: { min: 1, integer: true },
     },
   ],
 };
@@ -79,6 +98,58 @@ describe("MiniAppOperationPanel amount scaling", () => {
     await userEvent.clear(amount);
     await userEvent.type(amount, "1.000000001");
     await userEvent.click(screen.getByRole("button", { name: "Fund" }));
+
+    expect(onAction).not.toHaveBeenCalled();
+    expect(await screen.findByText("Invalid format")).toBeTruthy();
+  });
+
+  it("renders NEO amount fields as whole-token inputs and does not Fixed8-scale them", async () => {
+    const onAction = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <MiniAppOperationPanel
+        operations={[neoStakeOperation]}
+        t={t}
+        state={{}}
+        onAction={onAction}
+        scaleAmounts
+      />,
+    );
+
+    const amount = screen.getByLabelText("Amount") as HTMLInputElement;
+    expect(amount.inputMode).toBe("numeric");
+    expect(amount.getAttribute("pattern")).toBe("[0-9]*");
+    expect(amount.placeholder).toBe("1");
+    expect(screen.getByText("NEO")).toBeTruthy();
+
+    await userEvent.clear(amount);
+    await userEvent.type(amount, "0012");
+    await userEvent.click(screen.getByRole("button", { name: "Stake NEO" }));
+
+    await waitFor(() => {
+      expect(onAction).toHaveBeenCalledWith("stakeNeo", {
+        amount: "12",
+      });
+    });
+  });
+
+  it("rejects fractional NEO amount fields before dispatching the action", async () => {
+    const onAction = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <MiniAppOperationPanel
+        operations={[neoStakeOperation]}
+        t={t}
+        state={{}}
+        onAction={onAction}
+        scaleAmounts
+      />,
+    );
+
+    const amount = screen.getByLabelText("Amount") as HTMLInputElement;
+    await userEvent.clear(amount);
+    await userEvent.type(amount, "12.5");
+    await userEvent.click(screen.getByRole("button", { name: "Stake NEO" }));
 
     expect(onAction).not.toHaveBeenCalled();
     expect(await screen.findByText("Invalid format")).toBeTruthy();

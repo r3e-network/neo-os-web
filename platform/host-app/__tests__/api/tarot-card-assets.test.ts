@@ -18,16 +18,16 @@ describe("/api/miniapps/on-chain-tarot/cards/[file]", () => {
     expect(deck[0]).toEqual(expect.objectContaining({ id: 0, name: "The Fool" }));
   });
 
-  it("serves tracked SVG card art without relying on generated public miniapp bundles", async () => {
+  it("serves tracked WebP card art without relying on generated public miniapp bundles", async () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { file: "00-the-fool.svg" },
+      query: { file: "00-the-fool.webp" },
     });
 
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    expect(String(res.getHeader("Content-Type"))).toContain("image/svg+xml");
+    expect(String(res.getHeader("Content-Type"))).toContain("image/webp");
     expect(Buffer.isBuffer(res._getData())).toBe(true);
   });
 

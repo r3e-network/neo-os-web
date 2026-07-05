@@ -14,8 +14,8 @@ const appMessages = {
   },
   proofStageKicker: { en: "Proof desk", zh: "证明工作台" },
   proofStageTitle: {
-    en: "Hash the document locally, save a proof record, then anchor the digest when it needs public verification.",
-    zh: "本地计算文档哈希，保存证明记录；需要公开核验时再锚定摘要。",
+    en: "Timestamp proof press",
+    zh: "时间戳证明压印台",
   },
   createPanelKicker: { en: "Create", zh: "创建" },
   createPanelTitle: {
@@ -23,19 +23,20 @@ const appMessages = {
     zh: "准备时间戳证书",
   },
   createPanelBody: {
-    en: "Paste the document text, release note, or existing digest and review the certificate preview before saving.",
-    zh: "粘贴文档文本、发布说明或已有摘要，先查看证书预览再保存。",
+    en: "Place source material on the proof sheet, then seal a local certificate when it looks right.",
+    zh: "把原始材料放到证明纸上，确认无误后封存为本地证书。",
   },
   enterContent: { en: "Enter content to timestamp", zh: "输入要时间戳的内容" },
   createDisabledHint: {
-    en: "Add some text above to enable timestamping.",
-    zh: "在上方输入内容即可生成时间戳。",
+    en: "Add source material when you are ready.",
+    zh: "准备好后添加原始材料。",
   },
   contentPlaceholder: {
     en: "Paste your text, document hash, or idea...",
     zh: "粘贴您的文本、文档哈希或想法...",
   },
   documentPreviewLabel: { en: "Certificate preview", zh: "证书预览" },
+  proofSheetLabel: { en: "Proof sheet", zh: "证明纸" },
   documentPreviewEmptyTitle: { en: "Ready for content", zh: "等待内容" },
   documentPreviewEmpty: {
     en: "Your proof preview will appear here as soon as you add content.",
@@ -44,12 +45,12 @@ const appMessages = {
   proofPressLabel: { en: "Animated proof press", zh: "动态证明压印台" },
   proofPressKicker: { en: "Document fingerprint", zh: "文档指纹" },
   proofPressEmptyTitle: {
-    en: "Drop in a document, note, or digest to wake the press.",
-    zh: "放入文档、备注或摘要后，证明台会立即进入工作状态。",
+    en: "Proof press standing by.",
+    zh: "证明压印台待命中。",
   },
   proofPressEmptyBody: {
-    en: "The workbench stays idle until there is source content to hash locally.",
-    zh: "没有原文时工作台保持待机；输入内容后才会在本地计算哈希。",
+    en: "Nothing leaves this device. The sheet becomes a local certificate only when you seal it.",
+    zh: "内容不会离开本设备。只有封存后，纸张才会成为本地证书。",
   },
   proofPressReadyTitle: {
     en: "Fingerprint queued. Review the sheet, then seal the proof.",
@@ -68,6 +69,7 @@ const appMessages = {
     zh: "原文保持私密，仅将摘要封存进本地证明记录。",
   },
   proofPressRailLabel: { en: "Proof press status", zh: "证明压印状态" },
+  proofDeskAlt: { en: "Timestamp proof desk with a sealed certificate", zh: "带有封存证书的时间戳证明工作台" },
   proofPressAnchorLocal: { en: "Local rail", zh: "本地轨道" },
   proofPressAnchorAnchoring: { en: "Anchoring", zh: "锚定中" },
   proofPressAnchorAnchored: { en: "On-chain", zh: "已上链" },

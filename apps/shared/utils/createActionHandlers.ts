@@ -1,8 +1,9 @@
 /**
  * Action Registration Utility
  *
- * Reduces the repetitive try/catch + status messaging boilerplate
- * that every miniapp's setup function needs when calling registerAction().
+ * Compatibility helper for older miniapps that register several actions at
+ * once. Internally it now delegates to the shared MiniApp framework so action
+ * execution, notifications, and single-flight handling stay standardized.
  *
  * @example
  * ```ts
@@ -32,26 +33,18 @@ export interface ActionDef {
 }
 
 /**
- * Register multiple actions on the miniapp context with standardized
- * try/catch, status messaging, and error handling.
+ * Register multiple actions on the miniapp framework.
  */
 export function registerActions(
   ctx: MiniAppContext,
   actions: Record<string, ActionDef>,
 ): void {
   for (const [key, def] of Object.entries(actions)) {
-    ctx.registerAction(key, async (...args: unknown[]) => {
-      try {
-        await def.handler(...args);
-        if (def.successKey) {
-          ctx.setStatus(ctx.t(def.successKey), "success");
-        }
-      } catch (e) {
-        ctx.setStatus(
-          e instanceof Error ? e.message : ctx.t(def.errorKey ?? "error"),
-          "error",
-        );
-      }
+    ctx.framework.actions.register(key, async (...args: unknown[]) => {
+      await def.handler(...args);
+    }, {
+      successKey: def.successKey,
+      errorKey: def.errorKey,
     });
   }
 }

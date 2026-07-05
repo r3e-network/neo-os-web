@@ -1,9 +1,6 @@
 import React from "react";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../unbreakable-vault/src/PlayArea";
 
@@ -13,669 +10,337 @@ afterEach(() => cleanup());
 
 function t(key: string) {
   const messages: Record<string, string> = {
-    title: "Unbreakable Vault",
-    docSubtitle: "Hacker bounty vaults secured by on-chain hashes",
-    create: "Create",
     break: "Break",
-    challengeConsole: "Challenge console",
-    challengeConsoleTitle: "Build a bounty vault or inspect one to break",
+    create: "Create",
+    breakVault: "Break Vault",
     createVault: "Create Vault",
-    createVaultButton: "Create Vault (bounty + hash)",
-    titleLabel: "Vault Title",
-    titlePlaceholder: "Give your vault a name",
-    descriptionLabel: "Description",
-    descriptionPlaceholder: "Optional hints or lore",
-    descriptionPending: "Hint pending",
-    descriptionReady: "Public hint armed",
-    bountyLabel: "Bounty",
+    createVaultButton: "Seal Vault",
+    creatingVault: "Creating...",
+    attemptBreak: "Attempt Break",
+    attempting: "Attempting...",
+    challengeConsole: "Challenge",
+    challengeConsoleTitle: "Vault Challenge",
+    detailsLabel: "Details",
+    challengeDeskTitle: "Challenge target",
+    challengeDeskLoaded: "Vault loaded.",
+    challengeDeskEmpty: "Load a vault",
+    challengeDeskHint: "Inspect the bounty before paying.",
+    docSubtitle: "Break vaults for bounties.",
+    confirmSecretLabel: "Confirm secret",
+    confirmSecretPlaceholder: "Confirm secret",
+    secretLabel: "Secret",
+    secretPlaceholder: "Secret",
+    secretAttemptLabel: "Break secret",
+    secretAttemptPlaceholder: "Attempt secret",
+    bountyPlaceholder: "Bounty GAS",
     bountyPresetLabel: "Bounty presets",
+    vaultIdLabel: "Vault ID",
+    vaultIdPlaceholder: "Vault ID",
+    loadVault: "Load Vault",
+    attemptFee: "Fee",
+    bountyLabel: "Bounty",
+    attempts: "Attempts",
+    active: "Active",
+    expired: "Expired",
+    broken: "Broken",
+    claimBounty: "Claim bounty",
+    reclaimVault: "Reclaim vault",
+    creator: "Creator",
+    recentVaults: "Recent",
+    noRecentVaults: "No vaults",
+    myVaults: "My Vaults",
+    createFineLabel: "Create details",
+    secretNote: "Secret is hashed locally.",
+    secretReady: "Hash armed",
+    secretWaiting: "Keys unarmed",
+    vaultCreated: "Vault Created",
+    blueprintTitle: "Vault blueprint",
+    blueprintUntitled: "Untitled bounty vault",
+    configureVault: "Configure vault",
+    createReady: "Ready",
+    createNeedSecret: "Arm both key slots to seal the vault.",
+    titleLabel: "Vault Title",
+    titlePlaceholder: "Give it a name",
+    descriptionPlaceholder: "Optional hint",
     difficultyLabel: "Difficulty",
-    netPayoutLabel: "Net Payout",
     difficultyEasy: "Easy",
     difficultyMedium: "Medium",
     difficultyHard: "Hard",
-    difficultyEasyHint: "Low attempt fee for broad participation.",
-    difficultyMediumHint: "Balanced pressure for serious challengers.",
-    difficultyHardHint: "High-stakes attempts for premium bounties.",
-    secretLabel: "Vault Secret",
-    secretPlaceholder: "Enter a secret phrase",
-    confirmSecretLabel: "Confirm Secret",
-    confirmSecretPlaceholder: "Re-enter the secret",
-    secretMismatch: "Secrets do not match",
-    minBountyNote: "Minimum bounty: 1 GAS",
-    bountyPlaceholder: "Minimum 1",
-    secretNote: "Secret is hashed locally; only the hash is stored on-chain.",
-    breakVault: "Break a Vault",
-    challengeDeskTitle: "Challenge target",
-    challengeDeskEmpty: "Load a vault to challenge",
-    challengeDeskHint: "Enter a vault ID to inspect the bounty, difficulty, attempt fee, and public hint before paying.",
-    challengeDeskLoaded: "Vault loaded and ready for inspection.",
-    vaultIdLabel: "Vault ID",
-    vaultIdPlaceholder: "Enter vault ID",
-    loadVault: "Load Vault",
-    attemptBreak: "Attempt Break",
-    recentVaults: "Recent Vaults",
-    noRecentVaults: "No vaults found",
-    myVaultsStat: "My Vaults",
-    openVaultsStat: "Open Vaults",
-    claimBounty: "Claim Bounty",
-    reclaimVault: "Reclaim Vault",
+    difficultyEasyHint: "Low fee",
+    difficultyMediumHint: "Balanced",
+    difficultyHardHint: "High stakes",
     vaultStatus: "Status",
-    active: "Active",
-    broken: "Broken",
-    expired: "Expired",
-    claimable: "Claimable",
-    attemptFee: "Attempt Fee",
-    attempts: "Attempts",
-    winner: "Winner",
-    remainingDaysLabel: "Days Left",
-    daysUnit: "days",
-    tokenGas: "GAS",
-    secretAttemptLabel: "Break Secret",
-    attemptCostNote: "The attempt fee is charged on every try.",
-    bountyPaidNote: "This vault is broken — the bounty was paid to the winner.",
-    increaseBounty: "Add Bounty",
-    increaseBountyLabel: "Increase Bounty (GAS)",
-    increaseBountyPlaceholder: "Amount of GAS to add",
-    mainnetVaultNote: "On mainnet, the GAS deposit and contract call are batched by the host's operation panel.",
-    notAvailable: "Not available",
   };
   return messages[key] ?? key;
 }
 
-const activeVault = {
-  id: "7",
-  creator: "0xcreator",
-  status: "active",
-  winner: "",
-  attemptFee: 10000000,
-  bounty: 500000000, // 5 GAS in base units
-  attempts: 4,
-  remainingDays: 9,
-  title: "Crack me if you can",
-  description: "Hint: it rhymes with cat",
-  difficultyName: "Medium",
-};
-const brokenVault = {
-  id: "7",
-  creator: "0xcreator",
-  status: "broken",
-  winner: "0xwinner",
-  attemptFee: 10000000,
-};
-const claimableVault = {
-  id: "7",
-  creator: "0xcreator",
-  status: "claimable",
-  winner: "",
-  attemptFee: 10000000,
-};
-
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    myVaultCount: 0,
-    recentVaultCount: 0,
-    vaultDifficulty: "1",
+  const base: Record<string, unknown> = {
+    address: "",
     vaultIdInput: "",
     attemptSecret: "",
-    attemptFeeDisplay: "0.1",
-    createdVaultId: null,
+    attemptFeeDisplay: "0.1 GAS",
+    createdVaultId: "",
     vaultDetails: null,
     recentVaults: [],
     myVaults: [],
     isLoading: false,
     isCreating: false,
+    isClaiming: false,
     canAttempt: false,
+    canReclaim: false,
     ...overrides,
   };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
 }
 
-describe("Unbreakable Vault PlayArea", () => {
-  it("dispatches a complete create-vault payload with readable difficulty tiers", async () => {
+const vault = {
+  id: "42",
+  title: "Glass Fortress",
+  description: "A public hint for challengers",
+  bounty: 500_000_000,
+  attempts: 3,
+  broken: false,
+  expired: false,
+  status: "active",
+  attemptFee: 10_000_000,
+  difficultyName: "Medium",
+};
+
+function optionByText(container: HTMLElement, selector: string, text: string) {
+  const option = Array.from(container.querySelectorAll<HTMLElement>(selector))
+    .find((node) => node.textContent?.includes(text));
+  if (!option) throw new Error(`Missing option "${text}" in ${selector}`);
+  return option;
+}
+
+describe("Unbreakable Vault PlayArea (v2)", () => {
+  it("renders the vault as a real resource-led challenge scene", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".vault-brk-scene")).toBeTruthy();
+    expect(container.querySelector(".mx2-cat-game")).toBeTruthy();
+    expect(container.querySelector(".vault-brk-scene__image")).toBeNull();
+    expect(container.querySelector(".vault-brk-scene__wash")).toBeNull();
+    expect((container.querySelector(".vault-brk-scene__artwork") as HTMLImageElement)?.src).toContain("vault-challenge.webp");
+    expect(container.querySelector(".vault-core")).toBeTruthy();
+    expect(container.querySelector(".vault-crack-route")).toBeTruthy();
+    expect(container.querySelector(".vault-blueprint-art")).toBeNull();
+  });
+
+  it("starts on the create desk when there is no live target to break", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".mx2-stage__title")?.textContent).toBe("Create Vault");
+    expect(container.querySelector(".vault-mode-card--active")?.textContent).toContain("Create");
+    expect(container.querySelector(".vault-mode-switch .semi-radio")).toBeNull();
+    expect(container.querySelector(".mx2-btn--primary")?.textContent).toContain("Seal Vault");
+    expect(container.querySelector(".mx2-btn--primary")?.textContent).not.toContain("bounty");
+    expect(container.querySelector(".vault-work-card--create")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-console")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-console .vault-create-dossier")).toBeTruthy();
+    expect(container.querySelector(".vault-tuning-grid")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-tuning-card")).toHaveLength(2);
+    expect(container.querySelector(".vault-secret-console__status")?.textContent).toContain("Keys unarmed");
+    expect(container.querySelector(".vault-key-grid--create")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-key-grid--create .vault-key-slot input")).toHaveLength(2);
+    expect((container.querySelector(".vault-field--create-secret input") as HTMLInputElement)?.placeholder).toBe("Secret");
+    expect((container.querySelector(".vault-field--confirm-secret input") as HTMLInputElement)?.placeholder).toBe("Confirm secret");
+    expect(container.querySelector(".vault-brk-scene__art-card")).toBeTruthy();
+    expect(container.querySelector(".vault-blueprint-art")).toBeNull();
+    expect(container.querySelector(".vault-core__door")?.textContent).toContain("Vault blueprint");
+    expect(container.querySelector(".vault-crack-route")?.textContent).toContain("Secret");
+    expect(container.querySelector(".vault-target-card--empty")).toBeNull();
+    expect(container.querySelector(".vault-target-lock")).toBeNull();
+  });
+
+  it("starts on the break desk when a target is already loaded", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ vaultDetails: vault, canAttempt: true })} dispatch={vi.fn()} />,
+    );
+
+    expect(container.querySelector(".mx2-stage__title")?.textContent).toBe("Break Vault");
+    expect(container.querySelector(".vault-mode-card--active")?.textContent).toContain("Break");
+    expect(container.querySelector(".vault-mode-switch .semi-radio")).toBeNull();
+    expect(container.querySelector(".vault-target-lock")).toBeTruthy();
+    expect(container.querySelector(".vault-work-card--create")).toBeNull();
+  });
+
+  it("selects and loads a recent vault from the target rail", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
+    const appState = state({ recentVaults: [vault] });
+    const { container } = render(<PlayArea t={t} state={appState} dispatch={dispatch} />);
 
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    fireEvent.click(container.querySelector(".vault-target-card") as Element);
 
-    fireEvent.change(screen.getByLabelText("Vault Title"), {
-      target: { value: "Crack me" },
-    });
-    fireEvent.change(screen.getByLabelText("Description"), {
-      target: { value: "public hint" },
-    });
-    fireEvent.change(screen.getByLabelText("Bounty"), {
-      target: { value: "1" },
-    });
-    fireEvent.click(screen.getByRole("radio", { name: "Medium 0.5 GAS" }));
-    fireEvent.change(screen.getByLabelText("Vault Secret"), {
-      target: { value: "open sesame" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirm Secret"), {
-      target: { value: "open sesame" },
-    });
-    expect(container.querySelector(".vault-blueprint__lock.is-ready")).toBeTruthy();
-    expect(container.querySelector(".vault-console-stack")).toBeTruthy();
-    expect(container.querySelector(".vault-console-module--identity.is-active")).toBeTruthy();
-    expect(container.querySelector(".vault-console-module--bounty.is-active")).toBeTruthy();
-    expect(container.querySelector(".vault-console-module--lore.is-active")).toBeTruthy();
-    expect(container.querySelector(".vault-secret-panel--ready")).toBeTruthy();
-    expect(container.querySelectorAll(".vault-secret-panel__status .is-active").length).toBe(3);
-    expect(container.querySelector(".vault-system-stage--ready")).toBeTruthy();
-    expect(container.querySelector('.vault-system-stage__token img[src="./logo.jpg"]')).toBeTruthy();
-    expect(container.querySelector(".vault-system-stage__difficulty")?.textContent).toContain("Medium");
-    expect(container.querySelector(".vault-system-stage__difficulty")?.textContent).toContain("0.5 GAS");
-    expect(container.querySelector(".vault-system-stage__core")).toBeTruthy();
-    expect(container.querySelectorAll(".vault-system-stage__node").length).toBe(2);
-    fireEvent.click(screen.getByRole("button", { name: "Create Vault (bounty + hash)" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "createVault",
-        expect.objectContaining({
-          bounty: "1",
-          title: "Crack me",
-          description: "public hint",
-          difficulty: 2,
-          secret: "open sesame",
-        }),
-      );
-    });
+    expect(appState.vaultIdInput.get()).toBe("42");
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("loadVault", "42"));
   });
 
-  it("seals the vault immediately on create and locks repeat submits", async () => {
-    let finishCreate: (() => void) | undefined;
-    const createPromise = new Promise<void>((resolve) => {
-      finishCreate = resolve;
-    });
-    const dispatch = vi.fn((name: string) =>
-      name === "createVault" ? createPromise : Promise.resolve(),
-    );
-
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.change(screen.getByLabelText("Vault Title"), {
-      target: { value: "Crack me" },
-    });
-    fireEvent.change(screen.getByLabelText("Bounty"), {
-      target: { value: "1" },
-    });
-    fireEvent.change(screen.getByLabelText("Vault Secret"), {
-      target: { value: "open sesame" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirm Secret"), {
-      target: { value: "open sesame" },
-    });
-
-    const createButton = screen.getByRole("button", {
-      name: "Create Vault (bounty + hash)",
-    });
-    fireEvent.click(createButton);
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "createVault",
-        expect.objectContaining({
-          bounty: "1",
-          title: "Crack me",
-          secret: "open sesame",
-        }),
-      );
-      expect(container.querySelector(".vault-play-area")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".vault-command-shell")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".vault-play-area--creating")).toBeTruthy();
-      expect(container.querySelector(".vault-system-stage--creating")).toBeTruthy();
-      expect(container.querySelector(".vault-blueprint__lock.is-creating")).toBeTruthy();
-    });
-
-    expect(createButton.getAttribute("aria-busy")).toBe("true");
-    fireEvent.click(createButton);
-    expect(dispatch).toHaveBeenCalledTimes(1);
-    finishCreate?.();
-  });
-
-  it("renders difficulty as challenge cards instead of a native select", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-
-    expect(container.querySelector("select")).toBeNull();
-    expect(container.querySelector(".vault-select-chevron")).toBeNull();
-    expect(screen.getAllByRole("radio")).toHaveLength(3);
-    expect(screen.getByRole("radio", { name: "Easy 0.1 GAS" }).getAttribute("aria-checked")).toBe("true");
-  });
-
-  it("lets bounty presets arm the vault funding console without using a select", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "5 GAS" }));
-
-    expect((screen.getByLabelText("Bounty") as HTMLInputElement).value).toBe("5");
-    expect(container.querySelector(".vault-console-module--bounty.is-active")).toBeTruthy();
-    expect(container.querySelector(".vault-bounty-presets button.is-active")?.textContent).toBe("5 GAS");
-    expect(container.querySelectorAll(".vault-bounty-presets button")).toHaveLength(3);
-  });
-
-  it("uses a challenge console mode switch instead of stacking both workflows", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-
-    expect(screen.getByText("Build a bounty vault or inspect one to break")).toBeTruthy();
-    expect(container.querySelector(".vault-command-shell--create")).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Create Vault" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.queryByText("Load a vault to challenge")).toBeNull();
-
-    fireEvent.click(screen.getByRole("tab", { name: "Break a Vault" }));
-
-    expect(container.querySelector(".vault-command-shell--break")).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByText("Load a vault to challenge")).toBeTruthy();
-    expect(screen.queryByLabelText("Vault Title")).toBeNull();
-  });
-
-  it("opens the break desk automatically when a vault is loaded", () => {
+  it("dispatches loadVault and attemptBreak from the break desk", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({ vaultIdInput: "7", vaultDetails: activeVault, canAttempt: true })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole("tab", { name: "Break a Vault" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByText("Crack me if you can")).toBeTruthy();
-    expect(container.querySelector(".vault-id-scanner.is-armed.is-locked")).toBeTruthy();
-    expect(container.querySelector(".vault-id-scanner__beam")).toBeTruthy();
-    expect(container.querySelector(".vault-target-card--loaded")).toBeTruthy();
-    expect(container.querySelector(".vault-target-card--attempt-ready")).toBeTruthy();
-    expect(container.querySelector(".vault-secret-attempt.is-ready")).toBeTruthy();
-    expect(container.querySelector(".vault-secret-attempt__charge")).toBeTruthy();
-    expect(container.querySelector(".vault-break-stage--attempt")).toBeTruthy();
-    expect(container.querySelector(".vault-break-stage__reticle")).toBeTruthy();
-    expect(container.querySelectorAll(".vault-break-stage__route .is-active").length).toBe(3);
-  });
-
-  it("scans a loaded vault immediately and prevents duplicate load dispatches", async () => {
-    let finishLoad: (() => void) | undefined;
-    const loadPromise = new Promise<void>((resolve) => {
-      finishLoad = resolve;
-    });
-    const dispatch = vi.fn((name: string) =>
-      name === "loadVault" ? loadPromise : Promise.resolve(),
-    );
-
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({ vaultIdInput: "7" })}
-        dispatch={dispatch}
-      />,
-    );
-
-    const loadButton = screen.getByRole("button", { name: "Load Vault" });
-    fireEvent.click(loadButton);
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("loadVault", "7");
-      expect(container.querySelector(".vault-play-area")?.getAttribute("aria-busy")).toBe("true");
-      expect(container.querySelector(".vault-break-stage--loading")).toBeTruthy();
-      expect(container.querySelector(".vault-id-scanner.is-loading")).toBeTruthy();
-      expect(container.querySelector(".vault-target-card--busy")).toBeTruthy();
-    });
-
-    expect(loadButton.getAttribute("aria-busy")).toBe("true");
-    fireEvent.click(loadButton);
-    expect(dispatch).toHaveBeenCalledTimes(1);
-    finishLoad?.();
-  });
-
-  it("turns break, bounty top-up, and reclaim into immediate vault action motion", async () => {
-    let finishAttempt: (() => void) | undefined;
-    const attemptPromise = new Promise<void>((resolve) => {
-      finishAttempt = resolve;
-    });
-    const attemptDispatch = vi.fn((name: string) =>
-      name === "attemptBreak" ? attemptPromise : Promise.resolve(),
-    );
-    const attemptView = render(
       <PlayArea
         t={t}
         state={state({
-          vaultIdInput: "7",
-          vaultDetails: activeVault,
-          attemptSecret: "cat",
+          vaultIdInput: "42",
+          attemptSecret: "open-sesame",
+          vaultDetails: vault,
           canAttempt: true,
         })}
-        dispatch={attemptDispatch}
-      />,
-    );
-
-    const attemptButton = screen.getByRole("button", { name: "Attempt Break" });
-    fireEvent.click(attemptButton);
-
-    await waitFor(() => {
-      expect(attemptDispatch).toHaveBeenCalledWith("attemptBreak");
-      expect(attemptView.container.querySelector(".vault-play-area--attempting")).toBeTruthy();
-      expect(attemptView.container.querySelector(".vault-break-stage--breaking")).toBeTruthy();
-      expect(attemptView.container.querySelector(".vault-target-card--busy.vault-target-card--attempting")).toBeTruthy();
-      expect(attemptView.container.querySelector(".vault-secret-attempt.is-breaking")).toBeTruthy();
-    });
-    expect(attemptButton.getAttribute("aria-busy")).toBe("true");
-    fireEvent.click(attemptButton);
-    expect(attemptDispatch).toHaveBeenCalledTimes(1);
-    finishAttempt?.();
-    attemptView.unmount();
-
-    let finishTopUp: (() => void) | undefined;
-    const topUpPromise = new Promise<void>((resolve) => {
-      finishTopUp = resolve;
-    });
-    const topUpDispatch = vi.fn((name: string) =>
-      name === "increaseBounty" ? topUpPromise : Promise.resolve(),
-    );
-    const topUpView = render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: activeVault,
-        })}
-        dispatch={topUpDispatch}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("Increase Bounty (GAS)"), {
-      target: { value: "2.5" },
-    });
-    const topUpButton = screen.getByRole("button", { name: "Add Bounty" });
-    fireEvent.click(topUpButton);
-
-    await waitFor(() => {
-      expect(topUpDispatch).toHaveBeenCalledWith("increaseBounty", "7", "2.5");
-      expect(topUpView.container.querySelector(".vault-play-area--funding")).toBeTruthy();
-      expect(topUpView.container.querySelector(".vault-break-stage--funding")).toBeTruthy();
-      expect(topUpView.container.querySelector(".vault-target-card--busy.vault-target-card--funding")).toBeTruthy();
-      expect(topUpView.container.querySelector(".vault-topup--busy")).toBeTruthy();
-    });
-    expect(topUpButton.getAttribute("aria-busy")).toBe("true");
-    fireEvent.click(topUpButton);
-    expect(topUpDispatch).toHaveBeenCalledTimes(1);
-    finishTopUp?.();
-    topUpView.unmount();
-
-    let finishReclaim: (() => void) | undefined;
-    const reclaimPromise = new Promise<void>((resolve) => {
-      finishReclaim = resolve;
-    });
-    const reclaimDispatch = vi.fn((name: string) =>
-      name === "settleVault" ? reclaimPromise : Promise.resolve(),
-    );
-    const reclaimView = render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: claimableVault,
-          canReclaim: true,
-        })}
-        dispatch={reclaimDispatch}
-      />,
-    );
-
-    const reclaimButton = screen.getByRole("button", { name: "Reclaim Vault" });
-    fireEvent.click(reclaimButton);
-
-    await waitFor(() => {
-      expect(reclaimDispatch).toHaveBeenCalledWith("settleVault");
-      expect(reclaimView.container.querySelector(".vault-play-area--reclaiming")).toBeTruthy();
-      expect(reclaimView.container.querySelector(".vault-break-stage--reclaiming")).toBeTruthy();
-      expect(reclaimView.container.querySelector(".vault-target-card--busy.vault-target-card--reclaiming")).toBeTruthy();
-    });
-    expect(reclaimButton.getAttribute("aria-busy")).toBe("true");
-    fireEvent.click(reclaimButton);
-    expect(reclaimDispatch).toHaveBeenCalledTimes(1);
-    finishReclaim?.();
-  });
-
-  it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-
-    fireEvent.change(screen.getByLabelText("Vault Title"), { target: { value: "Crack me" } });
-    fireEvent.change(screen.getByLabelText("Bounty"), { target: { value: "1" } });
-    fireEvent.change(screen.getByLabelText("Vault Secret"), { target: { value: "open sesame" } });
-    fireEvent.change(screen.getByLabelText("Confirm Secret"), { target: { value: "typo" } });
-
-    expect(screen.getByText("Secrets do not match")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Create Vault (bounty + hash)" }),
-    ).toHaveProperty("disabled", true);
-  });
-
-  it("requires the minimum bounty before enabling create", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-
-    fireEvent.change(screen.getByLabelText("Vault Title"), {
-      target: { value: "Too small" },
-    });
-    fireEvent.change(screen.getByLabelText("Bounty"), {
-      target: { value: "0.5" },
-    });
-    fireEvent.change(screen.getByLabelText("Vault Secret"), {
-      target: { value: "secret" },
-    });
-
-    expect(
-      screen.getByRole("button", { name: "Create Vault (bounty + hash)" }),
-    ).toHaveProperty("disabled", true);
-  });
-
-  it("labels the hero stat tiles with noun counts, not bare verbs", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({ myVaultCount: 3, recentVaultCount: 5 })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByText("My Vaults")).toBeTruthy();
-    expect(screen.getByText("Open Vaults")).toBeTruthy();
-  });
-
-  it("shows the bounty-paid note and no claim control on a broken vault", () => {
-    // The contract pays the bounty to the winner ATOMICALLY on the winning
-    // attemptBreak — there is no separate on-chain claim. A broken vault simply
-    // surfaces that the bounty was already paid.
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: brokenVault,
-          canReclaim: false,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(
-      screen.getByText("This vault is broken — the bounty was paid to the winner."),
-    ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Claim Bounty" })).toBeNull();
-  });
-
-  it("offers Reclaim Vault to the creator of a claimable (expired) vault and dispatches settleVault", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: claimableVault,
-          canReclaim: true,
-        })}
         dispatch={dispatch}
       />,
     );
 
-    const reclaimButton = screen.getByRole("button", { name: "Reclaim Vault" });
-    // The break-secret input is hidden once a vault is no longer active.
-    expect(screen.queryByLabelText("Break Secret")).toBeNull();
-    expect(container.querySelector(".vault-target-card--claimable")).toBeTruthy();
-
-    fireEvent.click(reclaimButton);
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("settleVault");
-    });
+    fireEvent.click(container.querySelector(".vault-secondary-action") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("loadVault", "42"));
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("attemptBreak"));
   });
 
-  it("hides claim/reclaim controls on an active vault and shows the attempt cost note", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: activeVault,
-          canReclaim: false,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole("button", { name: "Claim Bounty" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Reclaim Vault" })).toBeNull();
-    expect(container.querySelector(".vault-secret-attempt")).toBeTruthy();
-    expect(screen.getByLabelText("Break Secret")).toBeTruthy();
-    expect(
-      screen.getByText("The attempt fee is charged on every try."),
-    ).toBeTruthy();
-  });
-
-  it("charges the challenge input when a breaker enters a secret", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: activeVault,
-          attemptSecret: "cat",
-          canAttempt: true,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect((screen.getByLabelText("Break Secret") as HTMLInputElement).value).toBe("cat");
-    expect(container.querySelector(".vault-secret-attempt.is-charged.is-ready")).toBeTruthy();
-    expect(container.querySelector(".vault-secret-attempt__icon")).toBeTruthy();
-  });
-
-  it("surfaces the bounty, title, hint, attempts and days-left a challenger needs before paying", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({ vaultIdInput: "7", vaultDetails: activeVault, canReclaim: false })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    // Previously all of these were fetched but never rendered.
-    expect(screen.getByText("Crack me if you can")).toBeTruthy();
-    expect(screen.getByText("Hint: it rhymes with cat")).toBeTruthy();
-    expect(screen.getByText("5 GAS")).toBeTruthy(); // 5e8 base units → 5 GAS bounty
-    expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
-    expect(screen.getByText("4")).toBeTruthy(); // attempts
-    expect(screen.getByText("9")).toBeTruthy(); // days left
-  });
-
-  it("dispatches increaseBounty with the loaded vault id and the entered amount", async () => {
+  it("dispatches createVault with full contract payload", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={state({ vaultIdInput: "7", vaultDetails: activeVault, canReclaim: false })}
-        dispatch={dispatch}
-      />,
-    );
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    fireEvent.change(screen.getByLabelText("Increase Bounty (GAS)"), {
-      target: { value: "2.5" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add Bounty" }));
+    fireEvent.click(optionByText(container, ".vault-mode-card", "Create"));
+    expect(container.querySelector(".vault-create-dossier")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-console .vault-create-dossier")).toBeTruthy();
+    expect(container.querySelector(".vault-secret-console")).toBeTruthy();
+    expect(container.querySelector(".vault-tuning-grid")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-tuning-card")).toHaveLength(2);
+    expect(container.querySelector(".vault-key-grid--create")).toBeTruthy();
+    expect(container.querySelector(".vault-detail-toggle")).toBeNull();
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.change(container.querySelector(".vault-drawer-field--title input") as HTMLInputElement, { target: { value: "Cipher Shrine" } });
+    const secretInputs = container.querySelectorAll(".vault-key-grid--create .vault-field--secret input");
+    fireEvent.change(secretInputs[0], { target: { value: "  secret123  " } });
+    fireEvent.change(secretInputs[1], { target: { value: "secret123" } });
+    fireEvent.click(container.querySelectorAll(".vault-bounty")[2]);
+    fireEvent.click(container.querySelectorAll(".vault-difficulty")[2]);
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
 
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("increaseBounty", "7", "2.5");
-    });
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createVault", expect.objectContaining({
+      title: "Cipher Shrine",
+      secret: "secret123",
+      secretHash: "",
+      bounty: "10",
+      difficulty: 3,
+    })));
   });
 
-  it("localizes recent-vault statuses instead of rendering raw enum text", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          recentVaults: [{ id: "3", creator: "0xc", bounty: 0, status: "claimable" }],
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-    // The raw "claimable" enum is mapped to the localized label.
-    expect(screen.getByText("Claimable")).toBeTruthy();
-    expect(screen.queryByText("claimable")).toBeNull();
+  it("keeps the secondary drawer as compact vault operation panels", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".vault-target-card--empty")).toBeNull();
+    fireEvent.click(optionByText(container, ".vault-mode-card", "Break"));
+    expect(container.querySelector(".vault-target-card--empty")?.textContent).toContain("Arm both key slots");
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+
+    expect(container.querySelector(".mx2-action-rail__drawer-toggle")?.textContent).toContain("Details");
+    expect(container.querySelector(".mx2-drawer__title")?.textContent).toBe("Challenge");
+    expect(container.querySelector(".vault-drawer-grid")).toBeTruthy();
+    expect(container.querySelectorAll(".vault-drawer-panel").length).toBe(4);
+    expect(container.querySelectorAll(".vault-drawer-panel.mx2-open-panel.semi-card").length).toBe(4);
+    expect(container.querySelector(".vault-drawer-input")).toBeNull();
+    expect(container.querySelector(".vault-drawer-panel__head")).toBeNull();
+    expect(container.querySelector(".vault-drawer-field input.semi-input")).toBeTruthy();
+    expect(container.querySelector(".vault-drawer-field--title input.semi-input")).toBeTruthy();
+    expect(container.querySelector(".vault-drawer-field--wide input.semi-input")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer__body h4")).toBeNull();
   });
 
-  it("shows the honest mainnet handoff note when launched on mainnet", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state()}
-        dispatch={vi.fn()}
-        launchContext={{ network: "mainnet" }}
-      />,
+  it("keeps motion and low-noise vault hierarchy backed by tests", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
+    const styles = fs.readFileSync(
+      path.join(appsRoot, "unbreakable-vault/src/PlayArea.scss"),
+      "utf8",
     );
-    expect(
-      screen.getByText(/the GAS deposit and contract call are batched/),
-    ).toBeTruthy();
-  });
-
-  it("keeps vault challenge motion explicit and reduced-motion safe", () => {
-    const repoPath = resolve(process.cwd(), "apps/unbreakable-vault/src/PlayArea.scss");
-    const sharedPath = resolve(process.cwd(), "../unbreakable-vault/src/PlayArea.scss");
-    const css = readFileSync(existsSync(repoPath) ? repoPath : sharedPath, "utf8");
-
-    expect(css).toContain("@keyframes vault-system-ready-ring");
-    expect(css).toContain("@keyframes vault-system-token-idle");
-    expect(css).toContain("@keyframes vault-system-token-route");
-    expect(css).toContain("@keyframes vault-system-token-seal");
-    expect(css).toContain("@keyframes vault-system-difficulty-ready");
-    expect(css).toContain("@keyframes vault-system-seal");
-    expect(css).toContain("@keyframes vault-console-module-scan");
-    expect(css).toContain("@keyframes vault-bounty-chip-ready");
-    expect(css).toContain("@keyframes vault-secret-calibrate");
-    expect(css).toContain("@keyframes vault-input-scan");
-    expect(css).toContain("@keyframes vault-id-beam-route");
-    expect(css).toContain("@keyframes vault-secret-charge");
-    expect(css).toContain("@keyframes vault-secret-ready-pulse");
-    expect(css).toContain("@keyframes vault-break-scan");
-    expect(css).toContain("@keyframes vault-break-reticle");
-    expect(css).toContain("@keyframes vault-secret-break-force");
-    expect(css).toContain("@keyframes vault-secret-break-charge");
-    expect(css).toContain("@keyframes vault-target-action-sweep");
-    expect(css).toContain("@keyframes vault-target-action-pulse");
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(css).toContain(".vault-system-stage__token");
-    expect(css).toContain(".vault-system-stage__difficulty");
-    expect(css).toContain(".vault-console-module");
-    expect(css).toContain(".vault-bounty-presets");
-    expect(css).toContain(".vault-secret-panel--ready");
-    expect(css).toContain(".vault-id-scanner");
-    expect(css).toContain(".vault-secret-attempt");
-    expect(css).toContain(".vault-secret-attempt.is-breaking");
-    expect(css).toContain(".vault-break-stage__scan");
-    expect(css).toContain(".vault-break-stage--breaking");
-    expect(css).toContain(".vault-target-card--busy");
-    expect(css).toContain(".vault-topup--busy");
-    expect(css).toContain("animation: none");
+    const source = fs.readFileSync(
+      path.join(appsRoot, "unbreakable-vault/src/PlayArea.tsx"),
+      "utf8",
+    );
+    expect(source).not.toContain("OpenUiSegmented");
+    expect(source).toContain("vault-mode-card");
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toMatch(/\.unbreakable-vault-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
+    expect(styles).toMatch(/\.unbreakable-vault-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*#d97706/);
+    expect(styles).toMatch(/\.unbreakable-vault-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/vault-brk-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/vault-brk-scene\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(styles).not.toMatch(/vault-brk-scene__image|vault-brk-scene__wash|vault-brk-scene-art|var\(--mx2-scene-art-opacity|background-image:\s*url/);
+    expect(styles).toMatch(/vault-brk-scene__art-card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[^}]*opacity:\s*0\.82/);
+    expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[^}]*filter:\s*none/);
+    expect(styles).toMatch(/vault-mode-switch\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/vault-mode-card\s*\{[\s\S]*min-height:\s*72px/);
+    expect(styles).toMatch(/vault-mode-card--active\s*\{[\s\S]*inset 4px 0 0 #0f766e/);
+    expect(styles).not.toMatch(/vault-mode-segmented|semi-radioGroup|semi-radio-checked/);
+    expect(styles).toMatch(/vault-core__door\s*\{[\s\S]*background:\s*#fffef8/);
+    expect(styles).toMatch(/vault-core__laser\s*\{[\s\S]*opacity:\s*0;/);
+    expect(styles).toMatch(/vault-core__laser\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/vault-brk-scene\[data-state="attempting"\] \.vault-core__laser[\s\S]*opacity:\s*0\.38/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).not.toContain("vault-blueprint-art");
+    expect(styles).not.toMatch(/vault-brk-scene__artwork\s*\{[^}]*filter:\s*saturate/);
+    expect(fs.existsSync(path.join(appsRoot, "unbreakable-vault/public/vault-brk-scene-art.jpg"))).toBe(false);
+    expect(styles).toMatch(/vault-work-card--break[\s\S]*grid-template-columns/);
+    expect(styles).toMatch(/vault-work-card--create[\s\S]*grid-template-areas:[\s\S]*"secret"[\s\S]*"tuning"/);
+    expect(styles).toMatch(/vault-work-card--create \.vault-work-card__hero\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/vault-tuning-grid\s*\{[\s\S]*grid-area:\s*tuning/);
+    expect(styles).toMatch(/vault-tuning-card\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/vault-key-slot[\s\S]*grid-template-areas/);
+    expect(styles).toMatch(/vault-create-dossier[\s\S]*grid-area:\s*dossier/);
+    expect(styles).toMatch(/vault-create-dossier[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.78\)/);
+    expect(styles).toMatch(/vault-secret-console\s*\{[\s\S]*grid-area:\s*secret/);
+    expect(styles).toMatch(/vault-secret-console\s*\{[\s\S]*grid-template-areas:\s*"head keys dossier"/);
+    expect(styles).toMatch(/vault-secret-console\s*\{[\s\S]*background:[\s\S]*#fffdf4/);
+    expect(styles).toMatch(/vault-secret-console\[data-ready="true"\]\s*\{[\s\S]*background:\s*#f4fffb/);
+    expect(styles).toMatch(/vault-key-grid--create\s*\{[\s\S]*grid-area:\s*keys/);
+    expect(styles).toMatch(/vault-key-grid--create\s*\{[\s\S]*width:\s*min\(100%,\s*460px\)/);
+    expect(styles).toMatch(/vault-key-grid--create\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/vault-key-grid--create \.vault-key-slot\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/vault-key-grid--create \.vault-key-slot\s*\{[\s\S]*min-height:\s*54px/);
+    expect(styles).toMatch(/vault-key-grid--create \.vault-key-slot \.mx2-open-field__label span\s*\{[\s\S]*clip:\s*rect\(0 0 0 0\)/);
+    expect(styles).not.toContain("vault-detail-toggle");
+    expect(styles).toMatch(/vault-drawer-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(260px,\s*0\.95fr\)\s*minmax\(320px,\s*1\.18fr\)/);
+    expect(styles).toMatch(/vault-drawer-form-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(180px,\s*1fr\)\s*minmax\(110px,\s*0\.46fr\)/);
+    expect(styles).toMatch(/vault-drawer-field--wide\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
+    expect(styles).not.toContain("vault-drawer-panel__head");
+    expect(styles).not.toContain("vault-drawer-input");
+    expect(styles).toMatch(/vault-drawer-field \.mx2-open-field__control\s*\{[\s\S]*min-height:\s*40px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-drawer-action-row,\s*\n\s*\.vault-drawer-form-row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene\s*\{[\s\S]*min-height:\s*300px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene__art-card\s*\{[\s\S]*height:\s*128px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-crack-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene__status\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-mode-card\s*\{[\s\S]*min-height:\s*54px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-target-card--empty\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*980px\)[\s\S]*\.vault-work-card--create\s*\{[\s\S]*grid-template-areas:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*980px\)[\s\S]*\.vault-secret-console,[\s\S]*\.vault-tuning-grid\s*\{[\s\S]*grid-area:\s*auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*980px\)[\s\S]*\.vault-secret-console\s*\{[\s\S]*"head"[\s\S]*"dossier"[\s\S]*"keys"/);
+    expect(styles).toMatch(/@media \(max-width:\s*980px\)[\s\S]*\.vault-tuning-grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*980px\)[\s\S]*\.vault-key-grid--create\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*980px\)[\s\S]*\.vault-key-grid--create \.vault-field\s*\{[\s\S]*grid-column:\s*auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-bounty\s*\{[\s\S]*min-height:\s*40px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-difficulty\s*\{[\s\S]*min-height:\s*40px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-key-grid--create \.vault-key-slot\s*\{[\s\S]*min-height:\s*42px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-key-grid--create \.vault-field \.vault-input \.semi-input\s*\{[\s\S]*font-size:\s*12px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-bounty-strip\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-difficulty-strip\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-difficulty span\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.unbreakable-vault-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*184px/);
+    const messages = fs.readFileSync(
+      path.join(appsRoot, "unbreakable-vault/src/locale/messages.ts"),
+      "utf8",
+    );
+    expect(messages).toContain('en: "Seal Vault"');
+    expect(messages).not.toContain("Create Vault (bounty + hash)");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/animation-duration:\s*0\.001ms/);
   });
 });

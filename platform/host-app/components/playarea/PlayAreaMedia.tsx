@@ -6,6 +6,7 @@ import {
   FileSignature,
   ImageIcon,
   LockKeyhole,
+  RefreshCw,
   WandSparkles,
 } from "lucide-react";
 
@@ -236,6 +237,9 @@ export function TarotPlayArea(props: PlayAreaRegistryProps) {
   const [drawn, setDrawn] = useState<TarotCard[]>([]);
   const [flipped, setFlipped] = useState(false);
   const handledOperationRef = useRef("");
+  const activeCards = drawn.length ? drawn : FALLBACK_TAROT.slice(0, 3);
+  const deckSize = deck.length || FALLBACK_TAROT.length;
+  const backImage = "/miniapps/on-chain-tarot/cards/back.webp";
 
   useEffect(() => {
     let cancelled = false;
@@ -283,21 +287,18 @@ export function TarotPlayArea(props: PlayAreaRegistryProps) {
   return (
     <PlayShell
       app={app}
-      title="Draw, flip, read"
-      subtitle="The first screen is the reading table: draw three cards, flip them, and request the on-chain reading."
+      title={flipped ? "Reading revealed" : "Neo tarot table"}
+      subtitle="Draw the spread from the Neo oracle deck, then flip the three cards when the wallet-reviewed reading is ready."
       tone="violet"
       side={
-        <div className="rounded-lg border border-violet-100 bg-white/85 p-4">
-          <h3 className="m-0 text-sm font-bold text-gray-950">
-            Reading spread
+        <div className="rounded-lg border border-emerald-100 bg-white/85 p-4">
+          <h3 className="m-0 text-sm font-bold text-gray-900">
+            Reading context
           </h3>
           <div className="mt-3 space-y-2 text-sm text-gray-600">
-            <PreviewStat
-              label="Deck"
-              value={`${deck.length || FALLBACK_TAROT.length} cards`}
-            />
+            <PreviewStat label="Deck" value={`${deckSize} cards`} />
             <PreviewStat label="Spread" value="Past / Signal / Path" />
-            <PreviewStat label="Randomness" value="Neo block seed" />
+            <PreviewStat label="Randomness" value="Neo on-chain draw" />
           </div>
         </div>
       }
@@ -311,51 +312,119 @@ export function TarotPlayArea(props: PlayAreaRegistryProps) {
         />
       }
     >
-      <div className="space-y-3">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {(drawn.length ? drawn : FALLBACK_TAROT.slice(0, 3)).map(
-            (card, index) => {
-              const image = card.image?.replace(
-                "./cards/",
-                "/miniapps/on-chain-tarot/cards/",
-              );
-              return (
-                <button
-                  key={`${card.id}:${index}`}
-                  type="button"
-                  onClick={() => setFlipped(true)}
-                  className="group min-h-[140px] cursor-pointer rounded-lg border border-violet-200 bg-white p-2 text-center shadow-sm shadow-violet-900/5 transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md sm:min-h-[260px] sm:p-3 sm:text-left"
-                >
-                  {flipped ? (
-                    <div className="h-full">
+      <section className="relative overflow-hidden bg-[linear-gradient(180deg,#fffdf8_0%,#f3fff9_100%)] px-3 py-4 sm:px-5 sm:py-5">
+        <div
+          className="pointer-events-none absolute inset-x-6 top-5 h-28 rounded-full bg-emerald-100/40 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 grid gap-4 lg:grid-cols-[170px_minmax(0,1fr)] lg:items-stretch">
+          <div className="hidden rounded-[22px] border border-emerald-100 bg-white/80 p-3 shadow-sm shadow-emerald-950/5 lg:grid">
+            <div className="relative mx-auto mt-2 h-[188px] w-[112px]">
+              {[0, 1, 2].map((offset) => (
+                <img
+                  key={offset}
+                  src={backImage}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full rounded-[12px] border border-emerald-950/10 object-cover shadow-md shadow-emerald-950/15"
+                  style={{
+                    transform: `translate(${offset * 7}px, ${offset * 5}px) rotate(${offset * 2 - 2}deg)`,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3">
+              <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                Neo oracle deck
+              </p>
+              <p className="m-0 mt-1 text-sm font-semibold text-gray-900">
+                {deckSize} card spread source
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-emerald-100 bg-white/90 p-3 shadow-sm shadow-emerald-950/5 sm:p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                  Three-card spread
+                </p>
+                <p className="m-0 mt-1 text-sm text-gray-600">
+                  {flipped
+                    ? "Past, Signal, and Path are visible."
+                    : "Tap a card or reveal all when ready."}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                <WandSparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                0.1 GAS draw
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              {activeCards.map((card, index) => {
+                const image = card.image?.replace(
+                  "./cards/",
+                  "/miniapps/on-chain-tarot/cards/",
+                );
+                const label = ["Past", "Signal", "Path"][index];
+                return (
+                  <button
+                    key={`${card.id}:${index}`}
+                    type="button"
+                    onClick={() => setFlipped(true)}
+                    className="group min-w-0 cursor-pointer rounded-[18px] border border-emerald-100 bg-[#fffaf0] p-1.5 text-center shadow-sm shadow-emerald-950/5 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:p-2"
+                    aria-label={
+                      flipped
+                        ? `${label}: ${card.name}`
+                        : `Reveal ${label} card`
+                    }
+                  >
+                    <span className="block overflow-hidden rounded-[14px] border border-emerald-950/10 bg-white shadow-inner">
                       <img
-                        src={image}
-                        alt={card.name}
-                        className="mx-auto aspect-[2/3] h-24 rounded-md object-cover sm:h-44"
+                        src={flipped ? image : backImage}
+                        alt={flipped ? card.name : `${label} sealed card`}
+                        className="aspect-[9/16] w-full object-cover"
+                        loading="lazy"
                       />
-                      <p className="m-0 mt-2 text-xs font-black text-gray-950 sm:mt-3 sm:text-sm">
-                        {card.name}
-                      </p>
-                      <p className="m-0 mt-1 line-clamp-2 text-[10px] leading-snug text-gray-700 sm:text-xs">
+                    </span>
+                    <span className="mt-2 block truncate text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                      {label}
+                    </span>
+                    <span className="mt-0.5 block min-h-[34px] text-xs font-semibold leading-snug text-gray-900 sm:text-sm">
+                      {flipped ? card.name : "Sealed card"}
+                    </span>
+                    {flipped && (
+                      <span className="mt-1 hidden text-[11px] leading-snug text-gray-600 sm:line-clamp-2">
                         {card.keyword} / {card.meaning}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid h-full min-h-[112px] place-items-center rounded-md border border-violet-200 bg-[radial-gradient(circle_at_50%_18%,rgba(16,185,129,0.18),transparent_42%),linear-gradient(145deg,#f5f3ff,#ecfeff)] sm:min-h-[232px]">
-                      <div className="text-center text-violet-800">
-                        <WandSparkles className="mx-auto mb-2 h-5 w-5 text-violet-700 sm:mb-3 sm:h-8 sm:w-8" />
-                        <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-violet-800 sm:text-xs">
-                          {["Past", "Signal", "Path"][index]}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </button>
-              );
-            },
-          )}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFlipped(true)}
+                className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 sm:flex-none"
+              >
+                <WandSparkles className="h-4 w-4" aria-hidden="true" />
+                {flipped ? "Revealed" : "Reveal"}
+              </button>
+              <button
+                type="button"
+                onClick={drawCards}
+                className="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 sm:flex-none"
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                Draw again
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </PlayShell>
   );
 }
@@ -366,20 +435,20 @@ const FALLBACK_TAROT: TarotCard[] = [
     name: "The Fool",
     keyword: "Spark",
     meaning: "Leap",
-    image: "/miniapps/on-chain-tarot/cards/00-the-fool.svg",
+    image: "/miniapps/on-chain-tarot/cards/00-the-fool.webp",
   },
   {
     id: 1,
     name: "The Magician",
     keyword: "Protocol",
     meaning: "Intent",
-    image: "/miniapps/on-chain-tarot/cards/01-the-magician.svg",
+    image: "/miniapps/on-chain-tarot/cards/01-the-magician.webp",
   },
   {
     id: 2,
     name: "The High Priestess",
     keyword: "Oracle",
     meaning: "Signal",
-    image: "/miniapps/on-chain-tarot/cards/02-the-high-priestess.svg",
+    image: "/miniapps/on-chain-tarot/cards/02-the-high-priestess.webp",
   },
 ];

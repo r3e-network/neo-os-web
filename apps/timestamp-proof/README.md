@@ -1,45 +1,44 @@
 # Timestamp Proof | 时间戳证明
 
-`Timestamp Proof` is currently a stateless **local proof journal**, not a deployed on-chain contract flow.
+`Timestamp Proof` is a local SHA-256 proof journal with optional Neo N3 anchoring.
 
 ## Current Behavior
 
 - hashes content locally in the browser with `SHA-256`
 - stores proof entries in browser local storage on the current device
 - assigns a local proof id for later lookup
-- lets the user re-open and verify saved proofs by id
+- lets the user re-open and verify saved proofs by id, digest, or original content
+- optionally anchors a saved digest on Neo N3 with a real 0-GAS self-transfer when a connected wallet is available
 
-## What It Does Not Do
+## Privacy And Trust Model
 
-- it does **not** submit a transaction
-- it does **not** write hashes to Neo N3
-- it does **not** depend on legacy receipt relays, Oracle, or AA for its current runtime path
-
-## Why This Was Changed
-
-The app manifest already marked Timestamp Proof as `stateless`, but the old frontend still tried to call a missing contract. That mismatch made the app unreliable. The current implementation matches the manifest and keeps the tool usable until a real contract-backed version is added.
+- source content stays on the user's device
+- local proofs are private and free
+- anchoring publishes only `timestamp-proof:<digest>` in a public Neo transaction data field
+- anchored proofs can be verified by checking the transaction payload and block time
+- local proofs are only available in the browser profile that created them
 
 ## Usage
 
-1. Enter text, a hash, or a short proof note.
-2. Create a proof entry.
-3. The app stores the entry locally with a generated proof id and timestamp.
-4. Use the `Verify` tab and the proof id to re-open that saved entry later.
+1. Enter text, a document hash, or a short proof note.
+2. Create a local proof entry.
+3. Re-open or verify the saved entry by proof id, digest, or original content.
+4. Optional: connect a wallet and anchor the latest proof digest on-chain for third-party verification.
 
-## Security Notes
+## What It Does Not Do
 
-- hashing happens locally in the browser
-- raw content is never uploaded by this app
-- proofs are only available on the device/browser profile that created them
-- clearing browser storage removes saved proofs
+- it does not upload raw documents
+- it does not store source content on-chain
+- it does not pretend local-only proofs are public blockchain evidence
+- it does not depend on Oracle or AA for the core local proof path
 
 ## Architecture
 
-- Type: frontend-only stateless tool
+- Type: frontend tool with optional wallet transaction
 - Hash function: `SHA-256`
-- Storage: browser local storage
-- Network dependency: none for the core proof path
+- Local storage: browser local storage
+- Anchor pattern: 0-GAS self-transfer embedding `timestamp-proof:<digest>`
 
 ## Next Upgrade Path
 
-If Timestamp Proof needs a real Neo N3 anchoring flow later, add a dedicated contract first and then switch the frontend + manifest together in the same change. Do not reintroduce pseudo-contract calls without a deployed source of truth.
+If Timestamp Proof needs a dedicated contract later, add the contract first and switch the frontend + manifest together in the same change. Do not reintroduce synthetic transaction ids or pseudo-contract calls without a deployed source of truth.

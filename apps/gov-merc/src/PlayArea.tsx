@@ -1,13 +1,30 @@
-import { useEffect, useRef, useState } from "react";
-import { NeoCard, NeoButton } from "@shared/components-react";
+/**
+ * PlayArea.tsx -- Gov Merc
+ *
+ * Governance influence is shown as a live market room: NEO stake routes in from
+ * one side, GAS bids from the other, and the epoch core decides the winner. The
+ * contract-facing actions stay exactly the same; this file only sharpens the
+ * resource-led interaction layer around those actions.
+ */
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  ArrowDownToLine,
+  ArrowUpRight,
+  BadgeDollarSign,
+  Coins,
+  Crown,
+  Gavel,
+  Landmark,
+  Trophy,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { formatNum } from "@shared/utils/format";
-import MercHeroStats from "./components/MercHeroStats";
-import MercActionCards, { type AmountField, type MercActionPreview } from "./components/MercActionCards";
-import MercBidsList from "./components/MercBidsList";
-import MercStakerPanel, { type ReclaimableBid } from "./components/MercStakerPanel";
 import { epochWindowPhase, EPOCH_DURATION_FALLBACK_MS, MIN_BID } from "./hooks/useGovMerc";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { OpenUiPanel, OpenUiProvider, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -16,43 +33,58 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-/** Format the remaining bidding-window time as m:ss. */
+interface ReclaimableBid {
+  epoch: number;
+  amount: number;
+}
+
+type DrawerMode = "bids" | "stake" | "rewards" | "guide";
+
+const DEPOSIT_PRESETS = ["1", "10", "50", "100"];
+const MARKET_STAGE_IMAGE = "gov-merc-market-stage.webp";
+
 function formatCountdown(remainingMs: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  const total = Math.max(0, Math.ceil(remainingMs / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function compactAddress(address: string): string {
+  return address.length > 14 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+}
+
+function amountLabel(value: number, digits = 2): string {
+  return formatNum(value, digits);
+}
+
+function normalizeWholeNeoAmount(value: string): string {
+  const whole = value.split(/[.,]/)[0] ?? "";
+  return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+}
+
+function isPositiveWholeNeoAmount(value: string): boolean {
+  return /^[1-9]\d*$/.test(value.trim());
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, str, bool, num } = useStateBindings(state);
-
-  // Ticking clock for the bidding-window countdown / closed state (v2 contract:
-  // the first bid of an epoch opens a fixed window; bids after the deadline are
-  // rejected and settlement only unlocks once the deadline passes).
   const [now, setNow] = useState(() => Date.now());
-  const [actionPreview, setActionPreview] = useState<MercActionPreview>(null);
-  const actionPreviewTimeout = useRef<number | null>(null);
+  const [actionPreview, setActionPreview] = useState<string | null>(null);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("bids");
+  const actionTimeout = useRef<number | null>(null);
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(
-    () => () => {
-      if (actionPreviewTimeout.current !== null) {
-        window.clearTimeout(actionPreviewTimeout.current);
-      }
-    },
-    [],
-  );
+  useEffect(() => () => {
+    if (actionTimeout.current) window.clearTimeout(actionTimeout.current);
+  }, []);
 
   const totalPool = val<number>("totalPool", 0) ?? 0;
   const currentEpoch = val<number>("currentEpoch", 0) ?? 0;
   const bids = val<Array<{ address: string; amount: number }>>("bids", []) ?? [];
   const isBusy = bool("isBusy");
-  const dataLoading = bool("dataLoading");
   const address = str("address", "");
-  const userDepositsDisplay = str("userDepositsDisplay", "0 NEO");
   const userDeposits = val<number>("userDeposits", 0) ?? 0;
   const depositAmount = str("depositAmount");
   const withdrawAmount = str("withdrawAmount");
@@ -60,300 +92,377 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const bidCount = num("bidCount");
   const canSettle = bool("canSettle");
   const epochDeadline = val<number>("epochDeadline", 0) ?? 0;
-  const epochDurationMs =
-    val<number>("epochDurationMs", EPOCH_DURATION_FALLBACK_MS) ??
-    EPOCH_DURATION_FALLBACK_MS;
-  const lastSettlementDisplay = str("lastSettlementDisplay", "");
+  const epochDurationMs = val<number>("epochDurationMs", EPOCH_DURATION_FALLBACK_MS) ?? EPOCH_DURATION_FALLBACK_MS;
   const pendingRewards = val<number>("pendingRewards", 0) ?? 0;
   const gasCredit = val<number>("gasCredit", 0) ?? 0;
   const reclaimableBids = val<ReclaimableBid[]>("reclaimableBids", []) ?? [];
   const highestBid = val<number>("highestBid", 0) ?? 0;
   const lastDistributed = val<number>("lastDistributed", 0) ?? 0;
 
-  const setAmountValue = (key: AmountField, value: string) => {
-    state[key]?.set(value);
-  };
-
-  const startActionPreview = (action: Exclude<MercActionPreview, null>) => {
-    if (actionPreviewTimeout.current !== null) {
-      window.clearTimeout(actionPreviewTimeout.current);
-    }
+  const startActionPreview = (action: string) => {
+    if (actionTimeout.current) window.clearTimeout(actionTimeout.current);
     setActionPreview(action);
-    actionPreviewTimeout.current = window.setTimeout(() => {
+    actionTimeout.current = window.setTimeout(() => {
       setActionPreview(null);
-      actionPreviewTimeout.current = null;
+      actionTimeout.current = null;
     }, 1200);
   };
 
   const isConnected = address.length > 0;
-  const shortAddress = isConnected
-    ? `${address.slice(0, 8)}...${address.slice(-6)}`
-    : t("walletStatusIdle");
-
-  // Bidding-window phase: "unopened" (first bid opens it), "open" (countdown)
-  // or "closed" (bids rejected; settlement available once there are bids).
   const windowPhase = epochWindowPhase(epochDeadline, now);
   const biddingClosed = windowPhase === "closed";
-  const windowMinutes = Math.max(1, Math.round(epochDurationMs / 60_000));
-  const windowLabel =
-    windowPhase === "unopened"
-      ? t("bidWindowUnopened", { minutes: windowMinutes })
-      : windowPhase === "open"
-        ? t("bidWindowCountdown", { time: formatCountdown(epochDeadline - now) })
-        : t("bidWindowClosed");
-  // Settle is available only AFTER the bidding deadline (and with bids).
+  const windowMinutes = Math.max(1, Math.round(epochDurationMs / 60000));
+  const windowLabel = windowPhase === "unopened"
+    ? t("bidWindowUnopened", { minutes: windowMinutes })
+    : windowPhase === "open"
+      ? t("bidWindowCountdown", { time: formatCountdown(epochDeadline - now) })
+      : t("bidWindowClosed");
   const canSettleNow = canSettle && biddingClosed;
-  const connectBusy = isBusy || actionPreview === "connect";
-  const settleBusy = isBusy || actionPreview === "settle";
-  const stageState =
-    actionPreview === "bid"
-      ? "is-bidding"
-      : actionPreview === "settle"
-        ? "is-settling"
-        : actionPreview === "deposit" || actionPreview === "withdraw"
-          ? "is-staking"
-          : "";
+  const leader = bids[0]?.address ? compactAddress(bids[0].address) : t("emptyBidTitle");
+  const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; Icon: LucideIcon }> = [
+    { mode: "bids", label: t("bidLeaderboard"), value: String(bidCount || bids.length), Icon: Trophy },
+    { mode: "stake", label: t("withdrawDrawerTitle"), value: `${amountLabel(userDeposits, 0)} NEO`, Icon: Wallet },
+    { mode: "rewards", label: t("rewardsTitle"), value: `${amountLabel(pendingRewards, 2)} GAS`, Icon: Coins },
+    { mode: "guide", label: t("flowTitle"), value: windowPhase, Icon: Landmark },
+  ];
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const ActiveDrawerIcon = activeDrawerMode.Icon;
+
+  const bidPresets = useMemo(() => {
+    const base = Math.max(MIN_BID, highestBid || 0);
+    return Array.from(new Set([
+      base,
+      base + 0.5,
+      base + 1,
+      base + 5,
+    ].map((value) => Number(value.toFixed(2)).toString())));
+  }, [highestBid]);
+
+  const setVal = (key: string, value: string) => {
+    (state as Record<string, { set: (v: unknown) => void }>)[key]?.set(value);
+  };
+  const setNeoVal = (key: string, value: string) => {
+    setVal(key, normalizeWholeNeoAmount(value));
+  };
+
+  const handleConnect = () => {
+    startActionPreview("connect");
+    void dispatch("connectWallet");
+  };
+  const handleBid = () => {
+    if (!bidAmount.trim() || !isConnected) return;
+    startActionPreview("bid");
+    void dispatch("placeBid");
+  };
+  const handleDeposit = () => {
+    if (!isPositiveWholeNeoAmount(depositAmount) || !isConnected) return;
+    startActionPreview("deposit");
+    void dispatch("depositNeo");
+  };
+  const handleWithdraw = () => {
+    if (!isPositiveWholeNeoAmount(withdrawAmount) || !isConnected) return;
+    startActionPreview("withdraw");
+    void dispatch("withdrawNeo");
+  };
+  const handleSettle = () => {
+    startActionPreview("settle");
+    void dispatch("settleEpoch");
+  };
+
+  const bidAnimating = isBusy || actionPreview === "bid";
+  const depositAnimating = isBusy || actionPreview === "deposit" || actionPreview === "withdraw";
+  const routing = actionPreview === "bid" || actionPreview === "deposit" || actionPreview === "settle";
+
+  const scene = (
+    <div className="merc-scene" data-state={actionPreview ?? "idle"} data-window={windowPhase}>
+      <figure className="merc-stage-art" aria-hidden="true">
+        <img src={MARKET_STAGE_IMAGE} alt="" loading="eager" decoding="async" draggable={false} />
+      </figure>
+
+      <div className="merc-lane merc-lane--stake" data-active={depositAnimating ? "true" : undefined}>
+        <div className="merc-lane__rail" aria-hidden="true" />
+        <div className="merc-lane__coin-stack" aria-hidden="true">
+          <span><CoinArt size={24} variant="neo" /></span>
+          <span><CoinArt size={20} variant="neo" /></span>
+          <span><CoinArt size={16} variant="neo" /></span>
+        </div>
+        <div className="merc-lane__copy">
+          <span>{t("earnLaneTitle")}</span>
+          <strong>{amountLabel(userDeposits, 0)} NEO</strong>
+        </div>
+      </div>
+
+      <div className="merc-core">
+        <span className="merc-core__halo" aria-hidden="true" />
+        <Gavel size={42} />
+        <strong>{t("marketPlateEpoch", { epoch: currentEpoch })}</strong>
+        <em>{windowLabel}</em>
+      </div>
+
+      <div className="merc-lane merc-lane--bid" data-active={bidAnimating ? "true" : undefined}>
+        <div className="merc-lane__rail" aria-hidden="true" />
+        <div className="merc-lane__coin-stack" aria-hidden="true">
+          <span><CoinArt size={24} variant="gas" /></span>
+          <span><CoinArt size={20} variant="gas" /></span>
+          <span><CoinArt size={16} variant="gas" /></span>
+        </div>
+        <div className="merc-lane__copy">
+          <span>{t("bidLaneTitle")}</span>
+          <strong>{amountLabel(highestBid, 2)} GAS</strong>
+        </div>
+      </div>
+
+      <div className="merc-readout merc-readout--pool">
+        <Landmark size={17} />
+        <span>{t("totalPool")}</span>
+        <strong>{amountLabel(totalPool, 0)} NEO</strong>
+      </div>
+      <div className="merc-readout merc-readout--bid">
+        <Trophy size={17} />
+        <span>{t("currentTopBid")}</span>
+        <strong>{amountLabel(highestBid, 2)} GAS</strong>
+      </div>
+      <div className="merc-route">
+        <span className="merc-route__node"><Coins size={15} />{t("flowDeposit")}</span>
+        <span className="merc-route__beam merc-route__beam--stake" />
+        <span className="merc-route__node merc-route__node--core"><Gavel size={15} />{t("flowBid")}</span>
+        <span className="merc-route__beam merc-route__beam--bid" />
+        <span className="merc-route__node"><Crown size={15} />{leader}</span>
+      </div>
+
+      {routing && <ParticleBurst coins count={8} />}
+      <p className="merc-scene__status" aria-live="polite">
+        {actionPreview === "bid"
+          ? t("placingBid")
+          : actionPreview === "deposit"
+            ? t("stakingNeo")
+            : actionPreview === "withdraw"
+              ? t("unstakingNeo")
+              : actionPreview === "settle"
+                ? t("settlingEpoch")
+                : t("marketPlateTopBid", { amount: amountLabel(highestBid, 2), tokenGas: "GAS" })}
+      </p>
+    </div>
+  );
+
+  const controls = (
+    <div className="merc-controls">
+      {!isConnected ? (
+        <div className="merc-wallet-card">
+          <span className="merc-wallet-card__icon"><Wallet size={20} /></span>
+          <div>
+            <strong>{t("connectTitle")}</strong>
+            <p>{t("connectCopy")}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="merc-deal-grid">
+          <section className="merc-deal-card merc-deal-card--bid" aria-label={t("placeBid")}>
+            <div className="merc-deal-card__head">
+              <span><BadgeDollarSign size={18} /></span>
+              <div>
+                <strong>{t("placeBid")}</strong>
+                <em>{t("minBidLabel")}: {MIN_BID} GAS</em>
+              </div>
+            </div>
+            <div className="merc-amount-field">
+              <input value={bidAmount} onChange={(e) => setVal("bidAmount", e.target.value)} placeholder={t("bidAmount")} inputMode="decimal" disabled={bidAnimating || biddingClosed} />
+              <span>GAS</span>
+            </div>
+            <div className="merc-preset-row" aria-label={t("currentTopBid")}>
+              {bidPresets.map((amount) => (
+                <button key={amount} type="button" onClick={() => setVal("bidAmount", amount)} disabled={bidAnimating || biddingClosed} className={bidAmount === amount ? "merc-preset merc-preset--active" : "merc-preset"}>
+                  {amount}
+                </button>
+              ))}
+            </div>
+            <p className="merc-deal-card__hint">{biddingClosed ? t("biddingClosedHint") : t("actionBidHint", { min: MIN_BID, tokenGas: "GAS" })}</p>
+          </section>
+
+          <section className="merc-deal-card merc-deal-card--stake" aria-label={t("depositNeo")}>
+            <div className="merc-deal-card__head">
+              <span><ArrowDownToLine size={18} /></span>
+              <div>
+                <strong>{t("depositNeo")}</strong>
+                <em>{t("tokenLegendNeo")}</em>
+              </div>
+            </div>
+            <div className="merc-amount-field">
+              <input value={depositAmount} onChange={(e) => setNeoVal("depositAmount", e.target.value)} placeholder={t("depositAmount")} inputMode="numeric" disabled={depositAnimating} />
+              <span>NEO</span>
+            </div>
+            <div className="merc-preset-row" aria-label={t("depositNeo")}>
+              {DEPOSIT_PRESETS.map((amount) => (
+                <button key={amount} type="button" onClick={() => setNeoVal("depositAmount", amount)} disabled={depositAnimating} className={depositAmount === amount ? "merc-preset merc-preset--active" : "merc-preset"}>
+                  {amount}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="merc-card-action" onClick={handleDeposit} disabled={depositAnimating || !isPositiveWholeNeoAmount(depositAmount)}>
+              <ArrowUpRight size={15} />
+              {depositAnimating ? t("stakingNeo") : t("depositNeo")}
+            </button>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+
+  const drawerPanels: Record<DrawerMode, ReactNode> = {
+    bids: (
+      <div className="merc-drawer__panel-body" data-mode="bids">
+        <div className="merc-drawer__summary">
+          <span>{t("marketPlateTopBid", { amount: amountLabel(highestBid, 2), tokenGas: "GAS" })}</span>
+          <strong>{bids.length}</strong>
+        </div>
+        {bids.length > 0 ? (
+          <ul className="mx2-history merc-drawer-list">
+            {bids.slice(0, 8).map((bid, i) => (
+              <li key={i} className="mx2-history__item merc-drawer-list__item">
+                <span className="mx2-history__face">#{i + 1}</span>
+                <span className="mx2-history__stake">{compactAddress(bid.address)}</span>
+                <span className="mx2-history__result">{amountLabel(bid.amount, 2)} GAS</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="merc-drawer__empty">{t("noBids")}</div>
+        )}
+      </div>
+    ),
+    stake: (
+      <div className="merc-drawer__panel-body" data-mode="stake">
+        <div className="merc-drawer__summary">
+          <span>{t("actionDepositHint")}</span>
+          <strong>{amountLabel(userDeposits, 0)} NEO</strong>
+        </div>
+        <div className="merc-drawer-action merc-drawer-action--stake">
+          <div className="merc-amount-field merc-amount-field--drawer">
+            <input value={withdrawAmount} onChange={(e) => setNeoVal("withdrawAmount", e.target.value)} placeholder={t("withdrawAmount")} inputMode="numeric" disabled={depositAnimating || !isConnected} />
+            <span>NEO</span>
+          </div>
+          <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleWithdraw} disabled={depositAnimating || !isPositiveWholeNeoAmount(withdrawAmount) || !isConnected}>{t("withdrawNeo")}</button>
+        </div>
+      </div>
+    ),
+    rewards: (
+      <div className="merc-drawer__panel-body" data-mode="rewards">
+        <div className="merc-drawer__summary">
+          <span>{t("pendingRewards")}</span>
+          <strong>{amountLabel(pendingRewards, 4)} GAS</strong>
+        </div>
+        {lastDistributed > 0 && (
+          <div className="merc-drawer__summary">
+            <span>{t("flowInfluence")}</span>
+            <strong>{amountLabel(lastDistributed, 4)} GAS</strong>
+          </div>
+        )}
+        {pendingRewards > 0 && (
+          <button type="button" className="mx2-btn mx2-btn--ghost merc-drawer__wide-action" onClick={() => void dispatch("claimRewards")}>{t("claimRewards")}</button>
+        )}
+        {reclaimableBids.length > 0 ? (
+          <div className="merc-drawer-stack">
+            {reclaimableBids.map((bid) => (
+              <div key={bid.epoch} className="merc-drawer-row">
+                <span>{t("reclaimBidAmount", { epoch: bid.epoch, amount: amountLabel(bid.amount, 2), tokenGas: "GAS" })}</span>
+                <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("reclaimBid", bid.epoch)}>{t("reclaimBidLabel", { epoch: bid.epoch })}</button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="merc-drawer__empty">{t("reclaimTitle")}: 0</div>
+        )}
+        {gasCredit > 0 && (
+          <div className="merc-drawer-row">
+            <span>{t("unusedCredit")}: {amountLabel(gasCredit, 4)} GAS</span>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("withdrawCredit")}>{t("withdrawCredit")}</button>
+          </div>
+        )}
+      </div>
+    ),
+    guide: (
+      <div className="merc-drawer__panel-body" data-mode="guide">
+        <div className="merc-risk-card">
+          <Gavel size={18} aria-hidden="true" />
+          <span>{t("riskNoteCopy")}</span>
+        </div>
+        <div className="merc-guide-steps">
+          <div><strong>{t("flowDeposit")}</strong><span>{t("flowDepositCopy")}</span></div>
+          <div><strong>{t("flowBid")}</strong><span>{t("flowBidCopy")}</span></div>
+          <div><strong>{t("flowInfluence")}</strong><span>{t("flowInfluenceCopy")}</span></div>
+        </div>
+      </div>
+    ),
+  };
 
   return (
-    <div className="gov-merc-shell">
-      <section className="gov-merc-main" aria-label={t("govHeroTitle")}>
-        <div className="gov-merc-hero">
-          <div className="gov-merc-hero-copy">
-            <span>{t("marketSignalTitle")}</span>
-            <h2>{t("govHeroTitle")}</h2>
-            <p>{t("govHeroSubtitle")}</p>
-            {/* Lead with the civic meaning: what winning grants, and that the
-                title is a signal — not an executed/delegated vote. */}
-            <p className="gov-merc-hero-grant">{t("govHeroGrant")}</p>
-            <div className="gov-merc-hero-meta">
-              <div className="gov-merc-hero-deposits">
-                <span>{t("yourDeposits")}</span>
-                <strong>{userDepositsDisplay}</strong>
+    <OpenUiProvider>
+    <div className="gov-merc-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{
+          eyebrow: t("marketSignalTitle"),
+          title: t("govHeroTitle"),
+          subtitle: t("govHeroSubtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge merc-stage-badge" data-tone="accent"><span className="mx2-badge__dot" /> {t("currentEpoch")} #{currentEpoch}</span>
+              <span className="mx2-badge merc-stage-badge">{amountLabel(totalPool, 0)} NEO</span>
+            </>
+          ),
+        }}
+        scene={<>{scene}{controls}</>}
+        score={[
+          { label: t("totalPool"), value: `${amountLabel(totalPool, 0)} NEO`, accent: true },
+          { label: t("activeBids"), value: String(bidCount) },
+          { label: t("yourDeposits"), value: `${amountLabel(userDeposits, 0)} NEO` },
+        ]}
+        actions={{
+          primary: {
+            label: isConnected ? (bidAnimating ? t("placingBid") : t("placeBid")) : (actionPreview === "connect" ? t("connectingWallet") : t("connectAction")),
+            onClick: () => void (isConnected ? handleBid() : handleConnect()),
+            disabled: isConnected && (bidAnimating || biddingClosed || !bidAmount.trim()),
+            loading: bidAnimating || actionPreview === "connect",
+          },
+          secondary: canSettleNow ? [{ label: t("settleAction"), onClick: () => void handleSettle(), loading: actionPreview === "settle", hint: t("settleCopy") }] : undefined,
+        }}
+        drawerToggleLabel={t("bidLeaderboard")}
+        drawer={{
+          title: t("bidLeaderboard"),
+          children: (
+            <div className="merc-drawer">
+              <div className="merc-drawer-tabs" role="tablist" aria-label={t("bidLeaderboard")}>
+                {drawerModes.map((item) => {
+                  const Icon = item.Icon;
+                  return (
+                    <button
+                      key={item.mode}
+                      type="button"
+                      role="tab"
+                      aria-selected={drawerMode === item.mode}
+                      className={drawerMode === item.mode ? "is-active" : undefined}
+                      onClick={() => setDrawerMode(item.mode)}
+                    >
+                      <span className="merc-drawer-tabs__icon"><Icon size={15} /></span>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </button>
+                  );
+                })}
               </div>
-              <span
-                className={`gov-merc-hero-badge${dataLoading ? " is-loading" : ""}`}
+              <OpenUiPanel
+                className="merc-drawer__panel"
+                icon={<ActiveDrawerIcon size={18} />}
+                title={activeDrawerMode.label}
+                subtitle={activeDrawerMode.value}
               >
-                <span className="gov-merc-hero-dot" aria-hidden="true" />
-                {dataLoading ? t("loading") : t("marketReady")}
-              </span>
+                {drawerPanels[drawerMode]}
+              </OpenUiPanel>
             </div>
-          </div>
-          <div className="gov-merc-scoreboard">
-            <figure
-              className={["gov-merc-market-stage", stageState]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              <img
-                src="./gov-merc-market-stage.jpg"
-                alt=""
-                loading="eager"
-                decoding="async"
-                aria-hidden="true"
-              />
-              <figcaption>
-                <span>{t("marketPlateLabel")}</span>
-                <strong>{t("marketPlateEpoch", { epoch: currentEpoch })}</strong>
-                <em>
-                  {t("marketPlateTopBid", {
-                    amount: formatNum(highestBid, 2),
-                    tokenGas: t("tokenGas"),
-                  })}
-                </em>
-              </figcaption>
-              <div className="gov-merc-market-stage__lanes" aria-hidden="true">
-                <span>{t("tokenNeo")}</span>
-                <span>{t("tokenGas")}</span>
-              </div>
-              <div className="gov-merc-market-stage__action" aria-hidden="true">
-                <span>{t("tokenNeo")}</span>
-                <span>{t("tokenGas")}</span>
-                <strong>{t("marketRouting")}</strong>
-              </div>
-            </figure>
-            <MercHeroStats
-              t={t}
-              totalPool={totalPool}
-              bidCount={bidCount}
-              lastDistributed={lastDistributed}
-            />
-          </div>
-        </div>
-
-        <NeoCard variant="erobo" className="gov-merc-action-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("actionsTitle")}</span>
-            <strong>{shortAddress}</strong>
-          </div>
-
-          {!isConnected ? (
-            <div className="gov-merc-connect" role="note">
-              <div className="gov-merc-connect-copy">
-                <strong>{t("connectTitle")}</strong>
-                <p>{t("connectCopy")}</p>
-              </div>
-              <NeoButton
-                variant="primary"
-                aria-label={connectBusy ? t("connectingWallet") : t("connectAction")}
-                loading={connectBusy}
-                disabled={connectBusy}
-                onClick={() => {
-                  startActionPreview("connect");
-                  void dispatch("connectWallet");
-                }}
-              >
-                {connectBusy ? t("connectingWallet") : t("connectAction")}
-              </NeoButton>
-            </div>
-          ) : null}
-
-          {/* Persistent legend so NEO (stake) and GAS (bid) are never conflated
-              at the point of action. */}
-          <div className="gov-merc-token-legend" aria-label={t("tokenLegendTitle")}>
-            <span className="gov-merc-token-legend-title">{t("tokenLegendTitle")}</span>
-            <span className="gov-merc-token-chip gov-merc-token-chip--neo">
-              {t("tokenLegendNeo")}
-            </span>
-            <span className="gov-merc-token-chip gov-merc-token-chip--gas">
-              {t("tokenLegendGas")}
-            </span>
-          </div>
-
-          <div className="gov-merc-action-grid">
-            <MercActionCards
-              t={t}
-              isBusy={isBusy}
-              actionPreview={actionPreview}
-              depositAmount={depositAmount}
-              withdrawAmount={withdrawAmount}
-              bidAmount={bidAmount}
-              userDeposits={userDeposits}
-              biddingClosed={biddingClosed}
-              minBid={MIN_BID}
-              onAmountChange={setAmountValue}
-              onActionPreview={startActionPreview}
-              dispatch={dispatch}
-            />
-          </div>
-        </NeoCard>
-
-        <div className="gov-merc-flow" aria-label={t("flowTitle")}>
-          <div>
-            <span>01</span>
-            <strong>{t("flowDeposit")}</strong>
-            <p>{t("flowDepositCopy")}</p>
-          </div>
-          <div>
-            <span>02</span>
-            <strong>{t("flowBid")}</strong>
-            <p>{t("flowBidCopy")}</p>
-          </div>
-          <div>
-            <span>03</span>
-            <strong>{t("flowInfluence")}</strong>
-            <p>{t("flowInfluenceCopy")}</p>
-          </div>
-        </div>
-
-        {/* Honest disclosure: the winner gets an on-chain "influence title" and
-            the staked NEO weights the reward split — the contract does NOT cast
-            or delegate a vote, so vote execution happens off-contract. */}
-        <div className="gov-merc-influence-note" role="note">
-          <strong>{t("influenceUseTitle")}</strong>
-          <p>{t("influenceUseCopy")}</p>
-        </div>
-      </section>
-
-      <aside className="gov-merc-side" aria-label={t("bidLeaderboard")}>
-        <NeoCard variant="erobo" className="gov-merc-bid-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("bidLeaderboard")}</span>
-            <strong>{bidCount}</strong>
-          </div>
-          <MercBidsList t={t} bids={bids} />
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="gov-merc-settle-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("settleTitle")}</span>
-            <strong>{`#${currentEpoch}`}</strong>
-          </div>
-          <p>{t("settleCopy")}</p>
-          {/* "Current top bid" is shown once, in the hero scoreboard; the settle
-              card leads with the bidding-window state + last settlement instead. */}
-          <div
-            className={`gov-merc-settle-window${biddingClosed ? " is-closed" : ""}`}
-            aria-live="polite"
-          >
-            <span>{t("bidWindowTitle")}</span>
-            <strong>{windowLabel}</strong>
-          </div>
-          <div className="gov-merc-settle-last">
-            <span>{t("settleLastLabel")}</span>
-            <strong>{lastSettlementDisplay || t("settleNone")}</strong>
-          </div>
-          <NeoButton
-            variant="primary"
-            aria-label={settleBusy ? t("settlingEpoch") : t("settleAction")}
-            loading={settleBusy}
-            disabled={settleBusy || !canSettleNow}
-            onClick={() => {
-              startActionPreview("settle");
-              void dispatch("settleEpoch");
-            }}
-          >
-            {settleBusy ? t("settlingEpoch") : t("settleAction")}
-          </NeoButton>
-          {settleBusy ? (
-            <p className="gov-merc-settle-status" aria-live="polite">
-              {t("settlingEpoch")}
-            </p>
-          ) : null}
-          {!canSettle && !isBusy ? (
-            <p className="gov-merc-settle-hint">{t("settleNoBidsHint")}</p>
-          ) : null}
-          {canSettle && !biddingClosed && !isBusy ? (
-            <p className="gov-merc-settle-hint">{t("settleAfterDeadlineHint")}</p>
-          ) : null}
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="gov-merc-staker-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("rewardsTitle")}</span>
-            <strong>{shortAddress}</strong>
-          </div>
-          <MercStakerPanel
-            t={t}
-            isBusy={isBusy}
-            pendingRewards={pendingRewards}
-            gasCredit={gasCredit}
-            reclaimableBids={reclaimableBids}
-            dispatch={dispatch}
-          />
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="gov-merc-risk-panel">
-          {/* Operator/contract detail collapsed by default so the actionable
-              settle + leaderboard panels lead the side rail. */}
-          <details className="gov-merc-risk-details">
-            <summary>
-              <span>{t("riskNoteTitle")}</span>
-              <span className="gov-merc-risk-summary-label">{t("riskNoteToggle")}</span>
-            </summary>
-            <div className="gov-merc-risk-body">
-              <p>{t("riskNoteCopy")}</p>
-              <div className="gov-merc-signal-row">
-                <span>{t("settlementWindow")}</span>
-                <strong>{t("epochSettlement")}</strong>
-              </div>
-              <div className="gov-merc-signal-row">
-                <span>{t("executionPath")}</span>
-                <strong>{t("executionPathCopy")}</strong>
-              </div>
-            </div>
-          </details>
-        </NeoCard>
-      </aside>
+          ),
+        }}
+      />
     </div>
+    </OpenUiProvider>
   );
 }

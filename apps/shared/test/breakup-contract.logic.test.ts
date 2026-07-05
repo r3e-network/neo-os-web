@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useBreakup } from "../../breakup-contract/src/composables/useBreakup";
 import type { ChainService } from "../services/ChainService";
+import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 
 // The on-device title/terms store is localStorage-backed; clear it between
@@ -144,10 +145,22 @@ function eventState(values: unknown[]) {
   return { state: values.map((value) => ({ value })) };
 }
 
+/**
+ * Wrap a mock ChainService in the MiniApp framework the composable now consumes.
+ * The framework's arg builders/passthroughs are behavior-preserving, so every
+ * recorded chain call (op, args, options) matches the pre-migration expectations.
+ */
+function frameworkFor(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-breakupcontract" },
+  );
+}
+
 function validApp(chainOpts: Parameters<typeof chainMock>[0] = {}) {
   const { chain, mock } = chainMock(chainOpts);
   const eventBus = { emit: vi.fn() };
-  const app = useBreakup({ chain, eventBus, t });
+  const app = useBreakup({ app: frameworkFor(chain), eventBus, t });
   app.address.set(CREATOR);
   app.partnerAddress.set(PARTNER);
   app.stakeAmount.set("5");
@@ -387,7 +400,7 @@ describe("useBreakup", () => {
     mock.readArray.mockImplementation(async () => {
       throw new Error("RPC unreachable");
     });
-    const app = useBreakup({ chain, eventBus: { emit: vi.fn() }, t });
+    const app = useBreakup({ app: frameworkFor(chain), eventBus: { emit: vi.fn() }, t });
     app.address.set(CREATOR);
 
     await expect(app.loadContracts()).resolves.toBeUndefined();
@@ -397,7 +410,7 @@ describe("useBreakup", () => {
 
   it("shows no pacts (and no error) when no wallet is connected", async () => {
     const { chain } = chainMock();
-    const app = useBreakup({ chain, eventBus: { emit: vi.fn() }, t });
+    const app = useBreakup({ app: frameworkFor(chain), eventBus: { emit: vi.fn() }, t });
     app.address.set("");
 
     await app.loadContracts();

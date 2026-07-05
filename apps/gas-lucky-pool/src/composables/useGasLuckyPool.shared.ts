@@ -1,4 +1,4 @@
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 
 export const APP_ID = "miniapp-gas-lucky-pool";
@@ -73,7 +73,7 @@ export interface ClaimLaunchIdentity {
 }
 
 export interface UseGasLuckyPoolOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   launchContext: MiniAppLaunchContext;
   t: (key: string, params?: Record<string, string | number>) => string;
 }

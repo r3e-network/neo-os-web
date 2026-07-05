@@ -1,724 +1,435 @@
 /**
- * PlayArea.tsx - AA Relay Console
+ * PlayArea.tsx -- AA Relay Console (v2 scene-driven rebuild)
  *
- * Wallet-style sponsored relay workspace for AA payload preparation.
- * Two-step workspace: Step 1 Sponsor preflight (left) -> Step 2 Build & submit (right),
- * sharing one AA address. Collapses to a single column below 960px.
+ * Tool identity. The relay pipeline IS the scene: an AA account flows through a
+ * paymaster sponsorship gate, then a relayer broadcasts the validated payload on
+ * chain (paid by the paymaster). The three pipeline segments light up
+ * segment-by-segment as the account is set, sponsorship resolves, and the relay
+ * response lands. The AA address is visible in the primary stage; sponsor
+ * preflight + the full payload JSON live in the drawer so the stage shows the
+ * relay path, not a parameter form. Real state from useAARelayConsole is bound
+ * throughout; the generic "Execute/Ready" template is gone.
  */
-
-import { useMemo, useState } from "react";
-import {
-  ChevronDown,
-  CircleDollarSign,
-  ClipboardCheck,
-  FileJson2,
-  Gauge,
-  Landmark,
-  Rocket,
-  ShieldCheck,
-  TerminalSquare,
-  WalletCards,
-} from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { type ReactNode, useState, useEffect, useRef, useMemo } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
-import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
-import { DEFAULT_RELAY_PAYLOAD, getRelayLaunchDefaults } from "./launch";
-import { explorerTxUrl } from "./utils/explorer";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import {
+  OpenUiNotice,
+  OpenUiPanel,
+  OpenUiProvider,
+  OpenUiSegmented,
+  OpenUiTextArea,
+  OpenUiTextField,
+  PlayStage,
+} from "@shared/components-react/v2";
+import { AlertTriangle, CheckCircle2, Code2, Fuel, LoaderCircle, RadioTower, SendHorizontal, type LucideIcon } from "lucide-react";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext: MiniAppLaunchContext;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-function isValidJson(value: string) {
+const RELAY_STATION_ART = "aa-relay-station.webp";
+type DrawerMode = "route" | "sponsor" | "payload";
+
+function compactHash(value: string): string {
+  const v = String(value || "").trim();
+  if (!v || v === "—" ) return "—";
+  if (v.length <= 14) return v;
+  return `${v.slice(0, 8)}…${v.slice(-6)}`;
+}
+
+/** Parse the stringified sponsor/relay result JSON enough to light the gate. */
+function parseSponsor(raw: string): { present: boolean; eligible: boolean } {
+  const v = String(raw || "").trim();
+  if (!v || v === "{}") return { present: false, eligible: false };
   try {
-    JSON.parse(value);
-    return true;
+    const obj = JSON.parse(v);
+    if (!obj || typeof obj !== "object") return { present: false, eligible: false };
+    const present = true;
+    // Tolerate the multiple shapes the AA service returns across envs.
+    const eligible =
+      obj.approved === true ||
+      obj.eligible === true ||
+      obj.sponsored === true ||
+      obj.ok === true ||
+      (typeof obj.txid === "string" && obj.txid.length > 0) ||
+      (typeof obj.tx === "string" && obj.tx.length > 0);
+    return { present, eligible };
   } catch {
-    return false;
+    return { present: false, eligible: false };
   }
 }
 
-// AA address: a Neo N-address (34 chars) or a 0x/40-hex script hash. Gating the
-// actions on this avoids enabling all three buttons for obviously bad input
-// like "abc" that only fails server-side.
-const AA_ADDRESS_PATTERN = /^(N[1-9A-HJ-NP-Za-km-z]{33}|(0x)?[0-9a-fA-F]{40})$/;
-function isValidAAAddress(value: string) {
-  return AA_ADDRESS_PATTERN.test(value.trim());
-}
-
-// Known service-failure markers the host returns when the gas-sponsor edge
-// function is not allow-listed or the relay upstream is unset. Mapped to a
-// single localized "service unavailable" sentence instead of leaking codes.
-function isServiceUnavailable(text: string): boolean {
-  const lowered = text.toLowerCase();
-  return (
-    lowered.includes("function not allowed") ||
-    lowered.includes("forbidden") ||
-    lowered.includes("not configured") ||
-    lowered.includes("aa_relay_url")
-  );
-}
-
-/** Parse a stringified state object; returns null for empty "{}" / invalid. */
-function parseStateJson(value: string): Record<string, unknown> | null {
-  if (!value || value.trim() === "{}") return null;
-  try {
-    const parsed = JSON.parse(value);
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      Object.keys(parsed).length > 0
-    ) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    /* not yet populated */
-  }
-  return null;
-}
-
-function summarizePayload(value: string) {
-  try {
-    const parsed = JSON.parse(value) as Record<string, unknown>;
-    const metaInvocation =
-      parsed.metaInvocation && typeof parsed.metaInvocation === "object"
-        ? (parsed.metaInvocation as Record<string, unknown>)
-        : parsed;
-    const operation = String(metaInvocation.operation ?? "—");
-    const target = String(
-      metaInvocation.scriptHash ?? metaInvocation.contract ?? "—",
-    );
-    const args = metaInvocation.args;
-    const argsLabel = Array.isArray(args)
-      ? `${args.length}`
-      : args == null
-        ? "0"
-        : "custom";
-    return { operation, target, argsLabel };
-  } catch {
-    return { operation: "—", target: "—", argsLabel: "—" };
-  }
-}
-
-export default function PlayArea({
-  t,
-  state,
-  dispatch,
-  launchContext,
-}: PlayAreaProps) {
+export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool } = useStateBindings(state);
-  const launchDefaults = getRelayLaunchDefaults(launchContext);
 
-  const sponsorState = str("sponsorState", "{}");
-  const relayResponse = str("relayResponse", "{}");
-  const aaCoreDisplay = str("aaCoreDisplay", "");
-  const relayUrlDisplay = str("relayUrlDisplay", "");
-  const networkDisplay = str("networkDisplay", "");
+  // Live relay runtime state
+  const aaAddressDisplay = str("aaAddressDisplay");
+  const paymasterDisplay = str("paymasterDisplay");
+  const sponsorState = str("sponsorState");
+  const relayResponse = str("relayResponse");
+  const aaCoreDisplay = str("aaCoreDisplay");
+  const relayUrlDisplay = str("relayUrlDisplay");
+  const networkDisplay = str("networkDisplay");
   const isCheckingSponsorship = bool("isCheckingSponsorship");
   const isRelaying = bool("isRelaying");
 
-  const [aaAddress, setAaAddress] = useState(launchDefaults.aaAddress);
-  const [dappIdLocal, setDappIdLocal] = useState(
-    launchDefaults.dappId || str("paymasterDisplay", ""),
-  );
-  const [sponsorAmountLocal, setSponsorAmountLocal] = useState(
-    launchDefaults.sponsorAmount,
-  );
-  const [payloadJsonLocal, setPayloadJsonLocal] = useState(
-    launchDefaults.payloadJson || DEFAULT_RELAY_PAYLOAD,
-  );
+  // Draft relay inputs (local UI state — the real form lives in the composable,
+  // populated by dispatch args; this mirrors it for the pipeline preview).
+  const [draftAa, setDraftAa] = useState("");
+  const [draftDapp, setDraftDapp] = useState("");
+  const [draftAmount, setDraftAmount] = useState("0.1");
+  const [draftPayload, setDraftPayload] = useState("{}");
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("route");
 
-  const hasAAAddress = Boolean(aaAddress.trim());
-  const aaAddressValid = isValidAAAddress(aaAddress);
-  const payloadJsonIsValid = isValidJson(payloadJsonLocal);
-  const payloadSummary = useMemo(
-    () => summarizePayload(payloadJsonLocal),
-    [payloadJsonLocal],
-  );
-  // Require a strictly positive plain decimal (no NaN, no <=0, no scientific/hex,
-  // no whitespace). The edge function is the real authority, but blocking the
-  // obviously-invalid client call surfaces inline guidance instead of an opaque
-  // server-side rejection.
-  const sponsorAmountTrimmed = sponsorAmountLocal.trim();
-  const sponsorAmountIsValid =
-    /^\d+(\.\d+)?$/.test(sponsorAmountTrimmed) &&
-    Number(sponsorAmountTrimmed) > 0;
-  const hasSponsorAmount = Boolean(sponsorAmountTrimmed);
-  const canCheckSponsor = aaAddressValid && !isCheckingSponsorship;
-  const canRequestSponsor =
-    aaAddressValid && sponsorAmountIsValid && !isCheckingSponsorship;
-  const canSubmitRelay = aaAddressValid && payloadJsonIsValid && !isRelaying;
-  const draftAAAddress = aaAddress.trim() || "—";
-  const aaAddressInvalid = hasAAAddress && !aaAddressValid;
-  const sponsorReadiness = aaAddressValid ? t("relayReady") : t("relayNeedsAA");
-  const amountReadiness = sponsorAmountIsValid
-    ? t("relayReady")
-    : t("relayNeedsAmount");
-  const payloadReadiness = payloadJsonIsValid
-    ? t("relayReady")
-    : t("relayNeedsPayload");
+  // Broadcast pulse: walks the packet down the pipeline on submit, then fires
+  // the real submitRelay dispatch.
+  const [pulseStep, setPulseStep] = useState(0);
+  const pulseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (pulseTimeout.current) clearTimeout(pulseTimeout.current); }, []);
 
-  // Single human-readable result line: show only after an action has populated state.
-  const relayResult = parseStateJson(relayResponse);
-  const sponsorResult = parseStateJson(sponsorState);
-  const activeResult = relayResult ?? sponsorResult;
-  const resultRaw = relayResult ? relayResponse : sponsorState;
+  const sponsor = useMemo(() => parseSponsor(sponsorState), [sponsorState]);
+  const relay = useMemo(() => parseSponsor(relayResponse), [relayResponse]);
 
-  // The relay broadcasts on-chain on the account's behalf, so if the relayer
-  // returns a transaction id/hash, surface it as the verifiable on-chain
-  // reference instead of leaving it buried in the raw JSON. The relay response
-  // shape is set by the relayer, so accept the common field names.
-  const relayTxid =
-    relayResult &&
-    (() => {
-      const candidate =
-        relayResult.txid ??
-        relayResult.txId ??
-        relayResult.txHash ??
-        relayResult.tx_hash ??
-        relayResult.transactionHash ??
-        relayResult.hash;
-      return typeof candidate === "string" && candidate.trim()
-        ? candidate.trim()
-          : null;
-    })();
+  // Payload must be valid JSON before the relay leg is "ready" (the composable
+  // parses it; a syntactically-valid default keeps the broadcast from faulting).
+  const payloadValid = useMemo(() => {
+    try { JSON.parse(draftPayload); return true; } catch { return false; }
+  }, [draftPayload]);
 
-  const relayPhase = isRelaying
+  const hasAa = draftAa.trim().length >= 6;
+  const sponsorReady = sponsor.present && sponsor.eligible;
+  const relayDone = relay.present && (relay.eligible || /\b(txid|tx|hash)\b/i.test(relayResponse));
+  const submitReady = hasAa && payloadValid;
+
+  // Pipeline segment readiness — drives lit/unlit.
+  const seg = {
+    aa: hasAa,
+    paymaster: sponsorReady,
+    broadcast: relayDone || submitReady,
+  };
+
+  const busy = isCheckingSponsorship || isRelaying;
+
+  const handleCheckSponsor = () => {
+    void dispatch("checkSponsor", draftAa, draftDapp);
+  };
+  const handleRequestSponsor = () => {
+    void dispatch("requestSponsor", draftAa, draftDapp, draftAmount);
+  };
+  const handleSubmitRelay = () => {
+    if (!submitReady || busy) return;
+    if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
+    setPulseStep(1);
+    const step = (n: number) => {
+      setPulseStep(n);
+      if (n < 3) {
+        pulseTimeout.current = setTimeout(() => step(n + 1), 300);
+      } else {
+        pulseTimeout.current = setTimeout(() => {
+          setPulseStep(0);
+          void dispatch("submitRelay", draftAa, draftDapp, draftPayload);
+        }, 320);
+      }
+    };
+    step(1);
+  };
+
+  const sceneState = isRelaying
     ? "relaying"
     : isCheckingSponsorship
       ? "checking"
-      : relayResult
+      : relayDone
         ? "submitted"
-        : canSubmitRelay
-          ? "ready"
-          : sponsorAmountIsValid && aaAddressValid
-            ? "funding"
-            : aaAddressValid
-              ? "sponsor"
-              : "draft";
-  const relayPhaseLabel =
-    relayPhase === "relaying"
-      ? t("relayBoardRelaying")
-      : relayPhase === "checking"
-        ? t("relayBoardChecking")
-        : relayPhase === "submitted"
+        : sponsorReady
+          ? "funded"
+          : hasAa
+            ? "ready"
+            : "idle";
+
+  const statusText = busy
+    ? isRelaying ? t("relayBoardRelaying") : t("relayBoardChecking")
+    : !hasAa
+      ? t("relayBoardDraft")
+      : !payloadValid
+        ? t("payloadInvalid")
+        : relayDone
           ? t("relayBoardSubmitted")
-          : relayPhase === "ready"
+          : sponsorReady
             ? t("relayBoardReady")
-            : relayPhase === "funding"
+            : sponsor.present
               ? t("relayBoardFunding")
-              : relayPhase === "sponsor"
-                ? t("relayBoardSponsor")
-                : t("relayBoardDraft");
-  const routeStepClass = (ready: boolean, active: boolean) =>
-    [
-      "relay-route__step",
-      ready ? "relay-route__step--ready" : "",
-      active ? "relay-route__step--active" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+              : t("relayBoardSponsor");
+  const stateTitle = relayDone
+    ? t("relayTxLabel")
+    : sponsorReady
+      ? t("relayStateTitle")
+      : submitReady
+        ? t("relaySubmitTitle")
+        : hasAa
+          ? t("relayNeedsPayload")
+          : t("relayNeedsAA");
+  const guardCopy = !hasAa
+    ? t("relayBlocked")
+    : !payloadValid
+      ? t("payloadInvalid")
+      : t("relaySubmitExplainer");
+  const accountCapsuleTitle = hasAa ? t("relayAccountReady") : t("relayAccountWaiting");
+  const accountCapsuleDetail = hasAa ? compactHash(draftAa) : t("relayAccountCapsuleHint");
+  const drawerModes = [
+    { mode: "route" as const, label: t("relayAccountEyebrow"), ready: hasAa },
+    { mode: "sponsor" as const, label: t("sponsorCheck"), ready: sponsorReady },
+    { mode: "payload" as const, label: t("payloadJson"), ready: payloadValid },
+  ];
+  const setDrawerModeSafe = (mode: string) => {
+    if (drawerModes.some((item) => item.mode === mode)) setDrawerMode(mode as DrawerMode);
+  };
 
-  let resultTone: "ok" | "warn" | "info" = "info";
-  let resultText = "";
-  if (activeResult) {
-    if (relayResult) {
-      resultText = t("relaySubmitted");
-      resultTone = "ok";
-    } else {
-      // A SponsorshipResult (request) carries `approved`; a SponsorshipStatus
-      // (check) carries `eligible`. Pick the matching label so a request is not
-      // mislabeled as a check.
-      resultText =
-        "approved" in activeResult
-          ? t("sponsorRequestComplete")
-          : t("sponsorCheckComplete");
-      resultTone = "info";
-    }
-    // Promote the real eligibility answer to the headline instead of burying it
-    // in the collapsed raw JSON.
-    if ("eligible" in activeResult || "approved" in activeResult) {
-      const eligible = Boolean(activeResult.eligible ?? activeResult.approved);
-      if (eligible) {
-        const remaining = String(activeResult.remaining ?? "");
-        const dailyLimit = String(activeResult.dailyLimit ?? "");
-        resultText =
-          remaining && dailyLimit
-            ? t("sponsorEligibleSummary", { remaining, dailyLimit })
-            : t("sponsorEligible");
-        resultTone = "ok";
-      } else {
-        const reason = String(
-          activeResult.reason ?? activeResult.message ?? "",
-        );
-        resultText = reason
-          ? t("sponsorNotEligibleReason", { reason })
-          : t("sponsorNotEligible");
-        resultTone = "warn";
-      }
-    }
-    // Surface an error message if the service returned one, mapping known
-    // service-outage markers to a single honest "unavailable" sentence. The
-    // error can be a string or a nested {code,message} envelope.
-    const rawError = activeResult.error;
-    const nestedMessage =
-      rawError && typeof rawError === "object"
-        ? String(
-            (rawError as Record<string, unknown>).message ??
-              (rawError as Record<string, unknown>).code ??
-              "",
-          )
-        : "";
-    const errLike =
-      (typeof rawError === "string" ? rawError : nestedMessage) ||
-      (typeof activeResult.message === "string" ? activeResult.message : "") ||
-      "";
-    const statusLike =
-      (activeResult.status as string) || (activeResult.state as string) || "";
-    if (errLike) {
-      resultText = isServiceUnavailable(errLike)
-        ? t("serviceUnavailable")
-        : errLike;
-      resultTone = "warn";
-    } else if (typeof statusLike === "string" && statusLike) {
-      resultText = `${resultText} (${statusLike})`;
-    }
-  }
+  const renderNode = (
+    label: string,
+    value: string,
+    lit: boolean,
+    Icon: LucideIcon,
+    pulse: boolean,
+    tone: "account" | "paymaster" | "payload",
+  ) => (
+    <div
+      className={[
+        "relay-scene__node",
+        `relay-scene__node--${tone}`,
+        lit ? "is-lit" : "",
+        pulse ? "is-pulsing" : "",
+      ].filter(Boolean).join(" ")}
+      data-active={lit ? "true" : undefined}
+      data-pulse={pulse ? "true" : undefined}
+    >
+      <span className="relay-scene__node-icon" aria-hidden="true">
+        <Icon size={18} strokeWidth={2.4} />
+      </span>
+      <span className="relay-scene__node-body">
+        <span className="relay-scene__node-label">{label}</span>
+        <span className="relay-scene__node-value">{value || "—"}</span>
+      </span>
+    </div>
+  );
 
-  return (
-    <div className="relay-play-area">
-      <section className="relay-hero">
-        <div className="relay-hero__content">
-          <div className="relay-hero__head">
-            <span className="relay-hero__badge" aria-hidden="true">
-              <ShieldCheck size={24} />
-            </span>
-            <div className="relay-hero__copy">
-              <span className="relay-hero__eyebrow">{t("relayLabel")}</span>
-              <h2>{t("relayHeroTitle")}</h2>
-              <p>{t("relayHeroCopy")}</p>
-            </div>
+  const scene = (
+    <div className="relay-scene" data-state={sceneState}>
+      <div className="relay-scene__board">
+        <div className="relay-scene__account-panel">
+          <div className="relay-scene__account-heading">
+            <RadioTower size={18} aria-hidden="true" />
+            <span>{t("relayAccountEyebrow")}</span>
           </div>
-
-          <div
-            className="relay-hero__facts"
-            aria-label={t("relayMetricsLabel")}
-          >
-            <span className="relay-fact">
-              <span className="relay-fact__label">{t("network")}</span>
-              <strong>{networkDisplay || "—"}</strong>
+          <div className="relay-scene__account-capsule" data-ready={hasAa ? "true" : undefined}>
+            <span className="relay-scene__account-orb" aria-hidden="true">
+              <RadioTower size={20} strokeWidth={2.4} />
             </span>
-            <span className="relay-fact">
-              <span className="relay-fact__label">
-                {t("relayEndpointMetric")}
-              </span>
-              <strong title={relayUrlDisplay || "—"}>
-                <code>{relayUrlDisplay || "—"}</code>
-              </strong>
-            </span>
-            <span className="relay-fact">
-              <span className="relay-fact__label">{t("aaCoreLabel")}</span>
-              <strong title={aaCoreDisplay || "—"}>
-                <code>{aaCoreDisplay || "—"}</code>
-              </strong>
+            <span className="relay-scene__account-copy">
+              <span>{t("relayAccountCapsule")}</span>
+              <strong>{accountCapsuleTitle}</strong>
+              <small>{accountCapsuleDetail}</small>
             </span>
           </div>
+          <OpenUiSegmented
+            className="relay-scene__mode-strip"
+            segmentedClassName="relay-scene__mode-strip-group"
+            label={t("relayFlowLabel")}
+            value={drawerMode}
+            onChange={setDrawerModeSafe}
+            options={drawerModes.map((item) => ({
+              value: item.mode,
+              label: (
+                <span className="relay-scene__mode-chip" data-ready={item.ready ? "true" : undefined}>
+                  <span>{item.label}</span>
+                </span>
+              ),
+            }))}
+          />
+          <p>{hasAa ? t("aaAddressHint") : t("relayAccountTitle")}</p>
         </div>
-        <figure className="relay-hero__stage">
-          <img src="./aa-relay-station.jpg" alt={t("relayHeroVisualAlt")} />
+
+        <figure className="relay-scene__station-card" aria-label={t("relayStationLabel")}>
+          <img src={RELAY_STATION_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
           <figcaption>
-            <span>{t("relayStageKicker")}</span>
-            <strong>{t("relayStageTitle")}</strong>
+            <span>{t("relayStationLabel")}</span>
+            <strong>{t("relayStationCaption")}</strong>
           </figcaption>
         </figure>
-      </section>
 
-      <NeoCard variant="erobo" className="relay-account">
-        <div className="relay-account__intro">
-          <span className="relay-account__icon" aria-hidden="true">
-            <WalletCards size={21} />
-          </span>
-          <div>
-            <span className="relay-account__eyebrow">
-              {t("relayAccountEyebrow")}
-            </span>
-            <h3>{t("relayAccountTitle")}</h3>
-            <p className="relay-explainer">{t("relayPaymasterExplainer")}</p>
-          </div>
-        </div>
-        <div className="relay-readiness" aria-label={t("relayReadinessLabel")}>
-          <span
-            className={`relay-readiness__item${
-              aaAddressValid ? " relay-readiness__item--ready" : ""
-            }`}
-          >
-            <ShieldCheck size={17} aria-hidden="true" />
-            <small>{t("aaAddress")}</small>
-            <strong>{sponsorReadiness}</strong>
-          </span>
-          <span
-            className={`relay-readiness__item${
-              sponsorAmountIsValid ? " relay-readiness__item--ready" : ""
-            }`}
-          >
-            <CircleDollarSign size={17} aria-hidden="true" />
-            <small>{t("sponsorAmount")}</small>
-            <strong>{amountReadiness}</strong>
-          </span>
-          <span
-            className={`relay-readiness__item${
-              payloadJsonIsValid ? " relay-readiness__item--ready" : ""
-            }`}
-          >
-            <FileJson2 size={17} aria-hidden="true" />
-            <small>{t("payloadJson")}</small>
-            <strong>{payloadReadiness}</strong>
-          </span>
-        </div>
-        <div className="relay-form relay-form--account">
-          <div
-            className="relay-account__summary"
-            aria-label={t("relayDraftLabel")}
-          >
-            <span>
-              <small>{t("aaAddress")}</small>
-              <strong title={draftAAAddress}>{draftAAAddress}</strong>
-            </span>
-            <span>
-              <small>{t("dappId")}</small>
-              <strong title={dappIdLocal || "—"}>{dappIdLocal || "—"}</strong>
-            </span>
-            <span>
-              <small>{t("sponsorAmount")}</small>
-              <strong>{sponsorAmountTrimmed || "—"}</strong>
-            </span>
-          </div>
-          <div className="relay-account__entry">
-            <NeoInput
-              value={aaAddress}
-              label={t("aaAddress")}
-              hint={t("aaAddressHint")}
-              placeholder={t("aaAddressPlaceholder")}
-              error={aaAddressInvalid ? t("aaAddressInvalid") : ""}
-              onChange={(val) => setAaAddress(val)}
-            />
-            <details className="relay-howto">
-              <summary>
-                <span className="relay-disclosure__summary">
-                  <span>{t("relayHowItWorksTitle")}</span>
-                  <ChevronDown
-                    className="relay-disclosure__icon"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                </span>
-              </summary>
-              <div className="relay-howto__body">
-                <p>{t("sponsorDirectionNote")}</p>
-                <p>{t("relaySubmitExplainer")}</p>
-              </div>
-            </details>
-          </div>
-        </div>
-      </NeoCard>
-
-      <section
-        className={`relay-control-deck relay-control-deck--${relayPhase}`}
-        aria-label={t("relayBoardLabel")}
-      >
-        <picture className="relay-control-deck__media" aria-hidden="true">
-          <img src="./aa-relay-station.jpg" alt="" loading="eager" decoding="async" />
-        </picture>
-        <div className="relay-control-deck__wash" aria-hidden="true" />
-        <div className="relay-control-deck__header">
-          <span>{t("relayBoardKicker")}</span>
-          <strong>{relayPhaseLabel}</strong>
-        </div>
-        <div className="relay-control-deck__nodes">
-          <article
-            className={`relay-control-node${
-              aaAddressValid ? " relay-control-node--ready" : ""
-            }`}
-          >
-            <span className="relay-control-node__icon" aria-hidden="true">
-              <WalletCards size={18} />
-            </span>
+        <div className="relay-scene__line-card">
+          <div className="relay-scene__line-heading">
+            <CoinArt size={34} variant="gas" decorative />
             <div>
-              <small>{t("relayBoardAA")}</small>
-              <strong title={draftAAAddress}>{draftAAAddress}</strong>
+              <span>{t("relayBoardKicker")}</span>
+              <strong>{t("relayFlowLabel")}</strong>
             </div>
-          </article>
-          <article
-            className={`relay-control-node${
-              sponsorAmountIsValid ? " relay-control-node--ready" : ""
-            }`}
-          >
-            <span className="relay-control-node__icon" aria-hidden="true">
-              <CircleDollarSign size={18} />
+            <span className="relay-scene__line-status" aria-hidden="true">
+              {busy ? <LoaderCircle size={18} /> : <CheckCircle2 size={18} />}
             </span>
-            <div>
-              <small>{t("relayBoardPaymaster")}</small>
-              <strong>{sponsorAmountTrimmed || "—"} GAS</strong>
-            </div>
-          </article>
-          <article
-            className={`relay-control-node${
-              payloadJsonIsValid ? " relay-control-node--ready" : ""
-            }`}
-          >
-            <span className="relay-control-node__icon" aria-hidden="true">
-              <FileJson2 size={18} />
-            </span>
-            <div>
-              <small>{t("relayBoardPayload")}</small>
-              <strong>{payloadSummary.operation}</strong>
-            </div>
-          </article>
+          </div>
+          <div className="relay-scene__track">
+            <div className="relay-scene__rail" aria-hidden="true" />
+            {renderNode(t("relayBoardAA"), compactHash(draftAa || aaAddressDisplay), seg.aa, RadioTower, pulseStep === 1, "account")}
+            {renderNode(t("relayBoardPaymaster"), paymasterDisplay && paymasterDisplay !== t("unset") ? paymasterDisplay : "", seg.paymaster, Fuel, pulseStep === 2, "paymaster")}
+            {renderNode(t("relayBoardPayload"), payloadValid ? t("relayPayloadReady") : t("payloadInvalid"), seg.broadcast, SendHorizontal, pulseStep === 3, "payload")}
+          </div>
         </div>
-        <div className="relay-control-deck__track" aria-hidden="true">
-          <span className="relay-control-deck__track-line" />
-          <span className="relay-control-deck__packet relay-control-deck__packet--one" />
-          <span className="relay-control-deck__packet relay-control-deck__packet--two" />
-        </div>
-      </section>
 
-      <section className="relay-route" aria-label={t("relayFlowLabel")}>
-        <div
-          className={routeStepClass(
-            aaAddressValid,
-            isCheckingSponsorship,
-          )}
-        >
-          <span aria-hidden="true">
-            <ShieldCheck size={18} />
-          </span>
+        <div className="relay-scene__state-card">
+          <Code2 size={19} aria-hidden="true" />
           <div>
-            <strong>{t("relayFlowSponsor")}</strong>
-            <p>{t("relayFlowSponsorDesc")}</p>
+            <span>{t("relayStateLabel")}</span>
+            <strong>{stateTitle}</strong>
           </div>
+          <p>{statusText}</p>
+          <small>
+            <AlertTriangle size={14} aria-hidden="true" />
+            {guardCopy}
+          </small>
         </div>
-        <div
-          className={routeStepClass(
-            canRequestSponsor,
-            isCheckingSponsorship && sponsorAmountIsValid,
-          )}
-        >
-          <span aria-hidden="true">
-            <WalletCards size={18} />
-          </span>
-          <div>
-            <strong>{t("relayFlowRequest")}</strong>
-            <p>{t("relayFlowRequestDesc")}</p>
-          </div>
-        </div>
-        <div className={routeStepClass(canSubmitRelay, isRelaying)}>
-          <span aria-hidden="true">
-            <Rocket size={18} />
-          </span>
-          <div>
-            <strong>{t("relayFlowSubmit")}</strong>
-            <p>{t("relayFlowSubmitDesc")}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="relay-workspace">
-        {/* Step 1: sponsorship preflight */}
-        <NeoCard variant="erobo" className="relay-step">
-          <div className="relay-form">
-            <header className="relay-step__head">
-              <span className="relay-step__icon" aria-hidden="true">
-                <Landmark size={18} />
-              </span>
-              <div>
-                <span className="relay-step__eyebrow">
-                  {t("relayStep1Eyebrow")}
-                </span>
-                <h3 className="relay-step__title">{t("relayStep1Title")}</h3>
-              </div>
-            </header>
-
-            <NeoInput
-              type="number"
-              value={sponsorAmountLocal}
-              label={t("sponsorAmount")}
-              hint={t("sponsorAmountHint")}
-              placeholder={t("sponsorAmountPlaceholder")}
-              onChange={(val) => setSponsorAmountLocal(val)}
-            />
-            <div className="relay-action-grid">
-              <NeoButton
-                variant="secondary"
-                loading={isCheckingSponsorship}
-                disabled={!canCheckSponsor}
-                aria-label={t("sponsorCheck")}
-                onClick={() => dispatch("checkSponsor", aaAddress, dappIdLocal)}
-              >
-                <ClipboardCheck size={17} aria-hidden="true" />
-                {t("sponsorCheck")}
-              </NeoButton>
-              <NeoButton
-                variant="primary"
-                loading={isCheckingSponsorship}
-                disabled={!canRequestSponsor}
-                aria-label={t("sponsorRequest")}
-                onClick={() =>
-                  dispatch(
-                    "requestSponsor",
-                    aaAddress,
-                    dappIdLocal,
-                    sponsorAmountLocal,
-                  )
-                }
-              >
-                <CircleDollarSign size={17} aria-hidden="true" />
-                {t("sponsorRequest")}
-              </NeoButton>
-            </div>
-            {!canCheckSponsor && (
-              <p className="relay-hint">{t("sponsorBlocked")}</p>
-            )}
-            {canCheckSponsor && hasSponsorAmount && !sponsorAmountIsValid && (
-              <p className="relay-hint">{t("sponsorAmountInvalid")}</p>
-            )}
-          </div>
-        </NeoCard>
-
-        {/* Step 2: build & submit payload */}
-        <NeoCard variant="erobo" className="relay-step">
-          <div className="relay-form">
-            <header className="relay-step__head">
-              <span className="relay-step__icon" aria-hidden="true">
-                <TerminalSquare size={18} />
-              </span>
-              <div>
-                <span className="relay-step__eyebrow">
-                  {t("relayStep2Eyebrow")}
-                </span>
-                <h3 className="relay-step__title">{t("relayStep2Title")}</h3>
-              </div>
-            </header>
-
-            <NeoInput
-              value={dappIdLocal}
-              label={t("dappId")}
-              hint={t("dappIdHint")}
-              placeholder={t("dappIdPlaceholder")}
-              onChange={(val) => setDappIdLocal(val)}
-            />
-            <div
-              className={`relay-payload-lens${
-                payloadJsonIsValid ? "" : " relay-payload-lens--invalid"
-              }`}
-              aria-label={t("relayPayloadLens")}
-            >
-              <div className="relay-payload-lens__head">
-                <span aria-hidden="true">
-                  <Gauge size={18} />
-                </span>
-                <div>
-                  <small>{t("relayPayloadLens")}</small>
-                  <strong>
-                    {payloadJsonIsValid
-                      ? t("relayPayloadReady")
-                      : t("payloadInvalid")}
-                  </strong>
-                </div>
-              </div>
-              <div className="relay-payload-lens__grid">
-                <span>
-                  <small>{t("relayPayloadOperation")}</small>
-                  <strong>{payloadSummary.operation}</strong>
-                </span>
-                <span>
-                  <small>{t("relayPayloadTarget")}</small>
-                  <strong title={payloadSummary.target}>
-                    {payloadSummary.target}
-                  </strong>
-                </span>
-                <span>
-                  <small>{t("relayPayloadArgs")}</small>
-                  <strong>{payloadSummary.argsLabel}</strong>
-                </span>
-              </div>
-            </div>
-            <NeoInput
-              type="textarea"
-              value={payloadJsonLocal}
-              label={t("payloadJson")}
-              hint={t("payloadJsonHint")}
-              placeholder={t("payloadJsonPlaceholder")}
-              aria-label={t("payloadJson")}
-              className="relay-payload-editor"
-              onChange={(val) => setPayloadJsonLocal(val)}
-            />
-            {(!hasAAAddress || !payloadJsonIsValid) && (
-              <p className="relay-hint">
-                {payloadJsonIsValid ? t("relayBlocked") : t("payloadInvalid")}
-              </p>
-            )}
-            <NeoButton
-              variant="primary"
-              loading={isRelaying}
-              disabled={!canSubmitRelay}
-              aria-label={t("submitRelay")}
-              onClick={() =>
-                dispatch(
-                  "submitRelay",
-                  aaAddress,
-                  dappIdLocal,
-                  payloadJsonLocal,
-                )
-              }
-            >
-              <Rocket size={17} aria-hidden="true" />
-              {t("submitRelay")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      </section>
-
-      {/* Single human-readable result line, only after an action runs */}
-      {activeResult && (
-        <div className={`relay-result relay-result--${resultTone}`}>
-          <div className="relay-result__line">
-            <span className="relay-result__dot" aria-hidden="true" />
-            <span className="relay-result__text">{resultText}</span>
-            <span className="relay-result__scope">{draftAAAddress}</span>
-          </div>
-          {relayTxid && (
-            <a
-              className="relay-result__tx"
-              href={explorerTxUrl(relayTxid)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span className="relay-result__tx-label">
-                {t("relayTxLabel")}
-              </span>
-              <code>{relayTxid}</code>
-            </a>
-          )}
-          <details className="relay-result__raw">
-            <summary>
-              <span className="relay-disclosure__summary relay-disclosure__summary--raw">
-                <span>{t("latestRelay")}</span>
-                <ChevronDown
-                  className="relay-disclosure__icon"
-                  size={15}
-                  aria-hidden="true"
-                />
-              </span>
-            </summary>
-            <pre>{resultRaw}</pre>
-          </details>
-        </div>
-      )}
+      </div>
     </div>
+  );
+
+  // Payload form + sponsor preflight live in the drawer so the stage stays
+  // primary/clean. Fields mirror the composable form; dispatch carries them.
+  const drawerPanels: Record<DrawerMode, ReactNode> = {
+    route: (
+      <OpenUiPanel
+        className="relay-drawer__panel relay-drawer__panel--route"
+        icon={<RadioTower size={18} strokeWidth={2.4} aria-hidden="true" />}
+        title={t("relayAccountEyebrow")}
+        subtitle={t("relayStageTitle")}
+      >
+        <OpenUiTextField
+          className="relay-drawer__field"
+          label={t("aaAddress")}
+          value={draftAa}
+          onChange={(e) => setDraftAa(e.target.value)}
+          placeholder={t("aaAddressPlaceholder")}
+          hint={t("aaAddressHint")}
+          mono
+          spellCheck={false}
+        />
+        <OpenUiTextField
+          className="relay-drawer__field"
+          label={t("dappId")}
+          value={draftDapp}
+          onChange={(e) => setDraftDapp(e.target.value)}
+          placeholder={t("dappIdPlaceholder")}
+          hint={t("dappIdHint")}
+          mono
+          spellCheck={false}
+        />
+        <dl className="relay-drawer__facts" aria-label={t("relayMetricsLabel")}>
+          <div><dt>{t("network")}</dt><dd>{networkDisplay || "—"}</dd></div>
+          <div><dt>{t("aaCoreLabel")}</dt><dd>{compactHash(aaCoreDisplay)}</dd></div>
+          <div><dt>{t("relayEndpointMetric")}</dt><dd>{relayUrlDisplay || "—"}</dd></div>
+          <div><dt>{t("relayBoardAA")}</dt><dd>{(aaAddressDisplay && aaAddressDisplay !== t("notAvailable")) ? compactHash(aaAddressDisplay) : "—"}</dd></div>
+        </dl>
+      </OpenUiPanel>
+    ),
+
+    sponsor: (
+      <OpenUiPanel
+        className="relay-drawer__panel"
+        icon={<Fuel size={18} strokeWidth={2.4} aria-hidden="true" />}
+        title={t("sponsorCheck")}
+        subtitle={t("sponsorDirectionNote")}
+      >
+        <OpenUiTextField
+          className="relay-drawer__field"
+          label={t("sponsorAmount")}
+          value={draftAmount}
+          onChange={(e) => setDraftAmount(e.target.value)}
+          placeholder={t("sponsorAmountPlaceholder")}
+          hint={t("sponsorAmountHint")}
+          inputMode="decimal"
+        />
+        <div className="relay-drawer__row">
+          <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleCheckSponsor} disabled={!hasAa}>{t("sponsorCheck")}</button>
+          <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleRequestSponsor} disabled={!hasAa}>{t("sponsorRequest")}</button>
+        </div>
+      </OpenUiPanel>
+    ),
+
+    payload: (
+      <OpenUiPanel
+        className="relay-drawer__panel relay-drawer__panel--payload"
+        icon={<Code2 size={18} strokeWidth={2.4} aria-hidden="true" />}
+        title={t("payloadJson")}
+        subtitle={payloadValid ? t("relayPayloadReady") : t("payloadInvalid")}
+      >
+        <OpenUiTextArea
+          className="relay-drawer__field relay-drawer__payload mx2-open-field--compact"
+          label={t("payloadJson")}
+          value={draftPayload}
+          onChange={(e) => setDraftPayload(e.target.value)}
+          placeholder={t("payloadJsonPlaceholder")}
+          hint={payloadValid ? t("relayPayloadReady") : t("payloadInvalid")}
+          rows={3}
+          spellCheck={false}
+        />
+        <OpenUiNotice
+          className="relay-drawer__notice"
+          icon={<SendHorizontal size={18} strokeWidth={2.4} aria-hidden="true" />}
+          title={t("relaySubmitTitle")}
+          type={payloadValid ? "info" : "warning"}
+        >
+          {t("relaySubmitExplainer")}
+        </OpenUiNotice>
+      </OpenUiPanel>
+    ),
+  };
+
+  const drawer = (
+    <div className="relay-drawer">
+      <OpenUiSegmented
+        className="relay-drawer-tabs"
+        segmentedClassName="relay-drawer-tabs__group"
+        label={t("relayFlowLabel")}
+        value={drawerMode}
+        onChange={setDrawerModeSafe}
+        options={drawerModes.map((item) => ({
+          value: item.mode,
+          label: <span className="relay-drawer-tab">{item.label}</span>,
+        }))}
+      />
+      <div className="relay-drawer__panel-shell" data-mode={drawerMode}>
+        {drawerPanels[drawerMode]}
+      </div>
+    </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div className="relay-play-area mx2 mx2-cat-tool">
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t("relayStageKicker"),
+            title: t("relayHeroTitle"),
+            subtitle: t("relayStageTitle"),
+          }}
+          scene={scene}
+          actions={{
+            primary: {
+              label: t("submitRelay"),
+              onClick: handleSubmitRelay,
+              loading: busy,
+              disabled: !submitReady,
+            },
+            secondary: [{ label: t("sponsorCheck"), onClick: handleCheckSponsor, disabled: !hasAa || busy }],
+          }}
+          drawerToggleLabel={t("relayFlowLabel")}
+          drawer={{ title: t("relayFlowLabel"), children: drawer }}
+        />
+      </div>
+    </OpenUiProvider>
   );
 }

@@ -1,9 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import type { AAService, ChainService, EventBus } from "../services";
 import { useAASessionKeyLab } from "../../aa-session-key-lab/src/composables/useAASessionKeyLab";
 import { getSessionKeyLaunchDefaults } from "../../aa-session-key-lab/src/launch";
+
+/** Wrap a mock chain in the MiniApp framework (verifier reads + arg builders). */
+function makeApp(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t: (key: string) => key } as never,
+    { appId: "miniapp-aa-session-key-lab" },
+  );
+}
 
 // Mockable wallet so configure/revoke tests can capture invokeContract args.
 const invokeContractMock = vi.fn();
@@ -32,7 +41,7 @@ describe("AA Session Key Lab logic", () => {
     } as unknown as AAService;
     const chain = {} as ChainService;
     const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const lab = useAASessionKeyLab({ aa, chain, eventBus, t });
+    const lab = useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
 
     lab.form.dappId = "miniapp-aa-session-key-lab";
     lab.form.sponsorAmount = "0.2";
@@ -80,7 +89,7 @@ describe("AA Session Key Lab logic", () => {
     } as unknown as AAService;
     const chain = {} as ChainService;
     const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const lab = useAASessionKeyLab({ aa, chain, eventBus, t });
+    const lab = useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
 
     lab.generateSessionKey();
 
@@ -105,7 +114,7 @@ describe("AA Session Key Lab logic", () => {
     } as unknown as AAService;
     const chain = {} as ChainService;
     const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const lab = useAASessionKeyLab({ aa, chain, eventBus, t });
+    const lab = useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
 
     await lab.checkSponsor();
 
@@ -154,7 +163,7 @@ describe("AA Session Key Lab logic", () => {
         read: vi.fn().mockResolvedValue({ key: PUBLIC_KEY }),
       } as unknown as ChainService;
       const eventBus = { emit: vi.fn() } as unknown as EventBus;
-      return useAASessionKeyLab({ aa, chain, eventBus, t });
+      return useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
     }
 
     it("forwards 7 inner setSessionKey args on the mainnet default network", async () => {

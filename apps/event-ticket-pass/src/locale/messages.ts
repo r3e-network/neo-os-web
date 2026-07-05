@@ -3,7 +3,6 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   title: { en: "Event Ticket Pass", zh: "活动门票通行证" },
   createTab: { en: "Create", zh: "创建" },
-  ticketsTab: { en: "My Tickets", zh: "我的门票" },
   checkinTab: { en: "Check-in", zh: "核验" },
 
   contractMissing: {
@@ -26,9 +25,9 @@ const appMessages = {
   eventIdentity: { en: "Event identity", zh: "活动识别信息" },
   eventDetails: { en: "Schedule and capacity", zh: "时间与容量" },
   eventStart: { en: "Start time", zh: "开始时间" },
-  eventStartPlaceholder: { en: "2025-06-20 09:00", zh: "2025-06-20 09:00" },
+  eventStartPlaceholder: { en: "2026-08-20 09:00", zh: "2026-08-20 09:00" },
   eventEnd: { en: "End time", zh: "结束时间" },
-  eventEndPlaceholder: { en: "2025-06-20 18:00", zh: "2025-06-20 18:00" },
+  eventEndPlaceholder: { en: "2026-08-20 18:00", zh: "2026-08-20 18:00" },
   maxSupply: { en: "Max tickets", zh: "票量上限" },
   maxSupplyPlaceholder: { en: "500", zh: "500" },
   notes: { en: "Notes (optional)", zh: "备注（可选）" },
@@ -39,6 +38,9 @@ const appMessages = {
 
   createEvent: { en: "Create Event", zh: "创建活动" },
   eventCreated: { en: "Event created", zh: "活动已创建" },
+  creatingEvent: { en: "Creating event...", zh: "创建活动中..." },
+  ticketsTab: { en: "Tickets", zh: "票务" },
+  ticketsCount: { en: "Tickets", zh: "票数" },
   eventSelected: { en: "Event selected", zh: "已选择活动" },
   eventsCountLabel: { en: "{count} events", zh: "{count} 个活动" },
 
@@ -61,6 +63,7 @@ const appMessages = {
 
   statusActive: { en: "Active", zh: "进行中" },
   statusInactive: { en: "Inactive", zh: "已停用" },
+  active: { en: "Active", zh: "活跃" },
   eventSchedule: { en: "Schedule", zh: "时间" },
   minted: { en: "Issued", zh: "已签发" },
   soldOut: { en: "All passes issued", zh: "通行证已全部签发" },
@@ -129,10 +132,13 @@ const appMessages = {
 
   issueTicketTitle: { en: "Issue Ticket", zh: "签发门票" },
   issuePreview: { en: "Pass being issued", zh: "即将签发的通行证" },
+  guestLaneLabel: { en: "Guest pass lane", zh: "宾客通行证通道" },
+  recentGuests: { en: "Recent guest wallets", zh: "最近宾客钱包" },
   issueRecipient: { en: "Recipient address", zh: "接收地址" },
   issueRecipientPlaceholder: { en: "Neo N3 address", zh: "Neo N3 地址" },
   issueSeat: { en: "Seat / Zone", zh: "座位/区域" },
   issueSeatPlaceholder: { en: "A-12", zh: "A-12" },
+  seatLaneLabel: { en: "Seat lane", zh: "座位通道" },
   issueMemo: { en: "Memo (optional)", zh: "备注（可选）" },
   issueMemoPlaceholder: { en: "Backstage pass", zh: "后台通行证" },
   issue: { en: "Issue", zh: "签发" },
@@ -213,6 +219,46 @@ const appMessages = {
   studioStepCreate: { en: "Design pass", zh: "设计票面" },
   studioStepIssue: { en: "Issue guest pass", zh: "签发宾客通行证" },
   studioStepCheckin: { en: "Run gate check-in", zh: "执行入口核验" },
+  studioModeLabel: { en: "Studio mode", zh: "工作台模式" },
+  modeCreateTitle: { en: "Design pass", zh: "设计通行证" },
+  modeCreateHint: {
+    en: "Set the event identity first; timing and supply stay one tap away.",
+    zh: "先确定活动识别信息；时间和票量收进下一层设置。",
+  },
+  eventBlueprintsLabel: { en: "Ticket event blueprints", zh: "票务活动蓝图" },
+  blueprintSummitName: { en: "Builder summit", zh: "开发者峰会" },
+  blueprintSummitVenue: { en: "Main hall", zh: "主会场" },
+  blueprintSummitStart: { en: "2026-08-20 09:00", zh: "2026-08-20 09:00" },
+  blueprintSummitEnd: { en: "2026-08-20 18:00", zh: "2026-08-20 18:00" },
+  blueprintSummitNotes: {
+    en: "Main-stage access, badge pickup, and all-day check-in.",
+    zh: "主舞台入场、徽章领取与全天入口核验。",
+  },
+  blueprintWorkshopName: { en: "Hands-on workshop", zh: "动手工作坊" },
+  blueprintWorkshopVenue: { en: "Builder lab", zh: "开发者实验室" },
+  blueprintWorkshopStart: { en: "2026-08-21 13:00", zh: "2026-08-21 13:00" },
+  blueprintWorkshopEnd: { en: "2026-08-21 17:00", zh: "2026-08-21 17:00" },
+  blueprintWorkshopNotes: {
+    en: "Limited-capacity workshop pass with reserved lab seating.",
+    zh: "限量工作坊通行证，包含实验室预留席位。",
+  },
+  blueprintBackstageName: { en: "Backstage access", zh: "后台通行证" },
+  blueprintBackstageVenue: { en: "Crew entrance", zh: "工作人员入口" },
+  blueprintBackstageStart: { en: "2026-08-20 08:00", zh: "2026-08-20 08:00" },
+  blueprintBackstageEnd: { en: "2026-08-20 23:00", zh: "2026-08-20 23:00" },
+  blueprintBackstageNotes: {
+    en: "Staff, speaker, and production access with gate verification.",
+    zh: "工作人员、嘉宾与制作团队后台通行，并在入口核验。",
+  },
+  modeOperateTitle: { en: "Run gate desk", zh: "运营检票台" },
+  modeOperateHint: {
+    en: "{count} events ready for issuing and check-in.",
+    zh: "{count} 个活动可用于签发和核验。",
+  },
+  modeOperateDisabled: {
+    en: "Create an event before opening the live desk.",
+    zh: "先创建活动，再打开现场工作台。",
+  },
   lifecycleEyebrow: { en: "Live pass route", zh: "实时通行证路径" },
   lifecycleTitle: {
     en: "From pass design to the door",
@@ -248,7 +294,10 @@ const appMessages = {
     zh: "选择正在进行的活动，在同一工作台完成通行证签发或二维码 Token 核验。",
   },
   doorScanner: { en: "Door scanner", zh: "入口扫码器" },
+  scannerSlotLabel: { en: "Token scanner slot", zh: "Token 扫码槽" },
+  gateQueueLabel: { en: "Ready passes", zh: "待核验通行证" },
   evidence: { en: "Request and result evidence", zh: "请求与结果证据" },
+  evidenceShort: { en: "Evidence", zh: "证据" },
   latestRequest: { en: "Latest Request", zh: "最新请求" },
   latestResult: { en: "Latest Result", zh: "最新结果" },
   viewOnExplorer: {

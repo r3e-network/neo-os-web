@@ -21,8 +21,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-trustanchor",
   "media": {
-    "icon": "/miniapp-assets/trustanchor/logo.jpg",
-    "banner": "/miniapp-assets/trustanchor/banner.jpg"
+    "icon": "/miniapp-assets/trustanchor/logo.webp",
+    "banner": "/miniapp-assets/trustanchor/banner.webp"
   },
   "permissions": {
     "payments": true,

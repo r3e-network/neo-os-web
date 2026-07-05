@@ -8,10 +8,10 @@ interface LayoutProps {
 
 export function Layout({ children, hideFooter }: LayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-white text-gray-900">
+    <div className="flex min-h-screen flex-col bg-canvas text-ink">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[140] focus:px-4 focus:py-2 focus:bg-neo focus:text-gray-900 focus:rounded-lg focus:font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[140] focus:rounded-lg focus:bg-neo-500 focus:px-4 focus:py-2 focus:font-semibold focus:text-white"
       >
         Skip to content
       </a>

@@ -25,10 +25,9 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { fromFixed8, formatHash, formatNum } from "@shared/utils/format";
 import { eventValue } from "@shared/utils/chain-events";
-import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 
 export interface Developer {
@@ -51,8 +50,8 @@ export interface RecentTip {
 }
 
 export interface UseDevTippingStatsOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -73,7 +72,7 @@ function toFinite(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
+export function useDevTippingStats({ app, t }: UseDevTippingStatsOptions) {
   const developers = createObservable<Developer[]>([]);
   const recentTips = createObservable<RecentTip[]>([]);
   const totalDonated = createObservable(0);
@@ -116,7 +115,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
   const loadDevelopers = async () => {
     isLoading.set(true);
     try {
-      const totalRaw = await chain.read("totalDevelopers", []);
+      const totalRaw = await app.chain.readRaw("totalDevelopers", []);
       const total = Math.min(toFinite(totalRaw), MAX_DEVELOPERS);
 
       if (total <= 0) {
@@ -131,7 +130,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
       const results = await Promise.all(
         ids.map(async (id) => {
           try {
-            const raw = await chain.read("getDeveloper", [
+            const raw = await app.chain.readRaw("getDeveloper", [
               { type: "Integer", value: String(id) },
             ]);
             return mapDeveloper(raw, id);
@@ -155,7 +154,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
       developers.set(validDevs);
 
       try {
-        totalDonated.set(fromFixed8(parseBigInt(await chain.read("totalDonated", []))));
+        totalDonated.set(fromFixed8(parseBigInt(await app.chain.readRaw("totalDonated", []))));
       } catch (e) {
         console.warn(
           "[useDevTippingStats] totalDonated read failed:",
@@ -181,7 +180,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
    */
   const loadRecentTips = async () => {
     try {
-      const events = await chain.listEvents("Tipped", { limit: RECENT_TIPS_LIMIT });
+      const events = await app.chain.events("Tipped", { limit: RECENT_TIPS_LIMIT });
       const devMap = new Map(developers.get().map((dev) => [dev.id, dev.name]));
 
       const tips = events
@@ -226,10 +225,9 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
    * decide whether to show the register form vs. the withdraw action.
    */
   const developerIdOf = async (address: string): Promise<number> => {
-    const hash = addressToScriptHash(address || "");
-    if (!hash) return 0;
+    if (!address) return 0;
     try {
-      return Number(parseBigInt(await chain.read("developerIdOf", [{ type: "Hash160", value: hash }])));
+      return Number(parseBigInt(await app.chain.readRaw("developerIdOf", [app.chain.arg.hash160(address)])));
     } catch (e) {
       console.warn(
         "[useDevTippingStats] developerIdOf failed:",
@@ -245,10 +243,9 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
    * exposes creditOf(account) in base units.
    */
   const creditOf = async (address: string): Promise<number> => {
-    const hash = addressToScriptHash(address || "");
-    if (!hash) return 0;
+    if (!address) return 0;
     try {
-      return fromFixed8(parseBigInt(await chain.read("creditOf", [{ type: "Hash160", value: hash }])));
+      return fromFixed8(parseBigInt(await app.chain.readRaw("creditOf", [app.chain.arg.hash160(address)])));
     } catch (e) {
       console.warn(
         "[useDevTippingStats] creditOf failed:",

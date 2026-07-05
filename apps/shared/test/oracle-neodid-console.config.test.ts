@@ -38,7 +38,7 @@ describe("Oracle NeoDID Console config", () => {
       execution: "preview_only",
       dispatchReady: false,
     });
-    expect(result.status).toBe("Verification preview ready");
+    expect(result.status).toBe("Verification request ready");
   });
 
   it("returns an explicit input-required state when DID or claim is missing", () => {
@@ -137,6 +137,6 @@ describe("Oracle NeoDID Console config", () => {
     expect(result.payload.status).toBeUndefined();
     expect(result.payload.didValid).toBe(true);
     expect(result.payload.callbackValid).toBe(true);
-    expect(result.status).toBe("Verification preview ready");
+    expect(result.status).toBe("Verification request ready");
   });
 });

@@ -87,6 +87,7 @@ const EMBEDDED_DAPP_LOAD_TIMEOUT_MS = 15_000;
 // (e.g. right after a submitted transaction confirms) instead of waiting for
 // the next 15s poll. ChainStateStrip subscribes and calls its onRefresh.
 export const HOST_PLAYFIELD_REFRESH = "neo-miniapp-host:playfield-refresh";
+const EMBEDDED_DAPP_RESIZE_MESSAGE = "neo-miniapp:resize";
 
 export function PlayShell({
   app,
@@ -113,17 +114,17 @@ export function PlayShell({
       <div className="border-b border-gray-100 px-4 py-4 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
               Focus workspace
             </p>
-            <h2 className="m-0 truncate text-xl font-black tracking-tight text-gray-950 sm:text-2xl">
+            <h2 className="m-0 truncate text-xl font-semibold tracking-normal text-gray-900 sm:text-2xl">
               {title}
             </h2>
             <p className="m-0 mt-1 max-w-3xl text-sm leading-6 text-gray-600">
               {subtitle}
             </p>
           </div>
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-700">
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
             {app.name}
           </span>
         </div>
@@ -165,23 +166,23 @@ export function SecondaryInfo({
 }) {
   return (
     <details
-      className="group rounded-xl border border-gray-200 bg-gray-50/70 shadow-sm shadow-gray-950/5"
+      className="group rounded-lg border border-gray-200/80 bg-white/60 shadow-sm shadow-gray-950/5"
       open={defaultOpen}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30">
         <span className="min-w-0">
-          <span className="block truncate text-sm font-black text-gray-900">
+          <span className="block truncate text-xs font-semibold text-gray-800">
             {title}
           </span>
           {description && (
-            <span className="mt-0.5 block text-xs leading-5 text-gray-700">
+            <span className="mt-1 hidden text-xs leading-5 text-gray-600 group-open:block">
               {description}
             </span>
           )}
         </span>
         <span className="flex shrink-0 items-center gap-2">
           {meta && (
-            <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-700">
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600">
               {meta}
             </span>
           )}
@@ -191,7 +192,7 @@ export function SecondaryInfo({
           />
         </span>
       </summary>
-      <div className="border-t border-gray-200 px-3.5 py-3">{children}</div>
+      <div className="border-t border-gray-200 px-3 py-3">{children}</div>
     </details>
   );
 }
@@ -278,7 +279,7 @@ export function MetricGrid({ stats }: { stats: PlayMetric[] }) {
               {item.label}
             </p>
             <p
-              className={`m-0 mt-1 truncate text-sm font-black sm:text-base ${item.accent ? "text-emerald-600" : "text-gray-950"}`}
+              className={`m-0 mt-1 truncate text-sm font-semibold sm:text-base ${item.accent ? "text-emerald-600" : "text-gray-900"}`}
             >
               {item.value}
             </p>
@@ -356,7 +357,7 @@ export function ActionRow({
 }) {
   const styles = toneStyle(tone);
   const className = `group flex w-full flex-col items-stretch justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition sm:flex-row sm:items-center sm:gap-3 sm:py-3 ${
-    active ? styles.active : "border-gray-200 bg-white text-gray-950"
+    active ? styles.active : "border-gray-200 bg-white text-gray-900"
   }`;
   const content = (
     <>
@@ -369,7 +370,7 @@ export function ActionRow({
           </span>
         )}
         <span className="min-w-0">
-          <span className="block break-words text-[13px] font-black sm:text-sm">
+          <span className="block break-words text-[13px] font-semibold sm:text-sm">
             {label}
           </span>
           {detail && (
@@ -382,12 +383,12 @@ export function ActionRow({
       {(value || valueLabel) && (
         <span className="shrink-0 pl-12 text-left sm:pl-0 sm:text-right">
           {value && (
-            <span className="block text-[13px] font-black tabular-nums text-gray-950 sm:text-sm">
+            <span className="block text-[13px] font-semibold tabular-nums text-gray-900 sm:text-sm">
               {value}
             </span>
           )}
           {valueLabel && (
-            <span className="block text-[10px] font-black uppercase tracking-wide text-gray-600">
+            <span className="block text-[10px] font-semibold uppercase tracking-wide text-gray-600">
               {valueLabel}
             </span>
           )}
@@ -422,7 +423,7 @@ export function ActionBoard({
     <section className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-3.5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
+          <h3 className="m-0 text-sm font-semibold text-gray-900">{title}</h3>
           {subtitle && (
             <p className="m-0 mt-1 text-xs leading-5 text-gray-700">
               {subtitle}
@@ -480,6 +481,7 @@ export function EmbeddedDappSurface({
   const [showLoading, setShowLoading] = useState(true);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [frameAttempt, setFrameAttempt] = useState(0);
+  const [embeddedHeight, setEmbeddedHeight] = useState<number | null>(null);
   const loadingTitle = frameTitle.replace(/\s+dApp$/i, "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -489,7 +491,25 @@ export function EmbeddedDappSurface({
     setFrameLoaded(false);
     setShowLoading(true);
     setLoadTimedOut(false);
+    setEmbeddedHeight(null);
   }, [url, frameAttempt]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data as
+        | { type?: unknown; height?: unknown }
+        | null
+        | undefined;
+      if (!data || data.type !== EMBEDDED_DAPP_RESIZE_MESSAGE) return;
+      const nextHeight = Number(data.height);
+      if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
+      setEmbeddedHeight(Math.max(420, Math.min(2600, Math.ceil(nextHeight))));
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   useEffect(() => {
     if (!frameLoaded) return undefined;
@@ -522,7 +542,7 @@ export function EmbeddedDappSurface({
         rel="noreferrer"
         aria-label="Open dApp in a new window"
         title="Open in a new window"
-        className="absolute right-1.5 top-1.5 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white/95 p-0 text-[11px] font-semibold text-gray-600 opacity-90 shadow-sm backdrop-blur transition hover:text-gray-900 focus:opacity-100 sm:right-2 sm:top-2 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1 sm:opacity-0 sm:group-hover:opacity-100"
+        className="m-2 mb-0 ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white/95 p-0 text-[11px] font-semibold text-gray-600 opacity-100 shadow-sm backdrop-blur transition hover:text-gray-900 focus:opacity-100 sm:absolute sm:right-2 sm:top-2 sm:z-10 sm:m-0 sm:inline-flex sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
         <span className="hidden sm:inline">New window</span>
@@ -539,6 +559,7 @@ export function EmbeddedDappSurface({
         data-testid={testId}
         data-wallet-bridge="neo-miniapp-host"
         className={`block ${heightClass} w-full border-0 bg-white transition-opacity duration-300 ${showLoading ? "opacity-0" : "opacity-100"}`}
+        style={embeddedHeight ? { height: `${embeddedHeight}px` } : undefined}
         loading="eager"
         onLoad={() => setFrameLoaded(true)}
         referrerPolicy="no-referrer-when-downgrade"
@@ -561,7 +582,7 @@ export function EmbeddedDappSurface({
                 <Radio className="h-5 w-5" aria-hidden="true" />
               </div>
             </div>
-            <p className="m-0 mt-5 text-base font-black text-gray-950">
+            <p className="m-0 mt-5 text-base font-semibold text-gray-900">
               Still loading {loadingTitle}…
             </p>
             <p className="m-0 mt-2 text-sm leading-6 text-gray-600">
@@ -602,7 +623,7 @@ export function EmbeddedDappSurface({
                 <Radio className="h-5 w-5" aria-hidden="true" />
               </div>
             </div>
-            <p className="m-0 mt-5 text-base font-black text-gray-950">
+            <p className="m-0 mt-5 text-base font-semibold text-gray-900">
               Loading {loadingTitle}
             </p>
             <div
@@ -631,7 +652,7 @@ export function ToolCard({
 }) {
   return (
     <section className="min-w-0 space-y-3 rounded-lg border border-gray-200 bg-white/85 p-4">
-      <h3 className="m-0 flex items-center gap-2 text-sm font-black text-gray-950">
+      <h3 className="m-0 flex items-center gap-2 text-sm font-semibold text-gray-900">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
           {icon}
         </span>
@@ -654,7 +675,7 @@ export function PreviewStat({
       <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-600">
         {label}
       </p>
-      <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">
+      <p className="m-0 mt-1 break-words text-sm font-semibold text-gray-900">
         {value}
       </p>
     </div>
@@ -665,12 +686,12 @@ export function BridgeStatusPanel() {
   const steps = ["Lock", "Relay", "Prove", "Release"];
   return (
     <div className="rounded-lg border border-sky-100 bg-white/85 p-4">
-      <h3 className="m-0 text-sm font-black text-gray-950">Operation status</h3>
+      <h3 className="m-0 text-sm font-semibold text-gray-900">Operation status</h3>
       <div className="mt-4 space-y-3">
         {steps.map((step, index) => (
           <div key={step} className="flex items-center gap-3">
             <span
-              className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${index === 0 ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-500"}`}
+              className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${index === 0 ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-500"}`}
             >
               {index + 1}
             </span>
@@ -691,7 +712,7 @@ export function OracleStatusPanel({
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-slate-950 p-4 text-white">
-      <h3 className="m-0 flex items-center gap-2 text-sm font-black">
+      <h3 className="m-0 flex items-center gap-2 text-sm font-semibold">
         <ShieldCheck className="h-4 w-4 text-neo" />
         Result verifier
       </h3>

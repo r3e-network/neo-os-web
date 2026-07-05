@@ -53,8 +53,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/trustanchor-admin/index.html",
-    "icon": "/miniapps/trustanchor-admin/logo.jpg",
-    "banner": "/miniapps/trustanchor-admin/banner.jpg"
+    "icon": "/miniapps/trustanchor-admin/logo.webp",
+    "banner": "/miniapps/trustanchor-admin/banner.webp"
   },
   "permissions": [
     "invoke:admin",

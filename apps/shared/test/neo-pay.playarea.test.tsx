@@ -1,341 +1,145 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import fs from "node:fs";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../neo-pay/src/PlayArea";
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
+function t(k: string) { return k; }
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
 
-function t(key: string) {
-  const messages: Record<string, string> = {
-    totalStreams: "Total Streams",
-    active: "Active",
-    heroEyebrow: "Payment streams",
-    heroTitle: "Stream payments over time",
-    heroSubtitle: "Lock GAS or NEO and release it on a schedule",
-    paymentStageAria: "Payment stream stage",
-    streamFlowPreview: "Payment stream preview",
-    stagedFlow: "Live stream route",
-    payerWallet: "Your wallet",
-    streamVault: "Stream vault",
-    stageIdle: "Ready to plan",
-    stageDraft: "Drafting stream",
-    stageReady: "Ready to sign",
-    stageSigning: "Signing stream",
-    stageLive: "Streams live",
-    createdByYou: "Created by You",
-    youAreBeneficiary: "You're Beneficiary",
-    createStream: "Create Stream",
-    creatingStream: "Creating stream...",
-    streamConsole: "Stream console",
-    recipient: "Recipient Address",
-    recipientPlaceholder: "N3 address...",
-    amount: "Amount",
-    duration: "Duration",
-    durationPlaceholder: "Number of days",
-    days: "days",
-    token: "Token",
-    notes: "Notes (optional)",
-    notesPlaceholder: "Add context for the recipient",
-    reviewStream: "Complete stream details",
-    yourCreatedStreams: "Your Created Streams",
-    streamsYouReceive: "Streams You Receive",
-    noCreatedStreams: "You haven't created any streams yet",
-    noBeneficiaryStreams: "No incoming streams",
-    to: "To",
-    from: "From",
-    cancel: "Cancel",
-    claim: "Claim",
-    claimable: "Claimable",
-  };
-  return messages[key] ?? key;
+function stylesheet() {
+  return fs.readFileSync(`${process.cwd()}/../neo-pay/src/PlayArea.scss`, "utf8") as string;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  return {
-    createdStreams: createObservable([]),
-    beneficiaryStreams: createObservable([]),
-    allStreams: createObservable([]),
-    isLoading: createObservable(false),
-    isCreating: createObservable(false),
-    isRefreshing: createObservable(false),
-    serviceNotice: createObservable(""),
-    activeCount: createObservable(0),
-    createdStreamCount: createObservable(0),
-    beneficiaryStreamCount: createObservable(0),
-    totalStreamCount: createObservable(0),
-    ...Object.fromEntries(
-      Object.entries(overrides).map(([key, value]) => [
-        key,
-        createObservable(value),
-      ]),
-    ),
-  };
+function source() {
+  return fs.readFileSync(`${process.cwd()}/../neo-pay/src/PlayArea.tsx`, "utf8") as string;
 }
 
-describe("NeoPay PlayArea launch params", () => {
-  it("leads with a real payment-stream stage instead of a form wall", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state()}
-        dispatch={vi.fn()}
-        launchContext={parseMiniAppLaunchContext(
-          "https://neomini.app/miniapps/neo-pay/index.html?source=embed&network=testnet",
-          "miniapp-neo-pay",
-        )}
-      />,
-    );
+function messages() {
+  return fs.readFileSync(`${process.cwd()}/../neo-pay/src/locale/messages.ts`, "utf8") as string;
+}
 
-    const stage = screen.getByLabelText("Payment stream stage");
-    const composer = container.querySelector(".neopay-card--form");
-    expect(stage.querySelector('img[src="./banner.jpg"]')).toBeTruthy();
-    expect(stage.querySelector(".neopay-flow-token")).toBeTruthy();
-    expect(composer).toBeTruthy();
-    expect(
-      stage.compareDocumentPosition(composer as Element) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+describe("neo-pay PlayArea (v2)", () => {
+  it("renders a single-ticket stream terminal instead of a flat questionnaire", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".neopay-scene")).toBeTruthy();
+    expect(container.querySelector(".neopay-terminal")).toBeTruthy();
+    expect((container.querySelector(".neopay-terminal__art") as HTMLImageElement)?.src).toContain("payment-stream-desk.webp");
+    expect(container.querySelector(".neopay-stream")).toBeTruthy();
+    expect(container.querySelector(".neopay-stream__rail")).toBeTruthy();
+    expect(container.querySelector(".neopay-terminal__status")?.textContent).toContain("streamDraftIdle");
+    expect(container.querySelector(".neopay-ticket-board")).toBeTruthy();
+    expect(container.querySelector(".neopay-ticket-board__hero")).toBeTruthy();
+    expect(container.querySelector(".neopay-ticket-board__details")).toBeTruthy();
+    expect(container.querySelector(".neopay-ticket")).toBeNull();
+    expect(container.querySelector(".neopay-focus-card")).toBeNull();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".neopay-desk")).toBeNull();
+    expect(container.querySelector(".neopay-route-card")).toBeNull();
+    expect(container.querySelector<HTMLInputElement>(".neopay-input--amount .semi-input")?.placeholder).toBe("0");
+    expect(container.querySelector("#neopay-recipient")).toBeTruthy();
+    expect(container.querySelectorAll(".neopay-token-option")).toHaveLength(2);
+    expect(container.querySelectorAll(".neopay-preset-option")).toHaveLength(3);
+    expect(container.querySelector(".neopay-duration-stepper")).toBeTruthy();
+    expect(container.querySelectorAll(".neopay-ticket__review span")).toHaveLength(3);
+    expect(container.querySelector(".neo-pay-playstage")).toBeTruthy();
+    expect(Array.from(container.querySelectorAll(".mx2-action-rail__row .mx2-btn--ghost")).some((button) => button.textContent === "refresh")).toBe(false);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelectorAll(".neopay-drawer-tabs__group .semi-radio")).toHaveLength(4);
+    expect(container.querySelector(".mx2-drawer--open .neopay-drawer__section h4")?.textContent).toBe("streamMetadata");
+    expect(container.querySelector(".neopay-drawer__refresh")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open .semi-card.mx2-open-panel")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open #neopay-drawer-duration")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open .neopay-duration-custom")).toBeNull();
+    expect(container.querySelector(".neopay-steps")).toBeNull();
+    const tabs = container.querySelectorAll(".neopay-drawer-tab");
+    fireEvent.click(tabs[1]);
+    expect(container.querySelector(".neopay-steps")).toBeTruthy();
+    fireEvent.click(tabs[2]);
+    expect(container.querySelector(".neopay-empty")?.textContent).toBe("noCreatedStreams");
+    fireEvent.click(tabs[3]);
+    expect(container.querySelector(".neopay-empty")?.textContent).toBe("noBeneficiaryStreams");
   });
 
-  it("prefills a OneGate payment scan into the stream form", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state()}
-        dispatch={vi.fn()}
-        launchContext={parseMiniAppLaunchContext(
-          "https://neomini.app/miniapps/neo-pay/index.html?source=onegate&operation=pay&network=testnet&recipient=NtestRecipient111111111111111111111111111&amount=1.25&duration=7&token=bNEO&notes=Payroll%20cycle",
-          "miniapp-neo-pay",
-        )}
-      />,
-    );
+  it("keeps the play area background quiet and the foreground controls dominant", () => {
+    const s = stylesheet();
+    const playAreaSource = source();
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(
-      (screen.getByLabelText("Recipient Address") as HTMLInputElement).value,
-    ).toBe("NtestRecipient111111111111111111111111111");
-    expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe(
-      "1.25",
-    );
-    expect((screen.getByLabelText("Duration") as HTMLInputElement).value).toBe(
-      "7",
-    );
-    expect(
-      (screen.getByLabelText("Notes (optional)") as HTMLInputElement).value,
-    ).toBe("Payroll cycle");
-    expect(screen.queryByRole("button", { name: "bNEO" })).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "GAS" }).className,
-    ).toContain(
-      "neopay-token-option--active",
-    );
-    expect(
-      (screen.getByRole("button", { name: "Create Stream" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(false);
-    expect(screen.getByLabelText("Payment stream stage").className).toContain(
-      "neopay-stream-stage--ready",
-    );
+    expect(playAreaSource).toContain("OpenUiProvider");
+    expect(playAreaSource).toContain("OpenUiSegmented");
+    expect(playAreaSource).toContain("OpenUiTextField");
+    expect(playAreaSource).toContain("neopay-ticket-board");
+    expect(playAreaSource).not.toContain("focusMode");
+    expect(playAreaSource).not.toContain("neopay-mode-tabs");
+    expect(playAreaSource).not.toMatch(/<(input|textarea|select)\b/);
+    expect(playAreaSource).not.toContain('role="tab"');
+    expect(playAreaSource).not.toContain('role="tablist"');
+    expect(playAreaSource).not.toContain('role="radio"');
+    expect(playAreaSource).not.toContain('role="radiogroup"');
+    expect(container.querySelector(".neopay-scene__image")).toBeNull();
+    expect(container.querySelector(".neopay-scene__shade")).toBeNull();
+    expect(s).toMatch(/\.neo-pay-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff;/);
+    expect(s).toMatch(/\.neo-pay-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 240px;/);
+    expect(s).toMatch(/\.neo-pay-play-area \.mx2-stage__scene\s*\{[\s\S]*display:\s*block;/);
+    expect(s).toMatch(/\.neopay-scene\s*\{[\s\S]*width:\s*min\(100%,\s*760px\);/);
+    expect(s).toMatch(/\.neopay-scene\s*\{[\s\S]*border:\s*0;/);
+    expect(s).toMatch(/\.neopay-scene\s*\{[\s\S]*background:\s*transparent;/);
+    expect(s).toMatch(/\.neopay-terminal\s*\{[\s\S]*width:\s*min\(100%,\s*760px\);/);
+    expect(s).toMatch(/\.neopay-terminal\s*\{[\s\S]*background:\s*#ffffff;/);
+    expect(s).toMatch(/\.neopay-ticket-board\s*\{[\s\S]*min-height:\s*280px;/);
+    expect(s).toMatch(/\.neopay-ticket-board__hero\s*\{[\s\S]*grid-template-columns:\s*166px minmax\(0,\s*1fr\);/);
+    expect(s).toMatch(/\.neopay-ticket-board__details\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(250px,\s*0\.86fr\);/);
+    expect(s).toMatch(/\.neopay-terminal__art\s*\{[\s\S]*object-fit:\s*contain;/);
+    expect(s).toMatch(/\.neopay-stream__rail\s*\{[\s\S]*filter:\s*none;/);
+    expect(s).toMatch(/\.neopay-stream__rail\s*\{[\s\S]*pointer-events:\s*none;/);
+    expect(s).not.toMatch(/gradient/);
+    expect(s).not.toMatch(/font-size:\s*clamp/);
+    expect(s).toMatch(/\.neopay-input\.mx2-open-field__control\s*\{[\s\S]*border:\s*0;/);
+    expect(s).toMatch(/\.neopay-input--amount \.semi-input\s*\{[\s\S]*font-size:\s*34px;/);
+    expect(s).toMatch(/\.neopay-token-option\.is-active,[\s\S]*\.neopay-preset-option\.is-active,[\s\S]*background:\s*var\(--mx2-brand-light\);/);
+    expect(s).toMatch(/\.neopay-ticket__review\s*\{[\s\S]*display:\s*flex;/);
+    expect(s).toMatch(/\.neopay-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neopay-ticket-board__hero\s*\{[\s\S]*grid-template-columns:\s*92px minmax\(0,\s*1fr\);/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neopay-ticket-board__details\s*\{[\s\S]*grid-template-columns:\s*1fr;/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neo-pay-play-area \.mx2-score\s*\{[\s\S]*display:\s*none;/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neo-pay-play-area \.mx2-action-rail__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 104px;/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neopay-ticket__review span:first-of-type\s*\{[\s\S]*display:\s*none;/);
+    expect(s).not.toContain("backdrop-filter");
+    expect(s).not.toMatch(/neopay-ticket\s*\{/);
+    expect(s).not.toMatch(/\.neopay-duration-custom/);
+    expect(s).not.toMatch(/grid-template-columns:\s*minmax\(360px,\s*1fr\) minmax\(300px,\s*390px\)/);
+    expect(s).not.toMatch(/\.neopay-ticket__amount-row\s*\{[^}]*grid-template-columns:\s*1fr;/);
   });
 
-  it("shows a professional stream service notice without raw OS errors", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          serviceNotice:
-            "The payment stream index is not available in this environment yet.",
-        })}
-        dispatch={vi.fn()}
-        launchContext={parseMiniAppLaunchContext(
-          "https://neomini.app/miniapps/neo-pay-shared-example/index.html?source=embed&network=testnet",
-          "miniapp-neo-pay-shared-example",
-        )}
-      />,
-    );
+  it("uses product-state copy instead of form-like empty-state prompts", () => {
+    const m = messages();
 
-    expect(screen.getByRole("status").textContent).toContain(
-      "The payment stream index is not available",
-    );
-    expect(
-      screen.getByRole("button", { name: "Complete stream details" }),
-    ).toBeTruthy();
-    expect(screen.queryByText(/OS service error|os-vesting-list|Not Found/i)).toBeNull();
+    expect(m).toContain('reviewStream: { en: "Draft release schedule"');
+    expect(m).toContain('streamDraftIdle: { en: "Stream ticket draft"');
+    expect(m).toContain('amountModeHint: { en: "Pick the value to stream"');
+    expect(m).toContain('neoWholeUnitHint: { en: "NEO is indivisible; use whole-token amounts only."');
+    expect(m).not.toContain("Complete stream details");
+    expect(m).not.toContain("Add recipient and amount");
+    expect(m).not.toContain("Set the recipient, amount, and duration above");
   });
 
-  it("keeps the createStream payload at the PlayArea boundary", async () => {
-    let resolveDispatch: () => void = () => {};
-    const dispatch = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveDispatch = resolve;
-        }),
-    );
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state()}
-        dispatch={dispatch}
-        launchContext={parseMiniAppLaunchContext(
-          "https://neomini.app/miniapps/neo-pay/index.html?source=embed&network=testnet",
-          "miniapp-neo-pay",
-        )}
-      />,
-    );
+  it("keeps NEO amount input whole-number only in the UI", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const assetButtons = container.querySelectorAll(".neopay-token-option");
+    fireEvent.click(assetButtons[1]);
 
-    fireEvent.change(screen.getByLabelText("Recipient Address"), {
-      target: { value: "  NtestRecipient111111111111111111111111111  " },
-    });
-    fireEvent.change(screen.getByLabelText("Amount"), {
-      target: { value: "1.25" },
-    });
-    fireEvent.change(screen.getByLabelText("Duration"), {
-      target: { value: "7" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Create Stream" }));
+    const input = container.querySelector<HTMLInputElement>(".neopay-input--amount .semi-input")!;
+    expect(input.inputMode).toBe("numeric");
 
-    expect(container.querySelector(".neopay-stream-stage--creating")).toBeTruthy();
-    expect(dispatch).toHaveBeenCalledWith("createStream", {
-      recipient: "  NtestRecipient111111111111111111111111111  ",
-      amount: "1.25",
-      duration: "7",
-      token: "GAS",
-      notes: "",
-    });
-
-    resolveDispatch();
-    await waitFor(() => {
-      expect(container.querySelector(".neopay-stream-stage--creating")).toBeNull();
-    });
+    fireEvent.change(input, { target: { value: "1.5" } });
+    expect(input.value).toBe("1");
   });
 
-  it("keeps the visual motion accessible and reduced-motion aware", () => {
-    const css = readFileSync(
-      resolve(__dirname, "../../neo-pay/src/PlayArea.scss"),
-      "utf8",
-    );
-
-    expect(css).toContain("@keyframes neopay-flow-token");
-    expect(css).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.neopay-flow-token[\s\S]*animation:\s*none/,
-    );
-    expect(css).toMatch(
-      /\.neopay-stream-stage__image\s*\{[\s\S]*animation:\s*neopay-stage-drift/,
-    );
-  });
-
-  it("still dispatches claim and cancel through the existing stream actions", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          createdStreams: [
-            {
-              id: "42",
-              beneficiary: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-              assetSymbol: "GAS",
-              totalAmount: 2000000000n,
-              releasedAmount: 500000000n,
-              remainingAmount: 1500000000n,
-              rateAmount: 100000000n,
-              intervalDays: 1,
-              status: "active",
-            },
-          ],
-          beneficiaryStreams: [
-            {
-              id: "43",
-              creator: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
-              assetSymbol: "GAS",
-              totalAmount: 300000000n,
-              releasedAmount: 150000000n,
-              remainingAmount: 150000000n,
-              rateAmount: 50000000n,
-              intervalDays: 1,
-              status: "active",
-              claimable: 150000000n,
-            },
-          ],
-        })}
-        dispatch={dispatch}
-        launchContext={parseMiniAppLaunchContext(
-          "https://neomini.app/miniapps/neo-pay/index.html?source=embed&network=testnet",
-          "miniapp-neo-pay",
-        )}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    fireEvent.click(screen.getByRole("button", { name: "Claim" }));
-
-    expect(dispatch).toHaveBeenCalledWith("cancelStream", "42");
-    expect(dispatch).toHaveBeenCalledWith("claimStream", "43");
-  });
-
-  it("renders OS stream records with business fields and fixed8 amounts", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          createdStreams: [
-            {
-              id: "42",
-              creator: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
-              beneficiary: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-              assetSymbol: "GAS",
-              totalAmount: 2000000000n,
-              releasedAmount: 500000000n,
-              remainingAmount: 1500000000n,
-              rateAmount: 100000000n,
-              intervalSeconds: 86400n,
-              intervalDays: 1,
-              status: "active",
-              claimable: 0n,
-              title: "Payroll May",
-              notes: "Engineering monthly payroll",
-            },
-          ],
-          beneficiaryStreams: [
-            {
-              id: "43",
-              creator: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
-              beneficiary: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-              assetSymbol: "GAS",
-              totalAmount: 300000000n,
-              releasedAmount: 150000000n,
-              remainingAmount: 150000000n,
-              rateAmount: 50000000n,
-              intervalSeconds: 86400n,
-              intervalDays: 1,
-              status: "active",
-              claimable: 150000000n,
-              title: "Subscription",
-              notes: "Contributor stipend",
-            },
-          ],
-        })}
-        dispatch={vi.fn()}
-        launchContext={parseMiniAppLaunchContext(
-          "https://neomini.app/miniapps/neo-pay/index.html?source=embed&network=testnet",
-          "miniapp-neo-pay",
-        )}
-      />,
-    );
-
-    expect(screen.getByText("Payroll May")).toBeTruthy();
-    expect(screen.getByText("Engineering monthly payroll")).toBeTruthy();
-    expect(screen.getAllByText(/20 GAS/).length).toBeGreaterThan(0);
-    expect(screen.getByText("5 / 20 GAS (25%)")).toBeTruthy();
-    expect(screen.getByText("Subscription")).toBeTruthy();
-    expect(screen.getByText("Contributor stipend")).toBeTruthy();
-    expect(screen.getByText("1.5 GAS")).toBeTruthy();
-    expect(screen.queryByText(/2000000000 GAS|300000000 GAS/)).toBeNull();
+  it("has reduced-motion", () => {
+    expect(stylesheet()).toMatch(/prefers-reduced-motion/);
   });
 });

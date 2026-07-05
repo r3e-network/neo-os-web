@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const SAFE_TAROT_CARD_FILE = /^(?:index\.json|back\.svg|\d{2}-[a-z0-9-]+\.svg)$/;
+const SAFE_TAROT_CARD_FILE = /^(?:index\.json|back\.webp|\d{2}-[a-z0-9-]+\.webp)$/;
 
 function getFileName(value: unknown): string {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -16,7 +16,7 @@ function getCardsDir(): string {
 
 function getContentType(fileName: string): string {
   if (fileName.endsWith(".json")) return "application/json; charset=utf-8";
-  if (fileName.endsWith(".svg")) return "image/svg+xml; charset=utf-8";
+  if (fileName.endsWith(".webp")) return "image/webp";
   return "application/octet-stream";
 }
 

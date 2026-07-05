@@ -34,8 +34,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/gasbox/index.html",
-    "icon": "/miniapps/gasbox/logo.jpg",
-    "banner": "/miniapps/gasbox/banner.jpg"
+    "icon": "/miniapps/gasbox/logo.webp",
+    "banner": "/miniapps/gasbox/banner.webp"
   },
   "permissions": [
     "invoke:primary",

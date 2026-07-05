@@ -1,1503 +1,1012 @@
-@use "@shared/styles/tokens.scss" as *;
+/**
+ * Memorial Shrine -- foreground-led memorial garden.
+ *
+ * The garden image, memorial card, and offering dock are the app resources.
+ * Long metadata fields are tucked into the shared drawer.
+ */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-$shrine-green: var(--ns-brand, #16c784);
-$shrine-green-deep: var(--ns-brand-strong, #0a8050);
-$shrine-green-soft: var(--ns-brand-soft, #e4f8f0);
-$shrine-coral: #d97757;
-$shrine-coral-soft: #fff0ea;
-$shrine-ink: var(--ns-ink, #17202b);
-$shrine-muted: var(--ns-text-2, #5b6478);
-$shrine-line: var(--ns-border, rgba(20, 22, 38, 0.08));
-$shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #47786a;
+  --mx2-brand-hover: #3a6154;
+  --mx2-brand-light: #e8f0ec;
+  --mx2-brand-subtle: #c7ddd4;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #6f6a92;
+  --mx2-accent-strong: #4f4a73;
+  --mx2-accent-soft: #efeef7;
+  --mx2-accent-ink: #3a3357;
+}
+
 
 .memorial-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-height: 300px;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 22px;
-  overflow: hidden;
-  color: var(--ns-text, #2a2d3d);
-  background:
-    radial-gradient(circle at 8% 4%, rgba(217, 119, 87, 0.12), transparent 24%),
-    radial-gradient(circle at 92% 18%, rgba(22, 199, 132, 0.13), transparent 26%),
-    linear-gradient(180deg, #f7fbf9 0%, #f4f7fb 100%);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  position: relative;
-}
-
-.memorial-play-area * {
-  box-sizing: border-box;
-  letter-spacing: 0;
-}
-
-.shrine-hero {
-  position: relative;
-  min-height: 360px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.58);
-  border-radius: 24px;
-  background: #10201b;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
-  isolation: isolate;
-}
-
-.shrine-hero__image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  filter: saturate(1.02);
-  transform: scale(1.01);
-}
-
-.shrine-hero__shade {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(8, 18, 18, 0.84) 0%, rgba(11, 26, 25, 0.67) 38%, rgba(15, 23, 42, 0.08) 78%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.24));
-  z-index: 1;
-}
-
-.shrine-hero__content {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  min-height: 360px;
-  max-width: 640px;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 34px;
-  color: #ffffff;
-}
-
-.shrine-hero__eyebrow,
-.section-eyebrow,
-.detail-kicker,
-.tribute-title,
-.studio-preview__label,
-.studio-step {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.shrine-hero__eyebrow {
-  color: #bff4df;
-}
-
-.shrine-hero__title {
-  margin: 0;
-  max-width: 560px;
-  color: #ffffff !important;
-  font-size: 46px;
-  font-weight: 850;
-  line-height: 1.04;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
-}
-
-.shrine-hero__subtitle {
-  max-width: 520px;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-.shrine-hero__signals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  max-width: 560px;
-}
-
-.shrine-hero__signals span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 7px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.13);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 12px;
-  font-weight: 700;
-  backdrop-filter: blur(18px);
-}
-
-.shrine-hero__cta {
-  min-height: 44px;
-  margin-top: 2px;
-  border-radius: 14px;
-}
-
-.memorial-play-area .neo-btn--primary {
-  background: #0a8050;
-  box-shadow: 0 8px 22px rgba(10, 128, 80, 0.24);
-}
-
-.memorial-play-area .neo-btn--primary:hover:not(:disabled) {
-  background: #086a45;
-  box-shadow: 0 10px 28px rgba(10, 128, 80, 0.3);
-}
-
-.memorial-play-area .neo-btn--primary:disabled:not(.neo-btn--loading) {
-  border-color: rgba(10, 128, 80, 0.22);
-  background: $shrine-green-soft;
-  color: var(--ns-brand-deep, #0b5e3e);
-  box-shadow: none;
-}
-
-.memorial-play-area .neo-btn--primary:focus-visible,
-.memorial-play-area button:focus-visible {
-  outline: none;
-  box-shadow: $shrine-focus;
-}
-
-.chain-receipt {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  gap: 4px;
-  max-width: calc(100% - 68px);
-  margin: -72px 34px 24px auto;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
-  color: $shrine-muted;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-  backdrop-filter: blur(18px);
-}
-
-.chain-receipt span {
-  color: $shrine-green-deep;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.chain-receipt strong {
-  overflow: hidden;
-  color: $shrine-ink;
-  font-size: 12px;
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.obituary-banner,
-.memorial-studio,
-.empty-memorials {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: 22px;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-}
-
-.obituary-banner {
-  display: grid;
-  gap: 13px;
-  min-width: 0;
-  padding: 18px 20px;
-}
-
-.banner-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: $shrine-green-deep;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.banner-scroll {
-  display: flex;
-  gap: 10px;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.obituary-item {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 220px;
-  max-width: 300px;
-  min-height: 58px;
-  padding: 12px 14px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: 16px;
-  color: $shrine-muted;
-  background: #f7faf9;
-  cursor: pointer;
-  font-family: inherit;
-  line-height: 1.4;
-  text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.obituary-item:hover {
-  transform: translateY(-1px);
-  border-color: rgba(22, 199, 132, 0.28);
-  background: #ffffff;
-  box-shadow: $shadow-sm;
-}
-
-.obituary-item .name {
-  color: $shrine-ink;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.obituary-item .text {
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  color: $shrine-muted;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.memorial-focus {
-  border-radius: 22px;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
-}
-
-.memorial-focus .neo-card__body {
-  display: grid;
-  gap: 18px;
-  padding: 22px;
-}
-
-.detail-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-}
-
-.detail-portrait {
-  display: inline-flex;
-  width: 68px;
-  height: 68px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid rgba(22, 199, 132, 0.2);
-  border-radius: 20px;
-  background: linear-gradient(135deg, $shrine-green-soft, $shrine-coral-soft);
-  color: $shrine-green-deep;
-}
-
-.detail-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.detail-identity {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
-}
-
-.detail-kicker {
-  color: $shrine-green-deep;
-}
-
-.detail-name {
   display: block;
-  color: $shrine-ink;
-  font-size: 23px;
-  font-weight: 850;
-  line-height: 1.2;
-  word-break: break-word;
 }
 
-.detail-years {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
+.memorial-play-area .mx2-stage__scene {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 12px;
 }
 
-.detail-actions {
-  display: flex;
-  gap: 8px;
-  align-self: start;
+.memorial-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex-basis: clamp(190px, 18vw, 248px);
+  max-width: min(100%, 248px);
 }
 
-.detail-action {
-  min-width: 76px;
-  border-radius: 12px;
+.memorial-play-area .mx2-action-rail__row .mx2-btn--primary:not(:disabled) {
+  background: #9a6a22;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(122, 85, 35, 0.18);
 }
 
-.detail-share-status,
-.detail-bio {
-  margin: 0;
-  line-height: 1.6;
+.memorial-play-area .mx2-action-rail__row .mx2-btn--primary:not(:disabled):hover {
+  background: #83591d;
 }
 
-.detail-share-status {
-  color: $shrine-green-deep;
-  font-size: 12px;
-  font-weight: 700;
-  word-break: break-all;
+.memorial-play-area .mx2-btn--primary:disabled {
+  background: #eadfd1;
+  color: #7a6b5b;
+  opacity: 1;
 }
 
-.detail-bio {
-  color: $shrine-muted;
-  font-size: 14px;
-}
-
-.detail-offerings {
-  display: grid;
-  gap: 9px;
-  padding: 14px;
-  border: 1px solid rgba(22, 199, 132, 0.16);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(228, 248, 240, 0.88), rgba(255, 240, 234, 0.72));
-}
-
-.detail-offerings__title {
-  color: $shrine-green-deep;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.detail-offerings__tallies {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.detail-offering-tally {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.78);
-  font-size: 12px;
-}
-
-.detail-offering-tally__label {
-  color: $shrine-muted;
-  font-weight: 700;
-}
-
-.detail-offering-tally__count {
-  color: $shrine-green-deep;
-  font-weight: 850;
-  font-variant-numeric: tabular-nums;
-}
-
-.tribute-station {
-  display: grid;
-  gap: 14px;
-  padding-top: 18px;
-  border-top: 1px solid $shrine-line;
-}
-
-.tribute-altar {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-  align-items: center;
-  min-width: 0;
-  overflow: hidden;
-  padding: 16px;
-  border: 1px solid rgba(22, 199, 132, 0.16);
-  border-radius: 20px;
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(228, 248, 240, 0.78)),
-    #ffffff;
-}
-
-.tribute-altar::before,
-.tribute-altar::after {
-  position: absolute;
-  pointer-events: none;
-  content: "";
-}
-
-.tribute-altar::before {
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.48)),
-    radial-gradient(circle at 18% 34%, rgba(217, 119, 87, 0.16), transparent 32%);
-}
-
-.tribute-altar::after {
-  inset: auto 12% 14px;
-  height: 2px;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, transparent, rgba(10, 128, 80, 0.54), transparent);
-  box-shadow: 0 0 22px rgba(22, 199, 132, 0.24);
-  animation: shrine-offering-light 3s ease-in-out infinite;
-}
-
-.tribute-altar__garden {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  opacity: 0.2;
-}
-
-.tribute-altar__garden img {
+.shrine-workbench {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transform: scale(1.03);
-  animation: shrine-garden-drift 18s ease-in-out infinite alternate;
-}
-
-.tribute-altar__flame {
-  position: relative;
-  display: inline-flex;
-  width: 56px;
-  height: 56px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(217, 119, 87, 0.24);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  color: $shrine-green-deep;
-  box-shadow: 0 12px 26px rgba(10, 128, 80, 0.12);
-  animation: shrine-offering-breathe 3.4s ease-in-out infinite;
-}
-
-.tribute-altar__flame::after {
-  position: absolute;
-  inset: -6px;
-  border: 1px solid rgba(10, 128, 80, 0.2);
-  border-radius: 22px;
-  content: "";
-  opacity: 0;
-  transform: scale(0.88);
-  animation: shrine-offering-ring 2.4s ease-in-out infinite;
-}
-
-.tribute-altar.is-paying .tribute-altar__flame {
-  animation: shrine-offering-pay 860ms ease-in-out infinite;
-}
-
-.tribute-altar__copy {
+  min-height: 360px;
   display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.tribute-altar__copy small {
-  color: $shrine-green-deep;
-  font-size: 11px;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.tribute-altar__copy strong {
-  overflow: hidden;
-  color: $shrine-ink;
-  font-size: 19px;
-  font-weight: 850;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tribute-altar__copy span {
-  overflow: hidden;
-  color: $shrine-muted;
-  font-size: 12px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tribute-station__head {
-  display: flex;
+  grid-template-columns: minmax(240px, 0.68fr) minmax(340px, 1.32fr);
   gap: 14px;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
-.tribute-station__head div:first-child {
-  display: grid;
-  gap: 4px;
+.shrine-workbench[data-mode="create"] {
+  max-width: 960px;
+  min-height: 374px;
+  grid-template-columns: 1fr;
+  margin: 0 auto;
 }
 
-.tribute-title {
-  color: $shrine-green-deep;
-}
-
-.tribute-station__head p,
-.tribute-disclosure,
-.tribute-mainnet-note {
-  margin: 0;
-  color: $shrine-muted;
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.tribute-message-input .neo-input__textarea {
-  height: 76px;
-  resize: vertical;
-}
-
-.offering-tray {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.offering-option {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 3px 8px;
-  align-items: center;
-  min-height: 62px;
-  padding: 10px 11px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: 16px;
-  background: #ffffff;
-  color: $shrine-ink;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.offering-option:hover,
-.offering-option.is-selected {
-  transform: translateY(-1px);
-  border-color: rgba(10, 128, 80, 0.34);
-  background: #f6fffb;
-  box-shadow: 0 8px 18px rgba(10, 128, 80, 0.1);
-}
-
-.offering-option.is-selected .offering-option__icon {
-  animation: shrine-offering-select 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.offering-option__icon {
-  display: inline-flex;
-  grid-row: 1 / span 2;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 11px;
-  background: $shrine-green-soft;
-  color: $shrine-green-deep;
-}
-
-.offering-option__label {
-  overflow: hidden;
-  font-size: 13px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.offering-option__cost {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-}
-
-.offering-cost-card {
-  display: grid;
-  min-width: 144px;
-  gap: 4px;
-  padding: 11px 13px;
-  border: 1px solid rgba(217, 119, 87, 0.24);
-  border-radius: 16px;
-  background: $shrine-coral-soft;
-}
-
-.offering-cost-card span {
-  color: #9a4d32;
-  font-size: 10px;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.offering-cost-card strong {
-  color: $shrine-ink;
-  font-size: 17px;
-  font-weight: 850;
-  font-variant-numeric: tabular-nums;
-}
-
-.tribute-mainnet-note {
-  padding: 11px 12px;
-  border: 1px solid rgba(217, 119, 87, 0.24);
-  border-radius: 14px;
-  background: $shrine-coral-soft;
-}
-
-.tribute-submit {
-  justify-self: start;
-  min-width: 156px;
-}
-
-.memorial-studio {
-  display: grid;
-  grid-template-columns: minmax(0, 1.22fr) minmax(260px, 0.78fr);
-  grid-template-areas: "form preview";
-  gap: 18px;
-  padding: 18px;
-}
-
-.studio-preview {
-  grid-area: preview;
-  display: flex;
-  min-height: 100%;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: 20px;
-  background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.92), rgba(255, 240, 234, 0.78)),
-    #ffffff;
-  color: $shrine-ink;
-}
-
-.studio-preview__scene {
-  position: relative;
-  isolation: isolate;
-  min-height: 180px;
-  overflow: hidden;
-  border: 1px solid rgba(10, 128, 80, 0.2);
-  border-radius: 22px;
-  background: $shrine-green-soft;
-}
-
-.studio-preview__garden {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  filter: saturate(1.04) brightness(1.05);
-  transform: scale(1.02);
-  animation: shrine-garden-drift 20s ease-in-out infinite alternate;
-}
-
-.studio-preview__scene::before,
-.studio-preview__scene::after {
-  position: absolute;
-  pointer-events: none;
-  content: "";
-}
-
-.studio-preview__scene::before {
-  inset: 0;
-  z-index: -1;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.88) 72%),
-    radial-gradient(circle at 74% 20%, rgba(255, 240, 234, 0.72), transparent 34%);
-}
-
-.studio-preview__scene::after {
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  height: 2px;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, transparent, rgba(10, 128, 80, 0.58), transparent);
-  box-shadow: 0 0 22px rgba(22, 199, 132, 0.24);
-  animation: shrine-offering-light 3.8s ease-in-out infinite;
-}
-
-.studio-preview__media {
-  position: absolute;
-  left: 18px;
-  bottom: 22px;
-  display: inline-flex;
-  width: 76px;
-  height: 76px;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid rgba(10, 128, 80, 0.2);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.82);
-  color: $shrine-green-deep;
-  box-shadow: 0 16px 28px rgba(10, 128, 80, 0.14);
-  animation: shrine-memorial-card-breathe 4.2s ease-in-out infinite;
-}
-
-.studio-preview__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.studio-preview__light {
-  position: absolute;
-  right: 18px;
-  bottom: 24px;
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(217, 119, 87, 0.22);
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.82);
-  color: $shrine-coral;
-  box-shadow: 0 12px 22px rgba(217, 119, 87, 0.14);
-  animation: shrine-candle-flicker 2.6s ease-in-out infinite;
-}
-
-.studio-preview__label {
-  margin-top: 4px;
-  color: $shrine-green-deep;
-}
-
-.studio-preview strong {
-  color: $shrine-ink;
-  font-size: 25px;
-  font-weight: 850;
-  line-height: 1.15;
-}
-
-.studio-preview__years,
-.studio-preview__relation {
-  color: $shrine-muted;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.studio-preview p,
-.studio-preview blockquote {
-  margin: 0;
-  color: $shrine-muted;
-  font-size: 13px;
-  line-height: 1.58;
-}
-
-.studio-preview blockquote {
-  padding: 11px 12px;
-  border-left: 3px solid $shrine-coral;
-  border-radius: 0 14px 14px 0;
-  background: rgba(255, 240, 234, 0.76);
-}
-
-.studio-ritual-track {
-  display: grid;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid rgba(22, 199, 132, 0.14);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.68);
-}
-
-.studio-ritual-track__step {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 2px 8px;
-  align-items: center;
-  min-width: 0;
-  padding: 9px 10px;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.76);
-  color: var(--ns-text-muted, #8a92a6);
-  transition:
-    border-color 180ms ease,
-    background 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
-}
-
-.studio-ritual-track__step svg {
-  grid-row: 1 / span 2;
-  color: currentColor;
-}
-
-.studio-ritual-track__step strong,
-.studio-ritual-track__step small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.studio-ritual-track__step strong {
-  color: $shrine-ink;
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.studio-ritual-track__step small {
-  color: inherit;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.studio-ritual-track__step.is-active {
-  border-color: rgba(10, 128, 80, 0.24);
-  background: rgba(228, 248, 240, 0.86);
-  color: $shrine-green-deep;
-  transform: translateY(-1px);
-}
-
-.memorial-studio--ready .studio-ritual-track__step.is-active,
-.memorial-studio--publishing .studio-ritual-track__step.is-active {
-  animation: shrine-track-ready 2.6s ease-in-out infinite;
-}
-
-.studio-ritual-track__step.is-complete svg {
-  animation: shrine-complete-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.create-form-panel {
-  grid-area: form;
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-  padding: 2px;
-}
-
-.studio-mobile-publish {
+.shrine-workbench[data-mode="create"] .shrine-garden-panel {
   display: none;
 }
 
-.create-form__head {
-  display: grid;
-  gap: 4px;
+.shrine-workbench[data-mode="create"] .shrine-workbench__focus {
+  padding: 0;
+  background: #fffaf3;
 }
 
-.create-form__head span {
-  color: $shrine-ink;
-  font-size: 21px;
-  font-weight: 850;
-}
-
-.create-form__head p {
-  margin: 0;
-  color: $shrine-muted;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.studio-step {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: $shrine-green-deep;
-}
-
-.studio-step__index {
-  display: inline-flex;
-  min-width: 30px;
-  height: 24px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background: $shrine-green-soft;
-  color: $shrine-green-deep;
-  font-size: 10px;
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
-}
-
-.field-grid,
-.story-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.field-grid .neo-input:nth-child(3) {
-  grid-column: 1 / -1;
-}
-
-.year-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.story-grid .neo-input__textarea {
-  min-height: 112px;
-}
-
-.field-error {
-  margin: -4px 0 0;
-  color: var(--ns-danger, #d4202a);
-  font-size: 12px;
-  font-weight: 750;
-  line-height: 1.4;
-}
-
-.studio-publish {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 4px;
-}
-
-.studio-step--publish {
-  color: #9a4d32;
-}
-
-.studio-step--publish .studio-step__index {
-  background: $shrine-coral-soft;
-  color: #9a4d32;
-}
-
-.memorials-section {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-
-.section-heading {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.section-eyebrow {
-  color: $shrine-green-deep;
-}
-
-.section-heading > span:last-child {
-  color: $shrine-muted;
-  font-size: 12px;
-  line-height: 1.4;
-  text-align: right;
-}
-
-.memorials-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
-  gap: 12px;
-}
-
-.tombstone-card {
-  display: flex;
-  min-height: 208px;
-  flex-direction: column;
-  align-items: center;
-  gap: 11px;
-  padding: 20px 15px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
-  color: inherit;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: center;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.tombstone-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(22, 199, 132, 0.28);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
-}
-
-.tombstone-icon {
-  display: inline-flex;
-  width: 50px;
-  height: 50px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
+.shrine-garden-panel,
+.shrine-workbench__focus {
+  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.07);
+  border-radius: var(--mx2-r-lg);
+  background: #ffffff;
   overflow: hidden;
-  border-radius: 16px;
-  background: linear-gradient(135deg, $shrine-green-soft, $shrine-coral-soft);
-  color: $shrine-green-deep;
 }
 
-.tombstone-photo {
+.shrine-garden-panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(150px, 1fr) auto auto;
+  gap: 10px;
+  min-height: 330px;
+  align-items: stretch;
+  padding: 12px;
+}
+
+.shrine-garden-panel > img {
+  position: relative;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  min-height: 180px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 16px;
+  background: #ffffff;
+  opacity: 1;
+  filter: none;
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.06);
 }
 
-.tombstone-body {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
+.shrine-garden-panel::after {
+  content: none;
+}
+
+.shrine-garden-panel__caption {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0;
+  display: grid;
   gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: var(--mx2-r);
+  background: #ffffff;
+  box-shadow: none;
 }
 
-.tombstone-body .name {
-  color: $shrine-ink;
-  font-size: 17px;
-  font-weight: 850;
-  line-height: 1.3;
-  word-break: break-word;
-}
-
-.tombstone-body .years {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.tombstone-relation {
+.shrine-garden-panel__caption span {
   display: inline-flex;
   align-items: center;
-  max-width: 100%;
-  padding: 4px 11px;
-  overflow: hidden;
-  border-radius: 9999px;
-  background: $shrine-green-soft;
-  color: $shrine-green-deep;
-  font-family: inherit;
+  gap: 6px;
+  color: var(--mx2-accent-strong);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.shrine-garden-panel__caption strong {
+  color: var(--mx2-ink);
+  font-size: 26px;
+  line-height: 1.05;
+}
+
+.shrine-garden-panel__caption small {
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.shrine-memorial-rail {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 8px;
+}
+
+.shrine-memorial-stone {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 18px;
+  padding: 10px 11px;
+  background: #fffdf8;
+  color: var(--mx2-ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    background var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.shrine-memorial-stone:hover {
+  transform: translateY(-1px);
+  border-color: rgba(154, 106, 34, 0.28);
+  box-shadow: 0 8px 18px rgba(31, 41, 55, 0.05);
+}
+
+.shrine-memorial-stone--active {
+  border-color: rgba(154, 106, 34, 0.42);
+  background: #fff7e8;
+  box-shadow: inset 3px 0 0 rgba(154, 106, 34, 0.38);
+}
+
+.shrine-memorial-stone__name,
+.shrine-memorial-stone__years,
+.shrine-memorial-stone__meta,
+.shrine-memorial-stone__offerings {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tombstone-offerings {
+.shrine-memorial-stone__name {
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.shrine-memorial-stone__years,
+.shrine-memorial-stone__meta {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.shrine-memorial-stone__offerings {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 2px;
+  border-radius: var(--mx2-r-pill);
+  padding: 4px 7px;
+  background: #ffffff;
+  color: #9a6a22;
+  font-size: 10px;
+  font-weight: 680;
+}
+
+.shrine-workbench__focus {
+  display: grid;
+  place-items: stretch;
+  padding: 14px;
+}
+
+.shrine-create-card,
+.shrine-tribute-card {
+  display: grid;
+  gap: 14px;
+  align-content: center;
+}
+
+.shrine-create-card {
+  grid-template-columns: minmax(250px, 0.82fr) minmax(360px, 1.18fr);
+  grid-template-areas: "media copy";
+  align-items: stretch;
+  gap: 18px;
+  min-height: 372px;
+  padding: 18px;
+  border: 1px solid rgba(161, 98, 7, 0.13);
+  border-radius: var(--mx2-r-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 249, 238, 0.9)),
+    #fffaf3;
+}
+
+.shrine-create-card__media,
+.shrine-tribute-card__portrait {
+  position: relative;
+  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.07);
+  border-radius: 20px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(31, 41, 55, 0.055);
+}
+
+.shrine-create-card__media {
+  grid-area: media;
+  min-height: 314px;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.shrine-create-card[data-ready="true"] .shrine-create-card__media {
+  border-color: rgba(161, 98, 7, 0.22);
+  box-shadow: 0 12px 28px rgba(92, 64, 28, 0.08);
+}
+
+.shrine-create-card__media img,
+.shrine-tribute-card__portrait img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  background: #ffffff;
+  opacity: 1;
+  filter: none;
+}
+
+.shrine-create-card__media img {
+  max-height: 292px;
+  border-radius: 16px;
+}
+
+.shrine-create-card__media-label {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(161, 98, 7, 0.16);
+  border-radius: var(--mx2-r-pill);
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--mx2-accent-strong);
+  font-size: 11px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.shrine-create-card__copy {
+  grid-area: copy;
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  padding: 8px 2px;
+}
+
+.shrine-inscription-panel {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(161, 98, 7, 0.14);
+  border-radius: 22px;
+  background: #fffdf8;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.shrine-inscription-panel::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  pointer-events: none;
+  border: 1px solid rgba(161, 98, 7, 0.09);
+  border-radius: 16px;
+}
+
+.shrine-create-card__copy span,
+.shrine-tribute-card__body span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mx2-accent-strong);
+  font-size: 11px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.shrine-create-card__copy strong,
+.shrine-tribute-card__body strong {
+  color: var(--mx2-ink);
+  font-size: 32px;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.shrine-create-card__copy small,
+.shrine-tribute-card__body small {
+  color: var(--mx2-text-muted);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.shrine-inscription-panel > strong {
+  max-width: 100%;
+  padding-right: 8px;
+}
+
+.shrine-create-card__copy p,
+.shrine-tribute-card__body p {
+  margin: 0;
+  color: var(--mx2-text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.shrine-name-plaque {
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 8px 0 0;
+  border-top: 1px solid rgba(161, 98, 7, 0.12);
+}
+
+.shrine-name-plaque span {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.shrine-name-plaque input {
+  width: 100%;
+  color: var(--mx2-ink);
+  font: inherit;
+  min-height: 38px;
+  border-width: 0 0 2px;
+  border-color: rgba(161, 98, 7, 0.24);
+  border-radius: 0;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 620;
+  padding: 6px 0 7px;
+}
+
+.shrine-memory-presets {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.shrine-memory-preset {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: var(--mx2-r-pill);
+  padding: 8px 12px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 620;
+  cursor: pointer;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    background var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.shrine-memory-preset svg {
+  color: var(--mx2-accent-strong);
+}
+
+.shrine-memory-preset:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(161, 98, 7, 0.24);
+}
+
+.shrine-memory-preset--active {
+  border-color: rgba(161, 98, 7, 0.36);
+  background: #fff7e8;
+}
+
+.shrine-memory-preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.shrine-name-plaque input:focus {
+  outline: none;
+  border-color: #9a6a22;
+  box-shadow: none;
+}
+
+.shrine-tribute-card {
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  grid-template-areas:
+    "portrait body"
+    "dock dock";
+}
+
+.shrine-tribute-card__portrait {
+  grid-area: portrait;
+  aspect-ratio: 1;
+}
+
+.shrine-tribute-card__body {
+  grid-area: body;
+  min-width: 0;
+  display: grid;
+  align-content: center;
   gap: 6px;
-  margin-top: auto;
 }
 
-.tombstone-offering-tally {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  background: rgba(228, 248, 240, 0.86);
-  color: $shrine-green-deep;
+.shrine-offering-dock {
+  grid-area: dock;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shrine-offering {
+  min-width: 0;
+  min-height: 78px;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  justify-items: center;
+  gap: 4px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.shrine-offering:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(71, 85, 105, 0.22);
+}
+
+.shrine-offering--active {
+  border-color: rgba(161, 98, 7, 0.42);
+  box-shadow: inset 0 -3px 0 rgba(161, 98, 7, 0.24), 0 8px 18px rgba(31, 41, 55, 0.055);
+}
+
+.shrine-offering:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.shrine-offering__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-accent-strong);
+}
+
+.shrine-offering__label {
+  color: var(--mx2-ink);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.shrine-offering__cost {
+  color: var(--mx2-text-muted);
   font-size: 10px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+  font-weight: 620;
 }
 
-.empty-memorials {
-  display: flex;
-  min-height: 220px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 40px 20px;
-  text-align: center;
-  color: $shrine-muted;
+.shrine-tribute-card[data-state="paying"] .shrine-tribute-card__portrait {
+  animation: shrine-offering-focus 1.1s var(--mx2-ease-settle) infinite alternate;
 }
 
-.empty-memorials__badge {
-  display: inline-flex;
-  width: 58px;
-  height: 58px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 18px;
-  background: linear-gradient(135deg, $shrine-green-soft, $shrine-coral-soft);
-  color: $shrine-green-deep;
+.shrine-drawer-shell {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
 }
 
-.empty-memorials p {
-  max-width: 320px;
+.shrine-drawer-panel {
+  min-width: 0;
+  grid-column: span 4;
+}
+
+.shrine-drawer-panel.mx2-open-panel.semi-card {
+  border-color: rgba(31, 41, 55, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 18px rgba(31, 41, 55, 0.04);
+}
+
+.shrine-drawer-panel.mx2-open-panel > .semi-card-header {
+  background: transparent;
+}
+
+.shrine-drawer-panel.mx2-open-panel > .semi-card-body {
+  gap: 12px;
+}
+
+.shrine-drawer-panel--studio,
+.shrine-drawer-panel--tribute {
+  grid-column: 1 / -1;
+}
+
+.shrine-drawer-panel--studio.mx2-open-panel.semi-card,
+.shrine-drawer-panel--tribute.mx2-open-panel.semi-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
+}
+
+.shrine-drawer-panel .mx2-open-panel__icon {
+  background: #fff7e8;
+  color: #9a6a22;
+}
+
+.shrine-drawer-panel .mx2-open-panel__copy span {
+  white-space: normal;
+}
+
+.shrine-studio-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shrine-drawer-field {
+  min-width: 0;
+}
+
+.shrine-drawer-field .mx2-open-field__label {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.shrine-drawer-field .mx2-open-field__control {
+  min-height: 40px;
+  border-color: rgba(31, 41, 55, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.shrine-drawer-field .mx2-open-field__control:focus {
+  border-color: rgba(154, 106, 34, 0.42);
+  box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.1);
+}
+
+.shrine-drawer-field--wide {
+  grid-column: 1 / -1;
+}
+
+.shrine-studio-grid .shrine-drawer-field--wide {
+  grid-column: span 2;
+}
+
+.shrine-drawer-field.mx2-open-field--textarea .mx2-open-field__control--textarea {
+  min-height: 72px;
+  max-height: 124px;
+  line-height: 1.34;
+}
+
+.shrine-disclosure {
   margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(161, 98, 7, 0.16);
+  border-radius: var(--mx2-r);
+  background: rgba(255, 253, 246, 0.9);
+  color: var(--mx2-text-2);
   font-size: 13px;
   line-height: 1.5;
 }
 
-@keyframes shrine-garden-drift {
+.shrine-drawer-list {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shrine-drawer-list__item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 15px;
+  padding: 8px 9px;
+  background: var(--mx2-surface-2);
+}
+
+.shrine-drawer-list__face,
+.shrine-drawer-list__meta,
+.shrine-drawer-list__amount {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shrine-drawer-list__face {
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.shrine-drawer-list__meta {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.shrine-drawer-list__amount {
+  border-radius: var(--mx2-r-pill);
+  padding: 5px 8px;
+  background: #fff7e8;
+  color: #9a6a22;
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.shrine-drawer-empty {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.45;
+}
+
+.shrine-memorial-list .mx2-btn {
+  width: 100%;
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 680;
+  box-shadow: none;
+}
+
+@keyframes shrine-offering-focus {
   from {
-    transform: scale(1.02) translate3d(0, 0, 0);
+    transform: translateY(0);
   }
-
   to {
-    transform: scale(1.07) translate3d(1.2%, -1.2%, 0);
+    transform: translateY(-4px);
   }
 }
 
-@keyframes shrine-offering-light {
-  0%,
-  100% {
-    opacity: 0.38;
-    transform: scaleX(0.5);
-  }
-
-  50% {
-    opacity: 0.9;
-    transform: scaleX(1);
-  }
-}
-
-@keyframes shrine-offering-breathe {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-@keyframes shrine-offering-ring {
-  0% {
-    opacity: 0.46;
-    transform: scale(0.88);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.18);
-  }
-}
-
-@keyframes shrine-offering-pay {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-3px) scale(1.05);
-  }
-}
-
-@keyframes shrine-offering-select {
-  0% {
-    transform: scale(0.86) rotate(-8deg);
-  }
-
-  70% {
-    transform: scale(1.1) rotate(4deg);
-  }
-
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@keyframes shrine-memorial-card-breathe {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-@keyframes shrine-candle-flicker {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-    box-shadow: 0 12px 22px rgba(217, 119, 87, 0.14);
-  }
-
-  50% {
-    transform: translateY(-2px) rotate(-2deg);
-    box-shadow: 0 16px 26px rgba(217, 119, 87, 0.2);
-  }
-}
-
-@keyframes shrine-track-ready {
-  0%,
-  100% {
-    box-shadow: none;
-  }
-
-  50% {
-    box-shadow: 0 0 0 4px rgba(10, 128, 80, 0.08);
-  }
-}
-
-@keyframes shrine-complete-pop {
-  0% {
-    transform: scale(0.7) rotate(-10deg);
-  }
-
-  72% {
-    transform: scale(1.12) rotate(4deg);
-  }
-
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-}
-
-@media (max-width: 780px) {
-  .detail-header {
+@media (max-width: 900px) {
+  .shrine-workbench {
     grid-template-columns: 1fr;
   }
 
-  .memorial-studio {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "form"
-      "preview";
-  }
-
-  .detail-actions,
-  .studio-publish {
-    justify-content: flex-start;
-  }
-
-  .offering-tray,
-  .field-grid,
-  .story-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .field-grid .neo-input:nth-child(3) {
-    grid-column: auto;
-  }
-}
-
-@media (max-width: 520px) {
-  .memorial-play-area {
-    gap: 14px;
-    padding: 14px 12px;
-  }
-
-  .shrine-hero,
-  .shrine-hero__content {
-    min-height: 310px;
-  }
-
-  .shrine-hero__content {
-    gap: 10px;
-    padding: 20px 18px;
-    justify-content: flex-end;
-  }
-
-  .shrine-hero__title {
-    font-size: 31px;
-    line-height: 1.08;
-  }
-
-  .shrine-hero__subtitle {
-    font-size: 13px;
-    line-height: 1.45;
-  }
-
-  .shrine-hero__shade {
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(6, 18, 17, 0.82) 58%, rgba(6, 18, 17, 0.9) 100%);
-  }
-
-  .shrine-hero__signals {
-    width: 100%;
-  }
-
-  .shrine-hero__signals span {
-    flex: 1 1 46%;
-    min-height: 28px;
-    padding: 6px 8px;
-    justify-content: center;
-    font-size: 11px;
-    text-align: center;
-  }
-
-  .shrine-hero__cta,
-  .tribute-submit,
-  .studio-publish .neo-btn {
-    width: 100%;
-  }
-
-  .chain-receipt {
-    max-width: none;
-    margin: -18px 12px 0;
-  }
-
-  .obituary-banner,
-  .memorial-studio,
-  .memorial-focus .neo-card__body {
-    padding: 16px;
-  }
-
-  .memorial-studio {
-    gap: 12px;
-  }
-
-  .create-form-panel {
-    gap: 11px;
-  }
-
-  .create-form__head span {
-    font-size: 18px;
-  }
-
-  .create-form__head p {
-    font-size: 12px;
-    line-height: 1.42;
-  }
-
-  .studio-step {
-    font-size: 10px;
-  }
-
-  .story-grid {
-    gap: 10px;
-  }
-
-  .story-grid .neo-input__textarea {
-    min-height: 82px;
-  }
-
-  .studio-mobile-publish {
-    display: grid;
-    gap: 8px;
-    padding: 12px;
-    border: 1px solid rgba(10, 128, 80, 0.18);
-    border-radius: 16px;
-    background: $shrine-green-soft;
-  }
-
-  .studio-mobile-publish .neo-btn {
-    width: 100%;
-  }
-
-  .studio-mobile-publish span {
-    color: $shrine-green-deep;
-    font-size: 11px;
-    font-weight: 850;
-    text-transform: uppercase;
-  }
-
-  .studio-preview {
-    gap: 8px;
-    padding: 14px;
-  }
-
-  .studio-preview__scene {
-    min-height: 164px;
-  }
-
-  .studio-preview__media {
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-  }
-
-  .studio-preview strong {
-    font-size: 20px;
-  }
-
-  .studio-preview p,
-  .studio-preview blockquote {
-    font-size: 12px;
-    line-height: 1.45;
-  }
-
-  .studio-preview p {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .banner-scroll {
-    flex-direction: column;
-    overflow-x: hidden;
-  }
-
-  .obituary-item {
-    width: 100%;
+  .shrine-workbench[data-mode="create"] {
     max-width: 100%;
-    min-width: 0;
   }
 
-  .obituary-item .text {
-    white-space: normal;
+  .shrine-create-card {
+    grid-template-columns: minmax(190px, 0.78fr) minmax(280px, 1.22fr);
   }
 
-  .tribute-station__head,
-  .section-heading {
-    flex-direction: column;
-    align-items: stretch;
+  .shrine-garden-panel {
+    min-height: 220px;
   }
 
-  .studio-publish {
+  .shrine-memorial-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shrine-drawer-panel {
+    grid-column: span 6;
+  }
+
+  .shrine-drawer-panel--studio,
+  .shrine-drawer-panel--tribute {
+    grid-column: 1 / -1;
+  }
+
+  .shrine-studio-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .memorial-play-area .mx2-stage {
+    padding: 16px 14px 18px;
+  }
+
+  .memorial-play-area .mx2-stage__scene {
+    padding: 10px;
+  }
+
+  .memorial-play-area .mx2-score {
     display: none;
   }
 
-  .offering-cost-card {
-    min-width: 0;
+  .memorial-play-area .mx2-action-rail {
+    margin-top: 8px;
+    padding: 0 14px;
   }
 
-  .year-row {
+  .memorial-play-area .mx2-action-rail__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .memorial-play-area .mx2-action-rail__row .mx2-btn--primary {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: 50px;
+  }
+
+  .memorial-play-area .mx2-action-rail__row .mx2-btn--primary svg {
+    display: none;
+  }
+
+  .memorial-play-area .mx2-action-rail__drawer-toggle {
+    margin-left: 0;
+    min-height: 50px;
+  }
+
+  .shrine-workbench {
+    min-height: 0;
+    gap: 10px;
+  }
+
+  .shrine-workbench[data-mode="create"] {
+    min-height: 0;
+  }
+
+  .shrine-garden-panel {
+    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    min-height: 0;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+  }
+
+  .shrine-garden-panel > img {
+    min-height: 0;
+    height: 96px;
+    border-radius: 14px;
+  }
+
+  .shrine-garden-panel__caption {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .shrine-garden-panel__caption strong {
+    font-size: 20px;
+  }
+
+  .shrine-garden-panel__caption small {
+    font-size: 11px;
+  }
+
+  .shrine-memorial-rail {
+    grid-column: 1 / -1;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(142px, 1fr);
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  .shrine-memorial-stone {
+    min-height: 84px;
+    scroll-snap-align: start;
+  }
+
+  .shrine-create-card,
+  .shrine-tribute-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-areas:
+      "portrait body"
+      "dock dock";
+    align-items: center;
+    gap: 10px;
+  }
+
+  .shrine-create-card {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "media"
+      "copy";
+    min-height: 0;
+    padding: 10px;
   }
 
-  .section-heading > span:last-child {
-    text-align: left;
+  .shrine-tribute-card__portrait {
+    width: 96px;
+    justify-self: center;
+    border-radius: 16px;
+  }
+
+  .shrine-create-card__media {
+    width: 100%;
+    min-height: 156px;
+    justify-self: stretch;
+    padding: 8px;
+    border-radius: 18px;
+  }
+
+  .shrine-create-card__media img {
+    max-height: 140px;
+  }
+
+  .shrine-create-card__media-label {
+    display: none;
+  }
+
+  .shrine-create-card__copy,
+  .shrine-tribute-card__body {
+    gap: 4px;
+  }
+
+  .shrine-create-card__copy {
+    padding: 2px 2px 0;
+  }
+
+  .shrine-create-card__copy strong,
+  .shrine-tribute-card__body strong {
+    font-size: 23px;
+  }
+
+  .shrine-create-card__copy p,
+  .shrine-tribute-card__body p {
+    display: none;
+  }
+
+  .shrine-name-plaque {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    padding: 8px 0 0;
+  }
+
+  .shrine-name-plaque input {
+    min-height: 38px;
+    font-size: 16px;
+  }
+
+  .shrine-offering-dock {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .shrine-memory-presets {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .shrine-memory-preset {
+    min-width: 0;
+    min-height: 52px;
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: center;
+    justify-items: center;
+    gap: 4px;
+    padding: 7px 6px;
+    text-align: center;
+    line-height: 1.08;
+    white-space: normal;
+  }
+
+  .shrine-studio-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shrine-drawer-shell {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .shrine-drawer-panel,
+  .shrine-drawer-panel--studio,
+  .shrine-drawer-panel--tribute {
+    grid-column: 1 / -1;
+  }
+
+  .shrine-drawer-panel.mx2-open-panel.semi-card {
+    border-radius: 18px;
+  }
+
+  .shrine-drawer-panel.mx2-open-panel > .semi-card-header {
+    padding: 0 10px;
+  }
+
+  .shrine-drawer-panel.mx2-open-panel > .semi-card-body {
+    padding: 10px;
+  }
+
+  .shrine-studio-grid .shrine-drawer-field--wide {
+    grid-column: 1 / -1;
+  }
+
+  .shrine-studio-grid .shrine-drawer-field:nth-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+
+  .shrine-drawer-panel .mx2-open-panel__head {
+    gap: 8px;
+  }
+
+  .shrine-drawer-panel .mx2-open-panel__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 13px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .obituary-item,
-  .offering-option,
-  .tombstone-card,
-  .studio-ritual-track__step {
-    transition: none;
-  }
-
-  .obituary-item:hover,
-  .offering-option:hover,
-  .offering-option.is-selected,
-  .studio-ritual-track__step.is-active,
-  .tombstone-card:hover {
-    transform: none;
-  }
-
-  .tribute-altar::after,
-  .tribute-altar__garden img,
-  .tribute-altar__flame,
-  .tribute-altar__flame::after,
-  .tribute-altar.is-paying .tribute-altar__flame,
-  .offering-option.is-selected .offering-option__icon,
-  .studio-preview__garden,
-  .studio-preview__scene::after,
-  .studio-preview__media,
-  .studio-preview__light,
-  .memorial-studio--ready .studio-ritual-track__step.is-active,
-  .memorial-studio--publishing .studio-ritual-track__step.is-active,
-  .studio-ritual-track__step.is-complete svg {
-    animation: none;
+  .shrine-tribute-card[data-state="paying"] .shrine-tribute-card__portrait {
+    animation-duration: 0.001ms !important;
   }
 }

@@ -19,8 +19,8 @@ while IFS= read -r -d '' file; do
   synced=$((synced + 1))
 done < <(
   find "$SRC_ROOT" -mindepth 3 -maxdepth 3 -type f -path "*/public/*" \
-    \( -name "logo.png" -o -name "logo.jpg" -o -name "logo.jpeg" -o -name "logo.svg" \
-       -o -name "banner.png" -o -name "banner.jpg" -o -name "banner.jpeg" -o -name "banner.svg" \) \
+    \( -name "logo.webp" -o -name "logo.avif" -o -name "logo.svg" \
+       -o -name "banner.webp" -o -name "banner.avif" -o -name "banner.svg" \) \
     -print0
 )
 

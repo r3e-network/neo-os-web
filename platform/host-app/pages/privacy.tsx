@@ -23,7 +23,7 @@ export default function PrivacyPage() {
   return (
     <Layout>
       <Head>
-        <title>Privacy Policy | Yiwu</title>
+        <title>Privacy Policy | Neo Miniapps</title>
       </Head>
 
       <PageHero

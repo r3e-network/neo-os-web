@@ -147,11 +147,11 @@
     font-weight: 600;
     color: var(--text-secondary, #6b7280);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
 
     .stats-display--rows & {
       font-weight: 700;
-      letter-spacing: 0.1em;
+      letter-spacing: 0;
       order: -1;
     }
   }

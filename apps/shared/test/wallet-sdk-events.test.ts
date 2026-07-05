@@ -35,6 +35,7 @@ function makeDeps(): WalletSdkComposableDeps {
 type FetchInit = { signal?: AbortSignal } & Record<string, unknown>;
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -107,6 +108,49 @@ describe("useEvents waitForEvent abort handling", () => {
 });
 
 describe("useEvents list pagination over N3Index", () => {
+  it("falls back quietly when an app has no registered contract hash", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    warnSpy.mockClear();
+    const fetchMock = vi.fn(async (url: string) => {
+      expect(url).toContain("/api/activity/events?");
+      expect(url).not.toContain("/indexer/v1/");
+      return {
+        ok: true,
+        json: async () => ({
+          events: [{ event_name: "Solved", tx_hash: "0xplatform" }],
+          total: 1,
+        }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      const events = createEventsComposable({
+        ...makeDeps(),
+        platformApi: "https://platform.example",
+        loadCurrentMiniAppManifest: async () => ({
+          id: APP_ID,
+          contracts: {},
+        }),
+      });
+      const result = await events.list({
+        app_id: APP_ID,
+        event_name: "Solved",
+        limit: 25,
+      });
+
+      expect(result.events).toHaveLength(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(
+        warnSpy.mock.calls.some((call) =>
+          call.some((item) => String(item).includes("missing contract hash")),
+        ),
+      ).toBe(false);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   // The N3Index endpoint returns a bare page array with no overall count.
   // list() must therefore leave `total` undefined so useAllEvents keeps
   // paginating on full pages — synthesizing total = page length made

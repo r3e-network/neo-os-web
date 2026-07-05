@@ -2,7 +2,8 @@
  * useTimeCapsule — Domain logic for the Time Capsule miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppTimeCapsule)
- * via ctx.services.chain. The earlier path routed bury/reveal/fish through the
+ * via the MiniApp framework SDK (ctx.framework). The earlier path routed
+ * bury/reveal/fish through the
  * OS escrow/payment/storage/badge kernel proxies, which never actually held the
  * capsule's GAS or moved the fishing fee. This composable now drives the
  * dedicated contract, a REFUNDABLE TIME-LOCK VAULT (no oracle, no pending
@@ -19,7 +20,7 @@
  *
  * Contract interaction model (verified against MiniAppTimeCapsule.cs / ABI):
  *
- *   READS (chain.read / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw / app.chain.readArray, default app contract script hash):
  *     lastCapsuleId()                          -> Integer (capsules are ids 1..last)
  *     creditOf(owner)                          -> Integer (prepaid deposit credit)
  *     getCapsule(id)                           -> Map{id,owner,contentHash(ByteString),
@@ -28,7 +29,7 @@
  *     ownerCapsuleCount(owner)                 -> Integer
  *     getOwnerCapsules(owner, off, limit)      -> Integer[] (capsule ids)
  *
- *   MUTATIONS (chain.invoke):
+ *   MUTATIONS (app.chain.invoke):
  *     1. DEPOSIT (fund a bury) — a GAS transfer to the contract with the memo
  *        "miniapp-timecapsule:bury" so OnNEP17Payment credits the sender's
  *        prepaid balance:
@@ -71,16 +72,13 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
-import {
-  GAS_DECIMALS_MULTIPLIER,
-  gasToBaseUnits as toBaseUnits,
-} from "@shared/utils/amounts";
+import { GAS_DECIMALS_MULTIPLIER } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { sha256Hex } from "@shared/utils/hash";
 import { hexToBytes } from "@shared/utils/format";
-import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { NOTIFICATION_EVENT } from "@shared/services";
@@ -157,11 +155,11 @@ export interface CapsuleFormData {
 
 export interface UseTimeCapsuleOptions {
   /**
-   * ChainService from ctx.services.chain. Used for every on-chain read/write
+   * MiniApp framework SDK from ctx.framework. Used for every on-chain read/write
    * (bury deposit + bury, reveal, fish) and to read the connected wallet so the
    * list and hero counts are scoped to the current user.
    */
-  chainService: ChainService;
+  app: MiniAppFramework;
   /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
@@ -232,7 +230,7 @@ const toIdString = (value: unknown): string => {
 // ============================================================================
 
 export function useTimeCapsule({
-  chainService,
+  app,
   eventBus,
   t,
 }: UseTimeCapsuleOptions) {
@@ -455,9 +453,7 @@ export function useTimeCapsule({
   /** Read a single capsule by id into a Capsule. */
   const readCapsule = async (id: string): Promise<Capsule | null> => {
     try {
-      const raw = await chainService.read("getCapsule", [
-        { type: "Integer", value: id },
-      ]);
+      const raw = await app.chain.readRaw("getCapsule", [app.chain.arg.integer(id)]);
       return mapCapsule(raw, id);
     } catch (e) {
       console.warn(
@@ -479,14 +475,13 @@ export function useTimeCapsule({
    */
   const loadCapsules = async (): Promise<Capsule[]> => {
     try {
-      const wallet = chainService.address.get();
-      const ownerHash = wallet ? addressToScriptHash(wallet) || null : null;
-      if (!ownerHash) return [];
+      const wallet = app.chain.address.get();
+      if (!wallet) return [];
 
-      const idsRaw = await chainService.readArray("getOwnerCapsules", [
-        { type: "Hash160", value: ownerHash },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: String(OWNER_PAGE_LIMIT) },
+      const idsRaw = await app.chain.readArray("getOwnerCapsules", [
+        app.chain.arg.hash160(wallet),
+        app.chain.arg.integer("0"),
+        app.chain.arg.integer(OWNER_PAGE_LIMIT),
       ]);
       const ids = (Array.isArray(idsRaw) ? idsRaw : [])
         .map(toIdString)
@@ -510,8 +505,8 @@ export function useTimeCapsule({
    */
   const loadPublicCandidates = async (): Promise<Capsule[]> => {
     try {
-      const wallet = chainService.address.get();
-      const lastRaw = await chainService.read("lastCapsuleId", []);
+      const wallet = app.chain.address.get();
+      const lastRaw = await app.chain.readRaw("lastCapsuleId", []);
       const last = toFinite(lastRaw);
       if (last <= 0) return [];
 
@@ -529,10 +524,10 @@ export function useTimeCapsule({
         })
         .sort((a, b) => Number(b.id) - Number(a.id));
     } catch (e) {
-      console.warn(
-        "[useTimeCapsule] loadPublicCandidates failed:",
-        e instanceof Error ? e.message : String(e),
-      );
+      const message = e instanceof Error ? e.message : String(e);
+      if (!/contract address not configured/i.test(message)) {
+        console.warn("[useTimeCapsule] loadPublicCandidates failed:", message);
+      }
       return [];
     }
   };
@@ -544,15 +539,12 @@ export function useTimeCapsule({
    */
   const loadCredit = async () => {
     try {
-      const wallet = chainService.address.get();
-      const ownerHash = wallet ? addressToScriptHash(wallet) || null : null;
-      if (!ownerHash) {
+      const wallet = app.chain.address.get();
+      if (!wallet) {
         reusableCredit.set("0");
         return;
       }
-      const raw = await chainService.read("creditOf", [
-        { type: "Hash160", value: ownerHash },
-      ]);
+      const raw = await app.chain.readRaw("creditOf", [app.chain.arg.hash160(wallet)]);
       reusableCredit.set(fromBaseUnits(parseBigInt(raw)));
     } catch (e) {
       console.warn(
@@ -601,25 +593,25 @@ export function useTimeCapsule({
       const category = newCapsule.get().category;
       const contentHash = await sha256Hex(content);
 
-      const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
-      const ownerHash = addressToScriptHash(ownerAddr || "");
-      if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+      const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!ownerAddr) throw new Error(t("walletRequired"));
+      const ownerArg = app.chain.arg.hash160(ownerAddr);
 
-      const contractHash = chainService.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("contractNotReady"));
 
-      const amountBase = toBaseUnits(CAPSULE_CREATE_AMOUNT);
+      const amountBase = app.amount.gasToFixed8(CAPSULE_CREATE_AMOUNT);
       const durationSeconds = daysValue * 86_400;
 
       // Step 1: DEPOSIT — GAS transfer to the contract with the bury memo so
       // OnNEP17Payment credits the owner's prepaid (refundable) deposit balance.
-      await chainService.invoke(
+      await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: ownerHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: amountBase.toString() },
-          { type: "String", value: BURY_MEMO },
+          ownerArg,
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(amountBase),
+          app.chain.arg.string(BURY_MEMO),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
@@ -628,22 +620,22 @@ export function useTimeCapsule({
       // seals the capsule. Read the new id from the Buried event (state[0]).
       let capsuleId = "";
       try {
-        const result = await chainService.invoke(
+        const result = await app.chain.invoke(
           "bury",
           [
-            { type: "Hash160", value: ownerHash },
-            { type: "ByteArray", value: hexToBase64(contentHash) },
-            { type: "Integer", value: String(durationSeconds) },
-            { type: "Boolean", value: isPublic },
-            { type: "Integer", value: String(category) },
-            { type: "Integer", value: amountBase.toString() },
+            ownerArg,
+            app.chain.arg.byteArray(hexToBase64(contentHash)),
+            app.chain.arg.integer(durationSeconds),
+            app.chain.arg.boolean(isPublic),
+            app.chain.arg.integer(category),
+            app.chain.arg.integer(amountBase),
           ],
           { waitForEvent: "Buried" },
         );
         capsuleId = toIdString(eventValue(result.event, 0));
         if (!capsuleId) {
           // Event slot unavailable / unparsed — fall back to lastCapsuleId().
-          capsuleId = toIdString(await chainService.read("lastCapsuleId", []));
+          capsuleId = toIdString(await app.chain.readRaw("lastCapsuleId", []));
         }
       } catch (buryErr) {
         console.error(
@@ -694,15 +686,14 @@ export function useTimeCapsule({
     try {
       const wasSealed = !cap.revealed;
       if (wasSealed) {
-        const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
-        const ownerHash = addressToScriptHash(ownerAddr || "");
-        if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+        const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+        if (!ownerAddr) throw new Error(t("walletRequired"));
 
-        await chainService.invoke(
+        await app.chain.invoke(
           "reveal",
           [
-            { type: "Hash160", value: ownerHash },
-            { type: "Integer", value: cap.id },
+            app.chain.arg.hash160(ownerAddr),
+            app.chain.arg.integer(cap.id),
           ],
           { waitForEvent: "Revealed" },
         );
@@ -776,25 +767,25 @@ export function useTimeCapsule({
         return;
       }
 
-      const fisherAddr = chainService.address.get() || (await chainService.ensureWallet());
-      const fisherHash = addressToScriptHash(fisherAddr || "");
-      if (!fisherAddr || !fisherHash) throw new Error(t("walletRequired"));
+      const fisherAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!fisherAddr) throw new Error(t("walletRequired"));
+      const fisherArg = app.chain.arg.hash160(fisherAddr);
 
-      const contractHash = chainService.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("contractNotReady"));
 
-      const feeBase = toBaseUnits(FISH_FEE_AMOUNT);
+      const feeBase = app.amount.gasToFixed8(FISH_FEE_AMOUNT);
 
       // Pay the discovery fee — a one-shot GAS transfer with the fish memo. The
       // contract forwards the fee to the capsule owner as a tip and flags the
       // capsule fished, atomically.
-      await chainService.invoke(
+      await app.chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: fisherHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: feeBase.toString() },
-          { type: "String", value: `${FISH_MEMO_PREFIX}${candidate.id}` },
+          fisherArg,
+          app.chain.arg.hash160(contractHash),
+          app.chain.arg.integer(feeBase),
+          app.chain.arg.string(`${FISH_MEMO_PREFIX}${candidate.id}`),
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Fished" },
       );
@@ -825,14 +816,14 @@ export function useTimeCapsule({
 
     isProcessing.set(true);
     try {
-      const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
-      const ownerHash = addressToScriptHash(ownerAddr || "");
-      if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+      const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!ownerAddr) throw new Error(t("walletRequired"));
+      const ownerArg = app.chain.arg.hash160(ownerAddr);
 
       let creditBase = 0n;
       try {
         creditBase = parseBigInt(
-          await chainService.read("creditOf", [{ type: "Hash160", value: ownerHash }]),
+          await app.chain.readRaw("creditOf", [ownerArg]),
         );
       } catch {
         creditBase = 0n;
@@ -843,9 +834,9 @@ export function useTimeCapsule({
         return { amount: "0" };
       }
 
-      const result = await chainService.invoke(
+      const result = await app.chain.invoke(
         "withdraw",
-        [{ type: "Hash160", value: ownerHash }],
+        [ownerArg],
         { waitForEvent: "CreditWithdrawn" },
       );
 
@@ -879,15 +870,14 @@ export function useTimeCapsule({
 
     isProcessing.set(true);
     try {
-      const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
-      const ownerHash = addressToScriptHash(ownerAddr || "");
-      if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+      const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
+      if (!ownerAddr) throw new Error(t("walletRequired"));
 
       let result;
       try {
-        result = await chainService.invoke(
+        result = await app.chain.invoke(
           "withdrawFishRevenue",
-          [{ type: "Hash160", value: ownerHash }],
+          [app.chain.arg.hash160(ownerAddr)],
           { waitForEvent: "FishRevenueWithdrawn" },
         );
       } catch (e) {

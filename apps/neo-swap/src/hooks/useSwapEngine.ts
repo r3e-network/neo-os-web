@@ -6,7 +6,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, BalanceService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { BalanceService, EventBus } from "@shared/services";
 import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
 import { toFixedDecimals } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -46,13 +47,19 @@ export const POPULAR_PAIRS: ReadonlyArray<{ id: string; name: string }> = [
 ];
 
 export interface UseSwapEngineOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   balance: BalanceService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOptions) {
+export function useSwapEngine({ app, balance, eventBus, t }: UseSwapEngineOptions) {
+  const chain = app.chain;
+  // The framework narrows contractAddress to a get-only accessor, but the
+  // underlying chain service exposes the full observable (with subscribe) that
+  // the router-state views below react to. Alias it once at the observable type
+  // so the reactive subscriptions keep firing exactly as before.
+  const contractAddress = chain.contractAddress as unknown as Observable<string | null>;
   const fromToken = createObservable<Token>({ ...NEO_TOKEN_TEMPLATE });
   const toToken = createObservable<Token>({ ...GAS_TOKEN_TEMPLATE });
   const fromAmount = createObservable("");
@@ -81,9 +88,9 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   // enabled CTA that throws after wallet connect. A non-empty contractAddress
   // (e.g. a future router deployment) flips this on automatically.
   const routerAvailable: Observable<boolean> = {
-    get: () => Boolean(chain.contractAddress.get()),
+    get: () => Boolean(contractAddress.get()),
     set: () => {},
-    subscribe: (fn) => chain.contractAddress.subscribe(fn),
+    subscribe: (fn) => contractAddress.subscribe(fn),
   };
 
   // True once a quote exists but its on-chain record (the time the feed last
@@ -210,7 +217,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const u2 = fromAmount.subscribe(fn);
       const u3 = fromToken.subscribe(fn);
       const u4 = rateRecordTimestamp.subscribe(fn);
-      const u5 = chain.contractAddress.subscribe(fn);
+      const u5 = contractAddress.subscribe(fn);
       return () => { u1(); u2(); u3(); u4(); u5(); };
     },
   };
@@ -246,7 +253,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const u5 = fromToken.subscribe(fn);
       const u6 = toToken.subscribe(fn);
       const u7 = rateRecordTimestamp.subscribe(fn);
-      const u8 = chain.contractAddress.subscribe(fn);
+      const u8 = contractAddress.subscribe(fn);
       const u9 = chain.address.subscribe(fn);
       return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); };
     },
@@ -445,22 +452,25 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const minOutputBig = (outInt * slippageNumerator) / SLIPPAGE_BPS_DENOMINATOR;
       if (minOutputBig <= 0n) throw new Error(t("invalidAmount"));
       const minOutputInt = minOutputBig.toString();
-      const routerAddress = chain.contractAddress.get();
+      const routerAddress = contractAddress.get();
       if (!routerAddress) throw new Error(t("swapRouterUnavailable"));
       if (rateStale.get()) throw new Error(t("rateStale"));
 
       const deadline = Math.floor(Date.now() / 1000) + SWAP_DEADLINE_SECONDS;
-      const path = [
-        { type: "Hash160" as const, value: ft.hash },
-        { type: "Hash160" as const, value: tt.hash },
-      ];
+      // The swap path is a Hash160[] of the in/out token script hashes, wrapped
+      // as an Array arg. arg.array is natively typed for nested args, so the
+      // previous `as unknown as` cast around the Array value is no longer needed.
+      const path = app.chain.arg.array([
+        app.chain.arg.hash160(ft.hash),
+        app.chain.arg.hash160(tt.hash),
+      ]);
 
       await chain.invoke("swapTokenInForTokenOut", [
-        { type: "Hash160", value: sender },
-        { type: "Integer", value: amountInt },
-        { type: "Integer", value: minOutputInt },
-        { type: "Array", value: path } as unknown as { type: "Array"; value: string },
-        { type: "Integer", value: String(deadline) },
+        app.chain.arg.hash160(sender),
+        app.chain.arg.integer(amountInt),
+        app.chain.arg.integer(minOutputInt),
+        path,
+        app.chain.arg.integer(deadline),
       ], { waitForEvent: "SwapExecuted" });
 
       eventBus.emit("swap:success", { message: `${t("swapSuccess")}: ${parseFloat(fromAmount.get())} ${ft.symbol}` });

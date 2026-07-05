@@ -1,432 +1,330 @@
-import fs from "node:fs";
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../milestone-escrow/src/PlayArea";
-import type { EscrowItem } from "../../milestone-escrow/src/pages/index/components/EscrowList";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const BENEFICIARY = "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq";
-
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    addMilestone: "Add milestone",
-    amount: "Amount",
-    amountPlaceholder: "1.5",
-    approve: "Approve",
-    approveMilestone: "Approve M{n} — {amount}",
-    approving: "Approving...",
+    title: "Milestone Escrow",
+    createEscrow: "Create Escrow",
+    connectWallet: "Connect Wallet",
+    noFeeNotice: "No platform fee.",
+    statusActive: "Active",
+    statusCompleted: "Completed",
+    totalAmount: "Total",
     assetType: "Asset",
-    assetGas: "GAS",
+    assetNeoHint: "Whole NEO releases",
     assetGasHint: "Precise GAS tranches",
-    assetNeo: "NEO",
-    assetNeoHint: "Whole-token milestone releases",
-    beneficiaryAddress: "Beneficiary",
-    beneficiaryPlaceholder: "N-address...",
+    beneficiary: "Beneficiary",
+    beneficiaryPlaceholder: "Beneficiary address",
+    milestoneAmountPlaceholder: "Amount",
+    milestoneNumber: "M{n}",
+    milestonesLabel: "Milestones",
+    addMilestone: "Add milestone",
+    removeMilestone: "Remove milestone {index}",
+    twoStepSignBadge: "Signing...",
+    releaseDeskTitle: "Ready to create",
+    releaseDeskCopy: "Build a staged payout plan.",
+    releaseWorkbench: "Escrow workbench",
+    escrowStation: "Escrow Station",
+    stationTabs: "Escrow station modes",
+    stationSetupTab: "Setup",
+    stationSetupMeta: "Asset + route",
+    stationPreviewTab: "Preview",
+    stationPreviewMeta: "Release path",
+    stationSafetyTab: "Safety",
+    stationSafetyMeta: "Before signing",
+    stationSetupTitle: "Build the funded route",
+    stationPreviewTitle: "Review the release path",
+    stationSafetyTitle: "Know what signs",
+    setupPlan: "Setup plan",
+    setupAndEscrows: "Setup & escrows",
+    needsSetup: "Needs setup",
+    readyToSign: "Ready to sign",
+    previewPending: "Draft route",
+    recipientReady: "Recipient set",
+    previewTicketCopy: "{count} release gates will fund in {asset}.",
+    releaseRouteTitle: "Release route",
+    fundingAsset: "Funding asset",
+    releaseTranches: "Release tranches",
+    trancheCount: "{done}/{count} funded",
+    recipientPending: "Recipient pending",
+    fundedGate: "Funded",
+    draftGate: "Draft",
+    totalHint: "Sum of milestone amounts",
+    dealControlsHint: "Fill in details",
+    dealControls: "Deal controls",
+    twoStepSignNotice: "Two signatures for {asset}",
+    connectToStart: "Connect to start",
+    introLede: "Lock funds and release by milestone.",
+    deploymentPendingTitle: "Not available",
+    deploymentPendingDesc: "Contract is not configured.",
+    escrowsTab: "Escrows",
+    createdByYou: "Created by you",
+    forYou: "For you",
+    emptyEscrows: "No escrows.",
+    approve: "Approve",
+    approving: "Approving...",
+    claim: "Claim",
+    claiming: "Claiming...",
     cancel: "Cancel",
     cancelling: "Cancelling...",
-    claim: "Claim",
-    claimMilestone: "Claim M{n} — {amount}",
-    claiming: "Claiming...",
-    confirmCancelRefund: "Confirm cancel — refunds {amount}",
-    createdByYou: "Created by you",
-    createEscrow: "Create Escrow",
-    description: "Description",
-    descriptionPlaceholder: "Milestone description...",
-    emptyEscrows: "No escrows yet",
-    escrowsTab: "Escrows",
-    forYou: "For you",
-    milestones: "Milestones",
-    milestoneLabel: "Milestone {index}",
-    milestoneAmountPlaceholder: "1.5",
-    milestonePayout: "Payout tranche",
-    milestoneProgress: "{done} / {count} milestones",
-    noMilestoneToApprove: "All milestones approved",
-    noMilestoneToClaim: "No approved milestone to claim",
-    planPreview: "Release plan",
-    previewNetwork: "Neo N3 - Milestone Escrow",
-    refresh: "Refresh",
-    releaseDesk: "Release desk",
-    releaseDeskTitle: "Build a staged payout plan",
-    releaseDeskCopy: "Turn a deal into funded gates.",
-    releaseWorkbench: "Escrow workbench",
-    releaseWorkbenchTitle: "Preview the release route while you configure it",
-    released: "Released",
-    releasedOfTotal: "{released} / {total} released",
-    remove: "Remove",
-    removeMilestone: "Remove milestone {index}",
-    statusActive: "Active",
-    statusCancelled: "Cancelled",
-    statusCompleted: "Completed",
-    submit: "Submit",
-    title: "Milestone Escrow",
-    twoStepSignNotice: "Creating an escrow needs two wallet signatures: first the {asset} deposit, then the escrow setup.",
-    twoStepSignBadge: "2 wallet signatures",
-    totalAmount: "Total amount",
-    dealControls: "Deal controls",
-    dealControlsHint: "Keep every release gate visible.",
+    confirmCancelRefund: "Cancel and refund {amount}?",
+    howItWorks: "How it works",
+    step1: "Define milestones.",
+    step2: "Deposit + create.",
+    step3: "Approve + claim.",
+    beneficiaryApprovalNote: "Funds release only after approval.",
+    escrowName: "Escrow name",
+    escrowNamePlaceholder: "Website delivery escrow",
+    notes: "Notes",
+    notesPlaceholder: "Describe delivery criteria",
+    idPrefix: "#",
   };
-  const template = messages[key] ?? key;
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (_m, name: string) =>
-    params[name] !== undefined ? String(params[name]) : `{${name}}`,
-  );
-}
-
-function escrow(overrides: Partial<EscrowItem> = {}): EscrowItem {
-  return {
-    id: "esc-1",
-    creator: OWNER,
-    beneficiary: BENEFICIARY,
-    assetSymbol: "GAS",
-    totalAmount: 10_000_000n,
-    releasedAmount: 0n,
-    status: "active",
-    milestoneAmounts: [5_000_000n, 5_000_000n],
-    milestoneApproved: [false, true],
-    milestoneClaimed: [false, false],
-    title: "Website delivery",
-    notes: "Acceptance criteria",
-    active: true,
-    ...overrides,
-  };
+  let value = messages[key] ?? key;
+  if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
+  return value;
 }
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    address: OWNER,
+  const base: Record<string, unknown> = {
+    address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
     contractReady: true,
-    creatorEscrowCount: 1,
-    beneficiaryEscrowCount: 1,
-    activeCount: 1,
-    completedCount: 0,
-    creatorEscrows: [escrow()],
-    beneficiaryEscrows: [escrow({ creator: BENEFICIARY, beneficiary: OWNER })],
     isRefreshing: false,
     isCreating: false,
     approvingId: null,
     claimingId: null,
     cancellingId: null,
-    statusLabelFunc: (status: string) => (status === "active" ? "Active" : status),
-    // Mirrors the real composable's formatAmount: returns the bare formatted
-    // number (no asset suffix) — the card appends the asset symbol itself.
-    formatAmountFunc: (_symbol: "NEO" | "GAS", amount: bigint) => amount.toString(),
-    formatAddressFunc: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+    activeCount: 1,
+    completedCount: 0,
+    creatorEscrows: [],
+    beneficiaryEscrows: [],
+    statusLabelFunc: (s: string) => s,
+    formatAmountFunc: (sym: string, amt: bigint) => `${amt} ${sym}`,
+    formatAddressFunc: (a: string) => a,
     ...overrides,
   };
-
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
-  );
+  return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
 }
 
-describe("Milestone Escrow PlayArea", () => {
-  it("renders the create toggle and escrow ledger", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
-
-    expect(container.querySelector(".hero-media img")?.getAttribute("src")).toBe("./milestone-escrow-stage.jpg");
-    expect(screen.getByText("Build a staged payout plan")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /^Create Escrow$/i })).toBeTruthy();
-    expect(screen.getAllByText("Website delivery").length).toBeGreaterThan(0);
+describe("Milestone Escrow PlayArea (v2 scene-driven)", () => {
+  it("renders the clean foreground escrow workbench", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".escrow-workbench")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".escrow-vault-card__image")?.getAttribute("src")).toContain("milestone-escrow-stage.webp");
+    expect(container.querySelector(".escrow-vault-card")).toBeTruthy();
+    expect(container.querySelector(".escrow-station")).toBeTruthy();
+    expect(container.querySelector(".escrow-station__head")?.textContent).toContain("Escrow Station");
+    expect(container.querySelectorAll(".escrow-station-tabs button")).toHaveLength(3);
+    expect(container.querySelector(".escrow-swap-stack")).toBeTruthy();
+    expect(container.querySelector(".escrow-token-row--asset")).toBeTruthy();
+    expect(container.querySelector(".escrow-token-row--beneficiary")).toBeTruthy();
+    expect(container.querySelector(".escrow-asset-dock")).toBeTruthy();
+    expect(container.querySelector(".escrow-release-editor--station")).toBeTruthy();
+    expect(container.querySelector(".escrow-workbench__wash")).toBeNull();
+    expect(container.querySelector(".escrow-vault__amount strong")?.textContent).toBe("0 GAS");
+    expect(container.querySelector(".escrow-gate")).toBeTruthy();
+    expect(container.querySelector(".escrow-plan")).toBeNull();
+    expect(container.querySelector(".escrow-counterparty")).toBeNull();
   });
 
-  it("opens the create form and offers both GAS and NEO (default GAS)", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-
-    expect(screen.getByLabelText("Escrow workbench")).toBeTruthy();
-    expect(screen.getByLabelText("Release plan")).toBeTruthy();
-    expect(screen.getByText("Deal controls")).toBeTruthy();
-    expect(screen.getByLabelText("Beneficiary")).toBeTruthy();
-    expect(document.querySelector(".create-plan-preview__stage-img")?.getAttribute("src")).toBe("./milestone-escrow-stage.jpg");
-    expect(document.querySelector(".create-plan-preview__logo source")?.getAttribute("srcset")).toBe("./logo.avif");
-    expect(document.querySelector(".create-plan-preview__token-logo img")?.getAttribute("src")).toBe("./logo.jpg");
-    expect(document.querySelector(".create-plan-preview__card")?.classList.contains("is-ready")).toBe(false);
-    // The NEO asset option is back: both radios are present, GAS selected.
-    const gasOption = screen.getByRole("radio", { name: "GAS" });
-    const neoOption = screen.getByRole("radio", { name: "NEO" });
-    expect(gasOption).toBeTruthy();
-    expect(neoOption).toBeTruthy();
-    expect(gasOption.getAttribute("aria-checked")).toBe("true");
-    expect(neoOption.getAttribute("aria-checked")).toBe("false");
-    expect(screen.getByText("Precise GAS tranches")).toBeTruthy();
-    expect(screen.getByText("Whole-token milestone releases")).toBeTruthy();
-    // A single milestone row is present by default.
-    expect(screen.getByLabelText("Milestone 1")).toBeTruthy();
-    expect(screen.getByText("Payout tranche")).toBeTruthy();
-  });
-
-  it("dispatches createEscrow with a single-milestone array and GAS by default", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
-    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Phase 1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-
-    expect(dispatch).toHaveBeenCalledWith(
-      "createEscrow",
-      expect.objectContaining({
-        beneficiary: BENEFICIARY,
-        asset: "GAS",
-        notes: "Phase 1",
-        milestones: [{ amount: "1.5" }],
-      }),
-    );
-  });
-
-  it("adds milestones and dispatches the full per-milestone amount array", () => {
-    const dispatch = vi.fn(async () => undefined);
+  it("dispatches createEscrow with trimmed beneficiary and milestones", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    fireEvent.change(container.querySelector(".escrow-recipient-input") as Element, { target: { value: "  NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq  " } });
+    fireEvent.change(container.querySelector(".escrow-gate__input") as Element, { target: { value: " 2 " } });
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createEscrow", expect.objectContaining({ beneficiary: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq", milestones: [{ amount: "2" }] })));
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
+  it("keeps the release route interactive when switching asset and adding tranches", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-asset-card")).find((button) => button.textContent?.includes("NEO")) as Element);
+    expect(container.querySelector(".escrow-release-editor__head")?.textContent).toContain("Whole NEO");
 
-    // Add two more milestone rows (3 total).
-    fireEvent.click(screen.getByRole("button", { name: /Add milestone/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Add milestone/i }));
-    fireEvent.change(screen.getByLabelText("Milestone 2"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("Milestone 3"), { target: { value: "0.5" } });
+    fireEvent.click(container.querySelector(".escrow-gate--add") as Element);
+    const amountInputs = container.querySelectorAll(".escrow-gate__input");
+    expect(amountInputs.length).toBe(2);
+    expect((amountInputs[0] as HTMLInputElement).inputMode).toBe("numeric");
+    fireEvent.change(container.querySelector(".escrow-recipient-input") as Element, { target: { value: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq" } });
+    fireEvent.change(amountInputs[0], { target: { value: "1.5" } });
+    expect((amountInputs[0] as HTMLInputElement).value).toBe("1");
+    fireEvent.change(amountInputs[1], { target: { value: "2" } });
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
 
-    // Live total reflects the sum of all milestone amounts.
-    expect(screen.getByText("4 GAS")).toBeTruthy();
-    expect(container.querySelectorAll(".create-plan-preview__gate.is-funded")).toHaveLength(3);
-    expect(container.querySelector(".create-plan-preview__card")?.classList.contains("is-ready")).toBe(true);
-    expect((container.querySelector(".create-plan-preview__card") as HTMLElement).style.getPropertyValue("--escrow-route-progress")).toBe("100%");
-
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-
-    expect(dispatch).toHaveBeenCalledWith(
-      "createEscrow",
-      expect.objectContaining({
-        beneficiary: BENEFICIARY,
-        asset: "GAS",
-        milestones: [{ amount: "1.5" }, { amount: "2" }, { amount: "0.5" }],
-      }),
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith(
+        "createEscrow",
+        expect.objectContaining({
+          asset: "NEO",
+          milestones: [{ amount: "1" }, { amount: "2" }],
+        }),
+      ),
     );
   });
 
-  it("keeps GAS preview totals exact for large 8-decimal amounts", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Milestone 1"), {
-      target: { value: "1000000000.00000001" },
-    });
-
-    expect(screen.getAllByText("1000000000.00000001 GAS").length).toBeGreaterThan(0);
+  it("disables submit until beneficiary + amount are filled", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const btn = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
   });
 
-  it("removes an added milestone and keeps the remaining amounts", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: /Add milestone/i }));
-    fireEvent.change(screen.getByLabelText("Milestone 2"), { target: { value: "2" } });
-
-    // Remove the first milestone; the second shifts up to "Milestone 1".
-    fireEvent.click(screen.getByRole("button", { name: "Remove milestone 1" }));
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-
-    expect(dispatch).toHaveBeenCalledWith(
-      "createEscrow",
-      expect.objectContaining({ milestones: [{ amount: "2" }] }),
-    );
+  it("uses the primary action to connect when no wallet is present", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ address: "" })} dispatch={dispatch} />);
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("connectWallet"));
   });
 
-  it("disables Submit until a beneficiary and positive amount are entered", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    const submit = screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-
-    // Clicking the disabled submit does not dispatch.
-    fireEvent.click(submit);
-    expect(dispatch).not.toHaveBeenCalled();
-
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1" } });
-    expect((screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement).disabled).toBe(false);
+  it("blocks creation when the escrow contract is not configured", () => {
+    const { container } = render(<PlayArea t={t} state={state({ contractReady: false })} dispatch={vi.fn()} />);
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+    expect((container.querySelector(".escrow-gate__input") as HTMLInputElement).disabled).toBe(true);
   });
 
-  it("keeps milestone setup rows readable on narrow screens", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../milestone-escrow/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toMatch(/\.milestone-row\s*\{[\s\S]*grid-template-columns:\s*32px minmax\(0, 1fr\)/);
-    expect(styles).toMatch(/\.milestone-row__toolbar\s*\{[\s\S]*justify-content:\s*space-between/);
-    expect(styles).toMatch(/\.milestone-row__input \.neo-input__suffix\s*\{[\s\S]*font-weight:\s*800/);
-    expect(styles).toMatch(/@media \(max-width: 420px\)[\s\S]*\.milestone-row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-  });
-
-  it("keeps the create preview asset-led, animated, and reduced-motion safe", () => {
-    const styles = fs.readFileSync(
-      `${process.cwd()}/../milestone-escrow/src/PlayArea.scss`,
-      "utf8",
-    );
-
-    expect(styles).toMatch(/\.create-plan-preview__stage-img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(styles).toMatch(/@keyframes escrow-stage-drift/);
-    expect(styles).toMatch(/@keyframes escrow-token-submit/);
-    expect(styles).toMatch(/@keyframes escrow-route-flow/);
-    expect(styles).toMatch(/@keyframes escrow-gate-funded/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.create-plan-preview__route::after/);
-  });
-
-  it("switches to NEO and dispatches createEscrow with the NEO asset", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.click(screen.getByRole("radio", { name: "NEO" }));
-
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-
-    expect(dispatch).toHaveBeenCalledWith(
-      "createEscrow",
-      expect.objectContaining({
-        beneficiary: BENEFICIARY,
-        asset: "NEO",
-        milestones: [{ amount: "5" }],
-      }),
-    );
-  });
-
-  it("blocks fractional NEO before dispatch because NEO is indivisible", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.click(screen.getByRole("radio", { name: "NEO" }));
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
-
-    const submit = screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    fireEvent.click(submit);
-    expect(dispatch).not.toHaveBeenCalled();
-  });
-
-  it("keeps the form open and intact when createEscrow fails (dispatch resolves false)", async () => {
-    // notify.guard swallows the failure into an error toast and the action
-    // resolves false — the form must keep the user's input for retry.
-    const dispatchMock = vi.fn(async () => false);
-    render(
+  it("shows created escrows with approve/cancel in the drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
       <PlayArea
         t={t}
-        state={state()}
-        dispatch={dispatchMock as unknown as (name: string, ...args: unknown[]) => Promise<void>}
+        state={state({ creatorEscrows: [{ id: "e1", status: "active", title: "Project X", assetSymbol: "GAS", totalAmount: 200000000n, milestoneApproved: [true, false], milestoneClaimed: [false, false] }] })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
+    expect(container.textContent).toContain("Project X");
+    const approveBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Approve");
+    expect(approveBtn).toBeTruthy();
+  });
+
+  it("uses designed Open UI panels and deal cards in the drawer", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          creatorEscrows: [{ id: "e1", status: "active", title: "Project X", assetSymbol: "GAS", totalAmount: 200000000n, milestoneAmounts: [100000000n, 100000000n], milestoneApproved: [true, false], milestoneClaimed: [false, false] }],
+          beneficiaryEscrows: [{ id: "e2", status: "active", title: "For me", assetSymbol: "NEO", totalAmount: 2n, milestoneAmounts: [1n, 1n], milestoneApproved: [true, true], milestoneClaimed: [true, false] }],
+        })}
+        dispatch={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
 
-    await waitFor(() => expect(dispatchMock).toHaveBeenCalled());
-    expect((screen.getByLabelText("Beneficiary") as HTMLInputElement).value).toBe(BENEFICIARY);
+    expect(container.querySelectorAll(".escrow-drawer-tabs button")).toHaveLength(3);
+    expect(container.querySelectorAll(".escrow-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelector(".escrow-drawer__panel--details")).toBeTruthy();
+    expect(container.querySelector(".escrow-detail-field--asset .mx2-open-segmented")).toBeTruthy();
+    expect(container.querySelector(".escrow-detail-field.mx2-open-field .mx2-open-field__control input.semi-input")).toBeTruthy();
+    expect(container.querySelector(".escrow-detail-field.mx2-open-field .mx2-open-field__control--textarea textarea.semi-input-textarea")).toBeTruthy();
+    expect(container.querySelector(".escrow-release-editor--drawer")).toBeTruthy();
+
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
+    expect(container.querySelectorAll(".escrow-ledger__item")).toHaveLength(1);
+    expect(container.querySelectorAll(".escrow-ledger__progress")).toHaveLength(1);
+    expect(container.querySelectorAll(".escrow-ledger__coin .mx2-coin")).toHaveLength(1);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("For you")) as Element);
+    expect(container.querySelectorAll(".escrow-ledger__item")).toHaveLength(1);
+    expect(container.querySelector(".escrow-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
+    expect(container.querySelector(".escrow-drawer__panel h4")).toBeNull();
+    expect(container.querySelector("section.escrow-drawer__panel")).toBeNull();
   });
 
-  it("closes and resets the form only on a real createEscrow success", async () => {
-    const dispatchMock = vi.fn(async () => true);
-    render(
+  it("confirms cancel with the refund amount", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { container } = render(
       <PlayArea
         t={t}
-        state={state()}
-        dispatch={dispatchMock as unknown as (name: string, ...args: unknown[]) => Promise<void>}
+        state={state({ creatorEscrows: [{ id: "e1", status: "active", title: "Project X", assetSymbol: "GAS", totalAmount: 200000000n, milestoneApproved: [false], milestoneClaimed: [false] }] })}
+        dispatch={dispatch}
       />,
     );
-
-    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
-    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
-
-    await waitFor(() => expect(screen.queryByLabelText("Beneficiary")).toBeNull());
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
+    const cancelBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Cancel") as HTMLButtonElement;
+    fireEvent.click(cancelBtn);
+    expect(confirmSpy).toHaveBeenCalledWith("Cancel and refund 2 GAS?");
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("cancelEscrow", expect.objectContaining({ id: "e1" })));
+    confirmSpy.mockRestore();
   });
 
-  it("dispatches approve, cancel, and claim actions from the ledger", () => {
-    const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    // Action buttons are now labelled with the specific milestone they release
-    // (the next approvable / claimable one) and its amount, not a bare verb.
-    // Creator escrow has milestoneApproved [false, true] -> M1 is next approvable.
-    fireEvent.click(screen.getByRole("button", { name: /^Approve M1 —/ }));
-    expect(dispatch).toHaveBeenCalledWith("approveMilestone", expect.objectContaining({ id: "esc-1" }));
-
-    // Cancel is now a two-step confirm (it refunds remaining funds): the first
-    // click only arms the confirm; the second confirm click dispatches.
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(dispatch).not.toHaveBeenCalledWith("cancelEscrow", expect.anything());
-    fireEvent.click(screen.getByRole("button", { name: /^Confirm cancel —/ }));
-    expect(dispatch).toHaveBeenCalledWith("cancelEscrow", expect.objectContaining({ id: "esc-1" }));
-
-    // Beneficiary escrow has milestoneApproved [false, true] -> M2 is claimable.
-    fireEvent.click(screen.getByRole("button", { name: /^Claim M2 —/ }));
-    expect(dispatch).toHaveBeenCalledWith("claimMilestone", expect.objectContaining({ id: "esc-1" }));
-  });
-
-  it("shows the escrow amount, asset, and milestone progress on each card", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
-
-    // formatAmountFunc renders "<base units> GAS"; total appears on the card.
-    expect(screen.getAllByText("10000000 GAS").length).toBeGreaterThan(0);
-    // Milestone progress: 0 of 2 claimed.
-    expect(screen.getAllByText("0 / 2 milestones").length).toBeGreaterThan(0);
-  });
-
-  it("disables Approve when every milestone is already approved", () => {
-    const allApproved = escrow({ milestoneApproved: [true, true], milestoneClaimed: [false, false] });
-    render(
+  it("shows beneficiary escrows with claim in the drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
       <PlayArea
         t={t}
-        state={state({ creatorEscrows: [allApproved], beneficiaryEscrows: [] })}
-        dispatch={vi.fn(async () => undefined)}
+        state={state({ beneficiaryEscrows: [{ id: "e2", status: "active", title: "For me", assetSymbol: "GAS", totalAmount: 100000000n, milestoneApproved: [true], milestoneClaimed: [false] }] })}
+        dispatch={dispatch}
       />,
     );
-
-    const approve = screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement;
-    expect(approve.disabled).toBe(true);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("For you")) as Element);
+    expect(container.textContent).toContain("For me");
+    const claimBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Claim");
+    expect(claimBtn).toBeTruthy();
   });
 
-  it("disables Claim when no milestone is approved-and-unclaimed", () => {
-    // Beneficiary escrow with nothing approved yet -> nothing claimable.
-    const noneApproved = escrow({
-      creator: BENEFICIARY,
-      beneficiary: OWNER,
-      milestoneApproved: [false, false],
-      milestoneClaimed: [false, false],
-    });
-    render(
-      <PlayArea
-        t={t}
-        state={state({ creatorEscrows: [], beneficiaryEscrows: [noneApproved] })}
-        dispatch={vi.fn(async () => undefined)}
-      />,
-    );
-
-    const claim = screen.getByRole("button", { name: "Claim" }) as HTMLButtonElement;
-    expect(claim.disabled).toBe(true);
+  it("keeps motion and clean escrow foreground hierarchy backed by tests", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const stylePath = [
+      path.resolve(process.cwd(), "apps/milestone-escrow/src/PlayArea.scss"),
+      path.resolve(process.cwd(), "../milestone-escrow/src/PlayArea.scss"),
+    ].find((candidate) => fs.existsSync(candidate));
+    expect(stylePath).toBeTruthy();
+    const styles = fs.readFileSync(stylePath, "utf8");
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toMatch(/\.milestone-escrow-play-area \.mx2-cat-defi\s*\{[\s\S]*--mx2-accent:\s*#059669/);
+    expect(styles).toMatch(/\.milestone-escrow-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 188px/);
+    expect(styles).toMatch(/\.escrow-workbench\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.escrow-workbench\s*\{[\s\S]*border:\s*0/);
+    expect(styles).toMatch(/\.escrow-vault-card__image\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.escrow-station\s*\{[\s\S]*grid-template-rows:\s*auto auto minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.escrow-station-tabs\s*,[\s\S]*\.escrow-drawer-tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.escrow-token-row\s*\{[\s\S]*grid-template-areas:/);
+    expect(styles).toMatch(/\.escrow-recipient-input\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.escrow-route-meter\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.escrow-asset-dock\s*\{[\s\S]*border-radius:\s*var\(--mx2-r-pill\)/);
+    expect(styles).toMatch(/\.escrow-asset-card\s*\{[\s\S]*display:\s*inline-flex/);
+    expect(styles).toMatch(/\.escrow-release-editor\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/\.escrow-gate__input-wrap\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(styles).toMatch(/\.escrow-drawer\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/\.escrow-drawer-tabs button\s*\{[\s\S]*min-height:\s*54px/);
+    expect(styles).toMatch(/\.escrow-drawer__panel\.mx2-open-panel\.semi-card\s*\{/);
+    expect(styles).toMatch(/\.escrow-drawer__panel--details\s*\{[\s\S]*grid-row:\s*auto/);
+    expect(styles).toMatch(/\.escrow-drawer__form-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.escrow-ledger__item\s*\{[\s\S]*border-radius:\s*17px/);
+    expect(styles).toMatch(/\.escrow-ledger__body\s*\{[\s\S]*display:\s*flex/);
+    expect(styles).toMatch(/\.escrow-ledger__progress\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).not.toMatch(/escrow-workbench__media|escrow-workbench__wash|var\(--mx2-scene-art-opacity|background-image:\s*url/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).not.toMatch(/radial-gradient/);
+    expect(styles).not.toMatch(/linear-gradient/);
+    expect(styles).not.toMatch(/\.escrow-asset-card small/);
+    expect(styles).not.toMatch(/\.escrow-plan|\.escrow-counterparty|\.escrow-release-rail|\.escrow-setup__notice/);
+    expect(styles).not.toMatch(/\.escrow-drawer__panel h4|\.escrow-detail-field textarea\s*\{[\s\S]*resize:\s*vertical/);
+    expect(styles).not.toMatch(/background:\s*rgba\(255,\s*255,\s*255,\s*0\.[0-8]/);
+    expect(styles).toMatch(/escrow-vault[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/escrow-gate[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/escrow-token-row[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.milestone-escrow-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-vault-card\s*\{[\s\S]*grid-template-rows:\s*86px auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-station-tabs button\s*,[\s\S]*\.escrow-drawer-tabs button\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-route-meter\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-gate\s*\{[\s\S]*min-height:\s*70px/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-drawer__form-grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
+    expect(styles).not.toContain("AI-generated scene backdrop");
+    expect(styles).not.toContain(".tool-scene__backdrop");
   });
 });

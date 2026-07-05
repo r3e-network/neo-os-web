@@ -1,18 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
-import { ChevronDown, Coins, Dices, Sparkles, Trophy } from "lucide-react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
-import { StateView } from "@shared/components";
 import { formatHash } from "@shared/utils/format";
+import { ParticleBurst, CoinArt } from "@shared/art";
+import {
+  OpenUiProvider,
+  OpenUiTextField,
+  PlayStage,
+} from "@shared/components-react/v2";
+import { Dices } from "lucide-react";
 import "./PlayArea.scss";
 
 const FACES = ["1", "2", "3", "4", "5", "6"];
 const STAKE_PRESETS = ["0.10", "0.50", "1.00", "5.00"];
 const MIN_STAKE = 0.05;
 const PAYOUT_MULTIPLIER = 5.7;
-const HOUSE_FEE_PERCENT = 5;
-const FAIR_MULTIPLIER = 6;
+const CHIP_PRESETS = [
+  { amount: "0.10", asset: "./art/chip-green.webp" },
+  { amount: "0.50", asset: "./art/chip-blue.webp" },
+  { amount: "1.00", asset: "./art/chip-red.webp" },
+  { amount: "5.00", asset: "./art/chip-black.webp" },
+] as const;
 
 type RollOutcome = "" | "pending" | "won" | "lost" | "refunded";
 
@@ -32,6 +40,20 @@ function amountFromStake(stake: string): string {
   return stake.replace(/\s*GAS$/i, "").trim() || "0.10";
 }
 
+function diceFaceUrl(face: string | number): string {
+  const safeFace = Math.min(6, Math.max(1, Number(face) || 6));
+  return `./art/die-white-${safeFace}.webp`;
+}
+
+function chipAssetUrl(stake: string): string {
+  return CHIP_PRESETS.find((chip) => normalizeAmount(chip.amount) === normalizeAmount(stake))?.asset
+    ?? CHIP_PRESETS[0].asset;
+}
+
+function companionFace(face: number, offset: number): number {
+  return ((face + offset - 1 + 6) % 6) + 1;
+}
+
 function normalizeAmount(value: string): string {
   const trimmed = value.trim();
   if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return trimmed;
@@ -47,41 +69,7 @@ function isValidStake(value: string, maxStake: number): boolean {
   const raw = value.trim();
   if (!/^\d+(\.\d{1,8})?$/.test(raw)) return false;
   const numeric = Number(raw);
-  return (
-    Number.isFinite(numeric) && numeric >= MIN_STAKE && numeric <= maxStake
-  );
-}
-
-function payoutFor(value: string, fallback: string, maxStake: number): string {
-  if (!isValidStake(value, maxStake)) return fallback;
-  return `${(Number(value) * PAYOUT_MULTIPLIER).toFixed(2)} GAS`;
-}
-
-function diceAsset(face: string, extension: "avif" | "webp" | "jpg"): string {
-  return `./dice-face-${face}.${extension}`;
-}
-
-function DiceFaceImage({
-  face,
-  className,
-  alt,
-}: {
-  face: string;
-  className: string;
-  alt: string;
-}) {
-  return (
-    <picture className={className}>
-      <source srcSet={diceAsset(face, "avif")} type="image/avif" />
-      <source srcSet={diceAsset(face, "webp")} type="image/webp" />
-      <img
-        src={diceAsset(face, "jpg")}
-        alt={alt}
-        decoding="sync"
-        loading="eager"
-      />
-    </picture>
-  );
+  return Number.isFinite(numeric) && numeric >= MIN_STAKE && numeric <= maxStake;
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -89,111 +77,80 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedFace = str("selectedFace", "6");
   const stakeAmount = str("stakeAmount", "0.10 GAS");
   const payoutPreview = str("payoutPreview", "0.57 GAS");
-  const lastTxid = str("lastTxid");
   const lastStatus = str("lastStatus", t("statusReady"));
   const isSubmitting = bool("isSubmitting");
   const rollHistory = val<RollHistoryItem[]>("rollHistory", []) ?? [];
   const chainLabel = str("chainLabel");
   const maxStake = val<number>("maxStake", 20) ?? 20;
-  const houseLiquidity = val<number>("houseLiquidity", 0) ?? 0;
-  const directCredit = val<number>("directCredit", 0) ?? 0;
   const maxPayableStake = val<number>("maxPayableStake", 0) ?? 0;
+  const directCredit = val<number>("directCredit", 0) ?? 0;
   const lastRoll = str("lastRoll");
   const lastOutcome = (str("lastOutcome") || "") as RollOutcome;
   const isResolving = bool("isResolving");
   const isUnresolved = bool("isUnresolved");
-  // The N3 (non-EVM) path is the one whose VRF settlement waits on the Morpheus
-  // oracle callback and can leave non-withdrawable roll credit; the EVM path is
-  // atomic. The chain badge is set from the detected network.
   const isEvmChain = chainLabel.startsWith("Neo X");
 
   const [faceInput, setFaceInput] = useState(selectedFace);
   const [amountInput, setAmountInput] = useState(amountFromStake(stakeAmount));
   const [formError, setFormError] = useState("");
   const [selectionPulse, setSelectionPulse] = useState(0);
-  const [throwPreview, setThrowPreview] = useState(false);
   const [throwPulse, setThrowPulse] = useState(0);
+  const [fineStakeOpen, setFineStakeOpen] = useState(false);
+  // Local "throw preview" gives immediate dice motion on submit, independent of
+  // when the store's isSubmitting flips (the wallet prompt can take a moment).
+  const [throwPreview, setThrowPreview] = useState(false);
   const throwPreviewTimeout = useRef<number | null>(null);
-  // The effective cap is the smaller of the network stake cap and what the house
-  // can currently pay a win on (maxPayableStake, read on Neo N3). When liquidity
-  // is unknown (0, e.g. EVM or pre-load) the network cap stands alone.
+
   const effectiveMaxStake = useMemo(
-    () =>
-      maxPayableStake > 0 ? Math.min(maxStake, maxPayableStake) : maxStake,
+    () => (maxPayableStake > 0 ? Math.min(maxStake, maxPayableStake) : maxStake),
     [maxStake, maxPayableStake],
   );
   const stakeIsValid = useMemo(
     () => isValidStake(amountInput, effectiveMaxStake),
     [amountInput, effectiveMaxStake],
   );
-  const activePayout = payoutFor(amountInput, payoutPreview, effectiveMaxStake);
-  const normalizedAmount = useMemo(
-    () => normalizeAmount(amountInput),
-    [amountInput],
-  );
+  const normalizedAmount = useMemo(() => normalizeAmount(amountInput), [amountInput]);
   const numericStake = Number(normalizedAmount);
   const displayStake =
     stakeIsValid && Number.isFinite(numericStake)
       ? `${numericStake.toFixed(2)} GAS`
       : "--";
-  const netPayout =
+  const winPayout =
     stakeIsValid && Number.isFinite(numericStake)
-      ? `${(numericStake * PAYOUT_MULTIPLIER - numericStake).toFixed(2)} GAS`
-      : "0 GAS";
-  const houseEdgeNote = t("houseEdgeNote", {
-    fee: String(HOUSE_FEE_PERCENT),
-    pays: PAYOUT_MULTIPLIER.toFixed(1),
-    fair: String(FAIR_MULTIPLIER),
-  });
-  const outcomeLabel =
-    lastOutcome === "won"
-      ? t("outcomeWon")
-      : lastOutcome === "lost"
-        ? t("outcomeLost")
-        : lastOutcome === "refunded"
-          ? t("outcomeRefunded")
-          : "";
-  const outcomeBody =
-    lastOutcome === "won"
-      ? t("resultWonBody")
-      : lastOutcome === "lost"
-        ? t("resultLostBody")
-        : lastOutcome === "refunded"
-          ? t("resultRefundedBody")
-          : "";
+      ? `${(numericStake * PAYOUT_MULTIPLIER).toFixed(2)} GAS`
+      : payoutPreview;
+  const selectedStakePreset = useMemo(
+    () =>
+      STAKE_PRESETS.find(
+        (preset) =>
+          normalizeAmount(preset) === normalizeAmount(amountInput) &&
+          Number(preset) <= effectiveMaxStake,
+      ) ?? "",
+    [amountInput, effectiveMaxStake],
+  );
+  const selectedChipAsset = chipAssetUrl(selectedStakePreset || normalizedAmount);
 
-  // The die shows the settled roll once revealed, animates while rolling, and
-  // otherwise previews the chosen face.
+  const controlsLocked = isSubmitting || isResolving || throwPreview;
   const showResult =
-    (lastOutcome === "won" ||
-      lastOutcome === "lost" ||
-      lastOutcome === "refunded") &&
+    (lastOutcome === "won" || lastOutcome === "lost" || lastOutcome === "refunded") &&
     Boolean(lastRoll);
-  const isThrowing = (isSubmitting || throwPreview) && !isResolving;
-  const isRolling = isResolving || isThrowing;
-  const visibleFace = isRolling ? faceInput : showResult ? lastRoll : faceInput;
-  const stageState = isRolling ? "rolling" : showResult ? lastOutcome : "idle";
-  const dieIsPreview = stageState === "idle";
-  const displayFace = FACES.includes(visibleFace) ? visibleFace : faceInput;
-  const currentFaceIndex = Math.max(0, FACES.indexOf(faceInput));
-  const rollingFaces = [
-    FACES[(currentFaceIndex + 2) % FACES.length],
-    faceInput,
-    FACES[(currentFaceIndex + 4) % FACES.length],
-  ];
-  const controlsLocked = isSubmitting || throwPreview || isResolving;
-  const stageDieLabel = isRolling
-    ? t("statusRolling")
-    : dieIsPreview
-      ? `${t("youPicked")} ${displayFace}`
-      : `${t("rolledLabel")} ${displayFace}`;
-  const tableCaption = showResult
-    ? outcomeLabel
-    : isRolling
-      ? t("statusRolling")
-      : isUnresolved
-        ? t("statusSettlementPending")
-        : t("gameTableCaption");
+  const isRolling = isResolving || isSubmitting || throwPreview;
+  const visibleFace = (isRolling ? faceInput : showResult ? lastRoll : faceInput) || "6";
+  const faceNum = Number(visibleFace) || 6;
+
+  const statusText = isUnresolved
+    ? t("statusSettlementPending")
+    : isResolving
+      ? t("statusRevealing")
+      : isSubmitting
+        ? t("statusSubmitting")
+        : lastOutcome === "won"
+          ? t("statusWon")
+          : lastOutcome === "lost"
+            ? t("statusLost")
+            : lastOutcome === "refunded"
+              ? t("statusRefunded")
+              : lastStatus;
 
   useEffect(
     () => () => {
@@ -203,21 +160,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     },
     [],
   );
-
-  useEffect(() => {
-    setFaceInput(selectedFace);
-  }, [selectedFace]);
-
-  useEffect(() => {
-    setAmountInput(amountFromStake(stakeAmount));
-  }, [stakeAmount]);
+  useEffect(() => setFaceInput(selectedFace), [selectedFace]);
+  useEffect(() => setAmountInput(amountFromStake(stakeAmount)), [stakeAmount]);
 
   const chooseFace = (face: string) => {
     setFaceInput(face);
     setSelectionPulse((tick) => tick + 1);
   };
-
-  const startThrowPreview = () => {
+  const chooseStake = (stake: string) => {
+    setAmountInput(stake);
+    setFineStakeOpen(false);
+  };
+  const startThrow = () => {
     if (throwPreviewTimeout.current !== null) {
       window.clearTimeout(throwPreviewTimeout.current);
     }
@@ -229,15 +183,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }, 1100);
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (controlsLocked) return;
     if (!stakeIsValid) {
       setFormError(t("invalidStake"));
       return;
     }
     setFormError("");
-    startThrowPreview();
+    startThrow();
     try {
       await dispatch("placeDiceBet", {
         chosenNumber: faceInput,
@@ -248,533 +201,352 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
-  return (
-    <section className="dice-playarea" aria-label={t("rollDice")}>
-      <div className="dice-shell">
-        <form
-          className="dice-game-form"
-          onSubmit={handleSubmit}
-          aria-busy={isRolling || undefined}
-        >
-          <div
-            className="dice-stage"
-            aria-live="polite"
-            data-state={stageState}
+  const stageTitle = isRolling
+    ? t("throwingTitle")
+    : showResult
+      ? lastOutcome === "won"
+        ? t("statusWon")
+        : lastOutcome === "lost"
+          ? t("statusLost")
+          : t("statusRefunded")
+      : t("readyTitle");
+
+  const faceBettingRing = (
+    <div className="dice-bet-spots" aria-label={t("pickYourFace")}>
+      {FACES.map((face) => {
+        const active = faceInput === face;
+        return (
+          <button
+            key={face}
+            type="button"
+            className={["dice-bet-spot", active ? "dice-bet-spot--active" : null]
+              .filter(Boolean)
+              .join(" ")}
+            aria-pressed={active}
+            aria-label={`${t("dieShowing", { face })} · ${t("rollDice")}`}
+            onClick={() => chooseFace(face)}
+            disabled={controlsLocked}
           >
-            <div
-              className={`dice-stage__visual dice-stage__visual--${stageState}`}
-            >
-              <picture className="dice-stage__table" aria-hidden="true">
-                <source srcSet="./dice-stage.avif" type="image/avif" />
-                <source srcSet="./dice-stage.webp" type="image/webp" />
-                <img
-                  src="./dice-stage.jpg"
-                  alt=""
-                  decoding="sync"
-                  loading="eager"
-                />
-              </picture>
-              {(isRolling || showResult) && (
-                <div
-                  className={`dice-stage__landing-zone${isRolling ? " dice-stage__landing-zone--rolling" : " dice-stage__landing-zone--settled"}`}
-                  aria-hidden="true"
-                />
-              )}
-              {isRolling && (
-                <div
-                  className="dice-stage__throw-trail"
-                  key={`throw-${throwPulse}-${faceInput}`}
-                  aria-hidden="true"
-                >
-                  {rollingFaces.map((face, index) => (
-                    <DiceFaceImage
-                      key={`${face}-${index}`}
-                      face={face ?? faceInput}
-                      className={`dice-stage__trail-die dice-stage__trail-die--${index + 1}`}
-                      alt=""
-                    />
-                  ))}
-                </div>
-              )}
-              <DiceFaceImage
-                face={displayFace}
-                className={`dice-stage__die dice-stage__die--${stageState}${dieIsPreview ? " dice-stage__die--preview" : ""}${dieIsPreview && selectionPulse > 0 ? " dice-stage__die--selected" : ""}`}
-                key={`${displayFace}-${selectionPulse}-${throwPulse}-${stageState}`}
-                alt={stageDieLabel}
-              />
-              <p className="dice-stage__caption" aria-live="polite">
-                <Sparkles size={14} aria-hidden="true" />
-                <span>{tableCaption}</span>
-                <strong>{showResult ? lastRoll : faceInput}</strong>
-              </p>
-            </div>
+            <img
+              className="dice-bet-spot__die"
+              src={diceFaceUrl(face)}
+              alt=""
+              draggable={false}
+            />
+            <span className="dice-bet-spot__label">{face}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
-            <div className="dice-table-console">
-              <div className="dice-face-tray">
-                <div className="dice-face-tray__head">
-                  <span>{t("pickYourFace")}</span>
-                  <strong>{t("faceTrayHint")}</strong>
-                </div>
-                <div className="dice-face-grid" aria-label={t("selectedFace")}>
-                  {FACES.map((face) => (
-                    <button
-                      key={face}
-                      type="button"
-                      aria-pressed={face === faceInput}
-                      className={`dice-face-grid__item${face === faceInput ? " dice-face-grid__item--active" : ""}`}
-                      disabled={controlsLocked}
-                      onClick={() => chooseFace(face)}
-                    >
-                      <DiceFaceImage
-                        face={face}
-                        className="dice-face-grid__die"
-                        alt=""
-                      />
-                      <span>{face}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className={`dice-roll-button${isRolling ? " dice-roll-button--rolling" : ""}`}
-                disabled={controlsLocked || !stakeIsValid}
-                aria-busy={isRolling || undefined}
-              >
-                <Dices size={19} aria-hidden="true" />
-                {isRolling ? t("statusRolling") : t("rollAction")}
-              </button>
-            </div>
-
-            <div className="dice-stage__details">
-              <div className="dice-stage__eyebrow-row">
-                <p className="dice-eyebrow">{t("diceHeroTitle")}</p>
-                {chainLabel && (
-                  <span
-                    className={`dice-chain-badge${chainLabel.startsWith("Neo X") ? " dice-chain-badge--evm" : ""}`}
-                    title={`${t("networkLabel")}: ${chainLabel}`}
-                  >
-                    <span
-                      className="dice-chain-badge__dot"
-                      aria-hidden="true"
-                    />
-                    {chainLabel}
-                  </span>
-                )}
-              </div>
-              <h2>
-                {isThrowing
-                  ? t("throwingTitle")
-                  : isResolving
-                    ? t("resolvingTitle")
-                    : isUnresolved
-                      ? t("statusSettlementPending")
-                      : showResult
-                        ? outcomeLabel
-                        : t("readyTitle")}
-              </h2>
-              <p>
-                {isThrowing
-                  ? t("throwingBody")
-                  : isResolving
-                    ? t("resolvingBody")
-                    : isUnresolved
-                      ? t("settlementPendingBody")
-                      : showResult
-                        ? outcomeBody
-                        : t("diceHeroSubtitle")}
-              </p>
-
-              {isUnresolved && (
-                <p className="dice-pending-reassure">
-                  {t("settlementPendingReassure")}
-                </p>
-              )}
-
-              {(isRolling || isUnresolved || showResult) && (
-                <div
-                  className={`dice-result dice-result--${isUnresolved ? "pending" : stageState}`}
-                  role="status"
-                >
-                  {isRolling ? (
-                    <>
-                      <span
-                        className="dice-result__spinner"
-                        aria-hidden="true"
-                      />
-                      <span className="dice-result__label">
-                        {t("statusRolling")}
-                      </span>
-                    </>
-                  ) : isUnresolved ? (
-                    <>
-                      <span className="dice-result__label">
-                        {t("statusSettlementPending")}
-                      </span>
-                      <button
-                        type="button"
-                        className="dice-recheck-button"
-                        onClick={() => void dispatch("recheckSettlement", {})}
-                      >
-                        {t("checkAgain")}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="dice-result__roll">
-                        {t("rolledLabel")} <strong>{lastRoll}</strong>
-                      </span>
-                      <span className="dice-result__verdict">
-                        {outcomeLabel}
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <div className="dice-metric-grid">
-                <span>
-                  {t("oddsLabel")}
-                  <strong>1 / 6</strong>
-                </span>
-                <span>
-                  {t("feeLabel")}
-                  <strong>5%</strong>
-                </span>
-                <span>
-                  {t("rangeLabel")}
-                  <strong>
-                    {MIN_STAKE}-{maxStake} GAS
-                  </strong>
-                </span>
-                {houseLiquidity > 0 && (
-                  <span title={t("maxPayableLabel")}>
-                    {t("houseLiquidityLabel")}
-                    <strong>{houseLiquidity.toFixed(2)} GAS</strong>
-                  </span>
-                )}
-              </div>
-              <p className="dice-edge-note" title={t("diceRiskCopy")}>
-                <Coins size={14} aria-hidden="true" />
-                <span>{houseEdgeNote}</span>
-              </p>
-              <div
-                className="dice-rule-strip"
-                aria-label={t("diceRoundSummary")}
-              >
-                <span>{t("diceRuleCommit")}</span>
-                <span>{t("diceRuleCallback")}</span>
-                <span>{t("diceRuleRefund")}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="dice-bet-panel">
-            <div className="dice-panel-heading">
-              <span>{t("currentRound")}</span>
-              <strong>{t("stakeRackTitle")}</strong>
-            </div>
-
-            <div
-              className="dice-current-round"
-              aria-label={t("diceBetSummary")}
-            >
-              <div className="dice-current-round__die-card">
-                <DiceFaceImage
-                  face={faceInput}
-                  className="dice-current-round__die"
-                  alt=""
-                />
-                <span>{t("currentRound")}</span>
-              </div>
-              <div className="dice-current-round__copy">
-                <span>{t("selectedFace")}</span>
-                <strong>{faceInput}</strong>
-                <em>{t("faceTrayHint")}</em>
-              </div>
-              <div className="dice-current-round__stats">
-                <span>
-                  <em>{t("stakeAmount")}</em>
-                  <strong>{displayStake}</strong>
-                </span>
-                <span>
-                  <em>{t("payoutPreview")}</em>
-                  <strong>{activePayout}</strong>
-                </span>
-                <span>
-                  <em>{t("netWinLabel")}</em>
-                  <strong>{netPayout}</strong>
-                </span>
-              </div>
-              <Trophy
-                className="dice-current-round__icon"
-                size={23}
-                aria-hidden="true"
-              />
-            </div>
-
-            <div
-              className={`dice-play-loop dice-play-loop--${stageState}${stakeIsValid ? " is-ready" : ""}${isRolling ? " is-rolling" : ""}`}
-              aria-label={t("dicePlayLoop")}
-            >
-              <span
-                className="dice-play-loop__motion dice-play-loop__motion--chip"
-                aria-hidden="true"
-              >
-                <Coins size={15} />
-              </span>
-              <span
-                className="dice-play-loop__motion dice-play-loop__motion--die"
-                aria-hidden="true"
-              >
-                <DiceFaceImage
-                  face={faceInput}
-                  className="dice-play-loop__motion-die"
-                  alt=""
-                />
-              </span>
-              <span
-                className="dice-play-loop__motion dice-play-loop__motion--spark"
-                aria-hidden="true"
-              >
-                <Sparkles size={15} />
-              </span>
-              <span className="dice-play-loop__node dice-play-loop__node--stake">
-                <Coins size={17} aria-hidden="true" />
-                <small>{t("stakeAmount")}</small>
-                <strong>{displayStake}</strong>
-              </span>
-              <span className="dice-play-loop__route" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className="dice-play-loop__node dice-play-loop__node--face">
-                <DiceFaceImage
-                  face={faceInput}
-                  className="dice-play-loop__die"
-                  alt=""
-                />
-                <small>{t("selectedFace")}</small>
-                <strong>{faceInput}</strong>
-              </span>
-              <span className="dice-play-loop__route" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className="dice-play-loop__node dice-play-loop__node--payout">
-                <Trophy size={17} aria-hidden="true" />
-                <small>{t("dicePayoutLabel")}</small>
-                <strong>{activePayout}</strong>
-              </span>
-            </div>
-
-            <div className="dice-chip-rack">
-              <div className="dice-chip-rack__head">
-                <Coins size={17} aria-hidden="true" />
-                <span>{t("stakeRackTitle")}</span>
-              </div>
-              <picture className="dice-chip-rack__visual" aria-hidden="true">
-                <img
-                  src="./dice-chip-rack.jpg"
-                  alt=""
-                  decoding="sync"
-                  loading="eager"
-                />
-              </picture>
-              <div
-                className="dice-stake-presets"
-                aria-label={t("stakePresets")}
-              >
-                {STAKE_PRESETS.map((preset) => {
-                  // Grey out presets above the network cap OR above what the house
-                  // can currently pay — pressing one would strand the GAS as credit.
-                  const unpayable = Number(preset) > effectiveMaxStake;
-                  const isActive =
-                    !unpayable && Number(preset) === Number(amountInput);
-                  return (
-                    <button
-                      key={preset}
-                      type="button"
-                      className={[
-                        "dice-preset-chip",
-                        unpayable && "dice-preset-chip--unpayable",
-                        isActive && "dice-preset-chip--active",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      aria-pressed={isActive}
-                      disabled={controlsLocked || unpayable}
-                      title={
-                        unpayable && maxPayableStake > 0
-                          ? t("statusStakeOverLiquidity", {
-                              max: maxPayableStake.toFixed(2),
-                              tokenGas: t("tokenGas"),
-                            })
-                          : undefined
-                      }
-                      onClick={() => setAmountInput(preset)}
-                    >
-                      <span className="dice-preset-chip__value">{preset}</span>
-                      <span className="dice-preset-chip__unit">GAS</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <details className="dice-stake-drawer">
-                <summary>
-                  <span>{t("customStakeTitle")}</span>
-                  <strong>{t("customStakeHint")}</strong>
-                  <ChevronDown
-                    className="dice-stake-drawer__toggle"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                </summary>
-                <label className="dice-stake-field">
-                  <span>{t("stakeAmount")}</span>
-                  <span
-                    className={`dice-stake-field__control${stakeIsValid ? "" : " dice-stake-field__control--invalid"}`}
-                  >
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*[.]?[0-9]*"
-                      value={amountInput}
-                      aria-label={t("stakeAmount")}
-                      aria-invalid={!stakeIsValid}
-                      disabled={controlsLocked}
-                      onChange={(event) =>
-                        setAmountInput(event.currentTarget.value)
-                      }
-                    />
-                    <b>GAS</b>
-                  </span>
-                  <em>
-                    {stakeIsValid
-                      ? `${t("stakeHelp")} ${activePayout}`
-                      : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
-                  </em>
-                </label>
-              </details>
-            </div>
-
-            {!isEvmChain && (
-              <p className="dice-trust-line">{t("vrfTrustLine")}</p>
-            )}
-
-            {directCredit > 0 && (
-              <div className="dice-credit-banner" role="status">
-                <span>
-                  {t("directCreditBanner", {
-                    amount: directCredit.toFixed(2),
+  const stakeTray = (
+    <div className="dice-chip-tray" aria-label={t("stakeRackTitle")}>
+      {CHIP_PRESETS.map((chip) => {
+        const unpayable = Number(chip.amount) > effectiveMaxStake;
+        const active =
+          !unpayable && normalizeAmount(amountInput) === normalizeAmount(chip.amount);
+        return (
+          <button
+            key={chip.amount}
+            type="button"
+            className={["dice-chip-btn", active ? "dice-chip-btn--active" : null]
+              .filter(Boolean)
+              .join(" ")}
+            aria-pressed={active}
+            aria-label={`${chip.amount} ${t("tokenGas")}`}
+            title={
+              unpayable && maxPayableStake > 0
+                ? t("statusStakeOverLiquidity", {
+                    max: maxPayableStake.toFixed(2),
                     tokenGas: t("tokenGas"),
-                  })}
+                  })
+                : undefined
+            }
+            onClick={() => chooseStake(chip.amount)}
+            disabled={controlsLocked || unpayable}
+          >
+            <img src={chip.asset} alt="" draggable={false} />
+            <span>{chip.amount}</span>
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        className="dice-chip-btn dice-chip-btn--custom"
+        aria-expanded={fineStakeOpen}
+        onClick={() => setFineStakeOpen((open) => !open)}
+        disabled={controlsLocked}
+      >
+        <span>{t("customStakeHint")}</span>
+      </button>
+    </div>
+  );
+
+  const sceneInteraction = (
+    <div className="dice-controls" data-custom-open={fineStakeOpen ? "true" : "false"}>
+      {stakeTray}
+      {fineStakeOpen && (
+        <div className="dice-controls__fine">
+          <OpenUiTextField
+            className="dice-controls__fine-field"
+            inputClassName="dice-controls__fine-input"
+            label={t("customStakeTitle")}
+            type="text"
+            inputMode="decimal"
+            value={amountInput}
+            onChange={(e) => setAmountInput(e.target.value)}
+            disabled={controlsLocked}
+            aria-invalid={!stakeIsValid}
+            placeholder="0.10"
+          />
+          <span className="dice-controls__fine-unit">GAS</span>
+        </div>
+      )}
+      {formError && (
+        <p className="dice-controls__error" role="alert">
+          {formError}
+        </p>
+      )}
+    </div>
+  );
+
+  const scene = (
+    <div
+      className="dice-scene"
+      data-state={isRolling ? "rolling" : showResult ? lastOutcome : "idle"}
+    >
+      <div className="dice-scene__felt" aria-hidden="true">
+        <span className="dice-scene__felt-track" />
+      </div>
+      <div className="dice-scene__table-rim" aria-hidden="true" />
+      <div className="dice-scene__hud" aria-hidden="true">
+        <div className="dice-scene__hud-card dice-scene__hud-card--face">
+          <span>{t("youPicked")}</span>
+          <strong>{faceInput}</strong>
+        </div>
+        <div className="dice-scene__hud-card">
+          <span>{t("payoutPreview")}</span>
+          <strong>{winPayout}</strong>
+        </div>
+      </div>
+      <div className="dice-scene__throw-path" aria-hidden="true">
+        <span className="dice-scene__trail dice-scene__trail--one" />
+        <span className="dice-scene__trail dice-scene__trail--two" />
+        <span className="dice-scene__trail dice-scene__trail--three" />
+      </div>
+      <div className="dice-scene__landing-ring" aria-hidden="true" />
+      <div className="dice-scene__table-mat" aria-hidden="true" />
+      <div className="dice-scene__dealer-rail" aria-hidden="true">
+        <span className="dice-scene__rail-line" />
+        <span className="dice-scene__rail-mark">5.70x</span>
+        <span className="dice-scene__rail-line" />
+      </div>
+      <div className="dice-scene__play-table">
+        {faceBettingRing}
+        <div className="dice-scene__live-zone">
+          <img
+            className="dice-scene__side-die dice-scene__side-die--left"
+            src={diceFaceUrl(companionFace(faceNum, -1))}
+            alt=""
+            draggable={false}
+          />
+          <button
+            type="button"
+            key={`${visibleFace}-${throwPulse}-${selectionPulse}-${isRolling}-${showResult}`}
+            className={[
+              "dice-scene__die-anchor",
+              isRolling ? "mx2-roll" : null,
+              showResult ? "mx2-land" : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => void handleSubmit()}
+            disabled={controlsLocked || !stakeIsValid}
+            aria-label={`${t("rollDice")} - ${t("selectedFace")} ${faceInput}`}
+          >
+            <img
+              className="dice-scene__die"
+              src={diceFaceUrl(faceNum)}
+              alt={t("dieShowing", { face: faceNum })}
+              draggable={false}
+            />
+          </button>
+          <img
+            className="dice-scene__side-die dice-scene__side-die--right"
+            src={diceFaceUrl(companionFace(faceNum, 1))}
+            alt=""
+            draggable={false}
+          />
+        </div>
+      </div>
+      {lastOutcome === "won" && <ParticleBurst coins count={10} />}
+      <div className="dice-scene__stake-chip" aria-hidden="true">
+        <img src={selectedChipAsset} alt="" draggable={false} />
+        <span>{stakeIsValid ? numericStake.toFixed(2) : "?"}</span>
+      </div>
+      <p className="dice-scene__status" aria-live="polite">
+        {statusText}
+      </p>
+      <div className="dice-scene__bet-lane" aria-label={t("betLaneLabel")}>
+        <span className="dice-scene__bet-node dice-scene__bet-node--face">
+          <img src={diceFaceUrl(faceInput)} alt="" draggable={false} />
+          <span>{t("selectedFace")} {faceInput}</span>
+        </span>
+        <span className="dice-scene__bet-beam" aria-hidden="true" />
+        <span
+          className="dice-scene__bet-node dice-scene__bet-node--stake"
+          aria-label={`${t("stakeAmount")} ${displayStake}`}
+        >
+          <img src={selectedChipAsset} alt="" draggable={false} />
+          <span aria-hidden="true">{displayStake}</span>
+        </span>
+        <span className="dice-scene__bet-beam" aria-hidden="true" />
+        <span className="dice-scene__bet-node dice-scene__bet-node--payout">
+          <CoinArt size={18} variant="gas" />
+          <span>{winPayout}</span>
+        </span>
+      </div>
+      {sceneInteraction}
+    </div>
+  );
+
+  return (
+    <OpenUiProvider>
+      <div
+        className="dice-playarea mx2 mx2-cat-game"
+        aria-busy={controlsLocked || undefined}
+      >
+        <PlayStage
+          category="game"
+          stage={{
+            eyebrow: t("rollTab"),
+            title: stageTitle,
+            subtitle: t("rollDescription"),
+            badges: (
+              <>
+                <span className="mx2-badge" data-tone="accent">
+                  <span className="mx2-badge__dot" /> {chainLabel || t("networkLabel")}
                 </span>
-                {!isEvmChain && (
+                {directCredit > 0 && (
+                  <span className="mx2-badge">
+                    <CoinArt size={14} variant="gas" /> {directCredit.toFixed(2)}
+                  </span>
+                )}
+              </>
+            ),
+          }}
+          scene={scene}
+          actions={{
+            primary: {
+              label: t("rollAction"),
+              onClick: () => void handleSubmit(),
+              disabled: controlsLocked || !stakeIsValid,
+              loading: isRolling,
+              icon: <Dices size={18} aria-hidden="true" />,
+              hint: t("rollDice"),
+            },
+            secondary:
+              directCredit > 0 && !isEvmChain
+                ? [
+                    {
+                      label: t("withdrawCredit"),
+                      onClick: () => void dispatch("withdrawCredit", {}),
+                      hint: t("directCreditLabel"),
+                    },
+                  ]
+                : undefined,
+          }}
+          drawerToggleLabel={t("diceHistoryTitle")}
+          drawer={{
+            title: t("diceHistoryTitle"),
+            children: (
+              <div className="dice-drawer">
+                <section className="dice-drawer__section dice-drawer__section--history">
+                  <div className="dice-drawer__section-head">
+                    <strong>{t("networkLabel")}</strong>
+                    <span>{chainLabel || t("networkLabel")}</span>
+                  </div>
+                  {rollHistory.length > 0 ? (
+                    <ul className="mx2-history">
+                      {rollHistory.map((row) => (
+                        <li
+                          key={row.id ?? `${row.txid || row.at || row.face}-${row.result}`}
+                          className="mx2-history__item"
+                          data-outcome={row.outcome || undefined}
+                        >
+                          <span className="mx2-history__face">
+                            {row.face ? `${t("selectedFace")} ${row.face}` : "—"}
+                          </span>
+                          <span className="mx2-history__stake">{row.stake || row.payout}</span>
+                          <span className="mx2-history__result">{row.result}</span>
+                          {row.txid && (
+                            <code className="mx2-history__tx">
+                              {formatHash(row.txid, 6, 4)}
+                            </code>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="dice-drawer__empty">{t("diceHistoryEmpty")}</p>
+                  )}
+                </section>
+
+                <div className="dice-drawer__rule-grid">
+                  <article className="dice-drawer__rule-card">
+                    <span className="dice-drawer__rule-index">1</span>
+                    <strong>{t("howItWorks")}</strong>
+                    <p>{t("docHowItWorks")}</p>
+                  </article>
+                  <article className="dice-drawer__rule-card">
+                    <span className="dice-drawer__rule-index">2</span>
+                    <strong>{t("safetyModel")}</strong>
+                    <p>{t("docSafetyModel")}</p>
+                  </article>
+                  {!isEvmChain && (
+                    <article className="dice-drawer__rule-card">
+                      <span className="dice-drawer__rule-index">3</span>
+                      <strong>{t("diceVrfRouteTitle")}</strong>
+                      <p>{t("vrfTrustLine")}</p>
+                    </article>
+                  )}
+                  <article className="dice-drawer__rule-card">
+                    <span className="dice-drawer__rule-index">{isEvmChain ? "3" : "4"}</span>
+                    <strong>{t("diceRiskTitle")}</strong>
+                    <p>{t("diceRiskCopy")}</p>
+                  </article>
+                </div>
+
+                <section className="dice-drawer__limits" aria-label={t("maxStakeNote")}>
+                  <span>
+                    <small>{t("maxStakeNote")}</small>
+                    <strong>{effectiveMaxStake} GAS</strong>
+                  </span>
+                  <span>
+                    <small>{t("rangeLabel")}</small>
+                    <strong>{MIN_STAKE}–{effectiveMaxStake} GAS</strong>
+                  </span>
+                  <span>
+                    <small>{t("feeLabel")}</small>
+                    <strong>5%</strong>
+                  </span>
+                </section>
+
+                {isUnresolved && (
                   <button
                     type="button"
-                    className="dice-credit-withdraw"
-                    disabled={isSubmitting}
-                    onClick={() => void dispatch("withdrawCredit", {})}
+                    className="mx2-btn mx2-btn--ghost dice-drawer__recheck"
+                    onClick={() => void dispatch("recheckSettlement", {})}
                   >
-                    {t("withdrawCredit")}
+                    {t("checkAgain")}
                   </button>
                 )}
               </div>
-            )}
-
-            <div
-              className={`dice-status-bar${formError ? " dice-status-bar--error" : ""}`}
-              aria-live="polite"
-            >
-              <span>{formError || lastStatus}</span>
-              <strong>
-                {t("dicePayoutLabel")}: {activePayout}
-              </strong>
-              {lastTxid && (
-                <code>
-                  {t("lastTx")}: {formatHash(lastTxid, 10, 8)}
-                </code>
-              )}
-            </div>
-          </div>
-        </form>
-
-        <details className="dice-route-panel">
-          <summary className="dice-panel-heading">
-            <span>{t("diceVrfRouteTitle")}</span>
-            <strong>{t("safetyModel")}</strong>
-            <ChevronDown
-              className="dice-route-toggle"
-              size={18}
-              aria-hidden="true"
-            />
-          </summary>
-          <div className="dice-route-body">
-            <p>{t("diceVrfRouteCopy")}</p>
-            <div className="dice-route-steps" aria-label={t("howItWorks")}>
-              <span>
-                <strong>1</strong>
-                {t("diceCommitStep")}
-              </span>
-              <span>
-                <strong>2</strong>
-                {t("diceOracleStep")}
-              </span>
-              <span>
-                <strong>3</strong>
-                {t("diceSettleStep")}
-              </span>
-            </div>
-            <div className="dice-risk-note">
-              <span>{t("diceRiskTitle")}</span>
-              <strong>{HOUSE_FEE_PERCENT}%</strong>
-              <p>{t("diceRiskCopy")}</p>
-            </div>
-          </div>
-        </details>
-
-        <div className="dice-history-panel">
-          <div className="dice-panel-heading">
-            <span>{t("diceHistoryTitle")}</span>
-            <strong>{t("dicePayoutLabel")}</strong>
-          </div>
-          <div className="dice-history-list">
-            {rollHistory.length === 0 ? (
-              <StateView
-                kind="empty"
-                className="dice-history-empty"
-                title={t("diceHistoryEmpty")}
-              />
-            ) : (
-              rollHistory.map((item) => (
-                <div
-                  className={`dice-history-row${item.outcome ? ` dice-history-row--${item.outcome}` : ""}`}
-                  key={
-                    item.id ??
-                    `${item.txid || item.at || item.face}-${item.result}`
-                  }
-                >
-                  <span className="dice-history-row__face">
-                    <DiceFaceImage
-                      face={FACES.includes(item.face) ? item.face : "6"}
-                      className="dice-history-row__die"
-                      alt=""
-                    />
-                    <b>{item.face}</b>
-                  </span>
-                  <strong>{item.result}</strong>
-                  <em>{item.payout}</em>
-                  {item.txid && <code>{formatHash(item.txid, 10, 8)}</code>}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+            ),
+          }}
+        />
       </div>
-    </section>
+    </OpenUiProvider>
   );
 }

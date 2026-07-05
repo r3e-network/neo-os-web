@@ -19,6 +19,7 @@ defineMiniApp({
 
   setup(ctx) {
     const lab = useAAPermissionsLab({
+      app: ctx.framework,
       chain: ctx.services.chain,
       storageService: ctx.os.storage,
       t: ctx.t,
@@ -37,7 +38,7 @@ defineMiniApp({
       lab.form.hookHash = launchDefaults.hookHash;
     }
 
-    ctx.registerAction("refresh", async (accountIdHash: unknown) => {
+    ctx.framework.actions.register("refresh", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
       await ctx.services.notify.guard(
         () => lab.refreshState(),
@@ -46,7 +47,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "submitVerifier",
       async (
         accountIdHash: unknown,
@@ -64,7 +65,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction(
+    ctx.framework.actions.register(
       "submitHook",
       async (accountIdHash: unknown, hookHash: unknown) => {
         lab.form.accountIdHash = String(accountIdHash);
@@ -77,7 +78,7 @@ defineMiniApp({
       },
     );
 
-    ctx.registerAction("confirmVerifier", async (accountIdHash: unknown) => {
+    ctx.framework.actions.register("confirmVerifier", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
       await ctx.services.notify.guard(
         () => lab.confirmVerifier(),
@@ -86,7 +87,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("cancelVerifier", async (accountIdHash: unknown) => {
+    ctx.framework.actions.register("cancelVerifier", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
       await ctx.services.notify.guard(
         () => lab.cancelVerifier(),
@@ -95,7 +96,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("confirmHook", async (accountIdHash: unknown) => {
+    ctx.framework.actions.register("confirmHook", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
       await ctx.services.notify.guard(
         () => lab.confirmHook(),
@@ -104,7 +105,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("cancelHook", async (accountIdHash: unknown) => {
+    ctx.framework.actions.register("cancelHook", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
       await ctx.services.notify.guard(
         () => lab.cancelHook(),
@@ -113,7 +114,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("connect", () =>
+    ctx.framework.actions.register("connect", () =>
       ctx.services.notify.guard(
         () => ctx.services.chain.ensureWallet(),
         "walletConnected",

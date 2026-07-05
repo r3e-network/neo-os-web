@@ -16,33 +16,33 @@ defineMiniApp({
 
   setup(ctx) {
     const shrine = useMemorialShrine({
-      chainService: ctx.services.chain,
+      app: ctx.framework,
       launchNetwork: ctx.launchContext.network,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    ctx.registerAction("openMemorial", async (...args: unknown[]) => {
+    ctx.framework.actions.register("openMemorial", async (...args: unknown[]) => {
       shrine.openMemorial(Number(args[0]));
     });
-    ctx.registerAction("closeMemorial", async () => {
+    ctx.framework.actions.register("closeMemorial", async () => {
       shrine.closeMemorial();
     });
-    ctx.registerAction("shareMemorial", async (...args: unknown[]) => {
+    ctx.framework.actions.register("shareMemorial", async (...args: unknown[]) => {
       const id = Number(args[0]);
       const memorial = Number.isFinite(id)
         ? shrine.memorials.get().find((m) => m.id === id)
         : undefined;
       await shrine.shareMemorial(memorial);
     });
-    ctx.registerAction("createMemorial", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createMemorial", async (...args: unknown[]) => {
       const form = args[0] as {
         name: string; photoHash: string; relationship: string;
         birthYear: number; deathYear: number; biography: string; obituary: string;
       };
       await ctx.services.notify.guard(() => shrine.createMemorial(form), "createSuccess");
     });
-    ctx.registerAction("payTribute", async (...args: unknown[]) => {
+    ctx.framework.actions.register("payTribute", async (...args: unknown[]) => {
       const [memorialId, offeringType, message, receiptId] = args;
       await ctx.services.notify.guard(
         () => shrine.payTribute(

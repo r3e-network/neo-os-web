@@ -27,8 +27,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/graveyard/index.html",
-    "icon": "/miniapps/graveyard/logo.jpg",
-    "banner": "/miniapps/graveyard/banner.jpg"
+    "icon": "/miniapps/graveyard/logo.webp",
+    "banner": "/miniapps/graveyard/banner.webp"
   },
   "permissions": [
     "invoke:primary",

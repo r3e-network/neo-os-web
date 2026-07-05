@@ -34,8 +34,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/gas-sponsor/index.html",
-    "icon": "/miniapps/gas-sponsor/logo.jpg",
-    "banner": "/miniapps/gas-sponsor/banner.jpg"
+    "icon": "/miniapps/gas-sponsor/logo.webp",
+    "banner": "/miniapps/gas-sponsor/banner.webp"
   },
   "permissions": [
     "invoke:primary",

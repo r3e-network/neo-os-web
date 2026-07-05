@@ -17,11 +17,33 @@ import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import { extractTxid } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS, resolveNeoNetwork } from "@shared/constants";
 import type { Network } from "@shared/utils/n3index";
-import type { RoundItem } from "../pages/index/components/RoundList";
+import type { RoundItem } from "./quadraticTypes";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const APP_ID = "miniapp-quadratic-funding";
+
+type ScaledAmountResult =
+  | { ok: true; value: string }
+  | { ok: false; reason: "fractionalNeo" | "invalid" };
+
+function scaleAssetAmount(assetSymbol: string, raw: string): ScaledAmountResult {
+  const normalizedAsset = assetSymbol.toUpperCase() === "NEO" ? "NEO" : "GAS";
+  const value = raw.trim();
+  if (normalizedAsset === "NEO") {
+    if (/[.,]/.test(value)) return { ok: false, reason: "fractionalNeo" };
+    if (!/^\d+$/.test(value)) return { ok: false, reason: "invalid" };
+    const scaled = value.replace(/^0+/, "") || "0";
+    return scaled === "0" ? { ok: false, reason: "invalid" } : { ok: true, value: scaled };
+  }
+
+  if (!/^(?:\d+(?:\.\d{0,8})?|\.\d{1,8})$/.test(value)) {
+    return { ok: false, reason: "invalid" };
+  }
+  const [intPart = "", fracPart = ""] = value.split(".");
+  const scaled = `${intPart.trim()}${fracPart.slice(0, 8).padEnd(8, "0")}`.replace(/^0+/, "") || "0";
+  return scaled === "0" ? { ok: false, reason: "invalid" } : { ok: true, value: scaled };
+}
 
 export function useQuadraticRounds() {
   const { t } = createUseI18n(messages)();
@@ -273,15 +295,14 @@ export function useQuadraticRounds() {
       return;
     }
 
-    const decimals = data.asset === "NEO" ? 0 : 8;
-    const matchingPool = (() => {
-      const [intPart = "", fracPart = ""] = data.matchingPool.split(".");
-      const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const value = `${intPart.trim()}${normalized}`;
-      return value.replace(/^0+/, "") || "0";
-    })();
+    const matchingPoolResult = scaleAssetAmount(data.asset, data.matchingPool);
 
     // Reject negative / non-numeric amounts that survive the leading-zero strip.
+    if (!matchingPoolResult.ok) {
+      setStatus(t(matchingPoolResult.reason === "fractionalNeo" ? "neoNoFractional" : "invalidMatchingPool"), "error");
+      return;
+    }
+    const matchingPool = matchingPoolResult.value;
     if (!/^\d+$/.test(matchingPool) || matchingPool === "0") {
       setStatus(t("invalidMatchingPool"), "error");
       return;
@@ -326,15 +347,14 @@ export function useQuadraticRounds() {
     if (!requireNeoChain(chainType.get(), t)) return;
     if (!selectedRound.get() || isAddingMatching.get()) return;
 
-    const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
-    const parsedAmount = (() => {
-      const [intPart = "", fracPart = ""] = amount.split(".");
-      const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const value = `${intPart.trim()}${normalized}`;
-      return value.replace(/^0+/, "") || "0";
-    })();
+    const parsedAmountResult = scaleAssetAmount(selectedRound.get().assetSymbol, amount);
 
     // Reject negative / non-numeric amounts that survive the leading-zero strip.
+    if (!parsedAmountResult.ok) {
+      setStatus(t(parsedAmountResult.reason === "fractionalNeo" ? "neoNoFractional" : "invalidMatchingPool"), "error");
+      return;
+    }
+    const parsedAmount = parsedAmountResult.value;
     if (!/^\d+$/.test(parsedAmount) || parsedAmount === "0") {
       setStatus(t("invalidMatchingPool"), "error");
       return;
@@ -399,13 +419,12 @@ export function useQuadraticRounds() {
       .filter((value) => Number.isFinite(value) && value > 0)
       .map((value) => String(value));
 
-    const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
-    const matchedAmounts = matchedArray.map((value) => {
-      const [intPart = "", fracPart = ""] = String(value).split(".");
-      const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const val = `${intPart.trim()}${normalized}`;
-      return val.replace(/^0+/, "") || "0";
-    });
+    const matchedResults = matchedArray.map((value) => scaleAssetAmount(selectedRound.get().assetSymbol, String(value)));
+    if (matchedResults.some((result) => !result.ok && result.reason === "fractionalNeo")) {
+      setStatus(t("neoNoFractional"), "error");
+      return;
+    }
+    const matchedAmounts = matchedResults.map((result) => result.ok ? result.value : "invalid");
 
     // Any bad project id or matched amount (negative / non-numeric / dropped by
     // the id filter) would desync the parallel arrays sent on-chain — reject

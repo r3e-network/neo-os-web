@@ -82,6 +82,47 @@ const appMessages = {
   qfPickProject: { en: "Pick a project", zh: "选择项目" },
   qfDonationTicket: { en: "Donation ticket", zh: "捐助票据" },
   qfAmountPresets: { en: "Donation amount presets", zh: "捐助金额快捷选项" },
+  qfDonationPreview: { en: "Donation preview", zh: "捐助预览" },
+  qfCustomAmount: { en: "Custom amount", zh: "自定义金额" },
+  qfNoMemo: { en: "No memo", zh: "无备注" },
+  qfDonationDetails: {
+    en: "Manual project ID and memo",
+    zh: "手动项目 ID 与备注",
+  },
+  qfDonationDetailsHint: {
+    en: "Most donors can use the project cards and amount chips above. Open this only for an unlisted project ID or an optional memo.",
+    zh: "大多数捐助者直接使用上方项目卡和金额快捷选项即可。仅在需要输入未列出的项目 ID 或可选备注时展开这里。",
+  },
+  qfFundingGateEyebrow: { en: "Funding launchpad", zh: "资助启动台" },
+  qfFundingNeedsRoundTitle: {
+    en: "Load or create a round before donation",
+    zh: "先读取或创建资助轮次",
+  },
+  qfFundingNeedsRoundBody: {
+    en: "A contribution needs an active round so the wallet can sign against the correct matching pool. Start there, then this desk turns into the donation flow.",
+    zh: "捐助需要先绑定进行中的轮次，钱包才能按正确的匹配资金池签名。先从轮次开始，随后这里会切换成捐助流程。",
+  },
+  qfFundingNeedsProjectsTitle: {
+    en: "Bring projects onto the board",
+    zh: "先把项目放上资助看板",
+  },
+  qfFundingNeedsProjectsBody: {
+    en: "This round is ready, but donors need real project cards to choose from. Register the first project or refresh the project ledger.",
+    zh: "轮次已准备好，但捐助者需要先看到可选择的项目卡。请注册第一个项目，或刷新项目账本。",
+  },
+  qfFundingGateStepRounds: { en: "Round", zh: "轮次" },
+  qfFundingGateStepProjects: { en: "Projects", zh: "项目" },
+  qfFundingGateStepDonate: { en: "Donate", zh: "捐助" },
+  qfSetupStatus: { en: "Desk status", zh: "启动台状态" },
+  qfSetupLaneLabel: { en: "Funding setup path", zh: "资助启动路径" },
+  qfProjectsReadyCount: {
+    en: "{count} projects ready",
+    zh: "{count} 个项目已就绪",
+  },
+  qfDonationDeskReady: { en: "Desk ready", zh: "捐助台已就绪" },
+  qfDonationDeskWaiting: { en: "Waiting for setup", zh: "等待准备完成" },
+  qfOpenRoundsAction: { en: "Open rounds", zh: "打开轮次" },
+  qfRefreshProjectsAction: { en: "Refresh projects", zh: "刷新项目" },
   qfAmplifyTitle: {
     en: "Why your donation is amplified",
     zh: "为什么你的捐助会被放大",
@@ -250,6 +291,10 @@ const appMessages = {
   },
 
   registerProject: { en: "Register Project", zh: "注册项目" },
+  qfRegisterProjectHint: {
+    en: "Project intake for this round.",
+    zh: "本轮项目入口。",
+  },
   projectsList: { en: "Project ledger", zh: "项目账本" },
   registeringProject: { en: "Registering...", zh: "注册中..." },
   projectName: { en: "Project name", zh: "项目名称" },

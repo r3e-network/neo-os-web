@@ -5,7 +5,7 @@ export default function StatsPage() {
   return (
     <Layout>
       <Head>
-        <title>Statistics Unavailable - Yiwu</title>
+        <title>Statistics Unavailable - Neo Miniapps</title>
       </Head>
       <PageNotice
         eyebrow="Frontend policy"

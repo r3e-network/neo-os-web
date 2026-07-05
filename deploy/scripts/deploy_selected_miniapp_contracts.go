@@ -36,13 +36,14 @@ const (
 )
 
 type deployRecord struct {
-	Name        string `json:"name"`
-	Network     string `json:"network"`
-	Hash        string `json:"hash"`
-	AppManifest string `json:"app_manifest,omitempty"`
-	OracleSet   bool   `json:"oracle_set,omitempty"`
-	AASet       bool   `json:"aa_set,omitempty"`
-	AnchorSet   bool   `json:"anchor_set,omitempty"`
+	Name         string `json:"name"`
+	Network      string `json:"network"`
+	Hash         string `json:"hash"`
+	AppManifest  string `json:"app_manifest,omitempty"`
+	OracleSet    bool   `json:"oracle_set,omitempty"`
+	TeeSignerSet bool   `json:"tee_signer_set,omitempty"`
+	AASet        bool   `json:"aa_set,omitempty"`
+	AnchorSet    bool   `json:"anchor_set,omitempty"`
 }
 
 type appManifest struct {
@@ -52,6 +53,16 @@ type appManifest struct {
 
 var deployTargets = []deployTarget{
 	{"MiniAppMultisig", "contracts/build/MiniAppMultisig.nef", "contracts/build/MiniAppMultisig.manifest.json", "apps/neo-multisig/neo-manifest.json"},
+	{"MiniAppAimMaster", "contracts/build/MiniAppAimMaster.nef", "contracts/build/MiniAppAimMaster.manifest.json", "apps/aim-master/neo-manifest.json"},
+	{"MiniAppColorClash", "contracts/build/MiniAppColorClash.nef", "contracts/build/MiniAppColorClash.manifest.json", "apps/color-clash/neo-manifest.json"},
+	{"MiniAppFlappyDash", "contracts/build/MiniAppFlappyDash.nef", "contracts/build/MiniAppFlappyDash.manifest.json", "apps/flappy-dash/neo-manifest.json"},
+	{"MiniAppGame2048", "contracts/build/MiniAppGame2048.nef", "contracts/build/MiniAppGame2048.manifest.json", "apps/game-2048/neo-manifest.json"},
+	{"MiniAppJumpRush", "contracts/build/MiniAppJumpRush.nef", "contracts/build/MiniAppJumpRush.manifest.json", "apps/jump-rush/neo-manifest.json"},
+	{"MiniAppMergeKingdom", "contracts/build/MiniAppMergeKingdom.nef", "contracts/build/MiniAppMergeKingdom.manifest.json", "apps/merge-kingdom/neo-manifest.json"},
+	{"MiniAppPetPotion", "contracts/build/MiniAppPetPotion.nef", "contracts/build/MiniAppPetPotion.manifest.json", "apps/pet-potion/neo-manifest.json"},
+	{"MiniAppSheepSolitaire", "contracts/build/MiniAppSheepSolitaire.nef", "contracts/build/MiniAppSheepSolitaire.manifest.json", "apps/sheep-solitaire/neo-manifest.json"},
+	{"MiniAppSnakeBounty", "contracts/build/MiniAppSnakeBounty.nef", "contracts/build/MiniAppSnakeBounty.manifest.json", "apps/snake-bounty/neo-manifest.json"},
+	{"MiniAppSudoku", "contracts/build/MiniAppSudoku.nef", "contracts/build/MiniAppSudoku.manifest.json", "apps/sudoku/neo-manifest.json"},
 	{"MiniAppEventTicketPass", "contracts/build/MiniAppEventTicketPass.nef", "contracts/build/MiniAppEventTicketPass.manifest.json", "apps/event-ticket-pass/neo-manifest.json"},
 	{"MiniAppMilestoneEscrow", "contracts/build/MiniAppMilestoneEscrow.nef", "contracts/build/MiniAppMilestoneEscrow.manifest.json", "apps/milestone-escrow/neo-manifest.json"},
 	{"MiniAppQuadraticFunding", "contracts/build/MiniAppQuadraticFunding.nef", "contracts/build/MiniAppQuadraticFunding.manifest.json", "apps/quadratic-funding/neo-manifest.json"},
@@ -93,8 +104,13 @@ func main() {
 	}
 	filter := parseFilter(strings.TrimSpace(os.Getenv("MINIAPP_DEPLOY_TARGETS")))
 
-	oracleHash, _ := parseOptionalHash(networkScopedHash(network, "CONTRACT_MORPHEUS_ORACLE", "MORPHEUS_ORACLE"))
-	aaHash, _ := parseOptionalHash(networkScopedHash(network, "CONTRACT_AA_CORE", "AA_CORE"))
+	oracleHash, _ := parseOptionalHash(configuredContractHash(network, "morpheus_oracle", "CONTRACT_MORPHEUS_ORACLE", "MORPHEUS_ORACLE"))
+	teeSigner, err := parseOptionalPublicKey(configuredTeeSignerPublicKey(network))
+	if err != nil {
+		fmt.Printf("invalid TEE signer public key: %v\n", err)
+		os.Exit(1)
+	}
+	aaHash, _ := parseOptionalHash(configuredContractHash(network, "abstract_account", "CONTRACT_AA_CORE", "AA_CORE"))
 	anchorHash, _ := parseOptionalHash(networkScopedHash(network, "CONTRACT_AUTOMATIONANCHOR", "AUTOMATION_ANCHOR"))
 
 	priv, err := keys.NewPrivateKeyFromWIF(wif)
@@ -199,6 +215,15 @@ func main() {
 				continue
 			} else {
 				record.OracleSet = ok
+			}
+		}
+		if teeSigner != nil {
+			if ok, err := maybeConfigurePublicKey(ctx, client, act, expectedHash, "setTeeSigner", teeSigner); err != nil {
+				fmt.Printf("setTeeSigner failed: %v\n", err)
+				failed = true
+				continue
+			} else {
+				record.TeeSignerSet = ok
 			}
 		}
 		if aaHash != (util.Uint160{}) {
@@ -319,6 +344,92 @@ func networkScopedHash(network string, prefixes ...string) string {
 	return ""
 }
 
+func configuredContractHash(network string, configKey string, prefixes ...string) string {
+	if value := networkScopedHash(network, prefixes...); value != "" {
+		return value
+	}
+	return siblingMorpheusContractHash(network, configKey)
+}
+
+func configuredTeeSignerPublicKey(network string) string {
+	networkName := strings.ToUpper(strings.ReplaceAll(network, "-", "_"))
+	for _, key := range []string{
+		"MINIAPP_TEE_SIGNER_PUBLIC_KEY_" + networkName,
+		"MINIAPP_" + networkName + "_TEE_SIGNER_PUBLIC_KEY",
+		"MORPHEUS_ORACLE_VERIFIER_PUBLIC_KEY_" + networkName,
+		"MORPHEUS_" + networkName + "_ORACLE_VERIFIER_PUBLIC_KEY",
+	} {
+		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+			return value
+		}
+	}
+	if value := siblingMorpheusVerifierPublicKey(network); value != "" {
+		return value
+	}
+	return firstNonEmpty(
+		os.Getenv("MINIAPP_TEE_SIGNER_PUBLIC_KEY"),
+		os.Getenv("MORPHEUS_ORACLE_VERIFIER_PUBLIC_KEY"),
+	)
+}
+
+type morpheusNetworkConfig struct {
+	NeoN3 struct {
+		Contracts map[string]string `json:"contracts"`
+	} `json:"neo_n3"`
+}
+
+type morpheusSignerIdentities struct {
+	NeoN3 map[string]struct {
+		Roles map[string]struct {
+			PublicKey string `json:"public_key"`
+		} `json:"roles"`
+	} `json:"neo_n3"`
+}
+
+func siblingMorpheusContractHash(network string, key string) string {
+	candidates := []string{
+		filepath.Join("..", "neo-morpheus-oracle", "config", "networks", network+".json"),
+		filepath.Join("..", "..", "neo-morpheus-oracle", "config", "networks", network+".json"),
+		filepath.Join(os.Getenv("HOME"), "git", "r3e", "neo-morpheus-oracle", "config", "networks", network+".json"),
+	}
+	for _, candidate := range candidates {
+		data, err := os.ReadFile(candidate)
+		if err != nil {
+			continue
+		}
+		var config morpheusNetworkConfig
+		if err := json.Unmarshal(data, &config); err != nil {
+			continue
+		}
+		if value := strings.TrimSpace(config.NeoN3.Contracts[key]); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func siblingMorpheusVerifierPublicKey(network string) string {
+	candidates := []string{
+		filepath.Join("..", "neo-morpheus-oracle", "config", "signer-identities.json"),
+		filepath.Join("..", "..", "neo-morpheus-oracle", "config", "signer-identities.json"),
+		filepath.Join(os.Getenv("HOME"), "git", "r3e", "neo-morpheus-oracle", "config", "signer-identities.json"),
+	}
+	for _, candidate := range candidates {
+		data, err := os.ReadFile(candidate)
+		if err != nil {
+			continue
+		}
+		var config morpheusSignerIdentities
+		if err := json.Unmarshal(data, &config); err != nil {
+			continue
+		}
+		if value := strings.TrimSpace(config.NeoN3[network].Roles["oracle_verifier"].PublicKey); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 func selectedDeployNetworkConfig(network string) (uint32, string, string, string, string, error) {
 	switch network {
 	case "testnet":
@@ -326,14 +437,14 @@ func selectedDeployNetworkConfig(network string) (uint32, string, string, string
 			firstNonEmpty(os.Getenv("NEO_TESTNET_RPC_URL"), os.Getenv("NEO_RPC_URL"), "https://testnet1.neo.coz.io:443"),
 			firstNonEmpty(os.Getenv("MINIAPP_TESTNET_DEPLOY_WIF"), os.Getenv("MINIAPP_DEPLOY_WIF"), os.Getenv("NEO_TESTNET_WIF"), os.Getenv("FLAGSHIP_TESTNET_WIF")),
 			"neo-n3-testnet",
-			filepath.Join("contracts", "build", "selected_miniapps_redeployed_testnet.json"),
+			firstNonEmpty(os.Getenv("MINIAPP_DEPLOY_REPORT_PATH"), filepath.Join("contracts", "build", "selected_miniapps_redeployed_testnet.json")),
 			nil
 	case "mainnet":
 		return selectedMainnetMagic,
 			firstNonEmpty(os.Getenv("NEO_MAINNET_RPC_URL"), "https://mainnet2.neo.coz.io:443"),
 			firstNonEmpty(os.Getenv("MINIAPP_MAINNET_DEPLOY_WIF"), os.Getenv("NEO_MAINNET_WIF"), os.Getenv("FLAGSHIP_MAINNET_WIF")),
 			"neo-n3-mainnet",
-			filepath.Join("contracts", "build", "selected_miniapps_redeployed_mainnet.json"),
+			firstNonEmpty(os.Getenv("MINIAPP_DEPLOY_REPORT_PATH"), filepath.Join("contracts", "build", "selected_miniapps_redeployed_mainnet.json")),
 			nil
 	default:
 		return 0, "", "", "", "", fmt.Errorf("unsupported MINIAPP_DEPLOY_NETWORK=%q", network)
@@ -356,6 +467,14 @@ func parseOptionalHash(raw string) (util.Uint160, error) {
 	}
 	raw = strings.TrimPrefix(raw, "0x")
 	return util.Uint160DecodeStringLE(raw)
+}
+
+func parseOptionalPublicKey(raw string) (*keys.PublicKey, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	return keys.NewPublicKeyFromString(raw)
 }
 
 func loadNEF(path string) (*nef.File, []byte, error) {
@@ -383,6 +502,39 @@ func loadManifest(path string) (*manifest.Manifest, []byte, error) {
 }
 
 func maybeConfigureHash(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, method string, value util.Uint160) (bool, error) {
+	state, err := client.GetContractStateByHash(contractHash)
+	if err != nil {
+		return false, err
+	}
+
+	found := false
+	for _, candidate := range state.Manifest.ABI.Methods {
+		if strings.EqualFold(candidate.Name, method) && len(candidate.Parameters) == 1 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false, nil
+	}
+
+	testResult, err := act.Call(contractHash, method, value)
+	if err != nil {
+		return false, fmt.Errorf("test invoke: %w", err)
+	}
+	if testResult.State != "HALT" {
+		return false, fmt.Errorf("test invoke fault: %s", testResult.FaultException)
+	}
+
+	txHash, vub, err := act.SendCall(contractHash, method, value)
+	if err != nil {
+		return false, fmt.Errorf("send call: %w", err)
+	}
+	fmt.Printf("%s tx: %s (vub: %d)\n", method, txHash.StringLE(), vub)
+	return true, waitForTx(ctx, client, txHash)
+}
+
+func maybeConfigurePublicKey(ctx context.Context, client *rpcclient.Client, act *actor.Actor, contractHash util.Uint160, method string, value *keys.PublicKey) (bool, error) {
 	state, err := client.GetContractStateByHash(contractHash)
 	if err != nil {
 		return false, err

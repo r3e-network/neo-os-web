@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,66 +17,65 @@ function t(key: string, params?: Record<string, string | number>) {
     createTab: "Create",
     claimablePool: "Claimable pool",
     claimContractRoute: "game.placeBet -> claimResult",
-    claimFlowTitle: "Claim flow",
-    claimNow: "Claim now",
-    claimPanelTitle: "Recipient claim path",
-    claimRouteOne: "Select envelope",
-    claimRouteOneCopy: "Choose a claimable envelope.",
-    claimRouteThree: "Receive GAS",
-    claimRouteThreeCopy: "Claimed GAS settles to the wallet.",
-    claimRouteTwo: "Review request",
-    claimRouteTwoCopy: "Review the wallet request.",
-    claimedGasLabel: "Claimed GAS",
     contractRoute: "Contract route",
-    createPanelTitle: "Send a lucky envelope",
-    createPreviewTitle: "Envelope preview",
-    createReadyDesc: "Ready to send. Each recipient draws a random share of the pool.",
-    creatorMode: "Creator mode",
-    createdGasLabel: "Created GAS",
     enterPoolId: "Enter pool ID",
     envelopeId: "Envelope ID",
     expiryHours: "Expiry hours",
-    giftMachineTitle: "Lucky packet machine",
-    giftMachineCopy: "Tune the pool, packet count, and expiry before sending.",
-    decreaseValue: "Decrease {label}",
-    increaseValue: "Increase {label}",
     hoursSuffix: "h",
     invalidAmount: "Enter at least 0.1 GAS",
     invalidExpiry: "Enter a valid expiry in hours",
     invalidPackets: "Enter 1-100 packets",
     invalidPerPacket: "Each packet must be at least 0.01 GAS",
-    needsEnvelopeId: "Needs envelope ID",
+    countExceeded: "Max 100 packets",
+    myEnvelopes: "My envelopes",
     noActivity: "No recent claims",
-    noActivityCopy: "Successful claims will appear here.",
-    noPools: "No active envelopes",
-    noPoolsCopy: "Create or paste an envelope ID.",
+    noActivityCopy: "Successful claims appear here.",
+    noEnvelopes: "No active envelopes",
     packetCount: "Packet count",
-    packetUnit: "packets",
+    packetPreset: "{count} packets",
     perPacketLabel: "Average packet",
-    poolProgress: "Pool progress",
-    ready: "Ready",
-    readyToClaim: "Claim request prepared",
     recentClaimsTitle: "Recent claims",
-    redEnvelopeHeroSubtitle: "Claim or send Neo N3 GAS envelopes.",
-    redEnvelopeHeroTitle: "Red Envelope",
-    remainingPacketsLabel: "Packets left",
-    safetyPanelCopy: "Claims and creates go through guarded OS services.",
-    safetyPanelTitle: "Transaction safety",
+    reclaimableTitle: "Reclaimable",
+    reclaimEnvelope: "Reclaim",
+    readyToClaim: "Claim request prepared",
+    title: "Red Envelope",
+    subtitle: "Claim or send Neo N3 GAS envelopes.",
+    tokenGas: "GAS",
+    claimRedEnvelope: "Claim Red Envelope",
     sendRedEnvelope: "Send Red Envelope",
     sendingRedEnvelope: "Sending packets...",
-    shareReadyTitle: "OneGate share-ready",
-    totalGas: "Total GAS",
     opening: "Opening...",
-    ...Object.fromEntries(
-      Object.entries(params ?? {}).map(([paramKey, paramValue]) => [
-        paramKey,
-        String(paramValue),
-      ]),
-    ),
+    claimNow: "Claim now",
+    claimTicketTitle: "Claim ticket",
+    claimTicketReady: "Envelope matched",
+    claimTicketPrepared: "Envelope ID prepared",
+    claimTicketEmpty: "Waiting for envelope",
+    claimTicketReadyDesc: "This ticket is linked to an active pool. Open once and review the wallet request.",
+    claimTicketPreparedDesc: "The ID is filled. Claiming will ask the contract to verify whether it can be opened.",
+    claimTicketEmptyDesc: "Scan a QR, paste a link ID, or pick an open envelope below.",
+    scanOrPasteEnvelope: "Scan or paste ID",
+    giftMachineTitle: "Lucky packet machine",
+    createReadyDesc: "Ready to send. Each recipient draws a random share of the pool.",
+    adjustEnvelopeSetup: "Adjust setup",
+    packetUnit: "packets",
+    readyToSendEnvelope: "Ready to send",
+    congratulations: "Congratulations!",
+    fromLabel: "From",
+    luckyReceivedClose: "Collect",
+    totalGas: "Total GAS",
+    hourPreset: "{hours}h",
+    withdrawCredit: "Withdraw",
+    copyShareLink: "Copy share link",
+    shareHint: "Share",
+    prepaidCreditLabel: "Prepaid credit",
+    safetyPanelTitle: "Transaction safety",
+    safetyPanelCopy: "Claims and creates go through guarded OS services.",
   };
-  return (messages[key] ?? key).replace(/\{(\w+)\}/g, (_, paramKey: string) =>
-    params?.[paramKey] === undefined ? `{${paramKey}}` : String(params[paramKey]),
-  );
+  let value = messages[key] ?? key;
+  for (const [paramKey, paramValue] of Object.entries(params ?? {})) {
+    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
+  }
+  return value;
 }
 
 function launch(url = "https://neomini.app/miniapps/red-envelope/index.html?network=testnet") {
@@ -87,37 +85,10 @@ function launch(url = "https://neomini.app/miniapps/red-envelope/index.html?netw
 function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
     claimCount: 1,
-    claims: [
-      {
-        id: "claim-1",
-        holder: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa",
-        amount: 0.42,
-      },
-    ],
-    envelopeCount: 2,
+    claims: [{ id: "claim-1", envelopeId: "pool-alpha", amount: 0.42 }],
     envelopes: [
-      {
-        id: "pool-alpha",
-        totalAmount: 8,
-        packetCount: 8,
-        openedCount: 5,
-        remainingAmount: 3.2,
-        remainingPackets: 3,
-        active: true,
-        canOpen: true,
-        status: "active",
-      },
-      {
-        id: "pool-closed",
-        totalAmount: 2,
-        packetCount: 4,
-        openedCount: 4,
-        remainingAmount: 0,
-        remainingPackets: 0,
-        active: false,
-        canOpen: false,
-        status: "closed",
-      },
+      { id: "pool-alpha", totalAmount: 8, packetCount: 8, openedCount: 5, remainingAmount: 3.2, remainingPackets: 3, active: true, canOpen: true, status: "active" },
+      { id: "pool-closed", totalAmount: 2, packetCount: 4, openedCount: 4, remainingAmount: 0, remainingPackets: 0, active: false, canOpen: false, status: "closed" },
     ],
     isLoading: false,
     luckyMessage: null,
@@ -125,169 +96,231 @@ function baseState(overrides: Partial<Record<string, unknown>> = {}): Observable
     poolCount: 1,
     totalClaimed: 0.42,
     totalCreated: 8,
+    prepaidCredit: 0,
+    lastCreatedEnvelopeId: "",
     ...overrides,
   };
-
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
   );
 }
 
-describe("Red Envelope PlayArea", () => {
-  it("lets a recipient select an active envelope and dispatch a claim", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
+describe("Red Envelope PlayArea (v2 scene-driven)", () => {
+  it("renders the envelope scene with the claim mode active", () => {
+    const { container } = render(
+      <PlayArea t={t} state={baseState()} dispatch={vi.fn()} launchContext={launch()} />,
+    );
 
+    // The dominant scene uses real art assets, not CSS-drawn placeholders.
+    expect(container.querySelector(".redenv-scene")).toBeTruthy();
+    expect(container.querySelector(".redenv-scene__packet")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".redenv-scene__packet-art")?.getAttribute("src")).toContain("red-envelope-claim-card.webp");
+    expect(container.querySelector(".redenv-scene__stage-art")).toBeNull();
+    expect(container.querySelector(".redenv-scene__backdrop")).toBeNull();
+    expect(container.querySelectorAll(".redenv-tab").length).toBe(2);
+    // The primary action is the claim button.
+    expect(container.querySelector(".mx2-btn--primary")).toBeTruthy();
+    expect(container.querySelector(".mx2-btn--primary svg")).toBeTruthy();
+    expect((screen.getByPlaceholderText("Enter pool ID") as HTMLInputElement).value).toBe("pool-alpha");
+  });
+
+  it("dispatches a claim from the envelope resource and shows opening motion", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={baseState()} dispatch={dispatch} launchContext={launch()} />,
+    );
+
+    // Fire the dominant envelope resource itself, not a secondary form button.
+    fireEvent.click(container.querySelector(".redenv-scene__packet") as Element);
+
+    // The scene flips to "opening" and the packet gains the tumble animation.
+    await waitFor(() => {
+      expect(container.querySelector('.redenv-scene[data-state="opening"]')).toBeTruthy();
+      expect(container.querySelector(".redenv-scene__packet--opening")).toBeTruthy();
+    });
+    expect(dispatch).toHaveBeenCalledWith("claimEnvelope", { envelopeId: "pool-alpha" });
+  });
+
+  it("prefills the claim id from launch params", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ envelopes: [], claims: [], claimCount: 0 })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          "https://neomini.app/miniapps/red-envelope/index.html?network=testnet&envelopeId=qr-pool-42",
+        )}
+      />,
+    );
+
+    expect((screen.getByPlaceholderText("Enter pool ID") as HTMLInputElement).value).toBe("qr-pool-42");
+  });
+
+  it("lets the user clear the claim ticket instead of immediately refilling the default", async () => {
+    const { container } = render(
+      <PlayArea t={t} state={baseState()} dispatch={vi.fn()} launchContext={launch()} />,
+    );
+    const input = screen.getByPlaceholderText("Enter pool ID") as HTMLInputElement;
+    expect(input.value).toBe("pool-alpha");
+
+    fireEvent.change(input, { target: { value: "" } });
+
+    await waitFor(() => expect(input.value).toBe(""));
+    expect(container.querySelector<HTMLButtonElement>(".mx2-action-rail .mx2-btn--primary")?.disabled).toBe(true);
+  });
+
+  it("switches to create mode and validates against contract limits", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
       <PlayArea
         t={t}
-        state={baseState()}
+        state={baseState({ envelopes: [], claims: [], claimCount: 0 })}
+        dispatch={dispatch}
+        launchContext={launch(
+          "https://neomini.app/miniapps/red-envelope/index.html?network=testnet&amount=0.1&count=100&expiryHours=12",
+        )}
+      />,
+    );
+
+    // Switch to create mode.
+    fireEvent.click(screen.getByRole("tab", { name: "Create" }));
+    expect(container.querySelector(".redenv-scene__gift")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".redenv-scene__gift-art")?.getAttribute("src")).toContain("red-envelope-claim-card.webp");
+    // Create presets (3 groups) are present.
+    expect(container.querySelectorAll(".redenv-presets__group").length).toBe(3);
+
+    // With count=100 and amount=0.1, per-packet = 0.001 < 0.01 minimum → invalid.
+    expect(container.querySelector(".redenv-create-error")).toBeTruthy();
+
+    // Lower the packet count to make per-packet valid.
+    fireEvent.click(screen.getByRole("button", { name: "8 packets" }));
+    await waitFor(() => expect(container.querySelector(".redenv-create-error")).toBeNull());
+
+    // Send dispatches createEnvelope with the form values.
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("createEnvelope", expect.objectContaining({ amount: "0.1" })),
+    );
+  });
+
+  it("shows the lucky modal when a claim wins", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ luckyMessage: { amount: 0.5, from: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa" } })}
+        dispatch={vi.fn()}
+        launchContext={launch()}
+      />,
+    );
+
+    const modal = container.querySelector(".redenv-lucky-modal");
+    expect(modal).toBeTruthy();
+    expect(container.textContent).toContain("Congratulations");
+    expect(container.textContent).toContain("0.5 GAS");
+  });
+
+  it("dismisses the lucky modal on collect", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ luckyMessage: { amount: 0.5, from: "Ndb1n4zzgW9h1yW7rS7Pqz4CkL8xF9m2Aa" } })}
         dispatch={dispatch}
         launchContext={launch()}
       />,
     );
 
-    expect(container.querySelector(".redenv-envelope-preview--claim")).toBeTruthy();
-    expect(container.querySelector(".redenv-envelope-preview__seal")).toBeTruthy();
-    expect(container.querySelectorAll(".redenv-envelope-preview__packet img").length).toBe(5);
-    expect(container.querySelector(".redenv-open-button")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: /#pool-alpha\s+3\/8/ }));
-    expect((screen.getByLabelText("Envelope ID") as HTMLInputElement).value).toBe("pool-alpha");
-
-    fireEvent.click(screen.getByRole("button", { name: "Claim now" }));
-    expect(container.querySelector(".redenv-envelope-preview--opening")).toBeTruthy();
-    expect(container.querySelector(".redenv-action-burst.is-opening")).toBeTruthy();
-    expect(container.querySelectorAll(".redenv-action-burst__spark").length).toBe(4);
-    expect(container.querySelector(".redenv-ticket-route--opening")).toBeTruthy();
-    expect(container.querySelector(".redenv-open-button")?.getAttribute("aria-busy")).toBe("true");
-    expect(container.querySelector(".redenv-submit-status")?.textContent).toBe("Opening...");
-    expect(screen.getByRole("button", { name: "Opening..." })).toBeTruthy();
-
-    await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("claimEnvelope", {
-        envelopeId: "pool-alpha",
-      }),
-    );
+    fireEvent.click(container.querySelector(".redenv-lucky-modal__card .mx2-btn--primary") as Element);
+    expect(dispatch).toHaveBeenCalledWith("dismissOverlay");
   });
 
-  it("prefills launch params and keeps creator validation tied to contract limits", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
+  it("tucks envelopes, claims, reclaim, and safety into a drawer", () => {
     const { container } = render(
       <PlayArea
         t={t}
-        state={baseState({ envelopes: [], claims: [], claimCount: 0, poolCount: 0 })}
-        dispatch={dispatch}
-        launchContext={launch(
-          "https://neomini.app/miniapps/red-envelope/index.html?network=testnet&envelopeId=qr-pool-42&amount=0.1&count=100&expiryHours=12",
-        )}
+        state={baseState({
+          envelopes: [
+            { id: "pool-alpha", totalAmount: 8, packetCount: 8, openedCount: 5, remainingAmount: 3.2, remainingPackets: 3, active: true, canOpen: true, status: "active" },
+            { id: "pool-expired", totalAmount: 2, packetCount: 4, remainingAmount: 0.6, remainingPackets: 1, active: false, reclaimable: true, status: "expired" },
+          ],
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch()}
       />,
     );
 
-    expect((screen.getByLabelText("Envelope ID") as HTMLInputElement).value).toBe("qr-pool-42");
-    expect(screen.getByText("Claim request prepared")).toBeTruthy();
-    expect(screen.queryByText("Needs envelope ID")).toBeNull();
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.querySelectorAll(".redenv-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
+    expect(container.querySelector(".redenv-drawer h4")).toBeNull();
+    expect(container.querySelector(".redenv-drawer p")).toBeNull();
+    expect(container.querySelector(".redenv-drawer__panel-body")?.getAttribute("data-mode")).toBe("active");
+    expect(container.textContent).toContain("pool-alpha");
+    expect(container.textContent).not.toContain("claim-1");
 
-    fireEvent.click(screen.getByRole("tab", { name: "Create" }));
+    fireEvent.click(screen.getByRole("tab", { name: /Recent claims/ }));
+    expect(container.querySelector(".redenv-drawer__panel-body")?.getAttribute("data-mode")).toBe("claims");
+    expect(container.querySelector('.redenv-drawer-list__item[data-outcome="won"]')).toBeTruthy();
+    expect(container.textContent).toContain("0.42 GAS");
 
-    expect(container.querySelector(".redenv-envelope-preview--create")).toBeTruthy();
-    expect(container.querySelectorAll(".redenv-envelope-preview__packet img").length).toBe(5);
-    const giftMachine = container.querySelector(".redenv-gift-machine");
-    expect(giftMachine).toBeTruthy();
-    expect(giftMachine?.getAttribute("aria-label")).toBe("Lucky packet machine");
-    expect(container.querySelector(".redenv-gift-machine__window img")?.getAttribute("src")).toBe("./red-envelope-claim-card.jpg");
-    expect(container.querySelectorAll(".redenv-gift-machine__chute span").length).toBe(12);
-    expect(container.querySelectorAll(".redenv-gift-machine__reel").length).toBe(3);
-    expect(container.querySelector(".redenv-gift-machine--ready")).toBeNull();
-    expect(container.querySelector(".redenv-send-button")).toBeTruthy();
-    expect(container.querySelectorAll(".redenv-gift-machine__launch-trail img").length).toBe(5);
-    expect(document.querySelector(".redenv-envelope-dials")).toBeTruthy();
-    expect(document.querySelectorAll(".redenv-machine-dial").length).toBe(3);
-    expect(document.querySelector(".redenv-envelope-dials .neo-input")).toBeNull();
-    expect(document.querySelectorAll(".redenv-preset-group").length).toBe(3);
-    expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.1");
-    expect((screen.getByLabelText("Packet count") as HTMLInputElement).value).toBe("100");
-    expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: /Reclaim/ }));
+    expect(container.querySelector(".redenv-drawer__panel-body")?.getAttribute("data-mode")).toBe("reclaim");
+    expect(container.textContent).toContain("pool-expir");
 
-    // 0.1 GAS across 100 packets = 0.001 each (< 0.01 min), so the disabled
-    // button must explain itself with an inline per-packet validation message.
-    expect(screen.getByRole("alert").textContent).toBe("Each packet must be at least 0.01 GAS");
-
-    fireEvent.change(screen.getByLabelText("Packet count"), { target: { value: "5" } });
-
-    // Once the form is valid the error clears and the send button enables.
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(false);
-    expect(container.querySelector(".redenv-gift-machine--ready")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Increase Total GAS" }));
-    fireEvent.click(screen.getByRole("button", { name: "Decrease Expiry hours" }));
-
-    expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.2");
-    expect((screen.getByLabelText("Expiry hours") as HTMLInputElement).value).toBe("11");
-
-    fireEvent.click(screen.getByRole("button", { name: "Send Red Envelope" }));
-    expect(container.querySelector(".redenv-gift-machine--sending")).toBeTruthy();
-    expect(container.querySelector(".redenv-action-burst.is-sending")).toBeTruthy();
-    expect(container.querySelector(".redenv-send-button")?.getAttribute("aria-busy")).toBe("true");
-    expect(container.querySelector(".redenv-submit-status")?.textContent).toBe("Sending packets...");
-    expect(screen.getByRole("button", { name: "Sending packets..." })).toBeTruthy();
-
-    await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("createEnvelope", {
-        amount: "0.2",
-        count: "5",
-        expiryHours: "11",
-      }),
-    );
+    fireEvent.click(screen.getByRole("tab", { name: /Transaction safety/ }));
+    expect(container.querySelector(".redenv-drawer__panel-body")?.getAttribute("data-mode")).toBe("safety");
+    expect(container.textContent).toContain("game.placeBet -> claimResult");
   });
 
-  it("marks the envelope preview as animated while an envelope is opening", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({ openingId: "pool-alpha" })}
-        dispatch={dispatch}
-        launchContext={launch(
-          "https://neomini.app/miniapps/red-envelope/index.html?network=testnet&envelopeId=pool-alpha",
-        )}
-      />,
-    );
-
-    const openButton = container.querySelector(".redenv-open-button");
-
-    expect(container.querySelector(".redenv-envelope-preview--opening")).toBeTruthy();
-    expect(openButton).toBeTruthy();
-    expect(openButton?.getAttribute("aria-busy")).toBe("true");
-  });
-
-  it("keeps the lucky packet machine animated and reduced-motion safe", () => {
+  it("keeps motion and low-noise scene hierarchy backed by tests", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
     const styles = fs.readFileSync(
-      `${process.cwd()}/../red-envelope/src/PlayArea.scss`,
+      path.join(appsRoot, "red-envelope/src/PlayArea.scss"),
       "utf8",
     );
-
-    expect(styles).toMatch(/@keyframes redenv-machine-sweep/);
-    expect(styles).toMatch(/@keyframes redenv-machine-seal-send/);
-    expect(styles).toMatch(/@keyframes redenv-machine-launch-packet/);
-    expect(styles).toMatch(/@keyframes redenv-action-burst/);
-    expect(styles).toMatch(/@keyframes redenv-action-send-burst/);
-    expect(styles).toMatch(/@keyframes redenv-packet-open/);
-    expect(styles).toMatch(/@keyframes redenv-route-step/);
-    expect(styles).toMatch(/@keyframes redenv-status-pulse/);
-    expect(styles).toMatch(/@keyframes redenv-machine-packet-ready/);
-    expect(styles).toMatch(/@keyframes redenv-dial-glow/);
-    expect(styles).toMatch(/\.redenv-gift-machine--sending \.redenv-gift-machine__chute span\s*\{[\s\S]*animation-name:\s*redenv-machine-packet-send/);
-    expect(styles).toMatch(/\.redenv-gift-machine--sending \.redenv-gift-machine__launch-trail span\s*\{[\s\S]*animation:\s*redenv-machine-launch-packet/);
-    expect(styles).toMatch(/\.redenv-envelope-preview--opening \.redenv-envelope-preview__packet\s*\{[\s\S]*animation-name:\s*redenv-packet-open/);
-    expect(styles).toMatch(/\.redenv-ticket-route--opening \.redenv-ticket-route__step\s*\{[\s\S]*animation:\s*redenv-route-step/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-gift-machine__chute span/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-gift-machine__launch-trail span/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-action-burst__spark/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-action-status/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-submit-status/);
-    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.redenv-machine-dial__track span/);
+    expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
+    expect(styles).toMatch(/\.redenv-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
+    expect(styles).toMatch(/\.redenv-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.redenv-scene::before\s*\{[\s\S]*content:\s*none/);
+    expect(styles).not.toContain("redenv-scene__stage-art");
+    expect(styles).not.toContain("redenv-scene__backdrop");
+    expect(styles).toMatch(/\.redenv-scene__packet\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).toMatch(/\.redenv-scene__gift\s*\{[\s\S]*filter:\s*none/);
+    expect(styles).not.toMatch(/\.redenv-scene__packet\s*\{[^}]*drop-shadow/);
+    expect(styles).toMatch(/\.redenv-scene__packet-art\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.redenv-scene__gift-art\s*\{[\s\S]*object-fit:\s*contain/);
+    expect(styles).toMatch(/\.redenv-scene__packet-scrim\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/\.redenv-scene__packet-label\s*\{[\s\S]*text-shadow:\s*none/);
+    expect(styles).toMatch(/\.redenv-scene__gift-copy\s*\{[\s\S]*text-shadow:\s*none/);
+    expect(styles).toMatch(/\.redenv-scene__tabs\s*\{[\s\S]*position:\s*absolute/);
+    expect(styles).toMatch(/\.redenv-scene__tabs\s*\{[\s\S]*right:\s*16px/);
+    expect(styles).not.toMatch(/\.redenv-scene__packet-art\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).not.toMatch(/\.redenv-scene__gift-art\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).not.toMatch(/filter:\s*saturate\(0\.72\) brightness\(1\.12\)/);
+    expect(styles).toMatch(/\.redenv-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 178px/);
+    expect(styles).not.toMatch(/\.redenv-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*300px/);
+    expect(styles).toMatch(/\.redenv-drawer-tabs\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).toMatch(/\.redenv-drawer-tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.redenv-drawer-tabs button\s*\{[\s\S]*min-height:\s*54px/);
+    expect(styles).toMatch(/\.redenv-drawer__panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*18px/);
+    expect(styles).toMatch(/\.redenv-drawer__panel-body\s*\{[\s\S]*display:\s*grid/);
+    expect(styles).not.toContain(".redenv-drawer h4");
+    expect(styles).not.toContain(".redenv-drawer p");
+    const mobileBlock = styles.match(/@media \(max-width:\s*680px\)\s*\{[\s\S]*$/)?.[0] ?? "";
+    expect(mobileBlock).toMatch(/\.redenv-scene\s*\{[\s\S]*min-height:\s*414px/);
+    expect(mobileBlock).toMatch(/\.redenv-presets\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(96px,\s*1fr\)\)/);
+    expect(mobileBlock).not.toMatch(/\.redenv-presets\s*\{[^}]*grid-template-columns:\s*1fr/);
+    expect(mobileBlock).toMatch(/\.redenv-ticket-dock\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(mobileBlock).toMatch(/\.redenv-play-area \.mx2-score\s*\{[\s\S]*flex-wrap:\s*nowrap/);
+    expect(mobileBlock).toMatch(/\.redenv-drawer-tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(mobileBlock).toMatch(/\.redenv-drawer-tabs strong\s*\{[\s\S]*display:\s*none/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
   });
 });

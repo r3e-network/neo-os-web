@@ -90,8 +90,8 @@ export function OperationPanel({
 
   const embedded = variant === "embedded";
   const shellClass = embedded
-    ? "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
-    : "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md shadow-gray-950/6";
+    ? "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
+    : "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5";
 
   return (
     <div
@@ -100,7 +100,7 @@ export function OperationPanel({
     >
       {showTitle && (
         <div className={cn("border-b border-gray-100 px-4 py-3")}>
-          <h3 className="m-0 text-base font-black tracking-tight text-gray-950">
+          <h3 className="m-0 text-base font-semibold tracking-normal text-gray-900">
             {title}
           </h3>
         </div>
@@ -110,12 +110,7 @@ export function OperationPanel({
         <div className="border-b border-gray-100 px-3 py-2.5">
           {showPrimaryTabs && (
             <div
-              className={cn(
-                "grid gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1",
-                tabGroups.primary.length > 3
-                  ? "grid-cols-2"
-                  : "grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))]",
-              )}
+              className="flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1"
               data-testid="operation-tab-grid"
             >
               {tabGroups.primary.map((idx) => {
@@ -126,7 +121,7 @@ export function OperationPanel({
                     type="button"
                     onClick={() => setActiveTabIdx(idx)}
                     className={cn(
-                      "relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:text-sm",
+                      "relative min-h-8 max-w-full cursor-pointer rounded-md border-0 bg-transparent px-3 py-1.5 text-center text-xs font-semibold leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30",
                       activeTabIdx === idx
                         ? getTabActiveColor(op.button_style)
                         : "text-gray-600 hover:bg-white/70 hover:text-gray-900",
@@ -145,11 +140,11 @@ export function OperationPanel({
                 tabGroups.primary.length > 1 && "mt-2",
               )}
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-black uppercase tracking-wide text-gray-500">
-                Advanced / Operator
+              <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-normal text-gray-500">
+                More actions
                 <ChevronDown className="h-4 w-4" aria-hidden="true" />
               </summary>
-              <div className="grid grid-cols-2 gap-1 border-t border-gray-100 p-1">
+              <div className="flex flex-wrap gap-1 border-t border-gray-100 p-1">
                 {tabGroups.secondary.map((idx) => {
                   const op = operations[idx];
                   return (
@@ -158,7 +153,7 @@ export function OperationPanel({
                       type="button"
                       onClick={() => setActiveTabIdx(idx)}
                       className={cn(
-                        "min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30",
+                        "min-h-8 max-w-full cursor-pointer rounded-md border-0 bg-transparent px-3 py-1.5 text-center text-xs font-semibold leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30",
                         activeTabIdx === idx
                           ? getTabActiveColor(op.button_style)
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
@@ -174,9 +169,9 @@ export function OperationPanel({
         </div>
       )}
 
-      <div className="border-b border-gray-100 px-3 py-3 sm:px-4">
+      <div className="sr-only">
         <div
-          className="grid grid-cols-4 gap-1.5"
+          className="flex flex-wrap gap-1.5"
           aria-label="Transaction workflow steps"
         >
           {WORKFLOW_STEPS.map((step, index) => {
@@ -184,7 +179,12 @@ export function OperationPanel({
             return (
               <div
                 key={step.label}
-                className="min-w-0"
+                className={cn(
+                  "inline-flex min-h-6 min-w-0 items-center gap-1.5 rounded-full border px-2 text-[10px] font-semibold uppercase tracking-normal",
+                  reached
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-gray-200 bg-white text-gray-400",
+                )}
                 data-testid={`workflow-step-${step.stage}`}
                 aria-current={
                   index === WORKFLOW_STAGE_INDEX[workflowStage]
@@ -192,20 +192,14 @@ export function OperationPanel({
                     : undefined
                 }
               >
-                <div
-                  className={cn(
-                    "h-1.5 rounded-full",
-                    reached ? "bg-emerald-600" : "bg-gray-200",
-                  )}
-                />
                 <span
                   className={cn(
-                    "mt-1 block truncate text-[10px] font-black uppercase tracking-wide",
-                    reached ? "text-emerald-700" : "text-gray-400",
+                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                    reached ? "bg-emerald-600" : "bg-gray-300",
                   )}
-                >
-                  {step.label}
-                </span>
+                  aria-hidden="true"
+                />
+                <span className="truncate">{step.label}</span>
               </div>
             );
           })}
@@ -307,10 +301,12 @@ function resolveRequestedOperationIndex(
 }
 
 function getTabActiveColor(style?: string) {
-  if (style === "danger") return "bg-white text-red-600 shadow-sm";
-  if (style === "success") return "bg-white text-emerald-700 shadow-sm";
-  if (style === "secondary") return "bg-white text-gray-950 shadow-sm";
-  return "bg-white text-gray-950 shadow-sm";
+  if (style === "danger") return "bg-red-50 text-red-700 ring-1 ring-red-200";
+  if (style === "success") {
+    return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
+  }
+  if (style === "secondary") return "bg-gray-100 text-gray-900";
+  return "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200";
 }
 
 function parseSelectOptions(
@@ -413,12 +409,31 @@ function OperationForm({
       param.name !== firstChoiceParam?.name &&
       param.name !== primaryValueParam?.name,
   );
+  const secondaryNeedsInput = secondaryParams.some(
+    (param) => param.required && !String(values[param.name] ?? "").trim(),
+  );
+  const secondaryDetailsDefaultOpen =
+    serverPayoutOperation || secondaryNeedsInput;
+  const [secondaryDetailsOpen, setSecondaryDetailsOpen] = useState(
+    secondaryDetailsDefaultOpen,
+  );
+  const summaryRows = visibleParams.slice(0, 4).map((param) => ({
+    key: param.name,
+    label: param.label || param.name,
+    value: displayParamValue(param, values[param.name]),
+    missing: param.required && !String(values[param.name] ?? "").trim(),
+  }));
 
   useEffect(() => {
     setValues(initialValues);
     setError(null);
     setSettled(false);
+    setSecondaryDetailsOpen(secondaryDetailsDefaultOpen);
   }, [initialValues]);
+
+  useEffect(() => {
+    if (secondaryNeedsInput) setSecondaryDetailsOpen(true);
+  }, [secondaryNeedsInput]);
 
   const effectiveDisabledReason = getDisabledReason
     ? getDisabledReason(op)
@@ -525,7 +540,7 @@ function OperationForm({
         {serverPayoutOperation ? (
           <div
             className={cn(
-              "flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black leading-5",
+              "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold leading-5",
               claimKeyValue
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : "border-amber-200 bg-amber-50 text-amber-800",
@@ -545,15 +560,68 @@ function OperationForm({
         ) : null}
 
         {serverPayoutOperation && op.description ? (
-          <p className="mb-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold leading-5 text-gray-600">
+          <p className="mb-0 text-xs leading-5 text-gray-500">
             {op.description}
           </p>
         ) : (
           op.description && (
-            <p className="mb-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold leading-5 text-gray-600">
+            <p className="mb-0 text-xs leading-5 text-gray-500">
               {op.description}
             </p>
           )
+        )}
+
+        {summaryRows.length > 0 && (
+          <div
+            className="rounded-xl border border-emerald-100 bg-emerald-50/55 p-3 shadow-sm shadow-emerald-900/5"
+            data-testid="operation-param-summary"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                  Current setup
+                </p>
+                <p className="m-0 mt-1 text-xs font-medium leading-5 text-emerald-950">
+                  Review the active parameters, then adjust details only when needed.
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                  secondaryNeedsInput
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : "border-emerald-200 bg-white/80 text-emerald-700",
+                )}
+              >
+                {secondaryNeedsInput ? "Needs input" : "Ready"}
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2">
+              {summaryRows.map((item) => (
+                <div
+                  key={item.key}
+                  className={cn(
+                    "grid grid-cols-[minmax(0,0.78fr)_minmax(0,1fr)] items-center gap-3 rounded-lg border bg-white/82 px-3 py-2",
+                    item.missing
+                      ? "border-amber-200"
+                      : "border-emerald-100/80",
+                  )}
+                >
+                  <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wide text-gray-500">
+                    {item.label}
+                  </span>
+                  <strong
+                    className={cn(
+                      "min-w-0 truncate text-right text-xs font-bold tabular-nums",
+                      item.missing ? "text-amber-700" : "text-gray-900",
+                    )}
+                  >
+                    {item.value}
+                  </strong>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {firstChoiceParam && (
@@ -576,17 +644,52 @@ function OperationForm({
         )}
 
         {secondaryParams.length > 0 && (
-          <div className="space-y-3">
-            {secondaryParams.map((param) => (
-              <ParamInput
-                key={param.name}
-                param={param}
-                value={values[param.name] ?? ""}
-                fieldIdPrefix={fieldIdPrefix}
-                onChange={(value) => setParamValue(param.name, value)}
-              />
-            ))}
-          </div>
+          <details
+            className="group rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
+            open={secondaryDetailsOpen}
+            onToggle={(event) =>
+              setSecondaryDetailsOpen(event.currentTarget.open)
+            }
+            data-testid="operation-secondary-details"
+          >
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30">
+              <span className="min-w-0">
+                <span className="block text-xs font-bold text-gray-900">
+                  Parameters
+                </span>
+                <span className="mt-0.5 block truncate text-[11px] font-medium text-gray-500">
+                  {secondaryNeedsInput
+                    ? "Required details need attention"
+                    : "Defaults are ready; open to tune"}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                    secondaryNeedsInput
+                      ? "border-amber-200 bg-amber-50 text-amber-700"
+                      : "border-gray-200 bg-gray-50 text-gray-600",
+                  )}
+                >
+                  {secondaryParams.length} fields
+                </span>
+                <ChevronDown className="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180" />
+              </span>
+            </summary>
+            <div className="space-y-3 border-t border-gray-100 p-3">
+              {secondaryParams.map((param) => (
+                <ParamInput
+                  key={param.name}
+                  param={param}
+                  value={values[param.name] ?? ""}
+                  tone={tone}
+                  fieldIdPrefix={fieldIdPrefix}
+                  onChange={(value) => setParamValue(param.name, value)}
+                />
+              ))}
+            </div>
+          </details>
         )}
       </div>
 
@@ -612,7 +715,7 @@ function OperationForm({
         <button
           type="button"
           className={cn(
-            "inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-2xl border-none px-4 py-3 text-sm font-black leading-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "inline-flex min-h-11 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-lg border-none px-4 py-3 text-sm font-semibold leading-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:w-fit sm:min-w-40",
             "whitespace-nowrap",
             "disabled:cursor-not-allowed disabled:opacity-50",
             tone.submitClass,
@@ -679,9 +782,9 @@ function operationTone(op: OperationEntry) {
     return {
       variant: "danger" as const,
       activeChoice:
-        "border-red-500 bg-red-500 text-white shadow-sm shadow-red-500/20",
+        "border-red-200 bg-red-50 text-red-700",
       inactiveChoice:
-        "border-gray-200 bg-gray-100 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700",
+        "border-transparent bg-transparent text-gray-600 hover:border-red-100 hover:bg-red-50 hover:text-red-700",
       submitClass:
         "bg-red-600 text-white shadow-sm shadow-red-600/15 hover:bg-red-700 focus-visible:ring-red-500",
     };
@@ -690,9 +793,9 @@ function operationTone(op: OperationEntry) {
     return {
       variant: "neutral" as const,
       activeChoice:
-        "border-gray-950 bg-gray-950 text-white shadow-sm shadow-gray-950/15",
+        "border-gray-200 bg-gray-100 text-gray-900",
       inactiveChoice:
-        "border-gray-200 bg-gray-100 text-gray-500 hover:border-gray-300 hover:bg-white hover:text-gray-900",
+        "border-transparent bg-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900",
       submitClass:
         "bg-gray-950 text-white shadow-sm shadow-gray-950/15 hover:bg-gray-800 focus-visible:ring-gray-950",
     };
@@ -700,9 +803,9 @@ function operationTone(op: OperationEntry) {
   return {
     variant: "primary" as const,
     activeChoice:
-      "border-emerald-700 bg-emerald-700 text-white shadow-sm shadow-emerald-700/20",
+      "border-emerald-200 bg-emerald-50 text-emerald-800",
     inactiveChoice:
-      "border-gray-200 bg-gray-100 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800",
+      "border-transparent bg-transparent text-gray-700 hover:border-emerald-100 hover:bg-emerald-50 hover:text-emerald-800",
     submitClass:
       "bg-emerald-700 text-white shadow-sm shadow-emerald-700/15 hover:bg-emerald-800 focus-visible:ring-neo/50 disabled:border disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100",
   };
@@ -723,33 +826,20 @@ function ChoiceParam({
 }) {
   const options = parseSelectOptions(param.options);
   const label = param.label || param.name;
-  const selectId = buildFieldId(fieldIdPrefix, "choice", param.name);
+  const groupId = buildFieldId(fieldIdPrefix, "choice", param.name);
 
   return (
-    <div className="space-y-2">
-      <label
-        htmlFor={selectId}
-        className="text-xs font-bold text-gray-900 sm:text-sm"
+    <div className="space-y-1.5">
+      <span
+        id={groupId}
+        className="text-xs font-semibold text-gray-800 sm:text-sm"
       >
         {label}
-      </label>
-      <select
-        id={selectId}
-        className="sr-only"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      </span>
       <div
-        className={cn(
-          "grid gap-2",
-          options.length <= 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3",
-        )}
+        role="radiogroup"
+        aria-labelledby={groupId}
+        className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-gray-200 bg-white p-1"
       >
         {options.map((option) => {
           const active = value === option.value;
@@ -757,9 +847,12 @@ function ChoiceParam({
             <button
               key={option.value}
               type="button"
+              role="radio"
+              aria-checked={active}
+              aria-label={`${label}: ${option.label}`}
               onClick={() => onChange(option.value)}
               className={cn(
-                "min-h-9 cursor-pointer rounded-xl border px-2.5 py-1.5 text-center text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:min-h-11 sm:px-3 sm:py-2 sm:text-sm",
+                "min-h-8 max-w-full cursor-pointer rounded-full border px-3 py-1.5 text-center text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30",
                 active ? tone.activeChoice : tone.inactiveChoice,
               )}
             >
@@ -788,15 +881,15 @@ function PrimaryValueParam({
   const inputId = buildFieldId(fieldIdPrefix, param.name || label);
 
   return (
-    <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm shadow-gray-950/5 sm:p-3">
+    <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50/70 p-2 sm:p-3">
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor={inputId}
-          className="text-xs font-black text-gray-900 sm:text-sm"
+          className="text-xs font-semibold text-gray-800 sm:text-sm"
         >
           {label}
         </label>
-        <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-600">
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500">
           <Edit3 className="h-3.5 w-3.5" aria-hidden="true" />
           Edit
         </span>
@@ -809,7 +902,7 @@ function PrimaryValueParam({
             : "text"
         }
         step={param.type === "amount" ? "any" : "1"}
-        className="h-9 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm font-black text-gray-950 transition-all placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 sm:h-11"
+        className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-900 transition-all placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 sm:h-10"
         placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -821,13 +914,13 @@ function PrimaryValueParam({
               key={preset.value}
               type="button"
               onClick={() => onChange(preset.value)}
-              className="min-h-8 cursor-pointer rounded-xl border border-gray-200 bg-white px-2 py-1 text-center transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:min-h-9 sm:py-1.5"
+              className="min-h-8 cursor-pointer rounded-lg border border-gray-200 bg-white px-2 py-1 text-center transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:min-h-9 sm:py-1.5"
             >
-              <span className="block text-xs font-black text-gray-950 sm:text-sm">
+              <span className="block text-xs font-semibold text-gray-900 sm:text-sm">
                 {preset.label}
               </span>
               {preset.helper && (
-                <span className="block text-[10px] font-bold text-emerald-700 sm:text-[11px]">
+                <span className="block text-[10px] font-medium text-emerald-700 sm:text-[11px]">
                   {preset.helper}
                 </span>
               )}
@@ -845,30 +938,68 @@ function quickPresetsFor(
   return Array.isArray(param.presets) ? param.presets : [];
 }
 
+function displayParamValue(param: OperationParam, rawValue: unknown) {
+  const value = String(rawValue ?? param.default_value ?? "").trim();
+  if (!value) return param.required ? "Needed" : "Optional";
+  if (param.sensitive) return "••••••";
+  if (param.type === "boolean") return value === "true" ? "On" : "Off";
+  if (param.type === "select") {
+    const match = parseSelectOptions(param.options).find(
+      (option) => option.value === value,
+    );
+    return match?.label || value;
+  }
+  if (value.length > 28) return `${value.slice(0, 14)}…${value.slice(-8)}`;
+  return value;
+}
+
 function ParamInput({
   param,
   value,
+  tone,
   fieldIdPrefix,
   onChange,
 }: {
   param: OperationParam;
   value: string;
+  tone: ReturnType<typeof operationTone>;
   fieldIdPrefix: string;
   onChange: (v: string) => void;
 }) {
   const label = param.label || param.name;
 
   if (param.type === "boolean") {
+    const enabled = value === "true";
     return (
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:border-neo/40 hover:bg-white">
-        <input
-          type="checkbox"
-          className="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-          checked={value === "true"}
-          onChange={(e) => onChange(e.target.checked ? "true" : "false")}
-        />
-        <span className="text-sm font-medium text-gray-900">{label}</span>
-      </label>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-label={label}
+        onClick={() => onChange(enabled ? "false" : "true")}
+        className={cn(
+          "flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30",
+          enabled
+            ? "border-emerald-200 bg-emerald-50 text-emerald-950 shadow-sm"
+            : "border-gray-200 bg-gray-50 text-gray-700 hover:border-emerald-200 hover:bg-white",
+        )}
+      >
+        <span className="min-w-0 text-sm font-semibold">{label}</span>
+        <span
+          className={cn(
+            "relative h-6 w-11 flex-none rounded-full transition-colors",
+            enabled ? "bg-emerald-600" : "bg-gray-300",
+          )}
+          aria-hidden="true"
+        >
+          <span
+            className={cn(
+              "absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform",
+              enabled ? "translate-x-6" : "translate-x-1",
+            )}
+          />
+        </span>
+      </button>
     );
   }
 
@@ -876,30 +1007,14 @@ function ParamInput({
     const parsedOptions = parseSelectOptions(param.options);
     if (parsedOptions.length === 0) return null;
 
-    const selectId = buildFieldId(fieldIdPrefix, "select", param.name || label);
     return (
-      <div className="flex flex-col space-y-1.5">
-        <label htmlFor={selectId} className="text-sm font-medium text-gray-700">
-          {label}
-        </label>
-        <div className="relative">
-          <select
-            id={selectId}
-            className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 transition-all focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-          >
-            {parsedOptions.map((opt, i) => (
-              <option key={i} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-            <ChevronDown className="h-4 w-4" aria-hidden="true" />
-          </div>
-        </div>
-      </div>
+      <ChoiceParam
+        param={param}
+        value={value}
+        tone={tone}
+        fieldIdPrefix={fieldIdPrefix}
+        onChange={onChange}
+      />
     );
   }
 

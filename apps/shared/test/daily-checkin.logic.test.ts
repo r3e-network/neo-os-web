@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useCheckin, CHECKIN_MEMO } from "../../daily-checkin/src/composables/useCheckin";
+import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg, TxResult } from "../services";
 import { createObservable } from "../react/context";
 import { addressToScriptHash } from "../utils/neo";
@@ -252,7 +253,11 @@ function setup(opts?: {
     listEvents,
   } as unknown as ChainService;
 
-  const app = useCheckin({ chain, t });
+  const framework = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-dailycheckin" },
+  );
+  const app = useCheckin({ app: framework, t });
   return { app, chain, invokes, read, invoke, user, platform, listEvents };
 }
 
@@ -262,11 +267,14 @@ describe("useCheckin (on-chain wiring)", () => {
 
     await app.refreshStatus();
 
+    // The framework chain layer forwards reads as chain.read(op, args, options);
+    // options is undefined here, so the passthrough records a trailing undefined.
     expect(read).toHaveBeenCalledWith(
       "getCheckInStateForFrontend",
       [{ type: "Hash160", value: ME_HASH }],
+      undefined,
     );
-    expect(read).toHaveBeenCalledWith("getPlatformStats", []);
+    expect(read).toHaveBeenCalledWith("getPlatformStats", [], undefined);
     expect(app.currentStreak.get()).toBe(6);
     expect(app.highestStreak.get()).toBe(8);
     expect(app.checkInFee.get()).toBe(100_000);

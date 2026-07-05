@@ -67,8 +67,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/self-loan/index.html",
-    "icon": "/miniapps/self-loan/logo.jpg",
-    "banner": "/miniapps/self-loan/banner.jpg"
+    "icon": "/miniapps/self-loan/logo.webp",
+    "banner": "/miniapps/self-loan/banner.webp"
   },
   "permissions": [
     "invoke:primary",

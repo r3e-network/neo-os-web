@@ -26,7 +26,7 @@ defineMiniApp({
 
   setup(ctx) {
     const loan = useSelfLoan({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
     });
 
@@ -39,46 +39,46 @@ defineMiniApp({
       void loan.loadAll();
     });
 
-    ctx.registerAction("borrow", async (formData: unknown) => {
+    ctx.framework.actions.register("borrow", async (formData: unknown) => {
       await ctx.services.notify.guard(
         () => loan.borrow(formData as Record<string, unknown>),
         "borrowSuccess",
       );
     });
 
-    ctx.registerAction("repay", async (amount: unknown) => {
+    ctx.framework.actions.register("repay", async (amount: unknown) => {
       await ctx.services.notify.guard(
         () => loan.repay(String(amount)),
         "repaySuccess",
       );
     });
 
-    ctx.registerAction("addCollateral", async (amount: unknown) => {
+    ctx.framework.actions.register("addCollateral", async (amount: unknown) => {
       await ctx.services.notify.guard(
         () => loan.addCollateral(String(amount)),
         "collateralAdded",
       );
     });
 
-    ctx.registerAction("reclaimCollateral", async () => {
+    ctx.framework.actions.register("reclaimCollateral", async () => {
       await ctx.services.notify.guard(
         () => loan.reclaimCollateral(),
         "reclaimCollateralSuccess",
       );
     });
 
-    ctx.registerAction("reclaimRepayCredit", async () => {
+    ctx.framework.actions.register("reclaimRepayCredit", async () => {
       await ctx.services.notify.guard(
         () => loan.reclaimRepayCredit(),
         "reclaimRepaySuccess",
       );
     });
 
-    ctx.registerAction("setCollateralAmount", async (amount: unknown) => {
+    ctx.framework.actions.register("setCollateralAmount", async (amount: unknown) => {
       if (typeof amount === "string") loan.collateralAmount.set(amount);
     });
 
-    ctx.registerAction("setLtvTier", async (tier: unknown) => {
+    ctx.framework.actions.register("setLtvTier", async (tier: unknown) => {
       const next = Number(tier);
       if (Number.isInteger(next) && next >= 1 && next <= 3) {
         loan.selectedTier.set(next);

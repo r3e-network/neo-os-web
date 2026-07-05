@@ -38,7 +38,7 @@ defineMiniApp({
     const requestedAsset = launchAsset(ctx.launchContext.params);
     if (requestedAsset) price.asset.set(requestedAsset);
 
-    ctx.registerAction("fetchPrice", async () => {
+    ctx.framework.actions.register("fetchPrice", async () => {
       // price.fetchPrice() never throws — it catches internally and returns
       // { success, error }. notify.guard would therefore always show the
       // success toast, even on RPC failure. Branch on the result instead so
@@ -51,7 +51,7 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("updateAsset", async (val: unknown) => {
+    ctx.framework.actions.register("updateAsset", async (val: unknown) => {
       price.asset.set(String(val));
     });
 

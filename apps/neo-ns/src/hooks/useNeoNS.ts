@@ -6,7 +6,8 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { EventBus } from "@shared/services";
 import { fetchOwnedDomains, ownerValueToAddress } from "./nnsRpc";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
@@ -63,7 +64,7 @@ export interface SearchResult {
 }
 
 export interface UseNeoNSOptions {
-  chain: ChainService;
+  app: MiniAppFramework;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
   nnsContractHash?: string;
@@ -76,7 +77,7 @@ function domainToTokenId(name: string): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
-export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOptions) {
+export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions) {
   const contractHash = nnsContractHash ?? NNS_CONTRACT_HASH;
   const readOpts = { scriptHash: contractHash };
 
@@ -98,7 +99,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
   };
 
   const walletStatus: Observable<string> = {
-    get: () => chain.address.get() ? t("connected") : t("disconnected"),
+    get: () => app.chain.address.get() ? t("connected") : t("disconnected"),
     set: () => {},
     subscribe: () => () => {},
   };
@@ -117,13 +118,13 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
   };
 
   const loadMyDomains = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) { myDomains.set([]); return; }
     try {
       // `tokensOf` returns a session IIterator the wallet/host bridge cannot
       // traverse, so the owned token ids come from the allowlisted
       // `getnep11balances` RPC method instead (see nnsRpc.fetchOwnedDomains).
-      const network = await chain.detectNetwork();
+      const network = await app.chain.detectNetwork();
       const owned = await fetchOwnedDomains(addr, network, contractHash);
       const domains: Domain[] = owned.map((d) => ({
         name: d.name,
@@ -143,10 +144,10 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     searchResult.set(null);
     try {
       const fullName = query.endsWith(".neo") ? query : query + ".neo";
-      const availableRaw = await chain.read("isAvailable", [{ type: "String", value: fullName }], readOpts);
+      const availableRaw = await app.chain.readRaw("isAvailable", [app.chain.arg.string(fullName)], readOpts);
       const isAvailable = Boolean(availableRaw);
       const baseName = fullName.replace(/\.neo$/, "");
-      const priceRaw = await chain.read("getPrice", [{ type: "Integer", value: baseName.length }], readOpts);
+      const priceRaw = await app.chain.readRaw("getPrice", [app.chain.arg.integer(baseName.length)], readOpts);
       const price = Number(priceRaw || 0) / 1e8;
       registrationCost.set(price);
 
@@ -156,7 +157,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
         let owner = t("unknownOwner");
         try {
           const tokenId = domainToTokenId(baseName);
-          const ownerRaw = await chain.read("ownerOf", [{ type: "ByteArray", value: tokenId }], readOpts);
+          const ownerRaw = await app.chain.readRaw("ownerOf", [app.chain.arg.byteArray(tokenId)], readOpts);
           // ownerOf arrives as a little-endian Hash160 (e.g. "0xfda64993…");
           // render the wallet-format N-address rather than the raw byte hex.
           if (ownerRaw) owner = ownerValueToAddress(ownerRaw) || String(ownerRaw);
@@ -193,13 +194,14 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     if (!result0?.available || isLoading.get()) return;
     isLoading.set(true);
     try {
-      await chain.ensureWallet();
+      await app.chain.ensureWallet();
+      const owner = app.chain.address.get() as string;
       // Register the exact name whose availability and price were verified by the
       // last search -- NOT the live searchQuery, which the user may have edited since.
       const fullName = result0.name;
-      const result = await chain.invoke("register", [
-        { type: "String", value: fullName },
-        { type: "Hash160", value: chain.address.get() as string },
+      const result = await app.chain.invoke("register", [
+        app.chain.arg.string(fullName),
+        app.chain.arg.hash160(owner),
       ], { scriptHash: contractHash, waitForEvent: "Transfer" });
 
       if (result.success) {
@@ -212,7 +214,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
         // indexer catches up; the subsequent loadMyDomains reconciles it.
         const optimistic: Domain = {
           name: fullName,
-          owner: chain.address.get() as string,
+          owner,
           expiry: Date.now() + REGISTRATION_TERM_MS,
         };
         const existing = myDomains.get();
@@ -235,11 +237,11 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     if (!isValidNeoAddress(target)) throw new Error(t("invalidAddress"));
     isLoading.set(true);
     try {
-      await chain.ensureWallet();
-      const result = await chain.invoke("setRecord", [
-        { type: "String", value: domain.name },
-        { type: "Integer", value: String(NNS_RECORD_TYPE_ADDRESS) },
-        { type: "String", value: target },
+      await app.chain.ensureWallet();
+      const result = await app.chain.invoke("setRecord", [
+        app.chain.arg.string(domain.name),
+        app.chain.arg.integer(NNS_RECORD_TYPE_ADDRESS),
+        app.chain.arg.string(target),
       ], { scriptHash: contractHash });
       if (result.success) {
         eventBus.emit("neo-ns:recordSet", { action: t("targetSet"), domain: domain.name, target });
@@ -258,12 +260,16 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     if (!isValidNeoAddress(to)) throw new Error(t("invalidAddress"));
     isLoading.set(true);
     try {
-      await chain.ensureWallet();
+      await app.chain.ensureWallet();
       const tokenId = domainToTokenId(domain.name.replace(/\.neo$/, ""));
-      const result = await chain.invoke("transfer", [
+      // `to` is a third-party recipient (not the connected wallet), and the
+      // pre-migration code passed the raw N-address as the Hash160 value — the
+      // wallet provider resolves it, and mapDapiArgs only remaps the connected
+      // account. Keep the raw value to preserve exactly what reaches the wallet.
+      const result = await app.chain.invoke("transfer", [
         { type: "Hash160", value: to },
-        { type: "ByteArray", value: tokenId },
-        { type: "String", value: "" },
+        app.chain.arg.byteArray(tokenId),
+        app.chain.arg.string(""),
       ], { scriptHash: contractHash, waitForEvent: "Transfer" });
       if (result.success) {
         eventBus.emit("neo-ns:transferred", { action: t("transferred"), domain: domain.name, to });
@@ -282,7 +288,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
    */
   const getRenewPrice = async (domain: Domain): Promise<number> => {
     const baseName = domain.name.replace(/\.neo$/, "");
-    const priceRaw = await chain.read("getPrice", [{ type: "Integer", value: baseName.length }], readOpts);
+    const priceRaw = await app.chain.readRaw("getPrice", [app.chain.arg.integer(baseName.length)], readOpts);
     return Number(priceRaw || 0) / 1e8;
   };
 
@@ -290,8 +296,8 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     if (!domain) return;
     isLoading.set(true);
     try {
-      await chain.ensureWallet();
-      const result = await chain.invoke("renew", [{ type: "String", value: domain.name }], { scriptHash: contractHash });
+      await app.chain.ensureWallet();
+      const result = await app.chain.invoke("renew", [app.chain.arg.string(domain.name)], { scriptHash: contractHash });
       if (result.success) {
         eventBus.emit("neo-ns:renewed", { action: `${domain.name} ${t("renewed")}`, domain: domain.name });
         await loadMyDomains();

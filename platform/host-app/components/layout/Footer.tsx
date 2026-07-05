@@ -72,7 +72,7 @@ export function Footer() {
 
           {/* Platform Links */}
           <div>
-            <h3 className="text-sm font-black uppercase text-gray-900 mb-6">
+            <h3 className="text-sm font-semibold uppercase text-gray-900 mb-6">
               Platform
             </h3>
             <ul className="space-y-4">
@@ -91,7 +91,7 @@ export function Footer() {
 
           {/* Resources Links */}
           <div>
-            <h3 className="text-sm font-black uppercase text-gray-900 mb-6">
+            <h3 className="text-sm font-semibold uppercase text-gray-900 mb-6">
               Resources
             </h3>
             <ul className="space-y-4">
@@ -110,7 +110,7 @@ export function Footer() {
 
           {/* Community Links */}
           <div>
-            <h3 className="text-sm font-black uppercase text-gray-900 mb-6">
+            <h3 className="text-sm font-semibold uppercase text-gray-900 mb-6">
               Community
             </h3>
             <ul className="space-y-4">

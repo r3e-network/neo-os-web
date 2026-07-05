@@ -16,7 +16,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useCoinFlip } from "./useCoinFlip";
 import type { UseCoinFlipOptions } from "./useCoinFlip";
-import type { ContractArg, TxResult } from "@shared/services/ChainService";
+import { createMiniAppFramework } from "@shared/react";
+import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { addressToScriptHash } from "@shared/utils/neo";
 
@@ -189,10 +190,16 @@ function makeDeps(opts: MakeDepsOpts = {}) {
     invokeWithPayment,
     read,
     readArray: vi.fn(async (): Promise<unknown[]> => []),
-  } as unknown as UseCoinFlipOptions["chain"];
+  } as unknown as ChainService;
+
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-fogplay" },
+  ) as unknown as UseCoinFlipOptions["app"];
 
   return {
     chain,
+    app,
     eventBus: eventBus as unknown as UseCoinFlipOptions["eventBus"],
     invoke,
     invokeWithPayment,
@@ -203,7 +210,7 @@ function makeDeps(opts: MakeDepsOpts = {}) {
 
 function setup(opts: MakeDepsOpts = {}) {
   const deps = makeDeps(opts);
-  const flip = useCoinFlip({ chain: deps.chain, eventBus: deps.eventBus, t });
+  const flip = useCoinFlip({ app: deps.app, eventBus: deps.eventBus, t });
   flip.setAddress(PLAYER);
   return { flip, ...deps };
 }
@@ -354,7 +361,7 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
   it("revealResult() retries settle for the persisted pending bet and resolves the outcome", async () => {
     // First placeBet leaves a failed reveal; then a fresh, succeeding settle path.
     const deps = makeDeps({ betId: 55, settleFault: "reveal block not reached" });
-    const flip = useCoinFlip({ chain: deps.chain, eventBus: deps.eventBus, t });
+    const flip = useCoinFlip({ app: deps.app, eventBus: deps.eventBus, t });
     flip.setAddress(PLAYER);
     flip.setBetAmount("1");
     await expect(runWithTimers(flip.placeBet())).rejects.toThrow();

@@ -180,8 +180,8 @@ const appMessages = {
   preflightEyebrow: { en: "Preview", zh: "提交前预览" },
   preflightTitle: { en: "Review the wallet effect", zh: "确认钱包操作影响" },
   previewNotConnected: {
-    en: "Preview only — connect a wallet to stake.",
-    zh: "仅为预览——请连接钱包后再质押。",
+    en: "Wallet required — connect before staking.",
+    zh: "需要钱包——连接后即可质押。",
   },
   statsAwaitConnect: {
     en: "Your stake, rewards and rate appear here once you connect a wallet.",
@@ -286,6 +286,8 @@ const appMessages = {
   creditRecovered: { en: "NEO credit recovery submitted", zh: "NEO 余额取回已提交" },
   creditRecoverHint: { en: "A bare NEO deposit (no stake memo) landed as recoverable credit.", zh: "未带质押 memo 的 NEO 存款记为可取回余额。" },
   tokenNeo: { en: "NEO", zh: "NEO" },
+  recoverNeoCredit: { en: "Recover NEO", zh: "取回 NEO" },
+  refreshAnchor: { en: "Refresh", zh: "刷新" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

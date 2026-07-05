@@ -2,7 +2,7 @@
  * useCoinFlip — Domain logic for the FogPlay (coin flip) miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppCoinFlipV2)
- * via ctx.services.chain.
+ * via ctx.framework.chain.
  *
  * WHY V2 (commit/reveal): the v1 contract settled a flip in the SAME transaction
  * that took the wager (Runtime.GetRandom read at bet time). That made the outcome
@@ -36,7 +36,7 @@
  *
  * Contract interaction model (verified against MiniAppCoinFlipV2 ABI):
  *
- *   READS (chain.read, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     bankroll()                         -> Integer (total house bankroll, base)
  *     reservedBankroll()                 -> Integer (exposure reserved by open bets)
  *     freeBankroll()                     -> Integer (bankroll available to back a bet)
@@ -47,7 +47,7 @@
  *     getPlayerGames(player,off,limit)   -> Integer[] (game/bet ids, newest last)
  *     getGame(gameId)                    -> Map{id,player,choice,outcome,won,wager,payout,time}
  *
- *   MUTATIONS (chain):
+ *   MUTATIONS (app.chain):
  *     commit(player, choice, amount) -> betId  (DEPOSIT-then-commit in one tx via
  *        invokeWithPayment: the wager rides the "miniapp-fogplay:bet" GAS transfer
  *        so OnNEP17Payment credits the player, then commit escrows it. choice
@@ -71,14 +71,14 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import type { EventBus } from "@shared/services";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
-import { formatNum, fromFixed8, formatGas } from "@shared/utils/format";
+import { formatNum, fromFixed8, formatGas, sleep } from "@shared/utils/format";
 
 // ============================================================================
 // Constants
@@ -152,8 +152,8 @@ export interface PendingBet {
 }
 
 export interface UseCoinFlipOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework (chain args / reads / invokes). */
+  app: MiniAppFramework;
   /** EventBus instance from ctx.services.events. */
   eventBus: EventBus;
   /** Translation function. */
@@ -187,14 +187,11 @@ const isAlreadySettled = (raw: string): boolean => /already settled|bet settled|
 const isRevealNotReady = (raw: string): boolean =>
   /reveal block|not reached|too early|same block|current.?index/i.test(raw);
 
-/** Sleep helper for the inter-block reveal wait + settle backoff. */
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
+export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
   // -- Game State -------------------------------------------------------------
   const betAmount = createObservable("1");
   const choice = createObservable<"heads" | "tails">("heads");
@@ -258,7 +255,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
   const gameHistory = createObservable<GameHistoryItem[]>([]);
 
   // -- Connected wallet address (synced from main.tsx / chain) ----------------
-  const address = createObservable<string | null>(chain.address.get() ?? null);
+  const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
@@ -326,7 +323,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       return;
     }
     try {
-      const raw = await chain.read("getStats", [{ type: "Hash160", value: playerHash }]);
+      const raw = await app.chain.readRaw("getStats", [app.chain.arg.hash160(playerHash)]);
       if (raw && typeof raw === "object" && !Array.isArray(raw)) {
         const record = raw as Record<string, unknown>;
         wins.set(Number(parseBigInt(record.wins)));
@@ -341,7 +338,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
   /** Read one game record (getGame) into a GameHistoryItem, or null on failure. */
   const readGame = async (gameId: bigint): Promise<GameHistoryItem | null> => {
     try {
-      const raw = await chain.read("getGame", [{ type: "Integer", value: gameId.toString() }]);
+      const raw = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
       const record = raw as Record<string, unknown>;
       const won = asBool(record.won);
@@ -388,7 +385,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       let total = 0n;
       try {
         total = parseBigInt(
-          await chain.read("playerGameCount", [{ type: "Hash160", value: playerHash }]),
+          await app.chain.readRaw("playerGameCount", [app.chain.arg.hash160(playerHash)]),
         );
       } catch {
         total = 0n;
@@ -400,10 +397,10 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       const limit = BigInt(HISTORY_PAGE_LIMIT);
       const offset = total > limit ? total - limit : 0n;
 
-      const idsRaw = await chain.read("getPlayerGames", [
-        { type: "Hash160", value: playerHash },
-        { type: "Integer", value: offset.toString() },
-        { type: "Integer", value: HISTORY_PAGE_LIMIT.toString() },
+      const idsRaw = await app.chain.readRaw("getPlayerGames", [
+        app.chain.arg.hash160(playerHash),
+        app.chain.arg.integer(offset),
+        app.chain.arg.integer(HISTORY_PAGE_LIMIT),
       ]);
       const ids = Array.isArray(idsRaw)
         ? idsRaw
@@ -430,7 +427,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    */
   const loadBankrollAndCredit = async () => {
     try {
-      bankrollBase.set(parseBigInt(await chain.read("bankroll", [])));
+      bankrollBase.set(parseBigInt(await app.chain.readRaw("bankroll", [])));
     } catch (e) {
       console.warn(
         "[useCoinFlip] bankroll read failed:",
@@ -438,7 +435,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       );
     }
     try {
-      freeBankrollBase.set(parseBigInt(await chain.read("freeBankroll", [])));
+      freeBankrollBase.set(parseBigInt(await app.chain.readRaw("freeBankroll", [])));
     } catch (e) {
       // freeBankroll is the v2 cap; if it can't be read, fall back to the total
       // bankroll so the cap stays conservative rather than unbounded.
@@ -456,7 +453,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
     }
     try {
       creditBase.set(
-        parseBigInt(await chain.read("creditOf", [{ type: "Hash160", value: playerHash }])),
+        parseBigInt(await app.chain.readRaw("creditOf", [app.chain.arg.hash160(playerHash)])),
       );
     } catch (e) {
       console.warn(
@@ -473,7 +470,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    * mid-flow) — kicked off without blocking the load.
    */
   const loadAll = async () => {
-    setAddress(chain.address.get() ?? null);
+    setAddress(app.chain.address.get() ?? null);
     await Promise.all([loadStats(), loadHistory(), loadBankrollAndCredit()]);
   };
 
@@ -531,7 +528,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    */
   const readSettledFromPendingBet = async (betId: string): Promise<GameResult | null> => {
     try {
-      const raw = await chain.read("getPendingBet", [{ type: "Integer", value: betId }]);
+      const raw = await app.chain.readRaw("getPendingBet", [app.chain.arg.integer(betId)]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
       const record = raw as Record<string, unknown>;
       // A bet that hasn't been settled yet has no recorded outcome.
@@ -562,12 +559,12 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    * retry via revealResult()).
    */
   const settleBet = async (bet: PendingBet): Promise<GameResult> => {
-    const settleArgs = [{ type: "Integer" as const, value: bet.betId }];
+    const settleArgs = [app.chain.arg.integer(bet.betId)];
     let lastError: unknown;
 
     for (let attempt = 0; attempt < SETTLE_MAX_ATTEMPTS; attempt += 1) {
       try {
-        const txResult = await chain.invoke("settle", settleArgs, { waitForEvent: "Settled" });
+        const txResult = await app.chain.invoke("settle", settleArgs, { waitForEvent: "Settled" });
 
         // Settled(betId, player, choice, outcome, won, payout): outcome slot 3,
         // won slot 4, payout slot 5. The event is authoritative for the outcome.
@@ -666,14 +663,14 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
     showWinOverlay.set(false);
 
     try {
-      const playerAddr = address.get() || (await chain.ensureWallet());
+      const playerAddr = address.get() || (await app.chain.ensureWallet());
       const playerHash = addressToScriptHash(playerAddr || "");
       if (!playerAddr || !playerHash) {
         throw new Error(t("connectWallet"));
       }
       setAddress(playerAddr);
 
-      const contractHash = chain.contractAddress.get();
+      const contractHash = app.chain.contractAddress.get();
       if (!contractHash) {
         throw new Error(t("gameErrorFallback"));
       }
@@ -694,14 +691,14 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
 
       // -- Step 1: COMMIT (deposit-then-commit in one tx) ---
       const commitArgs = [
-        { type: "Hash160" as const, value: playerHash },
-        { type: "Integer" as const, value: String(choiceInt) },
-        { type: "Integer" as const, value: amountBase.toString() },
+        app.chain.arg.hash160(playerHash),
+        app.chain.arg.integer(choiceInt),
+        app.chain.arg.integer(amountBase),
       ];
 
       let commitResult;
       try {
-        commitResult = await chain.invokeWithPayment(
+        commitResult = await app.chain.invokeWithPayment(
           amountBase.toString(),
           BET_MEMO,
           "commit",
@@ -808,7 +805,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    * to recover GAS stranded by an aborted commit (money-in with money-out).
    */
   const withdrawCredit = async (): Promise<void> => {
-    const playerAddr = address.get() || (await chain.ensureWallet());
+    const playerAddr = address.get() || (await app.chain.ensureWallet());
     const playerHash = addressToScriptHash(playerAddr || "");
     if (!playerAddr || !playerHash) {
       throw new Error(t("connectWallet"));
@@ -817,9 +814,9 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
     if (creditBase.get() <= 0n) {
       throw new Error(t("noCreditToWithdraw"));
     }
-    await chain.invoke(
+    await app.chain.invoke(
       "withdraw",
-      [{ type: "Hash160", value: playerHash }],
+      [app.chain.arg.hash160(playerHash)],
       { waitForEvent: "CreditWithdrawn" },
     );
     await loadBankrollAndCredit();
@@ -831,7 +828,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    */
   const bankrollTooLowMessage = async (): Promise<string> => {
     try {
-      const free = parseBigInt(await chain.read("freeBankroll", []));
+      const free = parseBigInt(await app.chain.readRaw("freeBankroll", []));
       if (free > 0n) {
         return t("bankrollTooLowCap", { max: formatGas(free, 4), tokenGas: t("tokenGas") });
       }

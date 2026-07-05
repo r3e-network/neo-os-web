@@ -1,5 +1,5 @@
 /**
- * Shared i18n library for Yiwu MiniApps
+ * Shared i18n library for Neo Miniapps
  * Supports both React (Next.js) and vanilla JS applications
  */
 

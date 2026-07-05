@@ -40,7 +40,7 @@
   },
   "urls": {
     "entry": "/miniapps/neo-message/index.html",
-    "icon": "/miniapps/neo-message/logo.jpg",
-    "banner": "/miniapps/neo-message/banner.jpg"
+    "icon": "/miniapps/neo-message/logo.webp",
+    "banner": "/miniapps/neo-message/banner.webp"
   }
 }

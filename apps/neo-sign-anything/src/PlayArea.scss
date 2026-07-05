@@ -1,1972 +1,785 @@
-@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-.sign-play-area {
-  --sign-ink: var(--ns-ink, #1e1e2e);
-  --sign-muted: var(--ns-text-2, #5b6478);
-  --sign-label: var(--ns-text-muted, #8a92a6);
-  --sign-soft: var(--ns-surface-subtle, #f7f8fa);
-  --sign-panel: var(--ns-surface, #ffffff);
-  --sign-border: var(--ns-border, rgba(20, 22, 38, 0.06));
-  --sign-green: var(--ns-brand, #16c784);
-  --sign-accent: var(--ns-brand, #16c784);
-  --sign-accent-strong: var(--ns-brand-strong, #0fb174);
-  --sign-accent-soft: var(--ns-brand-soft, #e4f8f0);
-  --sign-paper: #fff8ed;
-  --sign-sky: #edf7ff;
-  --sign-amber: #f6c86a;
-  --sign-badge-bg: var(--ns-brand-soft, #e4f8f0);
-  --sign-badge-fg: var(--ns-brand-strong, #0fb174);
-  --sign-danger: var(--ns-down, #ea3943);
-  --sign-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-  --sign-shadow-sm: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-  --sign-radius: var(--ns-radius-lg, 20px);
-  --sign-radius-md: var(--ns-radius-md, 16px);
-  --sign-radius-sm: var(--ns-radius-sm, 12px);
-  --sign-t-fast: var(--ns-t-fast, 150ms);
-  --sign-ease: var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
-
-  width: 100%;
-  min-height: 100%;
-  padding: 24px;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, var(--sign-paper), rgba(255, 255, 255, 0) 48%),
-    linear-gradient(315deg, var(--sign-sky), var(--sign-accent-soft));
-  color: var(--sign-ink);
-  letter-spacing: 0;
-  box-sizing: border-box;
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #0891b2;
+  --mx2-brand-hover: #0e7490;
+  --mx2-brand-light: #e2f4f9;
+  --mx2-brand-subtle: #ade0ec;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #6366f1;
+  --mx2-accent-strong: #4338ca;
+  --mx2-accent-soft: #ebebfe;
+  --mx2-accent-ink: #312e81;
 }
 
-.sign-play-area *,
-.sign-play-area *::before,
-.sign-play-area *::after {
-  box-sizing: border-box;
-}
 
-.sign-shell {
-  width: min(100%, 1420px);
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.44fr);
-  gap: 24px;
-  align-items: start;
-  letter-spacing: 0;
-}
-
-.sign-play-area--ready .sign-hero-accent {
-  animation: sign-accent-ready 2.6s ease-in-out infinite;
-}
-
-.sign-play-area--busy .sign-hero-accent svg {
-  animation: sign-icon-processing 900ms ease-in-out infinite;
-  transform-origin: center;
-}
-
-.sign-main,
-.sign-side {
-  min-width: 0;
-  display: grid;
-  gap: 20px;
-  letter-spacing: 0;
-}
-
-.sign-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.72fr);
-  gap: 20px;
-  align-items: stretch;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--ns-radius-xl, 24px);
-  overflow: hidden;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 248, 237, 0.94),
-      rgba(255, 255, 255, 0.78) 56%
-    ),
-    var(--sign-panel);
-  box-shadow: var(--sign-shadow);
-  letter-spacing: 0;
-}
-
-.sign-hero-content {
-  display: grid;
-  align-content: center;
-  gap: 18px;
-  min-width: 0;
-  padding: 8px 0 8px 4px;
-}
-
-.sign-hero-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  min-width: 0;
-}
-
-.sign-hero-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  letter-spacing: 0;
-}
-
-.sign-hero-eyebrow {
-  color: var(--sign-badge-fg);
-  font-size: 11px;
-  font-weight: 850;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0;
-}
-
-.sign-hero-accent {
-  flex-shrink: 0;
-  width: 50px;
-  height: 50px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--ns-radius-full, 9999px);
-  color: var(--sign-badge-fg);
-  background: var(--sign-badge-bg);
-  box-shadow: 0 10px 24px rgba(22, 199, 132, 0.14);
-  letter-spacing: 0;
-}
-
-.sign-hero .sign-hero-copy > h2 {
-  margin: 2px 0 0;
-  color: var(--sign-ink);
-  font-size: 28px;
-  font-weight: 850;
-  line-height: 1.16;
-  letter-spacing: 0;
-}
-
-.sign-hero .sign-hero-copy > p {
-  max-width: 62ch;
-  margin: 0;
-  color: var(--sign-muted);
-  font-size: 14px;
-  line-height: 1.55;
-  letter-spacing: 0;
-}
-
-.sign-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  letter-spacing: 0;
-}
-
-.sign-hero-stats > div {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  padding: 16px;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: var(--sign-radius-md);
-  background: rgba(255, 255, 255, 0.78);
-  letter-spacing: 0;
-}
-
-.sign-hero .sign-hero-stats span {
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0;
-}
-
-.sign-hero .sign-hero-stats strong {
-  min-width: 0;
-  color: var(--sign-ink);
-  font-size: 22px;
-  font-weight: 850;
-  line-height: 1.05;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-
-.sign-hero-stage {
-  position: relative;
-  min-width: 0;
-  min-height: 286px;
-  margin: 0;
-  overflow: hidden;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: #fff;
-  box-shadow: var(--sign-shadow-sm);
-}
-
-.sign-hero-stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(
-    112deg,
-    transparent 0%,
-    transparent 36%,
-    rgba(255, 255, 255, 0.5) 49%,
-    transparent 63%,
-    transparent 100%
-  );
-  opacity: 0;
-  transform: translateX(-74%);
-  animation: sign-stage-scan 6.8s ease-in-out infinite;
-}
-
-.sign-hero-stage img {
+.tool-play-area {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  transform-origin: 58% 50%;
-  animation: sign-stage-drift 16s ease-in-out infinite alternate;
+  --mx2-stage-floor: #ffffff;
 }
 
-.sign-hero-stage figcaption {
-  position: absolute;
-  z-index: 2;
-  right: 14px;
-  bottom: 14px;
-  left: 14px;
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--sign-radius-md);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--sign-shadow-sm);
+.tool-play-area .mx2-score {
+  display: none;
 }
 
-.sign-hero-stage figcaption span {
-  color: #9b6a1d;
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: uppercase;
+.tool-play-area .mx2-action-rail,
+.tool-play-area .mx2-drawer {
+  width: min(100%, 920px);
+  margin-inline: auto;
 }
 
-.sign-hero-stage figcaption strong {
-  color: var(--sign-ink);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: 0;
+.tool-play-area .mx2-stage__title {
+  font-weight: 620;
 }
 
-.sign-flow-disclosure {
-  border-radius: var(--sign-radius);
-  background: var(--sign-panel);
-  box-shadow: var(--sign-shadow-sm);
-  overflow: hidden;
-  letter-spacing: 0;
-
-  > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 16px 20px;
-    list-style: none;
-    cursor: pointer;
-    color: var(--sign-ink);
-    font-size: 14px;
-    font-weight: 700;
-    user-select: none;
-    transition: background var(--sign-t-fast) var(--sign-ease);
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    &:hover {
-      background: var(--sign-soft);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
-}
-
-.sign-flow-disclosure__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  &::before {
-    content: "";
-    width: 8px;
-    height: 8px;
-    border-radius: var(--ns-radius-full, 9999px);
-    background: var(--sign-badge-fg);
-  }
-}
-
-.sign-flow-disclosure__chevron {
-  width: 18px;
-  height: 18px;
-  color: var(--sign-label);
-  transition: transform var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-flow-disclosure[open] .sign-flow-disclosure__chevron {
-  transform: rotate(180deg);
-}
-
-.sign-flow-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  padding: 4px 20px 20px;
-  letter-spacing: 0;
-}
-
-.sign-flow-strip > div {
-  min-width: 0;
-  padding: 16px;
-  border-radius: var(--sign-radius-md);
-  background: var(--sign-soft);
-  letter-spacing: 0;
-}
-
-.sign-flow-disclosure[open] .sign-flow-strip > div {
-  animation: sign-flow-card-in 300ms var(--sign-ease) both;
-}
-
-.sign-flow-disclosure[open] .sign-flow-strip > div:nth-child(2) {
-  animation-delay: 45ms;
-}
-
-.sign-flow-disclosure[open] .sign-flow-strip > div:nth-child(3) {
-  animation-delay: 90ms;
-}
-
-.sign-flow-strip span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin-bottom: 12px;
-  border-radius: var(--ns-radius-full, 9999px);
-  color: var(--sign-badge-fg);
-  background: var(--sign-badge-bg);
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-
-.sign-flow-strip strong {
-  display: block;
-  color: var(--sign-ink);
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.sign-flow-strip p {
-  margin: 8px 0 0;
-  color: var(--sign-muted);
-  font-size: 13px;
-  line-height: 1.5;
-  letter-spacing: 0;
-}
-
-.sign-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 0.58fr) minmax(320px, 0.42fr);
-  gap: 20px;
-  align-items: stretch;
-  letter-spacing: 0;
-}
-
-.sign-message-panel,
-.sign-result-panel,
-.sign-safety-panel {
-  min-width: 0;
-  border-radius: var(--sign-radius);
-  box-shadow: var(--sign-shadow);
-}
-
-.sign-message-panel.neo-card .neo-card__body,
-.sign-result-panel.neo-card .neo-card__body,
-.sign-safety-panel.neo-card .neo-card__body {
-  display: grid;
-  gap: 18px;
-  padding: 24px;
-  letter-spacing: 0;
-}
-
-.sign-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--sign-ink);
-  letter-spacing: 0;
-}
-
-.sign-section-heading > span {
-  min-width: 0;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.sign-section-heading > strong {
-  color: var(--sign-muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.25;
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-}
-
-.sign-document-preview {
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--sign-radius-md);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(246, 200, 106, 0.18),
-      rgba(255, 255, 255, 0) 64%
-    ),
-    rgba(255, 255, 255, 0.72);
-  letter-spacing: 0;
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    box-shadow var(--sign-t-fast) var(--sign-ease),
-    transform var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-document-preview--editor {
-  padding: 14px;
-  animation: sign-document-in 420ms var(--sign-ease) both;
-}
-
-.sign-document-preview--ready {
-  border-color: rgba(15, 177, 116, 0.28);
-  box-shadow: 0 16px 36px rgba(22, 199, 132, 0.1);
-}
-
-.sign-document-preview--over-limit {
-  border-color: rgba(234, 57, 67, 0.24);
-}
-
-.sign-document-preview__paper {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto minmax(180px, 1fr);
-  gap: 10px;
-  min-height: 292px;
-  overflow: hidden;
-  padding: 18px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--sign-radius-md);
-  background:
-    linear-gradient(90deg, rgba(20, 22, 38, 0.055) 1px, transparent 1px) 0 0 /
-      32px 32px,
-    linear-gradient(0deg, rgba(20, 22, 38, 0.04) 1px, transparent 1px) 0 0 /
-      32px 32px,
-    linear-gradient(160deg, #ffffff 0%, #fff9eb 100%);
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    box-shadow var(--sign-t-fast) var(--sign-ease),
-    transform var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-document-preview__paper::before {
-  position: absolute;
-  top: 70px;
-  left: 20px;
-  width: min(58%, 280px);
-  height: 84px;
-  border-radius: 14px;
-  background:
-    linear-gradient(var(--sign-border) 0 0) 0 0 / 100% 1px no-repeat,
-    linear-gradient(var(--sign-border) 0 0) 0 26px / 78% 1px no-repeat,
-    linear-gradient(var(--sign-border) 0 0) 0 52px / 92% 1px no-repeat;
-  content: "";
-  pointer-events: none;
-}
-
-.sign-document-preview--ready .sign-document-preview__paper {
-  border-color: rgba(15, 177, 116, 0.24);
-  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.08);
-  animation: sign-paper-ready 2.2s ease-in-out infinite;
-}
-
-.sign-document-preview__toolbar {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.sign-document-preview__toolbar > span:last-child {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 6px 10px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 850;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.sign-document-preview__toolbar > span:last-child.is-ready {
-  border-color: rgba(15, 177, 116, 0.26);
-  background: var(--sign-accent-soft);
-  color: var(--sign-accent-strong);
-}
-
-.sign-document-preview__seal {
-  position: absolute;
-  right: 18px;
-  bottom: 26px;
-  display: grid;
-  width: 68px;
-  height: 68px;
-  place-items: center;
-  border: 2px solid rgba(15, 177, 116, 0.28);
-  border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(228, 248, 240, 0.76);
-  color: var(--sign-accent-strong);
-  pointer-events: none;
-  transform-origin: center;
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    background var(--sign-t-fast) var(--sign-ease),
-    transform var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-document-preview--ready .sign-document-preview__seal {
-  border-color: rgba(15, 177, 116, 0.46);
-  background: rgba(228, 248, 240, 0.9);
-  animation: sign-seal-ready 2.8s ease-in-out infinite;
-}
-
-.sign-document-preview__type {
-  position: relative;
-  z-index: 1;
-  color: #9b6a1d;
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.sign-message-field--paper {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-}
-
-.sign-message-field--paper > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.sign-message-field--paper textarea {
-  width: 100%;
-  min-height: 180px;
-  padding: 16px 96px 18px 0;
-  border: 0;
-  border-radius: 0;
-  outline: none;
-  background: transparent;
-  color: var(--sign-ink);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 750;
-  line-height: 1.55;
-  resize: none;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.sign-message-field--paper textarea::placeholder {
-  color: rgba(91, 100, 120, 0.76);
-}
-
-.sign-document-preview__paper:focus-within {
-  border-color: rgba(15, 177, 116, 0.34);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-}
-
-.sign-document-preview__meta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.sign-document-preview__meta span {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: var(--sign-radius-sm);
-  background: rgba(255, 255, 255, 0.86);
-}
-
-.sign-document-preview__meta small {
-  overflow: hidden;
-  color: var(--sign-label);
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.sign-document-preview__meta strong {
-  color: var(--sign-ink);
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.sign-route-stage {
-  position: relative;
-  display: grid;
-  gap: 12px;
-  overflow: hidden;
-  padding: 14px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--sign-radius-md);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(228, 248, 240, 0.62),
-      rgba(255, 255, 255, 0.84) 58%
-    ),
-    var(--sign-panel);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 12px 26px rgba(20, 22, 38, 0.05);
-}
-
-.sign-route-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 40%,
-    rgba(255, 255, 255, 0.78) 49%,
-    rgba(22, 199, 132, 0.15) 56%,
-    transparent 68%,
-    transparent 100%
-  );
-  opacity: 0;
-  transform: translateX(-72%);
-}
-
-.sign-route-stage--signing,
-.sign-route-stage--broadcasting {
-  border-color: rgba(15, 177, 116, 0.28);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 16px 34px rgba(22, 199, 132, 0.1),
-    0 0 0 4px rgba(22, 199, 132, 0.06);
-}
-
-.sign-route-stage--signing::after,
-.sign-route-stage--broadcasting::after {
-  animation: sign-route-stage-scan 1.08s ease-in-out infinite;
-}
-
-.sign-route-stage--signed,
-.sign-route-stage--broadcasted {
-  border-color: rgba(15, 177, 116, 0.22);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(228, 248, 240, 0.78),
-      rgba(255, 255, 255, 0.9) 62%
-    ),
-    var(--sign-panel);
-}
-
-.sign-route-stage__copy {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.sign-route-stage__copy small {
-  color: var(--sign-accent-strong);
-  font-size: 10.5px;
-  font-weight: 850;
-  letter-spacing: 0;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.sign-route-stage__copy strong {
-  color: var(--sign-ink);
-  font-size: 15px;
-  font-weight: 850;
-  line-height: 1.22;
-}
-
-.sign-route-stage__copy span {
-  color: var(--sign-muted);
-  font-size: 12px;
-  font-weight: 650;
+.tool-play-area .mx2-stage__subtitle {
+  font-weight: 420;
   line-height: 1.45;
 }
 
-.sign-route-stage__rail {
+.tool-play-area .mx2-stage__scene {
+  min-height: 0;
+  padding: 0;
+}
+
+.tool-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 156px;
+  max-width: min(100%, 156px);
+  font-weight: 620;
+}
+
+.sign-desk {
   position: relative;
-  z-index: 1;
+  width: 100%;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-lg);
+  background: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.sign-desk__workspace {
+  position: relative;
   display: grid;
-  grid-template-columns: 42px minmax(40px, 1fr) 42px minmax(40px, 1fr) 42px;
-  gap: 8px;
+  grid-template-columns: minmax(360px, 1.18fr) minmax(280px, 0.82fr);
+  gap: 18px;
+  align-items: start;
+  min-height: 360px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.sign-desk__paper,
+.sign-desk__proof {
+  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.085);
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(31, 41, 55, 0.055);
+}
+
+.sign-desk__paper {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 100%;
+  border-radius: 22px;
+  padding: 16px;
+}
+
+.sign-desk__paper-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   align-items: center;
   min-width: 0;
 }
 
-.sign-route-stage__node,
-.sign-route-stage__packet {
+.sign-desk__paper-head span,
+.sign-desk__paper-head strong,
+.sign-desk__payload-sheet > span {
+  color: #58685d;
+  font-size: 11px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.sign-desk__paper-head span {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: var(--sign-radius-sm);
+  gap: 7px;
+  color: #246044;
 }
 
-.sign-route-stage__node {
-  width: 42px;
-  height: 42px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--sign-label);
-  box-shadow: var(--sign-shadow-sm);
-  transition:
-    color var(--sign-t-fast) var(--sign-ease),
-    border-color var(--sign-t-fast) var(--sign-ease),
-    background var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-route-stage--ready .sign-route-stage__node--message,
-.sign-route-stage--signing .sign-route-stage__node--message,
-.sign-route-stage--broadcasting .sign-route-stage__node--message,
-.sign-route-stage--signed .sign-route-stage__node,
-.sign-route-stage--broadcasted .sign-route-stage__node {
-  border-color: rgba(15, 177, 116, 0.22);
-  background: var(--sign-accent-soft);
-  color: var(--sign-accent-strong);
-}
-
-.sign-route-stage--signing .sign-route-stage__node--wallet,
-.sign-route-stage--broadcasting .sign-route-stage__node--wallet {
-  border-color: rgba(15, 177, 116, 0.34);
-  background: var(--sign-accent-soft);
-  color: var(--sign-accent-strong);
-  animation: sign-route-node-pulse 1.04s ease-in-out infinite;
-}
-
-.sign-route-stage__track {
-  position: relative;
-  display: block;
-  height: 8px;
+.sign-desk__paper-head strong {
+  min-width: 0;
   overflow: hidden;
-  border-radius: var(--ns-radius-full, 9999px);
-  background:
-    linear-gradient(90deg, rgba(15, 177, 116, 0.18), rgba(37, 99, 235, 0.12)),
-    rgba(20, 22, 38, 0.07);
+  padding: 7px 10px;
+  border-radius: var(--mx2-r-pill);
+  color: #244a34;
+  background: rgba(229, 244, 226, 0.78);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sign-route-stage__track::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 42%;
+.sign-desk__payload-sheet {
+  display: grid;
+  grid-template-rows: auto minmax(132px, auto);
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(31, 138, 83, 0.14);
+  border-radius: 18px;
+  padding: 12px 14px;
+  background: #ffffff;
+  box-shadow: inset 0 -1px 0 rgba(31, 138, 83, 0.1);
+}
+
+.sign-desk__textarea {
+  width: 100%;
+  min-height: 132px;
+  max-height: 188px;
+  resize: none;
+  border: 0;
+  color: #1e2f25;
+  background: transparent;
+  font: 620 14px/1.48 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: auto;
+}
+
+.sign-desk__textarea:focus {
+  outline: none;
+}
+
+.sign-desk__payload-sheet:focus-within {
+  box-shadow:
+    inset 0 -2px 0 rgba(31, 138, 83, 0.52),
+    0 0 0 4px rgba(60, 177, 112, 0.15);
+}
+
+.sign-desk__textarea::placeholder {
+  color: rgba(58, 76, 65, 0.52);
+}
+
+.sign-desk__payload-preview {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: var(--mx2-surface-2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.sign-desk__payload-preview[data-empty="true"] {
+  background: #ffffff;
+}
+
+.sign-desk__payload-preview span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #246044;
+  font-size: 11px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.sign-desk__payload-preview code {
+  min-width: 0;
+  overflow: hidden;
+  color: #1e2f25;
+  font: 800 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-desk__meter {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef3ef;
+}
+
+.sign-desk__meter span {
+  display: block;
+  height: 100%;
+  min-width: 6px;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--sign-accent), #f6c86a);
-  opacity: 0;
+  background: linear-gradient(90deg, #34b875, #7ccf8c);
+  transition:
+    width 260ms var(--mx2-ease-settle),
+    background 180ms var(--mx2-ease);
 }
 
-.sign-route-stage--ready .sign-route-stage__track--wallet::before,
-.sign-route-stage--signed .sign-route-stage__track::before,
-.sign-route-stage--broadcasted .sign-route-stage__track::before {
-  opacity: 0.88;
+.sign-desk__meter[data-over="true"] span {
+  background: linear-gradient(90deg, #d85f47, #f0a04b);
 }
 
-.sign-route-stage--signing .sign-route-stage__track--wallet::before,
-.sign-route-stage--broadcasting .sign-route-stage__track::before {
-  opacity: 1;
-  animation: sign-route-track-flow 1.05s ease-in-out infinite;
+.sign-desk__paper-note {
+  min-height: 34px;
+  margin: 0;
+  color: #526657;
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.42;
 }
 
-.sign-route-stage__packet {
+.sign-desk__handoff {
   position: absolute;
+  z-index: 3;
   top: 50%;
-  left: 8%;
-  width: 30px;
-  height: 30px;
-  border: 1px solid rgba(15, 177, 116, 0.22);
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--sign-accent-strong);
-  box-shadow: 0 10px 24px rgba(22, 199, 132, 0.13);
-  opacity: 0;
+  left: calc(58% - 24px);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(31, 138, 83, 0.18);
+  border-radius: 18px;
+  background: #ffffff;
+  color: #246044;
+  box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
+  transform: translateY(-50%);
+}
+
+.sign-desk__handoff span {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 88px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(31, 138, 83, 0.08), rgba(31, 138, 83, 0.34), rgba(31, 138, 83, 0.08));
   transform: translate(-50%, -50%);
 }
 
-.sign-route-stage--signing
-  .sign-route-stage__track--wallet
-  .sign-route-stage__packet,
-.sign-route-stage--broadcasting .sign-route-stage__packet {
-  opacity: 1;
-  animation: sign-route-packet 1.05s ease-in-out infinite;
-}
-
-.sign-route-stage--signed .sign-route-stage__packet--proof,
-.sign-route-stage--broadcasted .sign-route-stage__packet--proof {
-  left: 92%;
-  opacity: 1;
-  animation: sign-route-proof-land 520ms var(--sign-ease) both;
-}
-
-.sign-route-stage__labels {
+.sign-desk__handoff svg {
   position: relative;
   z-index: 1;
+}
+
+.sign-desk--signing .sign-desk__handoff,
+.sign-desk--broadcasting .sign-desk__handoff {
+  animation: sign-desk-handoff 1s var(--mx2-ease-settle) infinite alternate;
+}
+
+.sign-desk__proof {
+  display: grid;
+  grid-template-rows: 132px auto auto auto auto auto;
+  gap: 12px;
+  border-radius: 24px;
+  padding: 14px;
+}
+
+.sign-desk__photo {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 10px;
+  background: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgba(31, 41, 55, 0.08),
+    0 10px 24px rgba(31, 41, 55, 0.06);
+}
+
+.sign-desk__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid rgba(67, 133, 84, 0.12);
+  border-radius: 16px;
+  object-fit: cover;
+  object-position: center;
+  opacity: 1;
+  filter: none;
+}
+
+.sign-desk__photo::after {
+  content: none;
+}
+
+.sign-desk__mode {
+  width: fit-content;
+  border-radius: var(--mx2-r-pill);
+  padding: 7px 10px;
+  color: #244a34;
+  background: #ffffff;
+  font-size: 11px;
+  font-weight: 680;
+  box-shadow: inset 0 0 0 1px rgba(67, 133, 84, 0.15);
+}
+
+.sign-desk__seal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  column-gap: 11px;
+  align-items: center;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 18px;
+  padding: 12px;
+  color: #20382a;
+  background: #fbfdf9;
+}
+
+.sign-desk__seal[data-active="true"] {
+  background: #f1fbf4;
+  box-shadow: inset 0 0 0 1px rgba(46, 155, 89, 0.16);
+}
+
+.sign-desk__seal-icon {
+  grid-area: icon;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: #ffffff;
+  background: #3c7b54;
+  box-shadow: 0 8px 18px rgba(42, 96, 61, 0.16);
+}
+
+.sign-desk__seal > span:not(.sign-desk__seal-icon) {
+  grid-area: label;
+  color: #5b6b60;
+  font-size: 11px;
+  font-weight: 680;
+  text-transform: uppercase;
+}
+
+.sign-desk__seal strong {
+  grid-area: value;
+  min-width: 0;
+  overflow: hidden;
+  color: #1f3f2d;
+  font-size: 16px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-desk--signing .sign-desk__seal-icon,
+.sign-desk--broadcasting .sign-desk__seal-icon {
+  animation: sign-desk-review 1.15s var(--mx2-ease-settle) infinite;
+}
+
+.sign-desk__route {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  color: var(--sign-label);
-  font-size: 10.5px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-transform: uppercase;
 }
 
-.sign-route-stage__labels span:nth-child(2) {
-  text-align: center;
-}
-
-.sign-route-stage__labels span:nth-child(3) {
-  text-align: right;
-}
-
-.sign-composer-shell {
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--sign-radius);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 248, 237, 0.82),
-      rgba(255, 255, 255, 0.7) 54%
-    ),
-    var(--sign-panel);
-}
-
-.sign-template-rail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
-  gap: 8px;
-}
-
-.sign-template-rail button {
+.sign-desk__route span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-width: 0;
-  min-height: 42px;
-  padding: 0 10px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--sign-radius-sm);
-  background: rgba(255, 255, 255, 0.84);
-  color: var(--sign-ink);
-  font: inherit;
+  gap: 6px;
+  min-height: 34px;
+  border-radius: 999px;
+  color: #5a6a60;
+  background: rgba(47, 83, 61, 0.08);
   font-size: 12px;
-  font-weight: 760;
-  line-height: 1.2;
-  cursor: pointer;
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    background var(--sign-t-fast) var(--sign-ease),
-    color var(--sign-t-fast) var(--sign-ease),
-    transform var(--sign-t-fast) var(--sign-ease);
+  font-weight: 620;
 }
 
-.sign-template-rail button svg {
-  flex: none;
-  color: #9b6a1d;
-}
-
-.sign-template-rail button span {
+.sign-desk__route em {
   min-width: 0;
-  white-space: normal;
-}
-
-.sign-template-rail button:hover {
-  border-color: rgba(15, 177, 116, 0.34);
-  background: var(--sign-accent-soft);
-  color: var(--sign-accent-strong);
-  transform: translateY(-1px);
-}
-
-.sign-template-rail button:active {
-  animation: sign-template-press 180ms var(--sign-ease);
-}
-
-.sign-template-rail button:focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-}
-
-.sign-message-field {
-  display: grid;
-  gap: 8px;
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0;
-}
-
-.sign-message-field > span {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sign-message-field > span > em {
-  flex: none;
-  max-width: 50%;
   overflow: hidden;
-  color: #9b6a1d;
-  font-size: 11px;
   font-style: normal;
-  font-weight: 850;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.sign-message-field textarea {
-  width: 100%;
-  min-height: 184px;
-  resize: vertical;
-  padding: 18px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: var(--sign-radius-md);
-  outline: none;
-  color: var(--sign-ink);
-  background: linear-gradient(160deg, #ffffff 0%, #fffaf0 100%);
-  font:
-    500 14px/1.5 Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  letter-spacing: 0;
-  text-transform: none;
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    box-shadow var(--sign-t-fast) var(--sign-ease);
+.sign-desk__route span[data-active="true"] {
+  color: #1f5138;
+  background: rgba(76, 190, 116, 0.17);
+  box-shadow: inset 0 0 0 1px rgba(65, 141, 88, 0.18);
 }
 
-.sign-message-field textarea::placeholder {
-  color: var(--ns-text-faint, #aeb4c2);
-  letter-spacing: 0;
-}
-
-.sign-message-field textarea:focus {
-  border-color: var(--sign-accent);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-}
-
-.sign-message-field--paper textarea,
-.sign-message-field--paper textarea:focus {
-  min-height: 180px;
-  padding: 16px 96px 18px 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  font-size: 15px;
-  font-weight: 750;
-  line-height: 1.55;
-  resize: none;
-}
-
-.sign-byte-meter {
-  position: relative;
-  height: 8px;
-  overflow: hidden;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(20, 22, 38, 0.08);
-}
-
-.sign-byte-meter span {
-  display: block;
-  position: relative;
-  height: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--sign-accent), #f6c86a);
-  transition: width var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-byte-meter span::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 52px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.72),
-    transparent
-  );
-  transform: translateX(-64px);
-  animation: sign-meter-shine 2.6s ease-in-out infinite;
-}
-
-.sign-byte-meter.is-over span {
-  background: var(--sign-danger);
-}
-
-.sign-composer-alert {
-  margin: -2px 0 0;
-  color: var(--sign-danger);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.sign-file-row {
+.sign-desk__status {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  color: #1f3227;
+  background: #f7faf8;
+  box-shadow: inset 0 0 0 1px rgba(63, 97, 74, 0.1);
+}
+
+.sign-desk__status strong {
+  font-size: 15px;
+}
+
+.sign-desk__status span {
+  color: #57675d;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.42;
+}
+
+.sign-desk__outputs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.sign-desk__outputs button {
+  display: flex;
+  justify-content: space-between;
   gap: 10px;
-  margin-top: 0;
-  padding: 12px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--sign-radius-md);
-  background: var(--sign-soft);
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(56, 86, 67, 0.15);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #253d2d;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 620;
+  cursor: pointer;
 }
 
-.sign-file-row .neo-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.sign-desk__outputs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
 }
 
-.sign-file-input {
+.sign-desk__outputs code {
+  min-width: 0;
+  overflow: hidden;
+  color: #4b6153;
+  font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-desk__file-input {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
-  margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.sign-file-note {
-  flex: 1;
-  min-width: 0;
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.sign-fee-note {
-  margin: 8px 0 0;
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.sign-result-meta {
-  display: block;
-  margin-top: 4px;
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 600;
-  font-family: var(--ns-font-mono, "SFMono-Regular", Consolas, monospace);
-}
-
-.sign-action-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  letter-spacing: 0;
-}
-
-.sign-action-grid .neo-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: var(--ns-radius-full, 9999px);
-  font-weight: 700;
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-
-.sign-action-grid .neo-btn--primary:not(:disabled) {
-  border-color: rgba(6, 182, 212, 0.36);
-  background: linear-gradient(135deg, var(--sign-accent), #2563eb);
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff;
-  box-shadow: 0 14px 28px rgba(22, 199, 132, 0.18);
-  animation: sign-primary-ready 2.8s ease-in-out infinite;
-}
-
-.sign-action-grid .neo-btn--primary:not(:disabled) * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff;
-}
-
-.sign-action-grid .neo-btn--primary:not(:disabled):hover {
-  background: linear-gradient(135deg, var(--sign-accent-strong), #1d4ed8);
-  box-shadow: 0 4px 16px rgba(22, 199, 132, 0.28);
-}
-
-// Keep the primary CTA visibly primary even while disabled: soft-tinted
-// green instead of a flat grey pill so the affordance is preserved and it
-// is clearly the lead action over the outlined secondary.
-.sign-action-grid .neo-btn--primary:disabled {
-  background: var(--sign-accent-soft);
-  border-color: var(--ns-brand-border, rgba(22, 199, 132, 0.28));
-  color: var(--sign-accent-strong);
-  box-shadow: none;
-}
-
-// Demote the secondary action: quiet outline pill while disabled so the two
-// stacked buttons read as primary + secondary, not two competing primaries.
-.sign-action-grid .neo-btn--secondary:disabled {
-  background: var(--sign-panel);
-  border-color: var(--sign-border);
-  color: var(--sign-label);
-  box-shadow: none;
-}
-
-.sign-wallet-note {
-  position: relative;
-  margin: 0;
-  padding: 12px 14px 12px 36px;
-  border: 1px solid var(--ns-brand-border, rgba(22, 199, 132, 0.28));
-  border-radius: var(--sign-radius-sm);
-  color: var(--sign-muted);
-  background: var(--sign-accent-soft);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: 0;
-}
-
-.sign-wallet-note::before {
-  content: "";
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--sign-badge-fg);
-}
-
-.sign-result-stack {
-  display: grid;
-  gap: 10px;
-  letter-spacing: 0;
-}
-
-.sign-result-box {
-  min-width: 0;
-  display: grid;
-  // Single column so label / value / actions stack: the value previously sat in
-  // a narrow 1fr column beside the two action buttons, which squeezed
-  // "No signature yet" into a mid-word 3-line wrap. Stacked, the value gets full
-  // width (a real signature wraps cleanly; the empty label never breaks).
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-  padding: 16px;
-  border-radius: var(--sign-radius-md);
-  background: var(--sign-soft);
-  letter-spacing: 0;
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    background var(--sign-t-fast) var(--sign-ease),
-    transform var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-result-panel--ready .sign-result-box:not(.is-empty) {
-  border: 1px solid rgba(15, 177, 116, 0.18);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(228, 248, 240, 0.68),
-      rgba(255, 255, 255, 0.78)
-    ),
-    var(--sign-soft);
-  animation: sign-proof-reveal 360ms var(--sign-ease) both;
-}
-
-.sign-result-panel--ready .sign-section-heading strong {
-  color: var(--sign-accent-strong);
-}
-
-.sign-result-box span {
-  grid-column: 1 / -1;
-  color: var(--sign-label);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0;
-}
-
-.sign-result-box strong {
-  min-width: 0;
-  color: var(--sign-ink);
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    monospace;
-  font-size: 13px;
-  font-weight: 720;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-  letter-spacing: 0;
-}
-
-.sign-result-box.is-empty strong {
-  color: var(--sign-label);
-  font-family: inherit;
-  font-weight: 600;
-}
-
-.sign-result-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.sign-result-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 16px;
-  border-radius: var(--ns-radius-full, 9999px);
-  color: var(--sign-accent-strong);
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: underline;
-
-  &:hover {
-    text-decoration: none;
-  }
-}
-
-.sign-result-box button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 16px;
-  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-full, 9999px);
-  color: var(--sign-ink);
-  background: var(--sign-panel);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0;
-  transition:
-    border-color var(--sign-t-fast) var(--sign-ease),
-    color var(--sign-t-fast) var(--sign-ease),
-    background var(--sign-t-fast) var(--sign-ease);
-}
-
-.sign-result-box button:not(:disabled):hover {
-  border-color: var(--sign-accent);
-  color: var(--sign-accent-strong);
-  background: var(--sign-accent-soft);
-}
-
-.sign-result-box button:focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-}
-
-.sign-result-box button:disabled {
-  color: var(--sign-label);
-  background: var(--sign-soft);
-  cursor: not-allowed;
-}
-
-.sign-status-pill {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: var(--ns-radius-full, 9999px);
-  color: var(--sign-muted);
-  background: var(--sign-soft);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-
-.sign-status-pill svg {
-  flex: 0 0 auto;
-}
-
-.sign-status-pill.is-on {
-  color: var(--ns-brand-strong, #0fb174);
-  background: var(--ns-brand-soft, #e4f8f0);
-}
-
-.sign-safety-panel p {
-  margin: 0;
-  color: var(--sign-muted);
-  font-size: 14px;
-  line-height: 1.55;
-  letter-spacing: 0;
+  clip-path: inset(50%);
 }
 
 .sign-details {
-  border-radius: var(--sign-radius-md);
-  background: var(--sign-soft);
+  display: grid;
+  gap: 12px;
+}
+
+.sign-details__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 20px;
+  padding: 6px;
+  background: var(--mx2-surface-2);
+}
+
+.sign-details__tabs button {
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon meta";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--mx2-text-muted);
+  padding: 9px 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sign-details__tabs button.is-active,
+.sign-details__tabs button:hover {
+  border-color: var(--mx2-brand-subtle);
+  background: #ffffff;
+  color: var(--mx2-brand-hover);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.045);
+}
+
+.sign-details__tabs svg {
+  grid-area: icon;
+}
+
+.sign-details__tabs span,
+.sign-details__tabs em {
+  min-width: 0;
   overflow: hidden;
-  letter-spacing: 0;
-
-  > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    list-style: none;
-    cursor: pointer;
-    color: var(--sign-ink);
-    font-size: 14px;
-    font-weight: 700;
-    user-select: none;
-    transition: background var(--sign-t-fast) var(--sign-ease);
-
-    &::-webkit-details-marker {
-      display: none;
-    }
-
-    &:hover {
-      background: var(--ns-bg-2, #eceef2);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sign-details__chevron {
-  width: 18px;
-  height: 18px;
-  color: var(--sign-label);
-  transition: transform var(--sign-t-fast) var(--sign-ease);
+.sign-details__tabs span {
+  grid-area: label;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 620;
 }
 
-.sign-details[open] .sign-details__chevron {
-  transform: rotate(180deg);
+.sign-details__tabs em {
+  grid-area: meta;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 560;
 }
 
-.sign-details__body {
-  display: grid;
-  gap: 0;
-  padding: 0 16px 14px;
-
-  > p {
-    margin: 0 0 4px;
-    color: var(--sign-muted);
-    font-size: 13px;
-    line-height: 1.55;
-    letter-spacing: 0;
-  }
+.sign-details__active {
+  min-width: 0;
 }
 
-.sign-signal-row {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.sign-details__panel.mx2-open-panel.semi-card {
+  border-color: rgba(31, 138, 83, 0.12);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(250, 253, 250, 0.98), #ffffff) padding-box,
+    linear-gradient(135deg, rgba(52, 184, 117, 0.18), rgba(31, 41, 55, 0.06)) border-box;
+  box-shadow: 0 10px 22px rgba(31, 41, 55, 0.055);
+}
+
+.sign-details__panel.mx2-open-panel > .semi-card-body {
   gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--sign-border);
-  color: var(--sign-muted);
-  font-size: 13px;
-  line-height: 1.25;
-  letter-spacing: 0;
+  padding: 12px;
 }
 
-.sign-signal-row strong {
-  color: var(--sign-ink);
-  font-size: 13px;
-  font-weight: 760;
-  text-align: right;
-  letter-spacing: 0;
+.sign-details__panel.mx2-open-panel .mx2-open-panel__copy strong,
+.sign-details__panel.mx2-open-panel .mx2-open-panel__copy span {
+  white-space: normal;
 }
 
-.sign-signal-grid {
+.sign-details__panel.mx2-open-panel .mx2-open-panel__copy span {
+  line-height: 1.3;
+}
+
+.sign-details__summary {
   display: grid;
-  gap: 0;
-  padding: 4px 16px 14px;
-  border-radius: var(--sign-radius-md);
-  background: var(--sign-soft);
-  letter-spacing: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.sign-signal-grid .sign-signal-row:first-child {
-  border-top: none;
-}
-
-.sign-result-placeholder {
-  display: flex;
-  flex-direction: column;
+.sign-details__status-chip {
+  min-width: 0;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 36px 20px;
-  border-radius: var(--sign-radius-md);
-  border: 1px dashed var(--sign-border);
-  background: var(--sign-soft);
-  text-align: center;
-  letter-spacing: 0;
-}
-
-.sign-result-placeholder__icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
+  gap: 7px;
+  min-height: 40px;
+  border: 1px solid rgba(47, 83, 61, 0.1);
   border-radius: 14px;
-  background: var(--sign-badge-bg);
-  color: var(--sign-badge-fg);
-  animation: sign-placeholder-breathe 3.2s ease-in-out infinite;
+  padding: 9px 10px;
+  color: #516255;
+  background: #f8faf8;
+  font-size: 12px;
+  font-weight: 640;
 }
 
-.sign-result-placeholder__icon svg {
-  width: 26px;
-  height: 26px;
+.sign-details__status-chip[data-active="true"] {
+  color: #1f5138;
+  background: var(--mx2-brand-light);
+  box-shadow: inset 0 0 0 1px rgba(52, 184, 117, 0.16);
 }
 
-.sign-result-placeholder p {
+.sign-details__status-chip svg {
+  flex: 0 0 auto;
+}
+
+.sign-details__status-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-details__facts {
+  display: grid;
+  gap: 8px;
   margin: 0;
-  max-width: 240px;
-  color: var(--sign-muted);
-  font-size: 13px;
-  line-height: 1.55;
-  letter-spacing: 0;
 }
 
-@keyframes sign-stage-drift {
+.sign-details__facts div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border-radius: 13px;
+  padding: 9px 10px;
+  background: var(--mx2-surface-2);
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.055);
+}
+
+.sign-details__facts dt,
+.sign-details__artifact span {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+  text-transform: uppercase;
+}
+
+.sign-details__facts dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-details__artifact {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 16px;
+  padding: 10px;
+  background: var(--mx2-surface-2);
+}
+
+.sign-details__artifact[data-empty="true"] {
+  color: #627168;
+  background: #ffffff;
+}
+
+.sign-details__artifact code {
+  display: block;
+  max-height: 112px;
+  overflow: auto;
+  border-radius: 12px;
+  padding: 10px;
+  color: #203428;
+  background: #ffffff;
+  font: 650 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.07);
+}
+
+.sign-details__copy.mx2-btn {
+  justify-self: start;
+  min-height: 38px;
+}
+
+.sign-details__notice.mx2-open-notice.semi-banner {
+  min-height: 72px;
+  background: #f8fffd;
+}
+
+@keyframes sign-desk-review {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1.5deg);
+  }
+}
+
+@keyframes sign-desk-handoff {
   from {
-    transform: scale(1.01) translate3d(0, 0, 0);
+    transform: translateY(-50%) translateX(-2px);
   }
 
   to {
-    transform: scale(1.055) translate3d(1.2%, -1.2%, 0);
+    transform: translateY(-50%) translateX(3px);
   }
 }
 
-@keyframes sign-stage-scan {
-  0%,
-  56% {
-    opacity: 0;
-    transform: translateX(-74%);
+@media (max-width: 760px) {
+  .sign-desk,
+  .sign-desk__workspace {
+    min-height: auto;
   }
 
-  70% {
-    opacity: 0.68;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(74%);
-  }
-}
-
-@keyframes sign-accent-ready {
-  0%,
-  100% {
-    box-shadow: 0 10px 24px rgba(22, 199, 132, 0.14);
-    transform: translateY(0);
-  }
-
-  48% {
-    box-shadow:
-      0 14px 30px rgba(22, 199, 132, 0.2),
-      0 0 0 7px rgba(22, 199, 132, 0.09);
-    transform: translateY(-1px);
-  }
-}
-
-@keyframes sign-icon-processing {
-  0%,
-  100% {
-    transform: rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotate(-5deg) scale(1.05);
-  }
-}
-
-@keyframes sign-flow-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sign-document-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sign-paper-ready {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-1px);
-  }
-}
-
-@keyframes sign-seal-ready {
-  0%,
-  100% {
-    transform: rotate(-2deg) scale(1);
-  }
-
-  48% {
-    transform: rotate(-2deg) scale(1.055);
-  }
-}
-
-@keyframes sign-template-press {
-  0%,
-  100% {
-    transform: translateY(-1px) scale(1);
-  }
-
-  50% {
-    transform: translateY(0) scale(0.985);
-  }
-}
-
-@keyframes sign-meter-shine {
-  0%,
-  52% {
-    transform: translateX(-64px);
-  }
-
-  100% {
-    transform: translateX(220px);
-  }
-}
-
-@keyframes sign-primary-ready {
-  0%,
-  100% {
-    box-shadow: 0 14px 28px rgba(22, 199, 132, 0.18);
-  }
-
-  50% {
-    box-shadow:
-      0 16px 30px rgba(22, 199, 132, 0.22),
-      0 0 0 5px rgba(22, 199, 132, 0.08);
-  }
-}
-
-@keyframes sign-proof-reveal {
-  from {
-    opacity: 0.76;
-    transform: translateY(5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sign-placeholder-breathe {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes sign-route-stage-scan {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translateX(-72%);
-  }
-
-  44% {
-    opacity: 0.84;
-  }
-
-  82% {
-    opacity: 0;
-    transform: translateX(72%);
-  }
-}
-
-@keyframes sign-route-node-pulse {
-  0%,
-  100% {
-    box-shadow: var(--sign-shadow-sm);
-    transform: translateY(0);
-  }
-
-  50% {
-    box-shadow:
-      var(--sign-shadow-sm),
-      0 0 0 6px rgba(22, 199, 132, 0.08);
-    transform: translateY(-1px);
-  }
-}
-
-@keyframes sign-route-track-flow {
-  0%,
-  100% {
-    transform: translateX(-18%);
-  }
-
-  50% {
-    transform: translateX(136%);
-  }
-}
-
-@keyframes sign-route-packet {
-  0%,
-  100% {
-    left: 8%;
-    transform: translate(-50%, -50%) rotate(-4deg) scale(0.92);
-  }
-
-  50% {
-    left: 92%;
-    transform: translate(-50%, -50%) rotate(4deg) scale(1);
-  }
-}
-
-@keyframes sign-route-proof-land {
-  from {
-    transform: translate(-50%, -50%) scale(0.86);
-  }
-
-  to {
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-@media (max-width: 1180px) {
-  .sign-hero {
+  .sign-desk__workspace {
     grid-template-columns: 1fr;
-  }
-
-  .sign-hero-stage {
-    min-height: 250px;
-  }
-}
-
-@media (max-width: 1080px) {
-  .sign-workspace {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .sign-play-area {
-    padding: 16px;
-  }
-
-  .sign-shell {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .sign-action-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .sign-play-area {
-    padding: 12px;
-  }
-
-  .sign-hero {
-    gap: 12px;
     padding: 14px;
   }
 
-  .sign-hero-head {
-    align-items: center;
+  .sign-desk__paper,
+  .sign-desk__proof {
+    padding: 14px;
   }
 
-  .sign-hero-accent {
-    width: 44px;
-    height: 44px;
+  .sign-desk__payload-sheet {
+    grid-template-rows: auto minmax(118px, auto);
   }
 
-  .sign-hero .sign-hero-copy > h2 {
-    font-size: 20px;
+  .sign-desk__textarea {
+    min-height: 118px;
   }
 
-  .sign-hero .sign-hero-copy > p {
-    line-height: 1.42;
+  .sign-desk__proof {
+    grid-template-rows: 116px auto auto auto auto auto;
   }
 
-  .sign-hero-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .sign-desk__handoff {
+    display: none;
   }
 
-  .sign-hero-stage {
-    min-height: 150px;
-  }
-
-  .sign-hero-stage figcaption {
-    right: 10px;
-    bottom: 10px;
-    left: 10px;
-    padding: 9px 10px;
-  }
-
-  .sign-hero-stage figcaption strong {
-    font-size: 12px;
-  }
-
-  .sign-message-field textarea {
-    min-height: 150px;
-  }
-
-  .sign-template-rail {
+  .sign-details {
     grid-template-columns: 1fr;
   }
 
-  .sign-document-preview__meta {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .sign-route-stage__rail {
-    grid-template-columns: 38px minmax(34px, 1fr) 38px minmax(34px, 1fr) 38px;
+  .sign-details__tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+    padding: 5px;
   }
 
-  .sign-route-stage__node {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
-  }
-
-  .sign-document-preview__meta span {
-    grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
-    align-items: center;
-    padding: 9px 10px;
-  }
-
-  .sign-document-preview__meta small {
-    font-size: 9px;
-    line-height: 1.15;
-    white-space: normal;
-  }
-
-  .sign-document-preview__meta strong {
-    font-size: 11px;
-    white-space: normal;
-    text-align: right;
-  }
-
-  .sign-document-preview__paper {
-    grid-template-rows: auto minmax(178px, 1fr);
-    min-height: 248px;
-    padding: 16px;
-  }
-
-  .sign-document-preview__paper::before {
-    top: 68px;
-    left: 18px;
-    width: 62%;
-  }
-
-  .sign-document-preview__toolbar > span:last-child {
-    padding: 6px 8px;
-    font-size: 10px;
-  }
-
-  .sign-message-field--paper textarea,
-  .sign-message-field--paper textarea:focus {
-    min-height: 178px;
-    padding-right: 0;
-    padding-bottom: 72px;
-    font-size: 14px;
-  }
-
-  .sign-document-preview__seal {
-    right: 14px;
-    bottom: 18px;
-    width: 58px;
-    height: 58px;
-  }
-
-  .sign-flow-strip {
+  .sign-details__tabs button {
+    min-height: 50px;
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "icon"
+      "label";
+    justify-items: center;
+    padding: 8px 6px;
+    text-align: center;
   }
 
-  .sign-action-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sign-result-box {
-    grid-template-columns: 1fr;
+  .sign-details__tabs em {
+    display: none;
   }
 }
 
-@media (max-width: 420px) {
-  .sign-route-stage {
-    padding: 12px;
+@media (max-width: 480px) {
+  .sign-desk__paper-head {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .sign-route-stage__copy strong {
-    font-size: 13px;
-  }
-
-  .sign-route-stage__copy span {
-    font-size: 11.5px;
-  }
-
-  .sign-route-stage__labels {
-    font-size: 9px;
+  .sign-desk__outputs button {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sign-play-area--ready .sign-hero-accent,
-  .sign-play-area--busy .sign-hero-accent svg,
-  .sign-hero-stage::before,
-  .sign-hero-stage img,
-  .sign-flow-disclosure[open] .sign-flow-strip > div,
-  .sign-document-preview--editor,
-  .sign-document-preview--ready .sign-document-preview__paper,
-  .sign-document-preview--ready .sign-document-preview__seal,
-  .sign-template-rail button:active,
-  .sign-byte-meter span::after,
-  .sign-action-grid .neo-btn--primary:not(:disabled),
-  .sign-result-panel--ready .sign-result-box:not(.is-empty),
-  .sign-result-placeholder__icon,
-  .sign-route-stage::after,
-  .sign-route-stage--signing .sign-route-stage__node--wallet,
-  .sign-route-stage--broadcasting .sign-route-stage__node--wallet,
-  .sign-route-stage--signing .sign-route-stage__track--wallet::before,
-  .sign-route-stage--broadcasting .sign-route-stage__track::before,
-  .sign-route-stage__packet {
-    animation: none;
+  .sign-desk--signing .sign-desk__seal-icon,
+  .sign-desk--broadcasting .sign-desk__seal-icon {
+    animation-duration: 0.001ms !important;
   }
 
-  .sign-flow-disclosure__chevron,
-  .sign-details__chevron,
-  .sign-flow-disclosure > summary,
-  .sign-details > summary,
-  .sign-message-field textarea,
-  .sign-result-box button,
-  .sign-document-preview,
-  .sign-document-preview__paper,
-  .sign-document-preview__seal,
-  .sign-route-stage__node,
-  .sign-result-box {
-    transition: none;
+  .sign-desk--signing .sign-desk__handoff,
+  .sign-desk--broadcasting .sign-desk__handoff {
+    animation-duration: 0.001ms !important;
   }
 }

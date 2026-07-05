@@ -11,13 +11,15 @@
  *     reveal; the oracle decrypts and posts the plaintext on-chain (public).
  */
 
+import { EXTERNAL_INTEGRATIONS } from "@shared/constants/rpc";
+
 export const MESSAGE_EVM_ADDRESS = "0xd1906192c2308ae416aCDa96238cA846EBB83f15";
 export const NEO_X_MAINNET = "neo-x-mainnet";
 export const NEO_X_CHAIN_ID = 47763;
 
 // Token-injecting oracle edge (proxies to the Nitro worker). No worker token is
 // exposed to the browser; the edge attaches it. See neo-morpheus-oracle.
-export const ORACLE_EDGE_BASE = "https://oracle.meshmini.app/mainnet";
+export const ORACLE_EDGE_BASE = EXTERNAL_INTEGRATIONS.mainnet.morpheusPublicApiUrl;
 
 // Function selectors / event topics for MiniAppMessageEVM (keccak-derived).
 export const SELECTORS = {
@@ -43,6 +45,7 @@ export interface ComposeForm {
   body?: string;
   lockMode?: LockMode;
   revealDate?: string; // datetime-local value, e.g. "2026-06-09T14:30"
+  publicRevealAcknowledged?: boolean;
 }
 
 export type MessageView = {

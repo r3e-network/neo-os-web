@@ -196,7 +196,7 @@ export function ExplorerPlayArea(props: PlayAreaRegistryProps) {
       side={
         <div className="space-y-3">
           <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-            <h3 className="m-0 flex items-center gap-2 text-sm font-black text-gray-950">
+            <h3 className="m-0 flex items-center gap-2 text-sm font-semibold text-gray-900">
               <History className="h-4 w-4 text-slate-600" />
               Recent live transactions
             </h3>
@@ -210,7 +210,7 @@ export function ExplorerPlayArea(props: PlayAreaRegistryProps) {
                       key={`${hash}:${index}`}
                       className="block w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-left"
                     >
-                      <span className="block truncate font-mono text-xs font-bold text-gray-950">
+                      <span className="block truncate font-mono text-xs font-bold text-gray-900">
                         {shortHash(hash)}
                       </span>
                       <span className="mt-1 block text-[11px] font-semibold text-gray-500">
@@ -341,7 +341,7 @@ function ExplorerResultPanel({
     <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
       <div className="mb-3 flex items-center gap-2">
         <Hash className="h-4 w-4 text-emerald-600" />
-        <h3 className="m-0 text-sm font-black capitalize text-gray-950">
+        <h3 className="m-0 text-sm font-semibold capitalize text-gray-900">
           {result.type} result
         </h3>
       </div>

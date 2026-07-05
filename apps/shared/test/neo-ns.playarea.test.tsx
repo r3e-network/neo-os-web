@@ -1,61 +1,83 @@
 import React from "react";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../neo-ns/src/PlayArea";
-import type { Domain } from "../../neo-ns/src/hooks/useNeoNS";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-const OWNER = "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw";
-const TARGET = "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv";
-
 function t(key: string) {
-  const messages: Record<string, string> = {
+  const m: Record<string, string> = {
     title: "Neo Name Service",
-    docSubtitle: "Human-readable .neo domain names for Neo addresses",
-    tabDomains: "Domains",
-    expiringSoon: "Expiring",
-    walletStatus: "Wallet",
-    searchDomain: "Search Domain",
-    enterDomainName: "myname.neo",
-    search: "Search",
-    connectedAddress: "Address",
-    domainAvailable: "Available",
+    domainSuffix: ".neo",
+    available: "Available",
     domainTaken: "Taken",
+    enterDomainName: "myname",
+    eyebrow: "Neo NS",
+    docSubtitle: "Domain names on Neo.",
+    myDomains: "My Domains",
+    registerDomain: "Register",
+    searchDomain: "Search",
+    manage: "Manage",
+    expiringSoon: "Expiring soon",
+    noDomains: "No domains",
+    noDomainsHint: "Search for a name to claim one.",
+    noExpiringDomains: "No expiring domains.",
+    resultIdleTitle: "Choose a .neo name",
+    resultIdleEyebrow: "Ready to inspect",
+    resultIdleCopy: "Type a name to inspect it.",
+    resultAvailableCopy: "This name is open.",
+    resultTakenCopy: "This name is taken.",
     registrationCost: "Cost",
-    register: "Register",
+    registrationCostPending: "Check after search",
+    routeLabel: "Name lifecycle",
     owner: "Owner",
-    noDomains: "You don't own any domains yet",
-    noDomainsHint: "Search for a name above to claim your first .neo domain.",
-    manageTitle: "Manage Domain",
-    cancelManage: "Back to List",
-    currentOwner: "Current Owner",
+    walletStatus: "Wallet",
+    unknownOwner: "Unknown",
+    searchHint: "Verify spelling before registering.",
+    readyToSearch: "Ready to search",
+    checkingName: "Checking name",
+    readyToRegister: "Ready to register",
+    nameUnavailable: "Name unavailable",
+    nameInputLabel: "Find a name",
+    suggestionsLabel: "Try",
+    resultPanelLabel: "Registration status",
+    drawerTitle: "Domains and lifecycle",
+    drawerDomains: "Domains",
+    drawerExpiring: "Expiring",
+    drawerManage: "Manage",
+    drawerGuide: "Guide",
+    notSet: "Not set",
     currentExpiry: "Expiry Date",
     currentTarget: "Current Target",
-    notSet: "Not Set",
-    setTarget: "Set Target Address",
     targetAddress: "Target Address",
-    transferDomain: "Transfer Domain",
     receiverAddress: "Receiver Address",
-    invalidAddressHint:
-      "Enter a valid Neo N3 address (starts with N, 34 characters).",
+    cancelManage: "Back to List",
+    setTarget: "Set Target Address",
+    transferDomain: "Transfer Domain",
+    renew: "Renew",
+    howTitle: "How .neo names work",
+    howSearchLabel: "1 Search",
+    howSearchDesc: "Look up any name.",
+    howPriceLabel: "2 Price",
+    howPriceDesc: "Check GAS cost.",
+    howOwnLabel: "3 Own",
+    howOwnDesc: "Point it at an address.",
+    howRenewLabel: "4 Renew",
+    howRenewDesc: "Renew before expiry.",
+    howNote: "Names map to wallet addresses.",
+    heroAlt: "Neo NS registry desk",
   };
-  return messages[key] ?? key;
+  return m[key] ?? key;
 }
 
-function baseState(
-  overrides: Partial<Record<string, unknown>> = {},
-): ObservableState {
-  const values: Record<string, unknown> = {
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  const b: Record<string, unknown> = {
     address: "",
     domainCount: 0,
-    walletStatus: "Disconnected",
+    walletStatus: "",
     expiringSoon: 0,
     myDomains: [],
     loading: false,
@@ -65,172 +87,99 @@ function baseState(
     searchResult: null,
     isSearching: false,
     registrationCost: 0,
-    ...overrides,
+    ...o,
   };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(b).map(([k, v]) => [k, createObservable(v)]));
 }
 
-function domain(overrides: Partial<Domain> = {}): Domain {
-  return {
-    name: "alice.neo",
-    owner: OWNER,
-    expiry: Date.UTC(2030, 0, 1),
-    ...overrides,
-  };
-}
+describe("Neo NS PlayArea (v2)", () => {
+  it("renders a focused name desk instead of a score overview", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-describe("Neo NS PlayArea", () => {
-  it("renders the registration row with cost when a name is available", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          searchResult: { name: "free.neo", available: true, price: 5 },
-          registrationCost: 5,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(container.querySelector(".neo-ns-play-area--available")).toBeTruthy();
-    expect(document.querySelector(".nns-result-card--available")).toBeTruthy();
-    const resultAction = document.querySelector(".nns-result-action");
-    expect(resultAction?.textContent).toContain("Cost");
-    expect(resultAction?.textContent).toContain("5 GAS");
-    expect(screen.getByRole("button", { name: "Register" })).toBeTruthy();
-    // No owner row for an available name.
-    expect(document.querySelector(".nns-owner-line")).toBeNull();
+    expect(container.querySelector(".ns-desk")).toBeTruthy();
+    expect(container.querySelector(".ns-claim")).toBeTruthy();
+    expect(container.querySelector(".ns-domain-card")).toBeTruthy();
+    expect(container.querySelector(".ns-registry-card")).toBeTruthy();
+    expect(container.querySelector(".ns-search-line")).toBeTruthy();
+    expect(container.querySelector(".ns-input-field .semi-input")).toBeTruthy();
+    expect(container.querySelectorAll(".ns-suggestions__group .semi-radio")).toHaveLength(3);
+    expect(container.querySelector<HTMLImageElement>(".ns-registry-art__image")?.getAttribute("src")).toContain("neo-ns-registry-desk.webp");
+    expect(container.querySelector(".mx2-score")).toBeFalsy();
+    expect(container.textContent).toContain("Choose a .neo name");
+    expect(container.textContent).toContain("Ready to search");
+    expect(container.textContent).not.toContain("🌐");
   });
 
-  it("shows the resolved owner (not just a Taken pill) for a taken name", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          searchResult: { name: "taken.neo", available: false, owner: OWNER },
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
+  it("dispatches searchDomain", async () => {
+    const d = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ searchQuery: "test" })} dispatch={d} />);
 
-    expect(container.querySelector(".neo-ns-play-area--taken")).toBeTruthy();
-    expect(document.querySelector(".nns-result-card--taken")).toBeTruthy();
-    // The owner address is surfaced to the user.
-    const ownerRow = document.querySelector(".nns-owner-line");
-    expect(ownerRow).toBeTruthy();
-    expect(ownerRow?.textContent).toContain("Owner");
-    expect(ownerRow?.textContent).toContain(OWNER);
-    // The available register row is not shown for a taken name.
-    expect(screen.queryByRole("button", { name: "Register" })).toBeNull();
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+
+    await waitFor(() => expect(d).toHaveBeenCalledWith("searchDomain"));
   });
 
-  it("dispatches searchDomain on Search click", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(
-      <PlayArea t={t} state={baseState({ searchQuery: "alice" })} dispatch={dispatch} />,
-    );
+  it("dispatches registerDomain when the visible result is available", async () => {
+    const d = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ searchQuery: "test", searchResult: { name: "test.neo", available: true }, registrationCost: 10 })} dispatch={d} />);
 
-    expect(container.querySelector(".neo-ns-play-area--query-ready")).toBeTruthy();
-    expect(container.querySelector(".nns-search-button--ready")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("searchDomain"));
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+
+    await waitFor(() => expect(d).toHaveBeenCalledWith("registerDomain"));
   });
 
-  it("keeps the registry search motion and reduced-motion fallback covered", () => {
-    const styles = readFileSync(
-      resolve(process.cwd(), "../neo-ns/src/PlayArea.scss"),
-      "utf8",
-    );
+  it("keeps domain management in a tabbed drawer", async () => {
+    const domain = {
+      name: "alice.neo",
+      expiry: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      target: "NdhB6x7e3n7wXr4WDXQxG2yv8nT4h9tJ1H",
+    };
+    const d = vi.fn().mockResolvedValue(undefined);
+    const { container, getByText } = render(<PlayArea t={t} state={state({ domainCount: 1, myDomains: [domain], expiringSoon: 1 })} dispatch={d} />);
 
-    expect(styles).toContain("@keyframes nns-hero-drift");
-    expect(styles).toContain("@keyframes nns-registry-scan");
-    expect(styles).toContain("@keyframes nns-registry-badge-ready");
-    expect(styles).toContain("@keyframes nns-primary-ready");
-    expect(styles).toContain("@keyframes nns-result-reveal");
-    expect(styles).toContain("@keyframes nns-route-pulse");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nns-hero__stage img[\s\S]*animation:\s*none/,
-    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelectorAll(".ns-drawer-tabs__group .semi-radio")).toHaveLength(3);
+    expect(container.textContent).toContain("alice.neo");
+
+    fireEvent.click(getByText("Manage"));
+
+    await waitFor(() => expect(d).toHaveBeenCalledWith("showManage", domain));
+    expect(container.querySelector(".ns-drawer-panel--manage")).toBeTruthy();
+    expect(container.querySelectorAll(".ns-drawer-tabs__group .semi-radio")).toHaveLength(4);
+    expect(container.querySelector(".ns-drawer-tabs__group .semi-radio-checked .ns-drawer-tab")?.textContent).toContain("Manage");
+    expect(container.querySelectorAll(".ns-manage-input .semi-input")).toHaveLength(2);
+    expect(container.textContent).toContain("Target Address");
+    expect(container.textContent).toContain("Transfer Domain");
   });
 
-  it("shows the current target record in the manage panel when set", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({ managingDomain: domain({ target: TARGET }) })}
-        dispatch={vi.fn()}
-      />,
-    );
+  it("keeps the name service resource-led and away from flat form walls", () => {
+    const fs = require("node:fs");
+    const s = fs.readFileSync(`${process.cwd()}/../neo-ns/src/PlayArea.scss`, "utf8");
+    const tsx = fs.readFileSync(`${process.cwd()}/../neo-ns/src/PlayArea.tsx`, "utf8");
 
-    const info = document.querySelector(".manage-info");
-    expect(info?.textContent).toContain("Current Target");
-    expect(info?.textContent).toContain(TARGET);
-  });
-
-  it("falls back to 'Not Set' when a domain has no target record", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({ managingDomain: domain({ target: undefined }) })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    const info = document.querySelector(".manage-info");
-    expect(info?.textContent).toContain("Current Target");
-    expect(info?.textContent).toContain("Not Set");
-  });
-
-  it("disables the action buttons until a valid address is entered, and shows an inline hint for invalid input", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({ managingDomain: domain() })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    const setTargetBtn = screen.getByRole("button", {
-      name: "Set Target Address",
-    }) as HTMLButtonElement;
-    const transferBtn = screen.getByRole("button", {
-      name: "Transfer Domain",
-    }) as HTMLButtonElement;
-
-    // Empty inputs => both actions disabled, no error yet.
-    expect(setTargetBtn.disabled).toBe(true);
-    expect(transferBtn.disabled).toBe(true);
-    expect(document.querySelector(".field-error")).toBeNull();
-
-    // Invalid address => inline hint appears + button stays disabled.
-    const targetInput = screen.getByLabelText(
-      "Set Target Address",
-    ) as HTMLInputElement;
-    const transferInput = screen.getByLabelText(
-      "Transfer Domain",
-    ) as HTMLInputElement;
-    fireEvent.change(targetInput, { target: { value: "not-an-address" } });
-    expect(
-      screen.getByText(
-        "Enter a valid Neo N3 address (starts with N, 34 characters).",
-      ),
-    ).toBeTruthy();
-    expect(setTargetBtn.disabled).toBe(true);
-
-    // Valid address => hint clears + button enables.
-    fireEvent.change(targetInput, { target: { value: TARGET } });
-    expect(document.querySelector(".field-error")).toBeNull();
-    expect(setTargetBtn.disabled).toBe(false);
-    // Transfer is independent and still disabled while empty.
-    expect(transferBtn.disabled).toBe(true);
-
-    fireEvent.change(transferInput, { target: { value: OWNER } });
-    expect(transferBtn.disabled).toBe(false);
+    expect(tsx).not.toMatch(/\bscore=\{/);
+    expect(s).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(s).toMatch(/\.neo-ns-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*var\(--mx2-bg-2\)/);
+    expect(s).toMatch(/\.ns-desk\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.12fr\) minmax\(280px,\s*0\.88fr\)/);
+    expect(s).toMatch(/\.ns-desk\s*\{[\s\S]*background:\s*#fffaf2/);
+    expect(s).toMatch(/\.ns-domain-card\s*\{/);
+    expect(s).toMatch(/\.ns-search-line__control\s*\{/);
+    expect(s).toMatch(/\.ns-input-field \.semi-input\s*\{[\s\S]*font-size:\s*28px/);
+    expect(s).toMatch(/\.ns-suggestions__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*flex-wrap:\s*wrap/);
+    expect(s).toMatch(/\.ns-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*flex-wrap:\s*wrap/);
+    expect(s).toMatch(/\.ns-drawer-tabs__group \.semi-radio-checked \.ns-drawer-tab\s*\{[\s\S]*background:\s*var\(--ns-mint-soft\)/);
+    expect(s).toMatch(/\.ns-manage-input\.mx2-open-field__control\s*\{[\s\S]*background:\s*#fbfffd/);
+    expect(s).toMatch(/\.ns-guide-grid\s*\{/);
+    expect(s).toMatch(/\.neo-ns-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
+    expect(tsx).toContain("OpenUiProvider");
+    expect(tsx).toContain("OpenUiSegmented");
+    expect(tsx).toContain("OpenUiTextField");
+    expect(tsx).not.toMatch(/<(input|textarea|select)\b/);
+    expect(tsx).not.toContain('role="tab"');
+    expect(tsx).not.toContain('role="tablist"');
+    expect(tsx).not.toContain('role="radio"');
+    expect(tsx).not.toContain('role="radiogroup"');
+    expect(s).not.toMatch(/AI-generated scene backdrop|ns-scene__backdrop|🌐/);
+    expect(s).not.toMatch(/font-size:\s*clamp\(/);
   });
 });

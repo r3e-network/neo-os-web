@@ -222,6 +222,7 @@ const appMessages = {
   tabNeoDid: { en: "NeoDID", zh: "NeoDID" },
   panelEyebrow: { en: "Identity oracle", zh: "身份预言机" },
   panelTitle: { en: "NeoDID Verification Preview", zh: "NeoDID 校验预览" },
+  buildRequest: { en: "Build Request", zh: "构建请求" },
   panelDescription: {
     en: "Prepare a reviewable NeoDID verification package before Morpheus dispatch. This preview builder computes a local digest and does not verify identity. Confirm the exact provider id and claim type against the live Morpheus NeoDID catalog (GET /neodid/providers) before dispatch.",
     zh: "在 Morpheus 分发前准备可复核的 NeoDID 校验包。此预览构建器只计算本地摘要，不会验证身份。分发前请对照 Morpheus NeoDID 实时目录（GET /neodid/providers）确认确切的提供方 id 与声明类型。",
@@ -296,7 +297,7 @@ const appMessages = {
     en: "Enter a DID and claim before building a NeoDID preview.",
     zh: "请输入 DID 和声明字段后再生成 NeoDID 预览。",
   },
-  verifyReady: { en: "Verification preview ready", zh: "校验预览已准备" },
+  verifyReady: { en: "Verification request ready", zh: "校验请求已准备" },
   verifySummary: {
     en: "Claim '{claim}' prepared for review",
     zh: "声明“{claim}”已准备复核",
@@ -314,10 +315,10 @@ const appMessages = {
     zh: "抽象身份凭证流经预言机校验器",
   },
   neodidHeroCopy: {
-    en: "Stage the subject, provider, claim, and callback as one reviewable identity request before any live Morpheus dispatch.",
+    en: "Prepare the subject, provider, claim, and callback as one reviewable identity request before any live Morpheus dispatch.",
     zh: "在任何 Morpheus 实时分发前，将主体、提供方、声明和回调整理成一个可复核的身份请求。",
   },
-  neodidStatusLabel: { en: "NeoDID preview status", zh: "NeoDID 预览状态" },
+  neodidStatusLabel: { en: "NeoDID request status", zh: "NeoDID 请求状态" },
   neodidFlowTitle: { en: "NeoDID verification flow", zh: "NeoDID 校验流程" },
   neodidFlowSubject: { en: "Subject DID", zh: "主体 DID" },
   neodidFlowSubjectDesc: {
@@ -330,13 +331,13 @@ const appMessages = {
     zh: "匹配实时声明来源",
   },
   neodidFlowReceipt: { en: "Digest receipt", zh: "摘要回执" },
-  neodidFlowReceiptDesc: { en: "Preview package only", zh: "仅生成预览包" },
+  neodidFlowReceiptDesc: { en: "Review package", zh: "复核包" },
   neodidPlan: { en: "Verification workspace", zh: "校验工作台" },
   neodidPlanCopy: {
     en: "Build the request from identity context, not from a raw form.",
     zh: "从身份上下文组织请求，而不是填写裸表单。",
   },
-  neodidCatalogTitle: { en: "Preview only", zh: "仅预览" },
+  neodidCatalogTitle: { en: "Review mode", zh: "复核模式" },
   neodidCatalogCopy: {
     en: "Provider and claim options are examples. Check GET /neodid/providers before dispatching a real request.",
     zh: "提供方与声明选项为示例。分发真实请求前请检查 GET /neodid/providers。",
@@ -374,6 +375,7 @@ const appMessages = {
   dispatchReady: { en: "Dispatch ready", zh: "可分发" },
   payload: { en: "Payload", zh: "载荷" },
   previewReady: { en: "Preview ready", zh: "预览已就绪" },
+  neodidBuildActive: { en: "Building preview...", zh: "正在生成预览..." },
   docsSubtitle: {
     en: "A clean control surface for identity verification oracle requests.",
     zh: "面向身份校验预言机请求的清晰控制台。",

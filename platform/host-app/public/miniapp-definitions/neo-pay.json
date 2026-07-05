@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-neo-pay",
   "media": {
-    "icon": "/miniapp-assets/neo-pay/logo.jpg",
-    "banner": "/miniapp-assets/neo-pay/banner.jpg"
+    "icon": "/miniapp-assets/neo-pay/logo.webp",
+    "banner": "/miniapp-assets/neo-pay/banner.webp"
   },
   "permissions": {
     "payments": true

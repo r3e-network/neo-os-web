@@ -59,6 +59,11 @@ describe("neo-pay schedule disclosure mirrors deriveSchedule (NEO cliff)", () =>
     });
   });
 
+  it("does not truncate fractional NEO into a valid-looking schedule", () => {
+    expect(deriveSchedule("1.5", "30", "NEO")).toEqual({ rate: "0", intervalDays: "1" });
+    expect(deriveSchedulePreview("1.5", "30", "NEO")).toBeNull();
+  });
+
   it("shows a linear per-day GAS release", () => {
     const preview = deriveSchedulePreview("30", "30", "GAS");
     expect(preview).toEqual({ kind: "linear", amount: "1", days: "30" });

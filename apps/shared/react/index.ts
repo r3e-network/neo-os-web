@@ -19,6 +19,12 @@
 export { defineMiniApp } from "./defineMiniApp";
 export type { MiniAppDefinition } from "./defineMiniApp";
 
+// MiniApp framework SDK — the business layer surfaced to apps as `ctx.framework`.
+// Re-exported here so app composables can type against it via the same
+// `@shared/react` entry point they already use (no per-app path alias needed).
+export { createMiniAppFramework } from "../../../framework";
+export type { MiniAppFramework } from "../../../framework";
+
 // Root component (internal, but exported for testing/advanced use)
 export { MiniAppRoot } from "./MiniAppRoot";
 export type {
@@ -45,6 +51,8 @@ export type {
 
 // Hooks
 export { createUseI18n, useI18n } from "./hooks/useI18n";
+export { useT } from "./hooks/useT";
+export type { TFunction } from "./hooks/useT";
 export { useStatusMessage } from "./hooks/useStatusMessage";
 export type { StatusType, StatusMessage } from "./hooks/useStatusMessage";
 export { useStateBindings, useObservable } from "./hooks/useStateBindings";

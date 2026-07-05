@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useCheckin, FIXED8 } from "./useCheckin";
+import { createMiniAppFramework } from "@shared/react";
 import type { ChainService } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 
@@ -92,7 +93,11 @@ describe("useCheckin — reward-pool solvency + pause gating", () => {
   it("flags the pool as underfunded when its balance is below the smallest milestone reward", async () => {
     // Pool holds 0.015 GAS but a day-7 reward is 1 GAS — ~66x short.
     const { chain } = makeChain({ poolBalance: 1_500_000, unclaimed: 0 });
-    const app = useCheckin({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-dailycheckin" },
+    );
+    const app = useCheckin({ app: framework, t });
     await app.loadAll();
 
     expect(app.rewardPoolBalance.get()).toBe(1_500_000);
@@ -102,7 +107,11 @@ describe("useCheckin — reward-pool solvency + pause gating", () => {
 
   it("does NOT flag underfunded when the pool can cover the milestone reward", async () => {
     const { chain } = makeChain({ poolBalance: 5 * FIXED8, unclaimed: 0 });
-    const app = useCheckin({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-dailycheckin" },
+    );
+    const app = useCheckin({ app: framework, t });
     await app.loadAll();
 
     expect(app.rewardsUnderfunded.get()).toBe(false);
@@ -111,7 +120,11 @@ describe("useCheckin — reward-pool solvency + pause gating", () => {
   it("blocks claimRewards (no invoke) when the pool cannot cover the accrued reward", async () => {
     // User has 1 GAS unclaimed but the pool holds only 0.01 GAS.
     const { chain, invoke } = makeChain({ unclaimed: 1 * FIXED8, poolBalance: 1_000_000 });
-    const app = useCheckin({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-dailycheckin" },
+    );
+    const app = useCheckin({ app: framework, t });
     await app.loadAll();
 
     expect(app.claimableButUnfunded.get()).toBe(true);
@@ -123,7 +136,11 @@ describe("useCheckin — reward-pool solvency + pause gating", () => {
 
   it("allows claimRewards to invoke when the pool covers the accrued reward", async () => {
     const { chain, invoke } = makeChain({ unclaimed: 1 * FIXED8, poolBalance: 5 * FIXED8 });
-    const app = useCheckin({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-dailycheckin" },
+    );
+    const app = useCheckin({ app: framework, t });
     await app.loadAll();
 
     expect(app.claimableButUnfunded.get()).toBe(false);
@@ -134,7 +151,11 @@ describe("useCheckin — reward-pool solvency + pause gating", () => {
 
   it("surfaces the paused flag and blocks check-in (no transfer) when paused", async () => {
     const { chain, invoke } = makeChain({ paused: true, canCheckin: true, poolBalance: 5 * FIXED8 });
-    const app = useCheckin({ chain, t });
+    const framework = createMiniAppFramework(
+      { services: { chain }, t } as never,
+      { appId: "miniapp-dailycheckin" },
+    );
+    const app = useCheckin({ app: framework, t });
     await app.loadAll();
 
     expect(app.isPaused.get()).toBe(true);

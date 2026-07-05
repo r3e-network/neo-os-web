@@ -38,6 +38,17 @@ const describeWhenStaged =
     ? describe
     : describe.skip;
 
+describe("shared official token assets", () => {
+  it("keeps host NEO/GAS brand icons identical to the shared official token assets", () => {
+    expect(readHostAsset("brand/neo-icon.svg").trim()).toBe(
+      readRepoAsset("apps/shared/assets/tokens/neo-icon.svg").trim(),
+    );
+    expect(readHostAsset("brand/gas-icon.svg").trim()).toBe(
+      readRepoAsset("apps/shared/assets/tokens/gas-icon.svg").trim(),
+    );
+  });
+});
+
 describeWhenStaged("official brand assets", () => {
   it("uses the official OneGate mark instead of the generated wallet placeholder", () => {
     const walletLogo = readHostAsset("wallets/onegate.svg");

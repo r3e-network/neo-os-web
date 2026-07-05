@@ -2,7 +2,7 @@
  * useGraveyard — Domain logic for the Graveyard miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppGraveyard,
- * testnet 0xb55aa635b10a5abb5cbac169db26a38df739778e) via ctx.services.chain.
+ * testnet 0xb55aa635b10a5abb5cbac169db26a38df739778e) via the MiniApp framework (ctx.framework).
  *
  * The earlier path routed every action through the Morpheus OS kernel/edge
  * (ctx.os.nft.burn + ctx.os.storage list/set + ctx.os.badge.award). That kernel
@@ -15,12 +15,12 @@
  * which is topped up by a GAS transfer to the contract carrying the memo
  * "miniapp-graveyard:memory" (OnNEP17Payment credits the sender). A mutating
  * call with no prior deposit faults with "insufficient prepaid gas". The shared
- * chain.invokeWithPayment(amount, memo, method, args) does exactly this in one
+ * app.chain.invokeWithPayment(amount, memo, method, args) does exactly this in one
  * step: transfer GAS → settle → invoke. We use it so every paid action is real.
  *
  * Contract interaction model (verified against the deployed ABI + live reads):
  *
- *   READS (chain.read, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     getPlatformStats()              -> Map{ totalBuried, totalForgotten,
  *                                             totalMemories, buryFee, forgetFee,
  *                                             ... }  (fees in GAS base units)
@@ -28,7 +28,7 @@
  *                                             forgotten, epitaph, forgottenTime }
  *     getUserMemoryCount(user)        -> Integer
  *
- *   USER MEMORY LIST (chain.listEvents):
+ *   USER MEMORY LIST (app.chain.events):
  *     The contract has no per-user index of memory ids, so the burial history
  *     is reconstructed from the MemoryBuried event log, filtered to the
  *     connected wallet, then enriched with getMemoryDetails for the current
@@ -37,7 +37,7 @@
  *       MemoryBuried(memoryId, owner, contentHash, memoryType)   slots 0..3
  *       MemoryForgotten(memoryId, owner, forgetTime)             slots 0..2
  *
- *   PAID MUTATIONS (chain.invokeWithPayment, GAS deposit memo
+ *   PAID MUTATIONS (app.chain.invokeWithPayment, GAS deposit memo
  *     "miniapp-graveyard:memory"):
  *     buryMemory(owner, contentHash, memoryType) -> Integer memoryId
  *         deposit = buryFee.    Emits MemoryBuried.
@@ -49,7 +49,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
@@ -61,8 +61,8 @@ import type { HistoryItem } from "../types";
 // ============================================================================
 
 export interface UseGraveyardOptions {
-  /** Shared chain service from ctx.services.chain. */
-  chain: ChainService;
+  /** MiniApp framework (ctx.framework); its chain layer drives every read/write. */
+  app: MiniAppFramework;
   /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
@@ -165,7 +165,7 @@ const decodeEventString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
+export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
   const totalDestroyed = createObservable(0);
   // Total burial fees PAID across this wallet's burials, in GAS (display:
   // "Burial Fees"). Fees are spent, not reclaimed. This is an ESTIMATE: the
@@ -302,7 +302,9 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
 
   /** Resolve the connected wallet address + its script hash, prompting if needed. */
   const requireWallet = async (): Promise<{ address: string; hash: string }> => {
-    const addr = chain.address.get() || (await chain.ensureWallet());
+    const addr = app.chain.address.get() || (await app.chain.ensureWallet());
+    // addressToScriptHash here is a validity-check + the owner script hash the
+    // Hash160 args are built from (via app.chain.arg.hash160) — kept as-is.
     const hash = addressToScriptHash(addr || "");
     if (!addr || !hash) throw new Error(t("connectWallet"));
     return { address: addr, hash };
@@ -337,14 +339,14 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
       const { hash: ownerHash } = await requireWallet();
       const buriedType = memoryType.get();
 
-      const result = await chain.invokeWithPayment(
+      const result = await app.chain.invokeWithPayment(
         buryFee.get().toString(),
         MEMORY_DEPOSIT_MEMO,
         "buryMemory",
         [
-          { type: "Hash160", value: ownerHash },
-          { type: "String", value: currentHash },
-          { type: "Integer", value: String(buriedType) },
+          app.chain.arg.hash160(ownerHash),
+          app.chain.arg.string(currentHash),
+          app.chain.arg.integer(buriedType),
         ],
         { waitForEvent: "MemoryBuried" },
       );
@@ -389,7 +391,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
    */
   const loadStats = async () => {
     try {
-      const raw = await chain.read("getPlatformStats", []);
+      const raw = await app.chain.readRaw("getPlatformStats", []);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
       const stats = raw as Record<string, unknown>;
 
@@ -412,7 +414,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
    * connected wallet, the history is empty (nothing to scope to).
    */
   const loadHistory = async () => {
-    const addr = chain.address.get();
+    const addr = app.chain.address.get();
     if (!addr) {
       history.set([]);
       totalDestroyed.set(0);
@@ -423,8 +425,8 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
 
     try {
       const userCount = asNumber(
-        await chain.read("getUserMemoryCount", [
-          { type: "Hash160", value: ownerHash },
+        await app.chain.readRaw("getUserMemoryCount", [
+          app.chain.arg.hash160(ownerHash),
         ]),
       );
       totalDestroyed.set(userCount);
@@ -436,7 +438,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     }
 
     try {
-      const events = await chain.listEvents("MemoryBuried", { limit: HISTORY_EVENT_LIMIT });
+      const events = await app.chain.events("MemoryBuried", { limit: HISTORY_EVENT_LIMIT });
 
       // Collect this wallet's buried memories from the event log (newest last in
       // the log → reverse for newest-first display), de-duped by memoryId.
@@ -471,8 +473,8 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
           let chainType = item.memoryType;
           let epitaph = "";
           try {
-            const details = await chain.read("getMemoryDetails", [
-              { type: "Integer", value: item.id },
+            const details = await app.chain.readRaw("getMemoryDetails", [
+              app.chain.arg.integer(item.id),
             ]);
             if (details && typeof details === "object" && !Array.isArray(details)) {
               const d = details as Record<string, unknown>;
@@ -556,13 +558,13 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     try {
       const { hash: ownerHash } = await requireWallet();
 
-      await chain.invokeWithPayment(
+      await app.chain.invokeWithPayment(
         forgetFee.get().toString(),
         MEMORY_DEPOSIT_MEMO,
         "forgetMemory",
         [
-          { type: "Hash160", value: ownerHash },
-          { type: "Integer", value: String(item.id) },
+          app.chain.arg.hash160(ownerHash),
+          app.chain.arg.integer(item.id),
         ],
         { waitForEvent: "MemoryForgotten" },
       );
@@ -614,11 +616,11 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     try {
       // Ensure a wallet is connected to sign the owner witness.
       await requireWallet();
-      await chain.invoke(
+      await app.chain.invoke(
         "addEpitaph",
         [
-          { type: "Integer", value: String(item.id) },
-          { type: "String", value: text },
+          app.chain.arg.integer(item.id),
+          app.chain.arg.string(text),
         ],
         { waitForEvent: "EpitaphAdded" },
       );

@@ -19,7 +19,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, BalanceService, TransferService, ClipboardService } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { BalanceService, TransferService, ClipboardService } from "@shared/services";
 import { EventBus } from "@shared/services";
 import { generateAccount } from "@/services/neo";
 import type { NeoAccount } from "@/services/neo";
@@ -36,8 +37,8 @@ const APP_ID = "miniapp-neo-convert";
 // ============================================================================
 
 export interface UseNeoConvertOptions {
-  /** ChainService instance from PlatformServices */
-  chain: ChainService;
+  /** MiniApp framework SDK from ctx.framework */
+  app: MiniAppFramework;
   /** BalanceService instance from PlatformServices */
   balance: BalanceService;
   /** TransferService instance from PlatformServices */
@@ -54,7 +55,8 @@ export interface UseNeoConvertOptions {
 // Composable
 // ============================================================================
 
-export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeoConvertOptions) {
+export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoConvertOptions) {
+  const chain = app.chain;
   // ── Tab & UI State ──────────────────────────────────────────────────
   const isMobile = createObservable(typeof window !== "undefined" ? window.innerWidth < 768 : false);
   const isLoading = createObservable(false);
@@ -276,7 +278,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     }
     const [{ default: QRCode }, { useWalletPdf }] = await Promise.all([
       import("qrcode"),
-      import("../pages/index/composables/useWalletPdf"),
+      import("./useWalletPdf"),
     ]);
     const walletPdf = useWalletPdf(t as (key: string) => string);
     const [addressQr, wifQr] = await Promise.all([

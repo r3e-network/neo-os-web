@@ -9,8 +9,8 @@ import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
-import type { ProjectItem } from "../pages/index/components/ProjectList";
-import type { RoundItem } from "../pages/index/components/RoundList";
+import type { ProjectItem } from "./quadraticTypes";
+import type { RoundItem } from "./quadraticTypes";
 
 export function useQuadraticProjects(
   selectedRound: Observable<RoundItem | null>,

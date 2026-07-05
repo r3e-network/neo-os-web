@@ -30,8 +30,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/neo-multisig/index.html",
-    "icon": "/miniapps/neo-multisig/logo.jpg",
-    "banner": "/miniapps/neo-multisig/banner.jpg"
+    "icon": "/miniapps/neo-multisig/logo.webp",
+    "banner": "/miniapps/neo-multisig/banner.webp"
   },
   "permissions": [
     "invoke:primary",

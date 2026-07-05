@@ -187,6 +187,7 @@ const appMessages = {
     en: "Request Envelope Reference Builder",
     zh: "请求信封引用构建器",
   },
+  buildRequest: { en: "Build Request", zh: "构建请求" },
   panelDescription: {
     en: "Organize request details into an envelope reference with a stable non-cryptographic checksum. The checksum is not encryption — the payload is not sealed, hidden, or tamper-proof.",
     zh: "把请求细节整理为信封引用，并附带稳定的非加密校验值。该校验值不是加密——载荷不会被封装、隐藏或防篡改。",

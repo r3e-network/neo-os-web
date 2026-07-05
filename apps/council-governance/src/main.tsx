@@ -35,7 +35,7 @@ defineMiniApp({
       void gov.refreshHasVoted();
     });
 
-    ctx.registerAction("createProposal", async (...args: unknown[]) => {
+    ctx.framework.actions.register("createProposal", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as {
         type?: number | string;
         title?: string;
@@ -64,7 +64,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("vote", async (...args: unknown[]) => {
+    ctx.framework.actions.register("vote", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as {
         proposalId?: number | string;
         vote?: string;
@@ -85,7 +85,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("finalizeProposal", async (...args: unknown[]) => {
+    ctx.framework.actions.register("finalizeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
       return ctx.services.notify.guard(
@@ -94,7 +94,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("executeProposal", async (...args: unknown[]) => {
+    ctx.framework.actions.register("executeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
       return ctx.services.notify.guard(
@@ -103,7 +103,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("revokeProposal", async (...args: unknown[]) => {
+    ctx.framework.actions.register("revokeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
       return ctx.services.notify.guard(
@@ -112,9 +112,15 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("selectProposal", async (...args: unknown[]) => {
+    ctx.framework.actions.register("selectProposal", async (...args: unknown[]) => {
       const proposal = args[0] as Parameters<typeof gov.selectProposal>[0] | undefined;
       if (proposal) await gov.selectProposal(proposal);
+    });
+
+    ctx.framework.actions.register("refresh", async () => {
+      await gov.loadProposals();
+      await gov.refreshCandidateStatus();
+      await gov.refreshHasVoted();
     });
 
     // Surface synthetic stats expected by the manifest.

@@ -68,19 +68,19 @@ describe("miniapp-media helpers", () => {
   describe("getMiniAppPrimaryAssets", () => {
     it("returns primary JPEG paths under /miniapp-assets", () => {
       expect(getMiniAppPrimaryAssets("miniapp-gasbox", "/miniapps/gasbox/")).toEqual({
-        logoURL: "/miniapp-assets/gasbox/logo.jpg",
-        bannerURL: "/miniapp-assets/gasbox/banner.jpg",
+        logoURL: "/miniapp-assets/gasbox/logo.webp",
+        bannerURL: "/miniapp-assets/gasbox/banner.webp",
       });
     });
 
     it("uses generated host media for current compact app aliases", () => {
       expect(getMiniAppPrimaryAssets("miniapp-redenvelope", "mf://manifest?app=miniapp-redenvelope")).toEqual({
-        logoURL: "/miniapp-assets/red-envelope/logo.jpg",
-        bannerURL: "/miniapp-assets/red-envelope/banner.jpg",
+        logoURL: "/miniapp-assets/red-envelope/logo.webp",
+        bannerURL: "/miniapp-assets/red-envelope/banner.webp",
       });
       expect(getMiniAppPrimaryAssets("miniapp-neo-swap", "mf://manifest?app=miniapp-neo-swap")).toEqual({
-        logoURL: "/miniapp-assets/neo-swap/logo.jpg",
-        bannerURL: "/miniapp-assets/neo-swap/banner.jpg",
+        logoURL: "/miniapp-assets/neo-swap/logo.webp",
+        bannerURL: "/miniapp-assets/neo-swap/banner.webp",
       });
     });
 
@@ -88,8 +88,8 @@ describe("miniapp-media helpers", () => {
       process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";
 
       expect(getMiniAppPrimaryAssets("miniapp-gasbox", "/miniapps/gasbox/")).toEqual({
-        logoURL: "https://media.neomini.app/miniapp-assets/gasbox/logo.jpg",
-        bannerURL: "https://media.neomini.app/miniapp-assets/gasbox/banner.jpg",
+        logoURL: "https://media.neomini.app/miniapp-assets/gasbox/logo.webp",
+        bannerURL: "https://media.neomini.app/miniapp-assets/gasbox/banner.webp",
       });
     });
 
@@ -97,8 +97,8 @@ describe("miniapp-media helpers", () => {
       process.env.NEXT_PUBLIC_MINIAPP_ASSET_BASE_URL = "https://media.neomini.app/miniapp-assets";
 
       expect(getMiniAppPrimaryAssets("miniapp-gasbox", "/miniapps/gasbox/")).toEqual({
-        logoURL: "https://media.neomini.app/miniapp-assets/gasbox/logo.jpg",
-        bannerURL: "https://media.neomini.app/miniapp-assets/gasbox/banner.jpg",
+        logoURL: "https://media.neomini.app/miniapp-assets/gasbox/logo.webp",
+        bannerURL: "https://media.neomini.app/miniapp-assets/gasbox/banner.webp",
       });
     });
   });
@@ -108,18 +108,18 @@ describe("miniapp-media helpers", () => {
       const result = buildMiniAppLogoSources({
         appID: "miniapp-gasbox",
         entryURL: "/miniapps/gasbox/",
-        logoURL: "/custom/logo.png",
+        logoURL: "/custom/logo.webp",
       });
 
-      expect(result[0]).toBe("/custom/logo.png");
+      expect(result[0]).toBe("/custom/logo.webp");
       expect(result).toEqual(
         expect.arrayContaining([
-          "/miniapp-assets/gasbox/logo.jpg",
+          "/miniapp-assets/gasbox/logo.webp",
           "/miniapp-assets/gasbox/logo.svg",
-          "/miniapp-assets/gasbox/logo.png",
-          "/miniapps/gasbox/logo.jpg",
+          "/miniapp-assets/gasbox/logo.webp",
+          "/miniapps/gasbox/logo.webp",
           "/miniapps/gasbox/logo.svg",
-          "/miniapps/gasbox/public/logo.jpg",
+          "/miniapps/gasbox/public/logo.webp",
           "/miniapps/gasbox/public/logo.svg",
           "/miniapps/gasbox/static/icon.svg",
         ]),
@@ -131,15 +131,15 @@ describe("miniapp-media helpers", () => {
       const result = buildMiniAppLogoSources({
         appID: "miniapp-gasbox",
         entryURL: "/miniapps/gasbox/",
-        logoURL: "/custom/logo.png",
+        logoURL: "/custom/logo.webp",
       });
 
-      expect(result[0]).toBe("/custom/logo.png");
+      expect(result[0]).toBe("/custom/logo.webp");
       expect(result).toEqual(
         expect.arrayContaining([
-          "https://media.neomini.app/miniapp-assets/gasbox/logo.jpg",
+          "https://media.neomini.app/miniapp-assets/gasbox/logo.webp",
           "https://media.neomini.app/miniapp-assets/gasbox/logo.svg",
-          "/miniapps/gasbox/logo.jpg",
+          "/miniapps/gasbox/logo.webp",
         ]),
       );
     });
@@ -149,10 +149,10 @@ describe("miniapp-media helpers", () => {
       const result = buildMiniAppLogoSources({
         appID: "miniapp-gasbox",
         entryURL: "/miniapps/gasbox/",
-        logoURL: "/miniapp-assets/custom-app/logo.jpg",
+        logoURL: "/miniapp-assets/custom-app/logo.webp",
       });
 
-      expect(result[0]).toBe("https://media.neomini.app/miniapp-assets/custom-app/logo.jpg");
+      expect(result[0]).toBe("https://media.neomini.app/miniapp-assets/custom-app/logo.webp");
     });
 
     it("ignores non-image explicit logo values from catalog metadata", () => {
@@ -163,7 +163,7 @@ describe("miniapp-media helpers", () => {
       });
 
       expect(result).not.toContain("🧩");
-      expect(result[0]).toBe("/miniapp-assets/token-minter/logo.jpg");
+      expect(result[0]).toBe("/miniapps/token-minter/public/logo.webp");
     });
 
     it("prefers generated host icons for apps with legacy static media", () => {
@@ -172,7 +172,7 @@ describe("miniapp-media helpers", () => {
         entryURL: "mf://manifest?app=miniapp-redenvelope",
       });
 
-      expect(result[0]).toBe("/miniapp-assets/red-envelope/logo.jpg");
+      expect(result[0]).toBe("/miniapp-assets/red-envelope/logo.webp");
       expect(result).toEqual(expect.arrayContaining(["/miniapps/red-envelope/static/icon.svg"]));
     });
 
@@ -180,11 +180,11 @@ describe("miniapp-media helpers", () => {
       const result = buildMiniAppLogoSources({
         appID: "miniapp-self-loan",
         entryURL: "mf://manifest?app=miniapp-self-loan",
-        logoURL: "/miniapps/self-loan/logo.jpg",
+        logoURL: "/miniapps/self-loan/logo.webp",
       });
 
-      expect(result[0]).toBe("/miniapp-assets/self-loan/logo.jpg");
-      expect(result).toContain("/miniapps/self-loan/logo.jpg");
+      expect(result[0]).toBe("/miniapp-assets/self-loan/logo.webp");
+      expect(result).toContain("/miniapps/self-loan/logo.webp");
     });
 
     it("prioritizes best matching logo variant by theme/locale", () => {
@@ -225,12 +225,12 @@ describe("miniapp-media helpers", () => {
 
       expect(result).toEqual(
         expect.arrayContaining([
-          "/miniapp-assets/gasbox/banner.jpg",
+          "/miniapp-assets/gasbox/banner.webp",
           "/miniapp-assets/gasbox/banner.svg",
           "/miniapp-assets/gasbox/banner.png",
-          "/miniapps/gasbox/banner.jpg",
+          "/miniapps/gasbox/banner.webp",
           "/miniapps/gasbox/banner.svg",
-          "/miniapps/gasbox/public/banner.jpg",
+          "/miniapps/gasbox/public/banner.webp",
           "/miniapps/gasbox/public/banner.svg",
           "/miniapps/gasbox/static/banner.svg",
         ]),
@@ -243,7 +243,7 @@ describe("miniapp-media helpers", () => {
         entryURL: "mf://manifest?app=miniapp-neo-swap",
       });
 
-      expect(result[0]).toBe("/miniapp-assets/neo-swap/banner.jpg");
+      expect(result[0]).toBe("/miniapp-assets/neo-swap/banner.webp");
       expect(result).toEqual(expect.arrayContaining(["/miniapps/neo-swap/static/banner.svg"]));
     });
 
@@ -251,11 +251,11 @@ describe("miniapp-media helpers", () => {
       const result = buildMiniAppBannerSources({
         appID: "miniapp-self-loan",
         entryURL: "mf://manifest?app=miniapp-self-loan",
-        bannerURL: "/miniapps/self-loan/banner.jpg",
+        bannerURL: "/miniapps/self-loan/banner.webp",
       });
 
-      expect(result[0]).toBe("/miniapp-assets/self-loan/banner.jpg");
-      expect(result).toContain("/miniapps/self-loan/banner.jpg");
+      expect(result[0]).toBe("/miniapp-assets/self-loan/banner.webp");
+      expect(result).toContain("/miniapps/self-loan/banner.webp");
     });
 
     it("prioritizes best matching banner variant by theme", () => {
@@ -286,7 +286,7 @@ describe("miniapp-media helpers", () => {
       });
 
       expect(result).not.toContain("🧩");
-      expect(result[0]).toBe("/miniapp-assets/token-minter/banner.jpg");
+      expect(result[0]).toBe("/miniapps/token-minter/public/banner.webp");
     });
   });
 
@@ -301,8 +301,8 @@ describe("miniapp-media helpers", () => {
         category: "gaming",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/fogplay/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/fogplay/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/fogplay/logo.webp");
+      expect(app.banner_url).toBe("/miniapp-assets/fogplay/banner.webp");
     });
 
     it("fills manifest-mode app media from canonical aliases", () => {
@@ -315,8 +315,8 @@ describe("miniapp-media helpers", () => {
         category: "defi",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/neo-swap/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/neo-swap/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/neo-swap/logo.webp");
+      expect(app.banner_url).toBe("/miniapp-assets/neo-swap/banner.webp");
     });
 
     it("uses dedicated media for the shared-mode example", () => {
@@ -329,14 +329,14 @@ describe("miniapp-media helpers", () => {
         category: "defi",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/neo-pay-shared-example/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/neo-pay-shared-example/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/neo-pay-shared-example/logo.webp");
+      expect(app.banner_url).toBe("/miniapp-assets/neo-pay-shared-example/banner.webp");
     });
   });
 
   describe("buildModernImageSources", () => {
     it("derives modern variants for managed miniapp media assets", () => {
-      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.jpg")).toEqual({
+      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.webp")).toEqual({
         avif: "/miniapp-assets/fogplay/banner.avif",
         webp: "/miniapp-assets/fogplay/banner.webp",
       });
@@ -350,7 +350,7 @@ describe("miniapp-media helpers", () => {
     });
 
     it("keeps external and vector assets on their original source", () => {
-      expect(buildModernImageSources("https://cdn.example.com/logo.jpg")).toEqual({});
+      expect(buildModernImageSources("https://cdn.example.com/logo.webp")).toEqual({});
       expect(buildModernImageSources("/miniapp-assets/fogplay/logo.svg")).toEqual({});
     });
   });

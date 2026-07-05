@@ -7,7 +7,35 @@ import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useTimeCapsule } from "./composables/useTimeCapsule";
+import { useTimeCapsule, type CapsuleFormData } from "./composables/useTimeCapsule";
+
+const DEFAULT_CAPSULE_FORM: CapsuleFormData = {
+  title: "",
+  content: "",
+  days: "30",
+  isPublic: false,
+  category: 1,
+};
+
+function normalizeCapsulePayload(payload: unknown): CapsuleFormData {
+  const data =
+    payload && typeof payload === "object"
+      ? (payload as Partial<CapsuleFormData>)
+      : DEFAULT_CAPSULE_FORM;
+  const category = Number(data.category ?? DEFAULT_CAPSULE_FORM.category);
+  const days = Number.parseInt(String(data.days ?? DEFAULT_CAPSULE_FORM.days), 10);
+  return {
+    title: String(data.title ?? "").slice(0, 100),
+    content: String(data.content ?? ""),
+    days: Number.isFinite(days)
+      ? String(Math.min(3650, Math.max(1, days)))
+      : DEFAULT_CAPSULE_FORM.days,
+    isPublic: Boolean(data.isPublic),
+    category: Number.isFinite(category)
+      ? Math.min(5, Math.max(1, Math.round(category)))
+      : DEFAULT_CAPSULE_FORM.category,
+  };
+}
 
 defineMiniApp({
   appId: "miniapp-time-capsule",
@@ -17,14 +45,19 @@ defineMiniApp({
 
   setup(ctx) {
     const capsule = useTimeCapsule({
-      chainService: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
     registerActions(ctx, {
       createCapsule: {
-        handler: () => capsule.createCapsule(),
+        handler: (payload?: unknown) => {
+          if (payload !== undefined) {
+            capsule.newCapsule.set(normalizeCapsulePayload(payload));
+          }
+          return capsule.createCapsule();
+        },
         successKey: "capsuleCreated",
         errorKey: "error",
       },
@@ -36,7 +69,7 @@ defineMiniApp({
     // express it. Swallow the rethrow here to avoid a duplicate error toast.
     // An optional capsule id lets the user tip a specific capsule they picked
     // from the browsable list; without one it tips the newest tippable capsule.
-    ctx.registerAction("fishCapsule", async (targetId?: unknown) => {
+    ctx.framework.actions.register("fishCapsule", async (targetId?: unknown) => {
       await capsule
         .fishCapsule(targetId == null ? undefined : String(targetId))
         .catch(() => {
@@ -46,13 +79,13 @@ defineMiniApp({
 
     // loadFishCandidates refreshes the browsable list of public, tippable
     // capsules from other users (read-only on-chain scan). No toast.
-    ctx.registerAction("loadFishCandidates", async () => {
+    ctx.framework.actions.register("loadFishCandidates", async () => {
       await capsule.loadFishCandidates().catch(() => {
         /* read-only refresh; failures already logged in the composable */
       });
     });
 
-    ctx.registerAction("openCapsule", async (cap: unknown) => {
+    ctx.framework.actions.register("openCapsule", async (cap: unknown) => {
       // openCapsule emits its own dynamic toasts (reveal confirmation + the
       // on-device message / hash fallback) on the platform notification channel.
       await capsule.openCapsule(
@@ -64,7 +97,7 @@ defineMiniApp({
 
     // withdrawCredit emits its own dynamic success / "no credit" toast (the amount
     // is only known at runtime) on the platform notification channel.
-    ctx.registerAction("withdrawCredit", async () => {
+    ctx.framework.actions.register("withdrawCredit", async () => {
       await capsule.withdrawCredit().catch(() => {
         /* toast already surfaced inside the composable */
       });
@@ -73,7 +106,7 @@ defineMiniApp({
     // withdrawFishRevenue (collect tips) emits its own dynamic success /
     // "no tips" toast — the money-out path for fishing tips accrued on the
     // owner's public capsules.
-    ctx.registerAction("withdrawFishRevenue", async () => {
+    ctx.framework.actions.register("withdrawFishRevenue", async () => {
       await capsule.withdrawFishRevenue().catch(() => {
         /* toast already surfaced inside the composable */
       });

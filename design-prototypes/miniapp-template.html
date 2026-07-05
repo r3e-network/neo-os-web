@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小程序模板 — Neo MiniApps PlayArea v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   Neo v3 — Miniapp PlayArea Template
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --n3-bg: #faf9f7;
+  --n3-bg-alt: #f3f1ee;
+  --n3-surface: #ffffff;
+  --n3-surface-hover: #fafbfc;
+  --n3-ink: #141626;
+  --n3-text: #1e2036;
+  --n3-text-secondary: #515572;
+  --n3-text-muted: #787e9b;
+  --n3-text-faint: #a5a9bd;
+  --n3-brand: #16c784;
+  --n3-brand-hover: #0fb174;
+  --n3-brand-soft: #e4f8f0;
+  --n3-brand-glow: rgba(22,199,132,0.25);
+  --n3-brand-gradient: linear-gradient(135deg, #16c784, #0fb174);
+  --n3-accent: #2563eb;
+  --n3-accent-soft: #eff6ff;
+  --n3-warning: #f59e0b;
+  --n3-warning-soft: #fef3c7;
+  --n3-danger: #ef4444;
+  --n3-danger-soft: #fef2f2;
+  --n3-success: #16c784;
+  --n3-success-soft: #e4f8f0;
+  --n3-border: rgba(20,26,38,0.06);
+  --n3-border-strong: rgba(20,26,38,0.10);
+  --n3-radius-sm: 10px;
+  --n3-radius-md: 14px;
+  --n3-radius-lg: 20px;
+  --n3-radius-xl: 24px;
+  --n3-radius-full: 9999px;
+  --n3-shadow-sm: 0 1px 2px rgba(20,26,38,0.04);
+  --n3-shadow-md: 0 4px 16px rgba(20,26,38,0.05), 0 1px 4px rgba(20,26,38,0.03);
+  --n3-shadow-lg: 0 12px 32px rgba(20,26,38,0.07), 0 4px 8px rgba(20,26,38,0.04);
+  --n3-shadow-brand: 0 8px 32px rgba(22,199,132,0.18);
+  --n3-duration-fast: 150ms;
+  --n3-duration-normal: 250ms;
+  --n3-duration-slow: 400ms;
+  --n3-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --n3-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --n3-ease-snappy: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --n3-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --n3-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  /* Scene tint from category */
+  --scene-tint: rgba(22,199,132,0.03);
+  --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(22,199,132,0.05), transparent 60%);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: var(--n3-font-sans);
+  background: var(--n3-bg);
+  color: var(--n3-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; padding: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Miniapp Shell (iframe container simulation)
+   ═══════════════════════════════════════════════════════════ */
+.miniapp-shell {
+  width: 100%; max-width: 420px;
+  background: var(--n3-surface);
+  border: 1px solid var(--n3-border);
+  border-radius: var(--n3-radius-xl);
+  box-shadow: var(--n3-shadow-lg);
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Miniapp Header
+   ═══════════════════════════════════════════════════════════ */
+.miniapp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--n3-border);
+  background: var(--n3-surface);
+}
+.miniapp-header-left {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.miniapp-header-icon {
+  width: 32px; height: 32px; border-radius: var(--n3-radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.miniapp-header-icon.game { background: #fef3c7; }
+.miniapp-header-icon.defi { background: #dbeafe; }
+.miniapp-header-name {
+  font-size: 14px; font-weight: 700; color: var(--n3-ink);
+}
+.miniapp-header-actions {
+  display: flex; gap: 4px;
+}
+.miniapp-header-btn {
+  width: 32px; height: 32px; border-radius: var(--n3-radius-sm);
+  border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--n3-text-muted); font-size: 14px;
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.miniapp-header-btn:hover { background: var(--n3-bg-alt); color: var(--n3-ink); }
+
+/* ═══════════════════════════════════════════════════════════
+   Scene / Play Area (with category ambiance)
+   ═══════════════════════════════════════════════════════════ */
+.miniapp-scene {
+  position: relative; min-height: 400px;
+  background:
+    var(--scene-gradient),
+    var(--scene-tint),
+    var(--n3-bg);
+  display: flex; flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Tab Navigation
+   ═══════════════════════════════════════════════════════════ */
+.miniapp-tabs {
+  display: flex; gap: 2px;
+  padding: 8px 12px;
+  background: var(--n3-bg-alt);
+  border-bottom: 1px solid var(--n3-border);
+}
+.miniapp-tab {
+  flex: 1; padding: 8px 12px; border-radius: var(--n3-radius-sm);
+  border: none; background: none; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--n3-text-muted);
+  font-family: var(--n3-font-sans);
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.miniapp-tab:hover { color: var(--n3-text); background: var(--n3-bg-alt); }
+.miniapp-tab.active {
+  background: var(--n3-surface); color: var(--n3-ink);
+  box-shadow: var(--n3-shadow-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stage / Game Area
+   ═══════════════════════════════════════════════════════════ */
+.miniapp-stage {
+  flex: 1; padding: 24px 16px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 24px;
+}
+.stage-canvas {
+  width: 200px; height: 200px;
+  background: var(--n3-surface);
+  border: 2px dashed var(--n3-border-strong);
+  border-radius: var(--n3-radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 64px; position: relative; overflow: hidden;
+  box-shadow: var(--n3-shadow-sm);
+}
+.stage-canvas::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(22,199,132,0.06), transparent);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Controls
+   ═══════════════════════════════════════════════════════════ */
+.stage-controls {
+  display: flex; gap: 12px;
+}
+.btn-play {
+  padding: 12px 40px;
+  background: var(--n3-brand-gradient); color: #fff;
+  font-weight: 700; font-size: 16px; border: none;
+  border-radius: var(--n3-radius-full); cursor: pointer;
+  font-family: var(--n3-font-sans);
+  transition: all var(--n3-duration-fast) var(--n3-ease-out-expo);
+  box-shadow: 0 4px 16px rgba(22,199,132,0.2);
+  display: flex; align-items: center; gap: 8px;
+}
+.btn-play:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(22,199,132,0.3);
+}
+.btn-play:active { transform: translateY(0) scale(0.97); }
+.btn-small {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid var(--n3-border-strong); background: var(--n3-surface);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--n3-text-secondary);
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.btn-small:hover { background: var(--n3-bg-alt); transform: scale(1.05); }
+
+/* ═══════════════════════════════════════════════════════════
+   Score / Stats
+   ═══════════════════════════════════════════════════════════ */
+.score-strip {
+  display: flex; gap: 24px;
+}
+.score-item {
+  text-align: center;
+}
+.score-value {
+  font-size: 22px; font-weight: 800; color: var(--n3-ink);
+  letter-spacing: -0.02em; line-height: 1;
+  font-variant-numeric: tabular-nums; font-family: var(--n3-font-mono);
+}
+.score-label {
+  font-size: 10px; font-weight: 700; color: var(--n3-text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Action Rail (bottom)
+   ═══════════════════════════════════════════════════════════ */
+.miniapp-actions {
+  display: flex; gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--n3-border);
+  background: var(--n3-surface);
+}
+.action-rail-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 8px;
+  border-radius: var(--n3-radius-sm); border: none;
+  background: none; cursor: pointer;
+  font-family: var(--n3-font-sans);
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.action-rail-btn:hover { background: var(--n3-bg-alt); }
+.action-rail-btn.active { background: var(--n3-brand-soft); }
+.action-rail-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; background: var(--n3-bg-alt);
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+}
+.action-rail-btn.active .action-rail-icon { background: var(--n3-brand-soft); }
+.action-rail-label {
+  font-size: 10px; font-weight: 600; color: var(--n3-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Detail Drawer (slide-up panel)
+   ═══════════════════════════════════════════════════════════ */
+.detail-drawer {
+  background: var(--n3-surface);
+  border-top: 1px solid var(--n3-border);
+  padding: 20px 16px;
+  max-height: 200px; overflow-y: auto;
+}
+.detail-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0;
+}
+.detail-row + .detail-row { border-top: 1px solid var(--n3-border); }
+.detail-label { font-size: 13px; color: var(--n3-text-secondary); font-weight: 500; }
+.detail-value {
+  font-size: 13px; font-weight: 600; color: var(--n3-ink);
+  font-family: var(--n3-font-mono); font-size: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Skeleton / Loading
+   ═══════════════════════════════════════════════════════════ */
+.skeleton {
+  background: linear-gradient(90deg, var(--n3-bg-alt) 25%, var(--n3-border) 50%, var(--n3-bg-alt) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--n3-radius-sm);
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Empty State
+   ═══════════════════════════════════════════════════════════ */
+.empty-state {
+  text-align: center; padding: 48px 24px;
+}
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state-title { font-size: 16px; font-weight: 700; color: var(--n3-ink); margin-bottom: 8px; }
+.empty-state-desc { font-size: 13px; color: var(--n3-text-muted); margin-bottom: 20px; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════
+   Toast
+   ═══════════════════════════════════════════════════════════ */
+.toast {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--n3-ink); color: #fff;
+  padding: 10px 20px; border-radius: var(--n3-radius-full);
+  font-size: 13px; font-weight: 600;
+  box-shadow: var(--n3-shadow-lg);
+  z-index: 100; animation: toast-in 0.4s var(--n3-ease-snappy);
+  display: flex; align-items: center; gap: 8px;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.toast-success { background: var(--n3-success); }
+
+/* ═══════════════════════════════════════════════════════════
+   Modal
+   ═══════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: absolute; inset: 0;
+  background: rgba(20,26,38,0.40);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50; animation: fade-in 0.2s var(--n3-ease-out-expo);
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.modal-box {
+  background: var(--n3-surface); border-radius: var(--n3-radius-xl);
+  padding: 28px; width: 80%; max-width: 320px;
+  box-shadow: var(--n3-shadow-lg);
+  animation: modal-in 0.3s var(--n3-ease-snappy);
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-title { font-size: 18px; font-weight: 700; color: var(--n3-ink); margin-bottom: 12px; }
+.modal-text { font-size: 14px; color: var(--n3-text-secondary); line-height: 1.6; margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ═══════════════════════════════════════════════════════════
+   Wallet Connect Prompt
+   ═══════════════════════════════════════════════════════════ */
+.wallet-prompt {
+  text-align: center; padding: 48px 24px;
+}
+.wallet-prompt-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--n3-brand-soft);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px; font-size: 32px;
+}
+.wallet-prompt-title { font-size: 18px; font-weight: 700; color: var(--n3-ink); margin-bottom: 8px; }
+.wallet-prompt-desc { font-size: 14px; color: var(--n3-text-secondary); margin-bottom: 24px; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════
+   Theme Toggle (demo)
+   ═══════════════════════════════════════════════════════════ */
+.theme-toggle-button {
+  position: fixed; top: 12px; right: 12px;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--n3-border-strong); background: var(--n3-surface);
+  cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+  color: var(--n3-text-secondary); box-shadow: var(--n3-shadow-sm);
+  transition: all var(--n3-duration-fast) var(--n3-ease-smooth);
+  z-index: 999;
+}
+.theme-toggle-button:hover { transform: scale(1.1); color: var(--n3-ink); }
+
+/* ═══════════════════════════════════════════════════════════
+   Category-specific scene variations
+   ═══════════════════════════════════════════════════════════ */
+.scene-game { --scene-tint: rgba(245,158,11,0.03); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.06), transparent 60%); }
+.scene-defi { --scene-tint: rgba(37,99,235,0.03); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.06), transparent 60%); }
+.scene-nft { --scene-tint: rgba(168,85,247,0.03); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.06), transparent 60%); }
+.scene-tool { --scene-tint: rgba(13,148,136,0.03); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(13,148,136,0.06), transparent 60%); }
+
+/* ═══════════════════════════════════════════════════════════
+   Dark Theme
+   ═══════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --n3-bg: #0a0b10;
+  --n3-bg-alt: #0f1119;
+  --n3-surface: #1a1d2b;
+  --n3-surface-hover: #1f2232;
+  --n3-ink: #f2f3f7;
+  --n3-text: #e4e6ef;
+  --n3-text-secondary: #a8aec4;
+  --n3-text-muted: #7e849c;
+  --n3-text-faint: #5e6480;
+  --n3-border: rgba(255,255,255,0.06);
+  --n3-border-strong: rgba(255,255,255,0.10);
+  --n3-shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
+  --n3-shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --n3-shadow-lg: 0 12px 32px rgba(0,0,0,0.45);
+  --n3-brand: #1dd48e;
+  --n3-brand-hover: #22e89c;
+  --n3-brand-soft: rgba(22,199,132,0.12);
+  --n3-brand-glow: rgba(22,199,132,0.35);
+  --n3-shadow-brand: 0 8px 32px rgba(22,199,132,0.25);
+}
+[data-theme="dark"] .scene-game { --scene-tint: rgba(245,158,11,0.04); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.08), transparent 60%); }
+[data-theme="dark"] .scene-defi { --scene-tint: rgba(37,99,235,0.04); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.08), transparent 60%); }
+[data-theme="dark"] .scene-nft { --scene-tint: rgba(168,85,247,0.04); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.08), transparent 60%); }
+[data-theme="dark"] .scene-tool { --scene-tint: rgba(13,148,136,0.04); --scene-gradient: radial-gradient(ellipse at 50% 0%, rgba(13,148,136,0.08), transparent 60%); }
+[data-theme="dark"] .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle-button" onclick="toggleTheme()" title="切换主题">🌗</button>
+
+<!-- ═══════════════ Miniapp Shell ═══════════════ -->
+<div class="miniapp-shell">
+
+  <!-- Header -->
+  <div class="miniapp-header">
+    <a href="#" class="miniapp-header-left">
+      <div class="miniapp-header-icon game">🎮</div>
+      <span class="miniapp-header-name">Color Clash</span>
+    </a>
+    <div class="miniapp-header-actions">
+      <button class="miniapp-header-btn" title="分享">↗</button>
+      <button class="miniapp-header-btn" title="更多">⋯</button>
+    </div>
+  </div>
+
+  <!-- Scene / Play Area -->
+  <div class="miniapp-scene scene-game">
+
+    <!-- Toast (simulated) -->
+    <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:100">
+      <div class="toast toast-success">
+        🎉 操作成功!
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="miniapp-tabs">
+      <button class="miniapp-tab active">🎯 游戏</button>
+      <button class="miniapp-tab">🏆 排行榜</button>
+      <button class="miniapp-tab">📜 记录</button>
+    </div>
+
+    <!-- Stage -->
+    <div class="miniapp-stage">
+      <div class="stage-canvas">🎯</div>
+      <div class="score-strip">
+        <div class="score-item">
+          <div class="score-value">1,280</div>
+          <div class="score-label">得分</div>
+        </div>
+        <div class="score-item">
+          <div class="score-value">42</div>
+          <div class="score-label">连击</div>
+        </div>
+        <div class="score-item">
+          <div class="score-value">3</div>
+          <div class="score-label">等级</div>
+        </div>
+      </div>
+      <div class="stage-controls">
+        <button class="btn-play">
+          ▶ 开始游戏
+        </button>
+        <button class="btn-small">⏸</button>
+      </div>
+    </div>
+
+    <!-- Action Rail -->
+    <div class="miniapp-actions">
+      <button class="action-rail-btn active">
+        <div class="action-rail-icon">🎯</div>
+        <div class="action-rail-label">开始</div>
+      </button>
+      <button class="action-rail-btn">
+        <div class="action-rail-icon">⚡</div>
+        <div class="action-rail-label">道具</div>
+      </button>
+      <button class="action-rail-btn">
+        <div class="action-rail-icon">🏆</div>
+        <div class="action-rail-label">奖励</div>
+      </button>
+      <button class="action-rail-btn">
+        <div class="action-rail-icon">⚙️</div>
+        <div class="action-rail-label">设置</div>
+      </button>
+    </div>
+
+    <!-- Detail Drawer -->
+    <div class="detail-drawer">
+      <div class="detail-row">
+        <span class="detail-label">当前回合</span>
+        <span class="detail-value">12 / 20</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">链上交易</span>
+        <span class="detail-value">0x7a3f...b21e</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">奖励池</span>
+        <span class="detail-value">250 NEO</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Gas 费用</span>
+        <span class="detail-value" style="color:var(--n3-success)">赞助模式</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 2nd Example: DeFi Miniapp ═══════════════ -->
+<div class="miniapp-shell" style="margin-left:32px">
+  <div class="miniapp-header">
+    <a href="#" class="miniapp-header-left">
+      <div class="miniapp-header-icon defi">💰</div>
+      <span class="miniapp-header-name">Neo Swap</span>
+    </a>
+    <div class="miniapp-header-actions">
+      <button class="miniapp-header-btn">↗</button>
+      <button class="miniapp-header-btn">⋯</button>
+    </div>
+  </div>
+
+  <div class="miniapp-scene scene-defi">
+    <div class="miniapp-tabs">
+      <button class="miniapp-tab active">🔄 兑换</button>
+      <button class="miniapp-tab">💧 流动性</button>
+      <button class="miniapp-tab">📊 图表</button>
+    </div>
+
+    <div class="miniapp-stage" style="justify-content:flex-start;padding:24px 16px;align-items:stretch">
+      <!-- From -->
+      <div style="background:var(--n3-bg-alt);border:1px solid var(--n3-border);border-radius:var(--n3-radius-lg);padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--n3-text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">支付</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:28px;font-weight:700;color:var(--n3-ink)">1.0</span>
+          <span style="display:flex;align-items:center;gap:8px;background:var(--n3-surface);border:1px solid var(--n3-border-strong);border-radius:var(--n3-radius-full);padding:8px 16px;font-size:14px;font-weight:600">
+            🔵 NEO
+          </span>
+        </div>
+        <div style="font-size:12px;color:var(--n3-text-muted);margin-top:8px">≈ $12.40</div>
+      </div>
+
+      <!-- Swap Arrow -->
+      <div style="display:flex;justify-content:center;margin:-4px 0">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--n3-surface);border:1px solid var(--n3-border);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;cursor:pointer;transition:transform 0.3s">⇅</div>
+      </div>
+
+      <!-- To -->
+      <div style="background:var(--n3-brand-soft);border:1px solid var(--n3-brand);border-radius:var(--n3-radius-lg);padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--n3-text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">获得 (预估)</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:28px;font-weight:700;color:var(--n3-ink)">34.7</span>
+          <span style="display:flex;align-items:center;gap:8px;background:var(--n3-surface);border:1px solid var(--n3-border-strong);border-radius:var(--n3-radius-full);padding:8px 16px;font-size:14px;font-weight:600">
+            🟢 GAS
+          </span>
+        </div>
+        <div style="font-size:12px;color:var(--n3-text-muted);margin-top:8px">≈ $12.32</div>
+      </div>
+
+      <!-- Rate -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;margin-top:8px">
+        <span style="font-size:12px;color:var(--n3-text-muted)">汇率</span>
+        <span style="font-size:12px;font-weight:600;color:var(--n3-ink);font-family:var(--n3-font-mono)">1 NEO = 34.7 GAS</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0">
+        <span style="font-size:12px;color:var(--n3-text-muted)">滑点</span>
+        <span style="font-size:12px;font-weight:600;color:var(--n3-ink)">0.5%</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0">
+        <span style="font-size:12px;color:var(--n3-text-muted)">Gas</span>
+        <span style="font-size:12px;font-weight:600;color:var(--n3-success)">赞助模式</span>
+      </div>
+
+      <button class="btn-play" style="width:100%;margin-top:20px;justify-content:center">
+        💱 确认兑换
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

@@ -3,7 +3,7 @@
  *
  * Talks DIRECTLY to the app's standalone on-chain contract
  * (MiniAppMemorialShrine, testnet 0x87f0fe2ba69cd973a3274471234d3cc13ef943c5)
- * via ctx.services.chain. The earlier path read the memorial / obituary catalog
+ * via the MiniApp framework (ctx.framework). The earlier path read the memorial / obituary catalog
  * and the visitor's tribute history through the Morpheus OS kernel
  * (ctx.os.storage list/get) and hinted achievements through ctx.os.badge. That
  * kernel/edge is DOWN/degraded, so those reads returned nothing and the app fell
@@ -14,7 +14,7 @@
  * Contract interaction model (verified against the deployed ABI + the live
  * validation harness deploy/scripts/live_validate_remaining_contracts_part2.js):
  *
- *   READS (chain.read, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash):
  *     getMemorialCount()                         -> Integer
  *     getMemorialDetails(memorialId)             -> Map{id,creator,deceasedName,
  *                                                    photoHash,relationship,
@@ -31,7 +31,7 @@
  *                                                    offeringType,offeringName,
  *                                                    message,timestamp}
  *
- *   WRITES (chain.invoke / chain.invokeWithPayment):
+ *   WRITES (app.chain.invoke / app.chain.invokeWithPayment):
  *     createMemorial(creator, deceasedName, photoHash, relationship, birthYear,
  *                    deathYear, biography, obituary) -> Integer (free, no deposit)
  *       event: MemorialCreated(memorialId, creator, deceasedName, deathYear)
@@ -51,15 +51,19 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService, ContractArg, TxResult } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { readQueryParam } from "@shared/utils/url";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { Memorial } from "../types";
 
+/** The framework contract-arg shape (from app.chain.arg.*); accepts the raw-address Hash160 literal too. */
+type FrameworkArg = ReturnType<MiniAppFramework["chain"]["arg"]["string"]>;
+/** The framework tx-result shape (from app.chain.invoke / invokeWithPayment). */
+type FrameworkTx = Awaited<ReturnType<MiniAppFramework["chain"]["invoke"]>>;
+
 const APP_ID = "miniapp-memorial-shrine";
-const FIXED8_DECIMALS = 100000000n;
 
 /** Local store of memorial ids the visitor has actually opened ("Visited"). */
 const VISITED_STORE_KEY = "memorial-shrine-visited";
@@ -80,15 +84,6 @@ const OFFERING_COSTS_FIXED8: Record<number, bigint> = {
 const MAX_MEMORIALS = 60;
 const MAX_OBITUARIES = 20;
 const MAX_TRIBUTES_PER_MEMORIAL = 50;
-
-function fixed8ToGas(value: bigint): string {
-  const whole = value / FIXED8_DECIMALS;
-  const fraction = (value % FIXED8_DECIMALS)
-    .toString()
-    .padStart(8, "0")
-    .replace(/0+$/, "");
-  return `${whole.toString()}${fraction ? `.${fraction}` : ""}`;
-}
 
 function normalizeText(value: unknown, maxLength: number): string {
   return String(value ?? "").trim().slice(0, maxLength);
@@ -139,8 +134,8 @@ export interface TributeRecord {
 }
 
 export interface UseMemorialShrineOptions {
-  /** Chain service used to submit wallet-confirmed memorial writes + reads. */
-  chainService: ChainService;
+  /** MiniApp framework (ctx.framework); its chain layer submits wallet-confirmed writes + reads. */
+  app: MiniAppFramework;
   /** Network inferred from launch params; mainnet tribute requires receipt ID. */
   launchNetwork?: "mainnet" | "testnet" | null;
   /** EventBus for UI events. */
@@ -190,7 +185,7 @@ function memorialFromMap(raw: unknown): Memorial | null {
 // ============================================================================
 
 export function useMemorialShrine({
-  chainService,
+  app,
   launchNetwork,
   eventBus,
   t,
@@ -203,7 +198,7 @@ export function useMemorialShrine({
   const shareStatus = createObservable<string | null>(null);
   const isSubmitting = createObservable(false);
   const isPaying = createObservable(false);
-  const lastTx = createObservable<TxResult | null>(null);
+  const lastTx = createObservable<FrameworkTx | null>(null);
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const memorialCount = createDerived(() => memorials.get().length, [memorials]);
@@ -215,7 +210,7 @@ export function useMemorialShrine({
   /** Resolve the connected wallet address without prompting a connection. */
   const connectedAddress = (): string | null => {
     try {
-      return chainService.address.get();
+      return app.chain.address.get();
     } catch (_e) {
       return null;
     }
@@ -227,8 +222,8 @@ export function useMemorialShrine({
 
   const readMemorial = async (id: number): Promise<Memorial | null> => {
     try {
-      const raw = await chainService.read("getMemorialDetails", [
-        { type: "Integer", value: String(id) },
+      const raw = await app.chain.readRaw("getMemorialDetails", [
+        app.chain.arg.integer(id),
       ]);
       return memorialFromMap(raw);
     } catch (_e) {
@@ -247,7 +242,7 @@ export function useMemorialShrine({
   const loadMemorials = async () => {
     let total = 0;
     try {
-      total = Math.min(asNumber(await chainService.read("getMemorialCount", [])), MAX_MEMORIALS);
+      total = Math.min(asNumber(await app.chain.readRaw("getMemorialCount", [])), MAX_MEMORIALS);
     } catch (_e) {
       total = 0;
     }
@@ -273,7 +268,7 @@ export function useMemorialShrine({
   const loadObituaries = async () => {
     let ids: number[] = [];
     try {
-      const raw = await chainService.read("getRecentObituaries", []);
+      const raw = await app.chain.readRaw("getRecentObituaries", []);
       if (Array.isArray(raw)) {
         ids = raw
           .map((value) => asNumber(value))
@@ -371,8 +366,10 @@ export function useMemorialShrine({
 
     let memorialIds: number[] = [];
     try {
-      const raw = await chainService.read("getVisitorMemorials", [
-        { type: "Hash160", value: visitorHash },
+      // visitorHash is already a 0x script hash (addressToScriptHash above);
+      // app.chain.arg.hash160 preserves it verbatim.
+      const raw = await app.chain.readRaw("getVisitorMemorials", [
+        app.chain.arg.hash160(visitorHash),
       ]);
       if (Array.isArray(raw)) {
         memorialIds = raw.map((value) => asNumber(value)).filter((id) => id > 0);
@@ -401,10 +398,10 @@ export function useMemorialShrine({
   ): Promise<TributeRecord[]> => {
     let tributeIds: number[] = [];
     try {
-      const raw = await chainService.read("getMemorialTributes", [
-        { type: "Integer", value: String(memorialId) },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: String(MAX_TRIBUTES_PER_MEMORIAL) },
+      const raw = await app.chain.readRaw("getMemorialTributes", [
+        app.chain.arg.integer(memorialId),
+        app.chain.arg.integer(0),
+        app.chain.arg.integer(MAX_TRIBUTES_PER_MEMORIAL),
       ]);
       if (Array.isArray(raw)) {
         tributeIds = raw.map((value) => asNumber(value)).filter((id) => id > 0);
@@ -416,8 +413,8 @@ export function useMemorialShrine({
     const details = await Promise.all(
       tributeIds.map(async (tributeId) => {
         try {
-          const raw = await chainService.read("getTributeDetails", [
-            { type: "Integer", value: String(tributeId) },
+          const raw = await app.chain.readRaw("getTributeDetails", [
+            app.chain.arg.integer(tributeId),
           ]);
           return raw && typeof raw === "object" && !Array.isArray(raw)
             ? (raw as Record<string, unknown>)
@@ -440,7 +437,7 @@ export function useMemorialShrine({
         offeringType,
         offeringName: String(record.offeringName ?? ""),
         message: String(record.message ?? ""),
-        amountGas: fixed8ToGas(cost),
+        amountGas: app.amount.fixed8ToGas(cost),
         paidAt: asNumber(record.timestamp),
       });
     }
@@ -552,19 +549,24 @@ export function useMemorialShrine({
     if (isSubmitting.get()) return;
     isSubmitting.set(true);
     try {
-      const creator = await chainService.ensureWallet();
-      const args: ContractArg[] = [
+      const creator = await app.chain.ensureWallet();
+      // NOTE: the contract's createMemorial takes the creator as a Hash160 whose
+      // value is the RAW wallet address (the deployed ABI + live-validate harness
+      // expect the base58 form here, not a script hash). Keep this arg literal —
+      // routing it through arg.hash160 would convert it to a script hash and
+      // change on-chain behavior.
+      const args: FrameworkArg[] = [
         { type: "Hash160", value: creator },
-        { type: "String", value: normalizeText(form.name, 96) },
-        { type: "String", value: normalizeText(form.photoHash, 160) },
-        { type: "String", value: normalizeText(form.relationship, 64) },
-        { type: "Integer", value: String(form.birthYear || 0) },
-        { type: "Integer", value: String(form.deathYear || 0) },
-        { type: "String", value: normalizeText(form.biography, 600) },
-        { type: "String", value: normalizeText(form.obituary, 600) },
+        app.chain.arg.string(normalizeText(form.name, 96)),
+        app.chain.arg.string(normalizeText(form.photoHash, 160)),
+        app.chain.arg.string(normalizeText(form.relationship, 64)),
+        app.chain.arg.integer(form.birthYear || 0),
+        app.chain.arg.integer(form.deathYear || 0),
+        app.chain.arg.string(normalizeText(form.biography, 600)),
+        app.chain.arg.string(normalizeText(form.obituary, 600)),
       ];
 
-      const result = await chainService.invoke("createMemorial", args, {
+      const result = await app.chain.invoke("createMemorial", args, {
         waitForEvent: "MemorialCreated",
         waitTimeoutMs: 30_000,
       });
@@ -603,32 +605,35 @@ export function useMemorialShrine({
     if (isPaying.get()) return;
     isPaying.set(true);
     try {
-      const visitor = await chainService.ensureWallet();
+      const visitor = await app.chain.ensureWallet();
       const selectedOffering = Number.isInteger(offeringType) ? offeringType : 1;
       const offeringCost =
         OFFERING_COSTS_FIXED8[selectedOffering] ?? OFFERING_COSTS_FIXED8[1] ?? 1000000n;
-      const args: ContractArg[] = [
+      // The visitor Hash160 carries the RAW wallet address (deployed ABI +
+      // live-validate harness expect base58, not a script hash) — kept literal;
+      // routing it through arg.hash160 would change on-chain behavior.
+      const args: FrameworkArg[] = [
         { type: "Hash160", value: visitor },
-        { type: "Integer", value: String(memorialId) },
-        { type: "Integer", value: String(selectedOffering) },
-        { type: "String", value: normalizeText(message, 280) },
+        app.chain.arg.integer(memorialId),
+        app.chain.arg.integer(selectedOffering),
+        app.chain.arg.string(normalizeText(message, 280)),
       ];
-      let result: TxResult;
+      let result: FrameworkTx;
       if (launchNetwork === "mainnet") {
         const normalizedReceiptId = String(receiptId ?? "").trim();
         if (!/^[1-9]\d*$/.test(normalizedReceiptId)) {
           throw new Error(t("receiptIdRequired"));
         }
-        result = await chainService.invoke(
+        result = await app.chain.invoke(
           "payTribute",
           [
             ...args,
-            { type: "Integer", value: normalizedReceiptId },
+            app.chain.arg.integer(normalizedReceiptId),
           ],
           { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
         );
       } else {
-        result = await chainService.invokeWithPayment(
+        result = await app.chain.invokeWithPayment(
           offeringCost.toString(),
           `${APP_ID}:tribute:${memorialId}:${selectedOffering}`,
           "payTribute",
@@ -638,7 +643,7 @@ export function useMemorialShrine({
       }
       lastTx.set(result);
 
-      const amountGas = fixed8ToGas(offeringCost);
+      const amountGas = app.amount.fixed8ToGas(offeringCost);
       eventBus.emit("tribute:paid", {
         memorialId,
         offeringType: selectedOffering,

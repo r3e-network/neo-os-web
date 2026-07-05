@@ -3,7 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
 import type { ChainService } from "../services";
 import type { StorageProxy } from "../services/os/StorageProxy";
+import { createMiniAppFramework } from "../react";
 import { useAAPermissionsLab } from "../../aa-permissions-lab/src/composables/useAAPermissionsLab";
+
+function makeApp(chain: ChainService) {
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-aa-permissions-lab" },
+  );
+}
 
 const ACCOUNT_ID_HASH = "0x1111111111111111111111111111111111111111";
 
@@ -46,7 +54,7 @@ describe("AA Permissions Lab composable", () => {
   it("reads permission state without writing OS storage before a wallet is connected", async () => {
     const chain = makeChain(false);
     const storage = makeStorage();
-    const lab = useAAPermissionsLab({ chain, storageService: storage, t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: storage, t });
 
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
@@ -63,7 +71,7 @@ describe("AA Permissions Lab composable", () => {
   it("persists inspected state only when a wallet is connected", async () => {
     const chain = makeChain(true);
     const storage = makeStorage();
-    const lab = useAAPermissionsLab({ chain, storageService: storage, t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: storage, t });
 
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
@@ -84,7 +92,7 @@ describe("AA Permissions Lab composable", () => {
     (chain as unknown as { address: ReturnType<typeof createObservable> }).address.set(
       "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
     );
-    const lab = useAAPermissionsLab({ chain, storageService: makeStorage(), t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: makeStorage(), t });
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
 
@@ -116,7 +124,7 @@ describe("AA Permissions Lab composable", () => {
       read: ReturnType<typeof vi.fn>;
       invoke: ReturnType<typeof vi.fn>;
     };
-    const lab = useAAPermissionsLab({ chain, storageService: makeStorage(), t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: makeStorage(), t });
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
 

@@ -1,29 +1,48 @@
 /**
- * PlayArea.tsx -- Oracle Price Console (on-chain MorpheusDataFeed reader)
- *
- * Uses state: asset, priceDisplay, freshness, freshnessLabel, availablePairs,
- * networkDisplay, datafeedShort, sourceLabel, isRequesting, errorMsg.
- * Actions: fetchPrice, updateAsset.
+ * PlayArea.tsx — Oracle Price Console (v2 scene-driven rebuild)
+ * Oracle/DeFi identity. The market feed IS the scene: a foreground price ticket,
+ * a clean market visual, and a compact watchlist. Fetch is primary; contract
+ * and reference details stay tucked behind drawer tabs.
  */
-
-import { useState } from "react";
-import { Activity, Check, Copy, DatabaseZap, RefreshCw } from "lucide-react";
-import { NeoButton } from "@shared/components-react";
+import { type ReactNode, useState } from "react";
+import { LineChart, RadioTower, ShieldCheck, type LucideIcon } from "lucide-react";
+import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import type { Freshness } from "./hooks/usePriceConsole";
+import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface PlayAreaProps { t: (key: string, p?: Record<string, string | number>) => string; state: Record<string, Observable>; dispatch: (n: string, ...a: unknown[]) => Promise<void>; }
+
+const ASSETS = ["NEO", "GAS", "BTC"];
+const MARKET_STAGE_IMAGE = "oracle-market-stage.webp";
+type DrawerMode = "signal" | "contract" | "reference";
+
+function assetHintKey(symbol: string) {
+  const key = symbol.trim().toUpperCase();
+  if (key === "NEO") return "assetHintNeo";
+  if (key === "GAS") return "assetHintGas";
+  if (key === "BTC") return "assetHintBtc";
+  return "assetHintGeneric";
+}
+
+function assetIcon(symbol: string): LucideIcon {
+  const key = symbol.trim().toUpperCase();
+  if (key === "BTC") return LineChart;
+  if (key === "GAS") return ShieldCheck;
+  return RadioTower;
+}
+
+function assetCoinVariant(symbol: string): "neo" | "gas" | null {
+  const key = symbol.trim().toUpperCase();
+  if (key === "NEO") return "neo";
+  if (key === "GAS") return "gas";
+  return null;
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
-  const [feedCopied, setFeedCopied] = useState(false);
-
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("signal");
   const asset = str("asset", "NEO");
   const priceDisplay = str("priceDisplay", t("notAvailable"));
   const networkDisplay = str("networkDisplay", "");
@@ -32,368 +51,170 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const sourceLabel = str("sourceLabel", "");
   const errorMsg = str("errorMsg", "");
   const isRequesting = bool("isRequesting");
-  const freshness = (val<Freshness>("freshness", "idle") ?? "idle") as Freshness;
   const freshnessLabel = str("freshnessLabel", t("priceStatusReady"));
   const freshnessTimestamp = str("freshnessTimestamp", "");
-  const onChainTimeLabel = freshnessTimestamp
-    ? t("priceOnChainTime", { time: freshnessTimestamp })
-    : "";
-  const pairs = val<string[]>("availablePairs", ["NEO", "GAS", "BTC"]) ?? [
-    "NEO",
-    "GAS",
-    "BTC",
+  const availablePairs = (val("availablePairs") ?? []) as string[];
+  const pairOptions = (availablePairs.length > 0 ? availablePairs : ASSETS).slice(0, 6);
+  const feedContractLabel = datafeedShort || datafeedHash || t("priceRouteFeedPending");
+  const activeCoinVariant = assetCoinVariant(asset);
+  const routeState = isRequesting
+    ? t("priceRouteReading")
+    : freshnessTimestamp
+      ? t("priceStatusLive")
+      : t("priceRouteQueued");
+  const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; icon: LucideIcon }> = [
+    { mode: "signal", label: t("priceSignalTitle"), value: priceDisplay, icon: LineChart },
+    { mode: "contract", label: t("feedTicketContract"), value: feedContractLabel, icon: RadioTower },
+    { mode: "reference", label: t("priceReferenceTitle"), value: routeState, icon: ShieldCheck },
   ];
-
-  const copyFeedHash = async () => {
-    if (!datafeedHash) return;
-    try {
-      await navigator.clipboard?.writeText(datafeedHash);
-      setFeedCopied(true);
-      window.setTimeout(() => setFeedCopied(false), 1600);
-    } catch {
-      // Keep the full hash inspectable via the title tooltip when clipboard is blocked.
-    }
+  const setDrawerModeSafe = (mode: string) => {
+    if (drawerModes.some((item) => item.mode === mode)) setDrawerMode(mode as DrawerMode);
   };
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const ActiveDrawerIcon = activeDrawerMode.icon;
 
-  const canFetchPrice = Boolean(asset);
-  const assetInitial = asset.slice(0, 1);
-  const displayPair = `${asset}/USD`;
-  const priceLoaded = freshness !== "idle";
-  const isStale = freshness === "stale";
-  const selectedAssetHint = assetHintKey(asset);
-  const featuredPairs = ["NEO", "GAS", "BTC"].filter((symbol) =>
-    pairs.includes(symbol),
-  );
-  const catalogPairs = pairs.filter((symbol) => !featuredPairs.includes(symbol));
-  const boardState = isRequesting ? "loading" : priceLoaded ? freshness : "idle";
-  const routeState = errorMsg ? "warn" : boardState;
-  const routeNodes = [
-    {
-      key: "source",
-      icon: <DatabaseZap size={18} aria-hidden="true" />,
-      label: t("priceRouteSource"),
-      value: sourceLabel || t("priceRouteSourceFallback"),
-    },
-    {
-      key: "freshness",
-      icon: <Activity size={18} aria-hidden="true" />,
-      label: t("priceRouteFreshness"),
-      value: isRequesting
-        ? t("priceRouteReading")
-        : priceLoaded
-          ? freshnessLabel
-          : t("priceRouteQueued"),
-    },
-    {
-      key: "feed",
-      icon: <Check size={18} aria-hidden="true" />,
-      label: t("priceRouteFeed"),
-      value: datafeedShort || t("priceRouteFeedPending"),
-    },
-  ];
-
-  return (
-    <div className="price-play-area">
-      <section className="price-hero" aria-label={t("priceHeroTitle")}>
-        <img
-          className="price-hero__media"
-          src="./oracle-market-stage.jpg"
-          alt=""
-          loading="eager"
-          decoding="async"
-        />
-        <div className="price-hero__shade" aria-hidden="true" />
-
-        <div className="price-hero__copy">
-          <span className="price-hero__badge" aria-hidden="true">
-            <Activity size={22} />
+  const scene = (
+    <div className="price-station" data-state={isRequesting ? "fetching" : errorMsg ? "error" : freshnessTimestamp ? "live" : "idle"}>
+      <section className="price-ticket" aria-label={t("marketBoardTitle")}>
+        {activeCoinVariant && <CoinArt className="price-ticket__watermark" size={116} variant={activeCoinVariant} decorative />}
+        <div className="price-ticket__head">
+          <span>{t("stationPair")}</span>
+          <strong className="price-ticket__pair">
+            {activeCoinVariant && <CoinArt size={20} variant={activeCoinVariant} decorative />}
+            {asset}/USD
+          </strong>
+        </div>
+        <div className="price-ticket__quote">
+          <span>{t("latestPrice")}</span>
+          <strong>{priceDisplay}</strong>
+        </div>
+        <div className="price-ticket__meta">
+          <span className="price-ticket__freshness">
+            <span className="price-ticket__dot" />
+            {freshnessLabel}
           </span>
-          <span className="price-eyebrow price-eyebrow-badge">{t("priceHeroTitle")}</span>
-          <h2>{displayPair}</h2>
-          <p>{t("priceHeroSubtitle")}</p>
-          <div className="price-hero__status-row" aria-label={t("priceSignalTitle")}>
-            <span
-              className={`price-status price-status-pill price-status--${boardState}`}
-              data-freshness={freshness}
-            >
-              <i className="price-status__dot" aria-hidden="true" />
-              {freshnessLabel}
-            </span>
-            <span className="price-hero__timestamp-pill">
-              {onChainTimeLabel || t("feedTimePending")}
-            </span>
-          </div>
+          <span>{sourceLabel || t("priceRouteSourceFallback")}</span>
         </div>
-
-        <div className="price-hero__metrics" aria-label={t("priceMetrics")}>
-          <button
-            type="button"
-            className="price-metric price-metric--copy"
-            onClick={copyFeedHash}
-            disabled={!datafeedHash}
-            title={datafeedHash || undefined}
-            aria-label={t("copyFeedHash")}
-          >
-            <span>{t("priceMetricFeed")}</span>
-            <span className="price-metric__value">
-              <strong>{datafeedShort || "-"}</strong>
-              <span className="price-metric__copy-cue" aria-hidden="true">
-                {feedCopied ? <Check size={14} /> : <Copy size={14} />}
-              </span>
-            </span>
-          </button>
-          <div className="price-metric">
-            <span>{t("priceMetricNetwork")}</span>
-            <strong>{networkDisplay || "-"}</strong>
-          </div>
-          <div className="price-metric">
-            <span>{t("priceMetricSource")}</span>
-            <strong>{sourceLabel || "-"}</strong>
-          </div>
-        </div>
+        {errorMsg && <p className="price-ticket__error" role="alert">{errorMsg}</p>}
       </section>
 
-      <div className="price-console-body">
-        <section
-          className={`price-market-board price-market-board--${boardState}`}
-          aria-label={t("latestPrice")}
-        >
-          <div className="price-market-board__head">
-            <div>
-              <span>{t("marketBoardTitle")}</span>
-              <strong>{t("marketBoardHint", { pair: displayPair })}</strong>
-            </div>
-            <span className={`asset-token asset-token--${asset.toLowerCase()}`}>
-              {assetInitial}
-            </span>
-          </div>
-
-          {isRequesting ? (
-            <div className="price-market-state" role="status">
-              <span className="price-market-state__spinner" aria-hidden="true" />
-              <strong>{t("loading")}</strong>
-              <small>{t("priceSignalIdleHint")}</small>
-            </div>
-          ) : priceLoaded ? (
-            <div className="price-market-board__price">
-              <span>{displayPair}</span>
-              <strong>{priceDisplay}</strong>
-              <small>{selectedAssetHint ? t(selectedAssetHint) : ""}</small>
-            </div>
-          ) : (
-            <div className="price-market-state">
-              <span className="price-market-state__icon" aria-hidden="true">
-                <DatabaseZap size={20} />
-              </span>
-              <strong>{t("priceSignalIdle")}</strong>
-              <small>{t("priceSignalIdleHint")}</small>
-            </div>
-          )}
-
-          {isStale && (
-            <div className="price-stale-note" role="status">
-              {t("priceStaleHint")}
-            </div>
-          )}
-
-          <div className="price-signal-strip" aria-label={t("priceFlowTitle")}>
-            <span>
-              <small>{t("stationPair")}</small>
-              <strong>{displayPair}</strong>
-            </span>
-            <span>
-              <small>{t("stationMethod")}</small>
-              <strong>{t("priceReferenceMethodValue")}</strong>
-            </span>
-            <span>
-              <small>{t("stationFreshness")}</small>
-              <strong>{priceLoaded ? freshnessLabel : t("stationFreshnessValue")}</strong>
-            </span>
-          </div>
-        </section>
-
-        <section
-          className={`price-oracle-route price-oracle-route--${routeState}`}
-          aria-label={t("priceRouteTitle")}
-          aria-busy={isRequesting || undefined}
-        >
-          <div className="price-oracle-route__head">
-            <div>
-              <span>{t("priceRouteEyebrow")}</span>
-              <strong>{t("priceRouteTitle")}</strong>
-            </div>
-            <small>{t("priceRouteHint")}</small>
-          </div>
-          <div className="price-oracle-route__path">
-            <span className="price-oracle-route__packet" aria-hidden="true" />
-            {routeNodes.map((node) => (
-              <div
-                key={node.key}
-                className={`price-oracle-node price-oracle-node--${node.key}`}
-              >
-                <span className="price-oracle-node__icon">{node.icon}</span>
-                <span className="price-oracle-node__copy">
-                  <small>{node.label}</small>
-                  <strong>{node.value}</strong>
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="price-action-panel" aria-label={t("priceActionTitle")}>
-          <div className="price-action-panel__head">
-            <span className="price-action-panel__icon" aria-hidden="true">
-              <DatabaseZap size={20} />
-            </span>
-            <div>
-              <span>{t("oracleStationEyebrow")}</span>
-              <strong>{t("oracleStationTitle", { pair: displayPair })}</strong>
-              <small>{t("priceActionHint")}</small>
-            </div>
-          </div>
-
-          <section className="price-pair-picker" aria-label={t("asset")}>
-            <div className="price-pair-picker__head">
-              <span>{t("watchlistTitle")}</span>
-              <strong>{t("pairPickerSubtitle", { pair: displayPair })}</strong>
-            </div>
-            <div className="price-pair-options" role="radiogroup" aria-label={t("asset")}>
-              <div className="price-pair-grid">
-                {featuredPairs.map((symbol) => (
-                  <PricePairButton
-                    key={symbol}
-                    symbol={symbol}
-                    selected={asset === symbol}
-                    t={t}
-                    onSelect={() => void dispatch("updateAsset", symbol)}
-                  />
-                ))}
-              </div>
-              {catalogPairs.length > 0 && (
-                <div className="price-catalog-dock">
-                  <div className="price-catalog-dock__head">
-                    <span>{t("pairCatalogTitle")}</span>
-                    <strong>{t("pairCatalogCount", { count: catalogPairs.length })}</strong>
-                  </div>
-                  <div className="price-catalog-chips">
-                    {catalogPairs.map((symbol) => (
-                      <button
-                        key={symbol}
-                        type="button"
-                        role="radio"
-                        aria-checked={asset === symbol}
-                        aria-label={`${symbol}/USD`}
-                        className={`price-catalog-chip${
-                          asset === symbol ? " price-catalog-chip--selected" : ""
-                        }`}
-                        onClick={() => void dispatch("updateAsset", symbol)}
-                      >
-                        {symbol}/USD
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <div className="price-query-actions">
-            <NeoButton
-              variant="primary"
-              disabled={!canFetchPrice || isRequesting}
-              aria-label={t(isRequesting ? "readingPair" : "fetchPair", {
-                pair: displayPair,
-              })}
-              onClick={() => dispatch("fetchPrice")}
-            >
-              {isRequesting ? (
-                <span className="price-query-spinner" aria-hidden="true" />
-              ) : (
-                <RefreshCw size={16} aria-hidden="true" />
-              )}
-              {t(isRequesting ? "readingPair" : "fetchPair", { pair: displayPair })}
-            </NeoButton>
-          </div>
-
-          <p className="price-selected-note" role="note">
-            {t(selectedAssetHint)}
-          </p>
-          {errorMsg && <div className="error-banner mono">{errorMsg}</div>}
-        </section>
-      </div>
-
-      <section className="price-reference" aria-label={t("priceReferenceTitle")}>
-        <div className="price-reference__intro">
-          <span>{t("requestPackage")}</span>
-          <strong>{t("priceReferenceTitle")}</strong>
+      <aside className="price-feed-panel" aria-label={t("priceRouteTitle")}>
+        <div className="price-station__market" aria-hidden="true">
+          <img src={MARKET_STAGE_IMAGE} alt="" loading="eager" decoding="async" />
         </div>
-        <dl className="price-reference__rows">
-          <div className="price-reference__row">
-            <dt>{t("priceReferenceContract")}</dt>
-            <dd className="price-reference__mono" title={datafeedHash || undefined}>
-              {datafeedShort || "-"}
-            </dd>
-          </div>
-          <div className="price-reference__row">
-            <dt>{t("priceReferenceMethod")}</dt>
-            <dd className="price-reference__mono">{t("priceReferenceMethodValue")}</dd>
-          </div>
-          <div className="price-reference__row">
-            <dt>{t("priceReferenceQuote")}</dt>
-            <dd>{t("priceReferenceQuoteValue")}</dd>
-          </div>
-        </dl>
-      </section>
+      </aside>
     </div>
   );
-}
 
-function PricePairButton({
-  symbol,
-  selected,
-  t,
-  onSelect,
-}: {
-  symbol: string;
-  selected: boolean;
-  t: PlayAreaProps["t"];
-  onSelect: () => void;
-}) {
-  const pair = `${symbol}/USD`;
+  const controls = (
+    <section className="price-watchlist" aria-label={t("watchlistTitle")}>
+      <div className="price-watchlist__head">
+        <span>{t("watchlistTitle")}</span>
+        <strong>{t("pairPickerSubtitle", { pair: asset })}</strong>
+      </div>
+      <div className="price-watchlist__grid">
+        {pairOptions.map((sym) => {
+          const Icon = assetIcon(sym);
+          const coinVariant = assetCoinVariant(sym);
+          const active = asset === sym;
+          return (
+            <button
+              key={sym}
+              type="button"
+              className={["price-pair-card", active ? "price-pair-card--active" : null].filter(Boolean).join(" ")}
+              onClick={() => void dispatch("updateAsset", sym)}
+              disabled={isRequesting}
+              aria-pressed={active}
+            >
+              <span className="price-pair-card__icon">
+                {coinVariant ? <CoinArt size={32} variant={coinVariant} decorative /> : <Icon size={17} strokeWidth={2.25} />}
+              </span>
+              <span className="price-pair-card__copy">
+                <strong>{sym}/USD</strong>
+                <em>{active ? t("pairSelected") : t(assetHintKey(sym))}</em>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  const drawerPanels: Record<DrawerMode, ReactNode> = {
+    signal: (
+      <dl className="price-drawer-list">
+        <div><dt>{t("asset")}</dt><dd>{asset}/USD</dd></div>
+        <div><dt>{t("latestPrice")}</dt><dd>{priceDisplay}</dd></div>
+        <div><dt>{t("freshnessLabel")}</dt><dd>{freshnessLabel}</dd></div>
+        <div><dt>{t("sourceLabel")}</dt><dd>{sourceLabel || t("priceRouteSourceFallback")}</dd></div>
+        {freshnessTimestamp && <div><dt>{t("ageJustNow")}</dt><dd>{freshnessTimestamp}</dd></div>}
+      </dl>
+    ),
+    contract: (
+      <dl className="price-drawer-list">
+        <div><dt>{t("feedTicketContract")}</dt><dd>{feedContractLabel}</dd></div>
+        <div><dt>{t("priceReferenceContract")}</dt><dd>{datafeedHash ? <code>{datafeedShort || datafeedHash}</code> : t("priceRouteFeedPending")}</dd></div>
+        <div><dt>{t("priceRouteFeed")}</dt><dd>{datafeedHash || t("priceRouteFeedPending")}</dd></div>
+      </dl>
+    ),
+    reference: (
+      <dl className="price-drawer-list">
+        <div><dt>{t("priceReferenceMethod")}</dt><dd>{t("priceReferenceMethodValue")}</dd></div>
+        <div><dt>{t("priceReferenceQuote")}</dt><dd>{t("priceReferenceQuoteValue")}</dd></div>
+        <div><dt>{t("priceRouteFreshness")}</dt><dd>{routeState}</dd></div>
+      </dl>
+    ),
+  };
 
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      aria-label={pair}
-      className={`price-pair-card${selected ? " price-pair-card--selected" : ""}`}
-      onClick={onSelect}
-    >
-      <span className={`asset-token asset-token--${symbol.toLowerCase()}`}>
-        {symbol.slice(0, 1)}
-      </span>
-      <span className="price-pair-card__copy">
-        <strong>{pair}</strong>
-        <small>{t(assetHintKey(symbol))}</small>
-      </span>
-      <span className="price-pair-card__cue">
-        {selected ? t("pairSelected") : t("pairTapToRead")}
-      </span>
-    </button>
+    <OpenUiProvider>
+      <div className="oracle-price-play-area mx2 mx2-cat-tool">
+        <PlayStage
+          category="tool"
+          stage={{
+            eyebrow: t("oracleStationEyebrow"),
+            title: t("oracleStationTitle", { pair: `${asset}/USD` }),
+            subtitle: t("priceRouteHint"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkDisplay || "—"}</span>,
+          }}
+          scene={<div className="price-stage-stack">{scene}{controls}</div>}
+          actions={{ primary: { label: isRequesting ? t("readingPair", { pair: asset }) : t("fetchPair", { pair: asset }), onClick: () => void dispatch("fetchPrice"), loading: isRequesting, disabled: isRequesting } }}
+          drawerToggleLabel={t("feedTicketContract")}
+          drawer={{
+            title: t("feedTicketContract"),
+            children: (
+              <div className="price-drawer">
+                <OpenUiSegmented
+                  className="price-drawer-tabs"
+                  segmentedClassName="price-drawer-tabs__group"
+                  label={t("feedTicketContract")}
+                  value={drawerMode}
+                  onChange={setDrawerModeSafe}
+                  options={drawerModes.map((item) => ({
+                    value: item.mode,
+                    label: (
+                      <span className="price-drawer-tab">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </span>
+                    ),
+                  }))}
+                />
+                <OpenUiPanel
+                  className="price-drawer__panel"
+                  icon={<ActiveDrawerIcon size={18} strokeWidth={2.35} aria-hidden="true" />}
+                  title={activeDrawerMode.label}
+                  subtitle={activeDrawerMode.value}
+                >
+                  <div className="price-drawer__panel-body" data-mode={drawerMode}>
+                    {drawerPanels[drawerMode]}
+                  </div>
+                </OpenUiPanel>
+              </div>
+            ),
+          }}
+        />
+      </div>
+    </OpenUiProvider>
   );
-}
-
-function assetHintKey(symbol: string) {
-  switch (symbol.toUpperCase()) {
-    case "NEO":
-      return "assetHintNeo";
-    case "GAS":
-      return "assetHintGas";
-    case "BTC":
-      return "assetHintBtc";
-    default:
-      return "assetHintGeneric";
-  }
 }

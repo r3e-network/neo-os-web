@@ -1,1129 +1,613 @@
-@use "@shared/styles/console-common" as console;
-@use "@shared/styles/tokens.scss" as *;
+/**
+ * Oracle Price Console -- market-feed station.
+ *
+ * The feed read is treated like a product surface: foreground price ticket,
+ * visible route, compact watchlist. The bright market image is kept as a small
+ * environmental accent, not a dirty full-background layer.
+ */
+@use "@shared/styles/v2/tokens" as *;
+@use "@shared/styles/v2/motion" as *;
+@use "@shared/components-react/v2/v2" as *;
 
-.price-play-area {
-  @include console.play-area(16px);
-  display: grid;
-  gap: 16px;
-  padding: 4px 0 10px;
-  color: var(--ns-ink, #111827);
-  background: transparent;
+/* domain-theme (auto) */
+:root,
+.mx2 {
+  --mx2-brand: #0891b2;
+  --mx2-brand-hover: #0e7490;
+  --mx2-brand-light: #e2f4f9;
+  --mx2-brand-subtle: #ade0ec;
+  --mx2-ring: rgba(0, 0, 0, 0.06);
+  --mx2-accent: #6366f1;
+  --mx2-accent-strong: #4338ca;
+  --mx2-accent-soft: #ebebfe;
+  --mx2-accent-ink: #312e81;
 }
 
-.price-play-area button:disabled {
-  cursor: not-allowed;
+
+.oracle-price-play-area {
+  display: block;
 }
 
-.price-play-area :is(button, select, input):focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring);
+.oracle-price-play-area .mx2-stage__title {
+  font-weight: 620;
+  line-height: 1.08;
 }
 
-.price-hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.72fr);
-  gap: 24px;
-  align-items: end;
-  min-height: 360px;
-  padding: 28px;
-  overflow: hidden;
-  border: 1px solid rgba(55, 140, 120, 0.16);
-  border-radius: var(--ns-radius-xl);
-  background: #fbfff8;
-  box-shadow: 0 20px 56px rgba(72, 92, 78, 0.14);
-}
-
-.price-hero__media {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.price-hero__shade {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 252, 240, 0.9) 42%, rgba(255, 255, 255, 0.22) 100%),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.64) 0%, rgba(255, 255, 255, 0.08) 70%);
-}
-
-.price-hero__copy,
-.price-hero__metrics {
-  position: relative;
-  z-index: 1;
-}
-
-.price-hero__copy {
-  display: grid;
-  gap: 10px;
-  max-width: 620px;
-  min-width: 0;
-}
-
-.price-hero__badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border: 1px solid rgba(20, 184, 166, 0.24);
-  border-radius: var(--ns-radius-md);
-  color: #047857;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 14px 34px rgba(20, 184, 166, 0.16);
-}
-
-.price-play-area .price-eyebrow {
-  color: #0f8a63;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.price-play-area .price-hero h2 {
-  margin: 0;
-  color: #10231f;
-  font-size: 40px;
-  font-weight: 900;
-  letter-spacing: 0;
-  line-height: 1.05;
-  text-shadow: 0 12px 32px rgba(255, 255, 255, 0.5);
-}
-
-.price-play-area .price-hero p {
-  margin: 0;
-  max-width: 35rem;
-  color: #334b45;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.55;
-}
-
-.price-hero__status-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-top: 6px;
-}
-
-.price-play-area .price-hero__status-row > span:last-child {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 12px;
-  border: 1px solid rgba(20, 184, 166, 0.2);
-  border-radius: var(--ns-radius-full);
-  color: #28453e;
-  background: rgba(255, 255, 255, 0.78);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.price-hero__metrics {
-  display: grid;
-  gap: 10px;
-  align-self: stretch;
-  align-content: end;
-  min-width: 0;
-}
-
-.price-metric {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-width: 0;
-  min-height: 52px;
-  padding: 12px 14px;
-  border: 1px solid rgba(55, 140, 120, 0.16);
-  border-radius: var(--ns-radius-md);
-  background: rgba(255, 255, 255, 0.78);
-  color: #35534b;
-  backdrop-filter: blur(16px);
-}
-
-.price-metric > span:first-child {
-  flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.price-metric strong {
-  min-width: 0;
-  color: #10231f;
-  font-size: 13px;
-  font-weight: 850;
-  overflow: hidden;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.price-metric--copy {
-  appearance: none;
-  width: 100%;
-  font: inherit;
-  text-align: left;
-  transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    transform 0.16s ease;
-}
-
-.price-metric--copy:hover:not(:disabled) {
-  border-color: rgba(20, 184, 166, 0.34);
-  background: rgba(255, 255, 255, 0.92);
-  transform: translateY(-1px);
-}
-
-.price-metric--copy:disabled {
-  opacity: 0.78;
-}
-
-.price-metric__value {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.price-metric__copy-cue {
-  display: inline-flex;
-  flex: 0 0 auto;
-  color: #047857;
-}
-
-.price-console-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.94fr);
-  gap: 16px;
-  align-items: stretch;
-}
-
-.price-market-board,
-.price-oracle-route,
-.price-action-panel,
-.price-reference {
-  min-width: 0;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.07));
-  border-radius: var(--ns-radius-lg);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md);
-}
-
-.price-market-board {
-  grid-column: 1;
-  grid-row: 1;
-  position: relative;
-  display: grid;
-  gap: 18px;
-  padding: 22px;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(32, 217, 155, 0.08) 0%, rgba(56, 209, 246, 0.06) 50%, rgba(255, 255, 255, 0) 100%),
-    var(--ns-surface, #ffffff);
-}
-
-.price-oracle-route {
-  grid-column: 1;
-  grid-row: 2;
-  position: relative;
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(15, 138, 99, 0.08), rgba(56, 209, 246, 0.08)),
-    var(--ns-surface, #ffffff);
-}
-
-.price-action-panel {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-
-.price-market-board__head,
-.price-action-panel__head {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: start;
-}
-
-.price-market-board__head > div,
-.price-action-panel__head > div,
-.price-pair-picker__head,
-.price-reference__intro {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.price-market-board__head span:first-child,
-.price-action-panel__head span,
-.price-pair-picker__head span,
-.price-reference__intro span,
-.price-signal-strip small,
-.price-pair-card__cue {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.price-market-board__head strong,
-.price-action-panel__head strong,
-.price-pair-picker__head strong,
-.price-reference__intro strong {
-  color: var(--ns-ink, #111827);
-  font-size: 16px;
-  font-weight: 850;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
-.asset-token {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 54px;
-  height: 54px;
-  flex: 0 0 54px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 999px;
-  color: #0f172a;
-  font-size: 22px;
-  font-weight: 900;
-  box-shadow: 0 16px 34px rgba(17, 24, 39, 0.14);
-}
-
-.asset-token--neo {
-  background: linear-gradient(135deg, #d8fbea 0%, #61e9ad 100%);
-  color: #065f46;
-}
-
-.asset-token--gas {
-  background: linear-gradient(135deg, #e2fbff 0%, #68d8ff 100%);
-  color: #075985;
-}
-
-.asset-token--btc {
-  background: linear-gradient(135deg, #fff1c2 0%, #ffbe55 100%);
-  color: #92400e;
-}
-
-.price-market-board__price {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 8px;
-  padding: 20px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--ns-radius-lg);
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.price-market-board__price span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.price-market-board__price strong {
-  color: var(--ns-ink, #111827);
-  font-family: "JetBrains Mono", var(--font-mono, monospace);
-  font-size: 42px;
-  font-weight: 900;
-  letter-spacing: 0;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.price-market-board__price small,
-.price-market-state small,
-.price-action-panel__head small,
-.price-selected-note {
-  color: var(--ns-text-2, #5b6478);
-  font-size: 13px;
-  font-weight: 650;
+.oracle-price-play-area .mx2-stage__subtitle {
+  font-weight: 470;
   line-height: 1.45;
 }
 
-.price-market-state {
+.oracle-price-play-area .mx2-score {
+  display: none;
+}
+
+.oracle-price-play-area .mx2-action-rail,
+.oracle-price-play-area .mx2-drawer {
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+.oracle-price-play-area .mx2-stage__scene {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+.price-stage-stack {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.price-station {
+  position: relative;
+  min-height: 252px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(290px, 0.82fr);
+  align-items: start;
+  gap: 12px;
+  overflow: hidden;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: var(--mx2-r-lg);
+  padding: 14px;
+  background: #ffffff;
+  isolation: isolate;
+}
+
+.price-feed-panel {
+  min-width: 0;
+  width: 100%;
+  display: block;
+}
+
+.price-station__market {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: calc(var(--mx2-r-lg) - 6px);
+  padding: 16px;
+  background: #ffffff;
+}
+
+.price-station__market img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  opacity: 1;
+  filter: none;
+}
+
+.price-station__market::after {
+  content: none;
+}
+
+.price-ticket {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 13px;
+  min-width: 0;
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: calc(var(--mx2-r-lg) - 6px);
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(15, 118, 110, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.price-ticket__watermark {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  z-index: 0;
+  opacity: 0.1;
+  transform: translateY(-50%) scale(1.18);
+  box-shadow: none !important;
+  pointer-events: none;
+}
+
+.price-ticket__head,
+.price-ticket__quote,
+.price-ticket__meta {
   position: relative;
   z-index: 1;
-  display: grid;
-  gap: 8px;
-  place-items: start;
-  min-height: 164px;
-  padding: 20px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--ns-radius-lg);
-  background: rgba(255, 255, 255, 0.72);
+  min-width: 0;
 }
 
-.price-market-state strong {
-  color: var(--ns-ink, #111827);
-  font-size: 20px;
-  font-weight: 850;
+.price-ticket__error {
+  position: relative;
+  z-index: 1;
 }
 
-.price-market-state__icon,
-.price-market-state__spinner,
-.price-action-panel__icon {
-  display: inline-flex;
+.price-ticket__head {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--ns-radius-md);
-  background: #e7fff5;
-  color: #047857;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.price-market-state__spinner {
-  border: 3px solid rgba(32, 217, 155, 0.18);
-  border-top-color: #20d99b;
-  border-radius: 999px;
-  background: transparent;
-  animation: price-spin 1s linear infinite;
+.price-ticket__head span,
+.price-ticket__quote span,
+.price-watchlist__head span {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 620;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
-@keyframes price-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.price-play-area .price-status {
+.price-ticket__pair {
+  min-width: 0;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 32px;
-  width: fit-content;
-  padding: 0 12px;
-  border-radius: var(--ns-radius-full);
-  color: #047857;
-  border: 1px solid rgba(20, 184, 166, 0.2);
-  background: rgba(255, 255, 255, 0.84);
+  border-radius: var(--mx2-r-pill);
+  padding: 5px 10px 5px 6px;
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 620;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.price-status__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--ns-radius-full);
-  background: #20d99b;
-  box-shadow: 0 0 0 4px rgba(32, 217, 155, 0.18);
-}
-
-.price-status--idle .price-status__dot {
-  background: rgba(241, 249, 252, 0.5);
-  box-shadow: none;
-}
-
-.price-status--loading .price-status__dot {
-  background: #38d1f6;
-  box-shadow: 0 0 0 4px rgba(56, 209, 246, 0.18);
-}
-
-.price-status[data-freshness="stale"] {
-  color: #ffe1a6;
-}
-
-.price-status[data-freshness="stale"] .price-status__dot {
-  background: #f5a623;
-  box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.2);
-}
-
-.price-stale-note {
-  position: relative;
-  z-index: 1;
-  padding: 12px 14px;
-  border: 1px solid rgba(245, 166, 35, 0.28);
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-warning-soft, #fff3dd);
-  color: var(--ns-warning-strong, #b9791a);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.45;
-}
-
-.price-oracle-route__head {
-  position: relative;
-  z-index: 1;
+.price-ticket__quote {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.84fr);
-  gap: 16px;
-  align-items: start;
+  gap: 4px;
 }
 
-.price-oracle-route__head > div {
-  display: grid;
-  gap: 5px;
+.price-ticket__quote strong {
   min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--mx2-ink);
+  font-size: 52px;
+  font-weight: 620;
+  line-height: 0.96;
+  font-variant-numeric: tabular-nums;
 }
 
-.price-oracle-route__head span,
-.price-oracle-node small {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.2;
-  text-transform: uppercase;
+.price-ticket__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
 }
 
-.price-oracle-route__head strong {
-  color: var(--ns-ink, #111827);
-  font-size: 16px;
-  font-weight: 850;
-  line-height: 1.25;
-}
-
-.price-oracle-route__head > small {
-  color: var(--ns-text-2, #5b6478);
-  font-size: 12.5px;
-  font-weight: 650;
-  line-height: 1.45;
-}
-
-.price-oracle-route__path {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  min-width: 0;
-  padding-top: 2px;
-}
-
-.price-oracle-route__path::before {
-  content: "";
-  position: absolute;
-  top: 25px;
-  left: 14%;
-  right: 14%;
-  height: 3px;
-  border-radius: var(--ns-radius-full);
-  background:
-    linear-gradient(90deg, rgba(20, 184, 166, 0.18), rgba(56, 209, 246, 0.72), rgba(32, 217, 155, 0.18));
-  box-shadow: 0 0 22px rgba(56, 209, 246, 0.2);
-}
-
-.price-oracle-route__packet {
-  position: absolute;
-  z-index: 2;
-  top: 18px;
-  left: 13%;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: var(--ns-radius-full);
-  background: #20d99b;
-  box-shadow:
-    0 0 0 6px rgba(32, 217, 155, 0.14),
-    0 10px 24px rgba(20, 184, 166, 0.28);
-  opacity: 0;
-  transform: translateX(0) scale(0.9);
-}
-
-.price-oracle-route--loading .price-oracle-route__packet {
-  opacity: 1;
-  animation: price-route-packet 2s ease-in-out infinite;
-}
-
-.price-oracle-node {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-  min-height: 128px;
-  padding: 13px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--ns-radius-md);
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.price-oracle-node__icon {
+.price-ticket__meta > span {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(32, 217, 155, 0.16);
-  border-radius: var(--ns-radius-md);
-  background: rgba(231, 255, 245, 0.9);
-  color: #047857;
-  box-shadow: 0 12px 26px rgba(7, 19, 28, 0.1);
-}
-
-.price-oracle-node__copy {
-  display: grid;
   gap: 6px;
+  min-height: 30px;
   min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  font-weight: 560;
 }
 
-.price-oracle-node strong {
-  color: var(--ns-ink, #111827);
-  font-size: 12.5px;
-  font-weight: 850;
-  line-height: 1.32;
-  overflow-wrap: anywhere;
+.price-ticket__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--mx2-success);
 }
 
-.price-oracle-route--loading .price-oracle-node__icon {
-  animation: price-route-node-pulse 1.5s ease-in-out infinite;
+.price-station[data-state="fetching"] .price-ticket__dot {
+  background: var(--mx2-warning);
+  animation: mx2-float 1s var(--mx2-ease) infinite;
 }
 
-.price-oracle-route--fresh .price-oracle-node--feed .price-oracle-node__icon {
-  background: rgba(214, 255, 234, 0.95);
-  color: #047857;
-  animation: price-route-confirm 2.4s ease-in-out infinite;
+.price-station[data-state="error"] .price-ticket__dot {
+  background: var(--mx2-danger);
 }
 
-.price-oracle-route--stale .price-oracle-node--freshness .price-oracle-node__icon,
-.price-oracle-route--warn .price-oracle-node--freshness .price-oracle-node__icon {
-  background: rgba(255, 243, 221, 0.95);
-  color: #b9791a;
+.price-ticket__error {
+  margin: 0;
+  border-radius: var(--mx2-r);
+  padding: 8px 10px;
+  background: var(--mx2-danger-soft);
+  color: var(--mx2-danger);
+  font-size: 13px;
+  font-weight: 620;
 }
 
-@keyframes price-route-packet {
-  0% {
-    left: 13%;
-    transform: scale(0.82);
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  50% {
-    left: calc(50% - 8px);
-    transform: scale(1);
-    opacity: 1;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    left: calc(87% - 16px);
-    transform: scale(0.9);
-    opacity: 0;
-  }
-}
-
-@keyframes price-route-node-pulse {
-  0%,
-  100% {
-    box-shadow: 0 12px 26px rgba(7, 19, 28, 0.1);
-  }
-  50% {
-    box-shadow:
-      0 12px 26px rgba(7, 19, 28, 0.1),
-      0 0 0 7px rgba(32, 217, 155, 0.12);
-  }
-}
-
-@keyframes price-route-confirm {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-.price-signal-strip {
-  position: relative;
-  z-index: 1;
+.price-watchlist {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-lg);
+  padding: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.05);
+}
+
+.price-watchlist__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
 
-.price-signal-strip > span {
-  display: grid;
-  gap: 5px;
+.price-watchlist__head strong {
   min-width: 0;
-  padding: 12px;
-  border: 1px solid rgba(20, 22, 38, 0.07);
-  border-radius: var(--ns-radius-md);
-  background: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.price-signal-strip strong {
-  color: var(--ns-ink, #111827);
-  font-size: 12px;
-  font-weight: 850;
+.price-watchlist__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.price-pair-card {
+  min-width: 0;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r);
+  padding: 9px;
+  background: var(--mx2-surface);
+  color: var(--mx2-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    transform var(--mx2-t-fast) var(--mx2-ease-snap),
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.price-pair-card:hover:not(:disabled),
+.price-pair-card--active {
+  border-color: var(--mx2-brand-subtle);
+  box-shadow: 0 14px 28px rgba(5, 150, 105, 0.1);
+  transform: translateY(-1px);
+}
+
+.price-pair-card--active {
+  background: var(--mx2-brand-light);
+}
+
+.price-pair-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.price-pair-card__icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+}
+
+.price-pair-card__icon .mx2-coin {
+  box-shadow: none !important;
+}
+
+.price-pair-card--active .price-pair-card__icon {
+  background: var(--mx2-brand-hover);
+  color: #ffffff;
+}
+
+.price-pair-card--active .price-pair-card__icon .mx2-coin {
+  background: #ffffff;
+}
+
+.price-pair-card__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.price-pair-card__copy strong,
+.price-pair-card__copy em {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.price-action-panel {
+.price-pair-card__copy strong {
+  color: var(--mx2-ink);
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.price-pair-card__copy em {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 560;
+}
+
+.oracle-price-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 0 190px;
+  max-width: 190px;
+  min-height: 52px;
+  border-radius: var(--mx2-r-pill);
+  white-space: nowrap;
+}
+
+.price-drawer {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 12px;
 }
 
-.price-action-panel__head {
-  grid-template-columns: auto minmax(0, 1fr);
-  padding: 14px;
-  border: 1px solid rgba(32, 217, 155, 0.18);
-  border-radius: var(--ns-radius-md);
-  background:
-    linear-gradient(135deg, rgba(32, 217, 155, 0.1) 0%, rgba(56, 209, 246, 0.08) 100%),
-    var(--ns-surface-subtle, #f7f8fa);
-}
-
-.price-action-panel__icon {
-  box-shadow: 0 14px 32px rgba(7, 19, 28, 0.16);
-}
-
-.price-pair-picker {
-  display: grid;
-  gap: 10px;
+.price-drawer-tabs {
   min-width: 0;
+  margin: 0;
 }
 
-.price-pair-options {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
+.price-drawer-tabs > .mx2-open-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.price-pair-grid {
+.price-drawer-tabs__group.mx2-open-segmented.semi-radioGroup {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 7px;
+  padding: 5px;
+  border: 1px solid rgba(31, 41, 55, 0.075);
+  border-radius: 18px;
+  background: var(--mx2-surface-2);
 }
 
-.price-pair-card {
-  position: relative;
-  display: grid;
-  gap: 10px;
+.price-drawer-tabs__group.mx2-open-segmented.semi-radioGroup .semi-radio {
   min-width: 0;
-  min-height: 132px;
-  padding: 12px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.07));
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-2, #5b6478);
+  flex: unset;
+  border-radius: 14px;
+}
+
+.price-drawer-tabs__group.mx2-open-segmented.semi-radioGroup .semi-radio-addon-buttonRadio {
+  min-height: 0;
+  padding: 0;
+  display: block;
+}
+
+.price-drawer-tab {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--mx2-text-muted);
+  padding: 8px 10px;
   font: inherit;
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    transform 0.16s ease;
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    background var(--mx2-t-fast) var(--mx2-ease),
+    color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
 }
 
-.price-pair-card:hover {
-  border-color: rgba(32, 217, 155, 0.34);
-  transform: translateY(-1px);
+.price-drawer-tabs__group .semi-radio-checked .price-drawer-tab,
+.price-drawer-tabs__group .semi-radio:hover .price-drawer-tab {
+  border-color: var(--mx2-brand-subtle);
+  background: #ffffff;
+  color: var(--mx2-accent-strong);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.045);
 }
 
-.price-pair-card:focus-visible,
-.price-catalog-chip:focus-visible,
-.price-metric--copy:focus-visible {
-  outline: none;
-  box-shadow: var(--ns-focus-ring);
-}
-
-.price-pair-card--selected {
-  border-color: rgba(32, 217, 155, 0.42);
-  background:
-    linear-gradient(135deg, rgba(32, 217, 155, 0.13), rgba(56, 209, 246, 0.08)),
-    var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-sm);
-}
-
-.price-pair-card .asset-token {
-  width: 42px;
-  height: 42px;
-  flex-basis: 42px;
-  font-size: 17px;
-  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.1);
-}
-
-.price-pair-card__copy {
-  display: grid;
-  gap: 4px;
+.price-drawer-tab span,
+.price-drawer-tab strong {
+  display: block;
   min-width: 0;
-}
-
-.price-pair-card__copy strong {
-  color: var(--ns-ink, #111827);
-  font-size: 13px;
-  font-weight: 850;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.price-pair-card__copy small {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11.5px;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.price-pair-card__cue {
-  align-self: end;
-  width: fit-content;
-  padding: 5px 8px;
-  border-radius: var(--ns-radius-full);
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.price-pair-card--selected .price-pair-card__cue {
-  color: #047857;
-  background: rgba(32, 217, 155, 0.15);
-}
-
-.price-catalog-dock {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.07));
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.price-catalog-dock__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-.price-catalog-dock__head span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.price-catalog-dock__head strong {
-  color: var(--ns-ink, #111827);
-  font-size: 12px;
-  font-weight: 850;
-  white-space: nowrap;
-}
-
-.price-catalog-chips {
-  display: flex;
-  gap: 8px;
-  min-width: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
-}
-
-.price-catalog-chip {
-  flex: 0 0 auto;
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.07));
-  border-radius: var(--ns-radius-full);
-  background: var(--ns-surface, #ffffff);
-  color: var(--ns-text-2, #5b6478);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 850;
-  cursor: pointer;
-  transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease;
-}
-
-.price-catalog-chip:hover,
-.price-catalog-chip--selected {
-  border-color: rgba(32, 217, 155, 0.38);
-  background: rgba(32, 217, 155, 0.12);
-  color: #047857;
-}
-
-.price-query-actions {
-  display: grid;
-  gap: 10px;
-}
-
-.price-query-actions .neo-btn {
-  width: 100%;
-}
-
-.price-query-actions .neo-btn svg {
-  flex: 0 0 auto;
-}
-
-.price-query-spinner {
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.42);
-  border-top-color: #ffffff;
-  border-radius: var(--ns-radius-full);
-  animation: price-spin 0.9s linear infinite;
-}
-
-.price-selected-note {
-  margin: 0;
-  padding: 12px 13px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.07));
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.price-reference {
-  display: grid;
-  grid-template-columns: minmax(190px, 0.32fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-  padding: 16px 18px;
-  background:
-    linear-gradient(135deg, rgba(245, 255, 249, 0.98) 0%, rgba(255, 248, 226, 0.94) 100%);
-  color: var(--ns-ink, #111827);
-}
-
-.price-reference__intro span {
-  color: var(--ns-text-muted, #8a92a6);
-}
-
-.price-reference__intro strong {
-  color: var(--ns-ink, #111827);
-}
-
-.price-reference__rows {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0;
-}
-
-.price-reference__row {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid rgba(55, 140, 120, 0.12);
-  border-radius: var(--ns-radius-md);
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.price-reference__row dt {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.price-reference__row dd {
-  min-width: 0;
-  margin: 0;
-  color: var(--ns-ink, #111827);
-  font-size: 13px;
-  font-weight: 850;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.price-reference__mono,
-.mono {
-  font-family: "JetBrains Mono", var(--font-mono, monospace);
-  font-variant-numeric: tabular-nums;
+.price-drawer-tab span {
+  font-size: 11px;
+  font-weight: 560;
 }
 
-.error-banner {
-  margin-top: 2px;
-  padding: 12px 13px;
-  border: 1px solid rgba(234, 57, 67, 0.24);
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-danger-soft, #fde7e9);
-  color: #c81e2a;
+.price-drawer-tab strong {
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.price-drawer__panel {
+  min-width: 0;
+}
+
+.price-drawer__panel.mx2-open-panel.semi-card {
+  overflow: hidden;
+  border-color: rgba(31, 41, 55, 0.09);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055);
+}
+
+.price-drawer__panel .mx2-open-panel__icon {
+  color: var(--mx2-brand-hover);
+  background: var(--mx2-brand-light);
+}
+
+.price-drawer__panel-body {
+  min-width: 0;
+}
+
+.price-drawer-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.price-drawer-list div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(112px, 0.35fr) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--mx2-border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.price-drawer-list dt {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.price-drawer-list dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.price-drawer-list code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  line-height: 1.5;
-  word-break: break-all;
 }
 
-@media (max-width: 980px) {
-  .price-hero,
-  .price-console-body {
+@media (max-width: 760px) {
+  .price-station {
     grid-template-columns: 1fr;
+    gap: 10px;
+    min-height: 0;
+    padding: 12px;
   }
 
-  .price-market-board,
-  .price-oracle-route,
-  .price-action-panel {
-    grid-column: auto;
-    grid-row: auto;
+  .price-station__market {
+    display: none;
   }
 
-  .price-hero {
-    min-height: 420px;
-    align-items: start;
+  .price-feed-panel {
+    display: none;
   }
 
-  .price-hero__metrics {
-    align-self: end;
-  }
-
-  .price-reference {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .price-play-area {
-    gap: 14px;
-  }
-
-  .price-hero {
-    min-height: 520px;
-    padding: 20px;
-    border-radius: var(--ns-radius-lg);
-  }
-
-  .price-hero__shade {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 252, 240, 0.8) 54%, rgba(255, 255, 255, 0.28) 100%);
-  }
-
-  .price-play-area .price-hero h2 {
-    font-size: 32px;
-  }
-
-  .price-hero__metrics,
-  .price-pair-grid,
-  .price-oracle-route__head,
-  .price-signal-strip,
-  .price-reference__rows {
-    grid-template-columns: 1fr;
-  }
-
-  .price-console-body {
-    gap: 14px;
-  }
-
-  .price-market-board,
-  .price-oracle-route,
-  .price-action-panel,
-  .price-reference {
-    border-radius: var(--ns-radius-lg);
-  }
-
-  .price-market-board {
-    padding: 18px;
-  }
-
-  .price-oracle-route {
+  .price-ticket {
+    gap: 10px;
+    min-height: 220px;
     padding: 16px;
   }
 
-  .price-oracle-route__path {
-    grid-template-columns: 1fr;
-    padding-left: 28px;
+  .price-ticket__quote strong {
+    font-size: 44px;
   }
 
-  .price-oracle-route__path::before {
-    top: 18px;
-    bottom: 18px;
-    left: 19px;
-    right: auto;
-    width: 3px;
-    height: auto;
-    background:
-      linear-gradient(180deg, rgba(20, 184, 166, 0.18), rgba(56, 209, 246, 0.72), rgba(32, 217, 155, 0.18));
+  .price-watchlist {
+    padding: 10px;
   }
 
-  .price-oracle-route__packet {
-    top: 17px;
-    left: 12px;
-  }
-
-  .price-oracle-route--loading .price-oracle-route__packet {
-    animation-name: price-route-packet-mobile;
-  }
-
-  .price-oracle-node {
-    min-height: 0;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-  }
-
-  .price-market-board__head {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .price-market-board__price strong {
-    font-size: 34px;
+  .price-watchlist__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .price-pair-card {
-    min-height: 94px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
+    min-height: 66px;
+    gap: 8px;
+    padding: 8px;
   }
 
-  .price-pair-card__cue {
-    align-self: center;
+  .price-pair-card__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
   }
-}
 
-@keyframes price-route-packet-mobile {
-  0% {
-    top: 17px;
-    transform: scale(0.82);
-    opacity: 0;
+  .price-pair-card__copy em {
+    display: none;
   }
-  12% {
-    opacity: 1;
+
+  .oracle-price-play-area .mx2-action-rail__row .mx2-btn--primary {
+    flex-basis: 176px;
+    max-width: 176px;
   }
-  50% {
-    top: calc(50% - 8px);
-    transform: scale(1);
-    opacity: 1;
+
+  .price-drawer-tabs__group.mx2-open-segmented.semi-radioGroup {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    padding: 4px;
   }
-  88% {
-    opacity: 1;
+
+  .price-drawer-tab {
+    min-height: 46px;
+    padding: 8px 5px;
+    text-align: center;
   }
-  100% {
-    top: calc(100% - 34px);
-    transform: scale(0.9);
-    opacity: 0;
+
+  .price-drawer-tab strong {
+    display: none;
+  }
+
+  .price-drawer-list div {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .price-market-state__spinner,
-  .price-query-spinner,
-  .price-oracle-route--loading .price-oracle-route__packet,
-  .price-oracle-route--loading .price-oracle-node__icon,
-  .price-oracle-route--fresh .price-oracle-node--feed .price-oracle-node__icon {
-    animation: none;
-  }
-
-  .price-oracle-route__packet {
-    opacity: 1;
+  .price-station[data-state="fetching"] .price-ticket__dot,
+  .price-pair-card {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
   }
 }

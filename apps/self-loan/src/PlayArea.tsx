@@ -1,816 +1,389 @@
 /**
- * PlayArea.tsx -- Self Loan
+ * PlayArea.tsx - Self Loan (DeFi position desk)
  *
- * Self-custodial lending interface with platform stats, loan status card
- * with LTV and health factor gauge, borrow form with LTV slider,
- * repay section, and add-collateral section.
+ * The primary surface is the collateral position itself: a bright vault, live
+ * LTV meter, borrow preview, and route summary. Detailed recovery/repay context
+ * stays in the drawer, while the primary action carries the exact borrow form
+ * payload expected by the runtime action.
  */
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  CircleAlert,
-  Coins,
-  Gauge,
-  Landmark,
+  ArrowDownRight,
+  Banknote,
   LockKeyhole,
   PlusCircle,
   RefreshCw,
   ShieldCheck,
+  TrendingUp,
   WalletCards,
 } from "lucide-react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
+import type { ObservableState } from "@shared/react/context";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
+  t: (key: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-interface LoanData {
+interface Loan {
   borrowed?: number;
-  collateral?: number;
-  ltv?: number;
+  collateralLocked?: number;
+  ltvPercent?: number;
   active?: boolean;
-  healthFactor?: number;
   status?: string;
+  [key: string]: unknown;
 }
 
-interface PlatformStatsData {
-  totalBorrowed?: number;
-  totalCollateral?: number;
-  totalLoans?: number;
-  avgLtv?: number;
-  platformFeeBps?: number;
-}
-
-interface StatsData {
-  totalLoans?: number;
-  totalBorrowed?: number;
-  totalRepaid?: number;
-  activeLoans?: number;
-}
-
-interface LtvOptionData {
+interface LtvOption {
   tier: number;
   percent: number;
   label: string;
-  desc?: string;
+  desc: string;
+}
+
+interface PlatformStats {
+  platformFeeBps?: number;
+  [key: string]: unknown;
+}
+
+const DEFAULT_LTV_OPTIONS: LtvOption[] = [
+  { tier: 1, percent: 20, label: "Conservative", desc: "20% LTV" },
+  { tier: 2, percent: 30, label: "Balanced", desc: "30% LTV" },
+  { tier: 3, percent: 40, label: "Aggressive", desc: "40% LTV" },
+];
+
+function toFiniteNumber(value: unknown, fallback = 0) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function formatAmount(value: number, maximumFractionDigits = 2) {
+  if (!Number.isFinite(value)) return "0";
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits,
+    minimumFractionDigits: value > 0 && value < 1 ? 2 : 0,
+  }).format(value);
+}
+
+function withUnit(value: string, unit: string) {
+  const text = String(value || "0").trim() || "0";
+  return new RegExp(`\\b${unit}\\b`, "i").test(text) ? text : `${text} ${unit}`;
+}
+
+function normalizeWholeNeoAmount(value: string) {
+  const whole = value.split(/[.,]/)[0] ?? "";
+  return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+}
+
+function isPositiveWholeNeoAmount(value: string) {
+  return /^[1-9]\d*$/.test(value.trim());
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
-
-  /* ---------- Bound state ---------- */
+  const loan = val<Loan | null>("loan", null);
+  const ltvOptions = val<LtvOption[]>("ltvOptions", DEFAULT_LTV_OPTIONS) ?? DEFAULT_LTV_OPTIONS;
+  const platformStats = val<PlatformStats>("platformStats", {}) ?? {};
+  const collateralAmount = str("collateralAmount", "");
+  const selectedTier = num("selectedLtv", 1);
+  const selectedLtvPercentFromState = num("selectedLtvPercent", 0);
+  const neoBalance = str("neoBalance", "0");
+  const neoBalanceDisplay = str("neoBalanceDisplay", neoBalance || "0");
+  const neoPrice = num("neoPrice", 0);
+  const neoPriceDisplay = str("neoPriceDisplay", "");
+  const poolGas = num("poolGas", 0);
+  const poolDisplay = str("poolDisplay", "0");
+  const hasActiveLoan = bool("hasActiveLoan");
   const isLoading = bool("isLoading");
   const isBorrowing = bool("isBorrowing");
   const isRepaying = bool("isRepaying");
   const isAddingCollateral = bool("isAddingCollateral");
-  const isProcessing = bool("isProcessing");
-  const isConnected = bool("isConnected");
-
+  const hasPendingConfirmation = bool("hasPendingConfirmation");
+  const pendingConfirmation = str("pendingConfirmation", "");
   const hasCollateralCredit = bool("hasCollateralCredit");
   const hasRepayCredit = bool("hasRepayCredit");
-  const collateralCreditDisplay = str("collateralCreditDisplay");
-  const repayCreditDisplay = str("repayCreditDisplay");
+  const collateralCreditDisplay = str("collateralCreditDisplay", "0");
+  const repayCreditDisplay = str("repayCreditDisplay", "0");
+  const healthMetricLabel = str("healthMetricLabel", t("collateralRatio"));
+  const healthFactorDisplay = str("healthFactorDisplay", t("notAvailable"));
+  const currentLTVDisplay = str("currentLTVDisplay", t("notAvailable"));
+  const poolLabel = withUnit(poolDisplay, "GAS");
+  const collateralCreditLabel = withUnit(collateralCreditDisplay, "NEO");
+  const repayCreditLabel = withUnit(repayCreditDisplay, "GAS");
 
-  // Relayed-but-unconfirmed notice: a borrow/repay tx was broadcast but its
-  // confirming event was never observed (verified=false). Surfaced as a distinct
-  // "pending confirmation" banner instead of a success toast.
-  const hasPendingConfirmation = bool("hasPendingConfirmation");
-  const pendingConfirmation = str("pendingConfirmation");
+  const [draftCollateral, setDraftCollateral] = useState(collateralAmount);
+  const [borrowPreview, setBorrowPreview] = useState(false);
+  const borrowPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const neoBalance = num("neoBalance");
-  const selectedLtvPercent = num("selectedLtvPercent");
-  const healthFactor = num("healthFactor");
-  const currentLTV = num("currentLTV");
-  const totalLoans = num("totalLoans");
-  // WHOLE GAS per NEO (0 = unconfigured). Needed so the borrow estimate mirrors
-  // takeLoan(), which sizes the loan on collateralValue = collateralNeo × neoPrice.
-  const neoPrice = num("neoPrice");
-
-  const neoBalanceDisplay = str("neoBalanceDisplay");
-  const neoPriceDisplay = str("neoPriceDisplay");
-  const poolDisplay = str("poolDisplay");
-  const hasActiveLoan = bool("hasActiveLoan");
-  const borrowOkNonce = num("borrowOkNonce");
-  const repayOkNonce = num("repayOkNonce");
-  const addCollateralOkNonce = num("addCollateralOkNonce");
-  const hasLoanDisplay = str("hasLoanDisplay");
-  const healthFactorDisplay = str("healthFactorDisplay");
-  const healthMetricLabel = str("healthMetricLabel");
-  const currentLTVDisplay = str("currentLTVDisplay");
-  const collateralDisplay = str("collateralDisplay");
-  const borrowedDisplay = str("borrowedDisplay");
-  const totalBorrowedDisplay = str("totalBorrowedDisplay");
-  const totalRepaidDisplay = str("totalRepaidDisplay");
-  const collateralAmount = str("collateralAmount");
-
-  const loan = val<LoanData>("loan");
-  const platformStats = val<PlatformStatsData>("platformStats");
-  const stats = val<StatsData>("stats");
-  const selectedTier = num("selectedLtv", 1);
-  const ltvOptions = val<LtvOptionData[]>("ltvOptions") ?? [];
-
-  /* ---------- Local form state ---------- */
-  const [localCollateralAmt, setLocalCollateralAmt] = useState("");
-  const [localRepayAmt, setLocalRepayAmt] = useState("");
-  const [localAddCollateral, setLocalAddCollateral] = useState("");
-
-  /* ---------- Handlers ---------- */
-  // Inputs are cleared by the success-nonce effects below (not after dispatch),
-  // so a swallowed failure (notify.guard resolves to undefined) preserves what
-  // the user typed instead of forcing a full re-entry.
-  const handleBorrow = async () => {
-    if (!localCollateralAmt || hasActiveLoan) return;
-    await dispatch("borrow", {
-      collateralAmount: localCollateralAmt,
-    });
-  };
-
-  const handleSelectTier = (tier: number) => {
-    dispatch("setLtvTier", tier);
-  };
-
-  const handleRepay = async () => {
-    if (!localRepayAmt) return;
-    await dispatch("repay", localRepayAmt);
-  };
-
-  const handleAddCollateral = async () => {
-    if (!localAddCollateral) return;
-    await dispatch("addCollateral", localAddCollateral);
-  };
-
-  /* Clear each form's local input only when its action actually succeeded — the
-     composable bumps a per-action nonce on success (and never on a swallowed
-     failure), so the effect runs on real completions only. */
   useEffect(() => {
-    if (borrowOkNonce > 0) setLocalCollateralAmt("");
-  }, [borrowOkNonce]);
-  useEffect(() => {
-    if (repayOkNonce > 0) setLocalRepayAmt("");
-  }, [repayOkNonce]);
-  useEffect(() => {
-    if (addCollateralOkNonce > 0) setLocalAddCollateral("");
-  }, [addCollateralOkNonce]);
+    setDraftCollateral(normalizeWholeNeoAmount(collateralAmount));
+  }, [collateralAmount]);
 
-  const handleSetCollateralAmount = (v: string) => {
-    setLocalCollateralAmt(v);
-    dispatch("setCollateralAmount", v);
-  };
+  useEffect(() => () => {
+    if (borrowPreviewTimeout.current) clearTimeout(borrowPreviewTimeout.current);
+  }, []);
 
-  const handleReclaimCollateral = async () => {
-    await dispatch("reclaimCollateral");
-  };
+  const selectedOption = useMemo<LtvOption>(() => {
+    return ltvOptions.find((option) => option.tier === selectedTier)
+      ?? ltvOptions[0]
+      ?? DEFAULT_LTV_OPTIONS[0]!;
+  }, [ltvOptions, selectedTier]);
 
-  const handleReclaimRepayCredit = async () => {
-    await dispatch("reclaimRepayCredit");
-  };
-
-  /* ---------- Derived health gauge ---------- */
-  const hf = healthFactor > 0 ? healthFactor : 0;
-  const healthColor =
-    hf >= 2 ? "#16c784" : hf >= 1.2 ? "#f59e0b" : "#ef4444";
-  const healthPercent = Math.min(hf / 3, 1) * 100;
-  const healthLabel =
-    hf >= 2
-      ? t("safe")
-      : hf >= 1.2
-        ? t("caution")
-        : t("danger");
-
-  /* ---------- Derived LTV ---------- */
-  const ltvPct = selectedLtvPercent > 0 ? selectedLtvPercent : currentLTV;
-  // AA-compliant (>=4.5:1 on the light value chip) shades of the same
-  // green/amber/red risk semantics. The brighter brand tones (#16c784 / #f59e0b)
-  // failed WCAG contrast as foreground text.
-  const ltvColor =
-    ltvPct <= 50 ? "#0a6e4a" : ltvPct <= 75 ? "#a15c07" : "#b91c1c";
-
-  /* ---------- Expected borrow (collateral × LTV, net of origination fee) ---------- */
-  const collateralNum = parseFloat(localCollateralAmt || collateralAmount);
-  // Use ?? so a genuine 0% fee renders as 0, not masked by a default.
-  const rawFeeBps = (platformStats as PlatformStatsData | null)?.platformFeeBps;
-  const feeBps = Number.isFinite(rawFeeBps) ? (rawFeeBps as number) : 0;
-  // takeLoan() sizes the loan on collateralValue = collateralNeo × neoPrice (whole
-  // GAS per NEO); when no price is configured each NEO counts as 1 unit of value.
-  // Omitting the price factor understated the estimate by ~neoPrice× (e.g. 3× at a
-  // 3 GAS/NEO price), so the user saw far less than takeLoan() actually disburses.
-  const collateralValueFactor = neoPrice > 0 ? neoPrice : 1;
-  const grossBorrow =
-    Number.isFinite(collateralNum) && collateralNum > 0
-      ? (collateralNum * collateralValueFactor * selectedLtvPercent) / 100
-      : 0;
-  // Mirror takeLoan(): netBorrow = gross − gross*feeBps/10000. The user actually
-  // receives the net amount, so display that (not the gross) to avoid overstating.
-  const feeAmount = (grossBorrow * feeBps) / 10000;
-  const expectedBorrow = Math.max(grossBorrow - feeAmount, 0);
+  const ltvPercent = selectedLtvPercentFromState || selectedOption.percent;
+  const feeBps = toFiniteNumber(platformStats.platformFeeBps, 50);
   const feePercent = feeBps / 100;
-
-  /* ---------- Display helpers ---------- */
-  const displayNeoBalance =
-    neoBalanceDisplay || (neoBalance > 0 ? neoBalance.toFixed(2) : "0");
-  const displayHealthFactor =
-    healthFactorDisplay || (hf > 0 ? hf.toFixed(2) : "—");
-  const displayCurrentLTV =
-    currentLTVDisplay || (currentLTV > 0 ? `${currentLTV.toFixed(1)}%` : "—");
-  const displayCollateral =
-    collateralDisplay ||
-    ((loan as LoanData)?.collateral?.toLocaleString() ?? "0");
-  const displayBorrowed =
-    borrowedDisplay ||
-    ((loan as LoanData)?.borrowed?.toLocaleString() ?? "0");
-  const displayTotalBorrowed =
-    totalBorrowedDisplay ||
-    (platformStats?.totalBorrowed?.toLocaleString() ??
-      (stats as StatsData)?.totalBorrowed?.toLocaleString() ??
-      "0");
-  const displayTotalRepaid =
-    totalRepaidDisplay ||
-    ((stats as StatsData)?.totalRepaid?.toLocaleString() ?? "0");
-  const displayTotalLoans =
-    totalLoans > 0
-      ? totalLoans
-      : (platformStats?.totalLoans ??
-          (stats as StatsData)?.totalLoans ??
-          0);
-
-  const hasLoan =
-    hasLoanDisplay.toLowerCase() === "yes" ||
-    Boolean((loan as LoanData | null)?.active) ||
-    Boolean((loan as LoanData | null)?.borrowed);
-  const riskTone = hf >= 2 ? "safe" : hf >= 1.2 ? "caution" : "danger";
-  const selectedLtvOption = ltvOptions.find((option) => option.tier === selectedTier);
-  const borrowInputValue = localCollateralAmt || collateralAmount;
-  const hasBorrowDraft = Number.isFinite(collateralNum) && collateralNum > 0;
-  const previewCollateralLabel =
-    Number.isFinite(collateralNum) && collateralNum > 0
-      ? `${collateralNum.toLocaleString(undefined, { maximumFractionDigits: 2 })} NEO`
-      : "0 NEO";
-  const expectedBorrowLabel =
-    expectedBorrow > 0 ? `${expectedBorrow.toFixed(2)} GAS` : "0.00 GAS";
-  const activeAction = isBorrowing
-    ? "borrowing"
-    : isRepaying
-      ? "repaying"
-      : isAddingCollateral
-        ? "collateral"
-        : hasLoan
-          ? "active"
-          : "setup";
-  const borrowFlowState = isBorrowing
-    ? "borrowing"
+  const collateralReady = isPositiveWholeNeoAmount(draftCollateral);
+  const collateralNum = collateralReady ? toFiniteNumber(draftCollateral, 0) : 0;
+  const collateralValueGas = collateralNum * (neoPrice > 0 ? neoPrice : 1);
+  const grossBorrow = collateralValueGas * (ltvPercent / 100);
+  const netBorrow = Math.max(0, grossBorrow - (grossBorrow * feeBps) / 10000);
+  const activeBorrowed = toFiniteNumber(loan?.borrowed, 0);
+  const activeCollateral = toFiniteNumber(loan?.collateralLocked, 0);
+  const busy = isLoading || isBorrowing || isRepaying || isAddingCollateral || borrowPreview;
+  const canBorrow = !hasActiveLoan && collateralReady && !busy;
+  const poolIsTight = poolGas > 0 && netBorrow > poolGas;
+  const displayedBorrow = hasActiveLoan ? activeBorrowed : netBorrow;
+  const displayedCollateral = hasActiveLoan ? activeCollateral : collateralNum;
+  const vaultState = isBorrowing || borrowPreview
+    ? t("borrowFlowBorrowing")
     : hasActiveLoan
-      ? "locked"
-      : hasBorrowDraft
-        ? "ready"
-        : "draft";
-  const rootClassName = [
-    "selfloan-play-area",
-    `selfloan-play-area--${riskTone}`,
-    `selfloan-play-area--${activeAction}`,
-    hasLoan ? "selfloan-play-area--has-loan" : "selfloan-play-area--no-loan",
-  ].join(" ");
+      ? t("positionActive")
+      : draftCollateral.trim()
+        ? t("borrowFlowReady")
+        : t("borrowFlowDraft");
 
-  /* Outstanding GAS debt (whole GAS) drives the repay "Max" chip. The repay
-     validation accepts up to 8 decimals, so trim the fill value to 8 dp and
-     drop trailing zeros to match what the user would type. */
-  const outstandingDebt = Math.max(0, Number((loan as LoanData | null)?.borrowed ?? 0));
-  const outstandingDebtInput =
-    outstandingDebt > 0
-      ? outstandingDebt.toFixed(8).replace(/\.?0+$/, "")
-      : "";
+  const ltvTone = ltvPercent >= 40 ? "warm" : ltvPercent >= 30 ? "balanced" : "safe";
+  const meterStyle = {
+    "--selfloan-ltv-pct": `${Math.max(0, Math.min(100, ltvPercent))}%`,
+  } as CSSProperties;
+
+  const updateCollateral = (value: string) => {
+    const next = normalizeWholeNeoAmount(value);
+    setDraftCollateral(next);
+    void dispatch("setCollateralAmount", next);
+  };
+
+  const selectTier = (tier: number) => {
+    void dispatch("setLtvTier", String(tier));
+  };
+
+  const startBorrowPreview = () => {
+    if (borrowPreviewTimeout.current) clearTimeout(borrowPreviewTimeout.current);
+    setBorrowPreview(true);
+    borrowPreviewTimeout.current = setTimeout(() => {
+      setBorrowPreview(false);
+      borrowPreviewTimeout.current = null;
+    }, 1100);
+  };
+
+  const handleBorrow = () => {
+    if (!canBorrow) return;
+    startBorrowPreview();
+    void dispatch("borrow", { collateralAmount: draftCollateral.trim() });
+  };
+
+  const handleAddCollateral = () => {
+    if (!collateralReady || busy) return;
+    void dispatch("addCollateral", draftCollateral.trim());
+  };
+
+  const handleRepay = () => {
+    if (!hasActiveLoan || isRepaying) return;
+    void dispatch("repay", activeBorrowed > 0 ? String(activeBorrowed) : "");
+  };
+
+  const quickAmounts = ["10", "25", "50"];
+
+  const scene = (
+    <div className="selfloan-scene" data-state={busy ? "routing" : hasActiveLoan ? "active" : "draft"} data-tone={ltvTone}>
+      <section className="selfloan-scene__position" aria-label={t("loanStatus")}>
+        <div className="selfloan-scene__asset-row" aria-hidden="true">
+          <CoinArt size={58} variant="neo" className="selfloan-scene__asset selfloan-scene__asset--primary" decorative />
+          <CoinArt size={42} variant="neo" className="selfloan-scene__asset selfloan-scene__asset--secondary" decorative />
+          <span className="selfloan-scene__lock-badge"><LockKeyhole size={18} /></span>
+        </div>
+        <span className="selfloan-scene__eyebrow"><LockKeyhole size={14} /> {t("custodyTitle")}</span>
+        <div className="selfloan-token-value">
+          <strong>{formatAmount(displayedCollateral, 0)}</strong>
+          <span>NEO</span>
+        </div>
+        <p>{vaultState}</p>
+        <div className="selfloan-scene__chips">
+          <span><ShieldCheck size={14} /> {t("custodyBadge")}</span>
+          <span><RefreshCw size={14} /> {t("feature2Name")}</span>
+        </div>
+      </section>
+      <section className="selfloan-scene__meter" style={meterStyle} aria-label={t("selectedLTV")}>
+        <div className="selfloan-scene__meter-ring">
+          <span>{formatAmount(ltvPercent, 1)}%</span>
+          <small>{t("ltvLabel")}</small>
+        </div>
+        <div className="selfloan-scene__meter-copy">
+          <CoinArt size={34} variant="gas" className="selfloan-scene__borrow-token" decorative />
+          <span>{t("estimatedBorrowNet")}</span>
+          <strong>{formatAmount(displayedBorrow, 2)} GAS</strong>
+          <small>{t("originationFee", { percent: formatAmount(feePercent, 2) })}</small>
+        </div>
+      </section>
+      <div className="selfloan-scene__route" aria-label={t("borrowFlowBoard")}>
+        <span><CoinArt size={22} variant="neo" decorative /> {t("flowNodeCollateral")}</span>
+        <span><TrendingUp size={16} /> {t("flowNodeLtv")}</span>
+        <span><CoinArt size={22} variant="gas" decorative /> {t("flowNodeBorrow")}</span>
+      </div>
+      {(isBorrowing || borrowPreview) && <ParticleBurst coins count={7} />}
+    </div>
+  );
+
+  const controls = (
+    <div className="selfloan-desk">
+      {hasPendingConfirmation && (
+        <p className="selfloan-desk__notice" data-tone="pending" role="status">{pendingConfirmation || t("pendingConfirmationLabel")}</p>
+      )}
+      {poolIsTight && (
+        <p className="selfloan-desk__notice" data-tone="warning" role="alert">{t("insufficientPool", { pool: poolDisplay })}</p>
+      )}
+      <section className="selfloan-card selfloan-card--amount">
+        <div className="selfloan-card__header">
+          <span>{t("collateralPlan")}</span>
+          <strong><CoinArt size={18} variant="neo" decorative /> {neoBalanceDisplay} NEO</strong>
+        </div>
+        <label className="selfloan-amount-box">
+          <span><WalletCards size={15} /> {t("amountToLock")}</span>
+          <input
+            className="selfloan-amount-input"
+            value={draftCollateral}
+            onChange={(event) => updateCollateral(event.target.value)}
+            placeholder="10"
+            inputMode="numeric"
+            disabled={busy || hasActiveLoan}
+          />
+        </label>
+        <div className="selfloan-quick-row" aria-label={t("quickCollateral")}>
+          {quickAmounts.map((amount) => (
+            <button key={amount} type="button" onClick={() => updateCollateral(amount)} disabled={busy || hasActiveLoan}>
+              <CoinArt size={16} variant="neo" decorative /> {amount} NEO
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="selfloan-card">
+        <div className="selfloan-card__header">
+          <span>{t("riskRoute")}</span>
+          <strong>{t("selectedLTV")}</strong>
+        </div>
+        <div className="selfloan-tier-grid" role="radiogroup" aria-label={t("ltvTier")}>
+          {ltvOptions.map((option) => {
+            const active = option.tier === selectedTier;
+            return (
+              <button
+                key={option.tier}
+                type="button"
+                className={active ? "selfloan-tier-card is-active" : "selfloan-tier-card"}
+                onClick={() => selectTier(option.tier)}
+                disabled={busy || hasActiveLoan}
+                aria-pressed={active}
+              >
+                <span>{option.label}</span>
+                <strong>{formatAmount(option.percent, 1)}%</strong>
+                <small>{option.desc}</small>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+
+  const drawer = (
+    <div className="selfloan-drawer">
+      <section className="selfloan-drawer__grid">
+        <article>
+          <span>{t("availableBalance")}</span>
+          <strong>{neoBalanceDisplay} NEO</strong>
+          <small>{t("yourBalance")}</small>
+        </article>
+        <article>
+          <span>{t("poolAvailable")}</span>
+          <strong>{poolLabel}</strong>
+          <small>{t("availablePool")}</small>
+        </article>
+        <article>
+          <span>{t("rateLabel")}</span>
+          <strong>{neoPriceDisplay || t("notAvailable")}</strong>
+          <small>{t("rateFeeNote")}</small>
+        </article>
+      </section>
+      <section className="selfloan-drawer__section">
+        <h4>{t("safetyPreview")}</h4>
+        <dl className="selfloan-terms">
+          <div><dt>{t("collateral")}</dt><dd>{formatAmount(displayedCollateral, 0)} NEO</dd></div>
+          <div><dt>{t("estimatedBorrowNet")}</dt><dd>{formatAmount(displayedBorrow, 2)} GAS</dd></div>
+          <div><dt>{healthMetricLabel}</dt><dd>{healthFactorDisplay}</dd></div>
+          <div><dt>{t("currentLTV")}</dt><dd>{currentLTVDisplay}</dd></div>
+        </dl>
+      </section>
+      <section className="selfloan-drawer__section">
+        <h4>{t("reclaimTools")}</h4>
+        <div className="selfloan-reclaim-row">
+          <button type="button" onClick={() => void dispatch("reclaimCollateral")} disabled={!hasCollateralCredit || busy}>
+            {t("reclaimCollateral")} · {collateralCreditLabel}
+          </button>
+          <button type="button" onClick={() => void dispatch("reclaimRepayCredit")} disabled={!hasRepayCredit || busy}>
+            {t("reclaimRepayCredit")} · {repayCreditLabel}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 
   return (
-    <div className={rootClassName}>
-      {/* ==================== Hero ==================== */}
-      <div className="selfloan-hero">
-        <img className="selfloan-hero-image" src="./self-loan-vault-stage.jpg" alt="" aria-hidden="true" />
-        <div className="selfloan-hero-shade" aria-hidden="true" />
-        <div className="selfloan-hero-content">
-          <div className="selfloan-hero-lead">
-            <span className="selfloan-hero-badge" aria-hidden="true">
-              <Landmark size={24} />
-            </span>
-            <div className="selfloan-hero-copy">
-              <span className="selfloan-hero-eyebrow">
-                {t("eyebrow")}
-              </span>
-              <h2 className="selfloan-hero-title">{t("title")}</h2>
-              <p className="selfloan-hero-subtitle">
-                {t("docSubtitle")}
-              </p>
-            </div>
-          </div>
-          <div className="selfloan-hero-flow" aria-label={t("loanTerms")}>
-            <span><LockKeyhole size={14} />{t("amountToLock")}</span>
-            <span><Gauge size={14} />{selectedLtvOption?.label ?? t("ltvTier")}</span>
-            <span><Coins size={14} />{t("borrowedLabel")}</span>
-          </div>
-        </div>
-        <div className="selfloan-hero-panel" aria-label={t("loanStatsTitle")}>
-          <span>{t("poolAvailable")}</span>
-          <strong>{poolDisplay}</strong>
-          <small>{neoPriceDisplay ? t("rateValue", { price: neoPriceDisplay }) : t("custodyStatus")}</small>
-        </div>
-      </div>
-
-      <div className="selfloan-hero-stats">
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            {displayTotalLoans}
-          </span>
-          <span className="selfloan-hero-stat-label">
-            {t("totalLoans")}
-          </span>
-        </div>
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            {displayTotalBorrowed}
-          </span>
-          <span className="selfloan-hero-stat-label">
-            {t("totalBorrowed")}
-          </span>
-        </div>
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            {displayTotalRepaid}
-          </span>
-          <span className="selfloan-hero-stat-label">
-            {t("totalRepaid")}
-          </span>
-        </div>
-      </div>
-
-      <div className={`selfloan-command-grid${hasLoan ? " selfloan-command-grid--with-loan" : ""}`}>
-        {/* ==================== Loan Status Card ==================== */}
-        {hasLoan && (
-          <NeoCard
-            variant="erobo"
-            title={t("loanStatus")}
-            className="selfloan-position-card"
-          >
-            <div className="selfloan-status">
-              <div className="selfloan-position-head">
-                <span className={`selfloan-risk-pill selfloan-risk-pill--${riskTone}`}>
-                  <ShieldCheck size={15} />
-                  {healthLabel}
-                </span>
-                <strong>{displayBorrowed} GAS</strong>
-                <small>{t("borrowed")}</small>
-              </div>
-
-              <div className="selfloan-position-vault" aria-hidden="true">
-                <img src="./self-loan-vault-stage.jpg" alt="" />
-                <div className="selfloan-position-vault__wash" />
-                <div className="selfloan-position-vault__chip selfloan-position-vault__chip--collateral">
-                  <span>{t("collateral")}</span>
-                  <strong>{displayCollateral} NEO</strong>
-                </div>
-                <div className="selfloan-position-vault__chip selfloan-position-vault__chip--debt">
-                  <span>{t("borrowed")}</span>
-                  <strong>{displayBorrowed} GAS</strong>
-                </div>
-                <div className="selfloan-position-vault__beam" />
-              </div>
-
-              <div className="selfloan-status-row">
-                <div className="selfloan-status-item">
-                  <span className="selfloan-status-label">
-                    {t("collateral")}
-                  </span>
-                  <span className="selfloan-status-value">
-                    {displayCollateral} NEO
-                  </span>
-                </div>
-                <div className="selfloan-status-item">
-                  <span className="selfloan-status-label">
-                    {t("currentLTV")}
-                  </span>
-                  <span className="selfloan-status-value">
-                    {displayCurrentLTV}
-                  </span>
-                </div>
-              </div>
-
-              {/* Health Factor Gauge */}
-              <div className="selfloan-health">
-                <div className="selfloan-health-header">
-                  <span className="selfloan-health-label">
-                    {healthMetricLabel || t("healthFactor")}
-                  </span>
-                  <span
-                    className="selfloan-health-value"
-                    style={{ color: healthColor }}
-                  >
-                    {displayHealthFactor}
-                  </span>
-                </div>
-                <div className="selfloan-health-track">
-                  <div
-                    className="selfloan-health-bar"
-                    style={{
-                      width: `${healthPercent}%`,
-                      background: healthColor,
-                    }}
-                  />
-                </div>
-                {/* Endpoint labels describe the ratio extremes, not a liquidation
-                    event — this product never force-liquidates, so the low end is
-                    "Under-collateralized", not "Liquidation". */}
-                <div className="selfloan-health-markers">
-                  <span>{t("underCollateralized")}</span>
-                  <span className="selfloan-health-status-label" style={{ color: healthColor }}>
-                    {healthLabel}
-                  </span>
-                  <span>{t("safe")}</span>
-                </div>
-              </div>
-            </div>
-          </NeoCard>
-        )}
-
-        {/* ==================== Borrow Form ==================== */}
-        <NeoCard
-          variant="erobo"
-          title={t("borrow")}
-          className="selfloan-borrow-card"
-        >
-          <div className="selfloan-vault-console">
-            <div className="selfloan-vault-preview" aria-label={t("estimatedBorrow")}>
-              <img src="./self-loan-vault-stage.jpg" alt="" aria-hidden="true" />
-              <div className="selfloan-vault-preview-flow" aria-hidden="true">
-                <span>{t("amountToLock")}</span>
-                <span>{selectedLtvOption?.label ?? t("ltvTier")}</span>
-                <span>{expectedBorrowLabel}</span>
-              </div>
-              <div className="selfloan-vault-preview-card">
-                <span>{t("takeSelfLoan")}</span>
-                <strong>{expectedBorrowLabel}</strong>
-                <small>{previewCollateralLabel} · {ltvPct > 0 ? `${ltvPct}%` : "—"} {t("ltvLabel")}</small>
-              </div>
-            </div>
-
-            <div className="selfloan-form">
-              <div className="selfloan-balance-strip">
-                <span>
-                  <WalletCards size={14} />
-                  {t("yourBalance")}: <strong>{displayNeoBalance} NEO</strong>
-                </span>
-                <span>
-                  <Coins size={14} />
-                  {t("poolAvailable")}: <strong>{poolDisplay}</strong>
-                </span>
-              </div>
-
-              <div
-                className={[
-                  "selfloan-flow-board",
-                  `selfloan-flow-board--${borrowFlowState}`,
-                ].join(" ")}
-                role="group"
-                aria-label={t("borrowFlowBoard")}
-              >
-                <div className="selfloan-flow-board__head">
-                  <span>{t("borrowFlowKicker")}</span>
-                  <strong>
-                    {isBorrowing
-                      ? t("borrowFlowBorrowing")
-                      : hasBorrowDraft
-                        ? t("borrowFlowReady")
-                        : t("borrowFlowDraft")}
-                  </strong>
-                </div>
-                <div className="selfloan-flow-board__route" aria-hidden="true">
-                  <span className="selfloan-flow-board__rail" />
-                  <span className="selfloan-flow-board__packet selfloan-flow-board__packet--neo">
-                    NEO
-                  </span>
-                  <span className="selfloan-flow-board__packet selfloan-flow-board__packet--gas">
-                    GAS
-                  </span>
-                </div>
-                <div className="selfloan-flow-board__nodes">
-                  <span className={`selfloan-flow-node${hasBorrowDraft ? " is-ready" : ""}`}>
-                    <LockKeyhole size={15} aria-hidden="true" />
-                    <small>{t("flowNodeCollateral")}</small>
-                    <strong>{previewCollateralLabel}</strong>
-                  </span>
-                  <span className={`selfloan-flow-node${ltvPct > 0 ? " is-ready" : ""}`}>
-                    <Gauge size={15} aria-hidden="true" />
-                    <small>{t("flowNodeLtv")}</small>
-                    <strong>{ltvPct > 0 ? `${ltvPct}%` : "—"}</strong>
-                  </span>
-                  <span className={`selfloan-flow-node${expectedBorrow > 0 ? " is-ready" : ""}`}>
-                    <Coins size={15} aria-hidden="true" />
-                    <small>{t("flowNodeBorrow")}</small>
-                    <strong>{expectedBorrowLabel}</strong>
-                  </span>
-                </div>
-              </div>
-
-              <div className="selfloan-borrow-desk">
-                <div className="selfloan-collateral-entry">
-                  <NeoInput
-                    label={t("collateralAmount")}
-                    placeholder="0.00"
-                    type="number"
-                    value={borrowInputValue}
-                    suffix="NEO"
-                    onChange={handleSetCollateralAmount}
-                  />
-                  <div className="selfloan-borrow-output">
-                    <span>
-                      <Coins size={14} aria-hidden="true" />
-                      {feeBps > 0 ? t("estimatedBorrowNet") : t("estimatedBorrow")}
-                    </span>
-                    <strong>{expectedBorrowLabel}</strong>
-                    {feeBps > 0 && grossBorrow > 0 && (
-                      <small>
-                        {t("originationFee", { percent: feePercent })}: {feeAmount.toFixed(2)} GAS
-                      </small>
-                    )}
-                  </div>
-                </div>
-
-                {/* LTV selector and risk meter are combined so the borrow path reads
-                    like one control desk instead of a repeated form stack. */}
-                <div className="selfloan-ltv-desk">
-                  <div className="selfloan-ltv-desk-head">
-                    <span className="selfloan-ltv-label">
-                      {t("selectedLTV")}
-                    </span>
-                    <span
-                      className="selfloan-ltv-value"
-                      style={{ color: ltvColor }}
-                    >
-                      {ltvPct > 0 ? `${ltvPct}%` : "—"}
-                    </span>
-                  </div>
-                  <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier")}>
-                    {ltvOptions.map((option) => (
-                      <button
-                        key={option.tier}
-                        type="button"
-                        className={
-                          "selfloan-ltv-tier" +
-                          (option.tier === selectedTier ? " is-active" : "")
-                        }
-                        aria-pressed={option.tier === selectedTier}
-                        onClick={() => handleSelectTier(option.tier)}
-                      >
-                        <span className="selfloan-ltv-tier-label">{option.label}</span>
-                        <span className="selfloan-ltv-tier-percent">{option.percent}%</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="selfloan-ltv-track">
-                    <div
-                      className="selfloan-ltv-bar"
-                      style={{
-                        width: `${Math.min(ltvPct, 100)}%`,
-                        background: `linear-gradient(90deg, #13966d, ${ltvColor})`,
-                      }}
-                    />
-                  </div>
-                  <div className="selfloan-ltv-hints">
-                    <span>{t("conservative")}</span>
-                    <span>{t("aggressive")}</span>
-                  </div>
-                </div>
-
-                {/* Rate the debt is sized by + pool liquidity available to disburse.
-                    Both come straight from the contract (neoPrice / pool); hidden when
-                    no price is configured so the borrow math stays honest. */}
-                {neoPriceDisplay && (
-                  <div className="selfloan-market-grid">
-                    <div className="selfloan-market-tile">
-                      <span>{t("rateLabel")}</span>
-                      <strong>{t("rateValue", { price: neoPriceDisplay })}</strong>
-                    </div>
-                  </div>
-                )}
-
-                {/* Honest disclosure: the borrow size is derived from an operator-set
-                    neoPrice (not a market oracle), and the 0.5% fee is the pool's
-                    revenue — both are read straight from the contract above. */}
-                <p className="selfloan-rate-fee-note" role="note">
-                  {t("rateFeeNote")}
-                </p>
-              </div>
-
-              <div className="selfloan-cta">
-                {!isConnected ? (
-                  <div className="selfloan-connect-prompt" role="note">
-                    <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                      <LockKeyhole size={16} />
-                    </span>
-                    <span className="selfloan-connect-prompt-text">
-                      {t("connectWalletToUse")}
-                    </span>
-                  </div>
-                ) : hasActiveLoan ? (
-                  /* One loan per address — block the Borrow path up front (the
-                     contract would otherwise revert in step 2, AFTER the NEO
-                     deposit lands) and point at Add Collateral / Repay. */
-                  <div className="selfloan-connect-prompt" role="note">
-                    <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                      <CircleAlert size={16} />
-                    </span>
-                    <span className="selfloan-connect-prompt-text">
-                      {t("loanAlreadyActiveHint")}
-                    </span>
-                  </div>
-                ) : (
-                  <NeoButton
-                    variant="primary"
-                    block
-                    loading={isBorrowing}
-                    disabled={!localCollateralAmt || isBorrowing}
-                    onClick={handleBorrow}
-                  >
-                    {t("borrow")}
-                  </NeoButton>
-                )}
-              </div>
-
-              {/* Custody disclosure — the locked collateral simply sits in the
-                  SelfLoan contract and is returned in full on repayment. The
-                  contract has NO voting/ProfitAnchor path, so this states the real
-                  disposition of the funds rather than implying they earn/vote. */}
-              <div className="selfloan-vote-route" role="note">
-                <span className="selfloan-vote-route-eyebrow">
-                  <ShieldCheck size={14} />
-                  {t("custodyTitle")}
-                </span>
-                <p className="selfloan-vote-route-copy">
-                  <strong>{t("custodyValue")}</strong> · {t("custodyBadge")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </NeoCard>
-      </div>
-
-      {/* ==================== Repay Section ==================== */}
-      {hasLoan && (
-        <div className="selfloan-active-actions">
-        <NeoCard
-          variant="erobo"
-          title={t("repay")}
-          className="selfloan-action-card selfloan-action-card--repay"
-        >
-          <div className="selfloan-form">
-            <div className="selfloan-action-orbit" aria-hidden="true">
-              <RefreshCw size={18} />
-              <span>{displayBorrowed} GAS</span>
-            </div>
-            <div className="selfloan-repay-field">
-              <NeoInput
-                label={t("repayAmount")}
-                placeholder="0.00"
-                type="number"
-                value={localRepayAmt}
-                suffix="GAS"
-                onChange={setLocalRepayAmt}
-              />
-              {/* Max chip fills the exact outstanding debt so the user need not
-                  copy the Borrowed figure to repay in full. */}
-              {outstandingDebt > 0 && (
-                <button
-                  type="button"
-                  className="selfloan-max-chip"
-                  onClick={() => setLocalRepayAmt(outstandingDebtInput)}
-                >
-                  {t("maxRepay")}
-                </button>
-              )}
-            </div>
-            <NeoButton
-              variant="success"
-              block
-              loading={isRepaying}
-              disabled={!localRepayAmt || isRepaying}
-              onClick={handleRepay}
-            >
-              <RefreshCw size={16} />
-              {t("repay")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-
-      {/* ==================== Add Collateral Section ==================== */}
-        <NeoCard
-          variant="erobo"
-          title={t("addCollateral")}
-          className="selfloan-action-card selfloan-action-card--collateral"
-        >
-          <div className="selfloan-form">
-            <div className="selfloan-action-orbit" aria-hidden="true">
-              <PlusCircle size={18} />
-              <span>{displayNeoBalance} NEO</span>
-            </div>
-            <div className="selfloan-balance-hint">
-              {t("availableBalance")}:{" "}
-              <strong>{displayNeoBalance} NEO</strong>
-            </div>
-            <NeoInput
-              label={t("addCollateralAmount")}
-              placeholder="0.00"
-              type="number"
-              value={localAddCollateral}
-              suffix="NEO"
-              onChange={setLocalAddCollateral}
-            />
-            <NeoButton
-              variant="secondary"
-              block
-              loading={isAddingCollateral}
-              disabled={!localAddCollateral || isAddingCollateral}
-              onClick={handleAddCollateral}
-            >
-              <PlusCircle size={16} />
-              {t("addCollateral")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-        </div>
-      )}
-
-      {/* ==================== Pending confirmation ==================== */}
-      {/* The action's transaction was broadcast but its confirming event was
-          never observed (chain.invoke verified=false). Say so honestly rather
-          than claiming success, so the user neither double-submits nor assumes
-          the position already moved — a refresh hydrates it once the tx lands. */}
-      {hasPendingConfirmation && (
-        <NeoCard variant="erobo" title={t("pendingConfirmationLabel")}>
-          <div className="selfloan-form">
-            <div className="selfloan-balance-hint">{pendingConfirmation}</div>
-          </div>
-        </NeoCard>
-      )}
-
-      {/* ==================== Reclaim Affordances ==================== */}
-      {/* The deposit-then-act model can leave a credit on the contract if the
-          second step never completed (e.g. a deposited NEO collateral that was
-          never borrowed against, or a GAS repay-deposit that was never applied).
-          These cards give the user an explicit recovery path so no funds strand. */}
-      {hasCollateralCredit && (
-        <NeoCard variant="erobo" title={t("reclaimCollateralTitle")}>
-          <div className="selfloan-form">
-            <div className="selfloan-balance-hint">
-              {t("reclaimCollateralCopy")}
-            </div>
-            <div className="selfloan-balance-hint">
-              {t("reclaimable")}:{" "}
-              <strong>{collateralCreditDisplay}</strong>
-            </div>
-            <NeoButton
-              variant="secondary"
-              block
-              loading={isProcessing}
-              disabled={isProcessing}
-              onClick={handleReclaimCollateral}
-            >
-              {t("reclaimCollateral")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      )}
-
-      {hasRepayCredit && (
-        <NeoCard variant="erobo" title={t("reclaimRepayTitle")}>
-          <div className="selfloan-form">
-            <div className="selfloan-balance-hint">
-              {t("reclaimRepayCopy")}
-            </div>
-            <div className="selfloan-balance-hint">
-              {t("reclaimable")}:{" "}
-              <strong>{repayCreditDisplay}</strong>
-            </div>
-            <NeoButton
-              variant="secondary"
-              block
-              loading={isProcessing}
-              disabled={isProcessing}
-              onClick={handleReclaimRepayCredit}
-            >
-              {t("reclaimRepayCredit")}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      )}
-
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="selfloan-loading-overlay">
-          <div className="selfloan-loading-spinner" />
-          <span>{t("loading")}</span>
-        </div>
-      )}
+    <div className="self-loan-play-area mx2 mx2-cat-defi">
+      <PlayStage
+        category="defi"
+        stage={{
+          eyebrow: t("borrowFlowKicker"),
+          title: hasActiveLoan ? t("yourLoan") : t("borrowNow"),
+          subtitle: t("note"),
+          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {t("available")}: {poolLabel}</span>,
+        }}
+        scene={<>{scene}{controls}</>}
+        score={[
+          { label: t("collateral"), value: `${formatAmount(displayedCollateral, 0)} NEO`, accent: true },
+          { label: t("estimatedBorrow"), value: `${formatAmount(displayedBorrow, 2)} GAS` },
+          { label: t("selectedLTV"), value: `${formatAmount(ltvPercent, 1)}%` },
+        ]}
+        actions={{
+          primary: {
+            label: hasActiveLoan ? t("loanStatus") : (busy ? t("borrowFlowBorrowing") : t("borrow")),
+            icon: <ArrowDownRight size={17} />,
+            onClick: handleBorrow,
+            disabled: hasActiveLoan || !canBorrow,
+            loading: isBorrowing || borrowPreview,
+          },
+          secondary: [
+            ...(hasActiveLoan ? [{
+              label: t("repay"),
+              icon: <Banknote size={15} />,
+              onClick: handleRepay,
+              loading: isRepaying,
+            }] : []),
+            ...(hasActiveLoan ? [{
+              label: t("addCollateral"),
+              icon: <PlusCircle size={15} />,
+              onClick: handleAddCollateral,
+              disabled: !collateralReady,
+              loading: isAddingCollateral,
+            }] : []),
+          ],
+        }}
+        drawerToggleLabel={t("borrowFlowBoard")}
+        drawer={{ title: t("borrowFlowBoard"), children: drawer }}
+      />
     </div>
   );
 }

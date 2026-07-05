@@ -1,558 +1,395 @@
+/**
+ * PlayArea.tsx - Graveyard
+ *
+ * NFT/social identity. The primary surface is a bright memory-vault ritual:
+ * compose or paste a target, review the fee and hash seal, then bury it
+ * on-chain. History, forgetting, and epitaph editing stay in the drawer so the
+ * first screen feels like an app instead of a textarea form.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
+  BadgeCheck,
   FileText,
   Hash,
-  ShieldCheck,
-  WalletCards,
+  History,
+  PenLine,
+  RefreshCw,
+  ShieldAlert,
+  Sparkles,
+  Trash2,
+  X,
 } from "lucide-react";
-import { useState } from "react";
-import type { CSSProperties } from "react";
-import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
+import type { ObservableState } from "@shared/react/context";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2";
 import type { HistoryItem } from "./types";
-import HistoryTab from "./pages/index/components/HistoryTab";
 import "./PlayArea.scss";
 
-const MEMORY_TYPE_ICONS = [ShieldCheck, FileText, Archive, Hash, WalletCards];
-
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num, str, bool, val } = useStateBindings(state);
-  const [localRitualState, setLocalRitualState] = useState<
-    "" | "confirming" | "sealing"
-  >("");
+interface MemoryTypeOption {
+  value: number;
+  label: string;
+}
+
+const MEMORY_VAULT_IMAGE = "memory-vault-stage.webp";
+const DEFAULT_MEMORY_TYPES: MemoryTypeOption[] = [
+  { value: 1, label: "Secret" },
+  { value: 2, label: "Regret" },
+  { value: 3, label: "Wish" },
+  { value: 4, label: "Confession" },
+  { value: 5, label: "Other" },
+];
+
+function compactHash(value: unknown, empty = "-") {
+  const text = String(value ?? "").trim();
+  if (!text) return empty;
+  return text.length > 22 ? `${text.slice(0, 12)}...${text.slice(-7)}` : text;
+}
+
+function shortTime(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return "-";
+  return text.length > 22 ? `${text.slice(0, 19)}...` : text;
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, num, val } = useStateBindings(state);
 
   const totalDestroyed = num("totalDestroyed");
-  const gasReclaimedDisplay = str("gasReclaimedDisplay", "0");
-  const burialFeeDisplay = str("burialFeeDisplay", "0.10 GAS");
+  const burialFeesPaid = str("burialFeesPaid", "0");
+  const gasReclaimedDisplay = str("gasReclaimedDisplay", "0 GAS");
+  const burialFeeDisplay = str("burialFeeDisplay", "0.1 GAS");
+  const forgetFeeDisplay = str("forgetFeeDisplay", "1 GAS");
   const historyCount = num("historyCount");
-  const historyItems = val<HistoryItem[]>("history") ?? [];
   const isDestroying = bool("isDestroying");
   const isLoading = bool("isLoading");
-  const showConfirm = bool("showConfirm");
-  const showWarningShake = bool("showWarningShake");
-  const assetHash = str("assetHash");
-  const memoryType = num("memoryType");
-  const memoryTypeOptions =
-    val<Array<{ value: number; label: string }>>("memoryTypeOptions") ?? [];
-  const selectedMemoryTypeLabel =
-    memoryTypeOptions.find((option) => option.value === memoryType)?.label ??
-    t("memoryType");
-  const forgettingId = str("forgettingId");
+  const historyTruncated = bool("historyTruncated");
+  const showAllHistory = bool("showAllHistory");
   const forgetConfirmId = str("forgetConfirmId");
-  const forgetFeeDisplay = str("forgetFeeDisplay", "1 GAS");
+  const forgettingId = str("forgettingId");
   const epitaphDraftId = str("epitaphDraftId");
   const epitaphText = str("epitaphText");
   const epitaphSavingId = str("epitaphSavingId");
-  const showAllHistory = bool("showAllHistory");
-  const historyTruncated = bool("historyTruncated");
-  const totalBuried = num("totalDestroyed");
-  const composeMode = str("composeMode", "write");
-  const memoryText = str("memoryText");
-  const isWriteMode = composeMode !== "hash";
-  const trimmedAssetHash = assetHash.trim();
-  const hashReady = trimmedAssetHash.length >= 12;
-  const hashShort = trimmedAssetHash.length > 0 && !hashReady;
-  const hashError = hashShort ? t("assetHashTooShort") : "";
-  const hashPreview = trimmedAssetHash
-    ? trimmedAssetHash.length > 24
-      ? `${trimmedAssetHash.slice(0, 12)}...${trimmedAssetHash.slice(-8)}`
-      : trimmedAssetHash
-    : t("hashPending");
-  const memoryTextLength = memoryText.trim().length;
-  const memoryProgress = Math.min(
-    100,
-    Math.max(0, Math.round((memoryTextLength / 120) * 100)),
-  );
-  const readinessTitle = !trimmedAssetHash
-    ? t("hashMissing")
-    : hashReady
-      ? t("hashReady")
-      : t("hashTooShort");
-  const readinessCopy = !trimmedAssetHash
-    ? t("hashMissingCopy")
-    : hashReady
-      ? t("hashReadyCopy")
-      : t("hashTooShortCopy");
-  const burialBusy = isDestroying || localRitualState === "sealing";
-  const ritualState = burialBusy
-    ? "sealing"
-    : showConfirm || localRitualState === "confirming"
-      ? "confirming"
-      : hashReady
-        ? "ready"
-        : trimmedAssetHash
-          ? "draft"
-          : "idle";
-  const hasMaterial = Boolean(memoryText.trim() || trimmedAssetHash);
-  const ritualTrack = [
-    {
-      key: "material",
-      label: isWriteMode ? t("composeModeWrite") : t("composeModeHash"),
-      value: hasMaterial ? hashPreview : t("hashPending"),
-      icon: FileText,
-      active: hasMaterial,
-    },
-    {
-      key: "hash",
-      label: t("hashQuality"),
-      value: readinessTitle,
-      icon: Hash,
-      active: hashReady,
-    },
-    {
-      key: "wallet",
-      label: t("walletAction"),
-      value: isDestroying
-        ? t("destroying")
-        : showConfirm
-          ? t("confirmTitle")
-          : hashReady
-            ? t("destroyForever")
-            : t("checkNeedsAction"),
-      icon: WalletCards,
-      active: hashReady || showConfirm || isDestroying,
-    },
-    {
-      key: "archive",
-      label: t("recentDestructions"),
-      value:
-        historyCount > 0
-          ? `${historyCount} ${t("records")}`
-          : t("noDestructions"),
-      icon: Archive,
-      active: historyCount > 0,
-    },
-  ];
-  const ritualClassName = [
-    "grave-ritual-stage",
-    `grave-ritual-stage--${ritualState}`,
-  ].join(" ");
+  const assetHash = str("assetHash");
+  const composeMode = str("composeMode", "write") as "write" | "hash";
+  const savedMemoryText = str("memoryText");
+  const memoryType = num("memoryType", 1);
+  const history = (val("history") ?? []) as HistoryItem[];
+  const memoryTypeOptions = (val("memoryTypeOptions") ?? DEFAULT_MEMORY_TYPES) as MemoryTypeOption[];
 
-  const handleBurialAction = async () => {
-    if (!hashReady || isLoading || burialBusy) return;
-    const action = showConfirm ? "executeDestroy" : "initiateDestroy";
-    setLocalRitualState(showConfirm ? "sealing" : "confirming");
-    try {
-      await dispatch(action);
-    } finally {
-      setLocalRitualState("");
-    }
+  const [draftMemory, setDraftMemory] = useState(savedMemoryText);
+  const [destroyPreview, setDestroyPreview] = useState(false);
+  const destroyPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setDraftMemory(savedMemoryText);
+  }, [savedMemoryText]);
+
+  useEffect(() => () => {
+    if (destroyPreviewTimeout.current) clearTimeout(destroyPreviewTimeout.current);
+  }, []);
+
+  const selectedType = useMemo(
+    () => memoryTypeOptions.find((option) => Number(option.value) === memoryType) ?? memoryTypeOptions[0] ?? DEFAULT_MEMORY_TYPES[0],
+    [memoryType, memoryTypeOptions],
+  );
+
+  const hasDraft = draftMemory.trim().length > 0;
+  const hasTargetHash = assetHash.trim().length > 0;
+  const busy = isDestroying || destroyPreview;
+  const sceneState = busy ? "burying" : hasDraft || hasTargetHash ? "ready" : "idle";
+
+  const setComposeMode = (mode: "write" | "hash") => {
+    state.composeMode?.set(mode);
+    void dispatch("setComposeMode", mode);
   };
 
-  return (
-    <div className={`graveyard-play-area graveyard-play-area--${ritualState}`}>
-      {/* Hero — purposeful head with icon badge, title, subtitle, stat tiles */}
-      <div className="grave-hero">
-        <div className="grave-hero-content">
-          <div className="grave-hero-lead">
-            <picture className="grave-hero-badge" aria-hidden="true">
-              <source srcSet="logo.avif" type="image/avif" />
-              <source srcSet="logo.webp" type="image/webp" />
-              <img src="logo.jpg" alt="" loading="eager" decoding="async" />
-            </picture>
-            <div className="grave-hero-copy">
-              <span className="grave-hero-eyebrow">{t("rip")}</span>
-              <h2 className="grave-hero-title">{t("title")}</h2>
-              <p className="grave-hero-subtitle">{t("subtitle")}</p>
-            </div>
+  const setMemoryType = (next: number) => {
+    state.memoryType?.set(next);
+  };
+
+  const handleDraftChange = (next: string) => {
+    setDraftMemory(next);
+    state.memoryText?.set(next);
+  };
+
+  const syncDraft = () => {
+    void dispatch("setMemoryText", draftMemory);
+  };
+
+  const startDestroyPreview = () => {
+    if (destroyPreviewTimeout.current) clearTimeout(destroyPreviewTimeout.current);
+    setDestroyPreview(true);
+    destroyPreviewTimeout.current = setTimeout(() => {
+      setDestroyPreview(false);
+      destroyPreviewTimeout.current = null;
+    }, 1500);
+  };
+
+  const handleDestroy = () => {
+    syncDraft();
+    startDestroyPreview();
+    void dispatch("executeDestroy");
+  };
+
+  const handleRefresh = () => {
+    void dispatch("refreshRecords");
+  };
+
+  const scene = (
+    <div className="graveyard-scene" data-state={sceneState} data-mode={composeMode}>
+      <section className="graveyard-vault" aria-label={t("memoryVaultStage")}>
+        <div className="graveyard-vault__media">
+          <img className="graveyard-vault__image" src={MEMORY_VAULT_IMAGE} alt="" aria-hidden="true" />
+        </div>
+        <span className="graveyard-vault__media-chip">
+          <Sparkles size={14} />
+          {t("memoryVaultStage")}
+        </span>
+
+        <div className="graveyard-vault__seal">
+          <span className="graveyard-vault__seal-icon">
+            {busy ? <Trash2 size={22} /> : hasDraft || hasTargetHash ? <BadgeCheck size={22} /> : <Archive size={22} />}
+          </span>
+          <span>
+            <em>{selectedType.label}</em>
+            <strong>{hasTargetHash ? compactHash(assetHash) : hasDraft ? t("hashReady") : t("sealEmpty")}</strong>
+          </span>
+        </div>
+      </section>
+
+      <section className="graveyard-review" aria-label={t("burialReview")}>
+        <div className="graveyard-review__head">
+          <span>{t("burialReview")}</span>
+          <strong>{busy ? t("destroying") : hasDraft || hasTargetHash ? t("hashReady") : t("hashMissing")}</strong>
+        </div>
+
+        <div className="graveyard-review__grid">
+          <div className="graveyard-review__item" data-ready={hasDraft || hasTargetHash ? "true" : undefined}>
+            <Hash size={16} />
+            <span>{t("hashPreview")}</span>
+            <strong>{hasTargetHash ? compactHash(assetHash) : hasDraft ? t("hashReadyCopy") : t("hashPending")}</strong>
           </div>
-          <div className="hero-metrics" aria-label={t("burialReview")}>
-            <div className="hero-metric">
-              <strong>{totalDestroyed}</strong>
-              <em>{t("itemsDestroyed")}</em>
-            </div>
-            <div className="hero-metric">
-              <strong>{gasReclaimedDisplay}</strong>
-              <em>{t("gasReclaimedEstimate")}</em>
-            </div>
-            <div className="hero-metric">
-              <strong>{historyCount}</strong>
-              <em>{t("records")}</em>
-            </div>
+          <div className="graveyard-review__item" data-ready="true">
+            <FileText size={16} />
+            <span>{t("selectedType")}</span>
+            <strong>{selectedType.label}</strong>
+          </div>
+          <div className="graveyard-review__item" data-ready="true">
+            <CoinArt size={20} variant="gas" />
+            <span>{t("burialFee")}</span>
+            <strong>{burialFeeDisplay}</strong>
           </div>
         </div>
-        <figure className="grave-hero-art" aria-hidden="true">
-          <img
-            src="memory-vault-stage.jpg"
-            alt=""
-            loading="eager"
-            decoding="async"
-          />
-          <figcaption>
-            <span>{t("memoryVaultStage")}</span>
-            <strong>{hashReady ? t("hashReady") : t("hashPending")}</strong>
-          </figcaption>
-        </figure>
+
+        <p className="graveyard-review__warning">
+          <ShieldAlert size={16} />
+          {t("sunkFeeNote")}
+        </p>
+        {busy && <ParticleBurst coins count={8} />}
+      </section>
+    </div>
+  );
+
+  const controls = (
+    <section className="graveyard-console" aria-label={t("memoryConsole")}>
+      <div className="graveyard-console__mode" role="tablist" aria-label={t("memoryConsole")}>
+        {(["write", "hash"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            aria-selected={composeMode === mode}
+            className={composeMode === mode ? "is-active" : undefined}
+            onClick={() => setComposeMode(mode)}
+          >
+            {mode === "write" ? <PenLine size={16} /> : <Hash size={16} />}
+            <span>{mode === "write" ? t("composeModeWrite") : t("composeModeHash")}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Main grid — burial chamber + records side by side on wide screens */}
-      <div className="grave-grid">
-        {/* Destruction Chamber */}
-        <NeoCard className="grave-chamber" title={t("destroyAsset")}>
-          <section className={ritualClassName} aria-label={t("burialReview")}>
-            <img
-              className="grave-ritual-stage__banner"
-              src="memory-vault-stage.jpg"
-              alt=""
-              loading="eager"
-              decoding="async"
-              aria-hidden="true"
-            />
-            <div className="grave-ritual-stage__focus">
-              <figure className="grave-ritual-stage__seal" aria-hidden="true">
-                <img
-                  src="memory-vault-stage.jpg"
-                  alt=""
-                  loading="eager"
-                  decoding="async"
-                />
-                <figcaption>
-                  <span>{t("hashPreview")}</span>
-                  <strong>{hashReady ? t("sealReady") : t("sealEmpty")}</strong>
-                </figcaption>
-              </figure>
-              <div className="grave-ritual-stage__copy">
-                <span>{t("transactionPath")}</span>
-                <strong>{readinessTitle}</strong>
-                <p>{readinessCopy}</p>
-              </div>
-            </div>
-            <div className="grave-ritual-track" role="list">
-              {ritualTrack.map(({ key, label, value, icon: Icon, active }) => (
-                <span
-                  key={key}
-                  className={`grave-ritual-track__step${active ? " is-active" : ""}`}
-                  role="listitem"
-                >
-                  <Icon size={16} aria-hidden="true" />
-                  <small>{label}</small>
-                  <strong>{value}</strong>
-                </span>
-              ))}
-            </div>
-            {(showConfirm || isDestroying) && (
-              <div className="grave-ritual-pulse" role="status">
-                <ShieldCheck size={16} aria-hidden="true" />
-                <span>{isDestroying ? t("destroying") : t("confirmText")}</span>
-              </div>
-            )}
-          </section>
+      <label className="graveyard-memory-card">
+        <span>
+          <strong>{composeMode === "write" ? t("memoryTextLabel") : t("assetHash")}</strong>
+          <em>{composeMode === "write" ? t("composeModeWriteHint") : t("composeModeHashHint")}</em>
+        </span>
+        {composeMode === "write" ? (
+          <textarea
+            className="graveyard-input graveyard-input--textarea"
+            value={draftMemory}
+            onChange={(event) => handleDraftChange(event.target.value)}
+            onBlur={syncDraft}
+            placeholder={t("memoryTextPlaceholder")}
+            rows={3}
+            disabled={busy}
+          />
+        ) : (
+          <input
+            className="graveyard-input"
+            value={draftMemory}
+            onChange={(event) => handleDraftChange(event.target.value)}
+            onBlur={syncDraft}
+            placeholder={t("assetHashPlaceholder")}
+            disabled={busy}
+          />
+        )}
+        <small>{composeMode === "write" ? t("memoryTextHint") : t("assetHashHint")}</small>
+      </label>
 
-          <div className={`destroy-form destroy-form--${ritualState}`}>
-            <section className="grave-memory-console" aria-label={t("memoryConsole")}>
-              {/* Compose mode: write the memory (hashed locally) or paste a hash. */}
-              <div
-                className="grave-compose-toggle"
-                role="tablist"
-                aria-label={t("destroyAsset")}
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={isWriteMode}
-                  className={`grave-compose-tab${isWriteMode ? " active" : ""}`}
-                  disabled={burialBusy}
-                  onClick={() => dispatch("setComposeMode", "write")}
-                >
-                  <FileText size={16} aria-hidden="true" />
-                  <span>{t("composeModeWrite")}</span>
-                  <small>{t("composeModeWriteHint")}</small>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={!isWriteMode}
-                  className={`grave-compose-tab${!isWriteMode ? " active" : ""}`}
-                  disabled={burialBusy}
-                  onClick={() => dispatch("setComposeMode", "hash")}
-                >
-                  <Hash size={16} aria-hidden="true" />
-                  <span>{t("composeModeHash")}</span>
-                  <small>{t("composeModeHashHint")}</small>
-                </button>
-              </div>
+      <div className="graveyard-type-dock" role="radiogroup" aria-label={t("memoryType")}>
+        {memoryTypeOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={memoryType === Number(option.value)}
+            className={memoryType === Number(option.value) ? "is-active" : undefined}
+            onClick={() => setMemoryType(Number(option.value))}
+            disabled={busy}
+          >
+            <span>{option.label.slice(0, 1).toUpperCase()}</span>
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 
-              <div className="grave-memory-console__surface">
-                <div className="grave-memory-console__head">
-                  <span>{t("memoryConsole")}</span>
-                  <strong>{selectedMemoryTypeLabel}</strong>
-                </div>
+  const drawer = (
+    <div className="graveyard-drawer">
+      <section className="graveyard-drawer__section">
+        <div className="graveyard-drawer__head">
+          <span>{t("recentDestructions")} ({historyCount})</span>
+          <button type="button" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw size={14} />
+            {t("refreshRecords")}
+          </button>
+        </div>
+        <p className="graveyard-drawer__note">{t("historyGuidance")}</p>
 
-                <div
-                  className="grave-memory-seals"
-                  aria-label={t("memoryTypeLocal")}
-                >
-                  <span className="grave-memory-seals__label">
-                    {t("memoryTypeLocal")}
-                  </span>
-                  <div className="grave-memory-seals__rail">
-                    {memoryTypeOptions.map((option, index) => {
-                      const Icon =
-                        MEMORY_TYPE_ICONS[index % MEMORY_TYPE_ICONS.length] ??
-                        ShieldCheck;
-                      const selected = memoryType === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`grave-memory-seal${selected ? " is-active" : ""}`}
-                          onClick={() => state.memoryType?.set(option.value)}
-                          aria-pressed={selected}
-                          disabled={burialBusy}
-                        >
-                          <Icon size={15} aria-hidden="true" />
-                          <span>{option.label}</span>
-                        </button>
-                      );
-                    })}
+        {history.length > 0 ? (
+          <ul className="graveyard-history">
+            {history.slice(0, 12).map((item) => {
+              const confirming = forgetConfirmId === item.id;
+              const forgetting = forgettingId === item.id;
+              const editing = epitaphDraftId === item.id;
+              return (
+                <li key={item.id} className="graveyard-history__item" data-forgotten={item.forgotten ? "true" : undefined}>
+                  <div className="graveyard-history__main">
+                    <span className="graveyard-history__icon">
+                      {item.forgotten ? <X size={16} /> : <Archive size={16} />}
+                    </span>
+                    <span>
+                      <strong>{compactHash(item.hash || item.id)}</strong>
+                      <em>#{item.id} · {shortTime(item.time)}</em>
+                    </span>
                   </div>
-                  <small>{t("memoryTypeLocalHint")}</small>
-                </div>
 
-                {isWriteMode ? (
-                  <>
-                    <div
-                      className={`grave-memory-capsule${
-                        memoryTextLength > 0 ? " is-engraved" : ""
-                      }${hashReady ? " is-ready" : ""}`}
-                      style={
-                        {
-                          "--grave-memory-progress": `${memoryProgress}%`,
-                        } as CSSProperties
-                      }
-                    >
-                      <figure
-                        className="grave-memory-capsule__asset"
-                        aria-hidden="true"
-                      >
-                        <img
-                          src="memory-vault-stage.jpg"
-                          alt=""
-                          loading="eager"
-                          decoding="async"
-                        />
-                        <figcaption>
-                          <span>{t("composeModeWrite")}</span>
-                          <strong>{selectedMemoryTypeLabel}</strong>
-                        </figcaption>
-                      </figure>
-                      <label className="grave-memory-capsule__scribe">
-                        <span className="grave-memory-capsule__label">
-                          {t("memoryTextLabel")}
-                        </span>
-                        <textarea
-                          value={memoryText}
-                          aria-label={t("memoryTextLabel")}
-                          placeholder={t("memoryTextPlaceholder")}
-                          disabled={burialBusy}
-                          onChange={(event) =>
-                            dispatch("setMemoryText", event.currentTarget.value)
-                          }
-                        />
-                        <span className="grave-memory-capsule__hint">
-                          {t("memoryTextHint")}
-                        </span>
-                      </label>
-                      <div
-                        className="grave-memory-capsule__meter"
-                        aria-label={t("capsuleCharge")}
-                      >
-                        <span />
-                      </div>
+                  {item.epitaph && <p className="graveyard-history__epitaph">{item.epitaph}</p>}
+
+                  {confirming && (
+                    <div className="graveyard-history__confirm">
+                      <span>{t("forgetConfirmFee", { fee: forgetFeeDisplay })}</span>
+                      <button type="button" onClick={() => void dispatch("forgetMemory", item)} disabled={forgetting}>
+                        {forgetting ? t("destroying") : t("forgetConfirmAction")}
+                      </button>
+                      <button type="button" onClick={() => void dispatch("cancelForget")}>{t("cancel")}</button>
                     </div>
-                    {trimmedAssetHash && (
-                      <p
-                        className="grave-local-hash"
-                        aria-label={t("hashFromMemory")}
-                      >
-                        <span className="grave-local-hash-label">
-                          {t("hashFromMemory")}
-                        </span>
-                        <code className="grave-local-hash-value">
-                          {hashPreview}
-                        </code>
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <label
-                    className={`grave-hash-plaque${
-                      hashError ? " is-error" : trimmedAssetHash ? " is-ready" : ""
-                    }`}
-                  >
-                    <span className="grave-hash-plaque__icon" aria-hidden="true">
-                      <Hash size={18} />
-                    </span>
-                    <span className="grave-hash-plaque__copy">
-                      <span className="grave-hash-plaque__label">
-                        {t("assetHash")}
-                      </span>
+                  )}
+
+                  {editing && (
+                    <div className="graveyard-history__editor">
                       <input
-                        value={assetHash}
-                        aria-label={t("assetHash")}
-                        placeholder={t("assetHashPlaceholder")}
-                        disabled={burialBusy}
-                        onChange={(event) =>
-                          state.assetHash?.set(event.currentTarget.value)
-                        }
+                        value={epitaphText}
+                        onChange={(event) => void dispatch("setEpitaphText", event.target.value)}
+                        placeholder={t("epitaphPlaceholder")}
                       />
-                      <small>
-                        {hashError || t("assetHashHint")}
-                      </small>
-                    </span>
-                  </label>
-                )}
-              </div>
-            </section>
+                      <button type="button" onClick={() => void dispatch("saveEpitaph", item)} disabled={epitaphSavingId === item.id}>
+                        {t("epitaphSave")}
+                      </button>
+                      <button type="button" onClick={() => void dispatch("cancelEpitaph")}>{t("cancel")}</button>
+                    </div>
+                  )}
 
-            <div className="grave-hash-actions">
-              <NeoButton
-                variant="secondary"
-                size="sm"
-                disabled={(!assetHash && !memoryText) || burialBusy}
-                onClick={() => {
-                  if (isWriteMode) {
-                    void dispatch("setMemoryText", "");
-                  } else {
-                    state.assetHash?.set("");
-                  }
-                  void dispatch("cancelDestroy");
-                }}
-              >
-                {t("clearHash")}
-              </NeoButton>
-            </div>
-            {trimmedAssetHash.length > 0 && (
-              <section
-                className="grave-review-panel"
-                aria-label={t("burialReview")}
-              >
-                <div className="grave-review-header">
-                  <span>{t("burialReview")}</span>
-                  <strong>{t("burialReviewSubtitle")}</strong>
-                </div>
-                <div className="grave-review-grid">
-                  <div
-                    className={`grave-review-tile${hashReady ? " is-ready" : " is-blocked"}`}
-                  >
-                    <span className="grave-review-tile-head">
-                      <i className="grave-review-mark" aria-hidden="true">
-                        {hashReady ? "✓" : "⚠"}
-                      </i>
-                      {t("hashQuality")}
-                    </span>
-                    <strong>{readinessTitle}</strong>
-                    <p>{readinessCopy}</p>
+                  <div className="graveyard-history__actions">
+                    {!item.forgotten && (
+                      <button type="button" onClick={() => void dispatch("requestForget", item)} disabled={forgetting || confirming}>
+                        {t("forgetAction")}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void dispatch("startEpitaph", item)} disabled={editing}>
+                      {item.epitaph ? t("editEpitaph") : t("addEpitaph")}
+                    </button>
                   </div>
-                  <div className="grave-review-tile">
-                    <span>{t("hashPreview")}</span>
-                    <strong>{hashPreview}</strong>
-                    <p>{t("hashPreviewCopy")}</p>
-                  </div>
-                  <div className="grave-review-tile">
-                    <span>{t("walletAction")}</span>
-                    <strong>{t("buryWalletIntent")}</strong>
-                    <p>{t("walletActionCopy")}</p>
-                  </div>
-                </div>
-                <dl className="grave-fee-row" aria-label={t("transactionPath")}>
-                  <div>
-                    <dt>{t("selectedTypeLocal")}</dt>
-                    <dd>{selectedMemoryTypeLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("burialFee")}</dt>
-                    <dd>{burialFeeDisplay}</dd>
-                  </div>
-                </dl>
-                <p className="grave-sunk-fee-note">{t("sunkFeeNote")}</p>
-              </section>
-            )}
-            <div className="grave-warning-note">
-              <span className="grave-warning-title">{t("warning")}</span>
-              <span className="grave-warning-text">{t("warningText")}</span>
-            </div>
-            {showConfirm && (
-              <div className="grave-confirm-note" role="status">
-                <div>
-                  <span className="grave-confirm-title">
-                    {t("confirmTitle")}
-                  </span>
-                  <span className="grave-confirm-text">{t("confirmText")}</span>
-                </div>
-                <NeoButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => dispatch("cancelDestroy")}
-                  aria-label={t("cancel")}
-                >
-                  {t("cancel")}
-                </NeoButton>
-              </div>
-            )}
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              loading={burialBusy}
-              disabled={!hashReady || isLoading || burialBusy}
-              className={showWarningShake ? "grave-cta-attention" : ""}
-              aria-label={
-                showConfirm ? t("confirmDestroy") : t("destroyForever")
-              }
-              onClick={handleBurialAction}
-            >
-              {burialBusy
-                ? t("destroying")
-                : showConfirm
-                  ? t("confirmDestroy")
-                  : t("destroyForever")}
-            </NeoButton>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="graveyard-empty">
+            <History size={18} />
+            <strong>{t("noDestructions")}</strong>
+            <span>{t("noDestructionsHint")}</span>
           </div>
-        </NeoCard>
+        )}
 
-        {/* History */}
-        <NeoCard className="grave-records">
-          <HistoryTab
-            history={historyItems}
-            forgettingId={forgettingId || null}
-            forgetConfirmId={forgetConfirmId || null}
-            forgetFeeDisplay={forgetFeeDisplay}
-            epitaphDraftId={epitaphDraftId || null}
-            epitaphText={epitaphText}
-            epitaphSavingId={epitaphSavingId || null}
-            showAllHistory={showAllHistory}
-            historyTruncated={historyTruncated}
-            totalBuried={totalBuried}
-            isLoading={isLoading}
-            onRefresh={() => dispatch("refreshRecords")}
-            onRequestForget={(item: HistoryItem) =>
-              dispatch("requestForget", item)
-            }
-            onCancelForget={() => dispatch("cancelForget")}
-            onForget={(item: HistoryItem) => dispatch("forgetMemory", item)}
-            onStartEpitaph={(item: HistoryItem) =>
-              dispatch("startEpitaph", item)
-            }
-            onCancelEpitaph={() => dispatch("cancelEpitaph")}
-            onEpitaphTextChange={(value: string) =>
-              dispatch("setEpitaphText", value)
-            }
-            onSaveEpitaph={(item: HistoryItem) => dispatch("saveEpitaph", item)}
-            onToggleShowAll={(value: boolean) =>
-              dispatch("setShowAllHistory", value)
-            }
-            t={t}
-          />
-        </NeoCard>
-      </div>
+        {historyTruncated && (
+          <button type="button" className="graveyard-drawer__show-all" onClick={() => void dispatch("setShowAllHistory", !showAllHistory)}>
+            {showAllHistory ? t("showFewerRecords") : t("showAllRecords")}
+          </button>
+        )}
+      </section>
+    </div>
+  );
+
+  return (
+    <div className="graveyard-play-area mx2 mx2-cat-nft">
+      <PlayStage
+        category="nft"
+        stage={{
+          eyebrow: t("destroyAsset"),
+          title: t("title"),
+          subtitle: t("docSubtitle"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {totalDestroyed} {t("records")}</span>
+            </>
+          ),
+        }}
+        scene={<>{scene}{controls}</>}
+        score={[
+          { label: t("totalDestroyed"), value: String(totalDestroyed), accent: true },
+          { label: t("destructionStats"), value: `${burialFeesPaid} GAS` },
+          { label: t("gasReclaimedEstimate"), value: gasReclaimedDisplay },
+        ]}
+        actions={{
+          primary: {
+            label: busy ? t("destroying") : t("destroy"),
+            onClick: handleDestroy,
+            disabled: busy || !hasDraft,
+            loading: busy,
+            icon: <Trash2 size={17} />,
+          },
+          secondary: [
+            {
+              label: t("refreshRecords"),
+              onClick: handleRefresh,
+              loading: isLoading,
+              icon: <RefreshCw size={16} />,
+            },
+          ],
+        }}
+        drawerToggleLabel={t("recentDestructions")}
+        drawer={{ title: t("recentDestructions"), children: drawer }}
+      />
     </div>
   );
 }

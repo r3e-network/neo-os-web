@@ -436,17 +436,15 @@ async function writeRasters(basePath, logo, banner, options = {}) {
   const { includePng = false, modern = true } = options;
   const logoImage = sharp(Buffer.from(logo)).resize(512, 512, { fit: "cover" });
   const bannerImage = sharp(Buffer.from(banner)).resize(1440, 640, { fit: "cover" });
-  fs.writeFileSync(`${basePath}/logo.jpg`, await logoImage.clone().jpeg({ quality: 92, mozjpeg: true }).toBuffer());
+  fs.writeFileSync(`${basePath}/logo.webp`, await logoImage.clone().webp({ quality: 90 }).toBuffer());
   if (modern) {
-    fs.writeFileSync(`${basePath}/logo.webp`, await logoImage.clone().webp({ quality: 90 }).toBuffer());
     fs.writeFileSync(`${basePath}/logo.avif`, await logoImage.clone().avif({ quality: 74, effort: 2 }).toBuffer());
   }
   if (includePng) {
     fs.writeFileSync(`${basePath}/logo.png`, await logoImage.clone().png({ compressionLevel: 9 }).toBuffer());
   }
-  fs.writeFileSync(`${basePath}/banner.jpg`, await bannerImage.clone().jpeg({ quality: 90, mozjpeg: true }).toBuffer());
+  fs.writeFileSync(`${basePath}/banner.webp`, await bannerImage.clone().webp({ quality: 86 }).toBuffer());
   if (modern) {
-    fs.writeFileSync(`${basePath}/banner.webp`, await bannerImage.clone().webp({ quality: 86 }).toBuffer());
     fs.writeFileSync(`${basePath}/banner.avif`, await bannerImage.clone().avif({ quality: 70, effort: 2 }).toBuffer());
   }
 }
@@ -540,8 +538,8 @@ async function main() {
       category: app.category,
       motif: app.motif,
       code: appCode(app),
-      logo: `/miniapps/${app.slug}/logo.jpg`,
-      banner: `/miniapps/${app.slug}/banner.jpg`,
+      logo: `/miniapps/${app.slug}/logo.webp`,
+      banner: `/miniapps/${app.slug}/banner.webp`,
       svg: `/miniapps/${app.slug}/logo.svg`,
       officialBrandAsset: officialBrandAssetSlugs.has(app.slug) || undefined,
     });

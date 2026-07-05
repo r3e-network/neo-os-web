@@ -268,7 +268,7 @@ apps/quadratic-funding/
 │   ├── composables/
 │   │   └── useI18n.ts              # Internationalization
 │   └── static/
-│       └── logo.jpg
+│       └── logo.webp
 ├── package.json
 └── README.md
 ```

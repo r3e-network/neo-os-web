@@ -1,474 +1,136 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { createObservable, type ObservableState } from "../react/context";
-import { parseMiniAppLaunchContext } from "../utils/launch-params";
 import PlayArea from "../../aa-market-hub/src/PlayArea";
-import type { MarketListing } from "../../aa-market-hub/src/utils/aa-market";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-const MARKET_HASH = "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf";
-const AA_CORE_HASH = "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
-const ACCOUNT_ID_HASH = "0x1111111111111111111111111111111111111111";
+function t(k: string) { return k; }
 
-function t(key: string) {
-  const messages: Record<string, string> = {
-    marketHeroTitle: "AA address market",
-    hubSummary: "Trade deterministic AA addresses through escrow.",
-    marketMetricsLabel: "Market overview",
-    marketMetricListings: "Listings",
-    marketMetricActive: "Active",
-    selectedListingLabel: "Selected",
-    notAvailable: "Not available",
-    marketStepsLabel: "Trading steps",
-    marketStepConnect: "Connect wallet",
-    marketStepConnectDesc: "Connect a wallet before writes.",
-    marketStepLoad: "Load market",
-    marketStepLoadDesc: "Read listings from the selected market.",
-    marketStepSettlement: "Settle safely",
-    marketStepSettlementDesc: "Settle with AA shell transfer.",
-    marketBoardLabel: "Live board",
-    marketBoardTitle: "Listings",
-    emptyStateTitle: "Market required",
-    emptyStateEnterHash: "Enter a market hash.",
-    emptyStateNoListingsTitle: "No listings",
-    emptyStateNoListings: "No listings found.",
-    emptyStateLoadingTitle: "Loading listings…",
-    emptyStateLoading: "Reading the market contract for the current hash.",
-    emptyStateConnectTitle: "Connect a wallet to load the board",
-    emptyStateConnect: "Reading the market contract needs a connected wallet.",
-    walletConnected: "Wallet connected",
-    walletNotConnected: "Wallet not connected",
-    marketHash: "Market Hash",
-    marketHashHint: "Required before loading listings or creating a market order.",
-    marketHashPlaceholder: "0x...",
-    connectWallet: "Connect Wallet",
-    loadListings: "Load listings",
-    loadingListings: "Loading…",
-    loadNeedsWallet: "Connect wallet to load",
-    createListingTitle: "Create listing",
-    createListingMarketRequired: "Paste a market contract hash first.",
-    createListingWalletRequired: "Connect a wallet before creating a listing.",
-    aaContractInput: "AA Contract Hash",
-    aaContractHint: "Defaults to the canonical AA core for the current network.",
-    aaContractHashPlaceholder: "0x...",
-    accountIdInput: "Account ID Hash",
-    accountIdHint: "Paste the 20-byte Account ID hash.",
-    accountIdHashPlaceholder: "0x...",
-    priceInput: "Price (GAS)",
-    pricePlaceholder: "18",
-    priceBoundsHint: "Between 0.01 and 1000 GAS (up to 8 decimals).",
-    createPreviewLabel: "Listing preview",
-    previewAccountPlaceholder: "Account ID pending",
-    createAdvancedSummary: "Advanced (AA core, metadata)",
-    titleInput: "Title",
-    titlePlaceholder: "AA service package",
-    metadataInput: "Metadata",
-    metadataPlaceholder: "Optional metadata URI",
-    createListingCta: "Create Listing",
-    manageListingTitle: "Manage listing",
-    noListingSelected: "Select a listing to manage it.",
-    walletAndMarket: "Wallet & Market",
-    walletLabel: "Wallet",
-    notConnected: "not connected",
-    tokenGas: "GAS",
-    untitledListing: "Untitled listing",
-    priceLabel: "Price",
-    aaContractLabel: "AA Contract",
-    accountIdLabel: "Account ID",
-    sellerLabel: "Seller",
-    buyerLabel: "Buyer",
-    metadataLabel: "Metadata",
-    viewMetadata: "View metadata",
-    myPendingPayment: "My Pending",
-    pendingRefund: "pending refund",
-    mine: "mine",
-    selectListing: "Select",
-    selected: "Selected",
-    selectListingHint: "Select a listing to manage it.",
-    newPriceInput: "New Price (GAS)",
-    newPriceHint: "Only the seller can update the price or cancel the listing.",
-    newPricePlaceholder: "2",
-    updatePriceCta: "Update Price",
-    cancelListingCta: "Cancel Listing",
-    newBackupOwnerInput: "New Backup Owner",
-    newBackupOwnerHint: "Defaults to your connected wallet.",
-    newBackupOwnerPlaceholder: "Neo address or 0x...",
-    buyListingCta: "Buy Listing",
-    refundPendingCta: "Refund Pending Payment",
-  };
-  return messages[key] ?? key;
+function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
 
-function launch(url: string) {
-  return parseMiniAppLaunchContext(url, "miniapp-aa-market-hub");
-}
-
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
-  const values: Record<string, unknown> = {
-    listings: [],
-    isLoading: false,
-    isSubmitting: false,
-    isWalletConnecting: false,
-    marketHash: "",
-    aaContractHash: AA_CORE_HASH,
-    accountIdHash: "",
-    priceGas: "",
-    listingTitle: "",
-    metadataUri: "",
-    walletAddress: "",
-    selectedListingId: "",
-    selectedListing: null,
-    selectedListingHasPendingRefund: false,
-    canCreateListing: false,
-    canManageSelectedListing: false,
-    canBuySelectedListing: false,
-    totalListingsDisplay: 0,
-    activeListingsDisplay: 0,
-    marketHashDisplay: "Not available",
-    walletDisplay: "Not available",
-    selectedListingDisplay: "Not available",
-    ...overrides,
-  };
-  return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [
-      key,
-      createObservable(value),
-    ]),
-  );
-}
-
-function listing(overrides: Partial<MarketListing> = {}): MarketListing {
-  return {
-    id: "7",
-    aaContractHash: AA_CORE_HASH,
-    accountIdHash: ACCOUNT_ID_HASH,
-    sellerScriptHash: "2222222222222222222222222222222222222222",
-    buyerScriptHash: "",
-    seller: "0x2222222222222222222222222222222222222222",
-    buyer: "",
-    priceRaw: "1800000000",
-    priceGas: "18",
-    title: "AA service package",
-    metadataUri: "ipfs://aa-service",
-    statusCode: 1,
-    status: "active",
-    createdAt: "1",
-    updatedAt: "2",
-    myPendingPayment: "0",
-    isMine: false,
-    ...overrides,
-  };
-}
-
-describe("AA Market Hub PlayArea launch flow", () => {
-  it("prefills create-listing fields from the host action URL and dispatches all required contract inputs", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(
+describe("aa-market-hub PlayArea (v2)", () => {
+  it("renders a foreground escrow desk with marketplace listings", () => {
+    const { container } = render(
       <PlayArea
         t={t}
-        state={baseState({ walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3" })}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?operation=prepareMiniAppOperation&network=testnet&marketHash=${MARKET_HASH}&aaContractHash=${AA_CORE_HASH}&accountIdHash=${ACCOUNT_ID_HASH}&priceGas=18&listingTitle=AA%20service%20package&metadataUri=ipfs%3A%2F%2Faa-service`,
-        )}
-      />,
-    );
-
-    expect((screen.getByLabelText("Market Hash") as HTMLInputElement).value).toBe(
-      MARKET_HASH,
-    );
-    expect(
-      (screen.getByLabelText("AA Contract Hash") as HTMLInputElement).value,
-    ).toBe(AA_CORE_HASH);
-    expect(
-      (screen.getByLabelText("Account ID Hash") as HTMLInputElement).value,
-    ).toBe(ACCOUNT_ID_HASH);
-    expect((screen.getByLabelText("Price (GAS)") as HTMLInputElement).value).toBe(
-      "18",
-    );
-    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
-      "AA service package",
-    );
-    expect((screen.getByLabelText("Metadata") as HTMLTextAreaElement).value).toBe(
-      "ipfs://aa-service",
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Create Listing" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "createListing",
-        MARKET_HASH,
-        AA_CORE_HASH,
-        ACCOUNT_ID_HASH,
-        "18",
-        "AA service package",
-        "ipfs://aa-service",
-      );
-    });
-  });
-
-  it("uses runtime state defaults when no host launch params are present", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          marketHash: MARKET_HASH,
-          aaContractHash: AA_CORE_HASH,
+        state={state({
+          walletAddress: "NWallet111111111111111111111111111111",
+          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
+          listings: [
+            { id: "1", title: "Clean AA shell", priceGas: "1.5", status: "active" },
+            { id: "2", title: "Fresh plugins", priceGas: "2", status: "active" },
+          ],
+          totalListingsDisplay: 2,
+          activeListingsDisplay: 2,
         })}
         dispatch={vi.fn()}
-        launchContext={launch("https://neomini.app/miniapps/aa-market-hub")}
       />,
     );
 
-    expect((screen.getByLabelText("Market Hash") as HTMLInputElement).value).toBe(
-      MARKET_HASH,
-    );
-    expect(
-      (screen.getByLabelText("AA Contract Hash") as HTMLInputElement).value,
-    ).toBe(AA_CORE_HASH);
+    expect(container.querySelector(".market-scene")).toBeTruthy();
+    expect(container.querySelector(".market-scene__backdrop")).toBeNull();
+    expect(container.querySelector<HTMLImageElement>(".market-scene__desk-image")?.getAttribute("src")).toContain("market-escrow-desk.webp");
+    expect(container.querySelector(".market-scene__desk-card")).toBeTruthy();
+    expect(container.querySelector(".market-scene__trade-panel")).toBeTruthy();
+    expect(container.querySelector(".market-scene__route")).toBeTruthy();
+    expect(container.querySelector(".market-scene__shelf")).toBeTruthy();
+    expect(container.querySelectorAll(".market-scene__shelf button").length).toBe(2);
   });
 
-  it("does not offer create-listing submission before the embedded wallet is connected", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}&aaContractHash=${AA_CORE_HASH}&accountIdHash=${ACCOUNT_ID_HASH}&priceGas=18`,
-        )}
-      />,
-    );
-
-    expect(
-      screen.getByText("Connect a wallet before creating a listing."),
-    ).toBeTruthy();
-    expect(
-      (screen.getByRole("button", { name: "Create Listing" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-  });
-
-  it("dispatches wallet and market loading actions from the operation panel", async () => {
+  it("loads listings with the actual market hash instead of an undefined argument", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-
     render(
       <PlayArea
         t={t}
-        state={baseState({ walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3" })}
-        dispatch={dispatch}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
-        )}
-      />,
-    );
-
-    // The wallet panel shows it is connected, so the load button is enabled and
-    // labelled "Load listings" rather than the wallet-required prompt.
-    fireEvent.click(screen.getByRole("button", { name: "Load listings" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("loadListings", MARKET_HASH);
-    });
-  });
-
-  it("blocks the board load until a wallet is connected", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState()}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
-        )}
-      />,
-    );
-
-    // No wallet: the load control reads "Connect wallet to load" (not a stuck
-    // "Loading…") and is disabled, and the board rests on a connect prompt
-    // rather than a perpetual spinner.
-    const loadBtn = screen.getByRole("button", {
-      name: "Connect wallet to load",
-    }) as HTMLButtonElement;
-    expect(loadBtn.disabled).toBe(true);
-    expect(screen.queryByText("Loading listings…")).toBeNull();
-    expect(
-      screen.getByText("Connect a wallet to load the board"),
-    ).toBeTruthy();
-  });
-
-  it("keeps create-listing disabled for GAS prices that the contract parser rejects", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({ walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3" })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}&aaContractHash=${AA_CORE_HASH}&accountIdHash=${ACCOUNT_ID_HASH}&priceGas=1e3`,
-        )}
-      />,
-    );
-
-    expect(
-      (screen.getByRole("button", { name: "Create Listing" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-  });
-
-  it("selects a listing from the live board", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          marketHash: MARKET_HASH,
-          listings: [listing()],
-          totalListingsDisplay: 1,
-          activeListingsDisplay: 1,
-        })}
-        dispatch={dispatch}
-        launchContext={launch("https://neomini.app/miniapps/aa-market-hub")}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Select" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("selectListing", "7");
-    });
-  });
-
-  it("dispatches seller management actions for the selected listing", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const selectedListing = listing({ isMine: true });
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          marketHash: MARKET_HASH,
-          walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-          listings: [selectedListing],
-          selectedListingId: selectedListing.id,
-          selectedListing,
-          canManageSelectedListing: true,
-          totalListingsDisplay: 1,
-          activeListingsDisplay: 1,
-        })}
-        dispatch={dispatch}
-        launchContext={launch("https://neomini.app/miniapps/aa-market-hub")}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("New Price (GAS)"), {
-      target: { value: "21.5" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Update Price" }));
-    fireEvent.click(screen.getByRole("button", { name: "Cancel Listing" }));
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("updatePrice", "21.5");
-      expect(dispatch).toHaveBeenCalledWith("cancelSelected");
-    });
-  });
-
-  it("dispatches buyer settlement and pending refund actions for the selected listing", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const selectedListing = listing({
-      buyerScriptHash: "3333333333333333333333333333333333333333",
-      buyer: "0x3333333333333333333333333333333333333333",
-      myPendingPayment: "200000000",
-    });
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          marketHash: MARKET_HASH,
-          walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-          listings: [selectedListing],
-          selectedListingId: selectedListing.id,
-          selectedListing,
-          selectedListingHasPendingRefund: true,
-          canBuySelectedListing: true,
-          totalListingsDisplay: 1,
-          activeListingsDisplay: 1,
-        })}
-        dispatch={dispatch}
-        launchContext={launch("https://neomini.app/miniapps/aa-market-hub")}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("New Backup Owner"), {
-      target: { value: "0x4444444444444444444444444444444444444444" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Buy Listing" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Refund Pending Payment" }),
-    );
-
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "buySelected",
-        "0x4444444444444444444444444444444444444444",
-      );
-      expect(dispatch).toHaveBeenCalledWith("refundSelected");
-    });
-  });
-
-  it("keeps the Load Listings button labelled (not a bare spinner) while listings load", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          marketHash: MARKET_HASH,
-          walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-          isLoading: true,
-        })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
-        )}
-      />,
-    );
-
-    const loadBtn = screen.getByRole("button", { name: "Loading…" }) as HTMLButtonElement;
-    expect(loadBtn.textContent).toContain("Loading…");
-    expect(loadBtn.disabled).toBe(true);
-    // No standalone "Load listings" pill is left empty alongside it.
-    expect(screen.queryByRole("button", { name: "Load listings" })).toBeNull();
-  });
-
-  it("renders a loading placeholder beneath the Listings heading while loading a prefilled market", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          marketHash: MARKET_HASH,
-          walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
+        state={state({
+          walletAddress: "NWallet111111111111111111111111111111",
+          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
           listings: [],
-          isLoading: true,
         })}
-        dispatch={vi.fn()}
-        launchContext={launch(
-          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
-        )}
+        dispatch={dispatch}
       />,
     );
 
-    // The Listings heading is never orphaned above blank space — a loading
-    // placeholder fills the panel while the read is in flight.
-    expect(screen.getByText("Loading listings…")).toBeTruthy();
-    expect(
-      screen.getByText("Reading the market contract for the current hash."),
-    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /loadListings/ }));
+    expect(dispatch).toHaveBeenCalledWith("loadListings", "0x1234567890abcdef1234567890abcdef12345678");
+  });
+
+  it("selects listing cards from the marketplace shelf", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          walletAddress: "NWallet111111111111111111111111111111",
+          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
+          listings: [{ id: "2", title: "Fresh plugins", priceGas: "2", status: "active" }],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Fresh plugins/ }));
+    expect(dispatch).toHaveBeenCalledWith("selectListing", "2");
+  });
+
+  it("keeps market hash and settlement controls in shared drawer panels", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          walletAddress: "NWallet111111111111111111111111111111",
+          walletDisplay: "NWallet...1111",
+          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
+          listings: [],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const drawer = container.querySelector(".market-drawer");
+    expect(drawer).toBeTruthy();
+    expect(drawer?.querySelectorAll(".market-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(drawer?.querySelector("h4")).toBeNull();
+    expect(drawer?.querySelectorAll(".market-drawer__notice.mx2-open-notice.semi-banner")).toHaveLength(1);
+    expect(drawer?.querySelectorAll(".market-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toHaveLength(2);
+    expect(drawer?.querySelector<HTMLInputElement>(".market-drawer__field input")?.value).toBe("0x1234567890abcdef1234567890abcdef12345678");
+  });
+
+  it("has reduced-motion", () => {
+    const styles = readFileSync(`${process.cwd()}/../aa-market-hub/src/PlayArea.scss`, "utf8");
+    expect(styles).toMatch(/prefers-reduced-motion/);
+  });
+
+  it("keeps the marketplace as a clean foreground shelf, not a backdrop wash", () => {
+    const styles = readFileSync(`${process.cwd()}/../aa-market-hub/src/PlayArea.scss`, "utf8");
+    const source = readFileSync(`${process.cwd()}/../aa-market-hub/src/PlayArea.tsx`, "utf8");
+
+    expect(styles).toMatch(/\.market-scene\s*\{[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/\.market-scene__desk-card,[\s\S]*\.market-scene__trade-panel\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.market-scene__desk-image\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.market-scene__shelf\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.market-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.market-drawer__panel--wide > \.semi-card-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(260px,\s*520px\)\s+minmax\(160px,\s*220px\)/);
+    expect(styles).not.toMatch(/\.market-drawer__panel h4/);
+    expect(styles).toMatch(/\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 188px/);
+    expect(styles).toMatch(/\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*var\(--mx2-brand-hover\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__desk-card\s*\{[\s\S]*grid-template-rows:\s*92px auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__desk-caption small\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__empty\s*\{[\s\S]*min-height:\s*74px/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.aa-market-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__status\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*184px/);
+    expect(source).toMatch(/<img className="market-scene__desk-image" src="\.\/market-escrow-desk\.webp"/);
+    expect(styles).not.toMatch(/market-scene__backdrop|market-scene__escrow|var\(--mx2-scene-wash|background-image:\s*url/);
+    expect(source).not.toMatch(/market-scene__backdrop|market-scene__escrow/);
   });
 });

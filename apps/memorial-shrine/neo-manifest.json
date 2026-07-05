@@ -169,8 +169,8 @@
   },
   "urls": {
     "entry": "/miniapps/memorial-shrine/index.html",
-    "icon": "/miniapps/memorial-shrine/logo.jpg",
-    "banner": "/miniapps/memorial-shrine/banner.jpg"
+    "icon": "/miniapps/memorial-shrine/logo.webp",
+    "banner": "/miniapps/memorial-shrine/banner.webp"
   },
   "permissions": [
     "invoke:primary",

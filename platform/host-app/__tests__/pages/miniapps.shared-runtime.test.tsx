@@ -268,6 +268,9 @@ describe("MiniAppDetailPage shared runtime", () => {
     expect(screen.getByTestId("playfield")).toHaveTextContent("12.5");
     expect(screen.getByTestId("operation-panel")).toHaveTextContent("12.5");
     expect(screen.getByTestId("mobile-action-dock")).toHaveTextContent(
+      "Play NeoPay Modular Fixture",
+    );
+    expect(screen.getByTestId("operation-panel")).toHaveTextContent(
       "Create Stream",
     );
     expect(screen.getByTestId("mobile-action-open")).toHaveAttribute(

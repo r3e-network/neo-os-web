@@ -1,50 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, SyntheticEvent } from "react";
+/**
+ * PlayArea.tsx - Custom Anchor
+ *
+ * User-facing NEO staking surface. The main stage keeps the wallet action,
+ * anchor id, amount, rewards, and agent safety state visible without exposing
+ * low-level provisioning controls as the first thing users see.
+ */
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
-  ArrowRight,
+  Anchor,
   BadgeCheck,
-  ChevronDown,
   CircleAlert,
   Coins,
-  Gauge,
-  Landmark,
-  Network,
-  Orbit,
-  Search,
+  Compass,
+  LockKeyhole,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
+  UsersRound,
   WalletCards,
 } from "lucide-react";
-import type { PlayAreaProps } from "@shared/react/defineMiniApp";
+import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
-import {
-  ANCHOR_AGENT_COUNT,
-  defaultProfitCandidates,
-} from "@shared/utils/anchor-agents";
+import type { ObservableState } from "@shared/react/context";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-const COMPRESSED_PUBLIC_KEY = /^(02|03)[0-9a-fA-F]{64}$/;
-
-/** Split candidate textarea into trimmed, non-empty tokens. */
-function splitCandidateKeys(value: string): string[] {
-  return String(value || "")
-    .split(/[\s,;]+/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function truncate(value: string): string {
-  if (value.length <= 34) return value;
-  return `${value.slice(0, 18)}...${value.slice(-10)}`;
-}
-
-function isValidAnchorId(value: string): boolean {
-  return /^custom-anchor:[a-z0-9-]{1,24}:[a-z0-9-]{1,24}$/.test(value.trim());
-}
-
-function isPositiveWholeNeo(value: string): boolean {
-  return /^[1-9]\d*$/.test(value.trim());
+interface P {
+  t: (k: string, p?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
 interface DiscoveredAnchor {
@@ -52,994 +36,509 @@ interface DiscoveredAnchor {
   mode: number;
 }
 
-export default function PlayArea({
-  t,
-  state,
-  status,
-  dispatch,
-}: PlayAreaProps) {
-  const { str, num, bool, val } = useStateBindings(state);
+type AnchorDrawerMode = "settings" | "discover" | "register" | "safety";
+
+const STAGE_IMAGE = new URL("../public/custom-anchor-stage.webp", import.meta.url).href;
+const STAKE_PRESETS = ["1", "5", "10"];
+
+function cleanNumber(value: string) {
+  return String(value || "0").replace(/,/g, "").trim();
+}
+
+function normalizeWholeNeoAmount(value: string) {
+  const whole = value.split(/[.,]/)[0] ?? "";
+  return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+}
+
+function hasPositiveAmount(value: string) {
+  return Number(cleanNumber(value)) > 0;
+}
+
+function compact(value: string, empty = "-") {
+  const text = value.trim();
+  if (!text) return empty;
+  return text.length > 34 ? `${text.slice(0, 18)}...${text.slice(-10)}` : text;
+}
+
+function validCandidateCount(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /^0[23][0-9a-fA-F]{64}$/.test(line)).length;
+}
+
+export default function PlayArea({ t, state, dispatch }: P) {
+  const { str, bool, num, val } = useStateBindings(state);
+
   const anchorAppId = str("anchorAppId");
-  const anchorMode = num("anchorMode");
-  const isLoading = bool("isLoading");
-  const agentCount = num("agentCount");
-  const lastTxid = str("lastTxid");
-  const workflowStatus = str("workflowStatus", t("workflowReady"));
-  const lastError = str("lastError");
-  const neoCredit = str("neoCredit", "0");
-  const gasCredit = str("gasCredit", "0");
-  const rewardPerNeo = str("rewardPerNeo", "0");
+  const totalStaked = str("totalStaked", "0");
+  const rewardReserve = str("rewardReserve", "0");
   const userStake = str("userStake", "0");
   const pendingRewards = str("pendingRewards", "0");
-  const rewardReserve = str("rewardReserve", "0");
-  const totalStaked = str("totalStaked", "0");
-  const discoveredAnchors = val<DiscoveredAnchor[]>("discoveredAnchors") ?? [];
-  const anchorLinked = Boolean(anchorAppId);
-  const anchorNotRegistered = anchorLinked && anchorMode === 0;
-  // A registered anchor with 0 AA agents is inert: staked NEO cannot vote or
-  // earn GAS until the operator provisions agents. Surface this before staking
-  // and gate the stake action behind an explicit acknowledgement.
-  const hasNoAgents =
-    anchorLinked && !anchorNotRegistered && anchorMode > 0 && agentCount === 0;
-  const anchorStatus = !anchorLinked
-    ? t("anchorMissing")
-    : anchorNotRegistered
-      ? t("anchorNotRegisteredBadge")
-      : t("anchorLinked");
-  const displayedAnchor = anchorAppId
-    ? truncate(anchorAppId)
-    : t("anchorAwaitingLaunch");
-  const displayedTx = lastTxid ? truncate(lastTxid) : "—";
-  // Show the real on-chain agent count (0 is a valid value for an unconfigured anchor).
-  // Only fall back to a neutral placeholder before an anchor is linked, never mask a real 0.
-  const displayedAgentCount =
-    anchorLinked && !anchorNotRegistered ? String(agentCount) : "—";
-  const hasNeoCredit = Number(neoCredit) > 0;
-  const hasGasCredit = Number(gasCredit) > 0;
-  const hasAnyCredit = hasNeoCredit || hasGasCredit;
+  const rewardPerNeo = str("rewardPerNeo", "0");
+  const workflowStatus = str("workflowStatus", t("workflowReady"));
+  const lastError = str("lastError");
+  const lastTxid = str("lastTxid");
+  const neoCredit = str("neoCredit", "0");
+  const gasCredit = str("gasCredit", "0");
+  const anchorMode = num("anchorMode", -1);
+  const agentCount = num("agentCount");
+  const isLoading = bool("isLoading");
+  const submitting = bool("submitting");
+  const discoveredAnchors = val<DiscoveredAnchor[]>("discoveredAnchors", []) ?? [];
 
-  // Seed empty: the example "custom-anchor:team:nonce" is shown as a PLACEHOLDER
-  // only, never as a real value — a pre-filled fake id passes validation and
-  // lets a first-time user submit a NEO transfer to a non-existent anchor.
-  const [anchorInput, setAnchorInput] = useState(anchorAppId || "");
-  const [amountInput, setAmountInput] = useState("1");
-  const [registerInput, setRegisterInput] = useState("");
-  const [registerMode, setRegisterMode] = useState(1);
-  // Council candidates (one compressed pubkey per line). Defaulted to the
-  // ready-to-use Profit candidate set on first switch to Profit so a first-time
-  // operator can register a yield-earning anchor without sourcing 21 keys.
-  const [candidatesInput, setCandidatesInput] = useState("");
-  const [busyAction, setBusyAction] = useState("");
-  const [formError, setFormError] = useState("");
-  // Explicit acknowledgement required to stake into a 0-agent (inert) anchor.
-  const [noAgentConfirmed, setNoAgentConfirmed] = useState(false);
-
-  // Onboarding CTAs jump the user straight to the relevant collapsed panel,
-  // turning the inert empty state into a clear next step.
-  const discoverRef = useRef<HTMLDetailsElement>(null);
-  const registerRef = useRef<HTMLDetailsElement>(null);
-  const openPanel = (ref: typeof discoverRef) => {
-    const el = ref.current;
-    if (!el) return;
-    el.open = true;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const [anchorDraft, setAnchorDraft] = useState(anchorAppId);
+  const [amountDraft, setAmountDraft] = useState("1");
+  const [agentAcknowledged, setAgentAcknowledged] = useState(false);
+  const [registerDraft, setRegisterDraft] = useState(anchorAppId || "custom-anchor:team:nonce");
+  const [registerMode, setRegisterMode] = useState<1 | 2>(2);
+  const [candidateDraft, setCandidateDraft] = useState("");
+  const [pulseAction, setPulseAction] = useState<string | null>(null);
+  const [drawerMode, setDrawerMode] = useState<AnchorDrawerMode>("settings");
+  const pulseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (anchorAppId && anchorAppId !== anchorInput) setAnchorInput(anchorAppId);
-    // Only sync fresh launch/read state into the form. User edits should stay editable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (anchorAppId) {
+      setAnchorDraft(anchorAppId);
+      setRegisterDraft(anchorAppId);
+    }
   }, [anchorAppId]);
 
-  const anchorInputValid = useMemo(
-    () => isValidAnchorId(anchorInput),
-    [anchorInput],
-  );
-  const amountValid = useMemo(
-    () => isPositiveWholeNeo(amountInput),
-    [amountInput],
-  );
-  // Redeem / claim / refresh use the contract's looser id rule (1-64 chars) so a
-  // script-registered anchor stays reachable for reclaiming staked NEO; only a
-  // NEW stake requires the strict slug:nonce shape.
-  const looseAnchorValid = useMemo(() => {
-    const v = anchorInput.trim();
-    return v.length >= 1 && v.length <= 64;
-  }, [anchorInput]);
-  const busy = isLoading || Boolean(busyAction);
-  // Reset the inert-anchor acknowledgement whenever the typed anchor id changes,
-  // so a confirmation for one anchor never silently carries to another.
-  useEffect(() => {
-    setNoAgentConfirmed(false);
-  }, [anchorInput]);
-  // Stake mints into an anchor (strict shape); other actions accept any valid id.
-  // Additionally gate staking into a 0-agent anchor behind an explicit confirm —
-  // such an anchor cannot vote or earn GAS, so a stake there earns nothing.
-  const stakeBlockedByNoAgents = hasNoAgents && !noAgentConfirmed;
-  const stakeDisabled =
-    busy || !anchorInputValid || !amountValid || stakeBlockedByNoAgents;
-  const redeemDisabled = busy || !looseAnchorValid || !amountValid;
-  const looseActionDisabled = busy || !looseAnchorValid;
-  // Only flag the input as invalid once the user has typed something; an empty
-  // field on first paint is "not started", not an error (mirrors the register
-  // field's pattern). Reserve the red border for a non-empty malformed id.
-  const anchorInputTouched = anchorInput.trim().length > 0;
-  const anchorInputErrored = anchorInputTouched && !anchorInputValid;
-  // The action strip should agree with the hero and the disabled CTA: stay
-  // neutral until there is a usable anchor (linked, or a valid id typed), and
-  // only paint the green "Ready" once an action can actually be taken.
-  const anchorReady = anchorLinked || looseAnchorValid;
-  // First-run onboarding: nothing linked and no usable id typed yet, so the
-  // action buttons are all disabled. Show a clear next step instead of an inert
-  // button grid.
-  const showOnboarding = !anchorLinked && !looseAnchorValid;
-  const showTransactionActions = !showOnboarding || anchorInputTouched;
-  const hasStatusError = Boolean(formError || lastError);
-  const statusText = hasStatusError
-    ? formError || lastError
-    : anchorReady
-      ? status?.msg || workflowStatus
-      : t("anchorAwaitingInput");
-  const clampedAgentCount =
-    anchorLinked && !anchorNotRegistered
-      ? Math.max(0, Math.min(ANCHOR_AGENT_COUNT, agentCount))
-      : 0;
-  const agentFillPercent = Math.round(
-    (clampedAgentCount / ANCHOR_AGENT_COUNT) * 100,
-  );
-  const illuminatedAgentNodes = Math.max(
-    0,
-    Math.min(7, Math.round((clampedAgentCount / ANCHOR_AGENT_COUNT) * 7)),
-  );
-  const operationLaneState = hasStatusError
-    ? "error"
-    : busyAction
-      ? "busy"
-      : hasNoAgents
-        ? "blocked"
-        : anchorReady && amountValid
-          ? "ready"
-          : anchorReady
-            ? "draft"
-            : "empty";
-  const operationLaneStyle = {
-    "--agent-fill": `${agentFillPercent}%`,
-  } as CSSProperties;
-  const selectedAnchorLabel = anchorReady
-    ? truncate((anchorInput.trim() || anchorAppId).trim())
-    : t("anchorLaneAnchorPending");
-  const selectedAmountLabel = amountValid
-    ? `${amountInput.trim()} NEO`
-    : t("anchorLaneAmountPending");
-  const agentProgressLabel =
-    anchorLinked && !anchorNotRegistered
-      ? `${clampedAgentCount}/${ANCHOR_AGENT_COUNT}`
-      : t("anchorLaneAgentsPending");
-  const operationLaneStatus = hasStatusError
-    ? t("anchorLaneStateError")
-    : busyAction
-      ? t("anchorLaneStateBusy")
-      : hasNoAgents
-        ? t("anchorLaneStateBlocked")
-        : anchorReady && amountValid
-          ? t("anchorLaneStateReady")
-          : anchorReady
-            ? t("anchorLaneStateDraft")
-            : t("anchorLaneStateEmpty");
+  useEffect(() => () => {
+    if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
+  }, []);
 
-  const runAction = async (
-    event: SyntheticEvent,
-    action: "stake" | "withdraw" | "claimRewards" | "refreshAnchor",
-  ) => {
-    event.preventDefault();
-    setFormError("");
-    // Stake mints into an anchor and uses the strict shape; the others accept any
-    // valid contract id so already-staked NEO stays redeemable.
-    const idOk = action === "stake" ? anchorInputValid : looseAnchorValid;
-    if (!idOk) {
-      setFormError(t("invalidAnchorId"));
-      return;
-    }
-    if ((action === "stake" || action === "withdraw") && !amountValid) {
-      setFormError(t("invalidAmount"));
-      return;
-    }
+  const anchorReady = anchorDraft.trim().length > 0 && anchorDraft.trim().length <= 64;
+  const wholeNeoReady = /^[1-9]\d*$/.test(amountDraft.trim());
+  const registered = anchorMode > 0;
+  const unregistered = anchorMode === 0;
+  const noAgents = registered && agentCount === 0;
+  const busy = isLoading || submitting || Boolean(pulseAction);
+  const stakeBlockedByAgents = noAgents && !agentAcknowledged;
+  const canStake = anchorReady && wholeNeoReady && registered && !stakeBlockedByAgents && !busy;
+  const canWithdraw = anchorReady && wholeNeoReady && registered && hasPositiveAmount(userStake) && !busy;
+  const canClaim = anchorReady && registered && hasPositiveAmount(pendingRewards) && !busy;
+  const candidateCount = validCandidateCount(candidateDraft);
+  const canRegister = registerDraft.trim().length > 0 && candidateCount === 21 && !busy;
+  const creditAvailable = hasPositiveAmount(neoCredit) || hasPositiveAmount(gasCredit);
 
-    setBusyAction(action);
-    try {
-      const payload =
-        action === "claimRewards" || action === "refreshAnchor"
-          ? { anchorAppId: anchorInput.trim() }
-          : { anchorAppId: anchorInput.trim(), amount: amountInput.trim() };
-      await dispatch(action, payload);
-    } catch (error) {
-      setFormError(formatErrorMessage(error, t("workflowFailed")));
-    } finally {
-      setBusyAction("");
-    }
+  const modeLabel = anchorMode === 2 ? t("modeProfit") : anchorMode === 1 ? t("modeTrust") : t("anchorMissing");
+  const drawerModes: Array<{ mode: AnchorDrawerMode; label: string; meta: string; icon: ReactElement }> = [
+    { mode: "settings", label: t("actionPanelLabel"), meta: t("anchorLaneStateReady"), icon: <Anchor size={15} aria-hidden="true" /> },
+    { mode: "discover", label: t("discoverTitle"), meta: String(discoveredAnchors.length), icon: <Compass size={15} aria-hidden="true" /> },
+    { mode: "register", label: t("registerPanelLabel"), meta: `${candidateCount}/21`, icon: <BadgeCheck size={15} aria-hidden="true" /> },
+    { mode: "safety", label: t("docSafety"), meta: creditAvailable ? t("creditTitle") : workflowStatus, icon: <ShieldCheck size={15} aria-hidden="true" /> },
+  ];
+  const readinessLabel = useMemo(() => {
+    if (!anchorReady) return t("anchorLaneAnchorPending");
+    if (!wholeNeoReady) return t("anchorLaneAmountPending");
+    if (unregistered) return t("anchorNotRegisteredBadge");
+    if (noAgents) return t("anchorLaneStateBlocked");
+    if (registered) return t("anchorLaneStateReady");
+    return t("anchorLaneStateDraft");
+  }, [anchorReady, noAgents, registered, t, unregistered, wholeNeoReady]);
+
+  const runAction = (name: "stake" | "withdraw" | "claimRewards") => {
+    if (name === "stake" && !canStake) return;
+    if (name === "withdraw" && !canWithdraw) return;
+    if (name === "claimRewards" && !canClaim) return;
+    if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
+    setPulseAction(name);
+    pulseTimeout.current = setTimeout(() => {
+      setPulseAction(null);
+      pulseTimeout.current = null;
+    }, 950);
+    const payload = { anchorAppId: anchorDraft.trim(), amount: normalizeWholeNeoAmount(amountDraft).trim() };
+    void dispatch(name, payload);
   };
 
-  const registerInputValid = useMemo(
-    () => isValidAnchorId(registerInput),
-    [registerInput],
-  );
-  const candidateKeys = useMemo(
-    () => splitCandidateKeys(candidatesInput),
-    [candidatesInput],
-  );
-  const validCandidateCount = useMemo(
-    () => candidateKeys.filter((key) => COMPRESSED_PUBLIC_KEY.test(key)).length,
-    [candidateKeys],
-  );
-  // Provisioning needs EXACTLY 21 valid compressed pubkeys (duplicates allowed —
-  // the on-chain RegisterAgents accepts repeats, mirroring the deploy default).
-  const candidatesValid =
-    candidateKeys.length === ANCHOR_AGENT_COUNT &&
-    validCandidateCount === ANCHOR_AGENT_COUNT;
-  const registerDisabled = busy || !registerInputValid || !candidatesValid;
-  const candidatePreview = candidateKeys.slice(0, 3);
-  const remainingCandidateCount = Math.max(
-    0,
-    candidateKeys.length - candidatePreview.length,
-  );
-  const candidateStatusLabel = candidatesValid
-    ? t("candidateKitReady")
-    : candidateKeys.length > 0
-      ? t("candidateKitPartial")
-      : t("candidateKitEmpty");
-
-  const fillDefaultCandidates = () => {
-    setCandidatesInput(defaultProfitCandidates().join("\n"));
+  const refresh = () => {
+    void dispatch("refreshAnchor", { anchorAppId: anchorDraft.trim() });
   };
 
-  // Switching to Profit seeds the ready-to-use default candidate set when the
-  // field is still empty (friction-free yield anchor); Trust leaves it blank so
-  // the operator supplies their own governance candidates.
-  const handleSelectMode = (mode: number) => {
-    setRegisterMode(mode);
-    if (mode === 2 && splitCandidateKeys(candidatesInput).length === 0) {
-      fillDefaultCandidates();
-    }
+  const selectAnchor = (appId: string) => {
+    setAnchorDraft(appId);
+    setAgentAcknowledged(false);
+    void dispatch("selectAnchor", appId);
   };
 
-  const handleRegister = async (event: SyntheticEvent) => {
-    event.preventDefault();
-    setFormError("");
-    if (!registerInputValid) {
-      setFormError(t("invalidAnchorId"));
-      return;
-    }
-    if (!candidatesValid) {
-      setFormError(t("registerCandidatesInvalid"));
-      return;
-    }
-    setBusyAction("register");
-    try {
-      await dispatch("register", {
-        anchorAppId: registerInput.trim(),
-        mode: registerMode,
-        candidates: candidateKeys,
-      });
-      setAnchorInput(registerInput.trim());
-    } catch (error) {
-      setFormError(formatErrorMessage(error, t("workflowFailed")));
-    } finally {
-      setBusyAction("");
-    }
+  const adjustStake = (delta: number) => {
+    const next = Math.max(1, Math.floor(Number(normalizeWholeNeoAmount(amountDraft)) || 1) + delta);
+    setAmountDraft(String(next));
   };
 
-  const handleRecover = async (asset: "NEO" | "GAS") => {
-    setFormError("");
-    setBusyAction(`recover-${asset}`);
-    try {
-      await dispatch("recoverCredit", asset);
-    } catch (error) {
-      setFormError(formatErrorMessage(error, t("workflowFailed")));
-    } finally {
-      setBusyAction("");
-    }
-  };
+  const scene = (
+    <div className="anchor-workspace" data-state={pulseAction ? "submitting" : noAgents ? "blocked" : registered ? "ready" : "draft"}>
+      <section className="anchor-console" aria-label={t("actionPanelLabel")}>
+        <div className="anchor-console__head">
+          <span><Anchor size={16} />{t("anchorWorkspaceLabel")}</span>
+          <strong>{readinessLabel}</strong>
+        </div>
 
-  const handleSelectAnchor = async (id: string) => {
-    setFormError("");
-    setAnchorInput(id);
-    setBusyAction("selectAnchor");
-    try {
-      await dispatch("selectAnchor", id);
-    } catch (error) {
-      setFormError(formatErrorMessage(error, t("workflowFailed")));
-    } finally {
-      setBusyAction("");
-    }
-  };
+        <div className="anchor-console__mobile-art" aria-hidden="true">
+          <img src={STAGE_IMAGE} alt="" />
+          <span><Sparkles size={13} />{t("agentModel")}</span>
+        </div>
 
-  const handleDiscover = async () => {
-    setBusyAction("discoverAnchors");
-    try {
-      await dispatch("discoverAnchors");
-    } finally {
-      setBusyAction("");
-    }
-  };
-
-  return (
-    <div className="custom-anchor-playarea">
-      {/* Hero — lead with the civic meaning (NEO voting power), then the few facts that matter */}
-      <section className="custom-anchor-hero">
-        <div className="custom-anchor-hero__body">
-          <div className="custom-anchor-hero__heading">
-            <span className="custom-anchor-hero__badge" aria-hidden="true">
-              <Landmark size={24} />
-            </span>
+        <div className="anchor-stake-console anchor-control-deck">
+          <div className="anchor-pass-card" data-ready={anchorReady ? "true" : undefined}>
+            <span className="anchor-pass-card__icon"><Anchor size={20} /></span>
             <div>
-              <span className="custom-anchor-kicker">{t("civicEyebrow")}</span>
-              <h2>{anchorAppId ? t("readyForAnchor") : t("noAnchorTitle")}</h2>
-            </div>
-          </div>
-          <p>{anchorAppId ? truncate(anchorAppId) : t("noAnchorBody")}</p>
-          <p className="custom-anchor-hero__explainer">
-            <strong>{t("whatIsAnchorTitle")}</strong> {t("whatIsAnchorBody")}
-          </p>
-          <div className="custom-anchor-hero__facts">
-            <span>
-              <ShieldCheck size={14} aria-hidden="true" />
-              {t("anchorStatus")}: <strong>{anchorStatus}</strong>
-            </span>
-            <span>
-              <Network size={14} aria-hidden="true" />
-              {t("agentCount")}: <strong>{displayedAgentCount}</strong>
-            </span>
-            <span>
-              <Sparkles size={14} aria-hidden="true" />
-              {t("lastTxid")}: <strong>{displayedTx}</strong>
-            </span>
-          </div>
-        </div>
-        <figure className="custom-anchor-hero__stage">
-          <img
-            src="./custom-anchor-stage.jpg"
-            alt={t("anchorStageAlt")}
-            loading="eager"
-            decoding="async"
-          />
-          <figcaption>
-            <span>{t("anchorStageLabel")}</span>
-            <strong>
-              {anchorLinked && !anchorNotRegistered
-                ? t("anchorStageValueReady")
-                : t("anchorStageValueIdle")}
-            </strong>
-          </figcaption>
-        </figure>
-      </section>
-
-      {/* Primary action — surfaced immediately after the hero */}
-      <section
-        className="custom-anchor-action-panel"
-        aria-label={t("actionPanelTitle")}
-      >
-        <div className="custom-anchor-section-head">
-          <span>{t("actionPanelLabel")}</span>
-          <h3>{t("actionPanelTitle")}</h3>
-          <p>{t("actionPanelBody")}</p>
-        </div>
-
-        <div
-          className={`custom-anchor-operation-lane custom-anchor-operation-lane--${operationLaneState}`}
-          role="group"
-          aria-label={t("anchorLaneAria")}
-          style={operationLaneStyle}
-        >
-          <div className="custom-anchor-operation-lane__stage" aria-hidden="true">
-            <img src="./custom-anchor-stage.jpg" alt="" decoding="async" />
-            <span className="custom-anchor-operation-lane__scan" />
-            <span className="custom-anchor-operation-lane__orb custom-anchor-operation-lane__orb--stake">
-              <Coins size={18} />
-            </span>
-            <span className="custom-anchor-operation-lane__orb custom-anchor-operation-lane__orb--agents">
-              <Network size={18} />
-            </span>
-            <span className="custom-anchor-operation-lane__orb custom-anchor-operation-lane__orb--rewards">
-              <Sparkles size={18} />
-            </span>
-            <span className="custom-anchor-operation-lane__agent-ring">
-              {Array.from({ length: 7 }, (_, index) => (
-                <i
-                  key={index}
-                  className={index < illuminatedAgentNodes ? "is-lit" : ""}
-                />
-              ))}
-            </span>
-          </div>
-          <div className="custom-anchor-operation-lane__copy">
-            <span className="custom-anchor-kicker">{t("anchorLaneLabel")}</span>
-            <h4>{t("anchorLaneTitle")}</h4>
-            <p>{t("anchorLaneBody")}</p>
-            <div className="custom-anchor-operation-lane__readouts">
-              <span>
-                <small>{t("anchorLaneAnchor")}</small>
-                <strong>{selectedAnchorLabel}</strong>
-              </span>
-              <span>
-                <small>{t("anchorLaneAmount")}</small>
-                <strong>{selectedAmountLabel}</strong>
-              </span>
-              <span>
-                <small>{t("anchorLaneAgents")}</small>
-                <strong>{agentProgressLabel}</strong>
-              </span>
-              <span>
-                <small>{t("anchorLaneStatus")}</small>
-                <strong>{operationLaneStatus}</strong>
-              </span>
-            </div>
-          </div>
-          <div className="custom-anchor-operation-lane__flow" aria-hidden="true">
-            <span className="is-active">
-              <Landmark size={16} />
-              <small>{t("anchorLaneStepStake")}</small>
-              <strong>{selectedAmountLabel}</strong>
-            </span>
-            <ArrowRight size={15} />
-            <span className={anchorLinked && !anchorNotRegistered ? "is-active" : ""}>
-              <Network size={16} />
-              <small>{t("anchorLaneStepAgents")}</small>
-              <strong>{agentProgressLabel}</strong>
-            </span>
-            <ArrowRight size={15} />
-            <span className={Number(pendingRewards) > 0 ? "is-active" : ""}>
-              <Gauge size={16} />
-              <small>{t("anchorLaneStepRewards")}</small>
-              <strong>{pendingRewards} GAS</strong>
-            </span>
-          </div>
-        </div>
-
-        <div
-          className="custom-anchor-route-strip"
-          aria-label={t("anchorFlowTitle")}
-        >
-          <span className={anchorReady ? "is-ready" : ""}>
-            <Orbit size={17} aria-hidden="true" />
-            <small>{t("anchorFlowOpen")}</small>
-            <strong>
-              {anchorReady ? truncate(anchorInput) : t("anchorAwaitingInput")}
-            </strong>
-          </span>
-          <span className={anchorReady && amountValid ? "is-ready" : ""}>
-            <Coins size={17} aria-hidden="true" />
-            <small>{t("anchorFlowAction")}</small>
-            <strong>
-              {anchorReady
-                ? amountValid
-                  ? `${amountInput} NEO`
-                  : t("invalidAmount")
-                : t("anchorAwaitingInput")}
-            </strong>
-          </span>
-          <span className={anchorReady && amountValid ? "is-ready" : ""}>
-            <WalletCards size={17} aria-hidden="true" />
-            <small>{t("anchorFlowSign")}</small>
-            <strong>
-              {stakeDisabled ? t("anchorAwaitingInput") : t("workflowReady")}
-            </strong>
-          </span>
-        </div>
-
-        {showOnboarding && (
-          <div className="custom-anchor-onboard" role="note">
-            <div className="custom-anchor-onboard__text">
-              <strong>{t("onboardTitle")}</strong>
-              <p>{t("onboardBody")}</p>
-            </div>
-            <div className="custom-anchor-onboard__actions">
-              <button
-                type="button"
-                className="custom-anchor-button custom-anchor-button--primary"
-                onClick={() => openPanel(discoverRef)}
-              >
-                {t("onboardBrowse")}
-              </button>
-              <button
-                type="button"
-                className="custom-anchor-button"
-                onClick={() => openPanel(registerRef)}
-              >
-                {t("onboardRegister")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <form
-          className={`custom-anchor-form${
-            showOnboarding ? " custom-anchor-form--onboarding" : ""
-          }`}
-          onSubmit={(event) => runAction(event, "stake")}
-        >
-          <div className="custom-anchor-field">
-            <label>
               <span>{t("anchorAppId")}</span>
-              <input
-                value={anchorInput}
-                onChange={(event) => setAnchorInput(event.currentTarget.value)}
-                placeholder="custom-anchor:team:nonce"
-                autoComplete="off"
-                aria-invalid={anchorInputErrored}
-                aria-describedby="custom-anchor-id-hint"
-              />
-            </label>
-            <small
-              id="custom-anchor-id-hint"
-              className="custom-anchor-field-hint"
-            >
-              {t("anchorIdHint")}
-            </small>
+              <strong>{compact(anchorDraft, t("anchorLaneAnchorPending"))}</strong>
+              <em>{modeLabel}</em>
+            </div>
           </div>
-          {showTransactionActions && (
-            <label>
+
+          <div className="anchor-stake-dial" data-ready={wholeNeoReady ? "true" : undefined}>
+            <button type="button" aria-label="- 1 NEO" onClick={() => adjustStake(-1)} disabled={busy}>
+              <span aria-hidden="true">-</span>
+            </button>
+            <div className="anchor-stake-dial__readout">
+              <CoinArt size={38} variant="neo" />
               <span>{t("neoAmount")}</span>
-              <input
-                value={amountInput}
-                onChange={(event) => setAmountInput(event.currentTarget.value)}
-                placeholder="1"
-                inputMode="numeric"
-                aria-invalid={!amountValid}
-              />
-            </label>
-          )}
-          {hasNoAgents && (
-            <div className="custom-anchor-no-agents" role="alert">
+              <strong>{wholeNeoReady ? amountDraft : t("anchorLaneAmountPending")}</strong>
+              <em>NEO</em>
+            </div>
+            <button type="button" aria-label="+ 1 NEO" onClick={() => adjustStake(1)} disabled={busy}>
+              <span aria-hidden="true">+</span>
+            </button>
+          </div>
+
+          <div className="anchor-stake-presets" role="radiogroup" aria-label={t("neoAmount")}>
+            {STAKE_PRESETS.map((amount) => (
+              <button
+                key={amount}
+                type="button"
+                role="radio"
+                aria-checked={amountDraft === amount}
+                className={amountDraft === amount ? "is-active" : undefined}
+                onClick={() => setAmountDraft(amount)}
+                disabled={busy}
+              >
+                <CoinArt size={16} variant="neo" decorative />
+                {amount} NEO
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="anchor-route" aria-label={t("anchorLaneAria")}>
+          <div className="anchor-route__step" data-ready={anchorReady ? "true" : undefined}>
+            <Anchor size={17} />
+            <span>{t("anchorLaneAnchor")}</span>
+            <strong>{compact(anchorDraft, t("anchorLaneAnchorPending"))}</strong>
+          </div>
+          <div className="anchor-route__step" data-ready={wholeNeoReady ? "true" : undefined}>
+            <CoinArt size={19} variant="neo" />
+            <span>{t("anchorLaneStepStake")}</span>
+            <strong>{wholeNeoReady ? `${amountDraft} NEO` : t("anchorLaneAmountPending")}</strong>
+          </div>
+          <div className="anchor-route__step" data-ready={agentCount > 0 ? "true" : undefined}>
+            <UsersRound size={17} />
+            <span>{t("anchorLaneStepAgents")}</span>
+            <strong>{agentCount}/21</strong>
+          </div>
+          <div className="anchor-route__step" data-ready={hasPositiveAmount(pendingRewards) ? "true" : undefined}>
+            <Coins size={17} />
+            <span>{t("anchorLaneStepRewards")}</span>
+            <strong>{pendingRewards} GAS</strong>
+          </div>
+        </div>
+
+        {noAgents && (
+          <div className="anchor-warning" role="status">
+            <CircleAlert size={18} />
+            <div>
               <strong>{t("noAgentsTitle")}</strong>
               <p>{t("noAgentsBody")}</p>
-              <label className="custom-anchor-no-agents__confirm">
+              <label className="anchor-confirm">
                 <input
                   type="checkbox"
-                  checked={noAgentConfirmed}
-                  onChange={(event) =>
-                    setNoAgentConfirmed(event.currentTarget.checked)
-                  }
+                  checked={agentAcknowledged}
+                  onChange={(event) => setAgentAcknowledged(event.target.checked)}
                 />
-                <span>
-                  {noAgentConfirmed
-                    ? t("noAgentsConfirmActive")
-                    : t("noAgentsConfirm")}
-                </span>
+                <span>{agentAcknowledged ? t("noAgentsConfirmActive") : t("noAgentsConfirm")}</span>
               </label>
             </div>
-          )}
-          {showTransactionActions && (
-            <>
-              {/* Write actions — the value-moving operations, each tagged with the
-                  token it touches so NEO stake vs GAS claim is unmistakable. */}
-              <div className="custom-anchor-action-grid">
-                <button
-                  type="submit"
-                  className="custom-anchor-button custom-anchor-button--primary custom-anchor-button--action"
-                  disabled={stakeDisabled}
-                >
-                  <span className="custom-anchor-button__label">
-                    {busyAction === "stake"
-                      ? t("submitting")
-                      : t("stakeAction")}
-                  </span>
-                  {busyAction !== "stake" && (
-                    <span
-                      className="custom-anchor-button__tag"
-                      aria-hidden="true"
-                    >
-                      {t("stakeTokenTag")}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="custom-anchor-button custom-anchor-button--action"
-                  disabled={redeemDisabled}
-                  onClick={(event) => runAction(event, "withdraw")}
-                >
-                  <span className="custom-anchor-button__label">
-                    {busyAction === "withdraw"
-                      ? t("submitting")
-                      : t("withdrawAction")}
-                  </span>
-                  {busyAction !== "withdraw" && (
-                    <span
-                      className="custom-anchor-button__tag"
-                      aria-hidden="true"
-                    >
-                      {t("withdrawTokenTag")}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="custom-anchor-button custom-anchor-button--action"
-                  disabled={looseActionDisabled}
-                  onClick={(event) => runAction(event, "claimRewards")}
-                >
-                  <span className="custom-anchor-button__label">
-                    {busyAction === "claimRewards"
-                      ? t("submitting")
-                      : t("claimAction")}
-                  </span>
-                  {busyAction !== "claimRewards" && (
-                    <span
-                      className="custom-anchor-button__tag"
-                      aria-hidden="true"
-                    >
-                      {t("claimTokenTag")}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {/* Maintenance — a read-only refresh, demoted to a ghost row so the
-                  value-moving operations above stay visually dominant. */}
-              <div className="custom-anchor-maintenance">
-                <span className="custom-anchor-maintenance__label">
-                  {t("maintenanceLabel")}
-                </span>
-                <button
-                  type="button"
-                  className="custom-anchor-button custom-anchor-button--ghost"
-                  disabled={looseActionDisabled}
-                  onClick={(event) => runAction(event, "refreshAnchor")}
-                >
-                  {busyAction === "refreshAnchor"
-                    ? t("submitting")
-                    : t("refreshStatus")}
-                </button>
-              </div>
-            </>
-          )}
-        </form>
-
-        {anchorNotRegistered && (
-          <div className="custom-anchor-status-strip error" role="status">
-            <span>{t("anchorNotRegistered")}</span>
           </div>
         )}
 
-        {(!showOnboarding || hasStatusError) && (
-          <div
-            className={`custom-anchor-status-strip${
-              hasStatusError ? " error" : anchorReady ? "" : " neutral"
-            }`}
-            role="status"
-          >
-            <span>{statusText}</span>
+        {unregistered && (
+          <div className="anchor-notice" role="status">
+            <CircleAlert size={17} />
+            <p>{t("anchorNotRegistered")}</p>
           </div>
         )}
+
+        {lastError && (
+          <div className="anchor-error" role="alert">
+            <CircleAlert size={17} />
+            <p>{lastError}</p>
+          </div>
+        )}
+
+        <div className="anchor-insight">
+          <ShieldCheck size={18} />
+          <div>
+            <strong>{t("whatIsAnchorTitle")}</strong>
+            <p>{t("whatIsAnchorBody")}</p>
+          </div>
+        </div>
       </section>
 
-      {/* Carded metrics group — tiles wrapped so they stay off the viewport edge, consistent with the rest of the suite */}
-      <section
-        className="custom-anchor-metrics-card"
-        aria-label={t("totalStaked")}
-      >
-        <div className="custom-anchor-metrics" aria-live="polite">
+      <section className="anchor-visual" aria-label={t("anchorLaneLabel")}>
+        <div className="anchor-visual__media">
+          <img className="anchor-visual__image" src={STAGE_IMAGE} alt="" aria-hidden="true" />
+          <span className="anchor-visual__chip"><Sparkles size={14} />{t("agentModel")}</span>
+        </div>
+        <div className="anchor-visual__stats">
           <div>
             <span>{t("userStake")}</span>
             <strong>{userStake} NEO</strong>
-          </div>
-          <div>
-            <span>{t("pendingRewards")}</span>
-            <strong>{pendingRewards} GAS</strong>
           </div>
           <div>
             <span>{t("rewardReserve")}</span>
             <strong>{rewardReserve} GAS</strong>
           </div>
           <div>
-            <span>{t("totalStaked")}</span>
-            <strong>{totalStaked} NEO</strong>
+            <span>{t("rewardPerNeoLabel")}</span>
+            <strong>{rewardPerNeo}</strong>
           </div>
         </div>
       </section>
+    </div>
+  );
 
-      {/* Reward model — explain where claimable GAS comes from before users stake. */}
-      <section
-        className="custom-anchor-reward-model"
-        aria-label={t("rewardModelTitle")}
-      >
-        <div className="custom-anchor-reward-model__head">
-          <span>{t("rewardModelTitle")}</span>
-          {anchorLinked && !anchorNotRegistered && (
-            <span className="custom-anchor-reward-model__rate">
-              {t("rewardPerNeoLabel")}: <strong>{rewardPerNeo}</strong>
-            </span>
-          )}
-        </div>
-        <p>{t("rewardModelBody")}</p>
-        {anchorLinked && !anchorNotRegistered && (
-          <p className="custom-anchor-reward-model__caption">
-            {t("rewardPerNeoCaption")}
-          </p>
-        )}
-      </section>
+  const drawer = (
+    <div className="anchor-drawer" data-mode={drawerMode}>
+      <div className="anchor-drawer-tabs" role="tablist" aria-label={t("discoverLabel")}>
+        {drawerModes.map((item) => (
+          <button
+            key={item.mode}
+            type="button"
+            role="tab"
+            aria-selected={drawerMode === item.mode}
+            className={drawerMode === item.mode ? "is-active" : undefined}
+            onClick={() => setDrawerMode(item.mode)}
+          >
+            <span>{item.label}</span>
+            {typeof item.count === "number" && <em>{item.count}</em>}
+          </button>
+        ))}
+      </div>
 
-      {/* Stranded contract-credit recovery — shown only when there is something to reclaim. */}
-      {hasAnyCredit && (
-        <section
-          className="custom-anchor-credit-card"
-          aria-label={t("creditTitle")}
+      {drawerMode === "settings" && (
+        <OpenUiPanel
+          className="anchor-drawer__panel anchor-drawer__panel--settings"
+          icon={<Anchor size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("actionPanelLabel")}
+          subtitle={readinessLabel}
         >
-          <div className="custom-anchor-section-head">
-            <span>{t("creditTitle")}</span>
-            <p>{t("creditBody")}</p>
+          <div className="anchor-settings-grid">
+            <OpenUiTextField
+              className="anchor-field anchor-field--id"
+              inputClassName="anchor-input anchor-input--id"
+              label={t("anchorAppId")}
+              value={anchorDraft}
+              onChange={(event) => {
+                setAnchorDraft(event.target.value);
+                setAgentAcknowledged(false);
+              }}
+              placeholder="custom-anchor:team:nonce"
+              spellCheck={false}
+              mono
+            />
+            <OpenUiTextField
+              className="anchor-field anchor-field--amount"
+              inputClassName="anchor-input anchor-input--amount"
+              label={t("neoAmount")}
+              value={amountDraft}
+              onChange={(event) => setAmountDraft(normalizeWholeNeoAmount(event.target.value))}
+              placeholder="1"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              hint={t("invalidAmount")}
+            />
           </div>
-          <div className="custom-anchor-credit-grid">
-            {hasNeoCredit && (
-              <div className="custom-anchor-credit-row">
-                <span>{t("creditNeo")}</span>
-                <strong>{neoCredit} NEO</strong>
-                <button
-                  type="button"
-                  className="custom-anchor-button custom-anchor-button--primary"
-                  disabled={busy}
-                  onClick={() => handleRecover("NEO")}
-                >
-                  {busyAction === "recover-NEO"
-                    ? t("submitting")
-                    : t("recoverNeo")}
-                </button>
-              </div>
-            )}
-            {hasGasCredit && (
-              <div className="custom-anchor-credit-row">
-                <span>{t("creditGas")}</span>
-                <strong>{gasCredit} GAS</strong>
-                <button
-                  type="button"
-                  className="custom-anchor-button custom-anchor-button--primary"
-                  disabled={busy}
-                  onClick={() => handleRecover("GAS")}
-                >
-                  {busyAction === "recover-GAS"
-                    ? t("submitting")
-                    : t("recoverGas")}
-                </button>
-              </div>
-            )}
+          <div className="anchor-drawer__summary">
+            <span>{t("userStake")} <strong>{userStake} NEO</strong></span>
+            <span>{t("pendingRewards")} <strong>{pendingRewards} GAS</strong></span>
+            <span>{t("agentCount")} <strong>{agentCount}/21</strong></span>
           </div>
-        </section>
-      )}
-
-      {/* Anchor discovery — browse registered anchors and use one. */}
-      <details className="custom-anchor-discover" ref={discoverRef}>
-        <summary>
-          <span>{t("discoverTitle")}</span>
-          <ChevronDown size={16} aria-hidden="true" />
-        </summary>
-        <div className="custom-anchor-discover__body">
-          <div className="custom-anchor-discover__head">
-            <span>{t("discoverLabel")}</span>
-            <button
-              type="button"
-              className="custom-anchor-button"
-              disabled={busy}
-              onClick={handleDiscover}
-            >
-              {busyAction === "discoverAnchors"
-                ? t("submitting")
-                : t("discoverRefresh")}
+          <div className="anchor-drawer__action-strip">
+            <button type="button" onClick={refresh} disabled={busy}>
+              <RefreshCw size={14} aria-hidden="true" />
+              {t("refreshStatus")}
             </button>
           </div>
-          {discoveredAnchors.length === 0 ? (
-            <p className="custom-anchor-discover__empty">
-              {t("discoverEmpty")}
-            </p>
-          ) : (
-            <ul className="custom-anchor-discover__list">
-              {discoveredAnchors.map((entry) => (
-                <li key={entry.appId}>
-                  <span className="custom-anchor-discover__id">
-                    {truncate(entry.appId)}
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "discover" && (
+        <OpenUiPanel
+          className="anchor-drawer__panel anchor-drawer__panel--discover"
+          icon={<Compass size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("discoverTitle")}
+          subtitle={`${discoveredAnchors.length}`}
+        >
+          <div className="anchor-drawer__action-strip anchor-drawer__action-strip--top">
+            <button type="button" onClick={() => void dispatch("discoverAnchors")} disabled={busy}>
+              <RefreshCw size={14} aria-hidden="true" />
+              {t("discoverRefresh")}
+            </button>
+          </div>
+          {discoveredAnchors.length > 0 ? (
+            <ul className="anchor-list">
+              {discoveredAnchors.slice(0, 8).map((anchor) => (
+                <li key={anchor.appId} className="anchor-list__item">
+                  <span>
+                    <strong>{compact(anchor.appId)}</strong>
+                    <em>{anchor.mode === 2 ? t("modeProfit") : t("modeTrust")}</em>
                   </span>
-                  <span
-                    className="custom-anchor-discover__mode"
-                    title={
-                      entry.mode === 2
-                        ? t("registerModeProfitDesc")
-                        : t("registerModeTrustDesc")
-                    }
-                  >
-                    {entry.mode === 2 ? t("modeProfit") : t("modeTrust")}
-                  </span>
-                  <button
-                    type="button"
-                    className="custom-anchor-button"
-                    disabled={busy}
-                    onClick={() => handleSelectAnchor(entry.appId)}
-                  >
-                    {t("discoverUse")}
-                  </button>
+                  <button type="button" onClick={() => selectAnchor(anchor.appId)}>{t("discoverUse")}</button>
                 </li>
               ))}
             </ul>
+          ) : (
+            <OpenUiNotice className="anchor-drawer__empty" icon={<Compass size={17} aria-hidden="true" />} title={t("discoverEmpty")}>
+              {t("onboardBrowse")}
+            </OpenUiNotice>
           )}
-        </div>
-      </details>
+        </OpenUiPanel>
+      )}
 
-      {/* Register a new custom anchor. */}
-      <details className="custom-anchor-register" ref={registerRef}>
-        <summary>
-          <span>{t("registerPanelTitle")}</span>
-          <ChevronDown size={16} aria-hidden="true" />
-        </summary>
-        <div className="custom-anchor-register__body">
-          <div className="custom-anchor-section-head">
-            <span>{t("registerPanelLabel")}</span>
-            <p>{t("registerPanelBody")}</p>
+      {drawerMode === "register" && (
+        <OpenUiPanel
+          className="anchor-drawer__panel anchor-drawer__panel--register"
+          icon={<BadgeCheck size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("registerPanelTitle")}
+          subtitle={`${candidateCount}/21`}
+        >
+          <OpenUiNotice className="anchor-drawer__notice" icon={<BadgeCheck size={17} aria-hidden="true" />} title={t("registerPanelLabel")}>
+            {t("registerPanelBody")}
+          </OpenUiNotice>
+          <div className="anchor-register">
+            <OpenUiTextField
+              className="anchor-field"
+              inputClassName="anchor-input"
+              label={t("registerAnchorAppId")}
+              value={registerDraft}
+              onChange={(event) => setRegisterDraft(event.target.value)}
+              placeholder="custom-anchor:team:nonce"
+              spellCheck={false}
+              mono
+            />
+            <OpenUiSegmented
+              className="anchor-mode"
+              label={t("registerPanelLabel")}
+              value={String(registerMode)}
+              onChange={(value) => setRegisterMode(value === "1" ? 1 : 2)}
+              options={[
+                { value: "1", label: t("registerModeTrust") },
+                { value: "2", label: t("registerModeProfit") },
+              ]}
+              hint={registerMode === 1 ? t("registerModeTrustDesc") : t("registerModeProfitDesc")}
+            />
+            <OpenUiTextArea
+              className="anchor-field anchor-field--candidates"
+              textareaClassName="anchor-candidates-input"
+              label={t("registerCandidatesLabel")}
+              value={candidateDraft}
+              onChange={(event) => setCandidateDraft(event.target.value)}
+              placeholder={t("registerCandidatesPlaceholder")}
+              rows={4}
+              hint={t("registerCandidatesHint")}
+            />
+            <div className="anchor-register__foot">
+              <span>{t("registerCandidatesCount", { count: candidateCount })}</span>
+              <button
+                type="button"
+                disabled={!canRegister}
+                onClick={() => void dispatch("register", { anchorAppId: registerDraft.trim(), mode: registerMode, candidates: candidateDraft })}
+              >
+                {t("registerAction")}
+              </button>
+            </div>
           </div>
-          <form
-            className="custom-anchor-form custom-anchor-register-form"
-            onSubmit={handleRegister}
-          >
-            <label>
-              <span>{t("registerAnchorAppId")}</span>
-              <input
-                value={registerInput}
-                onChange={(event) =>
-                  setRegisterInput(event.currentTarget.value)
-                }
-                placeholder="custom-anchor:team:nonce"
-                autoComplete="off"
-                aria-invalid={registerInput.length > 0 && !registerInputValid}
-              />
-            </label>
-            <div
-              className="custom-anchor-mode-toggle"
-              role="radiogroup"
-              aria-label={t("registerPanelTitle")}
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={registerMode === 1}
-                aria-label={t("registerModeTrust")}
-                className={`custom-anchor-mode${registerMode === 1 ? " active" : ""}`}
-                onClick={() => handleSelectMode(1)}
-              >
-                <ShieldCheck size={17} aria-hidden="true" />
-                <span>
-                  <strong>{t("registerModeTrust")}</strong>
-                  <small>{t("registerModeTrustDesc")}</small>
-                </span>
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={registerMode === 2}
-                aria-label={t("registerModeProfit")}
-                className={`custom-anchor-mode${registerMode === 2 ? " active" : ""}`}
-                onClick={() => handleSelectMode(2)}
-              >
-                <Coins size={17} aria-hidden="true" />
-                <span>
-                  <strong>{t("registerModeProfit")}</strong>
-                  <small>{t("registerModeProfitDesc")}</small>
-                </span>
-              </button>
-            </div>
-            <div className="custom-anchor-candidate-kit">
-              <div className="custom-anchor-candidate-kit__head">
-                <div>
-                  <span>{t("candidateKitTitle")}</span>
-                  <strong>{candidateStatusLabel}</strong>
-                </div>
-                <span
-                  className={`custom-anchor-candidates__count${candidatesValid ? " valid" : ""}`}
-                  aria-live="polite"
-                >
-                  {t("registerCandidatesCount").replace(
-                    "{count}",
-                    String(validCandidateCount),
-                  )}
-                </span>
-              </div>
-              <div className="custom-anchor-candidate-kit__preview">
-                <span
-                  className="custom-anchor-candidate-kit__icon"
-                  aria-hidden="true"
-                >
-                  {candidatesValid ? (
-                    <BadgeCheck size={18} />
-                  ) : (
-                    <CircleAlert size={18} />
-                  )}
-                </span>
-                <div>
-                  <strong>{t("candidatePreviewTitle")}</strong>
-                  {candidatePreview.length > 0 ? (
-                    <ul>
-                      {candidatePreview.map((key, index) => (
-                        <li key={`${index}-${key}`}>{truncate(key)}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{t("candidatePreviewEmpty")}</p>
-                  )}
-                  {remainingCandidateCount > 0 && (
-                    <small>
-                      {t("candidateRemaining").replace(
-                        "{count}",
-                        String(remainingCandidateCount),
-                      )}
-                    </small>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="custom-anchor-button custom-anchor-button--ghost"
-                  disabled={busy}
-                  onClick={fillDefaultCandidates}
-                >
-                  <Search size={15} aria-hidden="true" />
-                  {t("registerCandidatesUseDefault")}
-                </button>
-              </div>
-              <div className="custom-anchor-field">
-                <label>
-                  <span>{t("registerCandidatesLabel")}</span>
-                  <textarea
-                    className="custom-anchor-candidates"
-                    value={candidatesInput}
-                    onChange={(event) =>
-                      setCandidatesInput(event.currentTarget.value)
-                    }
-                    placeholder={t("registerCandidatesPlaceholder")}
-                    rows={5}
-                    spellCheck={false}
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    aria-invalid={
-                      candidatesInput.trim().length > 0 && !candidatesValid
-                    }
-                    aria-describedby="custom-anchor-candidates-hint"
-                  />
-                </label>
-                <small
-                  id="custom-anchor-candidates-hint"
-                  className="custom-anchor-field-hint"
-                >
-                  {t("registerCandidatesHint")}
-                </small>
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="custom-anchor-button custom-anchor-button--primary custom-anchor-submit-button"
-              disabled={registerDisabled}
-            >
-              {busyAction === "register"
-                ? t("submitting")
-                : t("registerAction")}
-            </button>
-          </form>
-          <p className="custom-anchor-register__note">
-            {t("registerAgentsNote")}
-          </p>
-          <p className="custom-anchor-register__note">
-            {t("registerProvisionedNote")}
-          </p>
-        </div>
-      </details>
+        </OpenUiPanel>
+      )}
 
-      {/* Routing model — collapsed by default to keep the surface civic, not operator-dense. */}
-      <details className="custom-anchor-model">
-        <summary>
-          <span>{t("routingDetails")}</span>
-          <ChevronDown size={16} aria-hidden="true" />
-        </summary>
-        <div className="custom-anchor-model__body">
-          <p>{t("agentModelBody")}</p>
-          <p className="custom-anchor-source-line">
-            {t("launchSource")}: <strong>{displayedAnchor}</strong>
-          </p>
-        </div>
-      </details>
+      {drawerMode === "safety" && (
+        <OpenUiPanel
+          className="anchor-drawer__panel anchor-drawer__panel--safety"
+          icon={<ShieldCheck size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("docSafety")}
+          subtitle={workflowStatus}
+        >
+          <OpenUiNotice className="anchor-drawer__notice" icon={<ShieldCheck size={17} aria-hidden="true" />} title={t("safetyRail")}>
+            {t("docSafetyBody")}
+          </OpenUiNotice>
+          {creditAvailable && (
+            <div className="anchor-credit-card">
+              <span><WalletCards size={15} />{t("creditTitle")}</span>
+              <p>{t("creditBody")}</p>
+              <div className="anchor-credit">
+                <span>{t("creditNeo")}: <strong>{neoCredit}</strong></span>
+                <button type="button" onClick={() => void dispatch("recoverCredit", "NEO")} disabled={!hasPositiveAmount(neoCredit) || busy}>{t("recoverNeo")}</button>
+                <span>{t("creditGas")}: <strong>{gasCredit}</strong></span>
+                <button type="button" onClick={() => void dispatch("recoverCredit", "GAS")} disabled={!hasPositiveAmount(gasCredit) || busy}>{t("recoverGas")}</button>
+              </div>
+            </div>
+          )}
+          <p className="anchor-drawer-status" role="status">{workflowStatus}</p>
+          {lastTxid && <p className="anchor-tx">{t("lastTxid")}: {compact(lastTxid)}</p>}
+        </OpenUiPanel>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="custom-anchor-play-area mx2 mx2-cat-defi">
+      <OpenUiProvider>
+        <PlayStage
+          category="defi"
+          stage={{
+            eyebrow: t("civicEyebrow"),
+            title: t("title"),
+            subtitle: t("subtitle"),
+            badges: (
+              <>
+                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{modeLabel}</span>
+                <span className="mx2-badge">{agentCount}/21 {t("agentCount")}</span>
+              </>
+            ),
+          }}
+          scene={scene}
+          actions={{
+            primary: {
+              label: submitting || pulseAction === "stake" ? t("stakeSubmitting") : t("stakeAction"),
+              onClick: () => runAction("stake"),
+              loading: submitting || pulseAction === "stake",
+              disabled: !canStake,
+              icon: <LockKeyhole size={17} />,
+            },
+            secondary: [
+              {
+                label: t("withdrawAction"),
+                onClick: () => runAction("withdraw"),
+                loading: pulseAction === "withdraw",
+                disabled: !canWithdraw,
+                icon: <RefreshCw size={16} />,
+              },
+              {
+                label: t("claimAction"),
+                onClick: () => runAction("claimRewards"),
+                loading: pulseAction === "claimRewards",
+                disabled: !canClaim,
+                icon: <Coins size={16} />,
+              },
+            ],
+          }}
+          drawerToggleLabel={t("discoverLabel")}
+          drawer={{ title: t("discoverLabel"), children: drawer }}
+        />
+      </OpenUiProvider>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeCatalogCategory } from "./lib/miniapp-category.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -137,8 +138,8 @@ function buildCatalogItem(slug, manifest) {
   const developer = asObject(manifest.developer);
   const standalonePath = normalizeStandaloneEntry(manifest, slug);
   const manifestPath = `/miniapps/${slug}/neo-manifest.json`;
-  const iconPath = normalizeAssetUrl(urls.icon, slug, "logo.jpg");
-  const bannerPath = normalizeAssetUrl(urls.banner, slug, "banner.jpg");
+  const iconPath = normalizeAssetUrl(urls.icon, slug, "logo.webp");
+  const bannerPath = normalizeAssetUrl(urls.banner, slug, "banner.webp");
   const name = asString(manifest.name, appId);
   const nameZh = asString(manifest.name_zh);
   const nameJa = asString(manifest.name_ja);
@@ -176,7 +177,7 @@ function buildCatalogItem(slug, manifest) {
     description,
     description_zh: descriptionZh || undefined,
     description_ja: descriptionJa || undefined,
-    category: asString(manifest.category, "utility"),
+    category: normalizeCatalogCategory(manifest.category),
     tags,
     version: asString(manifest.version, "1.0.0"),
     dapp_url: standalonePath,

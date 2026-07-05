@@ -5,8 +5,8 @@ import {
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { formatNumber } from "@shared/utils/format";
-import { PROFITANCHOR_AGENT_ACCOUNTS } from "../../profitanchor/src/pages/index/data/agentAccounts";
+import { formatNum } from "@shared/utils/format";
+import { PROFITANCHOR_AGENT_ACCOUNTS } from "../../profitanchor/src/data/agentAccounts";
 import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
@@ -39,12 +39,11 @@ defineMiniApp({
   setup(ctx) {
     const { notify } = ctx.services;
     const anchor = useProfitAnchor({
-      chain: ctx.services.chain,
+      app: ctx.framework,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
     const agentAccounts = PROFITANCHOR_AGENT_ACCOUNTS;
-    const formatNum = (n: number | string) => formatNumber(n, 2);
 
     // Per-agent NEO balances, keyed by agent account address. NEO sits in each
     // agent's own account (not in PlatformAnchor), so balance is a read-only
@@ -144,7 +143,7 @@ defineMiniApp({
       [anchor.adminInfo],
     );
 
-    ctx.registerAction("transferAgentNeo", async (...args: unknown[]) => {
+    ctx.framework.actions.register("transferAgentNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       await notify.guard(
         () =>
@@ -156,14 +155,14 @@ defineMiniApp({
         "anchorTransferSubmitted",
       );
     });
-    ctx.registerAction("setAgentCandidate", async (...args: unknown[]) => {
+    ctx.framework.actions.register("setAgentCandidate", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       await notify.guard(
         () => anchor.setAgentCandidate(form.agentId, form.candidate),
         "candidateUpdateSubmitted",
       );
     });
-    ctx.registerAction("voteAgent", async (...args: unknown[]) => {
+    ctx.framework.actions.register("voteAgent", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       await notify.guard(
         () => anchor.voteAgent(form.agentId),

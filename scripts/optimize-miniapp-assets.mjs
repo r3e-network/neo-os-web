@@ -12,7 +12,7 @@ const args = new Set(process.argv.slice(2));
 const force = args.has("--force");
 const replaceLarger = args.has("--replace-larger");
 
-const JPG_NAMES = new Set(["logo.jpg", "banner.jpg"]);
+const JPG_NAMES = new Set(["logo.webp", "banner.webp"]);
 
 async function pathExists(filePath) {
   try {
@@ -71,7 +71,7 @@ async function shouldWrite(source, output) {
 }
 
 async function writeVariant(source, ext) {
-  const output = source.replace(/\.jpg$/i, `.${ext}`);
+  const output = source.replace(/\.(jpe?g|png|webp)$/i, `.${ext}`);
   if (!(await shouldWrite(source, output))) {
     const stat = await fs.stat(output);
     return { output, bytes: stat.size, skipped: true };

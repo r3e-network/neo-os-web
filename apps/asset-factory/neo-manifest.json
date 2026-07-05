@@ -20,8 +20,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/asset-factory/index.html",
-    "icon": "/miniapp-assets/asset-factory/logo.svg",
-    "banner": "/miniapp-assets/asset-factory/banner.svg"
+    "icon": "/miniapp-assets/asset-factory/logo.webp",
+    "banner": "/miniapp-assets/asset-factory/banner.webp"
   },
   "permissions": ["invoke:primary", "wallet:sign-message", "read:blockchain"],
   "features": {

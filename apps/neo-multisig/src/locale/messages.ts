@@ -1,6 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  title: { en: "App", zh: "应用" },
   appTitle: {
     en: "Neo Multisig",
     zh: "Neo 多重签名",

@@ -13,6 +13,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { ArrowRight, ChevronDown, SlidersHorizontal } from "lucide-react";
 import type {
   OperationDefinition,
   OperationFieldDefinition,
@@ -316,8 +317,23 @@ export function MiniAppOperationPanel({
       if (field.type === "amount" || field.type === "number") {
         const num = Number(value);
         if (
+          field.type === "amount" &&
+          isWholeAmountField(field) &&
+          value !== "" &&
+          value != null &&
+          !parseWholeTokenAmount(String(value))
+        ) {
+          errorMsg = t("fieldInvalidFormat");
+          setFormErrors((prev) => ({
+            ...prev,
+            [opKey]: { ...(prev[opKey] ?? {}), [field.key]: errorMsg },
+          }));
+          return false;
+        }
+        if (
           scaleAmounts &&
           field.type === "amount" &&
+          !isWholeAmountField(field) &&
           value !== "" &&
           value != null &&
           !parsePositiveFixed8(String(value))
@@ -445,6 +461,21 @@ export function MiniAppOperationPanel({
               data[field.key] !== "" &&
               data[field.key] != null
             ) {
+              if (isWholeAmountField(field)) {
+                const whole = parseWholeTokenAmount(String(data[field.key]));
+                if (!whole) {
+                  setFormErrors((prev) => ({
+                    ...prev,
+                    [op.key]: {
+                      ...(prev[op.key] ?? {}),
+                      [field.key]: t("fieldInvalidFormat"),
+                    },
+                  }));
+                  return;
+                }
+                data[field.key] = whole;
+                continue;
+              }
               const fixed8 = parsePositiveFixed8(String(data[field.key]));
               if (!fixed8) {
                 setFormErrors((prev) => ({
@@ -480,12 +511,15 @@ export function MiniAppOperationPanel({
   return (
     <div className="operation-panels">
       <div className="operation-panel-header">
+        <span className="operation-panel-icon" aria-hidden="true">
+          <SlidersHorizontal size={16} />
+        </span>
         <div>
           <span className="operation-panel-eyebrow">
-            {resolveStaticLabel("operationsPanelEyebrow", "Focus action")}
+            {resolveStaticLabel("operationsPanelEyebrow", "Action")}
           </span>
           <strong>
-            {resolveStaticLabel("operationsPanelTitle", "Operations")}
+            {resolveStaticLabel("operationsPanelTitle", "Choose what to do")}
           </strong>
         </div>
         <span className="operation-panel-count">{operations.length}</span>
@@ -493,13 +527,13 @@ export function MiniAppOperationPanel({
 
       <div className="operation-workflow" aria-hidden="true">
         <span className="operation-workflow__step operation-workflow__step--active">
-          {resolveStaticLabel("operationWorkflowConfigure", "Configure")}
+          {resolveStaticLabel("operationWorkflowConfigure", "Choose")}
         </span>
         <span className="operation-workflow__step">
-          {resolveStaticLabel("operationWorkflowPreview", "Preview")}
+          {resolveStaticLabel("operationWorkflowPreview", "Review")}
         </span>
         <span className="operation-workflow__step">
-          {resolveStaticLabel("operationWorkflowSubmit", "Submit")}
+          {resolveStaticLabel("operationWorkflowSubmit", "Confirm")}
         </span>
       </div>
 
@@ -547,8 +581,9 @@ export function MiniAppOperationPanel({
         <details className="operation-secondary">
           <summary>
             <span>
-              {resolveStaticLabel("advancedOperations", "Advanced / Operator")}
+              {resolveStaticLabel("advancedOperations", "More actions")}
             </span>
+            <ChevronDown size={14} aria-hidden="true" />
             <small>{operationGroups.secondary.length}</small>
           </summary>
           <div className="operation-secondary__grid">
@@ -579,19 +614,22 @@ export function MiniAppOperationPanel({
     const label = resolveFieldLabel(field);
 
     switch (field.type) {
-      case "amount":
+      case "amount": {
+        const wholeAmount = isWholeAmountField(field);
+        const assetUnit = field.asset ?? "GAS";
         return renderInput(opKey, field, {
           type: "text",
           label,
-          placeholder: field.placeholder ?? "0.00",
+          placeholder: field.placeholder ?? (wholeAmount ? "1" : "0.00"),
           min: field.validation?.min?.toString(),
           max: field.validation?.max?.toString(),
-          inputMode: "decimal",
-          pattern: "[0-9]*[.]?[0-9]*",
-          suffix: "GAS",
+          inputMode: wholeAmount ? "numeric" : "decimal",
+          pattern: wholeAmount ? "[0-9]*" : "[0-9]*[.]?[0-9]*",
+          suffix: assetUnit,
           error,
           value,
         });
+      }
 
       case "address":
         return renderInput(opKey, field, {
@@ -624,50 +662,96 @@ export function MiniAppOperationPanel({
         });
 
       case "select":
-        return (
-          <div className="field-select">
-            {label && <label className="field-label">{label}</label>}
-            <select
-              className="neo-select"
-              value={String(value)}
-              required={field.required}
-              aria-label={label || field.key}
-              onChange={(e) => setFieldValue(opKey, field.key, e.target.value)}
-            >
-              <option value="" disabled>
-                {field.placeholder || t("select")}
-              </option>
-              {(field.options ?? []).map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.labelKey ? t(opt.labelKey) : (opt.label ?? opt.value)}
-                </option>
-              ))}
-            </select>
-          </div>
-        );
+        return renderChoiceField(opKey, field, value, label, error);
 
-      case "toggle":
+      case "toggle": {
+        const enabled = Boolean(value);
         return (
           <div className="field-toggle">
-            <label className="toggle-label">
-              <input
-                type="checkbox"
-                className="toggle-input"
-                checked={Boolean(value)}
-                aria-label={label || field.key}
-                onChange={(e) =>
-                  setFieldValue(opKey, field.key, e.target.checked)
-                }
-              />
-              <span className="toggle-switch" />
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled}
+              aria-label={label || field.key}
+              className={`toggle-label${enabled ? " toggle-label--checked" : ""}`}
+              onClick={() => setFieldValue(opKey, field.key, !enabled)}
+            >
               {label && <span className="toggle-text">{label}</span>}
-            </label>
+              <span className="toggle-switch" aria-hidden="true" />
+            </button>
           </div>
         );
+      }
 
       default:
         return null;
     }
+  }
+
+  function renderChoiceField(
+    opKey: string,
+    field: OperationFieldDefinition,
+    value: unknown,
+    label?: string,
+    error?: string,
+  ) {
+    const choiceId = `op-${opKey}-${field.key}-choice`;
+    const errorId = `${choiceId}-error`;
+    return (
+      <div className={`field-choice${error ? " field-choice--error" : ""}`}>
+        {label && (
+          <span id={choiceId} className="field-label">
+            {label}
+          </span>
+        )}
+        <div
+          className="field-choice__options"
+          role="radiogroup"
+          aria-label={label ? undefined : field.key}
+          aria-labelledby={label ? choiceId : undefined}
+          aria-describedby={error ? errorId : undefined}
+          aria-required={field.required || undefined}
+        >
+          {(field.options ?? []).map((opt) => {
+            const optionLabel = opt.labelKey
+              ? t(opt.labelKey)
+              : (opt.label ?? opt.value);
+            const selected = String(value) === opt.value;
+            const showValue = optionLabel !== opt.value;
+
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={`${label || field.key}: ${optionLabel}`}
+                className={`field-choice__button${
+                  selected ? " field-choice__button--active" : ""
+                }`}
+                onClick={() => setFieldValue(opKey, field.key, opt.value)}
+              >
+                <span className="field-choice__copy">
+                  <strong>{optionLabel}</strong>
+                  {showValue && <small>{opt.value}</small>}
+                </span>
+                <span className="field-choice__indicator" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+        {error && (
+          <span
+            id={errorId}
+            className="neo-input__error"
+            role="alert"
+            aria-live="assertive"
+          >
+            {error}
+          </span>
+        )}
+      </div>
+    );
   }
 
   function renderInput(
@@ -737,6 +821,8 @@ export function MiniAppOperationPanel({
   function renderOperationCard(operation: OperationDefinition) {
     const visibleFields =
       operation.fields?.filter((field) => !field.hidden) ?? [];
+    const choiceFields = visibleFields.filter(isChoiceLikeField);
+    const entryFields = visibleFields.filter((field) => !isChoiceLikeField(field));
     const claimOnlyOperation = isOneGateClaimOperation(operation);
     const claimKeyValue = claimOnlyOperation
       ? String(
@@ -782,29 +868,49 @@ export function MiniAppOperationPanel({
             </p>
           )}
 
-          <div className="operation-card-section">
-            <span className="operation-card-section__label">
-              {visibleFields.length > 0
-                ? resolveStaticLabel("operationWorkflowConfigure", "Configure")
-                : resolveStaticLabel("operationReady", "Ready")}
-            </span>
-            {visibleFields.length > 0 ? (
-              <div className="operation-fields">
-              {visibleFields.map((field) => (
-                <div key={field.key} className="operation-field">
-                  {renderField(operation.key, field)}
-                </div>
-              ))}
+          {choiceFields.length > 0 && (
+            <div className="operation-card-section operation-card-section--choices">
+              <span className="operation-card-section__label">
+                {resolveStaticLabel("operationChoiceLabel", "Choose")}
+              </span>
+              <div className="operation-fields operation-fields--choices">
+                {choiceFields.map((field) => (
+                  <div key={field.key} className="operation-field">
+                    {renderField(operation.key, field)}
+                  </div>
+                ))}
               </div>
-            ) : (
+            </div>
+          )}
+
+          {entryFields.length > 0 && (
+            <div className="operation-card-section operation-card-section--details">
+              <span className="operation-card-section__label">
+                {resolveStaticLabel("operationDetailsLabel", "Details")}
+              </span>
+              <div className="operation-fields operation-fields--details">
+                {entryFields.map((field) => (
+                  <div key={field.key} className="operation-field">
+                    {renderField(operation.key, field)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {visibleFields.length === 0 && (
+            <div className="operation-card-section operation-card-section--ready">
+              <span className="operation-card-section__label">
+                {resolveStaticLabel("operationReady", "Ready")}
+              </span>
               <p className="operation-ready-copy">
                 {resolveStaticLabel(
                   "operationNoExtraFields",
-                  "No extra fields are needed for this action.",
+                  "Ready when you are.",
                 )}
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {hasStateSummary(operation) && (
             <div className="operation-summary">
@@ -820,7 +926,7 @@ export function MiniAppOperationPanel({
           {actionLabel && (
             <button
               type="button"
-              className={`neo-btn neo-btn--primary neo-btn--lg neo-btn--block operation-action-btn${isSubmitting(operation.key) ? " neo-btn--loading" : ""}`}
+              className={`neo-btn neo-btn--primary neo-btn--lg operation-action-btn${isSubmitting(operation.key) ? " neo-btn--loading" : ""}`}
               disabled={
                 isSubmitting(operation.key) || !isFormValid(operation.key)
               }
@@ -832,6 +938,7 @@ export function MiniAppOperationPanel({
                 <span className="neo-btn__spinner" aria-hidden="true" />
               )}
               <span>{buttonLabel}</span>
+              {!submitting && <ArrowRight size={16} aria-hidden="true" />}
             </button>
           )}
         </div>
@@ -853,6 +960,10 @@ function isOneGateClaimOperation(operation: OperationDefinition): boolean {
     return normalized === "claimkey" || normalized === "key";
   });
   return Boolean(claimKeyField && /claim/.test(text));
+}
+
+function isChoiceLikeField(field: OperationFieldDefinition): boolean {
+  return field.type === "select" || field.type === "toggle";
 }
 
 function submittingActionLabel(
@@ -892,6 +1003,16 @@ function formatPreviewAmount(value: unknown): string {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount <= 0) return "0";
   return amount.toFixed(2).replace(/\.00$/, "");
+}
+
+function isWholeAmountField(field: OperationFieldDefinition): boolean {
+  return field.asset === "NEO" || field.validation?.integer === true;
+}
+
+function parseWholeTokenAmount(value: string): string | null {
+  const text = value.trim();
+  if (!/^0*[1-9]\d*$/.test(text)) return null;
+  return text.replace(/^0+(?=\d)/, "");
 }
 
 function splitOperations(operations: OperationDefinition[]): {

@@ -31,8 +31,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/neo-x-bridge/index.html",
-    "icon": "/miniapps/neo-x-bridge/logo.jpg",
-    "banner": "/miniapps/neo-x-bridge/banner.jpg"
+    "icon": "/miniapps/neo-x-bridge/logo.webp",
+    "banner": "/miniapps/neo-x-bridge/banner.webp"
   },
   "permissions": [
     "read:blockchain"

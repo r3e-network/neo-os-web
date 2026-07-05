@@ -152,9 +152,9 @@
   "tags": [],
   "updatedAt": "2026-06-01T00:00:00Z",
   "urls": {
-    "banner": "/miniapps/time-capsule/banner.jpg",
+    "banner": "/miniapps/time-capsule/banner.webp",
     "entry": "/miniapps/time-capsule/index.html",
-    "icon": "/miniapps/time-capsule/logo.jpg"
+    "icon": "/miniapps/time-capsule/logo.webp"
   },
   "version": "1.0.0"
 }
