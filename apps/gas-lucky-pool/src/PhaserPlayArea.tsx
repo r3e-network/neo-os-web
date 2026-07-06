@@ -18,10 +18,19 @@ const GAME_CONFIG = { scene: [GasLuckyPoolScene], width: 420, height: 580 } as c
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const bridgeState = {
+    currentClaimKey:       str("currentClaimKey", ""),
+    currentPoolId:         str("currentPoolId", ""),
+    currentRange:          str("currentRange", t("rewardRangeDefault")),
+    claimProgress:         str("claimProgress", ""),
+    claimStatus:           str("claimStatus", ""),
     lastClaimAmount:      val<bigint>("lastClaimAmount") ?? 0n,
     lastClaimLuckPercent: str("lastClaimLuckPercent", ""),
     lastTxid:             str("lastTxid", ""),
     lastStatus:           str("lastStatus", ""),
+    lastSuccessType:      str("lastSuccessType", ""),
+    lastError:            str("lastError", ""),
+    isCreating:           bool("isCreating"),
+    isClaiming:           bool("isClaiming"),
     isLoading:            bool("isLoading"),
   };
   return (
