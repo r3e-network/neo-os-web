@@ -1,6 +1,10 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  playTab: { en: "Game", zh: "游戏" },
+  startAction: { en: "Start game", zh: "开始游戏" },
+  rulesTitle: { en: "How to play", zh: "玩法说明" },
+  ranksTab: { en: "Recent rolls", zh: "最近掷骰" },
   rollTab: { en: "Roll", zh: "掷骰" },
   rulesTab: { en: "Rules", zh: "规则" },
   rollSummary: { en: "Roll summary", zh: "掷骰摘要" },
