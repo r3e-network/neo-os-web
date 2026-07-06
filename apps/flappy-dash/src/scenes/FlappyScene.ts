@@ -27,7 +27,7 @@
  *  - "expireGame"      {}
  */
 
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState as BridgeState } from "@framework/phaser";
 import {

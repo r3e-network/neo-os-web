@@ -5,7 +5,7 @@
  * animated flame layers using layered ellipses that oscillate, ember particle
  * system, leaderboard below. Dark ember-red atmosphere.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

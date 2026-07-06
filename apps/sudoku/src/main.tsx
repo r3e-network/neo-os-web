@@ -10,7 +10,7 @@ import { createObservable, defineMiniApp } from "@shared/react";
 import type { RewardGameSession } from "@framework/gamefi";
 import { mapField } from "@framework/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
@@ -50,7 +50,7 @@ export type { LeaderEntry, SolveRow };
 
 defineMiniApp({
   appId,
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

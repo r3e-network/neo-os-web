@@ -43,7 +43,7 @@ import "./PlayArea.scss";
 
 // ── Game config ───────────────────────────────────────────────────────────────
 
-import type Phaser from "phaser";
+import type * as Phaser from "phaser";
 
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   scene: [SnakeScene],

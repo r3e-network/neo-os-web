@@ -5,7 +5,7 @@
  * gold diamond seal, 福 character center, folded envelope flap,
  * gold confetti on win (Graphics, no emoji), send/receive panels.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

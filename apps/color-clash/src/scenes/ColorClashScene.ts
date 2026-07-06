@@ -5,7 +5,7 @@
  * bright saturated colors, hard-edge glow on flash, round counter,
  * beat-style scale pulse. Matches the original Simon electronic toy.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

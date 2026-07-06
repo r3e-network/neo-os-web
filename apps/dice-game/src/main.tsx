@@ -9,7 +9,7 @@ import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { gasToWei, evmCall, decodeReturnWord } from "@shared/utils/evm-chain";
 import type { EvmNetwork } from "@shared/utils/evm-chain";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import {
@@ -137,7 +137,7 @@ function parseBetId(value: unknown): string {
 
 defineMiniApp({
   appId,
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

@@ -1,7 +1,7 @@
 import { createObservable, defineMiniApp } from "@shared/react";
 import { parseBigInt } from "@shared/utils/parsers";
 import { asNumber } from "@framework/game";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import {
@@ -45,7 +45,7 @@ const rewardGameConfig: RewardGameConfig = {
 
 defineMiniApp({
   appId,
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

@@ -8,7 +8,7 @@ import {
   mapField,
   normalizedHash as normHash,
 } from "@framework/gamefi";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { ENTRY_MEMO, ruleOf, statusOf, gasDisplay } from "./logic/game-rules";
@@ -44,7 +44,7 @@ export interface RunRow {
 
 defineMiniApp({
   appId,
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

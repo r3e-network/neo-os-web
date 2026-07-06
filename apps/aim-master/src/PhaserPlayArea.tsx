@@ -13,7 +13,7 @@ import { AimMasterScene } from "./scenes/AimMasterScene";
 import { ruleOf, formatClock, gasDisplay } from "./logic/game-rules";
 import "./PlayArea.scss";
 
-import type Phaser from "phaser";
+import type * as Phaser from "phaser";
 
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   scene:  [AimMasterScene],
