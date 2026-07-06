@@ -151,9 +151,12 @@ export async function teeMove(
     op,
     ...(replay ? { replay } : {}),
   });
+  const view = raw.view && typeof raw.view === "object"
+    ? raw.view as Record<string, unknown>
+    : {};
   return {
     ok: raw.ok !== false,
-    cards: parseCards(raw.cards ?? raw.view?.cards),
+    cards: parseCards(raw.cards ?? view.cards),
     matched: raw.matched === true,
     won: raw.won === true,
     shuffleLeft: Number(raw.shuffle_left ?? raw.shuffleLeft ?? 1),

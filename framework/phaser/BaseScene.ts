@@ -9,7 +9,7 @@
  * Usage in a game scene:
  *
  * ```ts
- * import { BaseScene } from "@shared/phaser/BaseScene";
+ * import { BaseScene } from "@framework/phaser";
  *
  * export class DiceScene extends BaseScene {
  *   constructor() { super("DiceScene"); }
@@ -91,7 +91,6 @@ export abstract class BaseScene extends Phaser.Scene {
   // ── Scene resize ───────────────────────────────────────────────────────────
 
   /** Override to reposition/rescale scene objects on resize. */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onResize(_gameSize: Phaser.Structs.Size): void {
     // Default: no-op. Override in subclass.
   }
@@ -156,7 +155,7 @@ export abstract class BaseScene extends Phaser.Scene {
           }
         }
       }
-      config.onComplete?.();
+      (config.onComplete as (() => void) | undefined)?.();
       return null;
     }
     return this.tweens.add(config);
@@ -169,7 +168,8 @@ export abstract class BaseScene extends Phaser.Scene {
     this.destroyUnsubscribe?.();
     this.stateUnsubscribe = null;
     this.destroyUnsubscribe = null;
-    super.destroy(fromScene);
+    this.scale.off("resize", this.onResize, this);
+    void fromScene;
   }
 }
 

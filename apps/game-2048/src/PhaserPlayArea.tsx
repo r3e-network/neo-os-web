@@ -8,7 +8,7 @@
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { Game2048Scene } from "./scenes/Game2048Scene";
 import "./PlayArea.scss";
 
@@ -54,7 +54,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isPlaying  = gameStatus === "dealt";
   const isSolved   = gameStatus === "solved";
   const isExpired  = gameStatus === "expired";
-  const isIdle     = gameStatus === "idle";
   const isCommitted = gameStatus === "committed";
   const busy       = isStarting || isDealing || isSubmitting || isMoving;
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState } from "react";
 import type { PlayAreaProps } from "@shared/react";
-import { useStateBindings } from "@shared/react";
+import { useStateBindings, useT } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import {
   ruleOf,
@@ -16,6 +16,13 @@ import "./PlayArea.scss";
 
 /** A pet care-action op — structurally a generic session op. */
 type TeeOp = { type: "feed" } | { type: "play" } | { type: "pet" } | { type: "rest" };
+
+type PetActions = Record<string, (...args: unknown[]) => unknown>;
+
+type PetPlayAreaProps = Partial<Pick<PlayAreaProps, "t" | "dispatch">> & {
+  state: PlayAreaProps["state"] | Record<string, unknown>;
+  actions?: PetActions;
+};
 
 interface LeaderEntry {
   player: string;
@@ -66,7 +73,17 @@ function difficultyKey(difficulty: number): "easy" | "medium" | "hard" {
   return difficulty === 0 ? "easy" : difficulty === 1 ? "medium" : "hard";
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export function PlayArea(props: PetPlayAreaProps) {
+  const { t: fallbackT } = useT();
+  const t = props.t ?? fallbackT;
+  const { actions, dispatch: runtimeDispatch, state } = props;
+  const dispatch = useCallback(
+    async (name: string, ...args: unknown[]) => {
+      if (runtimeDispatch) return runtimeDispatch(name, ...args);
+      return actions?.[name]?.(...args);
+    },
+    [actions, runtimeDispatch],
+  );
   const { str, num, bool, val } = useStateBindings(state);
 
   // Extract state values
@@ -685,3 +702,5 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     </div>
   );
 }
+
+export default PlayArea;

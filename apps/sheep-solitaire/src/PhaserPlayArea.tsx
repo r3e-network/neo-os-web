@@ -7,7 +7,7 @@
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { SheepScene } from "./scenes/SheepScene";
 import "./PlayArea.scss";
 
@@ -88,25 +88,22 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
             height={580}
           />
         }
-        actions={
-          gameStatus === "solved"
+        actions={{
+          primary: gameStatus === "solved"
             ? {
-                primary: {
-                  label:   t("submitSolution"),
-                  onClick: () => void dispatch("submitRun"),
+                label:   t("submitSolution"),
+                onClick: () => void dispatch("submitRun"),
+              }
+            : undefined,
+          secondary: gameStatus === "dealt" && !isGameOver
+            ? [
+                {
+                  label:   t("expireGame"),
+                  onClick: () => void dispatch("expireGame"),
                 },
-              }
-            : gameStatus === "dealt" && !isGameOver
-            ? {
-                secondary: [
-                  {
-                    label:   t("expireGame"),
-                    onClick: () => void dispatch("expireGame"),
-                  },
-                ],
-              }
-            : undefined
-        }
+              ]
+            : undefined,
+        }}
         drawerToggleLabel={t("historyTitle")}
         drawer={{ children: <p>{t("fairnessNote")}</p> }}
       />

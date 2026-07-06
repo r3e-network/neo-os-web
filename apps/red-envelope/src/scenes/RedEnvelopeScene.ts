@@ -60,7 +60,7 @@ export class RedEnvelopeScene extends BaseScene {
     this.onStateUpdate(this.state);
   }
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const luckyMsg   = this.val<{ amount?: number; from?: string }>("luckyMessage");
     const openingId  = this.val<string>("openingId");
 
@@ -94,8 +94,8 @@ export class RedEnvelopeScene extends BaseScene {
     dec.lineStyle(2, C.gold, 0.5);
     dec.strokeRect(20, 20, W - 40, 32);
     this.add.text(W / 2, 36, "◇  吉 祥 如 意  ◇", {
-      fontSize: "12px", color: "#d4a843", alpha: 0.75,
-    }).setOrigin(0.5);
+      fontSize: "12px", color: "#d4a843",
+    }).setOrigin(0.5).setAlpha(0.75);
   }
 
   // ── Envelope ───────────────────────────────────────────────────────────────
@@ -144,9 +144,8 @@ export class RedEnvelopeScene extends BaseScene {
       fontSize: "11px",
       fontStyle: "bold",
       color: "#f0c866",
-      alpha: 0.7,
       letterSpacing: 3,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setAlpha(0.7);
 
     this.envelopeContainer.add([shadowEl, bodyG, decG, this.flapG, this.sealG, hint]);
   }

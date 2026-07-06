@@ -10,7 +10,7 @@ import {
 } from "./logic/game-rules";
 import "./PlayArea.scss";
 
-interface AppState {
+export interface AppState {
   credit: number;
   poolFree: number;
   activeGameId: string | null;
@@ -37,7 +37,7 @@ interface AppState {
   lastStatus: string;
 }
 
-interface Actions {
+export interface Actions {
   startGame: (difficulty: number) => Promise<void>;
   retryDeal: () => Promise<void>;
   recordMove: (fromRow: number, fromCol: number, toRow: number, toCol: number) => Promise<void>;
@@ -519,7 +519,7 @@ export function PlayArea({ state, actions }: Props) {
         <p className="mk-drawer__empty">{t("historyEmpty")}</p>
       ) : (
         <ul className="mk-history">
-          {state.myHistory.map((h, i) => (
+          {state.myHistory.map((h) => (
             <li key={`${h.gameId}-${h.solveMs}`} className="mk-history__row">
               <span>#{h.gameId.slice(0, 8)}</span>
               <span>{t(`difficulty_${DIFF_KEYS[h.difficulty]}`)}</span>

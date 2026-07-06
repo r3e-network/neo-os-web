@@ -1,7 +1,7 @@
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { BurnLeagueScene } from "./scenes/BurnLeagueScene";
 import "./PlayArea.scss";
 

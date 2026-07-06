@@ -2,7 +2,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { RedEnvelopeScene } from "./scenes/RedEnvelopeScene";
 import "./PlayArea.scss";
 
@@ -41,6 +41,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
             height={540}
           />
         }
+        actions={{}}
         drawerToggleLabel={t("historyTitle")}
         drawer={{ children: <p>{t("howItWorks")}</p> }}
       />

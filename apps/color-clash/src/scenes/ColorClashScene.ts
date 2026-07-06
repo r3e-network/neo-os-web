@@ -57,7 +57,7 @@ export class ColorClashScene extends BaseScene {
     this.onStateUpdate(this.state);
   }
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const status     = this.str("gameStatus", "idle");
     const lastSt     = this.str("lastStatus", "");
     const sequence   = this.str("sequence", "");
@@ -185,8 +185,7 @@ export class ColorClashScene extends BaseScene {
         fontSize: "22px",
         fontStyle: "bold",
         color: "#ffffff",
-        alpha: 0.5,
-      }).setOrigin(0.5);
+      }).setOrigin(0.5).setAlpha(0.5);
       this.padLabels.push(lbl);
     }
   }
@@ -242,7 +241,7 @@ export class ColorClashScene extends BaseScene {
     const R = Math.min(W, H) * 0.41;
     const innerR = R * 0.18;
     this.drawPad(this.padGraphics[index]!, cx, cy, R, innerR, 5, index, on);
-    this.padGlows[index]?.setAlpha(on ? 0.12 : 0);
+    this.padGlows[index]?.setAlpha(on ? alpha * 0.12 : 0);
     this.padLabels[index]?.setAlpha(on ? 0.95 : 0.5);
   }
 

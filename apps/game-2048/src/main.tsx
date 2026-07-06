@@ -76,6 +76,7 @@ defineMiniApp({
     const rewardGame = app.game.reward<TeeOp>(rewardGameConfig, {
       storagePrefix: OPS_STORAGE_PREFIX,
     });
+    const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;
 
     // ── Standard session observables ──────────────────────────────────────────
     const obs = app.game.session.observables<SolveRow>(ctx.t);
@@ -180,7 +181,7 @@ defineMiniApp({
       obs.isStarting.set(true);
       obs.lastStatus.set(ctx.t("statusStarting"));
       try {
-        const started = await rewardGame.start(difficulty);
+        const started = await startRewardGame(difficulty);
         const gameId  = started.gameId;
         obs.activeGameId.set(gameId);
         obs.gameDifficulty.set(difficulty);
@@ -274,7 +275,7 @@ defineMiniApp({
       try {
         if (!session) await resumeSession(gameId, obs.gameDifficulty.get());
         if (!session) throw new Error(ctx.t("statusFailed"));
-        const finalized = await rewardGame.finalize(session);
+        const finalized = await finalizeRewardGame(session);
         const settled   = finalized.settlement;
         obs.lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
         obs.lastElapsedMs.set(settled.elapsedMs);
