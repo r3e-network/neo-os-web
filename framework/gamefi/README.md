@@ -67,3 +67,9 @@ const finalized = await finalizeRewardGame(rewardConfig, ctx.services.chain, ses
 The SDK deliberately stays UI-free. Game screens should still render their own
 native-feeling play area, assets, animation, and controls; this layer owns only
 the financial and confidential-compute state machine.
+
+## Game Design Backlog
+
+See [MICROGAME_BACKLOG.md](./MICROGAME_BACKLOG.md) for candidate short-session
+GameFi games such as White Tile Rush, ten-second survival, stack timing, and
+other recognizable mobile challenge formats that fit this SDK.
