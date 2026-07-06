@@ -78,9 +78,9 @@ export class ColorClashScene extends BaseScene {
     // Phase label in center
     if (status === "dealt") {
       if (lastSt.includes("wrong") || lastSt === "wrong") {
-        this.phaseLabel.setText("✗ Wrong!").setColor("#f87171");
+        this.phaseLabel.setText("WRONG").setColor("#f87171");
       } else if (lastSt.includes("correct") || sequence.length > 0 && player.length === sequence.length) {
-        this.phaseLabel.setText("✓ Correct!").setColor("#4ade80");
+        this.phaseLabel.setText("CORRECT").setColor("#4ade80");
       } else if (player.length === 0 && sequence.length > 0) {
         this.phaseLabel.setText("WATCH").setColor("#fcd34d");
         this.startFlashSequence(sequence);

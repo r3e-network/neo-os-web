@@ -459,7 +459,7 @@ export class DiceScene extends BaseScene {
 
     switch (outcome) {
       case "won":
-        title.setText("🎉 YOU WIN!").setColor("#f0c866");
+        title.setText("YOU WIN").setColor("#f0c866");
         sub.setText(`Rolled: ${roll}  •  +${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
         this.addGoldCoins();
         break;
@@ -544,9 +544,22 @@ export class DiceScene extends BaseScene {
     const { width: W, height: H } = this.scale;
     for (let i = 0; i < 14; i++) {
       const x = Phaser.Math.Between(W * 0.1, W * 0.9);
-      const txt = this.add.text(x, H * 0.3, "🪙", { fontSize: "20px" });
+      const coin = this.add.container(x, H * 0.3);
+      const coinArt = this.add.graphics();
+      coinArt.fillStyle(0xffdf68, 1);
+      coinArt.fillCircle(0, 0, 10);
+      coinArt.lineStyle(2, 0xd09a2a, 1);
+      coinArt.strokeCircle(0, 0, 10);
+      coinArt.fillStyle(0xffffff, 0.36);
+      coinArt.fillCircle(-3, -4, 3);
+      const coinMark = this.add.text(0, 0, "G", {
+        fontSize: "10px",
+        fontStyle: "bold",
+        color: "#6b4e00",
+      }).setOrigin(0.5);
+      coin.add([coinArt, coinMark]);
       this.tweens.add({
-        targets: txt,
+        targets: coin,
         y: Phaser.Math.Between(H * 0.1, H * 0.6),
         x: x + Phaser.Math.Between(-60, 60),
         alpha: 0,
@@ -554,7 +567,7 @@ export class DiceScene extends BaseScene {
         delay: i * 50,
         duration: 900,
         ease: "Power2",
-        onComplete: () => txt.destroy(),
+        onComplete: () => coin.destroy(),
       });
     }
   }

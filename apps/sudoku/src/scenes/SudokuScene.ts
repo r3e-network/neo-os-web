@@ -606,14 +606,14 @@ export class SudokuScene extends BaseScene {
       const rewardPct = rewardPctAfterUndos(undosUsed);
       this.rewardLabel.setText(`${rewardPct}%`);
       this.undoBtnText.setText(
-        undosLeft > 0 ? `↩ Undo (${undosLeft} left)` : "↩ No undos left",
+        undosLeft > 0 ? `Undo (${undosLeft} left)` : "No undos left",
       );
 
       const undoBg = this.undoBtn.list[0] as Phaser.GameObjects.Rectangle;
       undoBg.setFillStyle(undosLeft > 0 && !busy ? C.btnBg : 0x1a1208);
 
       if (this.boardComplete && !busy) {
-        this.actionBtnText.setText("✓ Submit Solution");
+        this.actionBtnText.setText("Submit Solution");
         this.actionBtnBg.setFillStyle(C.green);
       } else if (busy) {
         this.actionBtnText.setText("Submitting…");
