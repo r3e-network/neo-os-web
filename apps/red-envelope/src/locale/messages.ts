@@ -2,6 +2,12 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   // App translations
+  appEyebrow: { en: "Red Envelope", zh: "Neo 红包" },
+  appTitle: { en: "Red Envelope", zh: "Neo 红包" },
+  appSubtitle: {
+    en: "Open a lucky GAS packet or send one from the creator controls.",
+    zh: "拆开一个幸运 GAS 红包，或在发起者控制区发送红包。",
+  },
   title: { en: "Red Envelope", zh: "红包" },
   subtitle: { en: "Lucky red packets", zh: "幸运红包" },
   createTab: { en: "Create", zh: "创建" },
@@ -53,6 +59,7 @@ const appMessages = {
   createdGasLabel: { en: "Created GAS", zh: "已创建 GAS" },
   claimedGasLabel: { en: "Claimed GAS", zh: "已领取 GAS" },
   recentClaimsTitle: { en: "Recent claims", zh: "最近领取" },
+  historyTitle: { en: "Claim history", zh: "领取历史" },
   noPoolsCopy: {
     en: "Create a GAS envelope or paste an ID from a OneGate QR to test the claim route.",
     zh: "创建 GAS 红包，或粘贴 OneGate 二维码里的 ID 来测试领取路径。",
@@ -162,6 +169,7 @@ const appMessages = {
   recentActivity: { en: "Recent claims", zh: "最近领取" },
   noActivity: { en: "No recent claims", zh: "暂无最近领取" },
   bestLuck: { en: "Best Luck", zh: "手气最佳" },
+  howItWorks: { en: "How it works", zh: "玩法说明" },
   copied: { en: "Link copied!", zh: "链接已复制！" },
   docSubtitle: { en: "Randomized GAS envelopes for social gifting", zh: "社交随机 GAS 红包" },
   docDescription: {

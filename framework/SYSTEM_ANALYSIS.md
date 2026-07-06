@@ -47,7 +47,7 @@ Miniapps should own product logic and presentation:
 - `ctx.framework.amount` standardizes GAS Fixed8 and whole-number NEO handling.
 - `ctx.framework.operations` exposes observable operation state for polished UI
   feedback and retry/error recovery.
-- `ctx.framework.game.reward(...)` wraps `@shared/gamefi` with current app id,
+- `ctx.framework.game.reward(...)` wraps `@framework/gamefi` with current app id,
   chain adapter, OneGate/platform-compatible storage, reward credit, settlement,
   and confidential op-log helpers.
 

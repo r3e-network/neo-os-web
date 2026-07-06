@@ -5,14 +5,14 @@
  * shortHash, parseLeaderboard, formatPayout) that every game's main.tsx
  * previously redeclared independently.
  *
- * Migrated from apps/shared/game/utils.ts; imports now use @shared/ alias.
+ * Migrated from apps/shared/game/utils.ts.
  */
 
-import { addressToScriptHash } from "@shared/utils/neo";
-import { fromFixed8 } from "@shared/utils/format";
-import { parseBigInt } from "@shared/utils/parsers";
-import { eventStateValue } from "@shared/utils/chain-events";
-import { eventHashMatches, normalizedHash } from "@shared/gamefi";
+import { addressToScriptHash } from "../utils/neo";
+import { fromFixed8 } from "../utils/format";
+import { parseBigInt } from "../utils/parsers";
+import { eventStateValue } from "../utils/chain-events";
+import { eventHashMatches, normalizedHash } from "../gamefi";
 import type { LeaderEntry, SolveRow, SolvedEventSlots } from "./types";
 
 // ─── Address / hash helpers ───────────────────────────────────────────────────

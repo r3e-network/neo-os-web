@@ -21,7 +21,7 @@ import {
 import type { RollOutcome } from "./dice-logic";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
-import { eventHashMatches as addrEq } from "@shared/gamefi";
+import { eventHashMatches as addrEq } from "@framework/gamefi";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { createBetTracker } from "./bet-tracker";
 

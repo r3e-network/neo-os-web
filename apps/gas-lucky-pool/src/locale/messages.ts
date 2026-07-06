@@ -1,6 +1,13 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessagesBase = {
+  appEyebrow: { en: "OneGate Vault", zh: "OneGate 金库" },
+  appTitle: { en: "OneGate Vault", zh: "OneGate 金库" },
+  appSubtitle: {
+    en: "Share a lucky GAS reward that opens cleanly inside OneGate.",
+    zh: "分享一份能在 OneGate 内顺畅领取的幸运 GAS 奖励。",
+  },
+  drawerTitle: { en: "Vault guide", zh: "金库指南" },
   title: { en: "OneGate Vault", zh: "OneGate 金库" },
   subtitle: {
     en: "1-50 GAS random rewards via OneGate QR",
@@ -383,6 +390,10 @@ const appMessagesBase = {
 } as const;
 
 const jaMessages = {
+  appEyebrow: "OneGate Vault",
+  appTitle: "OneGate Vault",
+  appSubtitle: "OneGate内できれいに開ける幸運のGAS報酬を共有します。",
+  drawerTitle: "金庫ガイド",
   title: "OneGate Vault（金庫）",
   subtitle: "OneGate QRで1〜50 GASのランダム報酬",
   playTab: "プール",

@@ -15,7 +15,7 @@ import {
   mapField,
   type RewardGameConfig,
   type RewardGameSession,
-} from "@shared/gamefi";
+} from "@framework/gamefi";
 import type { HitResult } from "./logic/aim-engine";
 
 const appId = "miniapp-aim-master";
@@ -68,7 +68,7 @@ defineMiniApp({
     const rewardGame = ctx.framework.game.reward<TeeOp>(rewardGameConfig, {
       storagePrefix: OPS_STORAGE_PREFIX,
     });
-    // The wrapper methods delegate verbatim to the @shared/gamefi
+    // The wrapper methods delegate verbatim to the @framework/gamefi
     // startRewardGame / finalizeRewardGame orchestration; keep the canonical
     // SDK verbs at the entry/settlement call sites.
     const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;

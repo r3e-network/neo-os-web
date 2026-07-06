@@ -2,7 +2,12 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   // App translations
+  appEyebrow: { en: "Last Survivor", zh: "最后生还者" },
   title: { en: "LastSurvivor", zh: "最后生还者" },
+  appSubtitle: {
+    en: "Buy keys, reset the clock, and survive as the final buyer when time expires.",
+    zh: "购买钥匙、重置倒计时，并在时间归零时成为最后买家。",
+  },
   connectWalletToPlay: { en: "Connect wallet to play", zh: "连接钱包开始游戏" },
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   survivalArena: { en: "Last Survivor arena", zh: "最后生还者竞技场" },
@@ -43,6 +48,8 @@ const appMessages = {
   winsIfZero: { en: "Wins if the timer hits zero", zh: "倒计时归零即获胜" },
   roundStatus: { en: "Round Status", zh: "轮次状态" },
   activeRound: { en: "Active", zh: "进行中" },
+  roundActive: { en: "Round live", zh: "轮次进行中" },
+  waitingForRound: { en: "Waiting for round", zh: "等待轮次开启" },
   inactiveRound: { en: "Rollover ready", zh: "可开启下一轮" },
   buyKeys: { en: "Insert Keys", zh: "装入钥匙" },
   buying: { en: "Inserting...", zh: "装填中..." },
@@ -73,6 +80,7 @@ const appMessages = {
     zh: "购买钥匙不可退款，并计入奖池。若在你之后有人购买，你将损失这笔花费——只有最终的最后购买者获胜。",
   },
   eventHistory: { en: "Event History", zh: "事件历史" },
+  historyTitle: { en: "Round history", zh: "轮次历史" },
   noHistory: { en: "No events yet", zh: "暂无事件记录" },
   failedToLoad: { en: "Failed to load data", zh: "加载数据失败" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
@@ -102,6 +110,7 @@ const appMessages = {
     zh: "倒计时已结束。请先结算本轮以支付赢家，随后将自动开启可购买的新一轮。",
   },
   settleRound: { en: "Settle Round", zh: "结算本轮" },
+  settleSeason: { en: "Settle round", zh: "结算本轮" },
   settlingRound: { en: "Settling...", zh: "结算中..." },
   settleRoundHint: {
     en: "Anyone can settle: the last buyer is paid the entire pot on-chain and a fresh round begins.",
@@ -175,6 +184,7 @@ const appMessages = {
   keySuffixOne: { en: "Key", zh: "把钥匙" },
   tokenGas: { en: "GAS", zh: "GAS" },
   howItWorks: { en: "How It Works", zh: "玩法说明" },
+  rulesTitle: { en: "Last buyer wins the pot", zh: "最后买家赢得奖池" },
   ruleDeposit: { en: "Buy keys", zh: "购买钥匙" },
   ruleDepositDesc: {
     en: "Each purchase adds GAS to the prize pool and extends the live countdown.",

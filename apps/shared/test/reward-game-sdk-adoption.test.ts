@@ -16,15 +16,15 @@ const genericRewardGames = [
 ] as const;
 
 describe("reward-game SDK adoption", () => {
-  it("routes generic Morpheus reward games through @shared/gamefi", () => {
+  it("routes generic Morpheus reward games through @framework/gamefi", () => {
     for (const appId of genericRewardGames) {
       const source = readFileSync(resolve(root, appId, "src/main.tsx"), "utf8");
 
-      expect(source, `${appId} should import the shared reward-game SDK`).toContain(
-        `from "@shared/gamefi"`,
+      expect(source, `${appId} should import the framework reward-game SDK`).toContain(
+        `from "@framework/gamefi"`,
       );
       expect(source, `${appId} should not call the low-level TEE client directly`).not.toContain(
-        `@shared/logic/tee-session`,
+        `@framework/logic/tee-session`,
       );
       expect(source, `${appId} should use SDK storage instead of local op-log helpers`).not.toMatch(
         /function (loadOps|saveOps|forgetOps)\b/,

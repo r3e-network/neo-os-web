@@ -2,15 +2,14 @@
  * Game session state factory.
  *
  * Creates the standard set of observables every reward game needs.
- * Migrated from apps/shared/game/session.ts — imports use @shared/ alias.
+ * Migrated from apps/shared/game/session.ts.
  */
 
-import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createObservable, type Observable } from "../reactive";
 import type { LeaderEntry, SolveRow, GameSessionStatus } from "./types";
-import { fromFixed8 } from "@shared/utils/format";
-import { parseBigInt } from "@shared/utils/parsers";
-import { mapField } from "@shared/gamefi";
+import { fromFixed8 } from "../utils/format";
+import { parseBigInt } from "../utils/parsers";
+import { mapField } from "../gamefi";
 
 export interface GameSessionObservables<THistory extends SolveRow = SolveRow> {
   credit:          Observable<number>;
