@@ -1,445 +1,673 @@
 /**
- * RedEnvelopeScene — Festive red envelope (hongbao) game in Phaser 3.
+ * RedEnvelopeScene - Phaser 3 red-envelope reward game.
  *
- * Visual design: traditional Chinese-style red envelope with vector art:
- * gold diamond seal, 福 character center, folded envelope flap,
- * gold confetti on win (Graphics, no emoji), send/receive panels.
+ * Contract and wallet behavior stays in useRedEnvelope/main.tsx. This scene owns
+ * the playable surface: select a festive packet bundle, create it, share it, or
+ * open a claimable envelope.
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
-import type { GameState } from "@framework/phaser";
+import type { GameBridgeError, GameState } from "@framework/phaser";
+import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
 
-// ── Palette ────────────────────────────────────────────────────────────────────
+const REDENV_ASSETS = {
+  stage: "redenv-stage",
+  claimCard: "redenv-claim-card",
+  gasIcon: "redenv-gas-icon",
+} as const;
+
 const C = {
-  bg:       0x8b0000,
-  bgDark:   0x5c0000,
-  panel:    0xa00000,
-  gold:     0xd4a843,
-  goldLt:   0xf0c866,
-  goldDk:   0xb8860b,
-  cream:    0xfff8e8,
-  red:      0xdc143c,
-  redDk:    0x9b0000,
-  flap:     0xc0392b,
-  flapLt:   0xe74c3c,
-  shadow:   0x400000,
-  white:    0xffffff,
+  canvas: 0xfffbf1,
+  surface: 0xffffff,
+  stroke: 0xf0d6ad,
+  strokeStrong: 0xf4b94d,
+  ink: 0x2e2116,
+  gold: 0xf5bd43,
+  goldDeep: 0xb47618,
+  danger: 0xc24132,
+  disabled: 0xd9cbb7,
+  white: 0xffffff,
+} as const;
+
+const FONT = "Inter, Arial, sans-serif";
+const MODE_BUTTON_W = 132;
+const MODE_BUTTON_H = 34;
+
+type Mode = "send" | "claim";
+
+type EnvelopePreview = {
+  id?: string | number;
+  remainingPackets?: number;
+  remainingAmount?: number;
+  totalAmount?: number;
+  amount?: number;
+  canOpen?: boolean;
+  active?: boolean;
+  expired?: boolean;
+  depleted?: boolean;
 };
 
-const AMOUNT_PRESETS = ["0.5", "1", "3", "5"] as const;
+const ENVELOPE_PLANS = [
+  { key: "lucky", title: "Lucky 8", amount: "1", count: "8", expiryHours: "24" },
+  { key: "party", title: "Party 20", amount: "5", count: "20", expiryHours: "72" },
+  { key: "festival", title: "Festival 50", amount: "10", count: "50", expiryHours: "168" },
+] as const;
+
+function fmtGas(value: unknown, decimals = 4): string {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  return n.toFixed(decimals).replace(/\.?0+$/, "");
+}
+
+function asEnvelopeId(value: unknown): string {
+  const id = String(value ?? "").trim();
+  return id && id !== "0" ? id : "";
+}
+
+function truncateMiddle(value: string, head = 7, tail = 4): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length <= head + tail + 3) return trimmed;
+  return `${trimmed.slice(0, head)}...${trimmed.slice(-tail)}`;
+}
+
+function compactError(value: string): string {
+  const firstLine = value.split("\n")[0]?.trim() ?? "";
+  if (!firstLine) return "";
+  return firstLine.length > 58 ? `${firstLine.slice(0, 55)}...` : firstLine;
+}
 
 export class RedEnvelopeScene extends BaseScene {
-  private envelopeContainer!: Phaser.GameObjects.Container;
-  private sealG!: Phaser.GameObjects.Graphics;
-  private flapG!: Phaser.GameObjects.Graphics;
-  private resultLabel!: Phaser.GameObjects.Text;
-  private amountLabel!: Phaser.GameObjects.Text;
-  private tabBtns: Phaser.GameObjects.Container[] = [];
+  private heroContainer!: Phaser.GameObjects.Container;
+  private heroImage!: Phaser.GameObjects.Image;
+  private heroGlow!: Phaser.GameObjects.Ellipse;
+  private floatingCoins: Phaser.GameObjects.Container[] = [];
+
+  private modeButtons = new Map<Mode, Phaser.GameObjects.Container>();
   private sendPanel!: Phaser.GameObjects.Container;
-  private receivePanel!: Phaser.GameObjects.Container;
-  private statusLabel!: Phaser.GameObjects.Text;
-  private isOpening = false;
-  private flapOpen = false;
-  private selectedAmount = "1";
+  private claimPanel!: Phaser.GameObjects.Container;
+  private planCards: Phaser.GameObjects.Container[] = [];
 
-  constructor() { super("RedEnvelopeScene"); }
+  private resultPill!: Phaser.GameObjects.Container;
+  private resultText!: Phaser.GameObjects.Text;
+  private statusText!: Phaser.GameObjects.Text;
+  private sendSummaryText!: Phaser.GameObjects.Text;
+  private activeEnvelopeText!: Phaser.GameObjects.Text;
+  private claimMetaText!: Phaser.GameObjects.Text;
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  private createButton!: Phaser.GameObjects.Container;
+  private createButtonBg!: Phaser.GameObjects.Graphics;
+  private createButtonLabel!: Phaser.GameObjects.Text;
+  private shareButton!: Phaser.GameObjects.Container;
+  private shareButtonBg!: Phaser.GameObjects.Graphics;
+  private shareButtonLabel!: Phaser.GameObjects.Text;
+  private claimButton!: Phaser.GameObjects.Container;
+  private claimButtonBg!: Phaser.GameObjects.Graphics;
+  private claimButtonLabel!: Phaser.GameObjects.Text;
+
+  private activeMode: Mode = "send";
+  private selectedPlanIndex = 0;
+  private activeEnvelopeId = "";
+  private lastCreatedEnvelopeId = "";
+  private busy = false;
+  private autoSelectedMode = false;
+  private lastWinAmount = "";
+
+  constructor() {
+    super("RedEnvelopeScene");
+  }
+
+  preload(): void {
+    this.load.image(REDENV_ASSETS.stage, "./red-envelope-stage.webp");
+    this.load.image(REDENV_ASSETS.claimCard, "./red-envelope-claim-card.webp");
+    this.load.image(REDENV_ASSETS.gasIcon, gasIconUrl);
+  }
 
   create(): void {
     super.create();
     const { width: W, height: H } = this.scale;
-    this.drawBackground(W, H);
-    this.buildEnvelope(W, H);
-    this.buildTabs(W, H);
-    this.buildSendPanel(W, H);
-    this.buildReceivePanel(W, H);
-    this.buildResultArea(W, H);
-    this.buildStatusLabel(W, H);
-    this.startIdleAnimation();
+
+    this.buildBackground(W, H);
+    this.buildHero(W);
+    this.buildResultPill(W);
+    this.buildModeTabs(W);
+    this.buildSendPanel(W);
+    this.buildClaimPanel(W);
+    this.buildStatus(W, H);
+    this.switchMode("send");
     this.onStateUpdate(this.state);
   }
 
   protected onStateUpdate(_state: GameState): void {
-    const luckyMsg   = this.val<{ amount?: number; from?: string }>("luckyMessage");
-    const openingId  = this.val<string>("openingId");
+    const openingId = asEnvelopeId(this.val<string | null>("openingId", null));
+    const lucky = this.val<{ amount?: number; from?: string } | null>("luckyMessage", null);
+    const envelopes = this.val<EnvelopePreview[]>("envelopes", []) ?? [];
+    const pools = this.val<EnvelopePreview[]>("pools", []) ?? [];
+    const lastCreated = asEnvelopeId(this.str("lastCreatedEnvelopeId", ""));
+    const lastError = this.str("lastError", "");
+    const serviceNotice = this.str("serviceNotice", "");
+    const credit = this.num("prepaidCredit", 0);
 
-    if (luckyMsg?.amount && luckyMsg.amount > 0) {
-      this.showWinResult(luckyMsg.amount);
-    }
-    if (openingId && !this.isOpening) {
-      this.playOpenAnimation();
+    this.busy = this.bool("isLoading") || this.bool("isCreating") || Boolean(openingId);
+    this.lastCreatedEnvelopeId = lastCreated;
+    this.activeEnvelopeId = openingId || this.pickClaimEnvelopeId(pools, envelopes);
+
+    if (!this.autoSelectedMode) {
+      this.autoSelectedMode = true;
+      this.switchMode(this.activeEnvelopeId ? "claim" : "send");
     }
 
-    this.statusLabel.setText(this.str("lastStatus", ""));
+    if (this.activeMode === "claim") this.heroImage.setTexture(REDENV_ASSETS.claimCard);
+    else this.heroImage.setTexture(REDENV_ASSETS.stage);
+
+    const wonAmount = lucky?.amount && lucky.amount > 0 ? fmtGas(lucky.amount) : "";
+    this.resultText.setText(
+      wonAmount
+        ? `+${wonAmount} GAS received`
+        : lastCreated
+          ? `Envelope #${lastCreated} is ready to share`
+          : "Create packets. Share a link. Open for GAS.",
+    );
+    this.setResultState(Boolean(wonAmount || lastCreated), Boolean(lastError));
+
+    this.activeEnvelopeText.setText(
+      this.activeEnvelopeId ? `Envelope #${truncateMiddle(this.activeEnvelopeId, 8, 4)}` : "Open a claim link",
+    );
+    this.claimMetaText.setText(this.claimMeta(pools, envelopes));
+
+    this.statusText.setText(
+      compactError(lastError) ||
+        serviceNotice ||
+        (credit > 0 ? `Prepaid credit ${fmtGas(credit)} GAS available` : "") ||
+        "Random packet split is settled by the on-chain contract.",
+    );
+
+    this.updateButtons();
+    this.updateHeroMotion(Boolean(openingId));
+
+    if (wonAmount && wonAmount !== this.lastWinAmount) {
+      this.lastWinAmount = wonAmount;
+      this.spawnRewardBurst();
+    }
   }
 
-  // ── Background ─────────────────────────────────────────────────────────────
-
-  private drawBackground(W: number, H: number): void {
-    this.add.rectangle(W / 2, H / 2, W, H, C.bg);
-
-    // Subtle gold diamond grid
-    const g = this.add.graphics();
-    g.lineStyle(1, C.gold, 0.06);
-    for (let x = 0; x <= W; x += 28) g.lineBetween(x, 0, x, H);
-    for (let y = 0; y <= H; y += 28) g.lineBetween(0, y, W, y);
-
-    // Outer gold border
-    g.lineStyle(3, C.gold, 0.65);
-    g.strokeRoundedRect(8, 8, W - 16, H - 16, 20);
-
-    // Top decoration
-    const dec = this.add.graphics();
-    dec.lineStyle(2, C.gold, 0.5);
-    dec.strokeRect(20, 20, W - 40, 32);
-    this.add.text(W / 2, 36, "◇  吉 祥 如 意  ◇", {
-      fontSize: "12px", color: "#d4a843",
-    }).setOrigin(0.5).setAlpha(0.75);
+  protected onBridgeError(error: GameBridgeError): void {
+    this.statusText.setText(compactError(error.message) || "The envelope action could not be completed.");
+    this.setResultState(false, true);
   }
 
-  // ── Envelope ───────────────────────────────────────────────────────────────
+  private pickClaimEnvelopeId(...lists: EnvelopePreview[][]): string {
+    const merged = lists.flat().filter(Boolean);
+    const claimable = merged.find((item) => {
+      const id = asEnvelopeId(item.id);
+      if (!id) return false;
+      if (item.canOpen === true) return true;
+      return item.active !== false && item.expired !== true && item.depleted !== true;
+    });
+    return asEnvelopeId(claimable?.id ?? merged[0]?.id);
+  }
 
-  private buildEnvelope(W: number, H: number): void {
-    const cx = W / 2;
-    const cy = H * 0.3;
-    const envW = 192, envH = 252;
+  private claimMeta(...lists: EnvelopePreview[][]): string {
+    const target = lists.flat().find((item) => asEnvelopeId(item.id) === this.activeEnvelopeId);
+    if (!target) return this.activeEnvelopeId ? "Ready to open with your wallet" : "Use a shared envelope link to claim.";
+    const packets = Number(target.remainingPackets ?? 0);
+    const amount = Number(target.remainingAmount ?? target.totalAmount ?? target.amount ?? 0);
+    const packetText = packets > 0 ? `${packets} packets left` : "Packet status ready";
+    const amountText = amount > 0 ? `${fmtGas(amount)} GAS left` : "Random amount";
+    return `${packetText} - ${amountText}`;
+  }
 
-    this.envelopeContainer = this.add.container(cx, cy);
+  private buildBackground(W: number, H: number): void {
+    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+    const glowTop = this.add.ellipse(W / 2, 132, 390, 252, 0xffdf9e, 0.28);
+    const glowBottom = this.add.ellipse(W / 2, 376, 360, 240, 0xfff2d3, 0.32);
+    this.animate({
+      targets: [glowTop, glowBottom],
+      alpha: { from: 0.22, to: 0.4 },
+      duration: 2400,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    const frame = this.add.graphics();
+    frame.lineStyle(2, C.stroke, 0.82);
+    frame.strokeRoundedRect(10, 10, W - 20, H - 20, 26);
+  }
 
-    // Drop shadow
-    const shadowEl = this.add.ellipse(6, 14, envW * 0.85, 28, 0x000000, 0.35);
+  private buildHero(W: number): void {
+    this.heroGlow = this.add.ellipse(W / 2, 132, 278, 166, C.gold, 0.2);
+    this.heroContainer = this.add.container(W / 2, 138);
+    this.heroImage = this.add.image(0, 0, REDENV_ASSETS.stage)
+      .setDisplaySize(390, 220)
+      .setOrigin(0.5);
+    this.heroContainer.add(this.heroImage);
 
-    // Envelope body
-    const bodyG = this.add.graphics();
-    bodyG.fillStyle(C.red);
-    bodyG.fillRoundedRect(-envW / 2, -envH / 2, envW, envH, 10);
-    bodyG.lineStyle(4, C.gold, 0.8);
-    bodyG.strokeRoundedRect(-envW / 2, -envH / 2, envW, envH, 10);
+    this.animate({
+      targets: this.heroContainer,
+      y: 132,
+      duration: 1900,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
 
-    // Body decorative lines
-    const decG = this.add.graphics();
-    decG.lineStyle(1, C.gold, 0.25);
-    decG.strokeRoundedRect(-envW / 2 + 8, -envH / 2 + 8, envW - 16, envH - 16, 7);
+    for (let i = 0; i < 5; i += 1) {
+      const coin = this.makeGasBadge(W / 2 + (i - 2) * 35, 220 + (i % 2) * 8, 25)
+        .setAlpha(0.88);
+      this.floatingCoins.push(coin);
+      this.animate({
+        targets: coin,
+        y: coin.y - 8,
+        angle: i % 2 === 0 ? 8 : -8,
+        duration: 1200 + i * 110,
+        delay: i * 75,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
+  }
 
-    // Envelope flap (closed triangular fold)
-    this.flapG = this.add.graphics();
-    this.drawFlap(false);
+  private makeGasBadge(x: number, y: number, size: number): Phaser.GameObjects.Container {
+    const badge = this.add.container(x, y);
+    const coin = this.add.graphics();
+    coin.fillStyle(0xffcf63, 0.98);
+    coin.fillCircle(0, 0, size / 2);
+    coin.fillStyle(0xffffff, 0.26);
+    coin.fillCircle(-size * 0.14, -size * 0.16, size * 0.17);
+    coin.lineStyle(Math.max(1.2, size * 0.08), C.goldDeep, 0.58);
+    coin.strokeCircle(0, 0, size / 2 - 1);
+    const mark = this.add.image(0, 0, REDENV_ASSETS.gasIcon)
+      .setDisplaySize(size * 0.58, size * 0.58)
+      .setOrigin(0.5);
+    badge.add([coin, mark]);
+    return badge;
+  }
 
-    // Gold seal circle
-    this.sealG = this.add.graphics();
-    this.drawSeal();
+  private buildResultPill(W: number): void {
+    this.resultPill = this.add.container(W / 2, 266);
+    const bg = this.add.graphics();
+    bg.fillStyle(C.surface, 0.96);
+    bg.fillRoundedRect(-168, -23, 336, 46, 23);
+    bg.lineStyle(1, C.stroke, 0.9);
+    bg.strokeRoundedRect(-168, -23, 336, 46, 23);
+    const icon = this.makeGasBadge(-143, 0, 28);
+    this.resultText = this.add.text(-110, 0, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#765230",
+      fontStyle: "500",
+      fixedWidth: 250,
+    }).setOrigin(0, 0.5);
+    this.resultPill.add([bg, icon, this.resultText]);
+    this.resultPill.setData("bg", bg);
+  }
 
-    // Interactive hit area
-    bodyG.setInteractive(
-      new Phaser.Geom.Rectangle(-envW / 2, -envH / 2, envW, envH),
+  private setResultState(success: boolean, error: boolean): void {
+    const bg = this.resultPill.getData("bg") as Phaser.GameObjects.Graphics;
+    bg.clear();
+    bg.fillStyle(success ? 0xfff8e8 : error ? 0xfff0ec : C.surface, 0.97);
+    bg.fillRoundedRect(-168, -23, 336, 46, 23);
+    bg.lineStyle(1, success ? C.gold : error ? C.danger : C.stroke, 0.94);
+    bg.strokeRoundedRect(-168, -23, 336, 46, 23);
+    this.resultText.setColor(success ? "#8a5b06" : error ? "#a63a2d" : "#765230");
+  }
+
+  private buildModeTabs(W: number): void {
+    this.makeModeButton(W / 2 - 72, 315, "send", "Send");
+    this.makeModeButton(W / 2 + 72, 315, "claim", "Claim");
+  }
+
+  private makeModeButton(x: number, y: number, mode: Mode, label: string): void {
+    const button = this.add.container(x, y);
+    const bg = this.add.graphics();
+    const text = this.add.text(0, 0, label, {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#765230",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    bg.setInteractive(
+      new Phaser.Geom.Rectangle(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H),
       Phaser.Geom.Rectangle.Contains,
     );
-    this.bindGameButton(bodyG, {
-      targets: this.envelopeContainer,
-      hoverDuration: 100,
+    this.bindGameButton(bg, {
+      targets: button,
       pressScale: 0.97,
-      enabled: () => !this.isOpening,
-      onPress: () => this.handleTap(),
+      onPress: () => this.switchMode(mode),
     });
-
-    // "TAP TO OPEN" hint
-    const hint = this.add.text(0, 78, "TAP TO OPEN", {
-      fontSize: "11px",
-      fontStyle: "bold",
-      color: "#f0c866",
-      letterSpacing: 3,
-    }).setOrigin(0.5).setAlpha(0.7);
-
-    this.envelopeContainer.add([shadowEl, bodyG, decG, this.flapG, this.sealG, hint]);
+    button.add([bg, text]);
+    button.setData("bg", bg);
+    button.setData("text", text);
+    this.modeButtons.set(mode, button);
   }
 
-  private drawFlap(open: boolean): void {
-    const g = this.flapG;
-    g.clear();
-    const envW = 192, envH = 252;
-    const halfW = envW / 2;
-    const top = -envH / 2;
-    const flapH = open ? -30 : envH * 0.28;
+  private switchMode(mode: Mode): void {
+    this.activeMode = mode;
+    this.sendPanel?.setVisible(mode === "send");
+    this.claimPanel?.setVisible(mode === "claim");
+    this.heroImage?.setTexture(mode === "claim" ? REDENV_ASSETS.claimCard : REDENV_ASSETS.stage);
 
-    // Flap triangle (pointed bottom, open = folds up)
-    g.fillStyle(C.flap);
-    g.beginPath();
-    if (!open) {
-      g.moveTo(-halfW, top);
-      g.lineTo(0, top + flapH);
-      g.lineTo(halfW, top);
-      g.closePath();
-    } else {
-      g.moveTo(-halfW, top);
-      g.lineTo(0, top - 20);
-      g.lineTo(halfW, top);
-      g.closePath();
-    }
-    g.fillPath();
-
-    // Flap edge highlight
-    g.lineStyle(2, C.gold, 0.4);
-    if (!open) {
-      g.lineBetween(-halfW, top, 0, top + flapH);
-      g.lineBetween(0, top + flapH, halfW, top);
+    for (const [key, button] of this.modeButtons) {
+      const active = key === mode;
+      const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
+      const text = button.getData("text") as Phaser.GameObjects.Text;
+      bg.clear();
+      bg.fillStyle(active ? C.ink : C.surface, active ? 1 : 0.95);
+      bg.fillRoundedRect(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H, 17);
+      bg.lineStyle(1, active ? C.ink : C.stroke, 0.95);
+      bg.strokeRoundedRect(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H, 17);
+      text.setColor(active ? "#fff6df" : "#765230");
     }
   }
 
-  private drawSeal(): void {
-    const g = this.sealG;
-    g.clear();
-
-    const R = 38;    // seal outer radius
-    const r = 30;    // inner ring
-
-    // Gold seal circle
-    g.fillStyle(C.goldDk);
-    g.fillCircle(0, -22, R);
-    g.fillStyle(C.gold);
-    g.fillCircle(0, -22, r);
-
-    // Diamond ring
-    g.lineStyle(2, C.goldDk, 0.6);
-    g.strokeCircle(0, -22, R - 5);
-
-    // 8-point star decoration
-    g.lineStyle(1, C.redDk, 0.5);
-    for (let i = 0; i < 8; i++) {
-      const a = Phaser.Math.DegToRad(i * 45);
-      g.lineBetween(
-        Math.cos(a) * 8, -22 + Math.sin(a) * 8,
-        Math.cos(a) * r * 0.8, -22 + Math.sin(a) * r * 0.8,
-      );
-    }
-
-    // 福 character center (rendered as text on top of container)
-    // Drawn via a separate Text object added after this graphic
-  }
-
-  // ── Tabs ───────────────────────────────────────────────────────────────────
-
-  private buildTabs(W: number, H: number): void {
-    const tabDefs = ["SEND", "RECEIVE"];
-    const y = H * 0.57;
-    tabDefs.forEach((label, i) => {
-      const x = W / 2 + (i === 0 ? -72 : 72);
-      const c = this.add.container(x, y);
-      const isActive = i === 0;
-
-      const bg = this.add.graphics();
-      this.renderTabBg(bg, isActive);
-      bg.setInteractive(new Phaser.Geom.Rectangle(-60, -18, 120, 36), Phaser.Geom.Rectangle.Contains);
-      bg.on("pointerdown", () => {
-        this.sendPanel.setVisible(i === 0);
-        this.receivePanel.setVisible(i === 1);
-        this.tabBtns.forEach((b, j) => {
-          this.renderTabBg(b.getData("bg"), j === i);
-          (b.getData("lbl") as Phaser.GameObjects.Text).setColor(j === i ? "#5c0000" : "#d4a843");
-        });
-      });
-
-      const lbl = this.add.text(0, 0, label, {
-        fontSize: "12px",
-        fontStyle: "bold",
-        color: isActive ? "#5c0000" : "#d4a843",
-        letterSpacing: 2,
-      }).setOrigin(0.5);
-
-      c.add([bg, lbl]);
-      c.setData("bg", bg);
-      c.setData("lbl", lbl);
-      this.tabBtns.push(c);
-    });
-
-    // 福 character on top of seal (positioned absolutely in scene, not in container)
-    const { width: sceneW, height: sceneH } = this.scale;
-    this.add.text(sceneW / 2, sceneH * 0.3 - 22, "福", {
-      fontSize: "28px",
-      fontStyle: "bold",
-      color: "#5c0000",
-    }).setOrigin(0.5).setDepth(5);
-  }
-
-  private renderTabBg(g: Phaser.GameObjects.Graphics, active: boolean): void {
-    g.clear();
-    g.fillStyle(active ? C.gold : C.shadow);
-    g.fillRoundedRect(-60, -18, 120, 36, 8);
-    g.lineStyle(1, active ? C.goldLt : C.gold, 0.6);
-    g.strokeRoundedRect(-60, -18, 120, 36, 8);
-  }
-
-  // ── Send panel ─────────────────────────────────────────────────────────────
-
-  private buildSendPanel(W: number, H: number): void {
+  private buildSendPanel(W: number): void {
     this.sendPanel = this.add.container(0, 0);
-    const y0 = H * 0.645;
-
     this.sendPanel.add(
-      this.add.text(W / 2, y0, "GAS PER PACKET", {
-        fontSize: "10px", color: "#c89040", letterSpacing: 2,
+      this.add.text(W / 2, 355, "Pick a packet bundle", {
+        fontFamily: FONT,
+        fontSize: "14px",
+        color: "#2e2116",
+        fontStyle: "600",
       }).setOrigin(0.5),
     );
 
-    const amtBtns: Phaser.GameObjects.Container[] = [];
-    AMOUNT_PRESETS.forEach((a, i) => {
-      const x = W / 2 + (i - 1.5) * 64;
-      const btn = this.add.container(x, y0 + 30);
-      const bg = this.add.graphics();
-      this.renderAmtBg(bg, a === this.selectedAmount);
-      bg.setInteractive(new Phaser.Geom.Rectangle(-26, -15, 52, 30), Phaser.Geom.Rectangle.Contains);
-      bg.on("pointerdown", () => {
-        this.selectedAmount = a;
-        amtBtns.forEach((b, j) => {
-          this.renderAmtBg(b.getData("bg"), AMOUNT_PRESETS[j] === a);
-          (b.getData("lbl") as Phaser.GameObjects.Text).setColor(AMOUNT_PRESETS[j] === a ? "#5c0000" : "#d4a843");
-        });
+    ENVELOPE_PLANS.forEach((_, index) => {
+      const card = this.makePlanCard(70 + index * 140, 415, index);
+      this.planCards.push(card);
+      this.sendPanel.add(card);
+    });
+
+    this.sendSummaryText = this.add.text(W / 2, 496, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#765230",
+      fixedWidth: 330,
+      align: "center",
+    }).setOrigin(0.5);
+    this.sendPanel.add(this.sendSummaryText);
+
+    this.createButton = this.makeActionButton(W / 2 - 62, 535, "Create", "primary", 138);
+    this.createButtonBg = this.createButton.getData("bg") as Phaser.GameObjects.Graphics;
+    this.createButtonLabel = this.createButton.getData("label") as Phaser.GameObjects.Text;
+    this.bindGameButton(this.createButtonBg, {
+      targets: this.createButton,
+      enabled: () => !this.busy,
+      pressScale: 0.97,
+      onPress: () => this.dispatchCreate(),
+    });
+
+    this.shareButton = this.makeActionButton(W / 2 + 92, 535, "Share", "secondary", 126);
+    this.shareButtonBg = this.shareButton.getData("bg") as Phaser.GameObjects.Graphics;
+    this.shareButtonLabel = this.shareButton.getData("label") as Phaser.GameObjects.Text;
+    this.bindGameButton(this.shareButtonBg, {
+      targets: this.shareButton,
+      enabled: () => Boolean(this.lastCreatedEnvelopeId) && !this.busy,
+      pressScale: 0.97,
+      onPress: () => this.dispatch("shareEnvelope", { envelopeId: this.lastCreatedEnvelopeId }),
+    });
+
+    this.sendPanel.add([this.createButton, this.shareButton]);
+    this.selectPlan(this.selectedPlanIndex, false);
+  }
+
+  private makePlanCard(x: number, y: number, index: number): Phaser.GameObjects.Container {
+    const plan = ENVELOPE_PLANS[index]!;
+    const card = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.setInteractive(new Phaser.Geom.Rectangle(-56, -48, 112, 96), Phaser.Geom.Rectangle.Contains);
+    this.bindGameButton(bg, {
+      targets: card,
+      pressScale: 0.96,
+      onPress: () => this.selectPlan(index, true),
+    });
+    const title = this.add.text(0, -30, plan.title, {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#765230",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    const amount = this.add.text(0, -5, plan.amount, {
+      fontFamily: FONT,
+      fontSize: "21px",
+      color: "#2e2116",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    const gas = this.add.text(0, 16, "GAS", {
+      fontFamily: FONT,
+      fontSize: "10px",
+      color: "#a87943",
+      fontStyle: "600",
+      letterSpacing: 1,
+    }).setOrigin(0.5);
+    const count = this.add.text(0, 34, `${plan.count} packets`, {
+      fontFamily: FONT,
+      fontSize: "10px",
+      color: "#765230",
+    }).setOrigin(0.5);
+    card.add([bg, title, amount, gas, count]);
+    card.setData("bg", bg);
+    card.setData("title", title);
+    card.setData("amount", amount);
+    return card;
+  }
+
+  private selectPlan(index: number, animate: boolean): void {
+    this.selectedPlanIndex = index;
+    this.planCards.forEach((card, cardIndex) => this.renderPlanCard(card, cardIndex === index));
+    const plan = ENVELOPE_PLANS[index]!;
+    this.sendSummaryText?.setText(`${plan.count} random packets - ${plan.expiryHours}h expiry`);
+    if (animate) {
+      this.animate({
+        targets: this.heroGlow,
+        alpha: { from: 0.34, to: 0.2 },
+        duration: 180,
+        ease: "Sine.easeOut",
       });
-      const lbl = this.add.text(0, 0, a, {
-        fontSize: "13px", fontStyle: "bold",
-        color: a === this.selectedAmount ? "#5c0000" : "#d4a843",
-      }).setOrigin(0.5);
-      btn.add([bg, lbl]);
-      btn.setData("bg", bg);
-      btn.setData("lbl", lbl);
-      amtBtns.push(btn);
-      this.sendPanel.add(btn);
-    });
-
-    // Send button
-    const sendBtn = this.add.container(W / 2, y0 + 76);
-    const sbg = this.add.graphics();
-    sbg.fillStyle(C.gold);
-    sbg.fillRoundedRect(-110, -24, 220, 48, 14);
-    sbg.fillStyle(0xffffff, 0.1);
-    sbg.fillRoundedRect(-110, -24, 220, 20, { tl: 14, tr: 14, bl: 0, br: 0 });
-    sbg.setInteractive(new Phaser.Geom.Rectangle(-110, -24, 220, 48), Phaser.Geom.Rectangle.Contains);
-    this.bindGameButton(sbg, {
-      targets: sendBtn,
-      pressScale: 0.95,
-      pressDuration: 80,
-      onPress: () =>
-        this.dispatch("sendEnvelopes", { amount: this.selectedAmount, count: "8", expiryHours: "24" }),
-    });
-    const slbl = this.add.text(0, 0, "SEND ENVELOPES", {
-      fontSize: "14px", fontStyle: "bold", color: "#5c0000", letterSpacing: 2,
-    }).setOrigin(0.5);
-    sendBtn.add([sbg, slbl]);
-    this.sendPanel.add(sendBtn);
+    }
   }
 
-  private renderAmtBg(g: Phaser.GameObjects.Graphics, active: boolean): void {
-    g.clear();
-    g.fillStyle(active ? C.gold : C.shadow);
-    g.fillRoundedRect(-26, -15, 52, 30, 7);
-    g.lineStyle(1, C.gold, 0.6);
-    g.strokeRoundedRect(-26, -15, 52, 30, 7);
+  private renderPlanCard(card: Phaser.GameObjects.Container, active: boolean): void {
+    const bg = card.getData("bg") as Phaser.GameObjects.Graphics;
+    const title = card.getData("title") as Phaser.GameObjects.Text;
+    const amount = card.getData("amount") as Phaser.GameObjects.Text;
+    bg.clear();
+    bg.fillStyle(active ? 0xfff0cf : C.surface, active ? 1 : 0.96);
+    bg.fillRoundedRect(-56, -48, 112, 96, 18);
+    bg.lineStyle(active ? 2 : 1, active ? C.strokeStrong : C.stroke, 0.96);
+    bg.strokeRoundedRect(-56, -48, 112, 96, 18);
+    title.setColor(active ? "#9a5b04" : "#765230");
+    amount.setColor(active ? "#9a5b04" : "#2e2116");
   }
 
-  // ── Receive panel ──────────────────────────────────────────────────────────
-
-  private buildReceivePanel(W: number, H: number): void {
-    this.receivePanel = this.add.container(0, 0);
-    const y0 = H * 0.64;
-
-    this.receivePanel.add(
-      this.add.text(W / 2, y0, "Tap the envelope above to open\nor enter an ID in the drawer", {
-        fontSize: "12px", color: "#c89040", align: "center",
+  private buildClaimPanel(W: number): void {
+    this.claimPanel = this.add.container(0, 0);
+    this.claimPanel.add(
+      this.add.text(W / 2, 356, "Open a shared envelope", {
+        fontFamily: FONT,
+        fontSize: "14px",
+        color: "#2e2116",
+        fontStyle: "600",
       }).setOrigin(0.5),
     );
-    this.receivePanel.setVisible(false);
+
+    const ticket = this.add.container(W / 2, 420);
+    const ticketBg = this.add.graphics();
+    ticketBg.fillStyle(C.surface, 0.97);
+    ticketBg.fillRoundedRect(-150, -48, 300, 96, 22);
+    ticketBg.lineStyle(1, C.stroke, 0.95);
+    ticketBg.strokeRoundedRect(-150, -48, 300, 96, 22);
+    ticketBg.lineStyle(1, C.stroke, 0.5);
+    ticketBg.lineBetween(-118, -48, -118, 48);
+    ticketBg.lineBetween(118, -48, 118, 48);
+    const coin = this.makeGasBadge(-124, -15, 36);
+    this.activeEnvelopeText = this.add.text(-78, -18, "", {
+      fontFamily: FONT,
+      fontSize: "17px",
+      color: "#2e2116",
+      fontStyle: "600",
+      fixedWidth: 190,
+    }).setOrigin(0, 0.5);
+    this.claimMetaText = this.add.text(-78, 12, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#765230",
+      fixedWidth: 205,
+    }).setOrigin(0, 0.5);
+    ticket.add([ticketBg, coin, this.activeEnvelopeText, this.claimMetaText]);
+    this.claimPanel.add(ticket);
+
+    this.claimButton = this.makeActionButton(W / 2, 515, "Open envelope", "primary", 230);
+    this.claimButtonBg = this.claimButton.getData("bg") as Phaser.GameObjects.Graphics;
+    this.claimButtonLabel = this.claimButton.getData("label") as Phaser.GameObjects.Text;
+    this.bindGameButton(this.claimButtonBg, {
+      targets: this.claimButton,
+      enabled: () => Boolean(this.activeEnvelopeId) && !this.busy,
+      pressScale: 0.97,
+      onPress: () => this.dispatchClaim(),
+    });
+    this.claimPanel.add(this.claimButton);
+    this.claimPanel.setVisible(false);
   }
 
-  // ── Result ─────────────────────────────────────────────────────────────────
-
-  private buildResultArea(W: number, H: number): void {
-    this.resultLabel = this.add.text(W / 2, H * 0.855, "", {
-      fontSize: "22px", fontStyle: "bold", color: "#d4a843",
+  private makeActionButton(
+    x: number,
+    y: number,
+    label: string,
+    tone: "primary" | "secondary",
+    width: number,
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    const bg = this.add.graphics();
+    const text = this.add.text(0, 0, label, {
+      fontFamily: FONT,
+      fontSize: "13px",
+      color: tone === "primary" ? "#2e2116" : "#765230",
+      fontStyle: "600",
     }).setOrigin(0.5);
-    this.amountLabel = this.add.text(W / 2, H * 0.905, "", {
-      fontSize: "15px", color: "#f0c866",
-    }).setOrigin(0.5);
+    bg.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -21, width, 42), Phaser.Geom.Rectangle.Contains);
+    button.add([bg, text]);
+    button.setData("bg", bg);
+    button.setData("label", text);
+    button.setData("tone", tone);
+    button.setData("width", width);
+    this.renderActionButton(button, true);
+    return button;
   }
 
-  private buildStatusLabel(W: number, H: number): void {
-    this.statusLabel = this.add.text(W / 2, H * 0.96, "", {
-      fontSize: "11px", color: "#c89040",
-    }).setOrigin(0.5);
+  private renderActionButton(button: Phaser.GameObjects.Container, enabled: boolean): void {
+    const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
+    const label = button.getData("label") as Phaser.GameObjects.Text;
+    const tone = button.getData("tone") as "primary" | "secondary";
+    const width = button.getData("width") as number;
+    bg.clear();
+    if (!enabled) {
+      bg.fillStyle(C.disabled, 0.92);
+      bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
+      bg.lineStyle(1, C.disabled, 1);
+      bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
+      label.setColor("#8f806e");
+      button.setAlpha(0.8);
+      return;
+    }
+    if (tone === "primary") {
+      bg.fillStyle(C.gold);
+      bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
+      bg.fillStyle(C.white, 0.22);
+      bg.fillRoundedRect(-width / 2 + 3, -18, width - 6, 17, 17);
+      bg.lineStyle(1, C.goldDeep, 0.58);
+      bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
+      label.setColor("#2e2116");
+    } else {
+      bg.fillStyle(C.surface, 0.98);
+      bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
+      bg.lineStyle(1, C.strokeStrong, 0.72);
+      bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
+      label.setColor("#765230");
+    }
+    button.setAlpha(1);
   }
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  private updateButtons(): void {
+    const canCreate = !this.busy;
+    const canShare = Boolean(this.lastCreatedEnvelopeId) && !this.busy;
+    const canClaim = Boolean(this.activeEnvelopeId) && !this.busy;
+    this.createButtonLabel.setText(this.busy ? "Working..." : "Create");
+    this.shareButtonLabel.setText("Share");
+    this.claimButtonLabel.setText(this.busy ? "Opening..." : this.activeEnvelopeId ? "Open envelope" : "No envelope");
+    this.renderActionButton(this.createButton, canCreate);
+    this.renderActionButton(this.shareButton, canShare);
+    this.renderActionButton(this.claimButton, canClaim);
+  }
 
-  private handleTap(): void {
-    this.dispatch("openEnvelope", {});
+  private dispatchCreate(): void {
+    const plan = ENVELOPE_PLANS[this.selectedPlanIndex]!;
+    this.dispatch("createEnvelope", {
+      amount: plan.amount,
+      count: plan.count,
+      expiryHours: plan.expiryHours,
+    });
+  }
+
+  private dispatchClaim(): void {
+    if (!this.activeEnvelopeId) return;
+    this.dispatch("claimEnvelope", { envelopeId: this.activeEnvelopeId });
     this.playOpenAnimation();
   }
 
   private playOpenAnimation(): void {
-    if (this.isOpening) return;
-    this.isOpening = true;
-
-    // Shake
-    this.tweens.add({
-      targets: this.envelopeContainer,
-      angle: { from: -6, to: 6 },
-      duration: 75,
-      repeat: 5,
+    this.animate({
+      targets: this.heroContainer,
+      angle: { from: -3, to: 3 },
+      duration: 70,
+      repeat: 4,
       yoyo: true,
-      ease: "Linear",
-      onComplete: () => {
-        // Open flap
-        this.drawFlap(true);
-        this.time.delayedCall(600, () => { this.isOpening = false; });
-      },
+      ease: "Sine.easeInOut",
     });
   }
 
-  private showWinResult(amount: number): void {
-    this.resultLabel.setText("LUCKY WIN!");
-    this.amountLabel.setText(`+${amount.toFixed(4)} GAS`);
-
-    // Gold & red confetti burst (Graphics, not emoji)
-    const { width: W } = this.scale;
-    const colors = [C.gold, C.goldLt, C.red, C.cream, C.flapLt];
-    for (let i = 0; i < 20; i++) {
-      const g = this.add.graphics();
-      const col = colors[i % colors.length]!;
-      g.fillStyle(col);
-      const shape = i % 3;
-      if (shape === 0) {
-        g.fillRect(-4, -4, 8, 8);
-      } else if (shape === 1) {
-        g.fillTriangle(-5, 5, 5, 5, 0, -5);
-      } else {
-        g.fillCircle(0, 0, 4);
+  private updateHeroMotion(opening: boolean): void {
+    this.heroContainer.setAlpha(opening ? 0.9 : 1);
+    this.floatingCoins.forEach((coin, index) => {
+      coin.setAlpha(opening || this.activeMode === "claim" ? 1 : 0.82);
+      if (opening) {
+        coin.setRotation(Phaser.Math.DegToRad((this.time.now / 20 + index * 38) % 360));
       }
-      g.x = Phaser.Math.Between(30, W - 30);
-      g.y = this.scale.height * 0.35;
+    });
+  }
 
-      this.tweens.add({
-        targets: g,
-        y: Phaser.Math.Between(60, 400),
-        x: g.x + Phaser.Math.Between(-100, 100),
+  private spawnRewardBurst(): void {
+    const { width: W } = this.scale;
+    for (let i = 0; i < 18; i += 1) {
+      const coin = this.makeGasBadge(W / 2, 246, 24).setAlpha(0.95);
+      this.animate({
+        targets: coin,
+        x: W / 2 + Phaser.Math.Between(-145, 145),
+        y: 118 + Phaser.Math.Between(-18, 112),
+        angle: Phaser.Math.Between(-240, 240),
         alpha: { from: 1, to: 0 },
-        angle: Phaser.Math.Between(-300, 300),
-        delay: i * 45,
-        duration: 1300,
-        ease: "Power2",
-        onComplete: () => g.destroy(),
+        duration: 920 + i * 22,
+        delay: i * 34,
+        ease: "Cubic.easeOut",
+        onComplete: () => coin.destroy(),
       });
     }
+    this.animate({
+      targets: this.resultPill,
+      scaleX: { from: 1.03, to: 1 },
+      scaleY: { from: 1.03, to: 1 },
+      duration: 260,
+      ease: "Back.easeOut",
+    });
   }
 
-  // ── Idle animation ─────────────────────────────────────────────────────────
-
-  private startIdleAnimation(): void {
-    this.tweens.add({
-      targets: this.envelopeContainer,
-      y: this.envelopeContainer.y - 8,
-      duration: 1600,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
+  private buildStatus(W: number, H: number): void {
+    this.statusText = this.add.text(W / 2, H - 22, "", {
+      fontFamily: FONT,
+      fontSize: "11px",
+      color: "#765230",
+      fixedWidth: 342,
+      align: "center",
+    }).setOrigin(0.5);
   }
 }
