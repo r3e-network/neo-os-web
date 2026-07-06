@@ -135,9 +135,13 @@ export class RedEnvelopeScene extends BaseScene {
       new Phaser.Geom.Rectangle(-envW / 2, -envH / 2, envW, envH),
       Phaser.Geom.Rectangle.Contains,
     );
-    bodyG.on("pointerdown", () => this.handleTap());
-    bodyG.on("pointerover", () => this.tweens.add({ targets: this.envelopeContainer, scale: 1.04, duration: 100 }));
-    bodyG.on("pointerout",  () => this.tweens.add({ targets: this.envelopeContainer, scale: 1.0, duration: 100 }));
+    this.bindGameButton(bodyG, {
+      targets: this.envelopeContainer,
+      hoverDuration: 100,
+      pressScale: 0.97,
+      enabled: () => !this.isOpening,
+      onPress: () => this.handleTap(),
+    });
 
     // "TAP TO OPEN" hint
     const hint = this.add.text(0, 78, "TAP TO OPEN", {
@@ -310,12 +314,13 @@ export class RedEnvelopeScene extends BaseScene {
     sbg.fillStyle(0xffffff, 0.1);
     sbg.fillRoundedRect(-110, -24, 220, 20, { tl: 14, tr: 14, bl: 0, br: 0 });
     sbg.setInteractive(new Phaser.Geom.Rectangle(-110, -24, 220, 48), Phaser.Geom.Rectangle.Contains);
-    sbg.on("pointerdown", () => {
-      this.tweens.add({ targets: sendBtn, scale: 0.95, duration: 80, yoyo: true });
-      this.dispatch("sendEnvelopes", { amount: this.selectedAmount, count: "8", expiryHours: "24" });
+    this.bindGameButton(sbg, {
+      targets: sendBtn,
+      pressScale: 0.95,
+      pressDuration: 80,
+      onPress: () =>
+        this.dispatch("sendEnvelopes", { amount: this.selectedAmount, count: "8", expiryHours: "24" }),
     });
-    sbg.on("pointerover", () => this.tweens.add({ targets: sendBtn, scale: 1.04, duration: 80 }));
-    sbg.on("pointerout",  () => this.tweens.add({ targets: sendBtn, scale: 1.0, duration: 80 }));
     const slbl = this.add.text(0, 0, "SEND ENVELOPES", {
       fontSize: "14px", fontStyle: "bold", color: "#5c0000", letterSpacing: 2,
     }).setOrigin(0.5);

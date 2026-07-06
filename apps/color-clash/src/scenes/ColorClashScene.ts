@@ -289,12 +289,12 @@ export class ColorClashScene extends BaseScene {
     bg.lineStyle(2, 0x3b82f6);
     bg.strokeRoundedRect(-92, -24, 184, 48, 14);
     bg.setInteractive(new Phaser.Geom.Rectangle(-92, -24, 184, 48), Phaser.Geom.Rectangle.Contains);
-    bg.on("pointerdown", () => {
-      this.tweens.add({ targets: this.startBtn, scale: 0.94, duration: 80, yoyo: true });
-      this.handleStart();
+    this.bindGameButton(bg, {
+      targets: this.startBtn,
+      pressScale: 0.94,
+      pressDuration: 80,
+      onPress: () => this.handleStart(),
     });
-    bg.on("pointerover", () => this.tweens.add({ targets: this.startBtn, scale: 1.04, duration: 80 }));
-    bg.on("pointerout",  () => this.tweens.add({ targets: this.startBtn, scale: 1.0, duration: 80 }));
 
     const lbl = this.add.text(0, 0, "START GAME", {
       fontSize: "16px", fontStyle: "bold", color: "#ffffff", letterSpacing: 2,

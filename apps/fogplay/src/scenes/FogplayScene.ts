@@ -199,14 +199,12 @@ export class FogplayScene extends BaseScene {
       .setStrokeStyle(2, 0x20e897)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", () => {
-      if (this.bool("canBet") && !this.bool("isFlipping")) {
-        this.dispatch("placeBet");
-        this.tweens.add({ targets: this.placeBetBtn, scale: 0.95, duration: 60, yoyo: true });
-      }
+    this.bindGameButton(bg, {
+      targets: this.placeBetBtn,
+      pressScale: 0.95,
+      enabled: () => this.bool("canBet") && !this.bool("isFlipping"),
+      onPress: () => this.dispatch("placeBet"),
     });
-    bg.on("pointerover",  () => this.tweens.add({ targets: this.placeBetBtn, scale: 1.04, duration: 80 }));
-    bg.on("pointerout",   () => this.tweens.add({ targets: this.placeBetBtn, scale: 1.0,  duration: 80 }));
     this.placeBetLabel = this.add.text(0, 0, "Place Bet", {
       fontSize: "18px", fontStyle: "bold", color: "#ffffff",
     }).setOrigin(0.5);
@@ -309,7 +307,12 @@ export class FogplayScene extends BaseScene {
     const bg = this.add.rectangle(0, 0, 108, 46, C.panel)
       .setStrokeStyle(2, C.border).setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", cb);
+    this.bindGameButton(bg, {
+      targets: c,
+      hoverScale: 1.04,
+      pressScale: 0.94,
+      onPress: cb,
+    });
     const txt = this.add.text(0, 0, label, { fontSize: "15px", color: "#8b949e" }).setOrigin(0.5);
     c.add([bg, txt]);
     return c;
@@ -320,7 +323,12 @@ export class FogplayScene extends BaseScene {
     const bg = this.add.rectangle(0, 0, 62, 38, C.panel)
       .setStrokeStyle(2, C.border).setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", cb);
+    this.bindGameButton(bg, {
+      targets: c,
+      hoverScale: 1.05,
+      pressScale: 0.92,
+      onPress: cb,
+    });
     const txt = this.add.text(0, 0, label, { fontSize: "13px", color: "#8b949e" }).setOrigin(0.5);
     c.add([bg, txt]);
     return c;

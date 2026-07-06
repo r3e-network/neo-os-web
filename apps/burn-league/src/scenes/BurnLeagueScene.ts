@@ -151,9 +151,13 @@ export class BurnLeagueScene extends BaseScene {
 
     // Make brazier interactive (click to burn)
     const hitZone = this.add.zone(cx, cy, 120, 160).setInteractive({ useHandCursor: true });
-    hitZone.on("pointerdown", () => this.handleBurn());
-    hitZone.on("pointerover", () => this.tweens.add({ targets: this.brazierContainer, scale: 1.04, duration: 100 }));
-    hitZone.on("pointerout",  () => this.tweens.add({ targets: this.brazierContainer, scale: 1.0,  duration: 100 }));
+    this.bindGameButton(hitZone, {
+      targets: this.brazierContainer,
+      hoverDuration: 100,
+      pressScale: 0.97,
+      enabled: () => this.str("seasonPhase", "dormant") === "active" && !this.isBurning,
+      onPress: () => this.handleBurn(),
+    });
 
     // Idle float
     this.tweens.add({
@@ -333,13 +337,18 @@ export class BurnLeagueScene extends BaseScene {
       const bg = this.add.graphics();
       this.renderPresetBg(bg, amount === this.selectedAmount);
       bg.setInteractive(new Phaser.Geom.Rectangle(-26, -16, 52, 32), Phaser.Geom.Rectangle.Contains);
-      bg.on("pointerdown", () => {
-        this.selectedAmount = amount;
-        this.presetBtns.forEach((b, j) => {
-          this.renderPresetBg(b.getData("bg"), BURN_PRESETS[j] === amount);
-          (b.getData("lbl") as Phaser.GameObjects.Text).setColor(BURN_PRESETS[j] === amount ? "#0c0600" : "#f97316");
-        });
-        this.burnBtnLabel.setText(`Burn ${amount} GAS`);
+      this.bindGameButton(bg, {
+        targets: btn,
+        hoverScale: 1.05,
+        pressScale: 0.94,
+        onPress: () => {
+          this.selectedAmount = amount;
+          this.presetBtns.forEach((b, j) => {
+            this.renderPresetBg(b.getData("bg"), BURN_PRESETS[j] === amount);
+            (b.getData("lbl") as Phaser.GameObjects.Text).setColor(BURN_PRESETS[j] === amount ? "#0c0600" : "#f97316");
+          });
+          this.burnBtnLabel.setText(`Burn ${amount} GAS`);
+        },
       });
       const lbl = this.add.text(0, 0, amount, {
         fontSize: "15px", fontStyle: "bold", color: amount === this.selectedAmount ? "#0c0600" : "#f97316",
@@ -370,12 +379,13 @@ export class BurnLeagueScene extends BaseScene {
       new Phaser.Geom.Rectangle(-100, -26, 200, 52),
       Phaser.Geom.Rectangle.Contains,
     );
-    this.burnBtnBg.on("pointerdown", () => {
-      this.tweens.add({ targets: this.burnBtn, scale: 0.95, duration: 80, yoyo: true });
-      this.handleBurn();
+    this.bindGameButton(this.burnBtnBg, {
+      targets: this.burnBtn,
+      pressScale: 0.95,
+      pressDuration: 80,
+      enabled: () => this.str("seasonPhase", "dormant") === "active" && !this.isBurning,
+      onPress: () => this.handleBurn(),
     });
-    this.burnBtnBg.on("pointerover", () => this.tweens.add({ targets: this.burnBtn, scale: 1.04, duration: 80 }));
-    this.burnBtnBg.on("pointerout",  () => this.tweens.add({ targets: this.burnBtn, scale: 1.0, duration: 80 }));
 
     this.burnBtnLabel = this.add.text(0, 0, `Burn ${this.selectedAmount} GAS`, {
       fontSize: "17px", fontStyle: "bold", color: "#0c0600", letterSpacing: 1,
