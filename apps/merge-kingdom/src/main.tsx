@@ -10,18 +10,9 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, emptyBoard, BOARD_SIZE } from "./logic/game-rules";
 import {
-  createLocalStorageRewardGameStorage,
   eventHashMatches as addrEq,
-  expireRewardGame,
-  finalizeRewardGame,
   mapField,
   normalizedHash as normHash,
-  openRewardGameSession,
-  recordRewardGameOp,
-  refreshRewardGameBalances,
-  replayRewardGameOps,
-  startRewardGame,
-  withdrawRewardCredit,
   type RewardGameConfig,
   type RewardGameSession,
 } from "@shared/gamefi";
@@ -50,8 +41,6 @@ const rewardGameConfig: RewardGameConfig = {
     target: rule.targetTile,
   })),
 };
-
-const opStorage = createLocalStorageRewardGameStorage<TeeOp>(OPS_STORAGE_PREFIX);
 
 interface LeaderEntry {
   player: string;
@@ -114,23 +103,30 @@ defineMiniApp({
 
     let session: RewardGameSession | null = null;
 
+    // Reward-game plumbing (start/session/finalize/expire/withdraw + the
+    // per-game op-log store) via the framework SDK. The storage prefix pins
+    // the pre-migration localStorage keys so in-flight op-logs survive.
+    const rewardGame = app.game.reward<TeeOp>(rewardGameConfig, {
+      storagePrefix: OPS_STORAGE_PREFIX,
+    });
+    // The wrapper methods delegate verbatim to the @shared/gamefi
+    // startRewardGame / finalizeRewardGame orchestration; keep the canonical
+    // SDK verbs at the entry/settlement call sites.
+    const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;
+
     const publishBoard = (next: number[][]): void => {
       board.set(next.map((row) => [...row]));
       tileAchieved.set(highestTile(next));
     };
 
     const playerScriptHash = (): string => {
-      const player = ctx.services.chain.address.get();
+      const player = app.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
     const refreshBalances = async (): Promise<void> => {
       try {
-        const balances = await refreshRewardGameBalances(
-          rewardGameConfig,
-          ctx.services.chain,
-          playerScriptHash(),
-        );
+        const balances = await rewardGame.balances(playerScriptHash());
         poolFree.set(balances.poolFreeGas);
         credit.set(balances.creditGas);
       } catch {
@@ -209,7 +205,7 @@ defineMiniApp({
       isDealing.set(true);
       lastStatus.set("shuffling");
       try {
-        session = await openRewardGameSession(rewardGameConfig, ctx.services.chain, gameId, difficulty);
+        session = await rewardGame.openSession(gameId, difficulty);
         commitment.set(session.commitment);
         const grid = (session.view.board ?? []) as number[][];
         publishBoard(Array.isArray(grid) && grid.length === 4 ? grid : emptyBoard());
@@ -233,18 +229,18 @@ defineMiniApp({
 
     const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
       try {
-        const restored = await openRewardGameSession(rewardGameConfig, ctx.services.chain, gameId, difficulty);
+        const restored = await rewardGame.openSession(gameId, difficulty);
         if (commitment.get() && restored.commitment !== commitment.get()) {
           throw new Error(ctx.t("statusFailed"));
         }
         session = restored;
         commitment.set(restored.commitment);
-        const ops = opStorage.load(gameId);
+        const ops = rewardGame.storage.load(gameId);
         moveCount.set(ops.length);
         // Replay the persisted op log to restore the visible board.
         const startGrid = (restored.view.board ?? []) as number[][];
         let live = Array.isArray(startGrid) && startGrid.length === 4 ? startGrid : emptyBoard();
-        await replayRewardGameOps(restored, ops, (step) => {
+        await rewardGame.replayOps(restored, ops, (step) => {
           const grid = step.view.board as number[][] | undefined;
           if (grid && grid.length === 4) live = grid;
         });
@@ -260,12 +256,7 @@ defineMiniApp({
       isStarting.set(true);
       lastStatus.set("starting");
       try {
-        const started = await startRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          difficulty,
-          opStorage,
-        );
+        const started = await startRewardGame(difficulty);
         const gameId = started.gameId;
         activeGameId.set(gameId);
         gameDifficulty.set(difficulty);
@@ -307,7 +298,7 @@ defineMiniApp({
         to: { row: toRow, col: toCol },
       };
       try {
-        const { step, opLog } = await recordRewardGameOp(session, opStorage, op);
+        const { step, opLog } = await rewardGame.recordOp(session, op);
         const grid = step.view.board as number[][] | undefined;
         if (grid && grid.length === 4) publishBoard(grid);
         moveCount.set(opLog.length);
@@ -326,12 +317,7 @@ defineMiniApp({
         if (!session) throw new Error(ctx.t("statusFailed"));
         // The highest tile is re-derived by the kernel from the sealed move
         // op-log (engine.replay); the client no longer signs a tile value.
-        const finalized = await finalizeRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          session,
-          opStorage,
-        );
+        const finalized = await finalizeRewardGame(session);
         const settled = finalized.settlement;
         let achieved = tileAchieved.get();
         let undos = undosUsed.get();
@@ -371,7 +357,7 @@ defineMiniApp({
       const gameId = activeGameId.get();
       if (!gameId) return;
       try {
-        await expireRewardGame(rewardGameConfig, ctx.services.chain, gameId, opStorage);
+        await rewardGame.expire(gameId);
         gameStatus.set("expired");
         session = null;
         activeGameId.set(null);
@@ -389,11 +375,7 @@ defineMiniApp({
         return;
       }
       await ctx.services.notify.guard(async () => {
-        await withdrawRewardCredit(
-          rewardGameConfig,
-          ctx.services.chain,
-          app.amount.gasToFixed8(credit.get()),
-        );
+        await rewardGame.withdrawCredit(app.amount.gasToFixed8(credit.get()));
         await refreshBalances();
       }, "creditWithdrawn");
     });

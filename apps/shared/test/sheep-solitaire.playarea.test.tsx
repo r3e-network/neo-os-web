@@ -222,9 +222,8 @@ describe("sheep-solitaire playarea (TEE mode)", () => {
     expect(container.querySelector(".sheep-lobby__tile-pile")).toBeTruthy();
     expect(container.querySelectorAll(".sheep-lobby__tile-pile img")).toHaveLength(5);
     expect(container.querySelector(".sheep-lobby__slot-preview")).toBeTruthy();
-    expect(
-      container.querySelector<HTMLImageElement>(".sheep-scene__banner")?.getAttribute("src"),
-    ).toBe("./banner.webp");
+    // The hidden banner <img> was removed — the asset must not render (or download) in the scene.
+    expect(container.querySelector(".sheep-scene__banner")).toBeNull();
     expect(
       container.querySelector<HTMLImageElement>(".sheep-scene__mascot")?.getAttribute("src"),
     ).toBe("./art/mascot-sheep.webp");

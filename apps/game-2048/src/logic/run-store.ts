@@ -81,28 +81,45 @@ export function trimLastMove(run: LiveRun): LiveRun {
   );
 }
 
-const STORAGE_PREFIX = "miniapp-game-2048:run:";
+/**
+ * Persistence handle for the run log. Structurally matches the framework's
+ * `app.storage.local` KV (JSON round-trip is owned by the store), so the
+ * setup code injects that handle and this module stays pure and testable.
+ */
+export interface RunStorage {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
 
-export function persistRun(gameId: string, run: LiveRun): void {
+const STORAGE_PREFIX = "run:";
+
+interface PersistedRun {
+  initBoard?: unknown;
+  moves?: unknown;
+  spawns?: unknown;
+}
+
+export function persistRun(storage: RunStorage, gameId: string, run: LiveRun): void {
   try {
-    window.localStorage.setItem(
-      STORAGE_PREFIX + gameId,
-      JSON.stringify({ initBoard: run.initBoard, moves: run.moves, spawns: run.spawns }),
-    );
+    storage.set(STORAGE_PREFIX + gameId, {
+      initBoard: run.initBoard,
+      moves: run.moves,
+      spawns: run.spawns,
+    });
   } catch {
     /* storage full or unavailable — gameplay continues in memory */
   }
 }
 
-export function restoreRun(gameId: string, initBoard: number[]): LiveRun | null {
+export function restoreRun(
+  storage: RunStorage,
+  gameId: string,
+  initBoard: number[],
+): LiveRun | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_PREFIX + gameId);
-    if (!raw) return startRun(initBoard);
-    const parsed = JSON.parse(raw) as {
-      initBoard?: unknown;
-      moves?: unknown;
-      spawns?: unknown;
-    };
+    const parsed = storage.get<PersistedRun>(STORAGE_PREFIX + gameId, null);
+    if (!parsed) return startRun(initBoard);
     if (
       !Array.isArray(parsed.initBoard) ||
       !Array.isArray(parsed.moves) ||
@@ -128,9 +145,9 @@ export function restoreRun(gameId: string, initBoard: number[]): LiveRun | null 
   }
 }
 
-export function forgetRun(gameId: string): void {
+export function forgetRun(storage: RunStorage, gameId: string): void {
   try {
-    window.localStorage.removeItem(STORAGE_PREFIX + gameId);
+    storage.delete(STORAGE_PREFIX + gameId);
   } catch {
     /* nothing to clean */
   }

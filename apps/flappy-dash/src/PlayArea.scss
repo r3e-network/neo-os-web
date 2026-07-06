@@ -2,8 +2,8 @@
  * Flappy Dash — sky-high bird dodging through TEE‑generated pipes.
  *
  * The canvas is the hero; overlays, lobby, and drawer are layered around it.
- * Animations are tuned to feel bouncy and playful, matching the bird's
- * flappy physics.  All custom animations are gated by prefers-reduced-motion.
+ * One-shot transitions stay short (<=250ms ease-out); the playful feel comes
+ * from the ambient sprite loops, all gated by prefers-reduced-motion.
  */
 @use "@shared/styles/v2/tokens" as *;
 @use "@shared/styles/v2/motion" as *;
@@ -94,7 +94,7 @@ $game-accent: #00af92;
 
 // State-driven transitions
 .flappy-scene[data-state="idle"] {
-  animation: flappy-scene-in 400ms ease-out both;
+  animation: flappy-scene-in 250ms ease-out both;
 }
 
 .flappy-scene[data-state="dealing"] .flappy-shuffle__anim span {
@@ -127,7 +127,7 @@ $game-accent: #00af92;
   align-items: end;
   overflow: hidden;
   border: 1px solid rgba(0, 175, 146, 0.18);
-  border-radius: 26px;
+  border-radius: 18px;
   background: #7bdcf5;
   box-shadow: 0 16px 36px rgba(11, 103, 125, 0.12);
 }
@@ -138,17 +138,22 @@ $game-accent: #00af92;
   overflow: hidden;
 }
 
+// Horizontal tile of the 108x144 day skyline at its native aspect: the sprite
+// repeats crisply across the card instead of being cover-cropped into a blur.
+// 120% height crops the sprite's bottom 1/6 (its dark street band) so the
+// bushes sit straight on the animated grass strip below, like the real game.
 .flappy-lobby__pixel-bg {
   position: absolute;
   inset: 0;
-  width: 100%;
   height: calc(100% - 54px);
-  display: block;
-  object-fit: cover;
-  object-position: center bottom;
+  background-repeat: repeat-x;
+  background-position: left top;
+  background-size: auto 120%;
   image-rendering: pixelated;
 }
 
+// 24x24 ground tile repeated at 3x (72px) so the grass lip + sand pattern
+// stays readable; the scroll loop shifts exactly one tile for a seamless wrap.
 .flappy-lobby__base {
   position: absolute;
   left: -36px;
@@ -156,7 +161,9 @@ $game-accent: #00af92;
   bottom: -3px;
   width: calc(100% + 180px);
   height: 72px;
-  object-fit: cover;
+  background-repeat: repeat-x;
+  background-position: left top;
+  background-size: auto 100%;
   image-rendering: pixelated;
   animation: flappy-ground-scroll 1400ms linear infinite;
 }
@@ -167,7 +174,7 @@ $game-accent: #00af92;
   width: 78px;
   height: 230px;
   image-rendering: pixelated;
-  filter: drop-shadow(0 6px 0 rgba(49, 84, 42, 0.18));
+  filter: drop-shadow(0 4px 6px rgba(49, 84, 42, 0.22));
   animation: flappy-pipe-drift 1600ms ease-in-out infinite alternate;
 }
 
@@ -211,10 +218,12 @@ $game-accent: #00af92;
   animation-delay: 520ms;
 }
 
+// Ring center matches the bird's VISUAL center: the 19x16 sprite carries 4px
+// of transparent top padding, so at 86px wide the body center is (+43, +45).
 .flappy-lobby__tap-ring {
   position: absolute;
-  left: calc(53% + 38px);
-  top: calc(40% + 20px);
+  left: calc(53% + 43px);
+  top: calc(40% + 45px);
   width: 82px;
   height: 82px;
   border-radius: 50%;
@@ -231,7 +240,7 @@ $game-accent: #00af92;
   inset: 0;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.48) 40%, rgba(255, 255, 255, 0.02) 70%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.38) 76%, rgba(255, 255, 255, 0.78));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.22) 76%, rgba(255, 255, 255, 0.5));
 }
 
 .flappy-lobby__flight-copy {
@@ -245,7 +254,7 @@ $game-accent: #00af92;
   gap: 6px;
   margin: 0;
   border: 1px solid rgba(0, 175, 146, 0.14);
-  border-radius: 20px;
+  border-radius: var(--mx2-r-lg);
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 12px 28px rgba(31, 41, 55, 0.08);
@@ -258,7 +267,7 @@ $game-accent: #00af92;
   color: #04735f;
   font-size: 0.72rem;
   font-weight: 680;
-  letter-spacing: 0;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -297,7 +306,11 @@ $game-accent: #00af92;
   font-weight: 650;
 }
 
-.flappy-lobby__ribbon-prize {
+// The standalone shell (MiniAppRoot) injects
+// `.standalone-dapp-root span:not([class*="badge"]):not([class*="pill"]):not([class*="chip"]) { color: inherit }`
+// at (0,4,1) specificity, which no plain class selector here can beat — the
+// !important is load-bearing for the prize hue in standalone mode.
+.flappy-lobby__ribbon span.flappy-lobby__ribbon-prize {
   color: #067a5b !important;
 }
 
@@ -306,7 +319,7 @@ $game-accent: #00af92;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   border: 1px solid rgba(0, 175, 146, 0.12);
-  border-radius: 22px;
+  border-radius: 18px;
   padding: 8px;
   background: rgba(255, 255, 255, 0.86);
 }
@@ -321,7 +334,7 @@ $game-accent: #00af92;
   justify-content: center;
   gap: 2px;
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--mx2-r-lg);
   padding: 9px 8px;
   background: #ffffff;
   box-shadow: 0 5px 14px rgba(31, 41, 55, 0.045);
@@ -380,15 +393,16 @@ $game-accent: #00af92;
   font-size: 0.9rem;
 }
 
+// The pipe target is the route's defining stat — it leads; the clock supports.
 .flappy-route__target {
-  color: var(--mx2-text-muted);
-  font-size: 0.68rem;
-  font-weight: 620;
+  color: #44403c;
+  font-size: 0.76rem;
+  font-weight: 650;
 }
 
 .flappy-route__time {
-  color: #067a5b;
-  font-size: 0.78rem;
+  color: var(--mx2-text-muted);
+  font-size: 0.66rem;
   font-weight: 620;
 }
 
@@ -411,17 +425,18 @@ $game-accent: #00af92;
     background: rgba(255, 255, 255, 0.7);
   }
 
+  // Nested after the generic span rule so plain specificity wins — no !important.
+  .flappy-lobby__status {
+    color: #0a6c75;
+    border-color: rgba(77, 201, 246, 0.3);
+    background: rgba(212, 240, 255, 0.55);
+  }
+
   &[data-ready="true"] .flappy-lobby__status {
     color: #067a5b;
     border-color: rgba($game-accent, 0.25);
     background: rgba($game-accent, 0.08);
   }
-}
-
-.flappy-lobby__status {
-  color: #0a6c75;
-  border-color: rgba(77, 201, 246, 0.3) !important;
-  background: rgba(212, 240, 255, 0.55) !important;
 }
 
 .flappy-lobby__result {
@@ -527,7 +542,7 @@ $game-accent: #00af92;
 
   &--ready {
     background: rgba(0, 0, 0, 0.18);
-    animation: flappy-overlay-fade-in 500ms ease-out both;
+    animation: flappy-overlay-fade-in 250ms ease-out both;
 
     .flappy-ready-text {
       font-size: 1.6rem;
@@ -548,7 +563,7 @@ $game-accent: #00af92;
   &--won {
     background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(3px);
-    animation: flappy-overlay-fade-in 300ms ease-out both;
+    animation: flappy-overlay-fade-in 250ms ease-out both;
     pointer-events: auto;
   }
 
@@ -557,7 +572,7 @@ $game-accent: #00af92;
     backdrop-filter: blur(2px);
 
     &[data-win="true"] {
-      animation: flappy-win-overlay 600ms ease-out both;
+      animation: flappy-win-overlay 250ms ease-out both;
     }
   }
 }
@@ -745,7 +760,7 @@ $game-accent: #00af92;
     transform: translateX(0);
   }
   to {
-    transform: translateX(-44px);
+    transform: translateX(-72px);
   }
 }
 
@@ -822,16 +837,6 @@ $game-accent: #00af92;
   }
 }
 
-@keyframes flappy-timer-alarm {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-
 // ─── Flap preview cue ───────────────────────────────────────────────────────
 // Immediate local motion the moment a tap lands, released on a timer by the
 // PlayArea so the surface never sticks in its action state.
@@ -887,13 +892,14 @@ $game-accent: #00af92;
 
   .flappy-lobby__bird-sprite {
     left: 72%;
-    top: 61%;
+    top: 54%;
     width: 72px;
   }
 
+  // 72px-wide sprite: visual body center is (+36, +38) inside the box.
   .flappy-lobby__tap-ring {
-    left: calc(72% + 34px);
-    top: calc(61% + 18px);
+    left: calc(72% + 36px);
+    top: calc(54% + 38px);
     width: 62px;
     height: 62px;
   }
@@ -940,7 +946,6 @@ $game-accent: #00af92;
 
   .flappy-route {
     min-height: 64px;
-    border-radius: 14px;
     padding: 7px 5px;
   }
 
@@ -950,9 +955,14 @@ $game-accent: #00af92;
     white-space: normal;
   }
 
-  .flappy-route__target,
-  .flappy-route__time {
+  // Same compact size as before the emphasis swap so "Target: 10 pipes"
+  // stays on one line; the target still leads via ink color and weight.
+  .flappy-route__target {
     font-size: 0.62rem;
+  }
+
+  .flappy-route__time {
+    font-size: 0.6rem;
   }
 
   .flappy-lobby__statusbar {

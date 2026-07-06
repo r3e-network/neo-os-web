@@ -37,6 +37,7 @@ const t = vi.fn((key: string, params?: Record<string, string | number>) => {
     stage_baby: "Baby",
     stage_child: "Child",
     stage_adult: "Adult",
+    playingTitle: "{difficulty} pet in care",
     happinessTarget: "❤️ {happiness}",
     statHappiness: "Happiness",
     statHunger: "Hunger",
@@ -45,7 +46,7 @@ const t = vi.fn((key: string, params?: Record<string, string | number>) => {
     actionPlay: "Play",
     actionPet: "Pet",
     actionRest: "Rest",
-    actionHint: "actions left",
+    actionsCounter: "{used} / {max} actions used",
     submitAction: "Claim reward",
     statusSubmitting: "Enclave verifying…",
     timeUpAction: "Time is up",
@@ -299,7 +300,7 @@ describe("pet-potion playarea", () => {
     // Timer
     expect(container.querySelector(".pp-timer")).toBeTruthy();
     // Action counter
-    expect(getByText("0 / 40 actions left")).toBeTruthy();
+    expect(getByText("0 / 40 actions used")).toBeTruthy();
   });
 
   it("displays the solved state with payout and stats", () => {

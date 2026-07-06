@@ -59,6 +59,12 @@
   font-weight: 420;
 }
 
+// Center the score readout to match the centered scene composition
+// (edge insets come from the shared .mx2-score padding-inline).
+.cclash-playarea .mx2-score {
+  justify-content: center;
+}
+
 // Neutral canvas wrapper (background-clarity gate); the memory-board look lives
 // on the .cclash-table / .cclash-lobby cards below.
 .cclash-scene {
@@ -168,7 +174,9 @@
   position: absolute;
   left: 20px;
   right: 20px;
-  bottom: 20px;
+  // Clear the -38px upward overlap of the mode cards so the full ribbon stays
+  // visible above the hero/card seam (mobile restores bottom: 20px).
+  bottom: 58px;
   z-index: 3;
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
@@ -277,6 +285,13 @@
   color: #8a4b0f;
 }
 
+// Entry + time for the selected mode: desktop already shows these in the
+// mission panel, so the pool-pill copy only appears on mobile where the
+// mission panel is hidden.
+.cclash-lobby__pool-entry {
+  display: none;
+}
+
 .cclash-lobby__modes {
   position: relative;
   z-index: 4;
@@ -340,6 +355,23 @@
   filter: drop-shadow(0 7px 10px rgba(93, 63, 17, 0.12));
 }
 
+// Difficulty rings: teal / gold / ember so the three wooden tokens read as
+// easy / medium / hard at a glance instead of relying on text alone.
+.cclash-lobby__modes .cclash-mode:nth-child(1) .cclash-mode__badge {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(18, 169, 152, 0.45);
+}
+
+.cclash-lobby__modes .cclash-mode:nth-child(2) .cclash-mode__badge {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(216, 167, 66, 0.55);
+}
+
+.cclash-lobby__modes .cclash-mode:nth-child(3) .cclash-mode__badge {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(226, 93, 77, 0.5);
+}
+
 .cclash-mode__name {
   grid-area: name;
   min-width: 0;
@@ -384,28 +416,6 @@
   border-radius: 999px;
   background: var(--seq-color);
   box-shadow: 0 0 10px color-mix(in srgb, var(--seq-color), transparent 70%);
-}
-
-.cclash-lobby__start {
-  padding: 12px;
-  border: none;
-  border-radius: var(--mx2-r-md);
-  background: linear-gradient(135deg, #00af92, #7ed9c6);
-  color: #2b261f;
-  font-weight: 680;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 175, 146, 0.4);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
 }
 
 /* -------------------------------------------------------------- shuffle -- */
@@ -459,7 +469,7 @@
   gap: 13px;
   overflow: hidden;
   padding: 16px 16px 18px;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid rgba(216, 167, 66, 0.22);
   background: var(--cclash-warm);
 }
@@ -487,7 +497,7 @@
   gap: 10px;
   padding: 9px 10px;
   border: 1px solid rgba(216, 167, 66, 0.18);
-  border-radius: 8px;
+  border-radius: 12px;
   background: rgba(255, 253, 248, 0.86);
   backdrop-filter: blur(4px);
 
@@ -589,8 +599,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  width: 70%;
-  max-width: 252px;
+  width: 62%;
+  max-width: 232px;
 }
 
 .cclash-btn {
@@ -605,20 +615,22 @@
   background: transparent;
   transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
   outline: none;
-  opacity: 0.9;
+  opacity: 1;
 
   &:hover:not(:disabled) {
     transform: scale(1.04);
-    opacity: 1;
   }
 
   &:active:not(:disabled) {
     transform: scale(0.96);
   }
 
+  // Watch-phase lock: desaturate slightly instead of ghosting so the pads keep
+  // reading as solid buttons nested in the painted console quadrants.
   &:disabled {
     cursor: default;
-    opacity: 0.72;
+    opacity: 0.92;
+    filter: saturate(0.75);
   }
 
   img {
@@ -650,13 +662,17 @@
   gap: 6px;
   justify-content: center;
   max-width: 320px;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.78);
+  padding: 6px 12px;
+  backdrop-filter: blur(4px);
 }
 
 .cclash-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(117, 104, 90, 0.18);
+  background: rgba(117, 104, 90, 0.3);
 
   &--filled {
     background: var(--cclash-teal);
@@ -669,7 +685,7 @@
 .cclash-result {
   width: 100%;
   max-width: 400px;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -719,20 +735,50 @@
 .cclash-actions__submit {
   padding: 10px 28px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   background: linear-gradient(135deg, var(--cclash-teal), #77dbcb);
   color: #173d38;
   font-weight: 620;
   cursor: pointer;
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(18, 169, 152, 0.25);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cclash-teal);
+    outline-offset: 2px;
+  }
 }
 
 .cclash-actions__expire {
   padding: 10px 28px;
   border: 1px solid rgba(216, 167, 66, 0.24);
-  border-radius: 8px;
+  border-radius: 12px;
   background: transparent;
   color: var(--cclash-ink);
   cursor: pointer;
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(216, 167, 66, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cclash-teal);
+    outline-offset: 2px;
+  }
 }
 
 /* --------------------------------------------------------------- drawer -- */
@@ -972,6 +1018,7 @@
     align-self: end;
     order: 3;
     margin-top: auto;
+    bottom: 20px;
     padding: 6px;
   }
 
@@ -989,6 +1036,7 @@
       "badge"
       "name"
       "seq"
+      "meta"
       "lights";
     justify-items: center;
     gap: 2px;
@@ -1018,7 +1066,14 @@
     height: 6px;
   }
 
+  // Real-money stakes stay visible before a paid run: keep a compact win
+  // value on each card (the time limit moves to the pool pill below).
   .cclash-mode__meta {
+    max-width: 100%;
+    font-size: 0.6rem;
+  }
+
+  .cclash-mode__meta-time {
     display: none;
   }
 
@@ -1028,6 +1083,10 @@
     font-size: 0.72rem;
   }
 
+  .cclash-lobby__pool-entry {
+    display: inline;
+  }
+
   .cclash-table {
     padding: 12px 12px 14px;
   }
@@ -1035,7 +1094,7 @@
     width: min(100%, 318px);
   }
   .cclash-buttons {
-    max-width: 222px;
+    max-width: 204px;
     gap: 8px;
   }
 }

@@ -60,7 +60,7 @@ const appMessages = {
   playingTitle: { en: "{difficulty} run in play", zh: "{difficulty}难度进行中" },
   statusWonTitle: { en: "Pipes cleared!", zh: "闯关成功！" },
   networkBadge: { en: "Neo N3", zh: "Neo N3" },
-  rankBadge: { en: "Rank #{rank}", zh: "第 {rank} " },
+  rankBadge: { en: "Rank #{rank}", zh: "第 {rank} 名" },
   rankLabel: { en: "Global rank", zh: "全网排名" },
   sidebarTitle: { en: "My flappy record", zh: "我的战绩" },
   creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
@@ -126,7 +126,7 @@ const appMessages = {
   gameOverPipes: { en: "You passed {count} pipes", zh: "你通过了 {count} 根管道" },
   gameOverWin: { en: "You won {payout} GAS!", zh: "你赢得了 {payout} GAS！" },
   gameOverLoss: { en: "Better luck next time!", zh: "下次加油！" },
-  gameOverTarget: { en: "Target was {count} pipes", zh: "目为 {count} 根管道" },
+  gameOverTarget: { en: "Target was {count} pipes", zh: "目标为 {count} 根管道" },
   retryAction: { en: "Play again", zh: "再玩一次" },
   submitAction: { en: "Submit run", zh: "提交战绩" },
 

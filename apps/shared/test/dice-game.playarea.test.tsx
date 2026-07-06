@@ -282,7 +282,7 @@ describe("Dice Game PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/\.dice-scene__die-anchor:hover:not\(:disabled\)\s*\{[\s\S]*translateY\(-3px\) scale\(1\.015\)/);
     expect(styles).toMatch(/\.dice-scene__die,[\s\S]*\.dice-scene__side-die\s*\{[\s\S]*object-fit:\s*contain/);
     expect(styles).toMatch(/\.dice-scene__die,[\s\S]*\.dice-scene__side-die\s*\{[\s\S]*filter:\s*none/);
-    expect(styles).toMatch(/dice-scene__side-die[\s\S]*opacity:\s*0\.32/);
+    expect(styles).toMatch(/dice-scene__side-die[\s\S]*opacity:\s*0\.22/);
     expect(styles).toMatch(/\.dice-scene__bet-lane\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 42px minmax\(0,\s*1fr\) 42px minmax\(0,\s*1fr\)/);
     expect(styles).toMatch(/\.dice-scene__bet-node\s*\{[\s\S]*border-radius:\s*var\(--mx2-r-pill\)/);
     expect(styles).toMatch(/\.dice-scene__bet-node img\s*\{[\s\S]*object-fit:\s*contain/);
@@ -326,7 +326,7 @@ describe("Dice Game PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-scene__play-table\s*\{[\s\S]*min-height:\s*278px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-bet-spot\s*\{[\s\S]*width:\s*58px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-bet-spot__die\s*\{[\s\S]*width:\s*34px/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-chip-tray\s*\{[\s\S]*gap:\s*5px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-chip-tray\s*\{[\s\S]*gap:\s*7px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-chip-btn\s*\{[\s\S]*min-width:\s*46px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-playarea \.mx2-score\s*\{[\s\S]*display:\s*none/);
     expect(styles).not.toMatch(/@media \(max-width:\s*720px\)[\s\S]*grid-template-columns:\s*repeat\(3,\s*64px\)/);

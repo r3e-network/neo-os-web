@@ -122,11 +122,11 @@
 .dice-scene__hud-card {
   min-width: 112px;
   display: grid;
-  gap: 2px;
+  gap: 3px;
   border: 1px solid rgba(176, 111, 11, 0.14);
   border-radius: 16px;
-  padding: 9px 12px;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 10px 13px;
+  background: #ffffff;
   box-shadow: 0 8px 18px rgba(31, 41, 55, 0.04);
 }
 
@@ -141,7 +141,7 @@
 
 .dice-scene__hud-card strong {
   color: #3a2711;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 680;
   line-height: 1.05;
 }
@@ -217,7 +217,7 @@
   border: 1px solid rgba(31, 41, 55, 0.032);
   border-radius: 50%;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(0, 175, 146, 0.11)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(16, 185, 129, 0.11)),
     #effff7;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.78);
   opacity: 0.58;
@@ -229,12 +229,12 @@
   position: absolute;
   z-index: 5;
   left: 50%;
-  top: 85px;
+  top: 38px;
   width: min(340px, 44%);
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #25725f;
+  color: #1f7a5c;
   font-size: 11px;
   font-weight: 680;
   letter-spacing: 0;
@@ -247,16 +247,16 @@
   height: 1px;
   flex: 1;
   border-radius: var(--mx2-r-pill);
-  background: linear-gradient(90deg, rgba(0, 175, 146, 0), rgba(0, 175, 146, 0.26));
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0), rgba(16, 185, 129, 0.26));
 }
 
 .dice-scene__rail-line:last-child {
-  background: linear-gradient(90deg, rgba(0, 175, 146, 0.26), rgba(0, 175, 146, 0));
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.26), rgba(16, 185, 129, 0));
 }
 
 .dice-scene__rail-mark {
   min-width: 48px;
-  border: 1px solid rgba(0, 175, 146, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.18);
   border-radius: var(--mx2-r-pill);
   padding: 3px 10px;
   background: rgba(255, 255, 255, 0.78);
@@ -345,12 +345,18 @@
 }
 
 .dice-bet-spot--active {
-  border-color: rgba(0, 175, 146, 0.58);
+  border-color: rgba(16, 185, 129, 0.58);
   background: #f3fff9;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.86),
-    0 0 0 5px rgba(0, 175, 146, 0.13),
-    0 14px 28px rgba(0, 175, 146, 0.13);
+    0 0 0 5px rgba(16, 185, 129, 0.13),
+    0 14px 28px rgba(16, 185, 129, 0.13);
+}
+
+.dice-bet-spot:focus-visible,
+.dice-chip-btn:focus-visible {
+  outline: 3px solid rgba(245, 158, 11, 0.28);
+  outline-offset: 3px;
 }
 
 .dice-bet-spot:disabled {
@@ -452,21 +458,21 @@
 }
 
 .dice-scene__side-die {
-  width: 78px;
+  width: 64px;
   border-radius: 22px;
-  opacity: 0.32;
+  opacity: 0.22;
 }
 
 .dice-scene__side-die--left {
   grid-column: 1;
   justify-self: end;
-  transform: rotate(-10deg) translateY(16px);
+  transform: rotate(-10deg) translate(-8px, 30px);
 }
 
 .dice-scene__side-die--right {
   grid-column: 3;
   justify-self: start;
-  transform: rotate(9deg) translateY(-14px);
+  transform: rotate(9deg) translate(8px, -28px);
 }
 
 .dice-scene__die-anchor.mx2-roll {
@@ -475,15 +481,18 @@
 }
 
 .dice-scene__stake-chip {
-  position: relative;
-  z-index: 6;
+  position: absolute;
+  z-index: 4;
+  left: calc(50% + 196px);
+  top: 52%;
   display: grid;
   place-items: center;
   width: 64px;
   height: 64px;
-  margin-top: -14px;
   opacity: 0.95;
   filter: drop-shadow(0 3px 5px rgba(31, 41, 55, 0.12));
+  transform: rotate(6deg);
+  pointer-events: none;
 }
 
 .dice-scene__stake-chip img {
@@ -710,13 +719,14 @@
 
 .dice-chip-btn span:not(:only-child) {
   position: absolute;
-  bottom: 8px;
+  bottom: 6px;
   left: 50%;
-  min-width: 34px;
+  min-width: 38px;
   border-radius: var(--mx2-r-pill);
-  padding: 2px 5px;
+  padding: 3px 6px;
   background: rgba(31, 41, 55, 0.74);
   color: #ffffff;
+  font-size: 11px;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
   transform: translateX(-50%);
 }
@@ -738,11 +748,17 @@
   white-space: normal;
 }
 
-.dice-chip-btn--custom:hover:not(:disabled),
-.dice-chip-btn--custom[aria-expanded="true"] {
+.dice-chip-btn--custom:hover:not(:disabled) {
   border-color: var(--mx2-accent);
   background: #fff8df;
   color: var(--mx2-accent-strong);
+}
+
+.dice-chip-btn--custom[aria-expanded="true"] {
+  border-color: var(--mx2-accent);
+  background: #fff5d8;
+  color: var(--mx2-accent-strong);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.13);
 }
 
 .dice-controls__fine {
@@ -872,6 +888,12 @@
 
 .dice-drawer__empty {
   margin: 0;
+  border: 1px dashed rgba(176, 111, 11, 0.22);
+  border-radius: 12px;
+  padding: 18px 12px;
+  background: #fffdf8;
+  font-size: 12.5px;
+  text-align: center;
 }
 
 .dice-drawer .mx2-history {
@@ -891,6 +913,19 @@
   border-radius: 14px;
   padding: 10px;
   background: #ffffff;
+}
+
+.dice-drawer .mx2-history__item[data-outcome="won"] {
+  border-left: 3px solid rgba(16, 185, 129, 0.55);
+  background: #f7fffb;
+}
+
+.dice-drawer .mx2-history__item[data-outcome="lost"] {
+  border-left: 3px solid rgba(245, 158, 11, 0.45);
+}
+
+.dice-drawer .mx2-history__item[data-outcome="pending"] {
+  border-left: 3px solid rgba(176, 111, 11, 0.25);
 }
 
 .dice-drawer__rule-grid {
@@ -1207,8 +1242,7 @@
   }
 
   .dice-scene__stake-chip {
-    margin-top: -8px;
-    transform: scale(0.86);
+    display: none;
   }
 
   .dice-scene__status {
@@ -1241,9 +1275,9 @@
   }
 
   .dice-chip-tray {
-    gap: 5px;
+    gap: 7px;
     border-radius: var(--mx2-r-pill);
-    padding: 6px;
+    padding: 7px;
   }
 
   .dice-chip-btn {
@@ -1262,9 +1296,15 @@
 
   .dice-chip-btn span:not(:only-child) {
     bottom: 6px;
-    min-width: 28px;
-    padding: 1px 4px;
-    font-size: 8px;
+    min-width: 32px;
+    padding: 2px 5px;
+    font-size: 10px;
+  }
+
+  .dice-chip-btn--active {
+    box-shadow:
+      0 0 0 2px rgba(245, 158, 11, 0.13),
+      0 6px 14px rgba(176, 111, 11, 0.1);
   }
 
   .dice-chip-btn--custom {

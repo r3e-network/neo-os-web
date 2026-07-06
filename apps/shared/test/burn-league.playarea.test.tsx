@@ -126,7 +126,11 @@ describe("Burn League PlayArea (v2 scene-driven)", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
     expect(container.querySelector(".burn-controls__dock")).toBeTruthy();
-    expect(container.querySelector(".burn-controls__header")?.textContent).toContain("Fuel core");
+    // The dock header carries the outcome readout; the brazier scrim is the
+    // single "Fuel core" voice.
+    expect(container.querySelector(".burn-controls__header")?.textContent).toContain("Projected total");
+    expect(container.querySelector(".burn-controls__header")?.textContent).toContain("1.00 GAS");
+    expect(container.querySelector(".burn-scene__brazier-copy")?.textContent).toContain("Fuel core");
     expect(container.querySelector(".burn-stepper__output")?.textContent).toContain("1");
     expect(container.querySelector(".burn-stepper__input")).toBeNull();
     expect(container.querySelector(".burn-controls__presets")?.getAttribute("aria-label")).toBe("Fuel capsules");

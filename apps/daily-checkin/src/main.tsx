@@ -2,8 +2,9 @@
  * Daily Check-in — React Entry Point
  *
  * Uses the React defineMiniApp runtime. The domain logic talks directly to the
- * app's standalone on-chain contract via ctx.services.chain (the legacy
- * ctx.os.checkin Morpheus proxy is non-operational).
+ * app's standalone on-chain contract via the framework chain layer
+ * (ctx.framework.chain — the legacy ctx.os.checkin Morpheus proxy is
+ * non-operational).
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -41,13 +42,17 @@ defineMiniApp({
         currentStreak: checkin.formattedCurrentStreak,
         highestStreak: checkin.formattedHighestStreak,
         totalUserCheckins: checkin.totalUserCheckins,
-        unclaimedRewards: checkin.unclaimedRewards,
-        totalClaimed: checkin.totalClaimed,
+        // GAS amounts are formatted "<amount> GAS" strings for display — the
+        // composable keeps the raw base-unit observables for its own guards.
+        unclaimedRewards: checkin.formattedUnclaimed,
+        totalClaimed: checkin.formattedTotalClaimed,
         checkInFee: checkin.checkInFee,
         totalGlobalCheckins: checkin.totalGlobalCheckins,
         totalGlobalUsers: checkin.totalGlobalUsers,
-        totalGlobalRewarded: checkin.totalGlobalRewarded,
-        rewardPoolBalance: checkin.rewardPoolBalance,
+        totalGlobalRewarded: checkin.formattedTotalRewarded,
+        rewardPoolBalance: checkin.formattedRewardPool,
+        weekRewardLabel: checkin.formattedWeekReward,
+        twoWeekRewardLabel: checkin.formattedTwoWeekReward,
         isPaused: checkin.isPaused,
         rewardsUnderfunded: checkin.rewardsUnderfunded,
         claimableButUnfunded: checkin.claimableButUnfunded,

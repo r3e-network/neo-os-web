@@ -1,10 +1,36 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useTarot } from "./useTarot";
 import type { UseTarotOptions } from "./useTarot";
 import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+
+// The question store now goes through app.storage.local (framework-owned,
+// localStorage-backed). This suite runs in a node environment without a DOM,
+// so provide a minimal Storage shim when the global is absent.
+const localStorageBacking = new Map<string, string>();
+if (typeof globalThis.localStorage === "undefined") {
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (key: string) => localStorageBacking.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        localStorageBacking.set(key, String(value));
+      },
+      removeItem: (key: string) => {
+        localStorageBacking.delete(key);
+      },
+      clear: () => localStorageBacking.clear(),
+      key: (index: number) => Array.from(localStorageBacking.keys())[index] ?? null,
+      get length() {
+        return localStorageBacking.size;
+      },
+    } satisfies Storage,
+  });
+}
+
+beforeEach(() => localStorage.clear());
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const PLAYER_HASH = addressToScriptHash(PLAYER);
@@ -120,13 +146,6 @@ function makeChain(
 
   const readArray = vi.fn(async (): Promise<unknown[]> => []);
 
-  // On-device question store backed by an in-memory map (models localStorage).
-  const store = new Map<string, unknown>();
-  const cache = {
-    persist: vi.fn((key: string, data: unknown) => store.set(key, data)),
-    restore: vi.fn((key: string) => (store.has(key) ? store.get(key) : null)),
-  };
-
   const clipboard = {
     copy: vi.fn(async () => true),
   };
@@ -142,11 +161,9 @@ function makeChain(
 
   return {
     chain,
-    cache: cache as unknown as UseTarotOptions["cache"],
     clipboard: clipboard as unknown as UseTarotOptions["clipboard"],
     invoke,
     read,
-    cacheMock: cache,
     clipboardMock: clipboard,
   };
 }
@@ -157,9 +174,9 @@ function setup(opts: Parameters<typeof makeChain>[0] = {}) {
     { services: { chain: deps.chain }, t } as never,
     { appId: "miniapp-onchaintarot" },
   );
-  const tarot = useTarot({ app, cache: deps.cache, clipboard: deps.clipboard, t });
+  const tarot = useTarot({ app, clipboard: deps.clipboard, t });
   tarot.setAddress(PLAYER);
-  return { tarot, ...deps };
+  return { tarot, app, ...deps };
 }
 
 /** Find a recorded invoke call for an operation. */
@@ -249,15 +266,14 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
   });
 
   it("persists the typed question on-device keyed by readingId (not on-chain)", async () => {
-    const { tarot, cacheMock, invoke } = setup({ readingId: 9, cards: [0, 1, 2] });
+    const { tarot, app, invoke } = setup({ readingId: 9, cards: [0, 1, 2] });
 
     tarot.question.set("Will the project ship?");
     await tarot.draw();
 
-    // The question is stored via the cache, keyed by readingId — and never sent
-    // to the contract (no invoke argument carries the question text).
-    expect(cacheMock.persist).toHaveBeenCalledWith(
-      "tarot:question:9",
+    // The question is stored via app.storage.local, keyed by readingId — and
+    // never sent to the contract (no invoke argument carries the question).
+    expect(app.storage.local.get<string>("tarot:question:9")).toBe(
       "Will the project ship?",
     );
     expect(tarot.restoreQuestion("9")).toBe("Will the project ship?");

@@ -268,6 +268,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {t("winAmount", { amount: gasDisplay(rule.rewardFixed8) })} ·{" "}
             {t("timeAmount", { minutes: Math.round(rule.limitMs / 60000) })}
           </small>
+          <small>{t("entryAmount", { amount: gasDisplay(rule.entryFixed8) })}</small>
         </div>
       </section>
       <div className="rush-lobby__targets-shell">

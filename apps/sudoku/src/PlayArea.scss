@@ -64,12 +64,12 @@
 }
 
 .sudoku-scene[data-state="won"] .sudoku-lobby__result[data-state="won"] {
-  animation: sudoku-win-glow 1600ms ease-in-out infinite alternate;
+  animation: sudoku-win-glow 900ms ease-out 1 both;
 }
 
 .sudoku-scene__status {
-  margin: 2px 0 0;
-  font-size: 0.82rem;
+  margin: -6px 0 0;
+  font-size: 0.78rem;
   color: var(--mx2-text-muted);
   text-align: center;
   min-height: 1.2em;
@@ -120,13 +120,17 @@
   min-height: 336px;
 }
 
+// Deliberate wax-seal motif pinned to the board's top-left corner (clipped by
+// the stage) instead of floating behind the mini-grid.
 .sudoku-lobby__seal {
   position: absolute;
+  top: -22px;
+  left: -22px;
   width: 148px;
   height: 148px;
   object-fit: contain;
-  opacity: 0.16;
-  transform: translate(-126px, -118px) rotate(-8deg);
+  opacity: 0.2;
+  transform: rotate(-8deg);
   filter: drop-shadow(0 16px 24px rgba(55, 43, 22, 0.14));
 }
 
@@ -249,7 +253,7 @@
     min-height: 30px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     border-radius: 12px;
     padding: 9px 12px;
@@ -278,12 +282,17 @@
   gap: 10px;
 }
 
+// Seal in the left column, name + reward stacked beside it — one clean text
+// hierarchy at 3-up width instead of two wrapping flex rows.
 .sudoku-route-card {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
   align-items: center;
-  justify-content: flex-start;
-  gap: 9px;
+  align-content: center;
+  column-gap: 10px;
+  row-gap: 2px;
   min-height: 76px;
   padding: 10px 12px;
   border: 1px solid rgba(155, 121, 62, 0.18);
@@ -301,18 +310,23 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
+  &:focus-visible {
+    outline: 2px solid rgba(0, 175, 146, 0.55);
+    outline-offset: 2px;
+  }
+
   &--active {
-    border-color: rgba(22, 199, 132, 0.72);
+    border-color: rgba(0, 175, 146, 0.6);
     background:
       linear-gradient(180deg, rgba(232, 248, 241, 0.92), rgba(255, 251, 238, 0.94)),
       #fffaf0;
-    box-shadow: 0 4px 12px rgba(22, 199, 132, 0.14);
+    box-shadow: 0 4px 12px rgba(0, 175, 146, 0.14);
     animation: sudoku-card-pop 240ms ease-out;
   }
 }
 
 .sudoku-route-card__seal {
-  flex: 0 0 auto;
+  grid-row: 1 / span 2;
   width: 44px;
   height: 44px;
   object-fit: contain;
@@ -326,6 +340,7 @@
 }
 
 .sudoku-route-card__name {
+  grid-column: 2;
   color: #25313a;
   font-weight: 600;
   font-size: 0.84rem;
@@ -333,12 +348,14 @@
 }
 
 .sudoku-route-card__reward {
+  grid-column: 2;
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
   font-size: 0.72rem;
   font-weight: 600;
+  white-space: nowrap;
   color: #067a5b;
 
   img {
@@ -353,6 +370,19 @@
   text-align: center;
   font-size: 0.78rem;
   color: var(--mx2-text-muted);
+
+  // Empty reward pool is a deliberate gate, not a broken default — surface it
+  // as a warm amber pill instead of a whisper of muted text.
+  &[data-low="true"] {
+    width: max-content;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(180, 83, 9, 0.08);
+    color: #b45309;
+    font-weight: 620;
+  }
 }
 
 .sudoku-lobby__result {
@@ -368,6 +398,12 @@
   &[data-state="won"] {
     background: linear-gradient(180deg, rgba(0, 175, 146, 0.12), rgba(0, 175, 146, 0.05));
     border: 1px solid rgba(0, 175, 146, 0.4);
+
+    strong {
+      font-size: 1.15rem;
+      font-weight: 650;
+      color: #067a5b;
+    }
   }
 
   &[data-state="expired"] {
@@ -468,9 +504,12 @@
   align-items: center;
   gap: 10px;
 
+  // Final minute: a steady urgent color + weight and a single entry pulse —
+  // no perpetual blinking against the solver's concentration.
   &[data-low="true"] .sudoku-timer__clock {
     color: #b42318;
-    animation: sudoku-timer-alarm 1s ease-in-out infinite;
+    font-weight: 650;
+    animation: sudoku-timer-alarm 250ms ease-out 1 both;
   }
 }
 
@@ -563,11 +602,11 @@
   }
 
   &--landing .sudoku-cell__digit {
-    animation: sudoku-digit-land 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+    animation: sudoku-digit-land 220ms ease-out;
   }
 
   &--conflict {
-    animation: sudoku-conflict-shake 460ms ease-in-out;
+    animation: sudoku-conflict-shake 240ms ease-in-out;
     background: rgba(180, 35, 24, 0.08);
   }
 }
@@ -690,19 +729,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   aspect-ratio: 1;
   border-radius: 15px;
   border: 1px solid rgba(0, 175, 146, 0.28);
   background: rgba(255, 253, 246, 0.76);
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 650;
   cursor: pointer;
   color: var(--mx2-text-muted);
+  transition: border-color 150ms ease-out, background 150ms ease-out, color 150ms ease-out;
 
   img {
-    width: 25px;
-    height: 25px;
+    width: 22px;
+    height: 22px;
     object-fit: contain;
     filter: drop-shadow(0 3px 5px rgba(42, 31, 17, 0.12));
   }
@@ -820,15 +860,12 @@
 
 @keyframes sudoku-digit-land {
   0% {
-    transform: scale(1.7);
+    transform: scale(1.3);
     opacity: 0;
-  }
-  60% {
-    transform: scale(0.92);
-    opacity: 1;
   }
   100% {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
@@ -839,11 +876,11 @@
   }
   20%,
   60% {
-    transform: translateX(-3px);
+    transform: translateX(-2px);
   }
   40%,
   80% {
-    transform: translateX(3px);
+    transform: translateX(2px);
   }
 }
 
@@ -870,11 +907,14 @@
 }
 
 @keyframes sudoku-win-glow {
-  from {
+  0% {
     box-shadow: 0 0 0 rgba(0, 175, 146, 0);
   }
-  to {
+  55% {
     box-shadow: 0 0 26px rgba(0, 175, 146, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 18px rgba(0, 175, 146, 0.22);
   }
 }
 
@@ -914,12 +954,14 @@
 }
 
 @keyframes sudoku-timer-alarm {
-  0%,
-  100% {
-    opacity: 1;
+  0% {
+    transform: scale(1);
   }
   50% {
-    opacity: 0.55;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -951,9 +993,11 @@
   }
 
   .sudoku-lobby__seal {
+    top: -16px;
+    left: -16px;
     width: 106px;
     height: 106px;
-    transform: translate(-98px, -88px) rotate(-8deg);
+    transform: rotate(-8deg);
   }
 
   .sudoku-lobby__mini-grid {
@@ -989,8 +1033,15 @@
       min-height: 27px;
       justify-content: center;
       padding: 6px 7px;
-      font-size: 0.64rem;
+      font-size: 0.62rem;
       text-align: center;
+      white-space: nowrap;
+    }
+
+    // The 18px trophy forces the prize cell onto two lines at this width —
+    // the teal prize color already carries the emphasis.
+    img {
+      display: none;
     }
   }
 
@@ -1009,17 +1060,25 @@
   }
 
   .sudoku-route-card {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    justify-items: center;
+    row-gap: 4px;
     min-height: 92px;
     padding: 8px 4px;
     border-radius: 14px;
     text-align: center;
-    gap: 4px;
   }
 
   .sudoku-route-card__seal {
+    grid-row: 1;
     width: 38px;
     height: 38px;
+  }
+
+  .sudoku-route-card__name,
+  .sudoku-route-card__reward {
+    grid-column: 1;
   }
 
   .sudoku-route-card__name {

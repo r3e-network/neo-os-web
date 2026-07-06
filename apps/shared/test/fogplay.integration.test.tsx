@@ -26,8 +26,8 @@ describe("fogplay integration: dispatch params + state", () => {
   it("dispatchs setBetAmount with preset value", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    fireEvent.click(container.querySelectorAll(".fogplay-bet-chip")[3]); // "5"
-    expect(dispatch).toHaveBeenCalledWith("setBetAmount", "5");
+    fireEvent.click(container.querySelectorAll(".fogplay-bet-chip")[3]); // "50"
+    expect(dispatch).toHaveBeenCalledWith("setBetAmount", "50");
   });
   it("dispatchs revealResult when hasPendingBet is true", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);

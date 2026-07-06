@@ -127,8 +127,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const controlsLocked = isBurning || isSettling || burnPreview;
-  const fuelPct = Math.min(100, Math.round((currentBurnAmountNumber / maxBurn) * 100));
+  // Keep a visible floor on the fuel meters: 1-4 GAS on the 1000-GAS max would
+  // otherwise round to a 0% bar that reads broken rather than "low charge".
+  const fuelPct = amountIsValid
+    ? Math.max(5, Math.min(100, Math.round((currentBurnAmountNumber / maxBurn) * 100)))
+    : 0;
   const topEntry = leaderboardPreview[0];
+  const poolIsEmpty = seasonPhase === "dormant" && prizePoolDisplay.startsWith("0");
   const tokenCount = Math.max(3, Math.min(8, Math.round(Math.min(currentBurnAmountNumber || 1, 25) / 4) + 3));
   const sceneState = isBurning || burnPreview ? "burning" : seasonPhase;
   const canBurn = !controlsLocked && amountIsValid;
@@ -145,8 +150,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="burn-scene__hud">
         <div className="burn-scene__stat burn-scene__stat--pool">
           <CoinArt size={22} variant="gas" />
-          <span>{t("prizePool")}</span>
-          <strong>{prizePoolDisplay}</strong>
+          <span>{poolIsEmpty ? t("startPool") : t("prizePool")}</span>
+          <strong>{poolIsEmpty ? "--" : prizePoolDisplay}</strong>
         </div>
         <div className="burn-scene__stat burn-scene__stat--clock">
           <span>{seasonPhase === "active" ? t("seasonEndsIn") : t("seasonStatus")}</span>
@@ -229,8 +234,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="burn-controls" aria-label={t("fuelConsole")}>
       <div className="burn-controls__dock">
         <div className="burn-controls__header">
-          <span className="burn-controls__eyebrow">{t("fuelCore")}</span>
-          <strong>{currentBurnAmount} GAS</strong>
+          <span className="burn-controls__eyebrow">{t("projectedTotal")}</span>
+          <strong>{projectedTotalDisplay}</strong>
           <em>{amountIsValid ? t("fuelLoadHint") : t("burnRange", { min: minBurn, max: maxBurn })}</em>
         </div>
         <div className="burn-controls__presets" aria-label={t("burnPresets")}>
@@ -298,7 +303,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       ? t("burning")
       : userIsLeader
         ? t("youLeadBadge")
-        : t("readyToBurn");
+        : seasonPhase === "dormant"
+          ? t("startTheSeason")
+          : t("readyToBurn");
 
   return (
     <div className="burn-league-play-area mx2 mx2-cat-game">
@@ -310,9 +317,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           subtitle: t("subtitle"),
           badges: (
             <>
-              <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {t("seasonLabel")} {formattedSeason}
-              </span>
+              {formattedSeason !== "--" && (
+                <span className="mx2-badge" data-tone="accent">
+                  <span className="mx2-badge__dot" /> {t("seasonLabel")} {formattedSeason}
+                </span>
+              )}
               {userIsLeader && (
                 <span className="mx2-badge">{t("youLeadBadge")}</span>
               )}
@@ -386,10 +395,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
               {/* How it works */}
               <h4>{t("howItWorks")}</h4>
-              <p>{t("howStepPick")}</p>
-              <p>{t("howStepBurn")}</p>
-              <p>{t("howStepClimb")}</p>
-              <p>{t("howStepWin")}</p>
+              <ol className="burn-drawer__steps">
+                <li>{t("howStepPick")}</li>
+                <li>{t("howStepBurn")}</li>
+                <li>{t("howStepClimb")}</li>
+                <li>{t("howStepWin")}</li>
+              </ol>
 
               {/* Recovery */}
               {prepaidCredit > 0 && (

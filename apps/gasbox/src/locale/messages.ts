@@ -85,7 +85,7 @@ const appMessages = {
         en: "The cabinet is ready. Live capsules appear here after the market syncs.",
         zh: "机台已经准备好。市场同步后，可抽胶囊会出现在这里。",
     },
-    gasboxEmptyRouteRefresh: { en: "Refresh market", zh: "刷新市场" },
+    gasboxEmptyRouteRefresh: { en: "Find machines", zh: "查找机器" },
     gasboxEmptyRoutePick: { en: "Pick a machine", zh: "选择机台" },
     gasboxEmptyRouteReveal: { en: "Reveal prize", zh: "揭晓奖品" },
     gasboxEmptyForCreators: { en: "Want to run your own machine?", zh: "想运营自己的扭蛋机？" },

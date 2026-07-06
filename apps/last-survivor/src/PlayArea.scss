@@ -13,6 +13,13 @@
   display: block;
 }
 
+/* Opt the arena art back in through the shared v2 scene-art gate. Without
+ * this declaration the shell holds [class$="__arena-art"] at opacity 0 and
+ * the vault reads as a flat white void on desktop. */
+.survivor-play-area .mx2-stage {
+  --mx2-scene-art-opacity: 0.38;
+}
+
 .survivor-play-area .mx2-stage__scene {
   display: block;
   min-height: 0;
@@ -81,14 +88,14 @@
 .survivor-scene__shade {
   z-index: 1;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.16) 46%, rgba(255, 255, 255, 0.54) 100%),
-    linear-gradient(180deg, rgba(247, 251, 244, 0.72) 0%, rgba(247, 251, 244, 0.12) 42%, rgba(247, 251, 244, 0.78) 100%);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 46%, rgba(255, 255, 255, 0.36) 100%),
+    linear-gradient(180deg, rgba(247, 251, 244, 0.52) 0%, rgba(247, 251, 244, 0.12) 42%, rgba(247, 251, 244, 0.62) 100%);
 }
 
 .survivor-scene__hud {
   position: relative;
   z-index: 5;
-  width: min(100% - 28px, 680px);
+  width: min(100% - 36px, 1160px);
   margin-top: 0;
   display: flex;
   justify-content: space-between;
@@ -213,8 +220,8 @@
 
 .survivor-scene__relic:disabled {
   cursor: not-allowed;
-  filter: saturate(0.88);
-  opacity: 0.78;
+  filter: saturate(0.7);
+  opacity: 0.7;
 }
 
 .survivor-scene[data-state="buying"] .survivor-scene__relic {
@@ -301,10 +308,25 @@
 }
 
 .survivor-scene__relic-copy em {
-  color: #7c2d12;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 7px 16px;
+  border-radius: var(--mx2-r-pill);
+  background: #b45309;
+  color: #fffbeb;
   font-size: 13px;
   font-style: normal;
   font-weight: 680;
+  box-shadow: 0 6px 14px rgba(146, 64, 14, 0.28);
+}
+
+/* Idle relic: no dead countdown — an amber invitation headline instead. */
+.survivor-scene__relic-copy[data-idle="true"] .survivor-scene__relic-invite {
+  font-size: 19px;
+  font-weight: 680;
+  line-height: 1.16;
+  font-variant-numeric: normal;
 }
 
 .survivor-scene__beats {
@@ -359,13 +381,13 @@
 .survivor-scene__key-stack {
   position: absolute;
   z-index: 5;
-  left: calc(50% + 174px);
+  left: calc(50% + 104px);
   right: auto;
-  bottom: 246px;
+  bottom: 318px;
   width: 156px;
   height: 118px;
   pointer-events: none;
-  filter: drop-shadow(0 16px 28px rgba(146, 64, 14, 0.22));
+  filter: drop-shadow(0 12px 20px rgba(146, 64, 14, 0.22));
 }
 
 .survivor-scene__key-token,
@@ -1016,7 +1038,12 @@
   }
 
   .survivor-scene__relic-copy em {
+    padding: 6px 13px;
     font-size: 12px;
+  }
+
+  .survivor-scene__relic-copy[data-idle="true"] .survivor-scene__relic-invite {
+    font-size: 16px;
   }
 
   .survivor-scene__danger-track {
@@ -1025,8 +1052,8 @@
 
   .survivor-scene__key-stack {
     left: auto;
-    right: 6px;
-    bottom: 218px;
+    right: 12px;
+    bottom: 236px;
     transform: scale(0.62);
     transform-origin: right bottom;
   }

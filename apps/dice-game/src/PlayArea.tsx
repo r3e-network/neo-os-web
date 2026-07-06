@@ -93,7 +93,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [faceInput, setFaceInput] = useState(selectedFace);
   const [amountInput, setAmountInput] = useState(amountFromStake(stakeAmount));
   const [formError, setFormError] = useState("");
-  const [selectionPulse, setSelectionPulse] = useState(0);
   const [throwPulse, setThrowPulse] = useState(0);
   const [fineStakeOpen, setFineStakeOpen] = useState(false);
   // Local "throw preview" gives immediate dice motion on submit, independent of
@@ -165,7 +164,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const chooseFace = (face: string) => {
     setFaceInput(face);
-    setSelectionPulse((tick) => tick + 1);
   };
   const chooseStake = (stake: string) => {
     setAmountInput(stake);
@@ -353,7 +351,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           />
           <button
             type="button"
-            key={`${visibleFace}-${throwPulse}-${selectionPulse}-${isRolling}-${showResult}`}
+            key={`${visibleFace}-${throwPulse}-${isRolling}-${showResult}`}
             className={[
               "dice-scene__die-anchor",
               isRolling ? "mx2-roll" : null,

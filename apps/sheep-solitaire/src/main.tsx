@@ -18,37 +18,11 @@ import type { CardView, TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-s
 const appId = "miniapp-sheep-solitaire";
 
 const LEADERBOARD_EVENT_LIMIT = 200;
-const OPS_STORAGE_PREFIX = "miniapp-sheep-solitaire:ops:";
+const OPS_STORAGE_PREFIX = "ops:";
 
 function asNumber(value: unknown): number {
   const n = Number(parseBigInt(value));
   return Number.isFinite(n) ? n : 0;
-}
-
-function loadOps(gameId: string): TeeOp[] {
-  try {
-    const raw = window.localStorage.getItem(OPS_STORAGE_PREFIX + gameId);
-    const parsed = raw ? (JSON.parse(raw) as TeeOp[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveOps(gameId: string, ops: TeeOp[]): void {
-  try {
-    window.localStorage.setItem(OPS_STORAGE_PREFIX + gameId, JSON.stringify(ops));
-  } catch {
-    /* op log is best-effort; the TEE session is the authority */
-  }
-}
-
-function forgetOps(gameId: string): void {
-  try {
-    window.localStorage.removeItem(OPS_STORAGE_PREFIX + gameId);
-  } catch {
-    /* nothing to clean */
-  }
 }
 
 export interface LeaderEntry {
@@ -79,6 +53,30 @@ defineMiniApp({
     // stack items, and readRaw/invoke/events/detectNetwork are raw passthroughs
     // to the same ctx.services.chain the framework wraps.
     const app = ctx.framework;
+
+    // TEE op log via the framework's namespaced local storage. Best-effort:
+    // the TEE session is the authority, so persistence failures are swallowed.
+    const loadOps = (gameId: string): TeeOp[] => {
+      const parsed = app.storage.local.get<TeeOp[]>(OPS_STORAGE_PREFIX + gameId, []);
+      return Array.isArray(parsed) ? parsed : [];
+    };
+
+    const saveOps = (gameId: string, ops: TeeOp[]): void => {
+      try {
+        app.storage.local.set(OPS_STORAGE_PREFIX + gameId, ops);
+      } catch {
+        /* op log is best-effort; the TEE session is the authority */
+      }
+    };
+
+    const forgetOps = (gameId: string): void => {
+      try {
+        app.storage.local.delete(OPS_STORAGE_PREFIX + gameId);
+      } catch {
+        /* nothing to clean */
+      }
+    };
+
     const credit = createObservable(0);
     const poolFree = createObservable(0);
     const activeGameId = createObservable("0");

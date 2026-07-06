@@ -27,7 +27,7 @@
   border-radius: 12px;
   padding: 16px;
   background: #fffdf8;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   isolation: isolate;
 }
 
@@ -40,15 +40,17 @@
   pointer-events: none;
 }
 
+// Frameless: the cream reward board is the single card frame — the streak
+// card only organizes its content, so no second border/background/padding
+// nests a redundant frame inside it.
 .dci-streak-card {
   min-width: 0;
-  border: 1px solid rgba(217, 119, 6, 0.12);
-  border-radius: 10px;
-  background: #ffffff;
+  border: 0;
+  background: transparent;
   display: grid;
   align-content: start;
   gap: 14px;
-  padding: 14px;
+  padding: 0;
 }
 
 .dci-streak-card__head {
@@ -60,18 +62,15 @@
 }
 
 .dci-streak-card__icon {
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   border: 1px solid rgba(217, 119, 6, 0.18);
+  border-radius: var(--mx2-r-lg);
   background: #fffbeb;
   color: #b45309;
-}
-
-.dci-streak-card__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
 }
 
 .dci-streak-card__head div {
@@ -100,6 +99,12 @@
   white-space: nowrap;
 }
 
+.dci-streak-card__status {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+}
+
 .dci-streak-card__badge {
   max-width: 206px;
   min-height: 32px;
@@ -112,8 +117,24 @@
   background: #ffffff;
   color: #92400e;
   font-size: 12px;
-  font-weight: 560;
+  font-weight: 500;
   line-height: 1.1;
+}
+
+.dci-streak-card__countdown {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding-right: 2px;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dci-streak-card__countdown strong {
+  font-weight: 600;
 }
 
 .dci-streak-card__summary {
@@ -135,7 +156,7 @@
   padding: 2px 10px 2px 2px;
   color: var(--mx2-text-muted);
   font-size: 10px;
-  font-weight: 560;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -161,6 +182,24 @@
   flex: 0 0 8px;
   border-radius: 50%;
   background: #f59e0b;
+}
+
+// The dot carries the state signal: ready amber, claimable green, paused red,
+// waiting warm stone. Busy states keep the base amber pulse.
+.dci-reward-board[data-state="ready"] .dci-status-dot {
+  background: #d97706;
+}
+
+.dci-reward-board[data-state="claimable"] .dci-status-dot {
+  background: #16a34a;
+}
+
+.dci-reward-board[data-state="paused"] .dci-status-dot {
+  background: #b91c1c;
+}
+
+.dci-reward-board[data-state="waiting"] .dci-status-dot {
+  background: #a8a29e;
 }
 
 .dci-plaza-art {
@@ -198,7 +237,7 @@
   border-radius: 10px;
   padding: 10px 12px;
   background: #ffffff;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.07);
 }
 
 .dci-plaza-art__coin {
@@ -207,7 +246,7 @@
   display: grid;
   place-items: center;
   border: 1px solid rgba(217, 119, 6, 0.16);
-  border-radius: 16px;
+  border-radius: var(--mx2-r-lg);
   background: #fffbeb;
 }
 
@@ -292,9 +331,12 @@
   overflow: hidden;
 }
 
+// Connector line through the mark centers. Nodes are top-aligned (captions
+// vary per state), so the line sits at padding-top + node padding + mark
+// radius: 14 + 4 + 19 = 37px center for the 2px line.
 .dci-path::before {
   position: absolute;
-  top: 34px;
+  top: 36px;
   left: 38px;
   right: 38px;
   height: 2px;
@@ -309,7 +351,7 @@
   min-width: 0;
   min-height: 72px;
   display: grid;
-  align-content: center;
+  align-content: start;
   justify-items: center;
   gap: 5px;
   border: 0;
@@ -340,7 +382,7 @@
   background: #ffffff;
   border: 1px solid rgba(217, 119, 6, 0.16);
   color: var(--mx2-text-muted);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .dci-day-node--complete .dci-day-node__mark {
@@ -405,7 +447,7 @@
   color: #ffffff;
   border: none;
   border-radius: var(--mx2-r-pill);
-  font-weight: 620;
+  font-weight: 600;
   font-size: 13px;
   cursor: pointer;
   box-shadow: var(--mx2-shadow-sm);
@@ -436,7 +478,7 @@
   border: 1px solid var(--mx2-border);
   border-radius: var(--mx2-r-pill);
   font-size: 12px;
-  font-weight: 560;
+  font-weight: 500;
   cursor: pointer;
 
   &:hover {
@@ -449,7 +491,7 @@
   margin: 0;
   padding: 8px 10px;
   font-size: 11px;
-  font-weight: 560;
+  font-weight: 500;
   color: var(--mx2-warning-ink, #92500a);
   background: var(--mx2-warning-bg, #fff4e0);
   border-radius: var(--mx2-r);
@@ -472,7 +514,7 @@
 
   & span {
     font-size: 10px;
-    font-weight: 560;
+    font-weight: 500;
     color: var(--mx2-ink-soft);
     text-transform: uppercase;
     letter-spacing: 0;
@@ -493,7 +535,7 @@
 
 .dci-drawer__history-title {
   font-size: 12px;
-  font-weight: 620;
+  font-weight: 600;
   color: var(--mx2-ink);
 }
 
@@ -539,16 +581,20 @@
   }
 
   .dci-streak-card {
-    padding: 12px;
+    gap: 12px;
   }
 
   .dci-streak-card__head {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .dci-streak-card__badge {
+  .dci-streak-card__status {
     grid-column: 1 / -1;
     justify-self: start;
+    justify-items: start;
+  }
+
+  .dci-streak-card__badge {
     max-width: 100%;
   }
 
@@ -592,6 +638,9 @@
     width: auto;
   }
 
+  // Horizontal scroller: the border comes off so the right-edge fade (scroll
+  // affordance for D5–D7) can run out cleanly, and the extra right padding
+  // gives the last node room past the faded strip at scroll end.
   .dci-path {
     grid-auto-columns: 66px;
     grid-auto-flow: column;
@@ -599,14 +648,18 @@
     gap: 8px;
     max-width: 100%;
     overflow-x: auto;
-    padding: 12px 9px 10px;
+    border: 0;
+    padding: 12px 24px 10px 9px;
     scroll-snap-type: x proximity;
     scrollbar-width: thin;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
   }
 
+  // The container-level line only spans the visible box, so scrolled-in nodes
+  // would lose their connector — each node carries its own segment instead.
   .dci-path::before {
-    left: 34px;
-    right: 34px;
+    display: none;
   }
 
   .dci-day-node {
@@ -618,6 +671,24 @@
     padding: 7px 6px;
     border-radius: 10px;
     scroll-snap-align: start;
+  }
+
+  // Per-node connector segment: from this mark's center to the next node's
+  // (mark center = 7px padding + 14px radius = 21px; 2px line sits at 20px).
+  .dci-day-node::before {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: calc(100% + 8px);
+    height: 2px;
+    border-radius: var(--mx2-r-pill);
+    background: rgba(217, 119, 6, 0.18);
+    content: "";
+    z-index: -1;
+  }
+
+  .dci-day-node:last-child::before {
+    display: none;
   }
 
   .dci-day-node__mark {

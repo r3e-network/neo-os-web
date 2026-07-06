@@ -117,7 +117,7 @@ export function PlayArea({ state, actions }: Props) {
   const startRule = ruleOf(startDifficulty);
   const rewardPoolReady = state.poolFree >= Number(gasDisplay(startRule.reward));
   const selectedDifficultyLabel = t(`difficulty_${DIFF_KEYS[startDifficulty]}`);
-  const lobbyPreview = LOBBY_PREVIEWS[startDifficulty] ?? LOBBY_PREVIEWS[0];
+  const lobbyPreview = LOBBY_PREVIEWS[startDifficulty] ?? LOBBY_PREVIEWS[0]!;
   const lobbyTargetAsset = tileAsset(startRule.targetTile);
 
   const startMovePreview = useCallback((cell: string) => {
@@ -310,11 +310,11 @@ export function PlayArea({ state, actions }: Props) {
 
               <p className="mk-lobby__pool">
                 {state.walletConnected
-                  ? t("poolLine", { pool: gasDisplay(state.poolFree) })
+                  ? t("poolLine", { pool: state.poolFree.toFixed(2) })
                   : t("walletRequiredStatus")}
                 {state.walletConnected && !rewardPoolReady ? ` · ${t("statusPoolLow")}` : ""}
               </p>
-              {state.credit > 0 && <p className="mk-lobby__credit">{t("creditLine", { credit: gasDisplay(state.credit) })}</p>}
+              {state.credit > 0 && <p className="mk-lobby__credit">{t("creditLine", { credit: state.credit.toFixed(2) })}</p>}
             </section>
           </div>
         </div>
@@ -374,9 +374,8 @@ export function PlayArea({ state, actions }: Props) {
                 {t("timeUpAction")}
               </button>
             ) : targetReached ? (
-              <button type="button" className="mk-actions__submit" onClick={() => void actions.submitSolution()}>
-                {t("submitAction")}
-              </button>
+              // The rail primary is the single claim CTA; this chip only celebrates.
+              <span className="mk-actions__won">{t("submitHint")}</span>
             ) : (
               <span className="mk-actions__hint">{selectedCell ? t("selectedTile") : t("selectTile")}</span>
             )}
@@ -468,12 +467,14 @@ export function PlayArea({ state, actions }: Props) {
     </div>
   );
 
-  const showWithdraw =
-    (state.credit > 0 || state.lastPayout > 0) && state.gameStatus !== "playing";
-  const withdrawAmount = state.credit > 0 ? state.credit : state.lastPayout;
+  // Only offer withdraw when there is actual credit — labelling with lastPayout
+  // while credit is 0 produced a dead-end CTA with a wrong amount.
+  // NOTE: state.credit is already a GAS decimal (creditGas from the reward SDK),
+  // so it must NOT go through gasDisplay (which expects fixed8 raw units).
+  const showWithdraw = state.credit > 0 && state.gameStatus !== "playing";
 
   const secondary = showWithdraw
-    ? [{ label: t("withdrawAction", { amount: gasDisplay(withdrawAmount) }), onClick: () => void actions.withdrawWinnings() }]
+    ? [{ label: t("withdrawAction", { amount: state.credit.toFixed(2) }), onClick: () => void actions.withdrawWinnings() }]
     : undefined;
 
   return (
@@ -483,7 +484,7 @@ export function PlayArea({ state, actions }: Props) {
         className="mk-stage"
         stage={{
           eyebrow: t("appEyebrow"),
-          title: isPlaying ? t("tileTarget", { tile: rule.targetTile }) : state.gameStatus === "solved" ? t("playingTitle", { difficulty: rule.targetTile }) : t("lobbyTitle"),
+          title: isPlaying ? t("tileTarget", { tile: rule.targetTile }) : state.gameStatus === "solved" ? t("statusWonTitle") : t("lobbyTitle"),
           subtitle: t("appSubtitle"),
           badges: (
             <span className="mx2-badge" data-tone="accent">
