@@ -62,6 +62,7 @@ const appMessages = {
   submitRound: { en: "Submit round", zh: "提交本轮" },
   submitHint: { en: "Submit your accuracy score to the enclave", zh: "将命中成绩提交给飞地验证" },
   roundProgress: { en: "Round progress", zh: "回合进度" },
+  roundProgressStatus: { en: "Aim progress", zh: "瞄准进度" },
   hitCount: { en: "{accuracies}/{total} accuracy hits", zh: "{accuracies}/{total} 次精准命中" },
   totalScore: { en: "Total score: {points}", zh: "总分：{points}" },
 

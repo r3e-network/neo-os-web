@@ -2,9 +2,16 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   // App translations
+  appEyebrow: { en: "Neo Tarot", zh: "Neo 塔罗" },
+  appSubtitle: {
+    en: "Ask a question, draw three Neo-styled cards, and reveal the spread on-chain.",
+    zh: "提出问题，抽取三张 Neo 风格塔罗牌，并在链上揭示牌阵。",
+  },
   title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   subtitle: { en: "Blockchain-powered divination", zh: "区块链占卜" },
   drawYourCards: { en: "Draw the spread", zh: "抽取牌阵" },
+  drawAction: { en: "Draw cards", zh: "抽牌" },
+  newReading: { en: "New reading", zh: "新的读牌" },
   drawCards: { en: "Draw 3 Cards", zh: "抽取 3 张牌" },
   drawValueHint: {
     en: "Pay 0.1 GAS to draw your Past · Present · Future cards on-chain.",
@@ -66,6 +73,11 @@ const appMessages = {
   oracleVerified: {
     en: "The three cards are drawn on-chain by the contract using Neo N3's Runtime.GetRandom and stored on-chain, so the reading is authoritative and auditable from the ReadingDrawn event.",
     zh: "三张牌由合约在链上使用 Neo N3 的 Runtime.GetRandom 抽取并上链存储，因此该解读具权威性，可凭 ReadingDrawn 事件审计。",
+  },
+  fairnessTitle: { en: "On-chain draw proof", zh: "链上抽牌证明" },
+  fairnessCopy: {
+    en: "The wallet pays the draw fee, then the contract draws three distinct cards using Neo N3 randomness and emits the reading event for audit.",
+    zh: "钱包支付抽牌费用后，合约使用 Neo N3 随机数抽取三张不同卡牌，并发出读牌事件以供审计。",
   },
   tarotHeroTitle: { en: "On-Chain Tarot Reading Desk", zh: "链上塔罗读牌台" },
   tarotHeroSubtitle: {

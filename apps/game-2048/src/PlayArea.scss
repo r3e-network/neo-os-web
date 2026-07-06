@@ -42,10 +42,8 @@
   padding: 20px 18px 18px;
   background: #faf9f7;
   isolation: isolate;
-  // Lifts the scene card off the stage floor so the board has spatial context.
-  box-shadow:
-    0 2px 8px rgba(62, 48, 25, 0.06),
-    0 8px 32px rgba(62, 48, 25, 0.07);
+  // Lifts the scene card off the stage floor using the shared OpenUI shadow.
+  box-shadow: var(--mx2-shadow);
 }
 
 // Subordinate felt layer: the texture sits behind the live board at low
@@ -503,7 +501,6 @@
   border: 1px solid rgba(62, 48, 25, 0.08);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.76);
-  backdrop-filter: blur(4px);
   box-shadow: 0 1px 4px rgba(62, 48, 25, 0.05);
 
   &[data-low="true"] .rush-timer__clock {

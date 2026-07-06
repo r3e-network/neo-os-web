@@ -100,8 +100,10 @@ export function useStateBindings(state: StateRecord) {
   // Build accessor functions that read current values from observables
   return useMemo(() => {
     /** Read a string value (defaults to "") */
-    const str = (key: string, fallback = ""): string =>
-      String(readStateValue(state, key, fallback));
+    const str = (key: string, fallback = ""): string => {
+      const value = readStateValue(state, key, fallback);
+      return value == null ? fallback : String(value);
+    };
 
     /** Read a boolean value (defaults to false) */
     const bool = (key: string): boolean =>

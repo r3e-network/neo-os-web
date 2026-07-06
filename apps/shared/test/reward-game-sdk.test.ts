@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { RewardGameChain, RewardGameConfig, RewardGameContractArg } from "../gamefi";
+import type { RewardGameChain, RewardGameConfig, RewardGameContractArg } from "../../../framework/gamefi";
 import {
   createMemoryRewardGameStorage,
   finalizeRewardGame,
@@ -12,8 +12,8 @@ import {
   replayRewardGameOps,
   refreshRewardGameBalances,
   startRewardGame,
-} from "../gamefi";
-import type { TeeIdentity, TeeSessionOp } from "../logic/tee-session";
+} from "../../../framework/gamefi";
+import type { TeeIdentity, TeeSessionOp } from "../../../framework/logic/tee-session";
 
 const teeMocks = vi.hoisted(() => ({
   seal: vi.fn(),
@@ -21,7 +21,7 @@ const teeMocks = vi.hoisted(() => ({
   step: vi.fn(),
 }));
 
-vi.mock("@shared/logic/tee-session", () => ({
+vi.mock("../../../framework/logic/tee-session", () => ({
   morpheusNetworkOf: (detected: string) =>
     String(detected || "").toLowerCase().includes("mainnet") ? "mainnet" : "testnet",
   teeSessionSealOpLog: teeMocks.seal,

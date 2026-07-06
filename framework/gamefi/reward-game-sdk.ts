@@ -1,19 +1,19 @@
-import { eventStateValue } from "@shared/utils/chain-events";
-import { fromFixed8 } from "@shared/utils/format";
-import { addressToScriptHash } from "@shared/utils/neo";
-import { parseBigInt } from "@shared/utils/parsers";
+import { eventStateValue } from "../utils/chain-events";
+import { fromFixed8 } from "../utils/format";
+import { addressToScriptHash } from "../utils/neo";
+import { parseBigInt } from "../utils/parsers";
 import {
   morpheusNetworkOf,
   teeSessionSealOpLog,
   teeSessionStart,
   teeSessionStep,
-} from "@shared/logic/tee-session";
+} from "../logic/tee-session";
 import type {
   TeeIdentity,
   TeeSessionOp,
   TeeStartResult,
   TeeStepResult,
-} from "@shared/logic/tee-session";
+} from "../logic/tee-session";
 
 const FIXED8 = 100_000_000n;
 

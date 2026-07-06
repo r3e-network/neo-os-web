@@ -2,6 +2,11 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   // App translations
+  appEyebrow: { en: "FogPlay", zh: "迷雾对决" },
+  appSubtitle: {
+    en: "Pick heads or tails, lock the wager, and reveal the fair flip on the next block.",
+    zh: "选择正反面，锁定筹码，并在下一区块揭晓公平抛掷结果。",
+  },
   eyebrow: { en: "On-chain coin toss", zh: "链上抛硬币" },
   title: { en: "FogPlay", zh: "迷雾对决" },
   wins: { en: "Wins", zh: "胜利" },
@@ -89,6 +94,10 @@ const appMessages = {
   firstRoundHint: {
     en: "Pick a side, set your wager, and flip — 50/50 odds, pays 2x.",
     zh: "选择一面、设置下注金额并抛掷 — 五五胜率，2 倍赔付。",
+  },
+  fairnessNote: {
+    en: "FogPlay uses a commit/reveal flip: your bet locks before a later block decides the outcome.",
+    zh: "迷雾对决采用提交/揭晓：下注先锁定，再由更晚区块决定结果。",
   },
   betLockedReassure: {
     en: "Your bet is locked on-chain — the result reveals on the next block.",
