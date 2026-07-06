@@ -39,6 +39,9 @@ export function PhaserGameComponent({
   className,
   ariaLabel = "Interactive game",
   loadingLabel = "Loading game",
+  errorLabel = "Game action failed",
+  retryLabel = "Retry",
+  continueLabel = "Continue",
   onReady,
 }: PhaserGameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,6 +49,11 @@ export function PhaserGameComponent({
   const bridgeRef    = useRef<GameBridge>(new GameBridge());
   const onReadyRef   = useRef(onReady);
   const [ready, setReady] = useState(false);
+  const [bootKey, setBootKey] = useState(0);
+  const [error, setError] = useState<{
+    message: string;
+    mode: "dismiss" | "retry";
+  } | null>(null);
   // Unique game ID for bridge registry — stable across re-renders
   const gameId       = useId();
 
@@ -53,12 +61,13 @@ export function PhaserGameComponent({
     onReadyRef.current = onReady;
   }, [onReady]);
 
-  // Boot Phaser once on mount
+  // Boot Phaser once on mount, and again only after an explicit retry.
   useEffect(() => {
     if (!containerRef.current) return;
 
     const bridge = bridgeRef.current;
     setReady(false);
+    setError(null);
 
     // Wire dispatch from React → bridge → scene
     bridge.setDispatch(dispatch);
@@ -66,6 +75,9 @@ export function PhaserGameComponent({
     const unsubscribeReady = bridge.on("ready", () => {
       setReady(true);
       onReadyRef.current?.();
+    });
+    const unsubscribeError = bridge.on("error", (event) => {
+      setError({ message: event.message || errorLabel, mode: "dismiss" });
     });
 
     // Inject bridge so BaseScene can pick it up synchronously in create()
@@ -90,10 +102,18 @@ export function PhaserGameComponent({
       audio: { disableWebAudio: false },
     };
 
-    gameRef.current = new Phaser.Game(mergedConfig);
+    try {
+      gameRef.current = new Phaser.Game(mergedConfig);
+    } catch (err) {
+      setError({
+        message: err instanceof Error && err.message ? err.message : errorLabel,
+        mode: "retry",
+      });
+    }
 
     return () => {
       unsubscribeReady();
+      unsubscribeError();
       bridge.destroy();
       gameRef.current?.destroy(true);
       gameRef.current = null;
@@ -102,9 +122,10 @@ export function PhaserGameComponent({
         delete window.__phaserBridge;
       }
     };
-  // Only run once — config and gameId are stable
+  // Keep dispatch hot-swapped in the separate effect below so a parent render
+  // does not tear down an active canvas mid-game.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameId]);
+  }, [bootKey, gameId]);
 
   // Keep dispatch in the bridge in sync with latest closure
   useEffect(() => {
@@ -123,8 +144,9 @@ export function PhaserGameComponent({
       className={className}
       role="application"
       aria-label={ariaLabel}
-      aria-busy={!ready}
+      aria-busy={!ready && !error}
       data-ready={ready ? "true" : "false"}
+      data-error={error ? "true" : "false"}
       style={{
         display: "block",
         position: "relative",
@@ -138,7 +160,7 @@ export function PhaserGameComponent({
         WebkitUserSelect: "none",
       }}
     >
-      {!ready && (
+      {!ready && !error && (
         <div
           aria-hidden="true"
           style={{
@@ -155,6 +177,54 @@ export function PhaserGameComponent({
           }}
         >
           {loadingLabel}
+        </div>
+      )}
+      {error && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            alignContent: "center",
+            justifyItems: "center",
+            gap: 12,
+            padding: 24,
+            textAlign: "center",
+            color: "#19313a",
+            font: "500 13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            letterSpacing: 0,
+            background:
+              "linear-gradient(135deg, rgba(255,255,255,0.9), rgba(231,247,241,0.82))",
+            pointerEvents: "auto",
+          }}
+        >
+          <div style={{ maxWidth: 260 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>{errorLabel}</div>
+            <div style={{ color: "rgba(25, 49, 58, 0.72)" }}>{error.message}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (error.mode === "retry") setBootKey((key) => key + 1);
+              else setError(null);
+            }}
+            style={{
+              border: "1px solid rgba(22, 199, 132, 0.36)",
+              borderRadius: 999,
+              background: "#16c784",
+              color: "#ffffff",
+              cursor: "pointer",
+              font: "700 13px/1 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              letterSpacing: 0,
+              minHeight: 36,
+              padding: "0 18px",
+              boxShadow: "0 10px 24px rgba(22, 199, 132, 0.18)",
+            }}
+          >
+            {error.mode === "retry" ? retryLabel : continueLabel}
+          </button>
         </div>
       )}
     </div>

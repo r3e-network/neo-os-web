@@ -17,12 +17,22 @@ type BridgeEventMap = {
   ready: void;
   state: GameState;
   dispatch: { action: string; args: unknown[] };
+  dispatchComplete: { action: string; args: unknown[] };
+  error: GameBridgeError;
   destroy: void;
 };
 
 type BridgeListener<K extends keyof BridgeEventMap> = (
   data: BridgeEventMap[K],
 ) => void;
+
+export type GameBridgeError = {
+  source: "dispatch";
+  action: string;
+  args: unknown[];
+  error: unknown;
+  message: string;
+};
 
 export class GameBridge {
   private listeners = new Map<string, Set<BridgeListener<never>>>();
@@ -55,8 +65,18 @@ export class GameBridge {
    * Forwards to the React dispatch prop (and thus to main.tsx).
    */
   dispatch(action: string, ...args: unknown[]): void {
-    void this.dispatchFn?.(action, ...args);
     this.emit("dispatch", { action, args });
+
+    if (!this.dispatchFn) return;
+
+    try {
+      const result = this.dispatchFn(action, ...args);
+      void Promise.resolve(result)
+        .then(() => this.emit("dispatchComplete", { action, args }))
+        .catch((error: unknown) => this.reportDispatchError(action, args, error));
+    } catch (error) {
+      this.reportDispatchError(action, args, error);
+    }
   }
 
   /**
@@ -101,6 +121,26 @@ export class GameBridge {
   notifyReady(): void {
     this.emit("ready", undefined as void);
   }
+
+  private reportDispatchError(
+    action: string,
+    args: unknown[],
+    error: unknown,
+  ): void {
+    this.emit("error", {
+      source: "dispatch",
+      action,
+      args,
+      error,
+      message: formatBridgeError(error),
+    });
+  }
+}
+
+export function formatBridgeError(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return "The game action could not be completed.";
 }
 
 /** Global registry: one bridge per Phaser game instance (keyed by gameId). */

@@ -16,7 +16,10 @@ export type GameState = Record<string, unknown>;
  * Typed dispatch function: mirrors the PlayArea `dispatch` prop so scenes can
  * trigger on-chain actions without knowing the React layer.
  */
-export type DispatchFn = (action: string, ...args: unknown[]) => Promise<void>;
+export type DispatchFn = (
+  action: string,
+  ...args: unknown[]
+) => Promise<void> | void;
 
 // ── React ↔ Phaser bridge ────────────────────────────────────────────────────
 
@@ -51,6 +54,12 @@ export interface PhaserGameProps {
   ariaLabel?: string;
   /** Text shown while the Phaser scene boots. */
   loadingLabel?: string;
+  /** Text shown when Phaser fails to boot or a bridge action fails. */
+  errorLabel?: string;
+  /** Text shown on the retry control after a recoverable game failure. */
+  retryLabel?: string;
+  /** Text shown on the dismiss control after a failed action. */
+  continueLabel?: string;
   /** Called when the scene reports that it is ready. */
   onReady?: () => void;
 }
