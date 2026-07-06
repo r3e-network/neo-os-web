@@ -288,14 +288,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         }
       }
 
-      // Score
-      ctx.fillStyle = "#fff";
-      ctx.font = "bold 28px 'Segoe UI', sans-serif";
+      // Score — premium HUD pill
+      const scoreText = `${gs.score}`;
+      ctx.font = "bold 28px 'Segoe UI', system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 3;
-      ctx.strokeText(`${gs.score}`, w / 2, 50);
-      ctx.fillText(`${gs.score}`, w / 2, 50);
+      const scoreWidth = ctx.measureText(scoreText).width;
+      const pillW = Math.max(scoreWidth + 28, 52);
+      const pillH = 36;
+      const pillX = w / 2 - pillW / 2;
+      const pillY = 16;
+      const pillR = pillH / 2;
+
+      // Backdrop pill
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(pillX + pillR, pillY);
+      ctx.arcTo(pillX + pillW, pillY, pillX + pillW, pillY + pillH, pillR);
+      ctx.arcTo(pillX + pillW, pillY + pillH, pillX, pillY + pillH, pillR);
+      ctx.arcTo(pillX, pillY + pillH, pillX, pillY, pillR);
+      ctx.arcTo(pillX, pillY, pillX + pillW, pillY, pillR);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+
+      // Score number
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 28px 'Segoe UI', system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(scoreText, w / 2, pillY + pillH - 8);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
     },
     [spritesReady],
   );

@@ -560,13 +560,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Charge bar */}
       {isCharging && (
         <div className="jr-charge-bar">
-          <div className="jr-charge-bar__track">
+          <div
+            className="jr-charge-bar__track"
+            role="progressbar"
+            aria-valuenow={Math.round((chargeLevel / 1000) * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={t("chargeHint")}
+          >
             <div
               className="jr-charge-bar__fill"
               style={{ width: `${(chargeLevel / 1000) * 100}%` }}
             />
           </div>
-          <span className="jr-charge-bar__label">{t("chargeHint")}</span>
+          <span className="jr-charge-bar__label" aria-hidden="true">{t("chargeHint")}</span>
         </div>
       )}
 
@@ -589,7 +596,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // ---- Missed screen ----
   const missedScreen = missed && (
-    <div className="jr-missed">
+    <div className="jr-missed" role="alert">
       <img className="jr-missed__sprite" src={JR_ASSETS.bunnyHurt} alt="" draggable={false} />
       <h3>{t("statusMissed")}</h3>
       <p>{t("jumpsCount", { count: jumpCount })}</p>

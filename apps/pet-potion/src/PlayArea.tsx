@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState } from "react";
-import { useT } from "@shared/react";
+import type { PlayAreaProps } from "@shared/react";
+import { useStateBindings } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import {
   ruleOf,
@@ -16,56 +17,19 @@ import "./PlayArea.scss";
 /** A pet care-action op — structurally a generic session op. */
 type TeeOp = { type: "feed" } | { type: "play" } | { type: "pet" } | { type: "rest" };
 
-interface AppState {
-  credit: number;
-  poolFree: number;
-  activeGameId: string | null;
-  gameStatus: string;
-  gameDifficulty: number;
-  commitment: string;
-  dealtAt: number;
-  deadline: number;
-  undosUsed: number;
-  actionsUsed: number;
-  lastPayout: number;
-  lastElapsedMs: number;
+interface LeaderEntry {
+  player: string;
+  totalWon: number;
+  solved: number;
+}
+
+interface SolveRow {
+  gameId: string;
+  difficulty: number;
+  payout: number;
+  solveMs: number;
+  undos: number;
   happinessAchieved: number;
-  petHappiness: number;
-  petHunger: number;
-  petEnergy: number;
-  petStage: number;
-  leaderboard: Array<{ player: string; totalWon: number; solved: number }>;
-  myRank: number;
-  myTotalWon: number;
-  mySolves: number;
-  myHistory: Array<{
-    gameId: string;
-    difficulty: number;
-    payout: number;
-    solveMs: number;
-    undos: number;
-    happinessAchieved: number;
-  }>;
-  isStarting: boolean;
-  isDealing: boolean;
-  isSubmitting: boolean;
-  lastStatus: string;
-  actionHistory: string[];
-}
-
-interface Actions {
-  startGame: (difficulty: number) => Promise<void>;
-  retryDeal: () => Promise<void>;
-  recordAction: (action: TeeOp) => Promise<void>;
-  submitSolution: () => Promise<void>;
-  expireGame: () => Promise<void>;
-  withdrawWinnings: () => Promise<void>;
-  refreshLeaderboard: () => Promise<void>;
-}
-
-interface Props {
-  state: AppState;
-  actions: Actions;
 }
 
 /** Maximum stat value for bar display */
@@ -102,8 +66,34 @@ function difficultyKey(difficulty: number): "easy" | "medium" | "hard" {
   return difficulty === 0 ? "easy" : difficulty === 1 ? "medium" : "hard";
 }
 
-export function PlayArea({ state, actions }: Props) {
-  const { t } = useT();
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+  const { str, num, bool, val } = useStateBindings(state);
+
+  // Extract state values
+  const credit = num("credit", 0);
+  const poolFree = num("poolFree", 0);
+  const activeGameId = val<string | null>("activeGameId", null) ?? null;
+  const gameStatus = str("gameStatus", "idle");
+  const gameDifficulty = num("gameDifficulty", 0);
+  const deadline = num("deadline", 0);
+  const undosUsed = num("undosUsed", 0);
+  const actionsUsed = num("actionsUsed", 0);
+  const lastPayout = num("lastPayout", 0);
+  const lastElapsedMs = num("lastElapsedMs", 0);
+  const happinessAchieved = num("happinessAchieved", 0);
+  const petHappiness = num("petHappiness", 50);
+  const petHunger = num("petHunger", 50);
+  const petEnergy = num("petEnergy", 50);
+  const petStage = num("petStage", 0);
+  const leaderboard = val<LeaderEntry[]>("leaderboard", []) ?? [];
+  const myRank = num("myRank", 0);
+  const myTotalWon = num("myTotalWon", 0);
+  const myHistory = val<SolveRow[]>("myHistory", []) ?? [];
+  const isStarting = bool("isStarting");
+  const isDealing = bool("isDealing");
+  const isSubmitting = bool("isSubmitting");
+  const lastStatus = str("lastStatus", "");
+
   const [selectedDiff, setSelectedDiff] = useState<number>(0);
   // Immediate local care-action cue, released on a timer so a button never
   // sticks in its action state while the action streams to the TEE session.
@@ -130,7 +120,7 @@ export function PlayArea({ state, actions }: Props) {
 
   // Timer for countdown
   useEffect(() => {
-    if (state.gameStatus === "playing" && state.deadline > 0) {
+    if (gameStatus === "playing" && deadline > 0) {
       timerRef.current = setInterval(() => setNow(Date.now()), 250);
       return () => {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -138,40 +128,40 @@ export function PlayArea({ state, actions }: Props) {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [state.gameStatus, state.deadline]);
+  }, [gameStatus, deadline]);
 
-  const timeLeft = state.deadline > 0 ? Math.max(0, state.deadline - now) : 0;
+  const timeLeft = deadline > 0 ? Math.max(0, deadline - now) : 0;
   const isLow = timeLeft > 0 && timeLeft < 30000;
   const rule =
-    state.gameStatus !== "idle" && state.gameStatus !== "solved"
-      ? ruleOf(state.gameDifficulty)
+    gameStatus !== "idle" && gameStatus !== "solved"
+      ? ruleOf(gameDifficulty)
       : null;
   const startDifficulty =
-    state.gameStatus === "idle" && !state.activeGameId ? selectedDiff : state.gameDifficulty;
+    gameStatus === "idle" && !activeGameId ? selectedDiff : gameDifficulty;
   const startRule = ruleOf(startDifficulty);
-  const rewardPoolReady = state.poolFree >= startRule.reward / GAS_FIXED8;
+  const rewardPoolReady = poolFree >= startRule.reward / GAS_FIXED8;
 
   // Action handlers with an immediate local preview cue.
   const handleAction = useCallback(
     async (actionType: string) => {
       startActionPreview(actionType);
       const op: TeeOp = { type: actionType } as TeeOp;
-      await actions.recordAction(op);
+      await dispatch("recordAction", op);
     },
-    [actions, startActionPreview],
+    [dispatch, startActionPreview],
   );
 
-  // Stat bar color — stays inside the nursery palette (jade / gold / warm red).
+  // Stat bar color — use CSS custom properties for theming
   const statColor = (value: number): string => {
-    if (value >= 70) return "#16c784";
-    if (value >= 40) return "#d8a742";
-    return "#dc4b3e";
+    if (value >= 70) return "var(--pp-jade)";
+    if (value >= 40) return "var(--pp-gold)";
+    return "var(--mx2-danger)";
   };
 
   // Build scene content
   const sceneContent = (() => {
     // Lobby — pick difficulty
-    if (state.gameStatus === "idle" && !state.activeGameId) {
+    if (gameStatus === "idle" && !activeGameId) {
       const lobbyStageArt =
         PET_POTION_ART.stages[startDifficulty] ?? PET_POTION_ART.stages[0];
       return (
@@ -190,14 +180,14 @@ export function PlayArea({ state, actions }: Props) {
               decoding="async"
               draggable={false}
             />
-            <div className="pp-lobby__goal-hud">
+            <div className="pp-lobby__goal-hud" id="pp-lobby-goal">
               <span className="pp-lobby__plan-label">
                 {t(`difficulty_${difficultyKey(startDifficulty)}`)}
               </span>
               <strong>{t("lobbyCareGoal", { happiness: startRule.targetHappiness })}</strong>
               <p>{t(`pathObjective_${difficultyKey(startDifficulty)}`)}</p>
             </div>
-            <div className="pp-lobby__playpen" aria-hidden="true">
+            <div className="pp-lobby__playpen" aria-hidden="true" aria-describedby="pp-lobby-goal">
               <span className="pp-lobby__playpen-light" />
               <img
                 className="pp-lobby__pet-art"
@@ -230,9 +220,9 @@ export function PlayArea({ state, actions }: Props) {
                     type="button"
                     role="radio"
                     aria-checked={active}
-                    className={`pp-plan ${active ? "pp-plan--active" : ""}`}
+                    className={`mx2-btn pp-plan ${active ? "pp-plan--active" : ""}`}
                     onClick={() => setSelectedDiff(d)}
-                    disabled={state.isStarting}
+                    disabled={isStarting}
                   >
                     <span className="pp-plan__orb">
                       <img
@@ -263,20 +253,20 @@ export function PlayArea({ state, actions }: Props) {
             <span className="pp-lobby__status">
               {rewardPoolReady ? t("lobbyReady") : t("statusPoolLow")}
             </span>
-            <span>{t("poolLine", { pool: gasAmountDisplay(state.poolFree) })}</span>
-            {state.credit > 0 && (
-              <span>{t("creditLine", { credit: gasAmountDisplay(state.credit) })}</span>
+            <span>{t("poolLine", { pool: gasAmountDisplay(poolFree) })}</span>
+            {credit > 0 && (
+              <span>{t("creditLine", { credit: gasAmountDisplay(credit) })}</span>
             )}
           </div>
-          {state.isStarting && <p className="pp-lobby__starting">{t("statusStarting")}</p>}
+          {isStarting && <p className="pp-lobby__starting" aria-live="polite">{t("statusStarting")}</p>}
         </div>
       );
     }
 
     // Awaiting bind / dealing
-    if (state.gameStatus === "awaiting-bind" || state.isDealing) {
+    if (gameStatus === "awaiting-bind" || isDealing) {
       return (
-        <div className="pp-shuffle">
+        <div className="pp-shuffle" aria-busy="true" aria-live="polite">
           <div className="pp-shuffle__pet">
             <img
               className="pp-shuffle__egg-art"
@@ -287,8 +277,12 @@ export function PlayArea({ state, actions }: Props) {
             />
           </div>
           <p>{t("statusShuffling")}</p>
-          {state.lastStatus === "deal-pending" && (
-            <button className="pp-shuffle__retry" onClick={actions.retryDeal}>
+          {lastStatus === "deal-pending" && (
+            <button
+              type="button"
+              className="mx2-btn mx2-btn--ghost pp-shuffle__retry"
+              onClick={() => void dispatch("retryDeal")}
+            >
               {t("checkDealAgain") ?? "Retry"}
             </button>
           )}
@@ -297,15 +291,15 @@ export function PlayArea({ state, actions }: Props) {
     }
 
     // Playing — show pet + stats + actions
-    if (state.gameStatus === "playing") {
-      const stageArt = PET_POTION_ART.stages[state.petStage] ?? PET_POTION_ART.stages[0];
-      const stageName = EVOLUTION_STAGES[state.petStage] ?? "baby";
+    if (gameStatus === "playing") {
+      const stageArt = PET_POTION_ART.stages[petStage] ?? PET_POTION_ART.stages[0];
+      const stageName = EVOLUTION_STAGES[petStage] ?? "baby";
       const activeActionArt = actionPreview
         ? PET_POTION_ART.actions[actionPreview as keyof typeof PET_POTION_ART.actions]
         : null;
 
       return (
-        <div className="pp-table">
+        <div className="pp-table" aria-busy={isSubmitting || undefined}>
           <img
             className="pp-table__lab-art"
             src={PET_POTION_ART.lab}
@@ -334,7 +328,7 @@ export function PlayArea({ state, actions }: Props) {
               <img
                 className="pp-pet__creature"
                 src={stageArt}
-                alt=""
+                alt={t("petStage", { stage: t(`stage_${stageName}`) })}
                 decoding="async"
                 draggable={false}
               />
@@ -365,42 +359,63 @@ export function PlayArea({ state, actions }: Props) {
           <div className="pp-stats">
             <div className="pp-stat">
               <span className="pp-stat__label">{t("statHappiness")}</span>
-              <div className="pp-stat__track">
+              <div
+                className="pp-stat__track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={MAX_STAT}
+                aria-valuenow={petHappiness}
+                aria-label={t("statHappiness")}
+              >
                 <div
                   className="pp-stat__fill"
                   style={{
-                    width: `${(state.petHappiness / MAX_STAT) * 100}%`,
-                    background: statColor(state.petHappiness),
+                    width: `${(petHappiness / MAX_STAT) * 100}%`,
+                    background: statColor(petHappiness),
                   }}
                 />
               </div>
-              <span className="pp-stat__value">{state.petHappiness}</span>
+              <span className="pp-stat__value">{petHappiness}</span>
             </div>
             <div className="pp-stat">
               <span className="pp-stat__label">{t("statHunger")}</span>
-              <div className="pp-stat__track">
+              <div
+                className="pp-stat__track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={MAX_STAT}
+                aria-valuenow={petHunger}
+                aria-label={t("statHunger")}
+              >
                 <div
                   className="pp-stat__fill"
                   style={{
-                    width: `${(state.petHunger / MAX_STAT) * 100}%`,
-                    background: statColor(state.petHunger),
+                    width: `${(petHunger / MAX_STAT) * 100}%`,
+                    background: statColor(petHunger),
                   }}
                 />
               </div>
-              <span className="pp-stat__value">{state.petHunger}</span>
+              <span className="pp-stat__value">{petHunger}</span>
             </div>
             <div className="pp-stat">
               <span className="pp-stat__label">{t("statEnergy")}</span>
-              <div className="pp-stat__track">
+              <div
+                className="pp-stat__track"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={MAX_STAT}
+                aria-valuenow={petEnergy}
+                aria-label={t("statEnergy")}
+              >
                 <div
                   className="pp-stat__fill"
                   style={{
-                    width: `${(state.petEnergy / MAX_STAT) * 100}%`,
-                    background: statColor(state.petEnergy),
+                    width: `${(petEnergy / MAX_STAT) * 100}%`,
+                    background: statColor(petEnergy),
                   }}
                 />
               </div>
-              <span className="pp-stat__value">{state.petEnergy}</span>
+              <span className="pp-stat__value">{petEnergy}</span>
             </div>
           </div>
 
@@ -411,10 +426,12 @@ export function PlayArea({ state, actions }: Props) {
               return (
                 <button
                   key={name}
-                  className={`pp-action-btn ${isAnimating ? "pp-action-btn--active" : ""}`}
+                  type="button"
+                  className={`mx2-btn pp-action-btn ${isAnimating ? "pp-action-btn--active" : ""}`}
                   onClick={() => handleAction(name)}
-                  disabled={state.isSubmitting || state.actionsUsed >= 40}
+                  disabled={isSubmitting || actionsUsed >= 40}
                   data-action={name}
+                  aria-pressed={isAnimating}
                 >
                   <img
                     className="pp-action-btn__asset"
@@ -433,17 +450,21 @@ export function PlayArea({ state, actions }: Props) {
 
           {/* Action counter */}
           <div className="pp-counter">
-            {t("actionsCounter", { used: state.actionsUsed, max: 40 })}
+            {t("actionsCounter", { used: actionsUsed, max: 40 })}
           </div>
 
           {/* Status / claim hint — the PlayStage rail primary owns the claim action */}
           <div className="pp-footer-actions">
-            {state.lastStatus === "all-correct" && !state.isSubmitting && (
+            {lastStatus === "all-correct" && !isSubmitting && (
               <span className="pp-footer-actions__reached">{t("targetReachedHint")}</span>
             )}
-            {state.isSubmitting && <span>{t("statusSubmitting")}</span>}
-            {timeLeft <= 0 && state.lastStatus !== "all-correct" && (
-              <button className="pp-footer-actions__expire" onClick={actions.expireGame}>
+            {isSubmitting && <span>{t("statusSubmitting")}</span>}
+            {timeLeft <= 0 && lastStatus !== "all-correct" && (
+              <button
+                type="button"
+                className="mx2-btn mx2-btn--ghost pp-footer-actions__expire"
+                onClick={() => void dispatch("expireGame")}
+              >
                 {t("timeUpAction")}
               </button>
             )}
@@ -453,28 +474,28 @@ export function PlayArea({ state, actions }: Props) {
     }
 
     // Solved
-    if (state.gameStatus === "solved") {
+    if (gameStatus === "solved") {
       const stageArt =
-        PET_POTION_ART.stages[evolutionStage(state.happinessAchieved)] ??
+        PET_POTION_ART.stages[evolutionStage(happinessAchieved)] ??
         PET_POTION_ART.stages[2];
       return (
         <div className="pp-result" data-state="won">
           <img
             className="pp-result__pet"
             src={stageArt}
-            alt=""
+            alt={t("stage_adult")}
             decoding="async"
             draggable={false}
           />
           <strong>
-            {t("statusSolved", { payout: gasDisplay(state.lastPayout) })}
+            {t("statusSolved", { payout: gasDisplay(lastPayout) })}
           </strong>
           <div className="pp-result__stats">
             <span>
-              {t("scoreTime")}: {formatClock(state.lastElapsedMs)}
+              {t("scoreTime")}: {formatClock(lastElapsedMs)}
             </span>
             <span>
-              {t("scoreHappiness")}: {state.happinessAchieved}
+              {t("scoreHappiness")}: {happinessAchieved}
             </span>
           </div>
         </div>
@@ -482,7 +503,7 @@ export function PlayArea({ state, actions }: Props) {
     }
 
     // Expired
-    if (state.gameStatus === "expired" || state.gameStatus === "refunded") {
+    if (gameStatus === "expired" || gameStatus === "refunded") {
       return (
         <div className="pp-result" data-state="expired">
           <img
@@ -506,15 +527,15 @@ export function PlayArea({ state, actions }: Props) {
   if (rule) {
     scoreItems.push({
       label: t("scoreReward"),
-      value: `${gasDisplay(payoutFixed8(rule.reward, state.undosUsed))} GAS`,
+      value: `${gasDisplay(payoutFixed8(rule.reward, undosUsed))} GAS`,
       accent: true,
     });
   }
-  if (state.gameStatus === "playing" && state.deadline > 0) {
+  if (gameStatus === "playing" && deadline > 0) {
     scoreItems.push({ label: t("scoreTime"), value: formatClock(timeLeft) });
   }
-  if (state.lastPayout > 0) {
-    scoreItems.push({ label: t("scoreWon"), value: `${gasAmountDisplay(state.myTotalWon)} GAS` });
+  if (lastPayout > 0) {
+    scoreItems.push({ label: t("scoreWon"), value: `${gasAmountDisplay(myTotalWon)} GAS` });
   }
 
   // Leaderboard drawer content
@@ -525,15 +546,15 @@ export function PlayArea({ state, actions }: Props) {
         <p>{t("leaderboardIntro")}</p>
       </div>
       <h4>{t("leaderboardTitle")}</h4>
-      {state.leaderboard.length === 0 ? (
+      {leaderboard.length === 0 ? (
         <p className="pp-drawer__empty">{t("leaderboardEmpty")}</p>
       ) : (
         <ol className="pp-ranks">
-          {state.leaderboard.map((entry, i) => (
+          {leaderboard.map((entry, i) => (
             <li
               key={entry.player}
               className="pp-ranks__row"
-              data-me={i + 1 === state.myRank}
+              data-me={i + 1 === myRank}
             >
               <span className="pp-ranks__rank">#{i + 1}</span>
               <span className="pp-ranks__addr">
@@ -543,24 +564,28 @@ export function PlayArea({ state, actions }: Props) {
                 {t("solvesCount", { count: entry.solved })}
               </span>
               <span className="pp-ranks__won">{gasAmountDisplay(entry.totalWon)}</span>
-              {i + 1 === state.myRank && (
+              {i + 1 === myRank && (
                 <span className="pp-ranks__me">{t("youTag")}</span>
               )}
             </li>
           ))}
         </ol>
       )}
-      <button onClick={actions.refreshLeaderboard} className="pp-ranks__refresh">
+      <button
+        type="button"
+        onClick={() => void dispatch("refreshLeaderboard")}
+        className="mx2-btn mx2-btn--ghost pp-ranks__refresh"
+      >
         {t("refreshRanks")}
       </button>
 
       {/* History */}
       <h4 className="pp-drawer__subhead">{t("historyTitle")}</h4>
-      {state.myHistory.length === 0 ? (
+      {myHistory.length === 0 ? (
         <p className="pp-drawer__empty">{t("historyEmpty")}</p>
       ) : (
         <ul className="pp-history">
-          {state.myHistory.map((h) => (
+          {myHistory.map((h) => (
             <li key={h.gameId} className="pp-history__row">
               <span>#{h.gameId}</span>
               <span>
@@ -579,18 +604,18 @@ export function PlayArea({ state, actions }: Props) {
     </div>
   );
 
-  const isPlaying = state.gameStatus === "playing";
+  const isPlaying = gameStatus === "playing";
 
   return (
-    <div className="pp-playarea mx2 mx2-cat-game" aria-busy={state.isStarting || state.isSubmitting || undefined}>
+    <div className="pp-playarea mx2 mx2-cat-game">
       <PlayStage
         category="game"
         className="pp-stage"
         stage={{
           eyebrow: t("appEyebrow"),
           title: isPlaying
-            ? t("playingTitle", { difficulty: t(`difficulty_${difficultyKey(state.gameDifficulty)}`) })
-            : state.gameStatus === "solved"
+            ? t("playingTitle", { difficulty: t(`difficulty_${difficultyKey(gameDifficulty)}`) })
+            : gameStatus === "solved"
               ? t("statusWonTitle")
               : t("lobbyTitle"),
           subtitle: t("appSubtitle"),
@@ -601,7 +626,7 @@ export function PlayArea({ state, actions }: Props) {
           ),
         }}
         scene={
-          <div className="pp-scene" data-state={state.gameStatus}>
+          <div className="pp-scene" data-state={gameStatus}>
             <div className="pp-scene__lab" aria-hidden="true" />
             {sceneContent}
           </div>
@@ -609,47 +634,47 @@ export function PlayArea({ state, actions }: Props) {
         score={scoreItems}
         actions={{
           primary:
-            state.gameStatus === "idle" && !state.activeGameId
+            gameStatus === "idle" && !activeGameId
               ? {
                   label: t("startAction"),
                   onClick: () => {
                     if (!rewardPoolReady) return;
-                    void actions.startGame(selectedDiff);
+                    void dispatch("startGame", selectedDiff);
                   },
-                  disabled: state.isStarting || !rewardPoolReady,
-                  loading: state.isStarting,
+                  disabled: isStarting || !rewardPoolReady,
+                  loading: isStarting,
                   hint: rewardPoolReady
                     ? t("startHint", { amount: gasDisplay(startRule.entry) })
                     : t("statusPoolLow"),
                 }
-              : state.gameStatus === "solved" ||
-                  state.gameStatus === "expired" ||
-                  state.gameStatus === "refunded"
+              : gameStatus === "solved" ||
+                  gameStatus === "expired" ||
+                  gameStatus === "refunded"
                 ? {
                     label: t("startAction"),
                     onClick: () => {
                       if (!rewardPoolReady) return;
-                      setSelectedDiff(state.gameDifficulty);
-                      void actions.startGame(state.gameDifficulty);
+                      setSelectedDiff(gameDifficulty);
+                      void dispatch("startGame", gameDifficulty);
                     },
                     disabled: !rewardPoolReady,
                     hint: rewardPoolReady
                       ? t("startHint", { amount: gasDisplay(startRule.entry) })
                       : t("statusPoolLow"),
                   }
-                : isPlaying && state.lastStatus === "all-correct"
+                : isPlaying && lastStatus === "all-correct"
                   ? {
                       label: t("submitAction"),
-                      onClick: () => void actions.submitSolution(),
-                      disabled: state.isSubmitting,
-                      loading: state.isSubmitting,
+                      onClick: () => void dispatch("submitSolution"),
+                      disabled: isSubmitting,
+                      loading: isSubmitting,
                     }
                   : undefined,
-          secondary: state.credit > 0
+          secondary: credit > 0
             ? [
                 {
-                  label: t("withdrawAction", { amount: gasAmountDisplay(state.credit) }),
-                  onClick: () => void actions.withdrawWinnings(),
+                  label: t("withdrawAction", { amount: gasAmountDisplay(credit) }),
+                  onClick: () => void dispatch("withdrawWinnings"),
                 },
               ]
             : undefined,

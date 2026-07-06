@@ -50,8 +50,8 @@
   padding: 66px 16px 18px;
   overflow: hidden;
   isolation: isolate;
-  background: #ffffff;
-  box-shadow: none;
+  background: linear-gradient(165deg, #ffffff 0%, #fffbf5 45%, #fff7ed 100%);
+  box-shadow: inset 0 1px 3px rgba(217, 119, 6, 0.04), 0 2px 8px rgba(127, 29, 29, 0.03);
 }
 .redenv-scene::before {
   content: none;
@@ -80,7 +80,11 @@
   gap: 12px;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(127, 29, 29, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 2px 0 rgba(127, 29, 29, 0.08),
+    0 8px 24px rgba(127, 29, 29, 0.11),
+    0 20px 40px rgba(127, 29, 29, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.82);
   filter: none;
   transition:
     transform var(--mx2-t-fast) var(--mx2-ease-snap),
@@ -88,7 +92,15 @@
 }
 .redenv-scene__packet:hover:not(:disabled) {
   transform: translateY(-5px) rotate(-0.4deg);
-  box-shadow: 0 8px 18px rgba(127, 29, 29, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 4px 0 rgba(127, 29, 29, 0.07),
+    0 14px 32px rgba(127, 29, 29, 0.14),
+    0 28px 52px rgba(127, 29, 29, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+.redenv-scene__packet:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 3px;
 }
 .redenv-scene__packet:disabled {
   cursor: not-allowed;
@@ -145,15 +157,15 @@
   text-align: left;
 }
 .redenv-scene__packet-label span {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 620;
-  letter-spacing: 0;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 .redenv-scene__packet-label strong {
-  font-size: 28px;
+  font-size: 1.75rem;
   line-height: 1.04;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 .redenv-scene__ticket {
   position: relative;
@@ -170,13 +182,13 @@
 }
 .redenv-scene__ticket span {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #92400e;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .redenv-scene__ticket strong {
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: #7f1d1d;
 }
 
@@ -199,7 +211,11 @@
   gap: 12px;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(146, 64, 14, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 2px 0 rgba(146, 64, 14, 0.08),
+    0 8px 24px rgba(146, 64, 14, 0.11),
+    0 20px 40px rgba(146, 64, 14, 0.07),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.82);
   filter: none;
   transition:
     transform var(--mx2-t-fast) var(--mx2-ease-snap),
@@ -207,7 +223,15 @@
 }
 .redenv-scene__gift:hover:not(:disabled) {
   transform: translateY(-4px);
-  box-shadow: 0 8px 18px rgba(146, 64, 14, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 4px 0 rgba(146, 64, 14, 0.07),
+    0 14px 32px rgba(146, 64, 14, 0.14),
+    0 28px 52px rgba(146, 64, 14, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+.redenv-scene__gift:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 3px;
 }
 .redenv-scene__gift:disabled {
   cursor: not-allowed;
@@ -244,18 +268,18 @@
   text-shadow: none;
 }
 .redenv-scene__gift-copy span {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 620;
-  letter-spacing: 0;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 .redenv-scene__gift-copy strong {
-  font-size: 30px;
+  font-size: 1.875rem;
   line-height: 1;
 }
 .redenv-scene__gift-copy em {
   font-style: normal;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 620;
 }
 .redenv-scene__gift-stack {
@@ -280,13 +304,13 @@
   z-index: 2;
   margin: 0;
   max-width: min(520px, calc(100% - 32px));
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 620;
   color: #7f1d1d;
   background: #fffdf7;
   padding: 8px 14px;
   border-radius: 14px;
-  box-shadow: 0 8px 18px rgba(127, 29, 29, 0.08);
+  box-shadow: 0 4px 14px rgba(127, 29, 29, 0.07), 0 1px 3px rgba(127, 29, 29, 0.05);
   text-align: center;
 }
 
@@ -321,11 +345,15 @@
   padding: 8px 18px;
   border-radius: var(--mx2-r-pill);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 680;
   color: var(--mx2-text-muted);
   cursor: pointer;
   transition: background var(--mx2-t-fast) var(--mx2-ease), color var(--mx2-t-fast) var(--mx2-ease);
+}
+.redenv-tab:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
 }
 .redenv-tab--active {
   background: var(--mx2-accent);
@@ -356,10 +384,10 @@
   box-shadow: 0 10px 22px rgba(127, 29, 29, 0.06);
 }
 .redenv-ticket-dock > span {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 680;
   color: #92400e;
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -369,7 +397,7 @@
   border-radius: 13px;
   padding: 10px 12px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 620;
   color: #7f1d1d;
   background: #fff7ed;
@@ -377,7 +405,11 @@
 }
 .redenv-id-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4), 0 0 0 4px rgba(245, 158, 11, 0.12);
+}
+.redenv-id-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5), 0 0 0 4px rgba(245, 158, 11, 0.15);
 }
 .redenv-pool-chips {
   display: flex;
@@ -394,11 +426,15 @@
   border-radius: 14px;
   padding: 7px 11px;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 620;
   color: #92400e;
   cursor: pointer;
   transition: all var(--mx2-t-fast) var(--mx2-ease);
+}
+.redenv-pool-chip:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
 }
 .redenv-pool-chip span {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -454,9 +490,9 @@
   border-left: 1px solid rgba(217, 119, 6, 0.14);
 }
 .redenv-presets__label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 680;
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #92400e;
 }
@@ -475,7 +511,7 @@
   border-radius: 11px;
   padding: 7px 8px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 680;
   color: #7f1d1d;
   cursor: pointer;
@@ -485,21 +521,25 @@
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.68);
 }
+.redenv-preset:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
+}
 .redenv-preset--active {
   background: linear-gradient(160deg, #dc2626 0%, #f59e0b 100%);
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.18);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22), 0 8px 20px rgba(220, 38, 38, 0.12);
 }
 .redenv-create-error {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 620;
   color: #b91c1c;
   text-align: center;
 }
 .redenv-create-summary {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 620;
   color: #92400e;
   text-align: center;
@@ -519,7 +559,7 @@
   border-radius: 14px;
   background: #fffdf7;
   padding: 9px 11px;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--mx2-text-muted);
 }
 .redenv-route code {
@@ -571,6 +611,10 @@
 .redenv-drawer-tabs button:hover {
   transform: translateY(-1px);
   border-color: rgba(245, 158, 11, 0.5);
+}
+.redenv-drawer-tabs button:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
 }
 
 .redenv-drawer-tabs button.is-active {
@@ -782,14 +826,14 @@
     padding: 0 2px;
   }
   .redenv-scene__packet-label strong {
-    font-size: 20px;
+    font-size: 1.25rem;
     line-height: 1.08;
   }
   .redenv-scene__gift-copy strong {
-    font-size: 27px;
+    font-size: 1.6875rem;
   }
   .redenv-scene__gift-copy em {
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.25;
   }
   .redenv-scene__gift-stack {
@@ -858,8 +902,8 @@
     padding-top: 0;
   }
   .redenv-presets__label {
-    font-size: 10px;
-    letter-spacing: 0;
+    font-size: 0.625rem;
+    letter-spacing: 0.03em;
     white-space: nowrap;
   }
   .redenv-presets__chips {
@@ -870,14 +914,14 @@
     flex-basis: 0;
     min-width: 0;
     padding: 7px 4px;
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
   .redenv-create-controls {
     width: min(100%, 354px);
     margin-top: 12px;
   }
   .redenv-create-summary {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
   .redenv-drawer-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));

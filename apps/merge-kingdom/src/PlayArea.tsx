@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, KeyboardEvent } from "react";
 import { PlayStage } from "@shared/components-react/v2";
 import { useMessages } from "@shared/neo";
 import {
@@ -102,12 +102,21 @@ export function PlayArea({ state, actions }: Props) {
   const { t } = useMessages();
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const [selectedDiff, setSelectedDiff] = useState<number>(state.gameDifficulty || 0);
+  const [announcement, setAnnouncement] = useState<string>("");
   const [now, setNow] = useState(() => Date.now());
   // Immediate local move cue, released on a timer so a tile never sticks in its
   // action state while the merge streams to the TEE session.
   const [movePreview, setMovePreview] = useState<string | null>(null);
   const movePreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevIsLow = useRef(false);
+  const prevTargetReached = useRef(false);
+
+  const announce = useCallback((msg: string) => {
+    setAnnouncement("");
+    // Flush so a repeated message still triggers the live region.
+    requestAnimationFrame(() => setAnnouncement(msg));
+  }, []);
 
   const isPlaying = state.gameStatus === "playing";
   const boardReady = Array.isArray(state.board) && state.board.length === BOARD_SIZE;
@@ -157,6 +166,23 @@ export function PlayArea({ state, actions }: Props) {
   const isLow = timeLeft > 0 && timeLeft < 30_000;
   const targetReached = state.tileAchieved >= rule.targetTile;
 
+  // Screen-reader announcements for key state transitions.
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (isLow && !prevIsLow.current) {
+      announce(t("srTimeLow"));
+    }
+    prevIsLow.current = isLow;
+  }, [isLow, isPlaying, announce, t]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (targetReached && !prevTargetReached.current) {
+      announce(t("srTargetReached", { tile: rule.targetTile }));
+    }
+    prevTargetReached.current = targetReached;
+  }, [targetReached, isPlaying, announce, t, rule.targetTile]);
+
   const handleCellClick = useCallback(
     (row: number, col: number) => {
       if (!isPlaying || !boardReady) return;
@@ -181,6 +207,27 @@ export function PlayArea({ state, actions }: Props) {
     [isPlaying, boardReady, selectedCell, state.board, startMovePreview, actions],
   );
 
+  const handleRadioKeyDown = useCallback((e: KeyboardEvent<HTMLButtonElement>, current: number) => {
+    const diffs = [0, 1, 2];
+    const idx = diffs.indexOf(current);
+    let next = idx;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      next = (idx + 1) % diffs.length;
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      next = (idx - 1 + diffs.length) % diffs.length;
+    } else {
+      return;
+    }
+    setSelectedDiff(diffs[next]!);
+    // Focus the newly selected radio button
+    setTimeout(() => {
+      const target = e.currentTarget.parentElement?.children[next] as HTMLButtonElement | undefined;
+      target?.focus();
+    }, 0);
+  }, []);
+
   // ─── Board ──────────────────────────────────────────────────────────────
   const renderTile = (value: number, row: number, col: number) => {
     const isSelected = selectedCell?.row === row && selectedCell?.col === col;
@@ -202,7 +249,7 @@ export function PlayArea({ state, actions }: Props) {
           .join(" ")}
         onClick={() => handleCellClick(row, col)}
         disabled={!isPlaying}
-        aria-label={isEmpty ? `Empty plot at ${row},${col}` : `${asset?.label ?? `tile ${value}`} at ${row},${col}`}
+        aria-label={isEmpty ? t("tileEmpty", { row: row + 1, col: col + 1 }) : t("tileOccupied", { name: asset?.label ?? `tile ${value}`, row: row + 1, col: col + 1 })}
       >
         {asset && (
           <>
@@ -276,8 +323,12 @@ export function PlayArea({ state, actions }: Props) {
                       type="button"
                       role="radio"
                       aria-checked={d === selectedDiff}
+                      aria-setsize={3}
+                      aria-posinset={d + 1}
+                      tabIndex={d === selectedDiff ? 0 : -1}
                       className={`mk-route-card${d === selectedDiff ? " mk-route-card--active" : ""}`}
                       onClick={() => setSelectedDiff(d)}
+                      onKeyDown={(e) => handleRadioKeyDown(e, d)}
                       disabled={state.isStarting}
                     >
                       <span className="mk-route-card__crest" aria-hidden="true">
@@ -349,15 +400,29 @@ export function PlayArea({ state, actions }: Props) {
           <span className="mk-scene__felt" aria-hidden="true" />
           <div className="mk-target-banner">
             <span className="mk-target-banner__label">{t("tileTarget", { tile: rule.targetTile })}</span>
-            <div className="mk-target-banner__bar">
-              <i style={{ width: `${pct}%` }} />
+            <div
+              role="progressbar"
+              aria-valuenow={Math.round(pct)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={t("srTargetBarLabel", { tile: rule.targetTile })}
+              className="mk-target-banner__bar"
+            >
+              <span className="mk-bar-fill" style={{ width: `${pct}%` }} />
             </div>
             <span className="mk-target-banner__value">{state.tileAchieved}</span>
           </div>
           <div className="mk-timer" data-low={isLow ? "true" : undefined}>
             <span className="mk-timer__clock">{formatClock(timeLeft)}</span>
-            <div className="mk-timer__track">
-              <i style={{ width: `${(timeLeft / rule.limitMs) * 100}%` }} />
+            <div
+              role="progressbar"
+              aria-valuenow={Math.round((timeLeft / rule.limitMs) * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={t("srTimerBarLabel")}
+              className="mk-timer__track"
+            >
+              <span className="mk-bar-fill" style={{ width: `${(timeLeft / rule.limitMs) * 100}%` }} />
             </div>
             <span className="mk-timer__reward">{gasDisplay(rule.reward)} GAS</span>
           </div>
@@ -455,7 +520,7 @@ export function PlayArea({ state, actions }: Props) {
       ) : (
         <ul className="mk-history">
           {state.myHistory.map((h, i) => (
-            <li key={h.gameId + i} className="mk-history__row">
+            <li key={`${h.gameId}-${h.solveMs}`} className="mk-history__row">
               <span>#{h.gameId.slice(0, 8)}</span>
               <span>{t(`difficulty_${DIFF_KEYS[h.difficulty]}`)}</span>
               <span className="mk-history__won">{gasDisplay(h.payout)} GAS</span>
@@ -478,10 +543,14 @@ export function PlayArea({ state, actions }: Props) {
     : undefined;
 
   return (
-    <div className="mk-playarea mx2 mx2-cat-game" aria-busy={state.isStarting || state.isSubmitting || undefined}>
+    <div
+      role="region"
+      aria-label={t("appTitle")}
+      aria-busy={state.isStarting || state.isSubmitting || undefined}
+      className="mk-playarea mx2 mx2-cat-game"
+    >
       <PlayStage
         category="game"
-        className="mk-stage"
         stage={{
           eyebrow: t("appEyebrow"),
           title: isPlaying ? t("tileTarget", { tile: rule.targetTile }) : state.gameStatus === "solved" ? t("statusWonTitle") : t("lobbyTitle"),
@@ -540,6 +609,15 @@ export function PlayArea({ state, actions }: Props) {
         drawerToggleLabel={t("leaderboardTitle")}
         drawer={{ children: drawerContent }}
       />
+      {/* Visually hidden live region — announces key game state transitions to screen readers */}
+      <span
+        className="mk-sr-live"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {announcement}
+      </span>
     </div>
   );
 }

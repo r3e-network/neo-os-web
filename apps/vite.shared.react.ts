@@ -57,6 +57,7 @@ export function createReactAppConfig(appDir: string, options: ReactAppConfigOpti
   // rootDir is the miniapps/ directory (one level up from app directory)
   const rootDir = path.resolve(appDir, "..");
   const sharedDir = path.resolve(rootDir, "shared");
+  const frameworkDir = path.resolve(rootDir, "..", "framework");
   const nobleHashesAssertShim = path.resolve(sharedDir, "shims/noble-hashes-assert.ts");
   const nobleHashesRipemdShim = path.resolve(sharedDir, "shims/noble-hashes-ripemd160.js");
   const nobleHashesSha256Shim = path.resolve(sharedDir, "shims/noble-hashes-sha256.js");
@@ -89,6 +90,7 @@ export function createReactAppConfig(appDir: string, options: ReactAppConfigOpti
         ...optionAliases,
         { find: "@", replacement: path.resolve(appDir, "src") },
         { find: "@shared", replacement: sharedDir },
+        { find: "@framework", replacement: frameworkDir },
         ...polyfillAliases,
         { find: "@noble/curves/p256", replacement: nobleCurvesP256Shim },
         { find: "@noble/curves/p256.js", replacement: nobleCurvesP256Shim },

@@ -357,6 +357,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         className="rush-board"
         role="grid"
         aria-label={t("boardLabel")}
+        aria-rowcount={4}
+        aria-colcount={4}
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onPointerDown={handlePointerDown}

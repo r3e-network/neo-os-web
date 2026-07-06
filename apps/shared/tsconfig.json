@@ -2,6 +2,7 @@
   "extends": "../tsconfig.miniapp.json",
   "compilerOptions": {
     "paths": {
+      "@framework/*": ["../../framework/*"],
       "@shared/*": ["./*"]
     },
     "types": ["vite/client"]

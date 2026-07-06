@@ -260,7 +260,11 @@ export function PlayArea({ state, actions }: Props) {
   const sceneContent = (() => {
     if (practice?.status === "won" || practice?.status === "lost" || practice?.status === "expired") {
       return (
-        <div className="cclash-result" data-state={practice.status === "won" ? "won" : "expired"}>
+        <div
+          className="cclash-result"
+          role="alert"
+          data-state={practice.status === "won" ? "won" : practice.status === "lost" ? "lost" : "expired"}
+        >
           <strong>
             {practice.status === "won"
               ? t("practiceWon")
@@ -284,7 +288,7 @@ export function PlayArea({ state, actions }: Props) {
     if (state.gameStatus === "idle" && !state.activeGameId && practice === null) {
       return (
         <div className="cclash-lobby">
-          <section className="cclash-lobby__console" aria-label={t("repeatPhase")}>
+          <section className="cclash-lobby__console" aria-label={t("lobbyConsoleLabel") || t("lobbyTitle")}>
             <img
               className="cclash-lobby__table-art"
               src={COLOR_CLASH_ART.table}
@@ -322,8 +326,8 @@ export function PlayArea({ state, actions }: Props) {
               </em>
               <p>{t(`modeObjective_${DIFF_KEYS[startDifficulty]}`)}</p>
               <div className="cclash-lobby__mission-ribbon" aria-label={t("modeSummary")}>
-                <b>{t("entryAmount", { amount: gasDisplay(startRule.entry) })}</b>
-                <b>{formatClock(startRule.limitMs)}</b>
+                <span className="cclash-lobby__mission-badge">{t("entryAmount", { amount: gasDisplay(startRule.entry) })}</span>
+                <span className="cclash-lobby__mission-badge">{formatClock(startRule.limitMs)}</span>
               </div>
             </div>
             <div className="cclash-lobby__sequence" aria-hidden="true">
@@ -364,7 +368,7 @@ export function PlayArea({ state, actions }: Props) {
                   </span>
                   <span className="cclash-mode__lights" aria-hidden="true">
                     {previewSequence(Math.min(6, r.targetSeq)).map((color, index) => (
-                      <i key={`${d}-${color}-${index}`} style={{ "--seq-color": COLOR_HEX[color] } as React.CSSProperties} />
+                      <span key={`${d}-${color}-${index}`} style={{ "--seq-color": COLOR_HEX[color] } as React.CSSProperties} />
                     ))}
                   </span>
                 </button>
@@ -396,7 +400,7 @@ export function PlayArea({ state, actions }: Props) {
           </div>
           <p>{t("statusShuffling")}</p>
           {state.lastStatus === "deal-pending" && (
-            <button type="button" className="cclash-shuffle__retry" onClick={() => void actions.retryDeal()}>
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void actions.retryDeal()}>
               {t("checkDealAgain")}
             </button>
           )}
@@ -415,12 +419,19 @@ export function PlayArea({ state, actions }: Props) {
           />
           <div className="cclash-timer" data-low={isLow ? "true" : undefined}>
             <span className="cclash-timer__clock">{formatClock(timeLeft)}</span>
-            <div className="cclash-timer__track">
+            <div
+              className="cclash-timer__track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={rule?.limitMs ?? 100}
+              aria-valuenow={timeLeft}
+              aria-label={t('scoreTime')}
+            >
               <i style={{ width: rule ? `${(timeLeft / rule.limitMs) * 100}%` : "100%" }} />
             </div>
-              <span className="cclash-timer__reward">
-                {rule ? (isPractice ? t("practiceBadge") : gasDisplay(payoutFixed8(rule.reward, 0))) : ""}
-              </span>
+            <span className="cclash-timer__reward">
+              {rule ? (isPractice ? t("practiceBadge") : gasDisplay(payoutFixed8(rule.reward, 0))) : ""}
+            </span>
           </div>
 
           <div className="cclash-phase" aria-live="polite">
@@ -485,18 +496,18 @@ export function PlayArea({ state, actions }: Props) {
           <div className="cclash-actions">
             {isPractice && <span>{t("practiceModeLine")}</span>}
             {!isPractice && state.lastStatus === "wrong" && (
-              <button type="button" className="cclash-actions__expire" onClick={() => void actions.expireGame()}>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void actions.expireGame()}>
                 {t("releaseAction")}
               </button>
             )}
             {!isPractice && state.lastStatus === "all-correct" && !state.isSubmitting && (
-              <button type="button" className="cclash-actions__submit" onClick={() => void actions.submitSolution()}>
+              <button type="button" className="mx2-btn mx2-btn--primary cclash-actions__submit" onClick={() => void actions.submitSolution()}>
                 {t("submitAction")}
               </button>
             )}
             {state.isSubmitting && <span>{t("statusSubmitting")}</span>}
             {!isPractice && timeLeft <= 0 && state.lastStatus !== "all-correct" && state.lastStatus !== "wrong" && (
-              <button type="button" className="cclash-actions__expire" onClick={() => void actions.expireGame()}>
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void actions.expireGame()}>
                 {t("timeUpAction")}
               </button>
             )}
@@ -507,7 +518,7 @@ export function PlayArea({ state, actions }: Props) {
 
     if (state.gameStatus === "solved") {
       return (
-        <div className="cclash-result" data-state="won">
+        <div className="cclash-result" role="alert" data-state="won">
           <strong>{t("solvedBanner", { payout: gasDisplay(state.lastPayout) })}</strong>
           <span>{t("solvedBannerHint")}</span>
           <div className="cclash-result__stats">
@@ -520,7 +531,7 @@ export function PlayArea({ state, actions }: Props) {
 
     if (state.gameStatus === "expired" || state.gameStatus === "refunded") {
       return (
-        <div className="cclash-result" data-state="expired">
+        <div className="cclash-result" role="alert" data-state="expired">
           <strong>{t("expiredBanner")}</strong>
           <span>{t("expiredBannerHint")}</span>
         </div>
@@ -569,7 +580,7 @@ export function PlayArea({ state, actions }: Props) {
           ))}
         </ol>
       )}
-      <button type="button" className="cclash-ranks__refresh" onClick={() => void actions.refreshLeaderboard()}>
+      <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void actions.refreshLeaderboard()}>
         {t("refreshRanks")}
       </button>
       <h4>{t("historyTitle")}</h4>

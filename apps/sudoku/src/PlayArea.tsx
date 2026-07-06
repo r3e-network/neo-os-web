@@ -108,21 +108,21 @@ function shortHash(value: string, head = 10, tail = 6): string {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
-  const creditGas = val<number>("credit", 0) ?? 0;
-  const poolFree = val<number>("poolFree", 0) ?? 0;
+  const creditGas = val<number>("credit", 0);
+  const poolFree = val<number>("poolFree", 0);
   const activeGameId = str("activeGameId", "0");
   const gameStatus = str("gameStatus", "idle");
-  const gameDifficulty = (val<number>("gameDifficulty", 0) ?? 0) as Difficulty;
+  const gameDifficulty = val<number>("gameDifficulty", 0) as Difficulty;
   const clues = str("clues", "");
   const commitmentHex = str("commitment", "");
-  const dealtAt = val<number>("dealtAt", 0) ?? 0;
-  const deadline = val<number>("deadline", 0) ?? 0;
-  const undosUsed = val<number>("undosUsed", 0) ?? 0;
+  const dealtAt = val<number>("dealtAt", 0);
+  const deadline = val<number>("deadline", 0);
+  const undosUsed = val<number>("undosUsed", 0);
   const lastPayout = str("lastPayout", "");
-  const leaderboard = val<LeaderEntry[]>("leaderboard", []) ?? [];
-  const myRank = val<number>("myRank", 0) ?? 0;
-  const myTotalWon = val<number>("myTotalWon", 0) ?? 0;
-  const myHistory = val<SolveRow[]>("myHistory", []) ?? [];
+  const leaderboard = val<LeaderEntry[]>("leaderboard", []);
+  const myRank = val<number>("myRank", 0);
+  const myTotalWon = val<number>("myTotalWon", 0);
+  const myHistory = val<SolveRow[]>("myHistory", []);
   const isStarting = bool("isStarting");
   const isDealing = bool("isDealing");
   const isSubmitting = bool("isSubmitting");
@@ -246,6 +246,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       handleCellInput(digit);
       return;
     }
+    if (event.key === "Delete" || event.key === "Backspace" || event.key === "0") {
+      event.preventDefault();
+      if (board && selected >= 0 && canPlace(board, selected)) {
+        const { board: next } = placeDigit(board, selected, 0);
+        commitBoard(next);
+        startPlacePreview(selected);
+      }
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setSelected(-1);
+      return;
+    }
+    if (event.key === "c" || event.key === "C") {
+      event.preventDefault();
+      if (board && selected >= 0 && canPlace(board, selected)) {
+        commitBoard(clearNotes(board, selected));
+      }
+      return;
+    }
     if (event.key === "n" || event.key === "N") {
       event.preventDefault();
       setNotesMode((mode) => !mode);
@@ -335,16 +356,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ]
       .filter(Boolean)
       .join(" ");
+
+    // Compute active pencil-marks for accessible description
+    const activeNotes = notes > 0 ? DIGITS.filter((d) => (notes >> d) & 1) : [];
+    const notesDesc = activeNotes.length > 0
+      ? t("cellNotesDesc", { notes: activeNotes.join(", ") })
+      : undefined;
+
     return (
       <button
         key={index}
+        id={`cell-${index}`}
         type="button"
+        role="gridcell"
         className={classes}
         onClick={() => setSelected(index)}
         onDoubleClick={() => {
           if (!given && value === 0) commitBoard(clearNotes(board, index));
         }}
         aria-label={t("cellLabel", { row: row + 1, col: col + 1 })}
+        aria-description={notesDesc}
+        aria-selected={isSelected}
+        aria-invalid={isConflict || undefined}
         data-value={value || undefined}
       >
         {isSelected && (
@@ -398,7 +431,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="sudoku-lobby">
       {lastPayout && gameStatus === "solved" && (
         <div className="sudoku-lobby__result" data-state="won">
-          <ParticleBurst coins count={12} />
+          <span aria-hidden="true"><ParticleBurst coins count={12} /></span>
           <img src={SUDOKU_ART.solvedBadge} alt="" draggable={false} />
           <strong>{t("solvedBanner", { payout: lastPayout })}</strong>
           <span>{t("solvedBannerHint")}</span>
@@ -430,8 +463,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               ]
                 .filter(Boolean)
                 .join(" ");
+              const cellClass = ["sudoku-lobby__mini-grid__cell", ...classes.split(" ")]
+                .filter(Boolean)
+                .join(" ");
               return (
-                <span key={`${digit}-${index}`} className={classes}>
+                <span key={`${digit}-${index}`} className={cellClass}>
                   {digit > 0 && (
                     <>
                       <img src={SUDOKU_ART.cellGiven} alt="" draggable={false} />
@@ -449,7 +485,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{t(`difficulty_${rule.key}`)}</strong>
             <p>{t(`routeObjective_${rule.key}`)}</p>
           </div>
-          <div className="sudoku-lobby__ribbon" aria-label={t("routeSummary")}>
+          <div className="sudoku-lobby__ribbon" role="region" aria-label={t("routeSummary")}>
             <span className="sudoku-lobby__ribbon-prize">
               <img src={SUDOKU_ART.rewardTrophy} alt="" draggable={false} />
               {t("winAmount", { amount: gasDisplay(rule.rewardFixed8) })}
@@ -528,9 +564,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="sudoku-table">
       <div className="sudoku-timer" data-low={remainingMs < 60_000 ? "true" : undefined}>
         <span className="sudoku-timer__clock">{formatClock(remainingMs)}</span>
-        <span className="sudoku-timer__track" aria-hidden="true">
+        <div
+          className="sudoku-timer__track"
+          role="progressbar"
+          aria-valuenow={Math.round(timePct)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={t("timerProgress")}
+        >
           <i style={{ width: `${timePct}%` }} />
-        </span>
+        </div>
         <span className="sudoku-timer__reward">
           {t("rewardNow", { amount: projectedPayout.toFixed(2), pct: currentRewardPct })}
         </span>
@@ -539,10 +582,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         className="sudoku-board"
         role="grid"
         aria-label={t("boardLabel")}
+        aria-rowcount={9}
+        aria-colcount={9}
+        aria-activedescendant={selected >= 0 ? `cell-${selected}` : undefined}
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        {Array.from({ length: 81 }, (_, i) => renderCell(i))}
+        {Array.from({ length: 9 }, (_, rowIdx) => (
+          <div key={rowIdx} role="row">
+            {Array.from({ length: 9 }, (_, colIdx) => renderCell(rowIdx * 9 + colIdx))}
+          </div>
+        ))}
       </div>
       <div className="sudoku-pad">
         {DIGITS.map((digit) => (
@@ -552,6 +602,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             className={["sudoku-pad__key", notesMode ? "sudoku-pad__key--note" : null]
               .filter(Boolean)
               .join(" ")}
+            aria-label={notesMode ? t("padNoteLabel", { digit }) : t("padPlaceLabel", { digit })}
             onClick={() => handleCellInput(digit)}
             // Keep the pad live before a cell is selected — handleCellInput
             // no-ops when selected < 0, and the selection ring teaches the
@@ -775,7 +826,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {myHistory.length > 0 ? (
                 <ul className="mx2-history">
                   {myHistory.map((row) => (
-                    <li key={row.gameId} className="mx2-history__item" data-outcome="won">
+                    <li key={row.gameId} className="mx2-history__item" data-outcome={row.payout && Number(row.payout) > 0 ? "won" : "lost"}>
                       <span className="mx2-history__face">
                         {t(`difficulty_${ruleOf(row.difficulty).key}`)}
                       </span>
