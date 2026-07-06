@@ -126,6 +126,16 @@ describe("root Phaser framework", () => {
         usage: ["AIM_ASSETS", "DIFFICULTY_BADGES", "dealingReticle", "buildTargetBoard"],
       },
       {
+        app: "burn-league",
+        scene: "BurnLeagueScene",
+        assets: [
+          "./burn-league-arena.webp",
+          "./logo.webp",
+          "gasIconUrl",
+        ],
+        usage: ["BURN_ASSETS", "gasTokens", "brazierImage", "dispatch(\"burn\""],
+      },
+      {
         app: "color-clash",
         scene: "ColorClashScene",
         assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
@@ -235,6 +245,14 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: target board should use loaded art, not the old hand-drawn target note`).not.toContain(
           "Concentric-ring target board",
+        );
+      }
+      if (app === "burn-league") {
+        expect(source, `${app}: Phaser burn action should match the registered framework action`).not.toContain(
+          "burnGas",
+        );
+        expect(source, `${app}: brazier should use loaded art, not the old hand-drawn body helper`).not.toContain(
+          "drawBrazierBody",
         );
       }
     }
