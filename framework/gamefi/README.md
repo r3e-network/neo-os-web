@@ -1,6 +1,6 @@
 # Reward Game SDK
 
-Shared frontend framework for GAS-pay-to-play / GAS-reward miniapp games.
+Root-level frontend framework for GAS-pay-to-play / GAS-reward miniapp games.
 
 It centralizes the flow every trusted reward game needs:
 

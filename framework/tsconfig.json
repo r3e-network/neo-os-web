@@ -4,8 +4,7 @@
     "baseUrl": "..",
     "jsx": "react-jsx",
     "paths": {
-      "@framework/*": ["framework/*"],
-      "@shared/*": ["apps/shared/*"]
+      "@framework/*": ["framework/*"]
     },
     "types": ["vite/client", "vitest/globals"]
   },

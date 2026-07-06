@@ -19,9 +19,9 @@
 export { defineMiniApp } from "./defineMiniApp";
 export type { MiniAppDefinition } from "./defineMiniApp";
 
-// MiniApp framework SDK — the business layer surfaced to apps as `ctx.framework`.
-// Re-exported here so app composables can type against it via the same
-// `@shared/react` entry point they already use (no per-app path alias needed).
+// MiniApp framework SDK compatibility re-export. New app code should normally
+// consume the runtime-injected `ctx.framework` or import framework types from
+// the root `@framework` package directly.
 export { createMiniAppFramework } from "../../../framework";
 export type { MiniAppFramework } from "../../../framework";
 

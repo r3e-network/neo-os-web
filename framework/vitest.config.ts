@@ -10,7 +10,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@framework": currentDir,
-      "@shared": resolve(repoRoot, "apps/shared"),
       phaser: resolve(repoRoot, "node_modules/phaser/dist/phaser.esm.js"),
     },
   },
