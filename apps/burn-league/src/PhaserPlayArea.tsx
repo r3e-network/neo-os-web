@@ -26,7 +26,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     isSettling:       bool("isSettling"),
     leaderboardPreview: val("leaderboardPreview") ?? [],
     serviceNotice:    str("serviceNotice", ""),
+    actionNotice:     str("actionNotice", ""),
+    burnValidationError: str("burnValidationError", ""),
     seasonStatusLabel:str("seasonStatusLabel", ""),
+    minBurnGas:       num("minBurnGas"),
+    maxBurnGas:       num("maxBurnGas"),
     prepaidCredit:    num("prepaidCredit"),
   };
   return (
