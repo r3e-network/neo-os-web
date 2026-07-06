@@ -110,6 +110,45 @@ describe("root Phaser framework", () => {
     }
   });
 
+  it("uses real game art assets for migrated Phaser scenes", () => {
+    const migratedAssetScenes = [
+      {
+        app: "color-clash",
+        scene: "ColorClashScene",
+        assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
+        usage: ["ASSET_MEMORY_CONSOLE", "ASSET_ARCADE_TABLE"],
+      },
+      {
+        app: "snake-bounty",
+        scene: "SnakeScene",
+        assets: [
+          "./art/snake-head.webp",
+          "./art/snake-body-straight.webp",
+          "./art/snake-tail.webp",
+          "./art/food-bounty.webp",
+          "./art/badge-easy.webp",
+          "./art/badge-medium.webp",
+          "./art/badge-hard.webp",
+        ],
+        usage: ["SNAKE_ASSETS.head", "SNAKE_ASSETS.food", "SNAKE_ASSETS.badges"],
+      },
+    ] as const;
+
+    for (const { app, scene, assets, usage } of migratedAssetScenes) {
+      const source = readFileSync(
+        resolve(repoRoot, `apps/${app}/src/scenes/${scene}.ts`),
+        "utf8",
+      );
+
+      for (const asset of assets) {
+        expect(source, `${app}: scene should preload ${asset}`).toContain(asset);
+      }
+      for (const token of usage) {
+        expect(source, `${app}: scene should place loaded art through ${token}`).toContain(token);
+      }
+    }
+  });
+
   it("centralizes in-canvas game button motion in the root framework", () => {
     const baseScene = readFileSync(resolve(repoRoot, "framework/phaser/BaseScene.ts"), "utf8");
     const diceScene = readFileSync(
@@ -141,6 +180,9 @@ describe("root Phaser framework", () => {
     expect(baseScene).toContain("protected bindGameButton");
     expect(baseScene).toContain("protected pressFeedback");
     expect(baseScene).toContain("prefers-reduced-motion");
+    expect(baseScene).toContain("private queueStateUpdate");
+    expect(baseScene).toContain("this.time.delayedCall(0");
+    expect(baseScene).not.toContain("this.onStateUpdate(this.state);\n    });");
     expect(diceScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     expect(tarotScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
     for (const scene of migratedScenes) {
