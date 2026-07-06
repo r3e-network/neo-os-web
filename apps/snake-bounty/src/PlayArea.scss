@@ -9,6 +9,56 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
+/* domain-theme: snap the shell brand (primary button, badge dot, Semi primary)
+   to the snake's jade-teal accent family so the app reads as one green. */
+:root,
+.mx2 {
+  --mx2-brand: #00af92;
+  --mx2-brand-hover: #047857;
+  --mx2-brand-light: #e4f8f2;
+  --mx2-brand-subtle: #bdeadf;
+}
+
+/* Legacy-token bridge: the splash/launcher (shared MiniAppHomeShell /
+   GameHomePage and the pre-v2 Neo* components) still consumes the pre-v2
+   green tokens — `--sd-brand*` declared on `.standalone-dapp-root` by the
+   shared runtime <style> (apps/shared/react/MiniAppRoot.tsx) and
+   `--ns-brand*` / `--ns-violet*` declared on :root
+   (apps/shared/styles/theme-base.scss). Re-point that whole family at the
+   --mx2-brand override above so the single override recolors the splash CTA
+   and the in-game shell alike. The doubled class out-specifies the runtime
+   <style> declaration on the same element; :root/.mx2 keep portalled and
+   in-game content in sync. */
+:root,
+.standalone-dapp-root.standalone-dapp-root,
+.mx2 {
+  --sd-brand: var(--mx2-brand);
+  --sd-brand-hover: var(--mx2-brand-hover);
+  --sd-brand-light: var(--mx2-brand-light);
+  --ns-brand: var(--mx2-brand);
+  --ns-brand-strong: var(--mx2-brand-hover);
+  --ns-brand-soft: var(--mx2-brand-light);
+  --ns-brand-deep: var(--mx2-brand-hover);
+  /* theme-base aliases the violet tokens to --ns-brand at :root, where the
+     var() already resolved to the legacy green, so the aliases must be
+     restated for the remap to reach their consumers. */
+  --ns-violet: var(--mx2-brand);
+  --ns-violet-strong: var(--mx2-brand-hover);
+  --ns-violet-soft: var(--mx2-brand-light);
+}
+
+/* The shared splash hardcodes #16c784-tinted glows/focus rings next to the
+   var()-driven fills; restate them in the app jade so shadow and ring match
+   the remapped CTA color. */
+.standalone-dapp-root .n3h-button--primary,
+.standalone-dapp-root .n3h-shell--game .n3h-button--primary {
+  box-shadow: 0 14px 30px rgba(0, 175, 146, 0.24);
+}
+
+.standalone-dapp-root .n3gh-details-toggle:focus-visible {
+  outline-color: rgba(0, 175, 146, 0.22);
+}
+
 .snake-playarea {
   display: block;
   --mx2-stage-floor: #faf9f7;
@@ -56,7 +106,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 30% 40%, rgba(0, 175, 146, 0.14), transparent 70%);
+  background: radial-gradient(ellipse at 50% 36%, rgba(0, 175, 146, 0.14), transparent 68%);
   pointer-events: none;
 }
 
@@ -69,7 +119,7 @@
 }
 
 .snake-scene[data-state="crashed"] .snake-grid {
-  animation: death-flash 600ms ease-out;
+  animation: snake-board-crash 600ms ease-out;
 }
 
 .snake-scene[data-state="won"] .snake-lobby__result[data-state="won"] {
@@ -77,7 +127,7 @@
 }
 
 .snake-scene__status {
-  margin: 2px 0 0;
+  margin: 6px 0 0;
   font-size: 0.82rem;
   color: var(--mx2-text-muted);
   text-align: center;
@@ -138,7 +188,7 @@
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
-  box-shadow: 0 10px 26px rgba(31, 41, 55, 0.08);
+  box-shadow: 0 10px 26px rgba(68, 64, 60, 0.08);
 }
 
 .snake-lobby__route-label {
@@ -192,7 +242,7 @@
   padding: 5px 8px;
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
-  box-shadow: 0 10px 22px rgba(31, 41, 55, 0.07);
+  box-shadow: 0 10px 22px rgba(68, 64, 60, 0.07);
   pointer-events: none;
 }
 
@@ -215,7 +265,7 @@
   height: 34px;
   object-fit: contain;
   transform: rotate(var(--snake-rotate, 0deg));
-  filter: drop-shadow(0 5px 7px rgba(31, 41, 55, 0.14));
+  filter: drop-shadow(0 5px 7px rgba(68, 64, 60, 0.14));
   animation: snake-path-crawl 1200ms ease-in-out infinite;
   animation-delay: var(--snake-delay);
 }
@@ -249,11 +299,12 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  border: 1px solid rgba(10, 128, 80, 0.12);
+  border: 1px solid rgba(10, 128, 80, 0.18);
   border-radius: 999px;
   padding: 6px 9px;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(10px);
+  box-shadow: 0 4px 10px rgba(68, 64, 60, 0.08);
   color: var(--mx2-text-muted);
   font-size: 0.72rem;
   font-weight: 650;
@@ -295,7 +346,7 @@
   padding: 9px 10px;
   background: #ffffff;
   color: #2b261f;
-  box-shadow: 0 5px 14px rgba(31, 41, 55, 0.045);
+  box-shadow: 0 5px 14px rgba(68, 64, 60, 0.045);
   cursor: pointer;
   text-align: left;
   transition:
@@ -323,21 +374,28 @@
   width: 44px;
   height: 44px;
   object-fit: contain;
-  filter: drop-shadow(0 7px 12px rgba(31, 41, 55, 0.12));
+  // Unselected routes step back slightly so the active card owns the pop.
+  filter: saturate(0.85) drop-shadow(0 7px 12px rgba(68, 64, 60, 0.12));
   transform-origin: 50% 80%;
-  transition: transform 160ms ease;
+  transition: transform 160ms ease, filter 160ms ease;
 }
 
 .snake-route:hover:not(:disabled) .snake-route__badge,
 .snake-route--active .snake-route__badge {
   transform: translateY(-2px) scale(1.04);
+  filter: saturate(1) drop-shadow(0 7px 12px rgba(68, 64, 60, 0.12));
 }
 
 .snake-route__name {
-  color: #123b2d;
+  color: #44403c;
   font-weight: 620;
   font-size: 0.9rem;
   align-self: end;
+  transition: color 160ms ease;
+}
+
+.snake-route--active .snake-route__name {
+  color: #123b2d;
 }
 
 .snake-route__target {
@@ -358,6 +416,15 @@
   text-align: center;
   font-size: 0.78rem;
   color: var(--mx2-text-muted);
+  transition: border-color 200ms ease, color 200ms ease;
+
+  // Wallet gate: the pool pill becomes the single call-to-action so the
+  // blocking reason reads clearly above the muted status + disabled button.
+  &[data-blocked="true"] {
+    border-color: rgba(0, 175, 146, 0.4);
+    color: #047857;
+    font-weight: 620;
+  }
 }
 
 .snake-lobby__result {
@@ -393,9 +460,13 @@
 /* -------------------------------------------------------------- shuffle -- */
 
 .snake-shuffle {
+  // Match the board area's footprint so start → seal → board transitions
+  // keep the scene height stable instead of snapping between stages.
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   padding: 26px 0 10px;
 
@@ -427,7 +498,7 @@
     width: 48px;
     height: 48px;
     object-fit: contain;
-    filter: drop-shadow(0 7px 10px rgba(31, 41, 55, 0.14));
+    filter: drop-shadow(0 7px 10px rgba(68, 64, 60, 0.14));
     animation: snake-shuffle 900ms ease-in-out infinite alternate;
 
     &:nth-child(1),
@@ -455,9 +526,14 @@
   align-items: center;
   gap: 10px;
 
+  // Low-time urgency stays readable: static red + heavier weight plus a
+  // single scale pulse when the threshold first flips (no infinite blink —
+  // the 900ms track drain already conveys the countdown).
   &[data-low="true"] .snake-timer__clock {
     color: #f97066;
-    animation: snake-timer-alarm 1s ease-in-out infinite;
+    font-weight: 650;
+    animation: snake-timer-urgent 250ms ease-out;
+    animation-iteration-count: 1;
   }
 }
 
@@ -484,6 +560,9 @@
 }
 
 .snake-timer__reward {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 175, 146, 0.08);
   font-size: 0.78rem;
   font-weight: 620;
   color: #00af92;
@@ -539,7 +618,7 @@
   user-select: none;
   transform: translate(-50%, -50%) rotate(var(--snake-rotate, 0deg));
   transform-origin: 50% 50%;
-  filter: drop-shadow(0 5px 7px rgba(31, 41, 55, 0.18));
+  filter: drop-shadow(0 5px 7px rgba(68, 64, 60, 0.18));
 }
 
 .snake-cell__sprite--head {
@@ -785,6 +864,23 @@
   }
 }
 
+// Board-level crash cue: brief tint + a barely-there settle. The red flash
+// itself lives on the snake cells so the whole board never strobes or jumps.
+@keyframes snake-board-crash {
+  0% {
+    background-color: rgba(180, 35, 24, 0.18);
+    transform: scale(1.02);
+  }
+  40% {
+    background-color: rgba(180, 35, 24, 0.08);
+    transform: scale(0.995);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
 @keyframes snake-board-breathe {
   0%,
   100% {
@@ -826,13 +922,16 @@
   }
 }
 
-@keyframes snake-timer-alarm {
-  0%,
-  100% {
-    opacity: 1;
+// One-shot urgency pulse when the clock first drops under the low threshold.
+@keyframes snake-timer-urgent {
+  0% {
+    transform: scale(1);
   }
-  50% {
-    opacity: 0.55;
+  45% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 

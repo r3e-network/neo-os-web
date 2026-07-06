@@ -326,6 +326,21 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     subscribe: (fn) => rewardPoolBalance.subscribe(fn),
   };
 
+  // Milestone reward labels driven by the CONTRACT-reported amounts (weekReward
+  // / twoWeekReward), so the UI never advertises a payout the deployed params
+  // don't match. Seeded from MILESTONES until the first chain read.
+  const formattedWeekReward: Observable<string> = {
+    get: () => `${formatGas(weekReward.get())} ${t("tokenGas")}`,
+    set: () => {},
+    subscribe: (fn) => weekReward.subscribe(fn),
+  };
+
+  const formattedTwoWeekReward: Observable<string> = {
+    get: () => `${formatGas(twoWeekReward.get())} ${t("tokenGas")}`,
+    set: () => {},
+    subscribe: (fn) => twoWeekReward.subscribe(fn),
+  };
+
   // The pool is "underfunded" when it cannot cover the smallest milestone reward
   // (so a streak that reaches a milestone would accrue a reward the contract
   // can't pay). Only assert this once the pool has actually been read, so the
@@ -870,6 +885,8 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     formattedTotalClaimed,
     formattedTotalRewarded,
     formattedRewardPool,
+    formattedWeekReward,
+    formattedTwoWeekReward,
 
     rewardPoolBalance,
     isPaused,

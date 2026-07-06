@@ -10,6 +10,7 @@ import { CalendarCheck, Gift, RefreshCw, Sparkles } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { CoinArt, ParticleBurst } from "@shared/art";
+import { formatGas } from "@shared/utils/format";
 import { PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
@@ -22,7 +23,7 @@ interface P {
 interface CheckinItem {
   streak?: number;
   time?: string;
-  reward?: string;
+  reward?: number | string;
   action?: string;
   txid?: string;
   [k: string]: unknown;
@@ -43,6 +44,15 @@ function pathProgress(streak: number): number {
   return ((streak - 1) % 7) + 1;
 }
 
+/** Format a remaining-ms window as a HH:MM:SS clock string. */
+function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return [h, m, s].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
 export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -54,9 +64,13 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const streakRaw = num("currentStreakRaw");
   const isPaused = bool("isPaused");
   const canCheckIn = bool("canCheckIn");
+  const hasLoadedStatus = bool("hasLoadedStatus");
   const isClaiming = bool("isClaiming");
   const isCheckingIn = bool("isCheckingIn");
   const rewardsUnderfunded = bool("rewardsUnderfunded");
+  const nextEligibleTs = num("nextUtcMidnight");
+  const weekRewardLabel = str("weekRewardLabel");
+  const twoWeekRewardLabel = str("twoWeekRewardLabel");
   const history = (val<CheckinItem[]>("checkinHistory", []) ?? []);
   const hasClaimableRewards = hasPositiveAmount(unclaimedRewards);
 
@@ -110,8 +124,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const completedPathDay = pathProgress(streakRaw);
   const nextPathDay = canCheckIn ? Math.min(7, completedPathDay + 1) : completedPathDay;
   const daysToChest = Math.max(0, 7 - completedPathDay);
-  const rewardLabel = completedPathDay >= 7 ? "0.02 GAS" : "0.01 GAS";
+  // Contract-reported milestone amounts (formatted upstream); the next payout
+  // after a completed 7-day cycle is the two-week milestone.
+  const rewardLabel = completedPathDay >= 7 ? twoWeekRewardLabel : weekRewardLabel;
   const progressPercent = Math.min(100, Math.max(0, (completedPathDay / 7) * 100));
+  // Countdown to the next check-in window: only meaningful once the chain
+  // status has loaded and today's check-in is locked. The composable's ticker
+  // re-renders this component every second, so Date.now() stays live.
+  const showCountdown = hasLoadedStatus && !canCheckIn && !isPaused && nextEligibleTs > 0;
+  const countdownText = formatCountdown(nextEligibleTs - Date.now());
   const sceneState = isPaused
     ? "paused"
     : isCheckingIn || checkInPreview
@@ -134,7 +155,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
           ? t("todayPlanReady")
           : hasClaimableRewards
             ? t("rewardPlanReady")
-            : t("notCheckedIn");
+            : hasLoadedStatus
+              ? t("notCheckedIn")
+              : t("connectPrompt");
 
   const primary = (() => {
     if (isPaused) {
@@ -147,7 +170,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
     }
     if (canCheckIn) {
       return {
-        label: isCheckingIn || checkInPreview ? "..." : t("checkInNow"),
+        label: t("checkInNow"),
         onClick: handleCheckIn,
         loading: isCheckingIn || checkInPreview,
         disabled: busy,
@@ -155,14 +178,16 @@ export default function PlayArea({ t, state, dispatch }: P) {
     }
     if (hasClaimableRewards) {
       return {
-        label: isClaiming || claimPreview ? "..." : t("claimRewards"),
+        label: t("claimRewards"),
         onClick: handleClaim,
         loading: isClaiming || claimPreview,
         disabled: busy,
       };
     }
+    // First run (no wallet / no status yet): invite the connection — the
+    // refresh action prompts the wallet, so it doubles as the connect flow.
     return {
-      label: t("refreshStatus"),
+      label: hasLoadedStatus ? t("refreshStatus") : t("connectWallet"),
       onClick: handleRefresh,
       loading: false,
       disabled: busy,
@@ -186,10 +211,18 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <span>{t("streakStageProgress")}</span>
             <strong>{currentStreak}</strong>
           </div>
-          <span className="dci-streak-card__badge">
-            <span className="dci-status-dot" />
-            {statusText}
-          </span>
+          <div className="dci-streak-card__status">
+            <span className="dci-streak-card__badge">
+              <span className="dci-status-dot" />
+              {statusText}
+            </span>
+            {showCountdown && (
+              <span className="dci-streak-card__countdown">
+                {t("nextCheckin")}
+                <strong>{countdownText}</strong>
+              </span>
+            )}
+          </div>
           <div className="dci-streak-card__summary" aria-label={t("yourRewards")}>
             <span>
               {t("unclaimed")}
@@ -218,9 +251,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
               <small>{daysToChest === 0 ? t("milestoneReached") : t("daysToReward", { days: daysToChest })}</small>
             </div>
           </figcaption>
-          <div className="dci-plaza-art__meter" aria-hidden="true">
-            <span style={{ width: `${progressPercent}%` }} />
-          </div>
+          {progressPercent > 0 && (
+            <div className="dci-plaza-art__meter" aria-hidden="true">
+              <span style={{ width: `${Math.max(4, progressPercent)}%` }} />
+            </div>
+          )}
         </figure>
 
         <div className="dci-path" aria-label={t("milestones")}>
@@ -228,6 +263,16 @@ export default function PlayArea({ t, state, dispatch }: P) {
             const complete = day <= completedPathDay;
             const active = day === nextPathDay && canCheckIn;
             const reward = day === 7;
+            // Captions carry signal only: completed / ready states, and the
+            // milestone payout on the reward node. Plain pending days stay
+            // caption-free so the row reads calm.
+            const caption = complete
+              ? t("dayCompleted")
+              : active
+                ? t("checkInReady")
+                : reward
+                  ? rewardLabel
+                  : null;
             return (
               <span
                 key={day}
@@ -244,7 +289,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
                   {reward ? <Gift size={17} strokeWidth={2.4} /> : <Sparkles size={15} strokeWidth={2.4} />}
                 </span>
                 <strong>{t("dayPrefix")}{day}</strong>
-                <small>{complete ? t("dayCompleted") : active ? t("checkInReady") : t("dayPending")}</small>
+                {caption ? <small>{caption}</small> : null}
               </span>
             );
           })}
@@ -262,7 +307,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
         onClick={handleCheckIn}
         disabled={isPaused || !canCheckIn || isCheckingIn || checkInPreview}
       >
-        {isCheckingIn || checkInPreview ? "..." : canCheckIn ? t("checkInNow") : t("waitForNext")}
+        {isCheckingIn || checkInPreview ? t("workflowCheckingIn") : canCheckIn ? t("checkInNow") : t("waitForNext")}
       </button>
       <button
         type="button"
@@ -270,7 +315,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
         onClick={handleClaim}
         disabled={isPaused || !hasClaimableRewards || isClaiming || claimPreview}
       >
-        {isClaiming || claimPreview ? "..." : t("claimRewards")}
+        {isClaiming || claimPreview ? t("workflowClaiming") : t("claimRewards")}
       </button>
       <button type="button" className="dci-drawer__refresh" onClick={handleRefresh}>
         <RefreshCw size={14} strokeWidth={2.3} aria-hidden="true" />
@@ -290,7 +335,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
             {history.slice(0, 10).map((h, i) => (
               <li key={i} className="mx2-history__item">
                 <span className="mx2-history__face">{h.streak ?? "—"} {t("days")}</span>
-                <span className="mx2-history__result">{h.reward ?? "—"}</span>
+                <span className="mx2-history__result">
+                  {h.reward != null ? `${formatGas(h.reward)} ${t("tokenGas")}` : "—"}
+                </span>
               </li>
             ))}
           </ul>

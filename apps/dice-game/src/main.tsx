@@ -484,6 +484,13 @@ defineMiniApp({
       ctx.setStatus(ctx.t("statusSettlementPending"), "info");
     };
 
+    // Framework operation wrappers keep the old notify.guard semantics: success
+    // toast only after the transfer/withdraw really lands, error toast + swallow
+    // on failure — while the validation early-returns above them stay silent (a
+    // blanket action successKey would fire a success toast on those aborts).
+    const fundCreditOp = app.operations.create("fundGameCredit");
+    const withdrawCreditOp = app.operations.create("withdrawCredit");
+
     // Host operation-panel "Fund Stake": pre-fund bet credit by transferring GAS
     // to the standalone game contract with the same memo roll() consumes
     // (miniapp-dice-game:stake) so OnNEP17Payment credits the player. The credit
@@ -506,7 +513,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("statusFailed"), "error");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await fundCreditOp.run(async () => {
         const player = await app.chain.ensureWallet();
         await app.chain.invoke(
           "transfer",
@@ -519,7 +526,7 @@ defineMiniApp({
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
         );
         await refreshLiquidity(network);
-      }, "statusCreditFunded");
+      }, { successKey: "statusCreditFunded" });
     });
 
     // Withdraw the player's standing bet credit back to their wallet via the
@@ -543,7 +550,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await withdrawCreditOp.run(async () => {
         await app.chain.ensureWallet();
         await app.chain.invoke(
           "withdraw",
@@ -551,7 +558,7 @@ defineMiniApp({
           { waitForEvent: "CreditWithdrawn" },
         );
         await refreshLiquidity(network);
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("placeDiceBet", async (...args: unknown[]) => {

@@ -1,10 +1,11 @@
 /**
  * Last Survivor — React Entry Point
  *
- * Drives the standalone on-chain MiniAppLastSurvivor contract directly via
- * ctx.services.chain (no OS service proxies). The composable owns all contract
- * reads/writes; this file wires the chain service, the buy/settle/refresh
- * actions, and the 1s countdown ticker.
+ * Drives the standalone on-chain MiniAppLastSurvivor contract through the
+ * ctx.framework SDK (app.chain.*). The composable owns all contract
+ * reads/writes; this file wires the framework surface, the buy/settle/refresh
+ * actions (success toasts via actions.register successKey), and the 1s
+ * countdown ticker.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -25,24 +26,26 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    game.setAddress(ctx.services.chain.address.get() ?? null);
+    game.setAddress(ctx.framework.chain.address.get() ?? null);
 
     // Start the countdown ticker
     const tickerInterval = setInterval(() => game.updateNow(), 1000);
 
-    ctx.framework.actions.register("buyKeys", async (keyCount: unknown) => {
-      await ctx.services.notify.guard(
-        () => game.buyKeys(String(keyCount)),
-        "keysPurchased",
-      );
-    });
+    ctx.framework.actions.register(
+      "buyKeys",
+      async (keyCount: unknown) => {
+        await game.buyKeys(String(keyCount));
+      },
+      { successKey: "keysPurchased" },
+    );
 
-    ctx.framework.actions.register("settleRound", async () => {
-      await ctx.services.notify.guard(
-        () => game.settleRound(),
-        "roundSettled",
-      );
-    });
+    ctx.framework.actions.register(
+      "settleRound",
+      async () => {
+        await game.settleRound();
+      },
+      { successKey: "roundSettled" },
+    );
 
     ctx.framework.actions.register("refreshRound", async () => {
       await game.loadAll();

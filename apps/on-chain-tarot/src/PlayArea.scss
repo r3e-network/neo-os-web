@@ -83,15 +83,23 @@
 .tarot-scene__deck-zone {
   position: relative;
   display: grid;
-  grid-template-rows: minmax(132px, auto) auto;
-  align-content: center;
+  grid-template-rows: auto minmax(132px, auto) auto;
+  align-content: space-between;
   gap: 12px;
   min-width: 0;
-  padding: 10px;
+  padding: 14px 10px 12px;
   border: 1px solid rgba(132, 105, 54, 0.12);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 12px 28px rgba(31, 41, 55, 0.055);
+}
+.tarot-scene__deck-eyebrow {
+  justify-self: center;
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mx2-text-muted);
 }
 /* The deck (reading source) */
 .tarot-scene__deck {
@@ -152,6 +160,12 @@
   line-height: 1.3;
   font-weight: 620;
 }
+/* Placeholder tone: the fallback prompt must not read like a real question. */
+.tarot-scene__slip strong[data-empty] {
+  color: var(--mx2-text-faint);
+  font-weight: 500;
+  font-style: italic;
+}
 .tarot-scene__reading-zone {
   position: relative;
   display: grid;
@@ -179,7 +193,7 @@
   width: 70%;
   height: 2px;
   border-radius: var(--mx2-r-pill);
-  background: linear-gradient(90deg, rgba(31, 41, 55, 0), rgba(245, 158, 11, 0.18), rgba(31, 41, 55, 0));
+  background: linear-gradient(90deg, rgba(31, 41, 55, 0), rgba(132, 105, 54, 0.2), rgba(31, 41, 55, 0));
   opacity: 0.08;
   transform: rotate(var(--tarot-path-angle));
   transform-origin: left center;
@@ -275,12 +289,10 @@
   position: absolute;
   inset: -28px -52px -34px;
   z-index: -1;
-  border: 1px solid rgba(132, 105, 54, 0.1);
+  border: 1px solid rgba(132, 105, 54, 0.06);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.72);
-  box-shadow:
-    0 4px 12px rgba(31, 41, 55, 0.03),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.92);
 }
 .tarot-scene__slot {
   display: flex;
@@ -296,6 +308,14 @@
 }
 .tarot-scene__slot:hover:not(:disabled) {
   transform: translateY(-4px);
+}
+.tarot-scene__slot:focus-visible {
+  outline: none;
+}
+.tarot-scene__slot:focus-visible .tarot-scene__slot-frame {
+  outline: 2px solid var(--mx2-brand);
+  outline-offset: 3px;
+  border-radius: 16px;
 }
 .tarot-scene__slot:disabled {
   cursor: default;
@@ -330,12 +350,14 @@
     0 10px 20px rgba(31, 41, 55, 0.075),
     inset 0 0 0 1px rgba(255, 255, 255, 0.88);
 }
+/* "Behind glass" veil: undealt backs stay full-opacity (pinned) but read as a
+ * waiting zero state rather than a dealt, sealed spread. */
 .tarot-scene__slot-empty::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 42%);
+  background: linear-gradient(180deg, rgba(255, 250, 243, 0.5), rgba(255, 255, 255, 0.25) 60%);
   pointer-events: none;
 }
 .tarot-scene[data-state="idle"] .tarot-scene__slot-empty {
@@ -368,12 +390,12 @@
   place-items: center;
   min-width: 24px;
   height: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(20, 184, 166, 0.3);
   border-radius: var(--mx2-r-pill);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.95);
   font-size: 11px;
   font-weight: 620;
-  color: #123a36;
+  color: var(--mx2-accent-strong);
   text-shadow: none;
   box-shadow: 0 4px 10px rgba(31, 41, 55, 0.12);
 }
@@ -399,9 +421,10 @@
   align-items: center;
   gap: 2px;
   font-size: 12px;
-  max-width: 134px;
+  max-width: var(--tarot-card-w);
   text-align: center;
   padding: 6px 8px;
+  border: 1px solid rgba(132, 105, 54, 0.1);
   border-radius: var(--mx2-r);
   background: #ffffff;
   box-shadow: 0 5px 14px rgba(31, 41, 55, 0.055);
@@ -460,8 +483,10 @@
 .tarot-scene__status {
   position: absolute;
   z-index: 5;
-  right: 16px;
+  left: 50%;
+  right: auto;
   bottom: 14px;
+  transform: translateX(-50%);
   margin: 0;
   font-size: 13px;
   font-weight: 680;
@@ -479,7 +504,7 @@
   min-height: 56px;
   border-radius: var(--mx2-r-pill);
   white-space: nowrap;
-  box-shadow: 0 10px 22px rgba(217, 119, 6, 0.14);
+  box-shadow: 0 10px 22px rgba(22, 199, 132, 0.18);
 }
 
 .tarot-play-area .mx2-action-rail__row .mx2-btn--primary svg {
@@ -589,7 +614,7 @@
   gap: 6px;
   margin-bottom: 14px;
   padding: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.22);
+  border: 1px solid rgba(132, 105, 54, 0.22);
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 6px 16px rgba(31, 41, 55, 0.045);
@@ -721,6 +746,10 @@
   color: var(--mx2-accent-ink);
   opacity: 0.8;
 }
+.tarot-drawer__credit .mx2-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 
 /* Reduced-motion: collapse dealing/flip/float to final state */
 @media (prefers-reduced-motion: reduce) {
@@ -757,17 +786,21 @@
     gap: 8px;
   }
   .tarot-scene__deck-zone {
-    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-columns: 64px minmax(0, 1fr);
     grid-template-rows: auto;
+    align-content: center;
     align-items: center;
     gap: 8px;
     padding: 7px;
     border-radius: 16px;
   }
+  .tarot-scene__deck-eyebrow {
+    display: none;
+  }
   .tarot-scene__deck {
     min-height: 56px;
     transform: scale(0.5);
-    transform-origin: center;
+    transform-origin: left center;
   }
   .tarot-scene[data-state="dealing"] .tarot-scene__deck {
     animation-name: tarot-deck-cut-mobile;

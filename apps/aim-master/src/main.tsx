@@ -14,17 +14,9 @@ import {
   gasDisplay,
 } from "./logic/game-rules";
 import {
-  createLocalStorageRewardGameStorage,
   eventHashMatches as addrEq,
-  expireRewardGame,
-  finalizeRewardGame,
   mapField,
   normalizedHash as normHash,
-  openRewardGameSession,
-  recordRewardGameOp,
-  refreshRewardGameBalances,
-  startRewardGame,
-  withdrawRewardCredit,
   type RewardGameConfig,
   type RewardGameSession,
 } from "@shared/gamefi";
@@ -53,8 +45,6 @@ const rewardGameConfig: RewardGameConfig = {
     target: rule.targetAccuracy,
   })),
 };
-
-const opStorage = createLocalStorageRewardGameStorage<TeeOp>(OPS_STORAGE_PREFIX);
 
 function asNumber(value: unknown): number {
   const n = Number(parseBigInt(value));
@@ -112,18 +102,25 @@ defineMiniApp({
     // Enclave session context for the active game.
     let session: RewardGameSession | null = null;
 
+    // Reward-game plumbing (session open/start/finalize/expire/withdraw + the
+    // per-game op-log store) via the framework SDK. The storage prefix pins
+    // the pre-migration localStorage keys so in-flight op-logs survive.
+    const rewardGame = ctx.framework.game.reward<TeeOp>(rewardGameConfig, {
+      storagePrefix: OPS_STORAGE_PREFIX,
+    });
+    // The wrapper methods delegate verbatim to the @shared/gamefi
+    // startRewardGame / finalizeRewardGame orchestration; keep the canonical
+    // SDK verbs at the entry/settlement call sites.
+    const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;
+
     const playerScriptHash = (): string => {
-      const player = ctx.services.chain.address.get();
+      const player = ctx.framework.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
     const refreshBalances = async (): Promise<void> => {
       try {
-        const balances = await refreshRewardGameBalances(
-          rewardGameConfig,
-          ctx.services.chain,
-          playerScriptHash(),
-        );
+        const balances = await rewardGame.balances(playerScriptHash());
         poolFree.set(balances.poolFreeGas);
         credit.set(balances.creditGas);
       } catch {
@@ -214,12 +211,7 @@ defineMiniApp({
       isDealing.set(true);
       lastStatus.set(ctx.t("statusSealing"));
       try {
-        const started = await openRewardGameSession(
-          rewardGameConfig,
-          ctx.services.chain,
-          gameId,
-          difficulty,
-        );
+        const started = await rewardGame.openSession(gameId, difficulty);
         session = started;
         pattern.set(String(started.view.pattern ?? ""));
         commitment.set(started.commitment);
@@ -245,12 +237,7 @@ defineMiniApp({
     /** Reattach to an active game after a reload. */
     const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
       try {
-        const started = await openRewardGameSession(
-          rewardGameConfig,
-          ctx.services.chain,
-          gameId,
-          difficulty,
-        );
+        const started = await rewardGame.openSession(gameId, difficulty);
         if (commitment.get() && started.commitment !== commitment.get()) {
           throw new Error(ctx.t("statusFailed"));
         }
@@ -266,7 +253,7 @@ defineMiniApp({
     const streamAim = async (position: number): Promise<void> => {
       if (!session) return;
       const op: TeeOp = { type: "aim", position };
-      await recordRewardGameOp(session, opStorage, op);
+      await rewardGame.recordOp(session, op);
     };
 
     ctx.framework.actions.register("aimHit", async (...args: unknown[]) => {
@@ -287,7 +274,7 @@ defineMiniApp({
       // recorded but NOT trusted for scoring (the enclave clock tick is), so a
       // gauge position reconstructed from the hit's signed offset is sufficient.
       if (session && Array.isArray(results)) {
-        const already = opStorage.load(session.identity.gameId).length;
+        const already = rewardGame.storage.load(session.identity.gameId).length;
         for (let i = already; i < results.length; i += 1) {
           const offset = Number(results[i]?.offset ?? 0);
           const position = Math.max(0, Math.min(300, Math.round(150 + (Number.isFinite(offset) ? offset : 0))));
@@ -308,12 +295,7 @@ defineMiniApp({
       isStarting.set(true);
       lastStatus.set(ctx.t("statusStarting"));
       try {
-        const started = await startRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          difficulty,
-          opStorage,
-        );
+        const started = await startRewardGame(difficulty);
         const gameId = started.gameId;
         activeGameId.set(gameId);
         gameDifficulty.set(difficulty);
@@ -363,12 +345,7 @@ defineMiniApp({
         if (!session) throw new Error(ctx.t("statusFailed"));
         // The accuracy hits are re-derived by the kernel from the sealed aim
         // op-log (engine.replay); the client no longer signs a ring count.
-        const finalized = await finalizeRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          session,
-          opStorage,
-        );
+        const finalized = await finalizeRewardGame(session);
         const settled = finalized.settlement;
         lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
         lastElapsedMs.set(settled.elapsedMs);
@@ -398,7 +375,7 @@ defineMiniApp({
       const gameId = activeGameId.get();
       if (gameId === "0") return;
       try {
-        await expireRewardGame(rewardGameConfig, ctx.services.chain, gameId, opStorage);
+        await rewardGame.expire(gameId);
         gameStatus.set("expired");
         activeGameId.set("0");
         session = null;
@@ -423,11 +400,7 @@ defineMiniApp({
         return;
       }
       await ctx.services.notify.guard(async () => {
-        await withdrawRewardCredit(
-          rewardGameConfig,
-          ctx.services.chain,
-          ctx.framework.amount.gasToFixed8(credit.get()),
-        );
+        await rewardGame.withdrawCredit(ctx.framework.amount.gasToFixed8(credit.get()));
         await refreshBalances();
       }, "creditWithdrawn");
     });

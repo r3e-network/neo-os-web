@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useTarot } from "../../on-chain-tarot/src/composables/useTarot";
 import type { UseTarotOptions } from "../../on-chain-tarot/src/composables/useTarot";
@@ -50,8 +50,8 @@ function readingDrawnEvent(readingId: number, cards: [number, number, number]) {
 
 /**
  * Minimal ChainService stand-in resolving drawFee / creditOf /
- * playerReadingCount / getReading against fixtures, plus an in-memory cache
- * that models the on-device question store.
+ * playerReadingCount / getReading against fixtures. The on-device question
+ * store rides on app.storage.local (jsdom localStorage) — no separate mock.
  */
 function makeDeps(
   opts: {
@@ -94,12 +94,6 @@ function makeDeps(
     return {};
   });
 
-  const store = new Map<string, unknown>();
-  const cache = {
-    persist: vi.fn((key: string, data: unknown) => store.set(key, data)),
-    restore: vi.fn((key: string) => (store.has(key) ? store.get(key) : null)),
-  };
-
   const clipboard = { copy: vi.fn(async () => true) };
 
   const chain = {
@@ -113,11 +107,9 @@ function makeDeps(
 
   return {
     chain,
-    cache: cache as unknown as UseTarotOptions["cache"],
     clipboard: clipboard as unknown as UseTarotOptions["clipboard"],
     invoke,
     read,
-    cacheMock: cache,
     clipboardMock: clipboard,
   };
 }
@@ -128,10 +120,14 @@ function setup(opts: Parameters<typeof makeDeps>[0] = {}) {
     { services: { chain: deps.chain }, t } as never,
     { appId: "miniapp-onchaintarot" },
   );
-  const tarot = useTarot({ app, cache: deps.cache, clipboard: deps.clipboard, t });
+  const tarot = useTarot({ app, clipboard: deps.clipboard, t });
   tarot.setAddress(PLAYER);
-  return { tarot, ...deps };
+  return { tarot, app, ...deps };
 }
+
+// The question store goes through app.storage.local (localStorage-backed in
+// jsdom) — keep runs hermetic.
+beforeEach(() => localStorage.clear());
 
 function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
   return invoke.mock.calls.find((c) => c[0] === op);
@@ -193,12 +189,12 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
   });
 
   it("persists the question on-device keyed by readingId and never sends it on-chain", async () => {
-    const { tarot, cacheMock, invoke } = setup({ readingId: 9, cards: [0, 1, 2] });
+    const { tarot, app, invoke } = setup({ readingId: 9, cards: [0, 1, 2] });
 
     tarot.question.set("Will the project ship?");
     await tarot.draw();
 
-    expect(cacheMock.persist).toHaveBeenCalledWith("tarot:question:9", "Will the project ship?");
+    expect(app.storage.local.get<string>("tarot:question:9")).toBe("Will the project ship?");
     expect(tarot.restoreQuestion("9")).toBe("Will the project ship?");
 
     const drawCall = callFor(invoke, "draw");

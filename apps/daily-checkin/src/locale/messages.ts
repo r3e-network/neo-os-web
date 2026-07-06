@@ -173,6 +173,7 @@ const appMessages = {
   hurryUp: { en: "Hurry up!", zh: "快点！" },
   almostGone: { en: "Almost gone!", zh: "快截止了！" },
   connectToStart: { en: "Connect to start your streak", zh: "连接钱包开始连续签到" },
+  connectPrompt: { en: "Connect to start", zh: "连接钱包开始" },
   connectHint: {
     en: "Connect your Neo wallet, then check in once each UTC day to start your streak.",
     zh: "连接 Neo 钱包，每个 UTC 日签到一次即可开始连续签到。",

@@ -134,8 +134,12 @@ defineMiniApp({
       runMaxExp.set(run ? run.maxExp : 0);
     };
 
+    // The run log (client-side fold of TEE-confirmed pairs) persists through
+    // the framework's namespaced local KV instead of raw window.localStorage.
+    const runStorage = app.storage.local;
+
     const playerScriptHash = (): string => {
-      const player = ctx.services.chain.address.get();
+      const player = app.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
@@ -239,7 +243,7 @@ defineMiniApp({
       try {
         session = await openRewardGameSession(rewardGameConfig, ctx.services.chain, gameId, difficulty);
         const board = (session.view.board ?? []) as number[];
-        run = restoreRun(gameId, Array.isArray(board) && board.length === 16 ? board : []);
+        run = restoreRun(runStorage, gameId, Array.isArray(board) && board.length === 16 ? board : []);
         publishRun();
         commitment.set(session.commitment);
         const game = await app.chain.readRaw("getGame", [
@@ -271,7 +275,7 @@ defineMiniApp({
         }
         session = restored;
         const board = (restored.view.board ?? []) as number[];
-        run = restoreRun(gameId, Array.isArray(board) && board.length === 16 ? board : []);
+        run = restoreRun(runStorage, gameId, Array.isArray(board) && board.length === 16 ? board : []);
         publishRun();
         commitment.set(restored.commitment);
       } catch {
@@ -360,7 +364,7 @@ defineMiniApp({
           return;
         }
         run = next;
-        persistRun(activeGameId.get(), run);
+        persistRun(runStorage, activeGameId.get(), run);
         publishRun();
       } catch (error) {
         const message = error instanceof Error ? error.message : ctx.t("statusFailed");
@@ -380,7 +384,7 @@ defineMiniApp({
       try {
         await sendOp({ type: "undo" });
         run = trimLastMove(run);
-        persistRun(gameId, run);
+        persistRun(runStorage, gameId, run);
         publishRun();
         const undos = undosUsed.get() + 1;
         undosUsed.set(undos);
@@ -416,7 +420,7 @@ defineMiniApp({
         lastElapsedMs.set(settled.elapsedMs);
         gameStatus.set(settled.status === "unknown" ? "solved" : settled.status);
         activeGameId.set("0");
-        forgetRun(gameId);
+        forgetRun(runStorage, gameId);
         session = null;
         run = null;
         publishRun();
@@ -446,7 +450,7 @@ defineMiniApp({
         await expireRewardGame(rewardGameConfig, ctx.services.chain, gameId, opStorage);
         gameStatus.set("expired");
         activeGameId.set("0");
-        forgetRun(gameId);
+        forgetRun(runStorage, gameId);
         session = null;
         run = null;
         publishRun();
@@ -460,19 +464,24 @@ defineMiniApp({
       }
     });
 
+    // Withdraw runs through a framework operation so the toast contract stays
+    // guard-shaped: success toast only after a real withdrawal, error toast +
+    // swallow on failure — while the no-credit early return stays silent.
+    const withdrawOp = app.operations.create("withdrawWinnings");
+
     ctx.framework.actions.register("withdrawWinnings", async () => {
       if (credit.get() <= 0) {
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await withdrawOp.run(async () => {
         await withdrawRewardCredit(
           rewardGameConfig,
           ctx.services.chain,
           app.amount.gasToFixed8(credit.get()),
         );
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {

@@ -256,6 +256,9 @@ async function runWithTimers<T>(promise: Promise<T>): Promise<T> {
 describe("useCoinFlip V2 (commit/reveal)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // pendingBet is persisted via app.state.persisted (localStorage-backed when
+    // available) — clear it so a retained pending bet never leaks across tests.
+    if (typeof localStorage !== "undefined") localStorage.clear();
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -450,6 +453,19 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
   it("revealResult() with no pending bet throws", async () => {
     const { flip } = setup();
     await expect(flip.revealResult()).rejects.toThrow("No bet awaiting reveal");
+  });
+
+  it("loadAll() surfaces a restored pending bet as a stalled reveal (reload resume path)", async () => {
+    const { flip } = setup();
+    // Simulate the persisted pending bet a reload would restore.
+    flip.pendingBet.set({ betId: "77", choice: "heads", amount: 1 });
+    expect(flip.revealFailed.get()).toBe(false);
+
+    await flip.loadAll();
+
+    // The manual "Reveal result" path must be visible again after a reload.
+    expect(flip.revealFailed.get()).toBe(true);
+    expect(flip.hasPendingBet.get()).toBe(true);
   });
 
   it("rejects an out-of-range wager before any chain call", async () => {

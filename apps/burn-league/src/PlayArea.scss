@@ -106,12 +106,15 @@
   text-align: right;
 }
 
-.burn-scene__stat--clock > :first-child {
-  grid-area: label;
-}
-
 .burn-scene__stat > :first-child {
   grid-area: icon;
+}
+
+/* The clock card has no icon column: keep its first child (the label span) in
+   the label slot. Doubled class beats the generic icon rule above regardless
+   of source order. */
+.burn-scene__stat--clock.burn-scene__stat--clock > :first-child {
+  grid-area: label;
 }
 
 .burn-scene__stat span {
@@ -273,13 +276,34 @@
 }
 
 .burn-scene__brazier-copy em {
-  color: #7c2d12;
+  justify-self: start;
+  margin-top: 3px;
+  padding: 6px 16px;
+  border-radius: var(--mx2-r-pill);
+  background: #b45309;
+  color: #ffffff;
   font-size: 13px;
   font-style: normal;
   font-weight: 680;
+  box-shadow: 0 6px 14px rgba(146, 64, 14, 0.28);
+  transition: background var(--mx2-t-fast) var(--mx2-ease);
 }
 
 .burn-league-play-area.mx2.mx2-cat-game .burn-scene .burn-scene__brazier .burn-scene__brazier-copy > em {
+  color: #ffffff;
+}
+
+.burn-scene__brazier:hover:not(:disabled) .burn-scene__brazier-copy em,
+.burn-scene__brazier:focus-visible .burn-scene__brazier-copy em {
+  background: #92400e;
+}
+
+.burn-scene__brazier:disabled .burn-scene__brazier-copy em {
+  background: rgba(146, 64, 14, 0.22);
+  box-shadow: none;
+}
+
+.burn-league-play-area.mx2.mx2-cat-game .burn-scene .burn-scene__brazier:disabled .burn-scene__brazier-copy > em {
   color: #7c2d12;
 }
 
@@ -288,7 +312,7 @@
   z-index: 3;
   left: 40px;
   right: 40px;
-  bottom: 112px;
+  bottom: 130px; /* clears the taller copy stack (eyebrow + amount + CTA pill) */
   height: 10px;
   overflow: hidden;
   border-radius: var(--mx2-r-pill);
@@ -393,19 +417,21 @@
 }
 
 .burn-scene__status {
+  /* Desktop: left-anchored into the empty plaza so it never collides with the
+     right-anchored brazier scrim card. The 680px block re-centers it. */
   position: absolute;
-  left: 50%;
+  left: 24px;
   bottom: 22px;
   z-index: 6;
-  width: min(100%, 560px);
+  width: min(44%, 480px);
   margin: 0;
   padding: 9px 14px;
   border-radius: 16px;
   color: var(--mx2-ink);
   font-size: 13px;
   font-weight: 620;
-  text-align: center;
-  transform: translateX(-50%);
+  text-align: left;
+  transform: none;
 }
 
 .burn-controls {
@@ -587,11 +613,15 @@
 }
 
 .burn-preset--active {
-  border-color: rgba(245, 158, 11, 0.62);
-  background: #fffaf0;
+  border-color: rgba(245, 158, 11, 0.85);
+  background: #fef3c7;
   box-shadow:
-    inset 0 0 0 1px rgba(245, 158, 11, 0.18),
-    0 8px 18px rgba(245, 158, 11, 0.1);
+    inset 0 0 0 1px rgba(245, 158, 11, 0.22),
+    0 8px 18px rgba(245, 158, 11, 0.14);
+}
+
+.burn-preset--active strong {
+  color: #7c2d12;
 }
 
 .burn-preset--disabled,
@@ -702,6 +732,48 @@
   font-size: 13px;
   font-weight: 620;
   text-align: center;
+}
+
+.burn-drawer__steps {
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  counter-reset: burn-step;
+}
+
+.burn-drawer__steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--mx2-text-2);
+  font-size: 13px;
+  counter-increment: burn-step;
+}
+
+.burn-drawer__steps li::before {
+  content: counter(burn-step);
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 50%;
+  background: #fff8ed;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1;
+}
+
+/* The prize step gets the filled marker — it is the payoff of the sequence. */
+.burn-drawer__steps li:last-child::before {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #ffffff;
 }
 
 .burn-drawer__credit {
@@ -989,6 +1061,8 @@
   }
 
   .burn-scene__brazier-copy em {
+    justify-self: center;
+    padding: 5px 14px;
     font-size: 12px;
   }
 
@@ -1010,7 +1084,7 @@
   .burn-scene__meter {
     left: 38px;
     right: 38px;
-    bottom: 92px;
+    bottom: 106px;
     height: 8px;
   }
 

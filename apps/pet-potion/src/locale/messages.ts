@@ -70,12 +70,14 @@ const appMessages = {
   actionPet: { en: "Pet", zh: "抚摸" },
   actionRest: { en: "Rest", zh: "休息" },
   actionHint: { en: "Choose an action to nurture your pet", zh: "选择一个动作来培育宠物" },
+  actionsCounter: { en: "{used} / {max} actions used", zh: "已用 {used} / {max} 次动作" },
 
   happinessTarget: { en: "Target: {happiness}", zh: "目标：{happiness}" },
   happinessCurrent: { en: "Current: {happiness}", zh: "当前：{happiness}" },
 
   submitAction: { en: "Claim reward", zh: "领取奖励" },
   submitHint: { en: "Pet happiness reached target — claim before the deadline", zh: "宠物快乐值达标——在截止前领取奖励" },
+  targetReachedHint: { en: "Target reached — claim your reward below", zh: "目标达成——请在下方领取奖励" },
   timeUpAction: { en: "Time is up", zh: "时间到" },
 
   releaseAction: { en: "Release game", zh: "结算过期对局" },

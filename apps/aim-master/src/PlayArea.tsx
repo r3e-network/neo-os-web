@@ -72,9 +72,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [feedbackLabel, setFeedbackLabel] = useState<string | null>(null);
   const [feedbackClass, setFeedbackClass] = useState<string>("");
   const [localRings, setLocalRings] = useState<HitResult[]>([]);
-  const [localRound, setLocalRound] = useState(0);
   const [roundAccuracies, setRoundAccuracies] = useState<number[]>([]);
   const [pendingSubmission, setPendingSubmission] = useState(false);
+  // Coral flash on the current progress dot when a tap misses the accuracy zone.
+  const [missFlash, setMissFlash] = useState(false);
+  const missFlashTimer = useRef<number | null>(null);
   // Immediate local shot cue, released on a timer so the gauge never sticks in
   // its action state while the aim streams to the TEE session.
   const [aimPreview, setAimPreview] = useState(false);
@@ -100,6 +102,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     () => () => {
       if (aimPreviewTimeout.current !== null) {
         window.clearTimeout(aimPreviewTimeout.current);
+      }
+      if (missFlashTimer.current !== null) {
+        window.clearTimeout(missFlashTimer.current);
       }
     },
     [],
@@ -130,9 +135,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   useEffect(() => {
     if (gameStatus === "dealt" && pattern.length > 0 && activeGameId !== "0") {
       setLocalRings([]);
-      setLocalRound(0);
       setRoundAccuracies([]);
       setPendingSubmission(false);
+      setMissFlash(false);
       setFeedbackLabel(null);
       setIsAiming(true);
       // The TEE pattern starts immediately
@@ -185,8 +190,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const currentTotalPoints = totalPoints(localRings.map((r) => r.ring));
   const accuracies = localRings.filter((r) => isAccuracyHit(r.ring)).length;
   const won = isWin(localRings.map((r) => r.ring), targetAccuracy);
-  const projectedPayout =
-    won ? Number(gasDisplay(payoutFixed8ForAccuracy(gameDifficulty, accuracies))) : 0;
+  // Reward accrued so far by the run (full reward once the win threshold lands).
+  const accruedPayout = Number(gasDisplay(payoutFixed8ForAccuracy(gameDifficulty, accuracies)));
+  const projectedPayout = won ? accruedPayout : 0;
+  // The score cell shows the bounty still on the table while the run is live,
+  // then the settled value once the win threshold is reached.
+  const rewardAtStake =
+    gameStatus === "dealt" && !won
+      ? Number(gasDisplay(ruleOf(gameDifficulty).rewardFixed8))
+      : projectedPayout;
 
   const showFeedback = useCallback((hit: HitResult) => {
     let label = "";
@@ -222,8 +234,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     const updatedAccuracies = [...roundAccuracies, isAccuracyHit(hit.ring) ? 1 : 0];
 
     setLocalRings(updatedRings);
-    setLocalRound(localRound + 1);
     setRoundAccuracies(updatedAccuracies);
+
+    if (!isAccuracyHit(hit.ring)) {
+      if (missFlashTimer.current !== null) window.clearTimeout(missFlashTimer.current);
+      setMissFlash(true);
+      missFlashTimer.current = window.setTimeout(() => {
+        setMissFlash(false);
+        missFlashTimer.current = null;
+      }, 400);
+    }
 
     // Check if player has enough accuracy hits to win
     if (isWin(updatedRings.map((r) => r.ring), targetAccuracy)) {
@@ -238,7 +258,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       });
     }
     // Continue aiming for more rounds if not yet won
-  }, [isAiming, gaugePos, busy, timeUp, localRings, localRound, roundAccuracies, targetAccuracy, currentTotalPoints, showFeedback, startAimPreview, dispatch]);
+  }, [isAiming, gaugePos, busy, timeUp, localRings, roundAccuracies, targetAccuracy, currentTotalPoints, showFeedback, startAimPreview, dispatch]);
 
   const handleSubmit = async () => {
     if (busy) return;
@@ -268,6 +288,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       markers.push({ pos: right, label, type });
     }
     return markers;
+  }, []);
+
+  // Zone labels sit at the exact geometric boundaries the ring markers draw,
+  // so the numbers under the gauge match the scoring zones they name.
+  const gaugeLabels = useMemo(() => {
+    const cfg = DEFAULT_CONFIG;
+    const labels: { pos: number; label: string }[] = [{ pos: cfg.centre, label: "●" }];
+    for (let i = 1; i <= 5; i += 1) {
+      const dist = cfg.bullseyeRadius + i * cfg.ringWidth;
+      labels.push({ pos: cfg.centre - dist, label: String(i) });
+      labels.push({ pos: cfg.centre + dist, label: String(i) });
+    }
+    return labels.sort((a, b) => a.pos - b.pos);
   }, []);
 
   const difficultyPicker = (
@@ -414,22 +447,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <i style={{ width: `${timePct}%` }} />
         </span>
         <span className="aim-timer__reward">
-          {t("rewardNow", { amount: projectedPayout.toFixed(2) })}
+          {t("rewardNow", { amount: accruedPayout.toFixed(2) })}
         </span>
       </div>
 
-      {/* Round indicator dots */}
+      {/* Round indicator dots — filled by cumulative accuracy hits, so extra
+          taps and misses never consume a progress slot. */}
       <div className="aim-rounds" aria-label={t("roundProgress")}>
         {Array.from({ length: targetAccuracy }, (_, i) => {
-          const hit = localRings[i];
           const classes = [
             "aim-rounds__dot",
-            hit !== undefined
-              ? isAccuracyHit(hit.ring)
-                ? "aim-rounds__dot--hit"
-                : "aim-rounds__dot--miss"
-              : localRound === i
-                ? "aim-rounds__dot--current"
+            i < accuracies
+              ? "aim-rounds__dot--hit"
+              : i === accuracies
+                ? missFlash
+                  ? "aim-rounds__dot--current aim-rounds__dot--miss"
+                  : "aim-rounds__dot--current"
                 : "",
           ]
             .filter(Boolean)
@@ -481,29 +514,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             />
           </div>
         </div>
-        <div className="aim-gauge__labels">
-          <span>5</span>
-          <span>4</span>
-          <span>3</span>
-          <span>2</span>
-          <span>1</span>
-          <span>●</span>
-          <span>1</span>
-          <span>2</span>
-          <span>3</span>
-          <span>4</span>
-          <span>5</span>
+        <div className="aim-gauge__labels" aria-hidden="true">
+          {gaugeLabels.map((entry) => (
+            <span
+              key={`${entry.pos}-${entry.label}`}
+              style={{ left: `${(entry.pos / DEFAULT_CONFIG.width) * 100}%` }}
+            >
+              {entry.label}
+            </span>
+          ))}
         </div>
-      </div>
 
-      {/* Feedback overlay */}
-      {feedbackLabel && (
-        <div className="aim-feedback" aria-live="assertive">
-          <span className={["aim-feedback__label", feedbackClass].filter(Boolean).join(" ")}>
-            {feedbackLabel}
-          </span>
-        </div>
-      )}
+        {/* Feedback overlay — scoped to the target board so the timer row and
+            round dots stay readable while it flashes. */}
+        {feedbackLabel && (
+          <div className="aim-feedback" aria-live="assertive">
+            <span className={["aim-feedback__label", feedbackClass].filter(Boolean).join(" ")}>
+              {feedbackLabel}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Score summary */}
       {pendingSubmission && (
@@ -547,10 +578,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ? "dealing"
             : gameStatus === "dealt"
               ? pendingSubmission
-                ? "submitting"
-                : isAiming
-                  ? "playing"
-                  : "playing"
+                ? "ready"
+                : "playing"
               : gameStatus === "solved"
                 ? "won"
                 : "idle"
@@ -659,7 +688,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         score={gameStatus === "idle" ? undefined : [
           {
             label: t("scoreReward"),
-            value: `${projectedPayout.toFixed(2)} GAS`,
+            value: `${rewardAtStake.toFixed(2)} GAS`,
             accent: true,
           },
           {

@@ -188,7 +188,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <strong>{prizeName}</strong>
             <p>{prizeCopy}</p>
             <ol className="gasbox-scene__route" aria-label={translation(t, "gasboxPlayerRoute", "Player route")}>
-              <li>{translation(t, "gasboxEmptyRouteRefresh", "Refresh market")}</li>
+              <li>{translation(t, "gasboxEmptyRouteRefresh", "Find machines")}</li>
               <li>{translation(t, "gasboxEmptyRoutePick", "Pick a machine")}</li>
               <li>{translation(t, "gasboxEmptyRouteReveal", "Reveal prize")}</li>
             </ol>

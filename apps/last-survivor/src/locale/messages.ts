@@ -172,6 +172,7 @@ const appMessages = {
   sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
   sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
   keysSuffix: { en: "Keys", zh: "把钥匙" },
+  keySuffixOne: { en: "Key", zh: "把钥匙" },
   tokenGas: { en: "GAS", zh: "GAS" },
   howItWorks: { en: "How It Works", zh: "玩法说明" },
   ruleDeposit: { en: "Buy keys", zh: "购买钥匙" },

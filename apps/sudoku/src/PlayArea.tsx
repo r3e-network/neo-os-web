@@ -489,7 +489,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           );
         })}
       </div>
-      <p className="sudoku-lobby__pool">
+      <p className="sudoku-lobby__pool" data-low={!rewardPoolReady ? "true" : undefined}>
         {t("poolLine", { pool: poolFree.toFixed(2) })}
         {creditGas > 0 ? ` · ${t("creditLine", { credit: creditGas.toFixed(2) })}` : ""}
         {!rewardPoolReady ? ` · ${t("statusPoolLow")}` : ""}
@@ -553,7 +553,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               .filter(Boolean)
               .join(" ")}
             onClick={() => handleCellInput(digit)}
-            disabled={busy || timeUp || selected < 0}
+            // Keep the pad live before a cell is selected — handleCellInput
+            // no-ops when selected < 0, and the selection ring teaches the
+            // cell-first order without the pad reading as broken.
+            disabled={busy || timeUp}
           >
             {digit}
           </button>

@@ -47,7 +47,9 @@
  *
  * The question the user typed is NOT stored on-chain. It is kept in composable
  * state for the active reading and, so the history can surface it, persisted
- * on-device keyed by readingId via the shared cache (localStorage) helpers.
+ * on-device keyed by readingId via app.storage.local (framework-owned,
+ * localStorage-backed, `neo:<appId>:`-prefixed — same keys the earlier
+ * CacheService wrote, so previously saved questions remain readable).
  *
  * The composable owns:
  *   - Reactive state (observables + derived) for manifest/PlayArea bindings
@@ -58,7 +60,6 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { CacheService } from "@shared/services/CacheService";
 import type { ClipboardService } from "@shared/services/ClipboardService";
 import { eventValue } from "@shared/utils/chain-events";
 import { fromFixed8 } from "@shared/utils/format";
@@ -72,10 +73,8 @@ export interface Card extends TarotCardDefinition {
 }
 
 export interface UseTarotOptions {
-  /** MiniApp framework SDK (ctx.framework) — chain/arg surface. */
+  /** MiniApp framework SDK (ctx.framework) — chain/arg + storage surface. */
   app: MiniAppFramework;
-  /** Shared cache service from ctx.services.cache (on-device question store). */
-  cache: CacheService;
   /** Clipboard service from ctx.services.clipboard (copy/share reading). */
   clipboard: ClipboardService;
   /** Translation function. */
@@ -98,7 +97,10 @@ const CARDS_PER_READING = 3;
 /** How many reading ids to page in per refresh of the player's history. */
 const HISTORY_PAGE_LIMIT = 100;
 
-/** localStorage key prefix for the on-device question store, keyed by readingId. */
+/**
+ * app.storage.local key prefix for the on-device question store, keyed by
+ * readingId (the framework adds its own `neo:<appId>:` namespace).
+ */
 const QUESTION_KEY_PREFIX = "tarot:question:";
 
 // ============================================================================
@@ -155,7 +157,7 @@ function cardFromIndex(cardId: number): Card {
 // Composable
 // ============================================================================
 
-export function useTarot({ app, cache, clipboard, t }: UseTarotOptions) {
+export function useTarot({ app, clipboard, t }: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
   const drawn = createObservable<Card[]>([]);
   const readingsCount = createObservable(0);
@@ -187,12 +189,12 @@ export function useTarot({ app, cache, clipboard, t }: UseTarotOptions) {
   const persistQuestion = (readingId: string, text: string) => {
     const trimmed = text.trim();
     if (!readingId || !trimmed) return;
-    cache.persist(`${QUESTION_KEY_PREFIX}${readingId}`, trimmed);
+    app.storage.local.set(`${QUESTION_KEY_PREFIX}${readingId}`, trimmed);
   };
 
   /** Restore the on-device question for a reading id (empty when absent). */
   const restoreQuestion = (readingId: string): string =>
-    cache.restore<string>(`${QUESTION_KEY_PREFIX}${readingId}`) ?? "";
+    app.storage.local.get<string>(`${QUESTION_KEY_PREFIX}${readingId}`) ?? "";
 
   // ── Fee resolution ───────────────────────────────────────────────────
 

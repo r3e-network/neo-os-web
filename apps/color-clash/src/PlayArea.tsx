@@ -109,7 +109,7 @@ function randomColorSequence(length: number): string {
 
 function previewSequence(length: number): number[] {
   const seed = [0, 2, 1, 3, 2, 0, 3, 1];
-  return Array.from({ length }, (_, index) => seed[index % seed.length]);
+  return Array.from({ length }, (_, index) => seed[index % seed.length] ?? 0);
 }
 
 export function PlayArea({ state, actions }: Props) {
@@ -358,7 +358,10 @@ export function PlayArea({ state, actions }: Props) {
                   />
                   <span className="cclash-mode__name">{t(`difficulty_${DIFF_KEYS[d]}`)}</span>
                   <span className="cclash-mode__seq">{t("targetSeqLabel", { count: r.targetSeq })}</span>
-                  <span className="cclash-mode__meta">{formatClock(r.limitMs)} · {t("winAmount", { amount: gasDisplay(r.reward) })}</span>
+                  <span className="cclash-mode__meta">
+                    <span className="cclash-mode__meta-time">{formatClock(r.limitMs)} · </span>
+                    {t("winAmount", { amount: gasDisplay(r.reward) })}
+                  </span>
                   <span className="cclash-mode__lights" aria-hidden="true">
                     {previewSequence(Math.min(6, r.targetSeq)).map((color, index) => (
                       <i key={`${d}-${color}-${index}`} style={{ "--seq-color": COLOR_HEX[color] } as React.CSSProperties} />
@@ -369,6 +372,11 @@ export function PlayArea({ state, actions }: Props) {
             })}
           </div>
           <p className="cclash-lobby__pool" data-ready={rewardPoolReady ? "true" : "false"}>
+            {rewardPoolReady && (
+              <span className="cclash-lobby__pool-entry">
+                {t("entryAmount", { amount: gasDisplay(startRule.entry) })} · {formatClock(startRule.limitMs)} ·{" "}
+              </span>
+            )}
             {rewardPoolReady
               ? t("poolLine", { pool: gasAmountDisplay(state.poolFree) })
               : t("practiceHint")}

@@ -3,11 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { useCheckin, FIXED8 } from "./useCheckin";
 import { createMiniAppFramework } from "@shared/react";
 import type { ChainService } from "@shared/services/ChainService";
-import { addressToScriptHash } from "@shared/utils/neo";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const CONTRACT = "0x25db219a701a2b23130788723fcf9a2e76857235";
-const ALICE_HASH = addressToScriptHash(ALICE);
 
 const t = (key: string, params?: Record<string, string | number>) =>
   params ? `${key}:${JSON.stringify(params)}` : key;

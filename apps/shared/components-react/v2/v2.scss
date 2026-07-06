@@ -313,6 +313,12 @@
   gap: 16px;
   margin: 16px 0 16px;
   flex-wrap: wrap;
+  /* Align the strip with the stage's 24px content inset (16px on small
+     screens, matching .mx2-stage) so the first card never sits flush against
+     the screen edge. scroll-padding keeps the first/last cards clear of the
+     edges when an app turns the strip into a horizontal scroller. */
+  padding-inline: 24px;
+  scroll-padding-inline: 24px;
 }
 .mx2-score__item {
   flex: 0 1 auto;
@@ -439,6 +445,11 @@
 @media (max-width: 560px) {
   .mx2-stage {
     padding: 16px;
+  }
+
+  .mx2-score {
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
   }
 
   .mx2-score__item {

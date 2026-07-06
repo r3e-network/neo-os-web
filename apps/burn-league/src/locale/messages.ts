@@ -229,6 +229,7 @@ const appMessages = {
   },
   dashPlaceholder: { en: "—", zh: "—" },
   startTheSeason: { en: "Start the season", zh: "开启赛季" },
+  startPool: { en: "Pool opens on first burn", zh: "首次燃烧开启奖池" },
   impactPoolEmptyHint: {
     en: "No live pool yet — your first burn starts the season and fills these in.",
     zh: "暂无进行中的奖池 — 你的首次燃烧将开启赛季并填入这些数据。",

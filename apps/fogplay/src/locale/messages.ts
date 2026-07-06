@@ -48,6 +48,7 @@ const appMessages = {
     zh: "下注已提交但尚未揭晓 — 点击立即揭晓。",
   },
   revealResult: { en: "Reveal result", zh: "揭晓结果" },
+  playAgain: { en: "Play again", zh: "再来一局" },
   betCommitted: { en: "Bet placed", zh: "下注已提交" },
   flipCoin: { en: "Flip Coin", zh: "迷雾对决" },
   initiateBet: { en: "Place Bet", zh: "下注" },
