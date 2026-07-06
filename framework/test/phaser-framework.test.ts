@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
@@ -8,7 +8,7 @@ import {
   type GameBridgeError,
 } from "@framework/phaser/GameBridge";
 
-const repoRoot = resolve(fileURLToPath(import.meta.url), "..", "..", "..", "..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 describe("root Phaser framework", () => {
   it("surfaces rejected game dispatches as bridge errors", async () => {

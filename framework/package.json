@@ -1,0 +1,30 @@
+{
+  "name": "@neo/miniapp-framework",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./game": "./game/index.ts",
+    "./game/*": "./game/*",
+    "./gamefi": "./gamefi/index.ts",
+    "./gamefi/*": "./gamefi/*",
+    "./logic/*": "./logic/*",
+    "./phaser": "./phaser/index.ts",
+    "./phaser/*": "./phaser/*",
+    "./utils/*": "./utils/*",
+    "./reactive": "./reactive.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "phaser": "^3.90.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {}
+}

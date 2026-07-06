@@ -72,7 +72,7 @@ describe("Game miniapp motion baseline", () => {
     }
   });
 
-  it("keeps the shared Phaser host accessible while scenes boot", () => {
+  it("keeps the root framework Phaser host accessible while scenes boot", () => {
     const phaserHost = readIfExists(
       resolve(appsRoot, "..", "framework/phaser/PhaserGameComponent.tsx"),
     );
