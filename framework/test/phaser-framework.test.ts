@@ -183,6 +183,24 @@ describe("root Phaser framework", () => {
         ],
       },
       {
+        app: "on-chain-tarot",
+        scene: "TarotScene",
+        assets: [
+          "./tarot-reading-table.webp",
+          "TAROT_CARD_BACK",
+          "TAROT_DECK",
+        ],
+        usage: [
+          "TAROT_ASSETS",
+          "TAROT_DECK.forEach",
+          "this.load.image(cardKey",
+          "dispatch(\"setQuestion\"",
+          "dispatch(\"draw\"",
+          "dispatch(\"flipCard\"",
+          "dispatch(\"reset\"",
+        ],
+      },
+      {
         app: "color-clash",
         scene: "ColorClashScene",
         assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
@@ -342,6 +360,20 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: keys should use loaded art and UI, not the old hand-drawn icon`).not.toContain(
           "drawKeyIcon",
+        );
+      }
+      if (app === "on-chain-tarot") {
+        expect(source, `${app}: Phaser scene should use real Neo tarot card images, not hand-drawn archetype symbols`).not.toContain(
+          "drawCardSymbol",
+        );
+        expect(source, `${app}: Phaser scene should not hand-draw astral card art`).not.toContain(
+          "drawAstralSymbol",
+        );
+        expect(source, `${app}: Phaser scene should not keep the old procedural card-face helper`).not.toContain(
+          "drawCardFaceBlank",
+        );
+        expect(source, `${app}: intent chips should dispatch the registered question action`).not.toContain(
+          "setIntent",
         );
       }
     }
