@@ -2,12 +2,12 @@
  * JumpRushScene — Phaser 3 scene for the Jump Rush platform-jumper miniapp.
  *
  * Renders:
- *  - Sky gradient background (light blue → white)
- *  - Scrolling world container with grass platforms (3-4 visible at once)
- *  - Bunny character (rounded-rect body + ears, drawn with primitives)
+ *  - Bright sky background with real cloud sprites
+ *  - Scrolling world container with grass platform sprites
+ *  - Bunny character sprites for idle, charge, jump, and hurt states
  *  - Power charge bar at the bottom (fills while pointer/space is held)
  *  - Combo counter, round-progress dots, timer bar in the HUD
- *  - Lobby: 3 difficulty cards (Easy / Medium / Hard)
+ *  - Lobby: playable route picker with one clear start action
  *
  * State received from React (via GameBridge / BaseScene):
  *  - gameStatus    : "idle"|"committed"|"dealt"|"solved"|"expired"
@@ -50,10 +50,8 @@ const PLATFORM_MIN_W = 60;
 const PLATFORM_RANGE_W = 80; // width = MIN + (byte/256)*RANGE
 
 /** Bunny dimensions. */
-const BUNNY_W = 28;
-const BUNNY_H = 30;
-const EAR_W = 9;
-const EAR_H = 18;
+const BUNNY_W = 46;
+const BUNNY_H = 62;
 
 /** Charge fill duration (ms) for 0→100 %. */
 const CHARGE_FULL_MS = 2000;
@@ -73,13 +71,14 @@ const BUNNY_SCREEN_Y = H * 0.72;
 const C = {
   skyTop:        0x87ceeb,
   skyBot:        0xffffff,
-  groundGrass:   0x4ade80,
-  groundDirt:    0x92400e,
-  bunnyBody:     0xfef9c3,
-  bunnyEar:      0xfda4af,
-  bunnyEye:      0x1e293b,
+  canvasWarm:    0xfaf9f7,
+  surface:       0xffffff,
+  surfaceTint:   0xf4f2ef,
+  border:        0xe8e6e1,
+  ink:           0x1a1a19,
+  inkSoft:       0x5c5a56,
   bunnyGlow:     0xfacc15,
-  chargeEmpty:   0x334155,
+  chargeEmpty:   0xe8e6e1,
   chargeFill0:   0x22c55e, // low charge
   chargeFill50:  0xfacc15, // mid charge
   chargeFill100: 0xef4444, // full charge
@@ -88,18 +87,31 @@ const C = {
   timerRed:      0xef4444,
   comboText:     0xfacc15,
   perfectGold:   0xfacc15,
-  uiPanel:       0x0f172a,
-  uiBorder:      0x334155,
-  dotActive:     0x6366f1,
+  uiPanel:       0xffffff,
+  uiBorder:      0xe8e6e1,
+  dotActive:     0xf59e0b,
   dotDone:       0x22c55e,
-  dotFuture:     0x334155,
-  cardBg:        0x1e293b,
-  cardBorder:    0x334155,
-  cardSelected:  0x4f46e5,
-  submitBtn:     0x4f46e5,
-  submitBtnHov:  0x6366f1,
+  dotFuture:     0xd4d0c9,
+  cardBg:        0xffffff,
+  cardBorder:    0xe8e6e1,
+  cardSelected:  0xfffbeb,
+  submitBtn:     0x16c784,
+  submitBtnHov:  0x0ea371,
   overlay:       0x000000,
 };
+
+const JR_ASSETS = {
+  bunnyHurt: "jr-bunny-hurt",
+  bunnyJump: "jr-bunny-jump",
+  bunnyReady: "jr-bunny-ready",
+  bunnyStand: "jr-bunny-stand",
+  carrotGold: "jr-carrot-gold",
+  cloud: "jr-cloud",
+  platform: "jr-platform-grass",
+  platformSmall: "jr-platform-grass-small",
+} as const;
+
+const FONT_FAMILY = "Inter, Arial, sans-serif";
 
 // ── Data structures ─────────────────────────────────────────────────────────
 
@@ -122,7 +134,7 @@ export class JumpRushScene extends BaseScene {
   private platformObjects: Phaser.GameObjects.Container[] = [];
 
   private bunny!: Phaser.GameObjects.Container;
-  private bunnyBody!: Phaser.GameObjects.Graphics;
+  private bunnySprite!: Phaser.GameObjects.Image;
   private bunnyIdleTween: Phaser.Tweens.Tween | null = null;
 
   private hudContainer!: Phaser.GameObjects.Container;
@@ -137,6 +149,7 @@ export class JumpRushScene extends BaseScene {
   private chargeHint!: Phaser.GameObjects.Text;
 
   private lobbyContainer!: Phaser.GameObjects.Container;
+  private lobbyStartButton!: Phaser.GameObjects.Container;
   private loadingOverlay!: Phaser.GameObjects.Container;
 
   // ── Local game state ───────────────────────────────────────────────────────
@@ -166,7 +179,14 @@ export class JumpRushScene extends BaseScene {
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
 
   preload(): void {
-    // All visuals are drawn with Phaser primitives — no external assets needed.
+    this.load.image(JR_ASSETS.bunnyHurt, "./art/bunny-hurt.webp");
+    this.load.image(JR_ASSETS.bunnyJump, "./art/bunny-jump.webp");
+    this.load.image(JR_ASSETS.bunnyReady, "./art/bunny-ready.webp");
+    this.load.image(JR_ASSETS.bunnyStand, "./art/bunny-stand.webp");
+    this.load.image(JR_ASSETS.carrotGold, "./art/carrot-gold.webp");
+    this.load.image(JR_ASSETS.cloud, "./art/cloud.webp");
+    this.load.image(JR_ASSETS.platform, "./art/platform-grass.webp");
+    this.load.image(JR_ASSETS.platformSmall, "./art/platform-grass-small.webp");
   }
 
   create(): void {
@@ -257,24 +277,30 @@ export class JumpRushScene extends BaseScene {
   // ── Background ─────────────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    // Sky gradient: draw two rectangles and overlay with gradient graphics
-    const gfx = this.add.graphics();
-    // Tall gradient strip that covers full canvas
-    gfx.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1);
-    gfx.fillRect(0, 0, W, H);
+    this.add.rectangle(W / 2, H / 2, W, H, C.canvasWarm);
 
-    // Decorative cloud shapes (3 static clouds)
-    const cloudGfx = this.add.graphics();
-    cloudGfx.fillStyle(0xffffff, 0.55);
+    const gfx = this.add.graphics();
+    gfx.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1);
+    gfx.fillRect(0, 0, W, H * 0.82);
+
     const clouds = [
-      { x: 60,  y: 60,  r: 22 },
-      { x: 95,  y: 50,  r: 28 },
-      { x: 130, y: 60,  r: 20 },
-      { x: 240, y: 90,  r: 18 },
-      { x: 270, y: 80,  r: 24 },
-      { x: 300, y: 92,  r: 16 },
+      { x: 86, y: 58, scale: 0.34, alpha: 0.72, drift: 8 },
+      { x: 296, y: 108, scale: 0.28, alpha: 0.58, drift: -10 },
+      { x: 168, y: 164, scale: 0.22, alpha: 0.36, drift: 6 },
     ];
-    for (const c of clouds) cloudGfx.fillCircle(c.x, c.y, c.r);
+    for (const cloud of clouds) {
+      const sprite = this.add.image(cloud.x, cloud.y, JR_ASSETS.cloud)
+        .setScale(cloud.scale)
+        .setAlpha(cloud.alpha);
+      this.tweens.add({
+        targets: sprite,
+        x: cloud.x + cloud.drift,
+        duration: 2400,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    }
   }
 
   // ── Platform world ─────────────────────────────────────────────────────────
@@ -346,20 +372,26 @@ export class JumpRushScene extends BaseScene {
   /** Build a single grass-topped platform tile. */
   private buildPlatformTile(pd: PlatformData): Phaser.GameObjects.Container {
     const cont = this.add.container(pd.x, pd.y);
-    const hw   = pd.width / 2;
+    const platformKey = pd.width < 92 ? JR_ASSETS.platformSmall : JR_ASSETS.platform;
+    const sprite = this.add.image(0, 0, platformKey)
+      .setOrigin(0.5, 0)
+      .setDisplaySize(pd.width, PLATFORM_H + 26);
+    cont.add(sprite);
 
-    const gfx = this.add.graphics();
-    // Dirt body
-    gfx.fillStyle(C.groundDirt);
-    gfx.fillRoundedRect(-hw, 0, pd.width, PLATFORM_H + 8, 4);
-    // Grass strip
-    gfx.fillStyle(C.groundGrass);
-    gfx.fillRoundedRect(-hw, 0, pd.width, PLATFORM_H, { tl: 4, tr: 4, bl: 0, br: 0 });
-    // Subtle highlight on grass top
-    gfx.fillStyle(0xbbf7d0, 0.4);
-    gfx.fillRect(-hw + 4, 2, pd.width - 8, 4);
+    if (pd.index === this.platforms.length - 1) {
+      const carrot = this.add.image(0, -24, JR_ASSETS.carrotGold)
+        .setDisplaySize(30, 28);
+      cont.add(carrot);
+      this.tweens.add({
+        targets: carrot,
+        y: -30,
+        duration: 700,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    }
 
-    cont.add(gfx);
     return cont;
   }
 
@@ -367,80 +399,25 @@ export class JumpRushScene extends BaseScene {
 
   private buildBunny(): Phaser.GameObjects.Container {
     const cont = this.add.container(0, 0);
-    const gfx  = this.add.graphics();
-    this.bunnyBody = gfx;
 
-    this.drawBunnyIdle(gfx);
-    cont.add(gfx);
+    const shadow = this.add.ellipse(0, 3, 38, 10, 0x1a1a19, 0.16);
+    this.bunnySprite = this.add.image(0, 0, JR_ASSETS.bunnyStand)
+      .setOrigin(0.5, 1)
+      .setDisplaySize(BUNNY_W, BUNNY_H);
+    cont.add([shadow, this.bunnySprite]);
     return cont;
   }
 
-  private drawBunnyIdle(gfx: Phaser.GameObjects.Graphics): void {
-    gfx.clear();
-    const hw = BUNNY_W / 2;
-    const hh = BUNNY_H / 2;
-
-    // Left ear
-    gfx.fillStyle(C.bunnyBody);
-    gfx.fillRoundedRect(-hw + 2, -hh - EAR_H + 2, EAR_W, EAR_H, 4);
-    // Inner left ear
-    gfx.fillStyle(C.bunnyEar, 0.7);
-    gfx.fillRoundedRect(-hw + 4, -hh - EAR_H + 5, EAR_W - 4, EAR_H - 6, 3);
-
-    // Right ear
-    gfx.fillStyle(C.bunnyBody);
-    gfx.fillRoundedRect(hw - EAR_W - 2, -hh - EAR_H + 2, EAR_W, EAR_H, 4);
-    // Inner right ear
-    gfx.fillStyle(C.bunnyEar, 0.7);
-    gfx.fillRoundedRect(hw - EAR_W, -hh - EAR_H + 5, EAR_W - 4, EAR_H - 6, 3);
-
-    // Body
-    gfx.fillStyle(C.bunnyBody);
-    gfx.fillRoundedRect(-hw, -hh, BUNNY_W, BUNNY_H, 8);
-
-    // Eyes
-    gfx.fillStyle(C.bunnyEye);
-    gfx.fillCircle(-6, -4, 3);
-    gfx.fillCircle(6, -4, 3);
-
-    // Nose
-    gfx.fillStyle(0xfda4af);
-    gfx.fillCircle(0, 2, 2);
-
-    // Mouth
-    gfx.lineStyle(1.5, C.bunnyEye, 0.6);
-    gfx.beginPath();
-    gfx.moveTo(-3, 5);
-    gfx.lineTo(0, 7);
-    gfx.lineTo(3, 5);
-    gfx.strokePath();
-  }
-
-  private drawBunnyJump(gfx: Phaser.GameObjects.Graphics): void {
-    gfx.clear();
-    const hw = BUNNY_W / 2;
-    const hh = BUNNY_H / 2;
-
-    // Ears swept back when jumping
-    gfx.fillStyle(C.bunnyBody);
-    gfx.fillRoundedRect(-hw + 4, -hh - EAR_H + 6, EAR_W - 2, EAR_H - 4, 3);
-    gfx.fillRoundedRect(hw - EAR_W, -hh - EAR_H + 6, EAR_W - 2, EAR_H - 4, 3);
-    gfx.fillStyle(C.bunnyEar, 0.7);
-    gfx.fillRoundedRect(-hw + 6, -hh - EAR_H + 9, EAR_W - 6, EAR_H - 10, 2);
-    gfx.fillRoundedRect(hw - EAR_W + 2, -hh - EAR_H + 9, EAR_W - 6, EAR_H - 10, 2);
-
-    // Body (slightly squished tall when jumping)
-    gfx.fillStyle(C.bunnyBody);
-    gfx.fillRoundedRect(-hw + 2, -hh - 4, BUNNY_W - 4, BUNNY_H + 4, 8);
-
-    // Eyes (wide open)
-    gfx.fillStyle(C.bunnyEye);
-    gfx.fillCircle(-6, -6, 3.5);
-    gfx.fillCircle(6, -6, 3.5);
-
-    // Nose
-    gfx.fillStyle(0xfda4af);
-    gfx.fillCircle(0, 0, 2);
+  private setBunnyPose(pose: "idle" | "ready" | "jump" | "hurt"): void {
+    if (!this.bunnySprite) return;
+    const texture = pose === "ready"
+      ? JR_ASSETS.bunnyReady
+      : pose === "jump"
+        ? JR_ASSETS.bunnyJump
+        : pose === "hurt"
+          ? JR_ASSETS.bunnyHurt
+          : JR_ASSETS.bunnyStand;
+    this.bunnySprite.setTexture(texture).setDisplaySize(BUNNY_W, BUNNY_H);
   }
 
   private startBunnyIdle(): void {
@@ -473,7 +450,7 @@ export class JumpRushScene extends BaseScene {
 
     // Background track
     const track = this.add.rectangle(0, 0, barW, barH, C.chargeEmpty, 1)
-      .setStrokeStyle(2, 0x475569)
+      .setStrokeStyle(2, C.border)
       .setOrigin(0.5);
 
     // Fill (starts at width=0, anchored to left edge)
@@ -488,7 +465,8 @@ export class JumpRushScene extends BaseScene {
     // Label
     this.chargeHint = this.add.text(0, barH / 2 + 10, "HOLD TO CHARGE", {
       fontSize:  "11px",
-      color:     "#94a3b8",
+      fontFamily: FONT_FAMILY,
+      color:     "#5c5a56",
       fontStyle: "bold",
     }).setOrigin(0.5);
 
@@ -527,27 +505,29 @@ export class JumpRushScene extends BaseScene {
     this.hudContainer = this.add.container(0, 0);
 
     // Timer bar (top strip, full width)
-    const timerTrack = this.add.rectangle(W / 2, 10, W - 24, 8, 0x1e293b)
-      .setStrokeStyle(1, 0x334155);
+    const timerTrack = this.add.rectangle(W / 2, 10, W - 24, 8, 0xffffff, 0.78)
+      .setStrokeStyle(1, C.border);
     this.timerBarFill = this.add.rectangle(12, 10, W - 24, 6, C.timerGreen)
       .setOrigin(0, 0.5);
 
     // Combo label (top-left)
     this.comboLabel = this.add.text(16, 28, "", {
       fontSize:  "20px",
+      fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#facc15",
-      stroke:    "#0f172a",
-      strokeThickness: 3,
+      stroke:    "#ffffff",
+      strokeThickness: 2,
     });
 
     // "PERFECT!" label (centre, hidden by default)
     this.perfectLabel = this.add.text(W / 2, H * 0.42, "PERFECT!", {
       fontSize:  "26px",
+      fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#facc15",
-      stroke:    "#92400e",
-      strokeThickness: 4,
+      stroke:    "#ffffff",
+      strokeThickness: 3,
     }).setOrigin(0.5).setVisible(false);
 
     // Progress dots row (bottom-centre, above charge bar)
@@ -602,6 +582,7 @@ export class JumpRushScene extends BaseScene {
 
     const txt = this.add.text(0, 0, "SUBMIT RUN", {
       fontSize:  "18px",
+      fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#ffffff",
     }).setOrigin(0.5);
@@ -647,35 +628,52 @@ export class JumpRushScene extends BaseScene {
   // ── Lobby ──────────────────────────────────────────────────────────────────
 
   private buildLobby(): void {
-    this.lobbyContainer = this.add.container(0, 0);
+    this.lobbyContainer = this.add.container(0, 0).setDepth(20);
 
-    // Semi-transparent panel
-    const panelBg = this.add.rectangle(W / 2, H / 2, W, H, C.overlay, 0.55);
+    const veil = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.12);
+    const heroCloud = this.add.image(W - 76, 80, JR_ASSETS.cloud)
+      .setScale(0.24)
+      .setAlpha(0.72);
+    const heroPlatform = this.add.image(W / 2, 214, JR_ASSETS.platform)
+      .setDisplaySize(250, 62)
+      .setAlpha(0.98);
+    const heroBunny = this.add.image(W / 2, 204, JR_ASSETS.bunnyJump)
+      .setOrigin(0.5, 1)
+      .setDisplaySize(70, 92);
+    const carrot = this.add.image(W / 2 + 104, 186, JR_ASSETS.carrotGold)
+      .setDisplaySize(34, 30);
 
-    const title = this.add.text(W / 2, 60, "JUMP RUSH", {
-      fontSize:        "30px",
-      fontStyle:       "bold",
-      color:           "#f8fafc",
-      stroke:          "#1e293b",
-      strokeThickness: 4,
-    }).setOrigin(0.5);
+    this.tweens.add({
+      targets: heroBunny,
+      y: 190,
+      duration: 760,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tweens.add({
+      targets: carrot,
+      angle: 8,
+      y: 178,
+      duration: 900,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
 
-    const subtitle = this.add.text(W / 2, 96, "Choose your difficulty", {
-      fontSize: "14px",
-      color:    "#94a3b8",
-    }).setOrigin(0.5);
-
-    this.lobbyContainer.add([panelBg, title, subtitle]);
+    this.lobbyContainer.add([veil, heroCloud, heroPlatform, heroBunny, carrot]);
     this.buildDifficultyCards();
+    this.lobbyStartButton = this.buildLobbyStartButton();
+    this.lobbyContainer.add(this.lobbyStartButton);
     this.lobbyContainer.setVisible(true);
   }
 
   private buildDifficultyCards(): void {
-    const cardW   = 110;
-    const cardH   = 170;
-    const spacing = 120;
+    const cardW   = 112;
+    const cardH   = 112;
+    const spacing = 124;
     const startX  = W / 2 - spacing;
-    const cardY   = H / 2 - 10;
+    const cardY   = 346;
 
     for (let i = 0; i < DIFFICULTY_RULES.length; i++) {
       const rule = DIFFICULTY_RULES[i];
@@ -693,13 +691,23 @@ export class JumpRushScene extends BaseScene {
     const cont = this.add.container(x, y);
     const isSelected = diffIdx === this.selectedDifficulty;
 
-    const bg = this.add.rectangle(0, 0, w, h,
-      isSelected ? C.cardSelected : C.cardBg,
-    ).setStrokeStyle(2, isSelected ? 0x818cf8 : C.cardBorder).setOrigin(0.5);
+    const bg = this.add.graphics();
+    const drawCard = (fill: number, alpha: number, stroke: number): void => {
+      bg.clear();
+      bg.fillStyle(fill, alpha);
+      bg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+      bg.lineStyle(2, stroke, 1);
+      bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
+    };
+    drawCard(isSelected ? C.cardSelected : C.cardBg, isSelected ? 0.98 : 0.92, isSelected ? 0xf59e0b : C.cardBorder);
 
-    bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerover",  () => bg.setStrokeStyle(2, 0x818cf8));
-    bg.on("pointerout",   () => bg.setStrokeStyle(2, isSelected ? 0x818cf8 : C.cardBorder));
+    bg.setInteractive(
+      new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    bg.on("pointerover",  () => drawCard(0xfffbeb, 1, 0xf59e0b));
+    bg.on("pointerout",   () =>
+      drawCard(isSelected ? C.cardSelected : C.cardBg, isSelected ? 0.98 : 0.92, isSelected ? 0xf59e0b : C.cardBorder));
     bg.on("pointerdown",  () => {
       this.selectedDifficulty = diffIdx;
       this.tweens.add({ targets: cont, scale: 0.95, duration: 60, yoyo: true });
@@ -709,70 +717,73 @@ export class JumpRushScene extends BaseScene {
       this.lobbyContainer.setVisible(true);
     });
 
-    // Difficulty tier icon (diamond count)
-    const iconText = diffIdx === 0 ? "◆" : diffIdx === 1 ? "◆◆" : "◆◆◆";
-    const iconColors = ["#4ade80", "#facc15", "#f87171"] as const;
-    const icon = this.add.text(0, -h / 2 + 22, iconText, {
-      fontSize: "16px",
-      fontStyle: "bold",
-      color: iconColors[diffIdx] ?? "#ffffff",
-    }).setOrigin(0.5);
+    const iconKeys = [JR_ASSETS.bunnyStand, JR_ASSETS.bunnyReady, JR_ASSETS.bunnyJump] as const;
+    const icon = this.add.image(0, -34, iconKeys[diffIdx] ?? JR_ASSETS.bunnyStand)
+      .setDisplaySize(34, 46);
 
     // Difficulty name
-    const nameColors = ["#4ade80", "#facc15", "#f87171"];
     const name = this.add.text(0, -h / 2 + 50, rule.key.toUpperCase(), {
       fontSize:  "13px",
+      fontFamily: FONT_FAMILY,
       fontStyle: "bold",
-      color:     nameColors[diffIdx] ?? "#ffffff",
+      color:     "#1a1a19",
     }).setOrigin(0.5);
 
-    // Entry fee
-    const entryLabel = this.add.text(0, -h / 2 + 72, `Entry: ${gasDisplay(rule.entryFixed8)} GAS`, {
-      fontSize: "10px",
-      color:    "#94a3b8",
+    const jumpsLabel = this.add.text(0, -h / 2 + 70, `${rule.targetJumps} jumps`, {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      color:    "#5c5a56",
     }).setOrigin(0.5);
 
-    // Reward
-    const rewardLabel = this.add.text(0, -h / 2 + 88, `Win: ${gasDisplay(rule.rewardFixed8)} GAS`, {
+    const rewardLabel = this.add.text(0, -h / 2 + 88, `${gasDisplay(rule.rewardFixed8)} GAS`, {
       fontSize:  "11px",
+      fontFamily: FONT_FAMILY,
       fontStyle: "bold",
-      color:     "#f0c866",
+      color:     "#0ea371",
     }).setOrigin(0.5);
 
-    // Time limit
-    const timeLabel = this.add.text(0, -h / 2 + 106, `${rule.limitMs / 1000}s`, {
+    const entryLabel = this.add.text(0, h / 2 - 14, `Entry ${gasDisplay(rule.entryFixed8)}`, {
       fontSize: "10px",
-      color:    "#64748b",
+      fontFamily: FONT_FAMILY,
+      color:    "#8b8984",
     }).setOrigin(0.5);
 
-    // Jumps required
-    const jumpsLabel = this.add.text(0, -h / 2 + 122, `${rule.targetJumps} jumps`, {
-      fontSize: "10px",
-      color:    "#64748b",
+    const selectedDot = this.add.circle(-w / 2 + 13, -h / 2 + 13, 5, 0xf59e0b, isSelected ? 1 : 0);
+    cont.add([bg, icon, name, jumpsLabel, rewardLabel, entryLabel, selectedDot]);
+
+    return cont;
+  }
+
+  private buildLobbyStartButton(): Phaser.GameObjects.Container {
+    const cont = this.add.container(W / 2, H - 72);
+    const bg = this.add.graphics();
+    const drawButton = (fill: number): void => {
+      bg.clear();
+      bg.fillStyle(fill, 1);
+      bg.fillRoundedRect(-106, -22, 212, 44, 12);
+      bg.lineStyle(2, C.submitBtnHov, 1);
+      bg.strokeRoundedRect(-106, -22, 212, 44, 12);
+    };
+    drawButton(C.submitBtn);
+    bg.setInteractive(
+      new Phaser.Geom.Rectangle(-106, -22, 212, 44),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    const label = this.add.text(0, 0, "Start Jump", {
+      fontSize: "15px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#ffffff",
     }).setOrigin(0.5);
 
-    // Start button (only on selected card)
-    if (isSelected) {
-      const startBtnBg = this.add.rectangle(0, h / 2 - 24, w - 16, 30, 0x4f46e5)
-        .setStrokeStyle(1, 0x818cf8)
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-      const startBtnTxt = this.add.text(0, h / 2 - 24, "START", {
-        fontSize:  "12px",
-        fontStyle: "bold",
-        color:     "#ffffff",
-      }).setOrigin(0.5);
-      startBtnBg.on("pointerover",  () => startBtnBg.setFillStyle(0x6366f1));
-      startBtnBg.on("pointerout",   () => startBtnBg.setFillStyle(0x4f46e5));
-      startBtnBg.on("pointerdown",  () => {
-        this.tweens.add({ targets: [startBtnBg, startBtnTxt], scale: 0.93, duration: 60, yoyo: true });
-        this.dispatch("startGame", { difficulty: diffIdx });
-      });
-      cont.add([bg, icon, name, entryLabel, rewardLabel, timeLabel, jumpsLabel, startBtnBg, startBtnTxt]);
-    } else {
-      cont.add([bg, icon, name, entryLabel, rewardLabel, timeLabel, jumpsLabel]);
-    }
+    bg.on("pointerover", () => drawButton(C.submitBtnHov));
+    bg.on("pointerout", () => drawButton(C.submitBtn));
+    bg.on("pointerdown", () => {
+      this.tweens.add({ targets: cont, scale: 0.96, duration: 80, yoyo: true });
+      this.dispatch("startGame", { difficulty: this.selectedDifficulty });
+    });
 
+    cont.add([bg, label]);
     return cont;
   }
 
@@ -785,29 +796,39 @@ export class JumpRushScene extends BaseScene {
   private buildLoadingOverlay(): void {
     this.loadingOverlay = this.add.container(W / 2, H / 2);
 
-    const bg = this.add.rectangle(0, 0, W, H, C.overlay, 0.75).setOrigin(0.5);
+    const bg = this.add.rectangle(0, 0, W, H, 0xffffff, 0.68).setOrigin(0.5);
+    const panel = this.add.rectangle(0, 0, 250, 150, C.surface, 0.96)
+      .setStrokeStyle(1, C.border)
+      .setOrigin(0.5);
+    const platform = this.add.image(0, 46, JR_ASSETS.platformSmall)
+      .setDisplaySize(150, 52);
+    const bunny = this.add.image(0, 30, JR_ASSETS.bunnyJump)
+      .setOrigin(0.5, 1)
+      .setDisplaySize(48, 64);
 
-    const txt = this.add.text(0, -20, "Preparing platforms…", {
-      fontSize: "18px",
-      color:    "#e2e8f0",
+    const txt = this.add.text(0, -46, "Preparing platforms", {
+      fontSize: "16px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color:    "#1a1a19",
     }).setOrigin(0.5);
 
-    const dots = this.add.text(0, 18, "⋯", {
-      fontSize:  "28px",
-      color:     "#6366f1",
-      fontStyle: "bold",
+    const hint = this.add.text(0, -22, "TEE is sealing a fair route", {
+      fontSize:  "11px",
+      fontFamily: FONT_FAMILY,
+      color:     "#5c5a56",
     }).setOrigin(0.5);
 
     this.tweens.add({
-      targets:  dots,
-      alpha:    0.2,
-      duration: 500,
+      targets:  bunny,
+      y:        12,
+      duration: 520,
       ease:     "Sine.easeInOut",
       yoyo:     true,
       repeat:   -1,
     });
 
-    this.loadingOverlay.add([bg, txt, dots]);
+    this.loadingOverlay.add([bg, panel, txt, hint, platform, bunny]);
     this.loadingOverlay.setVisible(false);
   }
 
@@ -827,6 +848,7 @@ export class JumpRushScene extends BaseScene {
     this.refreshChargeFill();
     this.chargeHint.setText("RELEASE TO JUMP");
     this.stopBunnyIdle();
+    this.setBunnyPose("ready");
 
     // Squish bunny slightly on charge start
     this.tweens.add({
@@ -855,7 +877,7 @@ export class JumpRushScene extends BaseScene {
     if (!from || !to || !this.bunny) return;
 
     this.isJumping = true;
-    this.drawBunnyJump(this.bunnyBody);
+    this.setBunnyPose("jump");
 
     // Restore bunny scale from charge squish
     this.tweens.add({
@@ -869,7 +891,7 @@ export class JumpRushScene extends BaseScene {
     const chargeError = (chargeLevel - idealCharge) / 100; // -0.5 → +0.5
     const landingOffsetX = chargeError * (to.width * 0.8);
     const landingX = to.x + landingOffsetX;
-    const landingY = to.y - BUNNY_H / 2 - 2;
+    const landingY = to.y - 2;
 
     // Arc via a path using an intermediate waypoint
     const midX = (from.x + landingX) / 2;
@@ -926,7 +948,7 @@ export class JumpRushScene extends BaseScene {
 
     this.refreshProgressDots();
     this.refreshCombo();
-    this.drawBunnyIdle(this.bunnyBody);
+    this.setBunnyPose("idle");
 
     // Check if all platforms cleared
     if (this.currentPlatformIndex >= this.platforms.length - 1) {
@@ -992,6 +1014,7 @@ export class JumpRushScene extends BaseScene {
   private playVictoryCelebration(): void {
     // Bounce bunny up and down in celebration
     if (!this.bunny) return;
+    this.setBunnyPose("jump");
     this.tweens.add({
       targets:  this.bunny,
       y:        this.bunny.y - 40,
@@ -1036,7 +1059,7 @@ export class JumpRushScene extends BaseScene {
     if (!pd || !this.bunny) return;
 
     const targetX = pd.x;
-    const targetY = pd.y - BUNNY_H / 2 - 2;
+    const targetY = pd.y - 2;
 
     if (animated) {
       this.tweens.add({

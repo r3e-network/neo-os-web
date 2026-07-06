@@ -51,7 +51,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const rule            = ruleOf(gameStatus === "idle" ? 0 : gameDifficulty);
   const remainingMs     = deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
   const elapsedMs       = dealtAt > 0 ? nowMs - dealtAt : 0;
-  const busy            = isStarting || isDealing || isSubmitting;
   const timeUp          = gameStatus === "dealt" && deadline > 0 && remainingMs <= 0;
   const submitWindowClosed = gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
   const minSolveReached = dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
@@ -141,15 +140,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               hint:     t("releaseHint"),
             }
           : undefined // Phaser scene owns the jump interaction; no overlay button
-        : {
-            label:    t("startAction"),
-            onClick:  () => void dispatch("startGame", { difficulty: 0 }),
-            disabled: busy || !rewardPoolReady,
-            loading:  isStarting,
-            hint:     rewardPoolReady
-              ? t("startHint", { amount: gasDisplay(rule.entryFixed8) })
-              : t("statusPoolLow"),
-          };
+        : undefined; // Phaser scene owns lobby difficulty selection and start.
 
   const secondaryActions = [
     ...(creditGas > 0 && gameStatus !== "dealt"
