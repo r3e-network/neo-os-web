@@ -11,6 +11,7 @@ import React from "react";
 export interface DetailDrawerProps {
   category?: "game" | "defi" | "nft" | "tool";
   className?: string;
+  id?: string;
   open: boolean;
   /** Section label rendered as the drawer heading. */
   title?: React.ReactNode;
@@ -20,13 +21,14 @@ export interface DetailDrawerProps {
 export function DetailDrawer({
   category = "game",
   className,
+  id = "mx2-detail-drawer",
   open,
   title,
   children,
 }: DetailDrawerProps) {
   return (
     <section
-      id="mx2-detail-drawer"
+      id={id}
       className={[
         "mx2",
         `mx2-cat-${category}`,
