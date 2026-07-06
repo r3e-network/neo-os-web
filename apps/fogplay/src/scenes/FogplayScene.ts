@@ -20,8 +20,8 @@
  */
 
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState } from "@framework/phaser";
 
 const BET_PRESETS = ["0.25", "0.50", "1.00", "2.00"];
 

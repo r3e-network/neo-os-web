@@ -31,8 +31,8 @@
  */
 
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState } from "@framework/phaser";
 import {
   BOARD_SIZE,
   DIFFICULTY_RULES,
