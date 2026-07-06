@@ -12,16 +12,15 @@
 .aim-playarea {
   display: block;
   --mx2-stage-floor: #faf9f7;
-  --mx2-ink: #4f4133;
-  --mx2-text-muted: #75695c;
-  --aim-ink: #4f4133;
-  --aim-muted: #7b6e5f;
-  --aim-soft: #fff8ea;
-  --aim-panel: #fffdf8;
-  --aim-border: #eadfc8;
-  --aim-gold: #d8a742;
-  --aim-teal: #1aa896;
-  --aim-coral: #eb715f;
+  /* Map aim-specific palette to platform tokens where equivalents exist */
+  --aim-ink: var(--mx2-ink-strong);
+  --aim-muted: var(--mx2-text-muted);
+  --aim-soft: var(--mx2-surface-soft);
+  --aim-panel: var(--mx2-surface);
+  --aim-border: var(--mx2-border-subtle);
+  --aim-gold: var(--mx2-warning);
+  --aim-teal: var(--mx2-accent);
+  --aim-coral: var(--mx2-danger);
 }
 
 .aim-playarea .mx2-stage {
@@ -34,7 +33,7 @@
 }
 
 .aim-playarea .mx2-eyebrow {
-  color: #6f5a3f;
+  color: var(--aim-ink);
   font-weight: 640;
   letter-spacing: 0.05em;
 }
@@ -140,7 +139,7 @@
   overflow: hidden;
   border: 1px solid rgba(216, 167, 66, 0.24);
   border-radius: 22px;
-  background: #fff4dd;
+  background: var(--aim-soft);
 }
 
 .aim-lobby__range-bg {
@@ -324,7 +323,7 @@
   &:hover:not(:disabled) {
     transform: translateY(-2px);
     border-color: rgba(26, 168, 150, 0.5);
-    background: #fffaf0;
+    background: var(--aim-soft);
   }
 
   &:disabled {
@@ -335,7 +334,7 @@
 
   &--active {
     border-color: rgba(26, 168, 150, 0.76);
-    background: #f3fffb;
+    background: color-mix(in srgb, var(--aim-teal) 8%, var(--aim-panel));
     box-shadow: 0 8px 18px rgba(26, 168, 150, 0.14);
     animation: aim-card-pop 240ms ease-out;
   }
@@ -360,7 +359,7 @@
 }
 
 .aim-diff-card__meta {
-  grid-area: meta;
+  /* grid-area removed: meta is not in grid-template-areas and element is permanently hidden */
   display: none;
   font-size: 0.72rem;
   color: var(--aim-muted);
@@ -374,7 +373,7 @@
   padding: 3px 7px;
   background: rgba(216, 167, 66, 0.12);
   font-size: 0.72rem;
-  color: #9b7a34;
+  color: var(--aim-gold);
   white-space: nowrap;
 }
 
@@ -434,7 +433,7 @@
   margin-top: 32px;
   padding: 34px 18px 28px;
   border: 1px solid var(--aim-border);
-  border-radius: 8px;
+  border-radius: var(--mx2-r-sm);
   background: rgba(255, 253, 248, 0.9);
 
   p {
@@ -479,7 +478,7 @@
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--aim-border);
-  border-radius: 8px;
+  border-radius: var(--mx2-r-sm);
   background: rgba(255, 253, 248, 0.9);
   color: var(--aim-ink);
 
@@ -531,8 +530,8 @@
   place-items: center;
   padding: 18px clamp(12px, 3vw, 28px);
   border: 1px solid var(--aim-border);
-  border-radius: 8px;
-  background: linear-gradient(180deg, #fffaf0, var(--aim-panel));
+  border-radius: var(--mx2-r-sm);
+  background: linear-gradient(180deg, var(--aim-soft), var(--aim-panel));
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -619,7 +618,7 @@
   bottom: 12px;
   height: 1em;
   font-size: 0.65rem;
-  color: #9b8a72;
+  color: var(--aim-muted);
   pointer-events: none;
   user-select: none;
 
@@ -683,7 +682,7 @@
   font-weight: 660;
   padding: 8px 14px;
   border: 1px solid rgba(216, 167, 66, 0.22);
-  border-radius: 8px;
+  border-radius: var(--mx2-r-sm);
   background: rgba(255, 253, 248, 0.9);
   text-shadow: none;
   box-shadow: 0 12px 28px rgba(115, 75, 20, 0.14);
@@ -694,7 +693,8 @@
   }
 
   &--hit {
-    color: #148a7c;
+    /* Slightly darker teal for hit — keep it token-driven via color-mix */
+    color: color-mix(in srgb, var(--aim-teal) 80%, black);
     animation: aim-hit-pop 600ms ease-out forwards;
   }
 
@@ -754,7 +754,7 @@
   gap: 8px;
   align-items: baseline;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: var(--mx2-r-sm);
   background: rgba(255, 253, 248, 0.82);
   font-size: 0.8rem;
   color: var(--aim-ink);
@@ -926,22 +926,28 @@
   }
 }
 
+/* --aim-glow is defined here so keyframes stay token-driven and do not
+   hardcode a different numeric value from --aim-teal. */
+.aim-playarea {
+  --aim-glow: var(--aim-teal);
+}
+
 @keyframes aim-submit-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 rgba(0, 175, 146, 0);
+    box-shadow: 0 0 0 oklch(from var(--aim-glow) l c h / 0);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 175, 146, 0.3);
+    box-shadow: 0 0 20px oklch(from var(--aim-glow) l c h / 0.3);
   }
 }
 
 @keyframes aim-win-glow {
   from {
-    box-shadow: 0 0 0 rgba(0, 175, 146, 0);
+    box-shadow: 0 0 0 oklch(from var(--aim-glow) l c h / 0);
   }
   to {
-    box-shadow: 0 0 26px rgba(0, 175, 146, 0.35);
+    box-shadow: 0 0 26px oklch(from var(--aim-glow) l c h / 0.35);
   }
 }
 

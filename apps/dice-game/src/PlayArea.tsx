@@ -217,11 +217,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <button
             key={face}
             type="button"
-            className={["dice-bet-spot", active ? "dice-bet-spot--active" : null]
+            className={[
+              "mx2-btn mx2-btn--ghost dice-bet-spot",
+              active ? "dice-bet-spot--active" : null,
+            ]
               .filter(Boolean)
               .join(" ")}
             aria-pressed={active}
             aria-label={`${t("dieShowing", { face })} · ${t("rollDice")}`}
+            aria-describedby="dice-betting-hint"
             onClick={() => chooseFace(face)}
             disabled={controlsLocked}
           >
@@ -248,7 +252,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <button
             key={chip.amount}
             type="button"
-            className={["dice-chip-btn", active ? "dice-chip-btn--active" : null]
+            className={[
+              "mx2-btn mx2-btn--ghost dice-chip-btn",
+              active ? "dice-chip-btn--active" : null,
+            ]
               .filter(Boolean)
               .join(" ")}
             aria-pressed={active}
@@ -271,7 +278,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       })}
       <button
         type="button"
-        className="dice-chip-btn dice-chip-btn--custom"
+        className="mx2-btn mx2-btn--ghost dice-chip-btn dice-chip-btn--custom"
         aria-expanded={fineStakeOpen}
         onClick={() => setFineStakeOpen((open) => !open)}
         disabled={controlsLocked}
@@ -296,13 +303,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onChange={(e) => setAmountInput(e.target.value)}
             disabled={controlsLocked}
             aria-invalid={!stakeIsValid}
+            aria-required="true"
+            aria-describedby={formError ? "dice-stake-error" : undefined}
             placeholder="0.10"
           />
           <span className="dice-controls__fine-unit">GAS</span>
         </div>
       )}
       {formError && (
-        <p className="dice-controls__error" role="alert">
+        <p id="dice-stake-error" className="dice-controls__error" role="alert">
           {formError}
         </p>
       )}
@@ -314,6 +323,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       className="dice-scene"
       data-state={isRolling ? "rolling" : showResult ? lastOutcome : "idle"}
     >
+      {/* Visually-hidden descriptions for screen readers */}
+      <span id="dice-betting-hint" className="dice-sr-only">
+        {t("pickYourFace")}
+      </span>
+      <span id="dice-roll-hint" className="dice-sr-only">
+        {t("rollDice")}
+      </span>
       <div className="dice-scene__felt" aria-hidden="true">
         <span className="dice-scene__felt-track" />
       </div>
@@ -353,7 +369,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             type="button"
             key={`${visibleFace}-${throwPulse}-${isRolling}-${showResult}`}
             className={[
-              "dice-scene__die-anchor",
+              "mx2-btn dice-scene__die-anchor",
               isRolling ? "mx2-roll" : null,
               showResult ? "mx2-land" : null,
             ]
@@ -362,6 +378,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onClick={() => void handleSubmit()}
             disabled={controlsLocked || !stakeIsValid}
             aria-label={`${t("rollDice")} - ${t("selectedFace")} ${faceInput}`}
+            aria-describedby="dice-roll-hint"
           >
             <img
               className="dice-scene__die"

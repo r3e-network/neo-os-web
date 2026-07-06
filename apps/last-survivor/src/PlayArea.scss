@@ -64,7 +64,13 @@
   isolation: isolate;
   border: 1px solid rgba(20, 83, 45, 0.09);
   border-radius: 30px;
-  background: #f7fbf4;
+  /* Atmospheric layered background: cool green crown, warm amber floor corners */
+  background:
+    radial-gradient(ellipse 120% 55% at 50% 0%, rgba(187, 247, 208, 0.44) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 8% 100%, rgba(254, 243, 199, 0.38) 0%, transparent 52%),
+    radial-gradient(ellipse 80% 60% at 92% 100%, rgba(254, 243, 199, 0.34) 0%, transparent 52%),
+    radial-gradient(ellipse 100% 40% at 50% 102%, rgba(20, 83, 45, 0.05) 0%, transparent 60%),
+    #f4fbf2;
   box-shadow: var(--mx2-shadow);
 }
 
@@ -108,9 +114,14 @@
 .survivor-scene__cost,
 .survivor-scene__status,
 .survivor-scene__notice {
-  border: 1px solid rgba(148, 116, 70, 0.14);
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 12px 30px rgba(22, 101, 52, 0.1);
+  border: 1px solid rgba(148, 116, 70, 0.16);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 2px 8px rgba(22, 101, 52, 0.06),
+    0 12px 30px rgba(22, 101, 52, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .survivor-scene__pot {
@@ -208,10 +219,23 @@
 .survivor-scene__relic:hover:not(:disabled),
 .survivor-scene__relic:focus-visible {
   box-shadow:
-    0 32px 68px rgba(22, 101, 52, 0.22),
-    0 0 0 10px rgba(255, 255, 255, 0.9),
-    0 0 0 16px rgba(250, 204, 21, 0.18);
-  transform: translateY(-5px) rotate(-0.5deg);
+    0 44px 88px rgba(22, 101, 52, 0.28),
+    0 12px 28px rgba(22, 101, 52, 0.14),
+    0 0 0 10px rgba(255, 255, 255, 0.94),
+    0 0 0 17px rgba(250, 204, 21, 0.28),
+    0 0 0 24px rgba(250, 204, 21, 0.08),
+    0 0 56px rgba(250, 204, 21, 0.16);
+  transform: translateY(-7px) rotate(-0.6deg);
+  filter: brightness(1.03) saturate(1.06);
+}
+
+.survivor-scene__relic:active:not(:disabled) {
+  box-shadow:
+    0 16px 36px rgba(22, 101, 52, 0.18),
+    0 0 0 8px rgba(255, 255, 255, 0.9),
+    0 0 0 13px rgba(250, 204, 21, 0.22);
+  transform: translateY(-1px) rotate(0.2deg) scale(0.985);
+  filter: brightness(1.01);
 }
 
 .survivor-scene__relic:focus-visible {
@@ -260,8 +284,12 @@
   height: 10px;
   overflow: hidden;
   border-radius: var(--mx2-r-pill);
-  background: #fff7ed;
-  box-shadow: inset 0 0 0 1px rgba(148, 116, 70, 0.16);
+  /* Warm ivory trough with depth */
+  background: linear-gradient(180deg, #ffe9c4 0%, #fff7ed 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(146, 64, 14, 0.12),
+    inset 0 0 0 1px rgba(148, 116, 70, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .survivor-scene__danger-fill {
@@ -269,8 +297,11 @@
   width: var(--survivor-danger-progress, 0%);
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #34d399 0%, #f59e0b 58%, #fb7185 100%);
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.42);
+  /* Sharper three-stop gradient: emerald → amber → rose */
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 52%, #f43f5e 100%);
+  box-shadow:
+    0 0 14px rgba(245, 158, 11, 0.5),
+    0 0 32px rgba(244, 63, 94, 0.18);
   transition: width var(--mx2-t-slow) var(--mx2-ease-settle);
 }
 
@@ -321,6 +352,26 @@
   box-shadow: 0 6px 14px rgba(146, 64, 14, 0.28);
 }
 
+/* Danger-state countdown: warm glow amplifies urgency */
+.survivor-scene[data-state="medium"] .survivor-scene__relic-copy strong {
+  text-shadow: 0 0 18px rgba(245, 158, 11, 0.32);
+}
+
+.survivor-scene[data-state="high"] .survivor-scene__relic-copy strong {
+  color: #7c2d12;
+  text-shadow:
+    0 0 14px rgba(239, 68, 68, 0.26),
+    0 0 32px rgba(239, 68, 68, 0.14);
+}
+
+.survivor-scene[data-state="critical"] .survivor-scene__relic-copy strong {
+  color: #7c2d12;
+  text-shadow:
+    0 0 10px rgba(239, 68, 68, 0.4),
+    0 0 28px rgba(239, 68, 68, 0.22);
+  animation: survivor-countdown-alarm 0.9s ease-in-out infinite;
+}
+
 /* Idle relic: no dead countdown — an amber invitation headline instead. */
 .survivor-scene__relic-copy[data-idle="true"] .survivor-scene__relic-invite {
   font-size: 19px;
@@ -355,9 +406,12 @@
 }
 
 .survivor-scene__beats span[data-active="true"] {
-  border-color: rgba(245, 158, 11, 0.34);
-  background: #fff7ed;
+  border-color: rgba(245, 158, 11, 0.42);
+  background: linear-gradient(140deg, #fff7ed 0%, #fef3c7 100%);
   color: #92400e;
+  box-shadow:
+    0 4px 14px rgba(245, 158, 11, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
   animation: survivor-beat-glow 1.8s var(--mx2-ease) infinite;
 }
 
@@ -368,10 +422,10 @@
 .survivor-scene__beats em {
   min-width: 0;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 10px;
   font-style: normal;
   font-weight: 680;
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
   line-height: 1.1;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -397,11 +451,17 @@
   place-items: center;
   width: 46px;
   height: 46px;
-  border: 1px solid rgba(148, 116, 70, 0.18);
+  /* Jewel-like: bright highlight at top, amber depth below */
+  border: 1px solid rgba(245, 158, 11, 0.32);
   border-radius: 16px;
-  background: linear-gradient(145deg, #fff7ed 0%, #fde68a 100%);
-  color: #b45309;
-  box-shadow: 0 14px 28px rgba(146, 64, 14, 0.18), inset 0 1px 0 #ffffff;
+  background:
+    linear-gradient(160deg, #ffffff 0%, #fef3c7 35%, #fde68a 80%, #fbbf24 100%);
+  color: #92400e;
+  box-shadow:
+    0 14px 28px rgba(146, 64, 14, 0.22),
+    0 4px 8px rgba(146, 64, 14, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(180, 83, 9, 0.12);
 }
 
 .survivor-scene__key-token {
@@ -529,8 +589,12 @@
   position: absolute;
   inset: 8px;
   z-index: 0;
-  border: 1px solid rgba(245, 158, 11, 0.14);
+  /* Gradient border: top warm amber, bottom soft fade */
+  border: 1px solid transparent;
   border-radius: 22px;
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(160deg, rgba(245, 158, 11, 0.32) 0%, rgba(245, 158, 11, 0.08) 60%, transparent 100%) border-box;
   pointer-events: none;
 }
 
@@ -613,19 +677,22 @@
 }
 
 .survivor-preset:hover:not(:disabled) {
-  border-color: rgba(245, 158, 11, 0.48);
+  border-color: rgba(245, 158, 11, 0.52);
+  background: linear-gradient(160deg, #fffbf0 0%, #fff7ed 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(245, 158, 11, 0.1),
-    0 12px 24px rgba(146, 64, 14, 0.1);
-  transform: translateY(-2px);
+    inset 0 0 0 1px rgba(245, 158, 11, 0.12),
+    0 14px 28px rgba(146, 64, 14, 0.12);
+  transform: translateY(-3px);
 }
 
 .survivor-preset--active {
-  border-color: rgba(245, 158, 11, 0.58);
-  background: #fff7ed;
+  border-color: #f59e0b;
+  background: linear-gradient(160deg, #fff7ed 0%, #fef3c7 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(245, 158, 11, 0.18),
-    0 10px 22px rgba(245, 158, 11, 0.12);
+    0 0 0 3px rgba(245, 158, 11, 0.2),
+    0 0 0 5px rgba(245, 158, 11, 0.06),
+    0 12px 26px rgba(245, 158, 11, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .survivor-preset:disabled {
@@ -643,6 +710,19 @@
   background: #fff8ed;
   color: #b45309;
   box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.14);
+  transition:
+    background var(--mx2-t-fast) var(--mx2-ease),
+    color var(--mx2-t-fast) var(--mx2-ease),
+    box-shadow var(--mx2-t-fast) var(--mx2-ease);
+}
+
+/* Active preset: icon badge fires up */
+.survivor-preset--active .survivor-preset__icon {
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow:
+    0 4px 10px rgba(245, 158, 11, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .survivor-preset span:last-child {
@@ -735,7 +815,9 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #f59e0b;
+  /* Gradient from soft green → amber → burnt orange as load increases */
+  background: linear-gradient(90deg, #34d399 0%, #f59e0b 55%, #fb923c 100%);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.36);
   transition: width var(--mx2-t-slow) var(--mx2-ease-settle);
 }
 
@@ -900,10 +982,27 @@
 
 @keyframes survivor-beat-glow {
   0%, 100% {
-    box-shadow: 0 10px 22px rgba(31, 41, 55, 0.06);
+    box-shadow:
+      0 4px 14px rgba(245, 158, 11, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
   }
   50% {
-    box-shadow: 0 12px 28px rgba(245, 158, 11, 0.18);
+    box-shadow:
+      0 8px 20px rgba(245, 158, 11, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+}
+
+@keyframes survivor-countdown-alarm {
+  0%, 100% {
+    text-shadow:
+      0 0 10px rgba(239, 68, 68, 0.4),
+      0 0 28px rgba(239, 68, 68, 0.22);
+  }
+  50% {
+    text-shadow:
+      0 0 16px rgba(239, 68, 68, 0.58),
+      0 0 38px rgba(239, 68, 68, 0.32);
   }
 }
 
@@ -1214,7 +1313,8 @@
   .survivor-scene[data-state="buying"] .survivor-scene__relic,
   .survivor-scene__beats span[data-active="true"],
   .survivor-scene__key-token,
-  .survivor-climax__medal {
+  .survivor-climax__medal,
+  .survivor-scene[data-state="critical"] .survivor-scene__relic-copy strong {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
   }

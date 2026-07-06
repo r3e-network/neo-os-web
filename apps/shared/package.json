@@ -11,6 +11,10 @@
     "./composables/*": "./composables/*",
     "./gamefi": "./gamefi/index.ts",
     "./gamefi/*": "./gamefi/*",
+    "./phaser": "./phaser/index.ts",
+    "./phaser/*": "./phaser/*",
+    "./game": "./game/index.ts",
+    "./game/*": "./game/*",
     "./utils/*": "./utils/*",
     "./styles/*": "./styles/*"
   },

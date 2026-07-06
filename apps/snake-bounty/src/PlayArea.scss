@@ -17,6 +17,7 @@
   --mx2-brand-hover: #047857;
   --mx2-brand-light: #e4f8f2;
   --mx2-brand-subtle: #bdeadf;
+  --mx2-brand-glow: rgba(0, 175, 146, 0.22);
 }
 
 /* Legacy-token bridge: the splash/launcher (shared MiniAppHomeShell /
@@ -85,6 +86,11 @@
   gap: 12px;
   overflow: hidden;
   padding: 18px 16px 16px;
+  border: 1px solid rgba(0, 175, 146, 0.14);
+  border-radius: var(--mx2-r-lg);
+  box-shadow:
+    0 4px 16px rgba(0, 175, 146, 0.10),
+    0 1px 3px rgba(0, 0, 0, 0.04);
   isolation: isolate;
 }
 
@@ -94,7 +100,7 @@
   z-index: 0;
   border-radius: var(--mx2-r-lg);
   pointer-events: none;
-  background: #fffaf2;
+  background: linear-gradient(158deg, #fffdf8 0%, #fffaf2 52%, #f6fcf3 100%);
 }
 
 .snake-scene > *:not(.snake-scene__paper) {
@@ -152,7 +158,10 @@
   border: 1px solid rgba(10, 128, 80, 0.14);
   border-radius: calc(var(--mx2-r-lg) - 4px);
   background: #f4fbef;
-  box-shadow: 0 16px 36px rgba(10, 128, 80, 0.12);
+  box-shadow:
+    0 16px 36px rgba(10, 128, 80, 0.14),
+    0 4px 10px rgba(10, 128, 80, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .snake-lobby__banner-art {
@@ -170,8 +179,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.34));
+    linear-gradient(90deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(10, 128, 80, 0.06) 100%);
   content: "";
   pointer-events: none;
 }
@@ -357,6 +366,9 @@
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
+    background: #f5fffe;
+    border-color: rgba(0, 175, 146, 0.22);
+    box-shadow: 0 8px 22px rgba(68, 64, 60, 0.08);
   }
 
   &--active {
@@ -409,14 +421,17 @@
   align-self: center;
   margin: 0;
   max-width: 100%;
-  border: 1px solid rgba(10, 128, 80, 0.12);
+  border: 1px solid rgba(10, 128, 80, 0.14);
   border-radius: var(--mx2-r-pill);
-  padding: 7px 12px;
-  background: rgba(255, 255, 255, 0.72);
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(10, 128, 80, 0.06);
   text-align: center;
   font-size: 0.78rem;
+  font-weight: 540;
   color: var(--mx2-text-muted);
-  transition: border-color 200ms ease, color 200ms ease;
+  transition: border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
 
   // Wallet gate: the pool pill becomes the single call-to-action so the
   // blocking reason reads clearly above the muted status + disabled button.
@@ -539,9 +554,11 @@
 
 .snake-timer__clock {
   font-variant-numeric: tabular-nums;
-  font-weight: 680;
-  font-size: 1.05rem;
-  color: #225344;
+  font-feature-settings: "tnum" 1;
+  font-weight: 700;
+  font-size: 1.12rem;
+  letter-spacing: -0.01em;
+  color: #1a4234;
 }
 
 .snake-timer__track {
@@ -682,16 +699,18 @@
 }
 
 .snake-length-bar__track {
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(10, 128, 80, 0.12);
+  background: rgba(10, 128, 80, 0.10);
+  border: 1px solid rgba(10, 128, 80, 0.10);
   overflow: hidden;
 
   i {
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #00af92, #7ed9c6);
+    background: linear-gradient(90deg, #00af92 0%, #7ed9c6 70%, #a8eee2 100%);
+    box-shadow: 0 0 6px rgba(0, 175, 146, 0.32);
     transition: width 300ms ease;
   }
 }
@@ -703,12 +722,15 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 6px 14px;
+  padding: 6px 16px;
+  border: 1px solid rgba(10, 128, 80, 0.10);
   border-radius: 999px;
-  background: rgba(10, 128, 80, 0.07);
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 4px rgba(10, 128, 80, 0.05);
   color: var(--mx2-text-muted);
-  font-size: 0.76rem;
-  font-weight: 560;
+  font-size: 0.75rem;
+  font-weight: 520;
   letter-spacing: 0.01em;
 }
 

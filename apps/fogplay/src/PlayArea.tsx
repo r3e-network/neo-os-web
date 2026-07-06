@@ -120,6 +120,18 @@ export default function PlayArea({ t, state, dispatch }: P) {
     <div
       className="fogplay-scene"
       data-state={coinAnimating ? "flipping" : showResult ? result : "idle"}
+      aria-label={
+        coinAnimating
+          ? revealing
+            ? t("betPlacedRevealing")
+            : t("committing")
+          : showResult
+            ? result === "won"
+              ? t("youWon")
+              : t("youLost")
+            : t("title")
+      }
+      role="region"
     >
       <div className="fogplay-scene__arena" aria-hidden="true">
         <span className="fogplay-scene__orbit fogplay-scene__orbit--one" />
@@ -137,11 +149,13 @@ export default function PlayArea({ t, state, dispatch }: P) {
               role="radio"
               aria-checked={active}
               aria-label={t(side)}
+              aria-pressed={active}
               className={[
                 "fogplay-choice-btn",
                 "fogplay-choice-card",
                 `fogplay-choice-card--${side}`,
-                active ? "fogplay-choice-btn--active fogplay-choice-card--active" : null,
+                active && "fogplay-choice-btn--active",
+                active && "fogplay-choice-card--active",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -185,7 +199,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
       {showResult && result === "won" && <ParticleBurst coins count={10} />}
       <p
         className="fogplay-scene__status"
-        aria-live="polite"
+        role={coinAnimating ? "alert" : "status"}
+        aria-live={coinAnimating ? "assertive" : "polite"}
+        aria-atomic="true"
         data-tone={revealStalled ? "alert" : undefined}
       >
         {statusText}
@@ -207,19 +223,22 @@ export default function PlayArea({ t, state, dispatch }: P) {
         </span>
       </div>
       <div className="fogplay-controls__bets">
-        {BET_PRESETS.map((p) => (
+        {BET_PRESETS.map((p) => {
+          const betActive = betAmount === p;
+          return (
           <button
             key={p}
             type="button"
             className={[
               "fogplay-bet-chip",
-              betAmount === p ? "fogplay-bet-chip--active" : null,
+              betActive && "fogplay-bet-chip--active",
             ]
               .filter(Boolean)
               .join(" ")}
             onClick={() => handleBetAmount(p)}
             disabled={coinAnimating}
-            aria-pressed={betAmount === p}
+            aria-pressed={betActive}
+            data-active={betActive}
           >
             <ChipArt label={p} size={46} selected={betAmount === p} />
             <span>{t("tokenGas")}</span>
@@ -256,6 +275,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
         score={[
           { label: t("choiceHeader"), value: t(choice), accent: true },
           { label: t("wager"), value: `${betAmount} ${t("tokenGas")}` },
+          ...(showResult && result === "won" && winAmount
+            ? [{ label: t("youWon"), value: winAmount, accent: true }]
+            : []),
           { label: t("totalGames"), value: String(totalGames) },
           { label: t("totalWon"), value: totalWon },
         ]}

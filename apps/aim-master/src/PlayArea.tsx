@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { ParticleBurst } from "@shared/art";
-import { PlayStage } from "@shared/components-react/v2";
-import { Crosshair } from "lucide-react";
+import { PlayStage, Button } from "@shared/components-react/v2";
+import { Crosshair, RefreshCw } from "lucide-react";
 import {
   DIFFICULTY_RULES,
   formatClock,
@@ -427,15 +427,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         ))}
       </div>
       <p>{t("shufflingCopy")}</p>
-      {!isDealing && (
-        <button
-          type="button"
-          className="mx2-btn mx2-btn--ghost"
-          onClick={() => void dispatch("retryDeal", {})}
-        >
-          {t("checkDealAgain")}
-        </button>
-      )}
     </div>
   );
 
@@ -452,8 +443,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </div>
 
       {/* Round indicator dots — filled by cumulative accuracy hits, so extra
-          taps and misses never consume a progress slot. */}
-      <div className="aim-rounds" aria-label={t("roundProgress")}>
+          taps and misses never consume a progress slot. Each dot is aria-hidden
+          since progress is announced textually via a visually-hidden summary. */}
+      <div className="aim-rounds" role="group" aria-label={t("roundProgress")}>
         {Array.from({ length: targetAccuracy }, (_, i) => {
           const classes = [
             "aim-rounds__dot",
@@ -467,8 +459,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ]
             .filter(Boolean)
             .join(" ");
-          return <span key={i} className={classes} />;
+          return <span key={i} className={classes} aria-hidden="true" />;
         })}
+        <span className="mx2-sr-only">
+          {t("roundProgressStatus", { hits: accuracies, total: targetAccuracy })}
+        </span>
       </div>
 
       {/* The gauge */}
@@ -478,7 +473,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         onClick={handleTap}
         role="button"
         tabIndex={0}
-        aria-label={t("aimReady")}
+        aria-label={pendingSubmission ? t("submitRound") : t("aimReady")}
         onKeyDown={(e) => {
           if (e.key === " " || e.key === "Enter") {
             e.preventDefault();
@@ -493,9 +488,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           draggable={false}
         />
         <div className="aim-gauge">
-          {ringMarkers.map((m, i) => (
+          {ringMarkers.map((m) => (
             <span
-              key={i}
+              key={`${m.pos}-${m.type}`}
               className={["aim-gauge__ring", `aim-gauge__ring--${m.type}`]
                 .filter(Boolean)
                 .join(" ")}
@@ -528,7 +523,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {/* Feedback overlay — scoped to the target board so the timer row and
             round dots stay readable while it flashes. */}
         {feedbackLabel && (
-          <div className="aim-feedback" aria-live="assertive">
+          <div className="aim-feedback" aria-live="polite">
             <span className={["aim-feedback__label", feedbackClass].filter(Boolean).join(" ")}>
               {feedbackLabel}
             </span>
@@ -733,18 +728,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               ) : (
                 <p>{t("leaderboardEmpty")}</p>
               )}
-              <button
-                type="button"
-                className="mx2-btn mx2-btn--ghost"
+              <Button
+                variant="ghost"
                 onClick={() => void dispatch("refreshLeaderboard", {})}
+                icon={<RefreshCw size={16} aria-hidden="true" />}
               >
                 {t("refreshRanks")}
-              </button>
+              </Button>
               <h4>{t("historyTitle")}</h4>
               {myHistory.length > 0 ? (
                 <ul className="mx2-history">
                   {myHistory.map((row) => (
-                    <li key={row.gameId} className="mx2-history__item" data-outcome="won">
+                    <li
+                      key={row.gameId}
+                      className="mx2-history__item"
+                      data-outcome={row.payout && Number(row.payout) > 0 ? "won" : "lost"}
+                    >
                       <span className="mx2-history__face">
                         {t(`difficulty_${ruleOf(row.difficulty).key}`)}
                       </span>

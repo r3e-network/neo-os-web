@@ -54,6 +54,9 @@ $game-accent: #00af92;
   overflow: hidden;
   padding: 18px 16px 16px;
   isolation: isolate;
+  border: 1px solid rgba(77, 201, 246, 0.22);
+  border-radius: var(--mx2-r-lg, 16px);
+  box-shadow: 0 2px 8px rgba(11, 103, 125, 0.06);
 }
 
 .flappy-scene__sky {
@@ -511,7 +514,11 @@ $game-accent: #00af92;
   margin: 0 auto;
   border-radius: var(--mx2-r-md);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(31, 41, 55, 0.10);
+  border: 1.5px solid rgba(77, 201, 246, 0.28);
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.14),
+    0 8px 28px rgba(11, 103, 125, 0.14),
+    0 2px 8px rgba(31, 41, 55, 0.08);
   background: $sky-top;
   user-select: none;
   -webkit-user-select: none;
@@ -623,6 +630,8 @@ $game-accent: #00af92;
   display: flex;
   align-items: center;
   gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.07);
 
   p {
     margin: 0;
@@ -632,10 +641,16 @@ $game-accent: #00af92;
 }
 
 .flappy-drawer__seed {
+  display: block;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: var(--mx2-r-md, 8px);
+  padding: 7px 10px;
+  background: rgba(31, 41, 55, 0.03);
   font-size: 0.72rem;
   color: var(--mx2-text-muted);
   font-family: var(--mx2-font-mono, monospace);
   word-break: break-all;
+  line-height: 1.5;
 }
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────

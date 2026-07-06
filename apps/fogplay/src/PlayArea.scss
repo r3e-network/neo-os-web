@@ -17,18 +17,19 @@
 .fogplay-scene {
   position: relative;
   width: 100%;
-  min-height: 390px;
+  min-height: 400px;
   display: grid;
   grid-template-rows: auto minmax(212px, 1fr) auto;
   align-items: center;
   justify-items: center;
-  gap: 12px;
+  gap: 14px;
   isolation: isolate;
   overflow: hidden;
-  border: 1px solid rgba(17, 94, 89, 0.12);
+  border: 1px solid rgba(17, 94, 89, 0.1);
   border-radius: var(--mx2-r-lg);
-  padding: 18px;
-  background: #ffffff;
+  padding: 20px 18px;
+  background: linear-gradient(160deg, #ffffff 0%, #fafffe 60%, #f0fdf4 100%);
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.06);
 }
 
 .fogplay-scene__arena {
@@ -36,10 +37,11 @@
   inset: 16px;
   z-index: 0;
   overflow: hidden;
-  border: 1px solid rgba(31, 41, 55, 0.05);
+  border: 1px solid rgba(5, 150, 105, 0.06);
   border-radius: calc(var(--mx2-r-lg) - 6px);
-  background: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fffe 100%);
   pointer-events: none;
+  transition: background 320ms var(--mx2-ease);
 }
 
 .fogplay-scene__orbit,
@@ -54,8 +56,8 @@
 .fogplay-scene__orbit {
   width: min(560px, 78%);
   height: 174px;
-  border: 1px dashed rgba(5, 150, 105, 0.14);
-  background: #ffffff;
+  border: 2px dashed rgba(5, 150, 105, 0.18);
+  background: radial-gradient(ellipse at center, rgba(5, 150, 105, 0.02) 0%, transparent 70%);
   opacity: 0;
 }
 
@@ -66,17 +68,18 @@
 .fogplay-scene__orbit--two {
   width: min(410px, 58%);
   height: 122px;
-  border-color: rgba(245, 158, 11, 0.2);
+  border: 2px dashed rgba(245, 158, 11, 0.24);
+  background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.03) 0%, transparent 70%);
   transform: translate(-50%, -50%) rotate(13deg);
 }
 
 .fogplay-scene__runway {
   width: min(360px, 52%);
   height: 74px;
-  border: 1px solid rgba(15, 23, 42, 0.045);
-  background: #ffffff;
-  box-shadow: none;
-  opacity: 0.58;
+  border: 1px solid rgba(15, 23, 42, 0.065);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 253, 244, 0.4) 100%);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.04);
+  opacity: 0.7;
   transform: translate(-50%, -50%) rotate(-3deg);
 }
 
@@ -93,58 +96,88 @@
   font: inherit;
 }
 
-.fogplay-choice-card {
+.fogplay-choice-card,
+.fogplay-bet-chip {
   position: relative;
-  min-height: 72px;
+}
+
+.fogplay-choice-card {
+  min-height: 76px;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(17, 94, 89, 0.14);
+  gap: 12px;
+  border: 1.5px solid rgba(17, 94, 89, 0.14);
   border-radius: var(--mx2-r);
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.05),
+    0 4px 10px rgba(15, 23, 42, 0.03);
   color: var(--mx2-ink);
   cursor: pointer;
   text-align: left;
   transition:
-    transform var(--mx2-t-fast) var(--mx2-ease-snap),
-    border-color var(--mx2-t-fast) var(--mx2-ease),
-    box-shadow var(--mx2-t-fast) var(--mx2-ease),
-    background var(--mx2-t-fast) var(--mx2-ease);
+    transform 160ms var(--mx2-ease-snap),
+    border-color 160ms var(--mx2-ease),
+    box-shadow 160ms var(--mx2-ease),
+    background 160ms var(--mx2-ease);
 }
 
 .fogplay-choice-card:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(22, 199, 132, 0.42);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.045);
+  transform: translateY(-3px);
+  border-color: rgba(22, 199, 132, 0.52);
+  box-shadow:
+    0 6px 18px rgba(5, 150, 105, 0.1),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.fogplay-choice-card:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.98);
+  transition-duration: 80ms;
 }
 
 .fogplay-choice-card--active {
-  border-color: rgba(22, 199, 132, 0.55);
-  background: #ecfdf5;
+  border-color: rgba(22, 199, 132, 0.7);
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
   box-shadow:
-    0 0 0 2px rgba(22, 199, 132, 0.14),
-    0 5px 14px rgba(15, 118, 110, 0.07);
+    0 0 0 3px rgba(22, 199, 132, 0.18),
+    0 6px 18px rgba(5, 150, 105, 0.1);
+}
+
+.fogplay-choice-card--active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid rgba(22, 199, 132, 0.35);
+  pointer-events: none;
 }
 
 .fogplay-choice-card:disabled {
-  opacity: 0.62;
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
 .fogplay-choice-card__coin {
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
   overflow: hidden;
   border-radius: 999px;
   background: #ffffff;
   box-shadow:
-    0 3px 8px rgba(15, 23, 42, 0.07),
-    inset 0 0 0 1px rgba(22, 199, 132, 0.14);
+    0 3px 10px rgba(15, 23, 42, 0.1),
+    inset 0 0 0 1.5px rgba(22, 199, 132, 0.2);
+  transition: box-shadow 160ms var(--mx2-ease);
+}
+
+.fogplay-choice-card--active .fogplay-choice-card__coin {
+  box-shadow:
+    0 4px 14px rgba(5, 150, 105, 0.18),
+    inset 0 0 0 2px rgba(22, 199, 132, 0.45);
 }
 
 .fogplay-choice-card__coin img {
@@ -157,10 +190,9 @@
   user-select: none;
 }
 
-.fogplay-choice-card--tails .fogplay-choice-card__coin img {
-  width: 100%;
-  height: 100%;
-  object-position: center;
+.fogplay-choice-card--active .fogplay-choice-card__copy strong {
+  color: rgba(5, 150, 105, 0.85);
+  font-weight: 660;
 }
 
 .fogplay-choice-card__copy {
@@ -228,36 +260,54 @@
 }
 
 .fogplay-scene__coin .coin-scene {
-  --coin-size: 188px;
-  --coin-depth: 18px;
+  --coin-size: 196px;
+  --coin-depth: 20px;
 }
 
 .fogplay-scene__coin--flipping .coin-scene {
-  filter: drop-shadow(0 16px 22px rgba(15, 23, 42, 0.16));
+  filter:
+    drop-shadow(0 20px 32px rgba(15, 23, 42, 0.22))
+    drop-shadow(0 4px 8px rgba(5, 150, 105, 0.1));
 }
 
 .fogplay-scene__coin--landed {
-  animation: fogplay-landed-pop 560ms var(--mx2-ease-settle) both;
+  animation: fogplay-landed-pop 600ms var(--mx2-ease-settle) both;
+}
+
+.fogplay-scene__coin--landed .coin-scene {
+  filter: drop-shadow(0 12px 20px rgba(15, 23, 42, 0.14));
 }
 
 .fogplay-scene[data-state="flipping"] .fogplay-scene__orbit {
-  opacity: 0.26;
+  opacity: 0.38;
 }
 
 .fogplay-scene[data-state="flipping"] .fogplay-scene__orbit--one {
-  animation: fogplay-orbit-spin 1.25s linear infinite;
+  animation: fogplay-orbit-spin 1.2s linear infinite;
 }
 
 .fogplay-scene[data-state="flipping"] .fogplay-scene__orbit--two {
-  animation: fogplay-orbit-spin-reverse 1.05s linear infinite;
+  animation: fogplay-orbit-spin-reverse 1s linear infinite;
 }
 
 .fogplay-scene[data-state="won"] .fogplay-scene__arena {
-  background: #f0fdf4;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-color: rgba(5, 150, 105, 0.15);
+}
+
+.fogplay-scene[data-state="won"] .fogplay-scene__runway {
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.9) 0%, rgba(209, 250, 229, 0.5) 100%);
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.1);
 }
 
 .fogplay-scene[data-state="lost"] .fogplay-scene__arena {
-  background: #fff7ed;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+
+.fogplay-scene[data-state="lost"] .fogplay-scene__runway {
+  background: linear-gradient(180deg, rgba(255, 247, 237, 0.9) 0%, rgba(254, 243, 199, 0.5) 100%);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.08);
 }
 
 .fogplay-scene__status {
@@ -266,14 +316,18 @@
   grid-row: 3;
   max-width: min(100%, 520px);
   margin: 0;
-  border: 1px solid rgba(17, 94, 89, 0.12);
+  border: 1.5px solid rgba(17, 94, 89, 0.14);
   border-radius: var(--mx2-r-pill);
-  padding: 8px 16px;
-  background: #ffffff;
-  box-shadow: none;
+  padding: 9px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 4px 12px rgba(5, 150, 105, 0.05);
   color: var(--mx2-ink);
-  font-size: 14px;
-  font-weight: 620;
+  font-size: 13.5px;
+  font-weight: 640;
   text-align: center;
 }
 
@@ -306,13 +360,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid rgba(22, 199, 132, 0.12);
+  border: 1.5px solid rgba(22, 199, 132, 0.18);
   border-radius: var(--mx2-r-pill);
-  padding: 8px 12px;
-  background: #ffffff;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  box-shadow:
+    0 1px 3px rgba(5, 150, 105, 0.05),
+    0 4px 10px rgba(5, 150, 105, 0.04);
   color: var(--mx2-text-muted);
-  font-size: 12px;
-  font-weight: 620;
+  font-size: 11.5px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -345,42 +403,64 @@
 }
 
 .fogplay-bet-chip {
-  min-width: 86px;
+  min-width: 88px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  border: 2px solid var(--mx2-border);
+  gap: 8px;
+  border: 2.5px solid rgba(245, 158, 11, 0.22);
   border-radius: var(--mx2-r-pill);
-  padding: 6px 10px 6px 6px;
-  background: var(--mx2-surface);
-  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.035);
+  padding: 8px 12px 8px 7px;
+  background: linear-gradient(135deg, #ffffff 0%, #fefce8 100%);
+  box-shadow:
+    0 2px 6px rgba(245, 158, 11, 0.08),
+    0 4px 12px rgba(31, 41, 55, 0.04);
   color: var(--mx2-ink);
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 680;
   transition:
-    transform var(--mx2-t-fast) var(--mx2-ease-snap),
-    border-color var(--mx2-t-fast) var(--mx2-ease),
-    box-shadow var(--mx2-t-fast) var(--mx2-ease);
+    transform 160ms var(--mx2-ease-snap),
+    border-color 160ms var(--mx2-ease),
+    box-shadow 160ms var(--mx2-ease),
+    background 160ms var(--mx2-ease);
 }
 
 .fogplay-bet-chip:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: var(--mx2-accent);
-  box-shadow: 0 4px 12px rgba(31, 41, 55, 0.045);
+  transform: translateY(-3px) scale(1.02);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow:
+    0 6px 18px rgba(245, 158, 11, 0.14),
+    0 2px 6px rgba(31, 41, 55, 0.06);
+}
+
+.fogplay-bet-chip:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.98);
+  transition-duration: 80ms;
 }
 
 .fogplay-bet-chip--active {
-  border-color: var(--mx2-accent);
-  background: var(--mx2-accent-soft);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.7);
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.22),
+    0 6px 18px rgba(245, 158, 11, 0.18);
+}
+
+.fogplay-bet-chip--active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  pointer-events: none;
 }
 
 .fogplay-bet-chip:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .fogplay-controls__error {
@@ -413,43 +493,67 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   overflow: hidden;
-  border: 1px solid rgba(245, 158, 11, 0.22);
+  border: 1.5px solid rgba(245, 158, 11, 0.3);
   border-radius: var(--mx2-r-lg);
-  padding: 34px 30px 28px;
-  background: linear-gradient(180deg, #ffffff 0%, #fef3c7 100%);
-  box-shadow: var(--mx2-shadow-lg);
+  padding: 38px 32px 30px;
+  background: linear-gradient(160deg, #ffffff 0%, #fef9ec 50%, #fef3c7 100%);
+  box-shadow:
+    var(--mx2-shadow-lg),
+    0 0 0 1px rgba(245, 158, 11, 0.12),
+    0 24px 64px rgba(245, 158, 11, 0.14);
   text-align: center;
 }
 
 .fogplay-win-overlay__coin {
-  width: 96px;
-  height: 96px;
+  width: 108px;
+  height: 108px;
   display: block;
   border-radius: 999px;
   object-fit: contain;
   object-position: center;
-  filter: drop-shadow(0 14px 22px rgba(15, 23, 42, 0.18));
+  filter: drop-shadow(0 18px 32px rgba(245, 158, 11, 0.24));
 }
 
 .fogplay-win-overlay__card h3 {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: var(--mx2-ink);
-  font-size: 22px;
-  font-weight: 680;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .fogplay-win-overlay__amount {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--mx2-accent-strong);
-  font-size: 28px;
-  font-weight: 680;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 8px rgba(245, 158, 11, 0.18);
 }
 
 .fogplay-win-overlay__card .mx2-burst {
   position: absolute;
   inset: 0;
+}
+
+.fogplay-scene[data-state="flipping"] .fogplay-scene__status {
+  animation: fogplay-status-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes fogplay-status-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 1px 3px rgba(15, 23, 42, 0.06),
+      0 4px 12px rgba(5, 150, 105, 0.05);
+  }
+  50% {
+    box-shadow:
+      0 1px 3px rgba(15, 23, 42, 0.08),
+      0 4px 12px rgba(5, 150, 105, 0.12);
+  }
 }
 
 @keyframes fogplay-orbit-spin {
@@ -472,10 +576,15 @@
 
 @keyframes fogplay-landed-pop {
   0% {
-    transform: translateY(-18px) scale(0.94);
+    transform: translateY(-24px) scale(0.88);
+    opacity: 0.8;
   }
-  72% {
-    transform: translateY(2px) scale(1.03);
+  58% {
+    transform: translateY(4px) scale(1.06);
+    opacity: 1;
+  }
+  78% {
+    transform: translateY(-2px) scale(0.98);
   }
   100% {
     transform: translateY(0) scale(1);
@@ -484,9 +593,10 @@
 
 @media (max-width: 680px) {
   .fogplay-scene {
-    min-height: 492px;
+    min-height: 500px;
     grid-template-rows: auto minmax(214px, 1fr) auto;
     padding: 14px;
+    gap: 12px;
   }
 
   .fogplay-scene__arena {
@@ -499,18 +609,20 @@
   }
 
   .fogplay-choice-card {
-    min-height: 64px;
-    grid-template-columns: 46px minmax(0, 1fr);
+    min-height: 68px;
+    grid-template-columns: 52px minmax(0, 1fr);
+    padding: 10px 12px;
+    gap: 10px;
   }
 
   .fogplay-choice-card__coin {
-    width: 46px;
-    height: 46px;
+    width: 52px;
+    height: 52px;
   }
 
   .fogplay-scene__coin .coin-scene {
-    --coin-size: 150px;
-    --coin-depth: 13px;
+    --coin-size: 156px;
+    --coin-depth: 14px;
   }
 
   .fogplay-scene__table {
@@ -534,7 +646,8 @@
   }
 
   .fogplay-bet-chip {
-    min-width: 82px;
+    min-width: 84px;
+    padding: 7px 10px 7px 6px;
   }
 }
 
@@ -552,6 +665,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fogplay-scene[data-state="flipping"] .fogplay-scene__orbit,
+  .fogplay-scene[data-state="flipping"] .fogplay-scene__status,
   .fogplay-scene__coin--landed,
   .fogplay-choice-card,
   .fogplay-bet-chip {

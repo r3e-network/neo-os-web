@@ -1,69 +1,57 @@
+/**
+ * Flappy Dash — endless runner bird game (refactored to unified game framework).
+ *
+ * All chain operations, wallet, oracle, state, lifecycle, and GameFi plumbing
+ * are delegated to `ctx.framework`. Setup expresses only the game-specific
+ * logic: pipe-layout seed delivery, flap recording, and solution finalization.
+ */
 import { createObservable, defineMiniApp } from "@shared/react";
-import { fromFixed8 } from "@shared/utils/format";
+import type { RewardGameSession } from "@shared/gamefi";
+import { mapField } from "@shared/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
-import { addressToScriptHash } from "@shared/utils/neo";
-import { eventStateValue } from "@shared/utils/chain-events";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import {
-  DIFFICULTY_RULES,
-  ENTRY_MEMO,
-  statusOf,
-  gasDisplay,
-} from "./logic/game-rules";
-import {
-  eventHashMatches as addrEq,
-  mapField,
-  normalizedHash as normHash,
-  type RewardGameConfig,
-  type RewardGameSession,
-} from "@shared/gamefi";
+import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
+import type { LeaderEntry, SolveRow } from "@framework/game";
+import { asNumber } from "@framework/game";
 
-const appId = "miniapp-flappy-dash";
-// Operator-whitelisted engine pin (sha-256 of the reviewed flappy engine wrapper).
+const appId       = "miniapp-flappy-dash";
 const ENGINE_HASH = "401bb3de1c04a8b20c18d35a9f0750f33647361060884f275d6954d3c74c2b1c";
 
 const LEADERBOARD_EVENT_LIMIT = 200;
-const OPS_STORAGE_PREFIX = "miniapp-flappy-dash:ops:";
+const OPS_STORAGE_PREFIX      = "miniapp-flappy-dash:ops:";
 
 type TeeOp = { type: "flap" } | { type: "undo" };
 
-const rewardGameConfig: RewardGameConfig = {
+const rewardGameConfig = {
   appId,
   engineHash: ENGINE_HASH,
-  entryMemo: ENTRY_MEMO,
+  entryMemo:  ENTRY_MEMO,
   modes: DIFFICULTY_RULES.map((rule) => ({
-    id: rule.difficulty,
-    key: rule.key,
-    entryFixed8: rule.entryFixed8,
+    id:           rule.difficulty,
+    key:          rule.key,
+    entryFixed8:  rule.entryFixed8,
     rewardFixed8: rule.rewardFixed8,
-    limitMs: rule.limitMs,
-    minSolveMs: rule.minSolveMs,
-    target: rule.targetPipes,
+    limitMs:      rule.limitMs,
+    minSolveMs:   rule.minSolveMs,
+    target:       rule.targetPipes,
   })),
 };
 
-function asNumber(value: unknown): number {
-  const n = Number(parseBigInt(value));
-  return Number.isFinite(n) ? n : 0;
-}
-
-export interface LeaderEntry {
-  rank: number;
-  address: string;
-  totalWon: number;
-  solves: number;
-  isUser: boolean;
-}
-
-export interface SolveRow {
-  gameId: string;
-  difficulty: number;
-  elapsedMs: number;
+// Flappy-Dash SolveRow adds pipes count
+interface FlappyRow extends SolveRow {
   pipes: number;
-  payout: string;
 }
+
+// Flappy Solved event: gameId(0) player(1) difficulty(2) elapsedMs(3) pipes(4) payout(5) totalWon(6)
+const SOLVED_SLOTS = {
+  gameId: 0, player: 1, difficulty: 2, elapsedMs: 3,
+  solvedPayout: 5, totalWon: 6,
+};
+
+export type { LeaderEntry };
+export type { FlappyRow as SolveRow };
 
 defineMiniApp({
   appId,
@@ -72,375 +60,241 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    // Framework reward-game surface: owns session open/start/finalize/expire/
-    // withdraw, balances, and the localStorage op-log (same key prefix as the
-    // previous hand-wired store, so in-flight op logs survive the migration).
-    const reward = ctx.framework.game.reward<TeeOp>(rewardGameConfig, {
+    const app = ctx.framework;
+
+    // ── Reward-game runner ────────────────────────────────────────────────────
+    const reward = app.game.reward<TeeOp>(rewardGameConfig, {
       storagePrefix: OPS_STORAGE_PREFIX,
     });
-    // The wrapper methods delegate verbatim to the @shared/gamefi
-    // startRewardGame / finalizeRewardGame orchestration; keep the canonical
-    // SDK verbs at the entry/settlement call sites.
     const { start: startRewardGame, finalize: finalizeRewardGame } = reward;
 
-    const credit = createObservable(0);
-    const poolFree = createObservable(0);
-    const activeGameId = createObservable("0");
-    const gameStatus = createObservable("idle");
-    const gameDifficulty = createObservable(0);
-    const seed = createObservable("");
-    const commitment = createObservable("");
-    const dealtAt = createObservable(0);
-    const deadline = createObservable(0);
-    const pipesPassed = createObservable(0);
-    const lastPayout = createObservable("");
-    const lastElapsedMs = createObservable(0);
-    const leaderboard = createObservable<LeaderEntry[]>([]);
-    const myRank = createObservable(0);
-    const myTotalWon = createObservable(0);
-    const mySolves = createObservable(0);
-    const myHistory = createObservable<SolveRow[]>([]);
-    const isStarting = createObservable(false);
-    const isDealing = createObservable(false);
-    const isSubmitting = createObservable(false);
-    const lastStatus = createObservable(ctx.t("statusReady"));
+    // ── Standard session observables ──────────────────────────────────────────
+    const obs = app.game.session.observables<FlappyRow>(ctx.t);
 
-    // Enclave session context for the active game (rebuilt idempotently from the
-    // deterministic session start, so nothing here needs durable storage).
+    // ── Flappy-specific observables ───────────────────────────────────────────
+    const seed        = createObservable("");   // deterministic pipe layout seed
+    const pipesPassed = createObservable(0);
+
     let session: RewardGameSession | null = null;
 
-    // Little-endian script hash used ONLY for event-hash comparisons in the
-    // leaderboard rebuild — contract args take the address via arg.hash160.
-    const playerScriptHash = (): string => {
-      const player = ctx.framework.chain.address.get();
-      return player ? addressToScriptHash(player) : "";
-    };
-
-    const refreshBalances = async (): Promise<void> => {
+    // ── Data refresh ──────────────────────────────────────────────────────────
+    const refreshBalances = async () => {
       try {
         const balances = await reward.balances();
-        poolFree.set(balances.poolFreeGas);
-        credit.set(balances.creditGas);
-      } catch {
-        /* keep the previous values — reads are best-effort */
-      }
+        obs.poolFree.set(balances.poolFreeGas);
+        obs.credit.set(balances.creditGas);
+      } catch { /* best-effort */ }
     };
 
-    const refreshStats = async (): Promise<void> => {
-      const player = ctx.framework.chain.address.get();
-      if (!player) return;
-      try {
-        const stats = await ctx.framework.chain.readRaw("statsOf", [
-          ctx.framework.chain.arg.hash160(player),
-        ]);
-        mySolves.set(asNumber(mapField(stats, "solved")));
-        myTotalWon.set(fromFixed8(parseBigInt(mapField(stats, "totalWon"))));
-      } catch {
-        /* stats stay stale */
-      }
+    const refreshStats = async () => {
+      const { solves, totalWon } = await app.game.stats.load();
+      obs.mySolves.set(solves);
+      obs.myTotalWon.set(totalWon);
     };
 
-    /**
-     * Rebuild the global ranking from Solved events. The event's totalWon slot
-     * carries the player's CUMULATIVE winnings at solve time, so taking the
-     * MAX per player is order-independent (robust to indexer sort direction).
-     */
-    const loadLeaderboard = async (): Promise<void> => {
-      const playerHash = playerScriptHash();
-      try {
-        const events = await ctx.framework.chain.events("Solved", {
-          limit: LEADERBOARD_EVENT_LIMIT,
-        });
-        const bestByPlayer = new Map<string, { totalWon: number; solves: number; raw: unknown }>();
-        const mine: SolveRow[] = [];
-        for (const ev of events) {
-          const who = normHash(eventStateValue(ev, 1));
-          if (!who) continue;
-          const totalWon = fromFixed8(parseBigInt(eventStateValue(ev, 6)));
-          const prior = bestByPlayer.get(who);
-          bestByPlayer.set(who, {
-            totalWon: Math.max(prior?.totalWon ?? 0, totalWon),
-            solves: (prior?.solves ?? 0) + 1,
-            raw: eventStateValue(ev, 1),
-          });
-          if (playerHash && addrEq(eventStateValue(ev, 1), playerHash)) {
-            mine.push({
-              gameId: String(parseBigInt(eventStateValue(ev, 0)) ?? ""),
-              difficulty: asNumber(eventStateValue(ev, 2)),
-              elapsedMs: asNumber(eventStateValue(ev, 3)),
-              pipes: asNumber(eventStateValue(ev, 4)),
-              payout: `${fromFixed8(parseBigInt(eventStateValue(ev, 5))).toFixed(2)} GAS`,
-            });
-          }
-        }
-        const ranked: LeaderEntry[] = [...bestByPlayer.entries()]
-          .map(([address, entry]) => ({
-            address,
-            totalWon: entry.totalWon,
-            solves: entry.solves,
-            isUser: playerHash ? addrEq(entry.raw, playerHash) : false,
-          }))
-          .sort((a, b) => b.totalWon - a.totalWon)
-          .map((entry, idx) => ({ rank: idx + 1, ...entry }));
-        leaderboard.set(ranked);
-        const me = ranked.find((entry) => entry.isUser);
-        myRank.set(me ? me.rank : 0);
-        myHistory.set(mine.reverse().slice(0, 12));
-      } catch {
-        /* indexer unreachable — the board stays playable without rankings */
-      }
+    const loadLeaderboard = async () => {
+      const { ranked, mine } = await app.game.leaderboard.load<FlappyRow>(
+        "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
+        (ev) => {
+          const { eventStateValue } = require("../../../utils/chain-events") as typeof import("@shared/utils/chain-events");
+          const { parseBigInt: pb } = require("../../../utils/parsers") as typeof import("@shared/utils/parsers");
+          return { pipes: asNumber(eventStateValue(ev, 4)) };
+        },
+      );
+      obs.leaderboard.set(ranked as LeaderEntry[]);
+      obs.myRank.set(ranked.find((e) => e.isUser)?.rank ?? 0);
+      obs.myHistory.set(mine);
     };
 
-    const applyGameSnapshot = (game: unknown): void => {
-      const status = statusOf(asNumber(mapField(game, "status")));
-      gameStatus.set(status);
-      gameDifficulty.set(asNumber(mapField(game, "difficulty")));
-      commitment.set(String(mapField(game, "commitment") ?? ""));
-      dealtAt.set(asNumber(mapField(game, "dealtAt")));
-      deadline.set(asNumber(mapField(game, "deadline")));
-      pipesPassed.set(asNumber(mapField(game, "pipesPassed") ?? 0));
-    };
-
-    /**
-     * Open the confidential enclave session for an already-active on-chain game:
-     * the enclave generates the pipe layout (never revealed ahead of play) and
-     * returns an opaque seed + commitment. No on-chain effect.
-     */
+    // ── Session helpers ───────────────────────────────────────────────────────
     const openSession = async (gameId: string, difficulty: number): Promise<boolean> => {
-      isDealing.set(true);
-      lastStatus.set(ctx.t("statusSealing"));
+      obs.isDealing.set(true);
+      obs.lastStatus.set(ctx.t("statusSealing"));
       try {
         const started = await reward.openSession(gameId, difficulty);
         session = started;
         seed.set(String(started.view.seed ?? ""));
-        commitment.set(started.commitment);
-        const game = await ctx.framework.chain.readRaw("getGame", [
-          ctx.framework.chain.arg.integer(gameId),
-        ]);
-        dealtAt.set(asNumber(mapField(game, "dealtAt")));
-        deadline.set(asNumber(mapField(game, "deadline")));
-        gameStatus.set("dealt");
+        obs.commitment.set(started.commitment);
+        const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
+        obs.dealtAt.set(asNumber(mapField(game, "dealtAt")));
+        obs.deadline.set(asNumber(mapField(game, "deadline")));
+        obs.gameStatus.set("dealt");
         pipesPassed.set(0);
-        lastStatus.set(ctx.t("statusDealt"));
+        obs.lastStatus.set(ctx.t("statusDealt"));
         ctx.setStatus(ctx.t("statusDealt"), "success");
         return true;
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
-        lastStatus.set(ctx.t("statusDealPending"));
-        ctx.setStatus(message, "error");
+        obs.lastStatus.set(ctx.t("statusDealPending"));
+        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
         return false;
       } finally {
-        isDealing.set(false);
+        obs.isDealing.set(false);
       }
     };
 
-    /** Reattach to an active game after a reload: same identity, same seed. */
     const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
       try {
         const started = await reward.openSession(gameId, difficulty);
-        if (commitment.get() && started.commitment !== commitment.get()) {
+        if (obs.commitment.get() && started.commitment !== obs.commitment.get()) {
           throw new Error(ctx.t("statusFailed"));
         }
         session = started;
         seed.set(String(started.view.seed ?? ""));
-        commitment.set(started.commitment);
+        obs.commitment.set(started.commitment);
       } catch {
-        lastStatus.set(ctx.t("statusDealPending"));
+        obs.lastStatus.set(ctx.t("statusDealPending"));
       }
     };
 
-    const sendOp = async (op: TeeOp): Promise<void> => {
-      if (!session) throw new Error(ctx.t("statusFailed"));
-      await reward.recordOp(session, op);
-    };
-
-    ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
-      if (isStarting.get() || isDealing.get()) return;
-      const form = (args[0] ?? {}) as { difficulty?: unknown };
+    // ── Actions ───────────────────────────────────────────────────────────────
+    app.actions.register("startGame", async (...args: unknown[]) => {
+      if (obs.isStarting.get() || obs.isDealing.get()) return;
+      const form       = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
-      isStarting.set(true);
-      lastStatus.set(ctx.t("statusStarting"));
+      obs.isStarting.set(true);
+      obs.lastStatus.set(ctx.t("statusStarting"));
       try {
         const started = await startRewardGame(difficulty);
-        const gameId = started.gameId;
-        activeGameId.set(gameId);
-        gameDifficulty.set(difficulty);
-        pipesPassed.set(0);
+        const gameId  = started.gameId;
+        obs.activeGameId.set(gameId);
+        obs.gameDifficulty.set(difficulty);
         seed.set("");
-        commitment.set("");
-        dealtAt.set(0);
-        deadline.set(0);
-        gameStatus.set("committed");
-        lastStatus.set(ctx.t("statusStarted"));
+        obs.commitment.set("");
+        obs.dealtAt.set(0);
+        obs.deadline.set(0);
+        pipesPassed.set(0);
+        obs.gameStatus.set("committed");
+        obs.lastStatus.set(ctx.t("statusStarted"));
         await refreshBalances();
         void openSession(gameId, difficulty);
         return started.tx;
       } catch (error) {
-        const message =
-          error instanceof Error && "code" in error && error.code === "POOL_LOW"
-            ? ctx.t("statusPoolLow")
-            : error instanceof Error
-              ? error.message
-              : ctx.t("statusFailed");
-        lastStatus.set(message);
-        ctx.setStatus(message, "error");
+        const msg = error instanceof Error && "code" in error && error.code === "POOL_LOW"
+          ? ctx.t("statusPoolLow")
+          : error instanceof Error
+            ? error.message
+            : ctx.t("statusFailed");
+        obs.lastStatus.set(msg);
+        ctx.setStatus(msg, "error");
         throw error;
       } finally {
-        isStarting.set(false);
+        obs.isStarting.set(false);
       }
     });
 
-    // Retry handle for an enclave session that failed to open (TEE unreachable).
-    ctx.framework.actions.register("retryDeal", async () => {
-      const gameId = activeGameId.get();
-      if (gameId === "0" || isDealing.get() || gameStatus.get() !== "committed") return;
-      await openSession(gameId, gameDifficulty.get());
+    app.actions.register("retryDeal", async () => {
+      const gameId = obs.activeGameId.get();
+      if (gameId === "0" || obs.isDealing.get() || obs.gameStatus.get() !== "committed") return;
+      await openSession(gameId, obs.gameDifficulty.get());
     });
 
-    // Fire-and-forget flap telemetry: the enclave tracks the op stream for
-    // verification + the op-log that settles the game; play never blocks on it.
-    ctx.framework.actions.register("recordFlap", async () => {
-      if (!session) return;
+    app.actions.register("recordFlap", async (...args: unknown[]) => {
+      const form    = (args[0] ?? {}) as { pipes?: unknown };
+      const pipes   = Number(form.pipes ?? pipesPassed.get());
+      const gameId  = obs.activeGameId.get();
+      if (gameId === "0" || !session || obs.gameStatus.get() !== "dealt") return;
+      pipesPassed.set(Math.max(pipesPassed.get(), pipes));
       try {
-        await sendOp({ type: "flap" });
-      } catch {
-        /* telemetry only — the settlement gate re-validates in the enclave */
-      }
+        await reward.recordOp(session, { type: "flap" });
+      } catch { /* telemetry only */ }
     });
 
-    ctx.framework.actions.register("submitRun", async () => {
-      const gameId = activeGameId.get();
-      if (gameId === "0" || isSubmitting.get() || gameStatus.get() !== "dealt") return;
-      isSubmitting.set(true);
-      lastStatus.set(ctx.t("statusSubmitting"));
+    app.actions.register("submitSolution", async (...args: unknown[]) => {
+      const form       = (args[0] ?? {}) as { stateHash?: unknown; pipes?: unknown };
+      const pipes      = Number(form.pipes ?? pipesPassed.get());
+      const gameId     = obs.activeGameId.get();
+      if (gameId === "0" || obs.isSubmitting.get() || obs.gameStatus.get() !== "dealt") return;
+      obs.isSubmitting.set(true);
+      obs.lastStatus.set(ctx.t("statusSubmitting"));
       try {
-        if (!session) {
-          await resumeSession(gameId, gameDifficulty.get());
-        }
+        if (!session) await resumeSession(gameId, obs.gameDifficulty.get());
         if (!session) throw new Error(ctx.t("statusFailed"));
-        // The pipes score is re-derived by the kernel from the sealed flap op-log
-        // (engine.replay); the client no longer signs a state hash.
+        pipesPassed.set(Math.max(pipesPassed.get(), pipes));
         const finalized = await finalizeRewardGame(session);
-        const settled = finalized.settlement;
-        lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
-        lastElapsedMs.set(settled.elapsedMs);
-        gameStatus.set(settled.status);
-        activeGameId.set("0");
+        const settled   = finalized.settlement;
+        obs.lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
+        obs.lastElapsedMs.set(settled.elapsedMs);
+        obs.gameStatus.set(settled.status as "solved" | "expired");
+        obs.activeGameId.set("0");
         session = null;
         if (settled.payoutGas > 0) {
-          lastStatus.set(ctx.t("statusSolved", { payout: settled.payoutGas.toFixed(2) }));
-          ctx.setStatus(lastStatus.get(), "success");
+          obs.lastStatus.set(ctx.t("statusSolved", { payout: settled.payoutGas.toFixed(2) }));
+          ctx.setStatus(obs.lastStatus.get(), "success");
         } else {
-          lastStatus.set(ctx.t("statusExpired"));
+          obs.lastStatus.set(ctx.t("statusExpired"));
           ctx.setStatus(ctx.t("statusExpired"), "info");
         }
         await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
         return finalized.tx;
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
-        lastStatus.set(message);
-        ctx.setStatus(message, "error");
+        const msg = error instanceof Error ? error.message : ctx.t("statusFailed");
+        obs.lastStatus.set(msg);
+        ctx.setStatus(msg, "error");
         throw error;
       } finally {
-        isSubmitting.set(false);
+        obs.isSubmitting.set(false);
       }
     });
 
-    // Permissionless housekeeping: release the reward reservation of a game
-    // whose deadline passed (or an abandoned settling game past its grace).
-    ctx.framework.actions.register("expireGame", async () => {
-      const gameId = activeGameId.get();
+    app.actions.register("expireGame", async () => {
+      const gameId = obs.activeGameId.get();
       if (gameId === "0") return;
       try {
         await reward.expire(gameId);
-        gameStatus.set("expired");
-        activeGameId.set("0");
+        obs.gameStatus.set("expired");
+        obs.activeGameId.set("0");
         session = null;
-        lastStatus.set(ctx.t("statusExpired"));
+        obs.lastStatus.set(ctx.t("statusExpired"));
         ctx.setStatus(ctx.t("statusExpired"), "info");
         await refreshBalances();
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
-        ctx.setStatus(message, "error");
+        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
         throw error;
       }
     });
 
-    ctx.framework.actions.register("withdrawWinnings", async () => {
-      if (!ctx.framework.chain.address.get()) {
-        ctx.setStatus(ctx.t("statusFailed"), "error");
-        return;
-      }
-      if (credit.get() <= 0) {
-        ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
-        return;
-      }
-      await ctx.services.notify.guard(async () => {
-        await reward.withdrawCredit(ctx.framework.amount.gasToFixed8(credit.get()));
+    const withdrawOp = app.operations.create("withdrawWinnings");
+    app.actions.register("withdrawWinnings", async () => {
+      if (!app.game.player.scriptHash()) { ctx.setStatus(ctx.t("statusFailed"), "error"); return; }
+      if (obs.credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
+      await withdrawOp.run(async () => {
+        await reward.withdrawCredit(app.amount.gasToFixed8(obs.credit.get()));
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
-    ctx.framework.actions.register("refreshLeaderboard", async () => {
+    app.actions.register("refreshLeaderboard", async () => {
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
+    // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: {
-        credit,
-        poolFree,
-        activeGameId,
-        gameStatus,
-        gameDifficulty,
-        seed,
-        commitment,
-        dealtAt,
-        deadline,
-        pipesPassed,
-        lastPayout,
-        lastElapsedMs,
-        leaderboard,
-        myRank,
-        myTotalWon,
-        mySolves,
-        myHistory,
-        isStarting,
-        isDealing,
-        isSubmitting,
-        lastStatus,
-      },
+      state: { ...obs, seed, pipesPassed },
       loadData: async () => {
         await refreshBalances();
-        const player = ctx.framework.chain.address.get();
-        if (player) {
+        const playerHash = app.game.player.scriptHash();
+        if (playerHash) {
           try {
             const active = String(
               parseBigInt(
-                await ctx.framework.chain.readRaw("activeGameOf", [
-                  ctx.framework.chain.arg.hash160(player),
-                ]),
+                await app.chain.readRaw("activeGameOf", [app.chain.arg.hash160(playerHash)]),
               ) ?? "0",
             );
             if (active !== "0") {
-              activeGameId.set(active);
-              const game = await ctx.framework.chain.readRaw("getGame", [
-                ctx.framework.chain.arg.integer(active),
-              ]);
-              applyGameSnapshot(game);
-              if (gameStatus.get() === "dealt") {
-                await resumeSession(active, gameDifficulty.get());
-              } else if (gameStatus.get() === "committed") {
-                void openSession(active, gameDifficulty.get());
+              obs.activeGameId.set(active);
+              const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(active)]);
+              app.game.session.applySnapshot(obs, game, statusOf);
+              pipesPassed.set(asNumber(mapField(game, "pipesPassed") ?? 0));
+              if (obs.gameStatus.get() === "dealt") {
+                await resumeSession(active, obs.gameDifficulty.get());
+              } else if (obs.gameStatus.get() === "committed") {
+                void openSession(active, obs.gameDifficulty.get());
               }
             }
-          } catch {
-            /* no active game recoverable — start fresh */
-          }
+          } catch { /* no active game */ }
         }
         await Promise.all([refreshStats(), loadLeaderboard()]);
-        if (gameStatus.get() === "idle") {
-          lastStatus.set(ctx.t("statusReady"));
-        }
+        if (obs.gameStatus.get() === "idle") obs.lastStatus.set(ctx.t("statusReady"));
       },
     };
   },

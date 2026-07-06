@@ -164,7 +164,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         className="burn-scene__brazier"
         onClick={() => void handleBurn()}
         disabled={!canBurn}
-        aria-label={isBurning || burnPreview ? t("burning") : t("burnNow")}
+        aria-label={
+          isBurning
+            ? `${t("burning")} ${currentBurnAmount} GAS`
+            : burnPreview
+              ? `${t("burning")} ${currentBurnAmount} GAS — ${t("burnNow")}`
+              : !amountIsValid
+                ? t("burnRange", { min: minBurn, max: maxBurn })
+                : `${t("burnNow")} — ${currentBurnAmount} GAS`
+        }
       >
         <span className="burn-scene__brazier-scrim" aria-hidden="true" />
         <span className="burn-scene__torch-medal" aria-hidden="true">
@@ -173,7 +181,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <span className="burn-scene__brazier-copy">
           <span>{userIsLeader ? t("youLeadBadge") : t("fuelCore")}</span>
           <strong>{currentBurnAmount} GAS</strong>
-          <em>{isBurning || burnPreview ? t("burning") : t("burnNow")}</em>
+          <em>{isBurning || burnPreview ? "🔥 " + t("burning") : t("burnNow")}</em>
         </span>
         <span className="burn-scene__meter" aria-hidden="true">
           <span className="burn-scene__meter-fill" style={{ width: `${fuelPct}%` }} />
@@ -318,12 +326,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           badges: (
             <>
               {formattedSeason !== "--" && (
-                <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge" data-tone="accent" aria-label={`Active season ${formattedSeason}`}>
                   <span className="mx2-badge__dot" /> {t("seasonLabel")} {formattedSeason}
                 </span>
               )}
               {userIsLeader && (
-                <span className="mx2-badge">{t("youLeadBadge")}</span>
+                <span className="mx2-badge" data-tone="success" aria-label="You are currently leading the leaderboard">
+                  <Trophy size={14} aria-hidden="true" /> {t("youLeadBadge")}
+                </span>
               )}
             </>
           ),
@@ -376,18 +386,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {/* Leaderboard */}
               <h4>{t("leaderboard")}</h4>
               {hasLeaderboard ? (
-                <ul className="mx2-history">
-                  {leaderboardPreview.slice(0, 10).map((entry) => (
-                    <li
-                      key={entry.address}
-                      className="mx2-history__item"
-                      data-outcome={entry.isUser ? "won" : undefined}
-                    >
-                      <span className="mx2-history__face">#{entry.rank}</span>
-                      <span className="mx2-history__stake">{shortAddr(entry.address)}</span>
-                      <span className="mx2-history__result">{entry.burned.toFixed(2)} GAS</span>
-                    </li>
-                  ))}
+                <ul className="mx2-history burn-drawer__leaderboard">
+                  {leaderboardPreview.slice(0, 10).map((entry) => {
+                    const medal = entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : null;
+                    return (
+                      <li
+                        key={entry.address}
+                        className={[
+                          "mx2-history__item",
+                          entry.rank <= 3 ? "mx2-history__item--podium" : null,
+                          entry.isUser ? "mx2-history__item--you" : null,
+                        ].filter(Boolean).join(" ")}
+                        data-outcome={entry.isUser ? "won" : undefined}
+                        data-rank={entry.rank}
+                        aria-label={`Rank ${entry.rank}${entry.isUser ? " (you)" : ""}: ${shortAddr(entry.address)}, ${entry.burned.toFixed(2)} GAS burned`}
+                      >
+                        <span className="mx2-history__face" aria-hidden="true">
+                          {medal ?? `#${entry.rank}`}
+                        </span>
+                        <span className="mx2-history__stake">
+                          {shortAddr(entry.address)}
+                          {entry.isUser && <em className="burn-drawer__you-tag"> {t("youLeadBadge")}</em>}
+                        </span>
+                        <span className="mx2-history__result">{entry.burned.toFixed(2)} GAS</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p>{t("noEntries")}</p>
