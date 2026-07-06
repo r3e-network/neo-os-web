@@ -17,7 +17,7 @@ import { PlayArea } from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf } from "./logic/game-rules";
-import type { LeaderEntry, SolveRow } from "@framework/game";
+import type { GameSessionStatus, LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 import { createObservable } from "@shared/react";
 
@@ -28,6 +28,23 @@ const LEADERBOARD_EVENT_LIMIT = 200;
 const OPS_STORAGE_PREFIX      = "miniapp-color-clash:ops:";
 
 type PressOp = { type: "press"; color: number };
+
+function sessionStatusOf(raw: number): GameSessionStatus {
+  const status = statusOf(raw);
+  if (status === "awaiting-bind") return "committed";
+  if (status === "playing") return "dealt";
+  if (
+    status === "committed" ||
+    status === "dealt" ||
+    status === "solved" ||
+    status === "expired" ||
+    status === "refunded" ||
+    status === "unknown"
+  ) {
+    return status;
+  }
+  return "unknown";
+}
 
 // Color-clash SolveRow adds seqAchieved (unique to this game)
 interface ColorClashRow extends SolveRow {
@@ -146,7 +163,7 @@ defineMiniApp({
     };
 
     const applySnapshot = (game: unknown) => {
-      app.game.session.applySnapshot(obs, game, statusOf);
+      app.game.session.applySnapshot(obs, game, sessionStatusOf);
     };
 
     // ── Session open / resume ─────────────────────────────────────────────────

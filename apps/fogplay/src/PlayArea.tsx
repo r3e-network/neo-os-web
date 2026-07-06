@@ -226,24 +226,25 @@ export default function PlayArea({ t, state, dispatch }: P) {
         {BET_PRESETS.map((p) => {
           const betActive = betAmount === p;
           return (
-          <button
-            key={p}
-            type="button"
-            className={[
-              "fogplay-bet-chip",
-              betActive && "fogplay-bet-chip--active",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={() => handleBetAmount(p)}
-            disabled={coinAnimating}
-            aria-pressed={betActive}
-            data-active={betActive}
-          >
-            <ChipArt label={p} size={46} selected={betAmount === p} />
-            <span>{t("tokenGas")}</span>
-          </button>
-        ))}
+            <button
+              key={p}
+              type="button"
+              className={[
+                "fogplay-bet-chip",
+                betActive && "fogplay-bet-chip--active",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              onClick={() => handleBetAmount(p)}
+              disabled={coinAnimating}
+              aria-pressed={betActive}
+              data-active={betActive}
+            >
+              <ChipArt label={p} size={46} selected={betAmount === p} />
+              <span>{t("tokenGas")}</span>
+            </button>
+          );
+        })}
       </div>
       {validationError && <p className="fogplay-controls__error" role="alert">{validationError}</p>}
     </div>

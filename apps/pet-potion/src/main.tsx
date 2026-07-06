@@ -15,7 +15,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, ruleOf, statusOf, evolutionStage, MAX_MOVES } from "./logic/game-rules";
-import type { LeaderEntry, SolveRow } from "@framework/game";
+import type { GameSessionStatus, LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
 const appId       = "miniapp-pet-potion";
@@ -47,6 +47,17 @@ interface PetRow extends SolveRow {
 
 export type { LeaderEntry };
 export type { PetRow as SolveRow };
+
+function sessionStatusOf(raw: number): GameSessionStatus {
+  switch (statusOf(raw)) {
+    case "awaiting-bind": return "committed";
+    case "playing": return "dealt";
+    case "solved": return "solved";
+    case "expired": return "expired";
+    case "refunded": return "refunded";
+    default: return "unknown";
+  }
+}
 
 function clampStat(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -357,7 +368,7 @@ defineMiniApp({
             if (active !== "0") {
               obs.activeGameId.set(active);
               const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(active)]);
-              app.game.session.applySnapshot(obs, game, statusOf);
+              app.game.session.applySnapshot(obs, game, sessionStatusOf);
               if (obs.gameStatus.get() === "dealt") {
                 await resumeSession(active, obs.gameDifficulty.get());
               } else if (obs.gameStatus.get() === "committed") {

@@ -12,7 +12,9 @@ export type GameSessionStatus =
   | "committed"   // entry paid, enclave session being opened
   | "dealt"       // puzzle/seed delivered, player is playing
   | "solved"      // solution accepted on-chain, payout credited
-  | "expired";    // deadline passed or player forfeited
+  | "expired"     // deadline passed or player forfeited
+  | "refunded"    // entry released/refunded after an abandoned session
+  | "unknown";    // chain/indexer value was not recognized
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
 

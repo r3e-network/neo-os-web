@@ -205,7 +205,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     { mode: "reclaim", label: t("reclaimEnvelope"), title: t("reclaimableTitle"), value: String(reclaimableEnvelopes.length), Icon: ArchiveRestore },
     { mode: "safety", label: t("safetyPanelTitle"), value: t("tokenGas"), Icon: ShieldCheck },
   ];
-  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.Icon;
 
   const handleClaim = async () => {

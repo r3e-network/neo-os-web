@@ -25,6 +25,21 @@
 import { useCallback, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ObservableState, Observable } from "../context";
 
+type StateRecord = ObservableState | Record<string, unknown>;
+
+function isObservable(value: unknown): value is Observable {
+  return typeof (value as Observable | undefined)?.get === "function";
+}
+
+function isSubscribable(value: unknown): value is Pick<Observable, "subscribe"> {
+  return typeof (value as Observable | undefined)?.subscribe === "function";
+}
+
+function readStateValue(state: StateRecord, key: string, fallback: unknown): unknown {
+  const value = (state as Record<string, unknown>)[key];
+  return isObservable(value) ? value.get() : value ?? fallback;
+}
+
 // ============================================================================
 // useStateBindings
 // ============================================================================
@@ -36,13 +51,15 @@ import type { ObservableState, Observable } from "../context";
  * record. When any observable fires, the component re-renders. The returned
  * accessor functions read current values synchronously from the observables.
  */
-export function useStateBindings(state: ObservableState) {
+export function useStateBindings(state: StateRecord) {
   // Create a combined subscribe function that listens to all observables
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       const unsubs: Array<() => void> = [];
       for (const observable of Object.values(state)) {
-        unsubs.push(observable.subscribe(onStoreChange));
+        if (isSubscribable(observable)) {
+          unsubs.push(observable.subscribe(onStoreChange));
+        }
       }
       return () => {
         unsubs.forEach((unsub) => unsub());
@@ -84,19 +101,19 @@ export function useStateBindings(state: ObservableState) {
   return useMemo(() => {
     /** Read a string value (defaults to "") */
     const str = (key: string, fallback = ""): string =>
-      String(state[key]?.get() ?? fallback);
+      String(readStateValue(state, key, fallback));
 
     /** Read a boolean value (defaults to false) */
     const bool = (key: string): boolean =>
-      Boolean(state[key]?.get() ?? false);
+      Boolean(readStateValue(state, key, false));
 
     /** Read a number value (defaults to 0) */
     const num = (key: string, fallback = 0): number =>
-      Number(state[key]?.get() ?? fallback);
+      Number(readStateValue(state, key, fallback));
 
     /** Read a raw value with a typed cast */
     const val = <T,>(key: string, fallback: T | null = null): T | null =>
-      (state[key]?.get() ?? fallback) as T | null;
+      readStateValue(state, key, fallback) as T | null;
 
     return { str, bool, num, val };
   }, [state]);

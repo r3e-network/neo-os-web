@@ -143,7 +143,7 @@ export class SheepScene extends BaseScene {
     this.onStateUpdate(this.state);
   }
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const status     = this.str("gameStatus", "idle");
     const isStarting = this.bool("isStarting");
     const isDealing  = this.bool("isDealing");
@@ -183,7 +183,7 @@ export class SheepScene extends BaseScene {
 
   // ── Lobby ──────────────────────────────────────────────────────────────────
 
-  private buildLobby(W: number, H: number): void {
+  private buildLobby(W: number, _H: number): void {
     this.lobbyGroup = this.add.container(0, 0);
 
     // Title
@@ -254,9 +254,11 @@ export class SheepScene extends BaseScene {
     // Preview tile symbols (drawn)
     const tileCount = Math.min(cardTypes, 8);
     const tileStartX = cx - (tileCount / 2 - 0.5) * 28;
+    const previewLabels: Phaser.GameObjects.Graphics[] = [];
     for (let i = 0; i < tileCount; i++) {
       const tg = this.add.graphics();
       SheepScene.drawCardSymbol(tg, i, tileStartX + i * 28, cy + 62, 8, 0.8);
+      previewLabels.push(tg);
     }
 
     // Hover effect
@@ -337,8 +339,7 @@ export class SheepScene extends BaseScene {
     const trayLabel = this.add.text(16, trayY - 46, "Tray", {
       fontSize: "11px",
       color: "#d4a843",
-      alpha: 0.8,
-    });
+    }).setAlpha(0.8);
     this.gameGroup.add(trayLabel);
 
     // Slot outlines (7 static slots)

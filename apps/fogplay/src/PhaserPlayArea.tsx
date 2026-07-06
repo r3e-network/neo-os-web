@@ -1,7 +1,7 @@
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { FogplayScene } from "./scenes/FogplayScene";
 import "./PlayArea.scss";
 
@@ -18,7 +18,7 @@ const GAME_CONFIG = {
 } as const;
 
 export default function PhaserPlayArea({ t, state, dispatch }: P) {
-  const { str, bool, val } = useStateBindings(state);
+  const { str, bool } = useStateBindings(state);
   const coinAnimating = bool("isFlipping") || bool("revealing");
   const result = str("result", "");
 
@@ -61,11 +61,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
             height={520}
           />
         }
-        actions={
-          result
-            ? { primary: { label: t("playAgain"), onClick: () => void dispatch("resetGame") } }
-            : undefined
-        }
+        actions={{
+          primary: result
+            ? { label: t("playAgain"), onClick: () => void dispatch("resetGame") }
+            : undefined,
+        }}
         drawerToggleLabel={t("history")}
         drawer={{ children: <p>{t("fairnessNote")}</p> }}
       />

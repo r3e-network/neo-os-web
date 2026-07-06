@@ -9,6 +9,7 @@ import { createObservable, defineMiniApp } from "@shared/react";
 import type { RewardGameSession } from "@shared/gamefi";
 import { mapField } from "@shared/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
+import { eventStateValue } from "@shared/utils/chain-events";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -96,8 +97,6 @@ defineMiniApp({
       const { ranked, mine } = await app.game.leaderboard.load<FlappyRow>(
         "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
         (ev) => {
-          const { eventStateValue } = require("../../../utils/chain-events") as typeof import("@shared/utils/chain-events");
-          const { parseBigInt: pb } = require("../../../utils/parsers") as typeof import("@shared/utils/parsers");
           return { pipes: asNumber(eventStateValue(ev, 4)) };
         },
       );

@@ -606,7 +606,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <span className="mx2-history__face">
                         {ruleOf(row.difficulty).targetTile}
                       </span>
-                      <span className="mx2-history__stake">{formatClock(row.elapsedMs)}</span>
+                      <span className="mx2-history__stake">{formatClock(row.solveMs)}</span>
                       <span className="mx2-history__result">
                         {t("historyUndos", { undos: row.undos })}
                       </span>

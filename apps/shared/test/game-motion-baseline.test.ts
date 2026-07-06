@@ -11,6 +11,25 @@ const PREVIEW_TIMEOUT_PATTERN =
   /setTimeout\([\s\S]{0,800}(?:set[A-Za-z]*Preview|setActionPreview)\(/;
 const PREVIEW_START_PATTERN =
   /start[A-Za-z]*(?:Action)?Preview|set[A-Za-z]*Preview\(true\)|setActionPreview\(/;
+const phaserGames = [
+  "aim-master",
+  "burn-league",
+  "color-clash",
+  "dice-game",
+  "flappy-dash",
+  "fogplay",
+  "game-2048",
+  "gas-lucky-pool",
+  "jump-rush",
+  "last-survivor",
+  "merge-kingdom",
+  "on-chain-tarot",
+  "pet-potion",
+  "red-envelope",
+  "sheep-solitaire",
+  "snake-bounty",
+  "sudoku",
+] as const;
 
 function readIfExists(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf8") : "";
@@ -35,6 +54,37 @@ function gameApps(): string[] {
 }
 
 describe("Game miniapp motion baseline", () => {
+  it("routes every Phaser wrapper through the root framework Phaser SDK", () => {
+    const frameworkPhaser = readIfExists(resolve(appsRoot, "..", "framework/phaser/index.ts"));
+
+    expect(frameworkPhaser).toContain("PhaserGameComponent");
+
+    for (const app of phaserGames) {
+      const wrapper = readIfExists(resolve(appsRoot, app, "src/PhaserPlayArea.tsx"));
+
+      expect(wrapper, `${app}: Phaser wrapper must exist`).not.toBe("");
+      expect(wrapper, `${app}: wrapper should import the root framework Phaser SDK`).toContain(
+        `from "@framework/phaser"`,
+      );
+      expect(wrapper, `${app}: wrapper should not depend on the old shared Phaser module`).not.toContain(
+        `@shared/phaser`,
+      );
+    }
+  });
+
+  it("keeps the shared Phaser host accessible while scenes boot", () => {
+    const phaserHost = readIfExists(
+      resolve(appsRoot, "..", "framework/phaser/PhaserGameComponent.tsx"),
+    );
+
+    expect(phaserHost).toContain(`bridge.on("ready"`);
+    expect(phaserHost).toContain("onReady");
+    expect(phaserHost).toContain("aria-busy");
+    expect(phaserHost).toContain(`role="application"`);
+    expect(phaserHost).toContain("data-ready");
+    expect(phaserHost).toContain("loadingLabel");
+  });
+
   it("keeps every game surface animated, asset-led, and reduced-motion safe", () => {
     const games = gameApps();
 

@@ -779,7 +779,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <span className="mx2-history__face">
                         {t(`difficulty_${ruleOf(row.difficulty).key}`)}
                       </span>
-                      <span className="mx2-history__stake">{formatClock(row.elapsedMs)}</span>
+                      <span className="mx2-history__stake">{formatClock(row.solveMs)}</span>
                       <span className="mx2-history__result">{row.payout}</span>
                     </li>
                   ))}

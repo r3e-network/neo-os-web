@@ -8,7 +8,7 @@
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { JumpRushScene } from "./scenes/JumpRushScene";
 import { DIFFICULTY_RULES, formatClock, gasDisplay, ruleOf, rewardPctAfterUndos, MAX_UNDOS } from "./logic/game-rules";
 import "./PlayArea.scss";
