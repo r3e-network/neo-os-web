@@ -5,7 +5,7 @@
  * shortHash, parseLeaderboard, formatPayout) that every game's main.tsx
  * previously redeclared independently.
  *
- * Migrated from apps/shared/game/utils.ts.
+ * Lives in the root framework package so games do not depend on apps/shared.
  */
 
 import { addressToScriptHash } from "../utils/neo";

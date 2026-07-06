@@ -1,7 +1,7 @@
 /**
  * @framework/game — Unified GameFi environment for miniapp reward games.
  *
- * Migrated from apps/shared/game. Use @framework/game instead of @shared/game
+ * Use @framework/game as the only implementation source for game utilities.
  * for all game utilities, session factory, and types.
  *
  * ```ts

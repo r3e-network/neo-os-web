@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const root = resolve(__dirname, "../..");
+const appsRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps");
 
 const genericRewardGames = [
   "aim-master",
@@ -18,7 +19,7 @@ const genericRewardGames = [
 describe("reward-game SDK adoption", () => {
   it("routes generic Morpheus reward games through @framework/gamefi", () => {
     for (const appId of genericRewardGames) {
-      const source = readFileSync(resolve(root, appId, "src/main.tsx"), "utf8");
+      const source = readFileSync(resolve(appsRoot, appId, "src/main.tsx"), "utf8");
 
       expect(source, `${appId} should import the framework reward-game SDK`).toContain(
         `from "@framework/gamefi"`,

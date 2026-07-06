@@ -2,7 +2,7 @@
  * Game session state factory.
  *
  * Creates the standard set of observables every reward game needs.
- * Migrated from apps/shared/game/session.ts.
+ * Lives in the root framework package so games do not depend on apps/shared.
  */
 
 import { createObservable, type Observable } from "../reactive";

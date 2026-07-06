@@ -1,7 +1,7 @@
 /**
  * Shared game types used across all miniapp reward games.
  *
- * Import from @framework/game instead of @shared/game.
+ * Import from @framework/game; apps/shared is reserved for UI/runtime app glue.
  */
 
 // ─── Game status ──────────────────────────────────────────────────────────────
