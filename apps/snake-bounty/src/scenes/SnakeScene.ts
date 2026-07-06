@@ -107,7 +107,7 @@ const C = {
 // ── Difficulty label table ────────────────────────────────────────────────────
 
 const DIFF_LABELS = ["Easy", "Medium", "Hard"] as const;
-const DIFF_EMOJIS = ["🟢", "🟡", "🔴"] as const;
+const DIFF_BADGES = [0x16a34a, 0xf4a820, 0xe25d4d] as const;
 
 
 // ── Scene class ───────────────────────────────────────────────────────────────
@@ -251,15 +251,15 @@ export class SnakeScene extends BaseScene {
 
     // ── Overlay ───────────────────────────────────────────────────────────
     if (isDealing || (gameStatus === "committed" && !inPlay)) {
-      this.showOverlay("🎲 Dealing…", "Preparing your game", false);
+      this.showOverlay("Dealing", "Preparing your game", false);
     } else if (isSubmitting) {
-      this.showOverlay("⏳ Submitting…", "Verifying your solution", false);
+      this.showOverlay("Submitting", "Verifying your solution", false);
     } else if (this.crashed && gameStatus === "dealt") {
-      this.showOverlay("💥 Game Over", "The snake crashed!", true);
+      this.showOverlay("Game Over", "The snake crashed.", true);
     } else if (gameStatus === "solved") {
-      this.showOverlay("🏆 Solved!", "Congratulations, you won!", false);
+      this.showOverlay("Solved", "Congratulations, you won.", false);
     } else if (gameStatus === "expired") {
-      this.showOverlay("⏰ Expired", "Time ran out", false);
+      this.showOverlay("Expired", "Time ran out.", false);
     } else {
       this.overlayContainer.setVisible(false);
     }
@@ -602,8 +602,10 @@ export class SnakeScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0);
 
-    // Title
-    const title = this.add.text(this.scW / 2, 28, "🐍 Snake Bounty", {
+    const titleMark = this.add.graphics();
+    this.drawSnakeMedallion(titleMark, this.scW / 2 - 92, 28, 0.58);
+
+    const title = this.add.text(this.scW / 2 + 12, 28, "Snake Bounty", {
       fontSize: "20px",
       fontStyle: "bold",
       color: "#d4a843",
@@ -667,12 +669,13 @@ export class SnakeScene extends BaseScene {
     this.lobbyStatusText = poolText;
 
     // Start hint
-    const startHint = this.add.text(this.scW / 2, 386, "← Select difficulty then tap Play →", {
+    const startHint = this.add.text(this.scW / 2, 386, "Select a route, then press Play", {
       fontSize: "10px",
       color: "#5af5d0",
     }).setOrigin(0.5).setAlpha(0.7);
 
     this.lobbyContainer.add([
+      titleMark,
       title,
       sub,
       arenaGfx,
@@ -709,6 +712,46 @@ export class SnakeScene extends BaseScene {
     gfx.fillCircle(365, 158, 9);
   }
 
+  private drawSnakeMedallion(
+    gfx: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    scale = 1,
+  ): void {
+    gfx.fillStyle(C.cardActiveBg, 1);
+    gfx.fillCircle(x, y, 22 * scale);
+    gfx.lineStyle(2 * scale, C.gold, 0.9);
+    gfx.strokeCircle(x, y, 22 * scale);
+    gfx.lineStyle(5 * scale, C.tail, 0.95);
+    gfx.beginPath();
+    gfx.moveTo(x - 13 * scale, y + 3 * scale);
+    gfx.lineTo(x - 5 * scale, y - 6 * scale);
+    gfx.lineTo(x + 6 * scale, y - 6 * scale);
+    gfx.lineTo(x + 12 * scale, y + 1 * scale);
+    gfx.strokePath();
+    gfx.fillStyle(C.head, 1);
+    gfx.fillRoundedRect(x + 8 * scale, y - 8 * scale, 10 * scale, 10 * scale, 3 * scale);
+    gfx.fillStyle(C.goldLight, 1);
+    gfx.fillCircle(x + 15 * scale, y - 5 * scale, 1.6 * scale);
+  }
+
+  private drawDifficultyBadge(
+    gfx: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    difficulty: Difficulty,
+  ): void {
+    const color = DIFF_BADGES[difficulty];
+    gfx.fillStyle(color, 0.28);
+    gfx.fillCircle(x, y, 18);
+    gfx.lineStyle(2, color, 0.95);
+    gfx.strokeCircle(x, y, 18);
+    gfx.fillStyle(color, 0.92);
+    for (let i = 0; i <= difficulty; i++) {
+      gfx.fillRoundedRect(x - 10 + i * 9, y + 7 - i * 6, 5, 8 + i * 6, 2);
+    }
+  }
+
   private makeCard(
     cx: number,
     cy: number,
@@ -724,9 +767,8 @@ export class SnakeScene extends BaseScene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const emoji = this.add.text(0, -28, DIFF_EMOJIS[difficulty], {
-      fontSize: "20px",
-    }).setOrigin(0.5);
+    const badge = this.add.graphics();
+    this.drawDifficultyBadge(badge, 0, -28, difficulty);
 
     const label = this.add.text(0, -6, DIFF_LABELS[difficulty], {
       fontSize: "13px",
@@ -744,7 +786,7 @@ export class SnakeScene extends BaseScene {
       color: "#5af5d0",
     }).setOrigin(0.5);
 
-    container.add([bg, emoji, label, targetTxt, entryTxt]);
+    container.add([bg, badge, label, targetTxt, entryTxt]);
 
     bg.on("pointerdown", () => {
       this.pickedDifficulty = difficulty;
@@ -940,7 +982,7 @@ export class SnakeScene extends BaseScene {
 
     // Target badge
     const reward = gasDisplay(rule.rewardFixed8);
-    this.targetBadge.setText(`🏆 ${reward} GAS`);
+    this.targetBadge.setText(`${reward} GAS reward`);
 
     // Hint label
     const elapsedMs = dealtAt > 0 ? this.nowMs - dealtAt : 0;
@@ -949,16 +991,16 @@ export class SnakeScene extends BaseScene {
     const submitWindowClosed = gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
 
     if (this.crashed || (this.snake && this.snake.dead)) {
-      this.hintLabel.setText("💥 Snake crashed!").setVisible(true);
+      this.hintLabel.setText("Snake crashed.").setVisible(true);
     } else if (timeUp) {
-      this.hintLabel.setText("⏰ Time's up!").setVisible(true);
+      this.hintLabel.setText("Time's up.").setVisible(true);
     } else if (submitWindowClosed && !timeUp) {
       this.hintLabel.setText("Closing soon — submit now!").setVisible(true);
     } else if (this.targetReached && !minSolveReached) {
       const wait = rule.minSolveMs + MIN_SOLVE_BUFFER_MS - elapsedMs;
       this.hintLabel.setText(`Wait ${formatClock(wait)} to submit`).setVisible(true);
     } else if (this.targetReached && minSolveReached) {
-      this.hintLabel.setText("🎉 Target reached! Submit now!").setVisible(true);
+      this.hintLabel.setText("Target reached. Submit now.").setVisible(true);
     } else {
       this.hintLabel.setText("").setVisible(true);
     }

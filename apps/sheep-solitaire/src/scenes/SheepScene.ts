@@ -186,8 +186,10 @@ export class SheepScene extends BaseScene {
   private buildLobby(W: number, _H: number): void {
     this.lobbyGroup = this.add.container(0, 0);
 
-    // Title
-    const title = this.add.text(W / 2, 52, "🐑  Sheep Solitaire", {
+    const titleMark = this.add.graphics();
+    SheepScene.drawSheepEmblem(titleMark, W / 2 - 116, 52, 0.58);
+
+    const title = this.add.text(W / 2 + 14, 52, "Sheep Solitaire", {
       fontSize: "22px",
       fontStyle: "bold",
       color: "#f0c866",
@@ -198,7 +200,7 @@ export class SheepScene extends BaseScene {
       color: "#c8d8b0",
     }).setOrigin(0.5);
 
-    this.lobbyGroup.add([title, sub]);
+    this.lobbyGroup.add([titleMark, title, sub]);
 
     // 3 difficulty cards
     const cardTopY = 122;
@@ -286,9 +288,10 @@ export class SheepScene extends BaseScene {
     const bg = this.add.rectangle(W / 2, H / 2, W - 40, 140, C.meadowDark)
       .setStrokeStyle(2, C.gold);
 
-    const spinner = this.add.text(W / 2, H / 2 - 28, "🐑", {
-      fontSize: "44px",
-    }).setOrigin(0.5);
+    const spinner = this.add.container(W / 2, H / 2 - 28);
+    const spinnerArt = this.add.graphics();
+    SheepScene.drawSheepEmblem(spinnerArt, 0, 0, 1.08);
+    spinner.add(spinnerArt);
 
     const loadText = this.add.text(W / 2, H / 2 + 24, "Preparing your board…", {
       fontSize: "16px",
@@ -388,9 +391,9 @@ export class SheepScene extends BaseScene {
     const total = 3 * btnW + 2 * gap;
     const startX = (W - total) / 2 + btnW / 2;
 
-    this.undoBtn    = this.makeToolBtn(startX,              toolY, "↩ Undo",     "0", () => this.dispatch("useUndo"));
-    this.shuffleBtn = this.makeToolBtn(startX + btnW + gap, toolY, "🔀 Shuffle",  "1", () => this.dispatch("useShuffle"));
-    this.remove3Btn = this.makeToolBtn(startX + 2*(btnW+gap), toolY, "✂ Remove3", "1", () => this.dispatch("useRemove3"));
+    this.undoBtn    = this.makeToolBtn(startX,              toolY, "Undo",    "0", () => this.dispatch("useUndo"));
+    this.shuffleBtn = this.makeToolBtn(startX + btnW + gap, toolY, "Shuffle", "1", () => this.dispatch("useShuffle"));
+    this.remove3Btn = this.makeToolBtn(startX + 2*(btnW+gap), toolY, "Clear 3", "1", () => this.dispatch("useRemove3"));
 
     // Extract count text refs from last item in each container (index 2)
     this.undoCountTxt    = this.undoBtn.list[2]    as Phaser.GameObjects.Text;
@@ -730,7 +733,7 @@ export class SheepScene extends BaseScene {
     const matched     = totalCards - remaining;
 
     this.progressLabel.setText(`Pile: ${pileCards.length}  ·  Tray: ${slotCards.length}/${SLOT_COUNT}`);
-    this.matchedLabel.setText(`✓ ${matched}/${totalCards}`);
+    this.matchedLabel.setText(`Matched ${matched}/${totalCards}`);
   }
 
   private updateResultScreen(): void {
@@ -739,14 +742,14 @@ export class SheepScene extends BaseScene {
     const isGameOver = this.bool("isGameOver");
 
     if (status === "solved") {
-      this.resultTitle.setText("🎉  You Won!").setColor("#f0c866");
+      this.resultTitle.setText("You Won").setColor("#f0c866");
       this.resultSub.setText(payout ? `Payout: ${payout}` : "Board cleared!");
       this.resultActionTxt.setText("Claim & Play Again");
       this.resultActionBg.setFillStyle(C.green);
       this.resultActionBg.off("pointerdown");
       this.resultActionBg.on("pointerdown", () => this.dispatch("submitRun"));
     } else if (isGameOver) {
-      this.resultTitle.setText("😢  Game Over").setColor("#e25d4d");
+      this.resultTitle.setText("Game Over").setColor("#e25d4d");
       this.resultSub.setText("Tray is full — no more moves!");
       this.resultActionTxt.setText("Try Again");
       this.resultActionBg.setFillStyle(C.btnBg);
@@ -770,6 +773,28 @@ export class SheepScene extends BaseScene {
 
   protected onResize(_gameSize: Phaser.Structs.Size): void {
     this.scene.restart();
+  }
+
+  private static drawSheepEmblem(
+    g: Phaser.GameObjects.Graphics,
+    cx: number,
+    cy: number,
+    scale = 1,
+  ): void {
+    const s = scale;
+    g.fillStyle(0xfff8e8, 1);
+    g.fillCircle(cx - 12 * s, cy, 11 * s);
+    g.fillCircle(cx, cy - 7 * s, 13 * s);
+    g.fillCircle(cx + 13 * s, cy, 11 * s);
+    g.fillCircle(cx - 1 * s, cy + 8 * s, 13 * s);
+    g.fillStyle(0xd4a843, 1);
+    g.fillEllipse(cx - 19 * s, cy + 5 * s, 8 * s, 14 * s);
+    g.fillEllipse(cx + 19 * s, cy + 5 * s, 8 * s, 14 * s);
+    g.fillStyle(0x2a5c34, 1);
+    g.fillRoundedRect(cx - 10 * s, cy - 1 * s, 20 * s, 18 * s, 8 * s);
+    g.fillStyle(0xfff8e8, 1);
+    g.fillCircle(cx - 4 * s, cy + 5 * s, 1.6 * s);
+    g.fillCircle(cx + 4 * s, cy + 5 * s, 1.6 * s);
   }
 
   /**

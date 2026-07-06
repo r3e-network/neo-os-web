@@ -164,10 +164,10 @@ export class FogplayScene extends BaseScene {
       fontSize: "13px", color: "#8b949e",
     }).setOrigin(0.5);
 
-    this.headsBtn = this.makeChoiceBtn(W / 2 - 58, y, "🪙 Heads", () => {
+    this.headsBtn = this.makeChoiceBtn(W / 2 - 58, y, "Heads", () => {
       this.dispatch("setChoice", "heads");
     });
-    this.tailsBtn = this.makeChoiceBtn(W / 2 + 58, y, "🎭 Tails", () => {
+    this.tailsBtn = this.makeChoiceBtn(W / 2 + 58, y, "Tails", () => {
       this.dispatch("setChoice", "tails");
     });
   }
