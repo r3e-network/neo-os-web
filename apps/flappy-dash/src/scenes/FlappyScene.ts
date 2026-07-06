@@ -557,9 +557,11 @@ export class FlappyScene extends BaseScene {
       .setStrokeStyle(2, 0x42a5f5)
       .setOrigin(0.5);
     this.startBtnBg.setInteractive({ useHandCursor: true });
-    this.startBtnBg.on("pointerover",  () => this.tweens.add({ targets: this.startButton, scale: 1.04, duration: 80 }));
-    this.startBtnBg.on("pointerout",   () => this.tweens.add({ targets: this.startButton, scale: 1.0,  duration: 80 }));
-    this.startBtnBg.on("pointerdown",  () => this.onStartPressed());
+    this.bindGameButton(this.startBtnBg, {
+      targets: this.startButton,
+      pressScale: 0.95,
+      onPress: () => this.onStartPressed(),
+    });
     this.startBtnLabel = this.add.text(0, 0, "Start Game", {
       fontSize: "17px",
       fontStyle: "bold",
@@ -669,7 +671,6 @@ export class FlappyScene extends BaseScene {
     const rule        = ruleOf(this.pickedDifficulty);
     const rewardGas   = Number(gasDisplay(rule.rewardFixed8));
     if (isStarting || poolFree < rewardGas) return;
-    this.tweens.add({ targets: this.startButton, scale: 0.95, duration: 60, yoyo: true });
     this.dispatch("startGame", { difficulty: this.pickedDifficulty });
   }
 
@@ -783,9 +784,10 @@ export class FlappyScene extends BaseScene {
       .setStrokeStyle(2, 0x42a5f5)
       .setOrigin(0.5);
     actionBg.setInteractive({ useHandCursor: true });
-    actionBg.on("pointerover", () => this.tweens.add({ targets: this.overlayActionBtn, scale: 1.04, duration: 80 }));
-    actionBg.on("pointerout",  () => this.tweens.add({ targets: this.overlayActionBtn, scale: 1.0,  duration: 80 }));
-    actionBg.on("pointerdown", () => this.onOverlayAction());
+    this.bindGameButton(actionBg, {
+      targets: this.overlayActionBtn,
+      onPress: () => this.onOverlayAction(),
+    });
     this.overlayActionLabel = this.add.text(0, 0, "Try Again", {
       fontSize: "15px",
       fontStyle: "bold",
@@ -799,7 +801,12 @@ export class FlappyScene extends BaseScene {
       .setStrokeStyle(1, C.cardBorder)
       .setOrigin(0.5);
     secondBg.setInteractive({ useHandCursor: true });
-    secondBg.on("pointerdown", () => this.onOverlaySecondAction());
+    this.bindGameButton(secondBg, {
+      targets: this.overlaySecondBtn,
+      hoverScale: 1.03,
+      pressScale: 0.96,
+      onPress: () => this.onOverlaySecondAction(),
+    });
     this.overlaySecondLabel = this.add.text(0, 0, "Submit Score", {
       fontSize: "13px",
       color: "#7a9ab5",

@@ -328,9 +328,11 @@ export class GasLuckyPoolScene extends BaseScene {
 
     // Create button
     const createBtn = this.makeActionButton(W / 2, y0 + 102, "CREATE VAULT", C.teal, 0.06);
-    createBtn.getAt(0).on("pointerdown", () => {
-      this.tweens.add({ targets: createBtn, scale: 0.95, duration: 80, yoyo: true });
-      this.dispatch("createPool", { amount: selectedAmount, slots: "10", expiry: "24" });
+    this.bindGameButton(createBtn.getAt(0), {
+      targets: createBtn,
+      pressScale: 0.95,
+      pressDuration: 80,
+      onPress: () => this.dispatch("createPool", { amount: selectedAmount, slots: "10", expiry: "24" }),
     });
     this.createPanel.add(createBtn);
   }
@@ -388,9 +390,11 @@ export class GasLuckyPoolScene extends BaseScene {
 
     // Claim button
     const claimBtn = this.makeActionButton(W / 2, y0 + 102, "CLAIM REWARD", C.gold, 0.0);
-    claimBtn.getAt(0).on("pointerdown", () => {
-      this.tweens.add({ targets: claimBtn, scale: 0.95, duration: 80, yoyo: true });
-      this.dispatch("claimReward", {});
+    this.bindGameButton(claimBtn.getAt(0), {
+      targets: claimBtn,
+      pressScale: 0.95,
+      pressDuration: 80,
+      onPress: () => this.dispatch("claimReward", {}),
     });
     this.claimPanel.add(claimBtn);
 

@@ -303,14 +303,12 @@ export class LastSurvivorScene extends BaseScene {
       new Phaser.Geom.Rectangle(-110, -30, 220, 60),
       Phaser.Geom.Rectangle.Contains,
     );
-    this.buyBtnBg.on("pointerdown", () => {
-      if (this.bool("isRoundActive") && !this.bool("isBuyingKeys")) {
-        this.dispatch("buyKeys", { count: parseInt(this.keyCountInput, 10) });
-        this.tweens.add({ targets: this.buyBtn, scale: 0.95, duration: 60, yoyo: true });
-      }
+    this.bindGameButton(this.buyBtnBg, {
+      targets: this.buyBtn,
+      pressScale: 0.95,
+      enabled: () => this.bool("isRoundActive") && !this.bool("isBuyingKeys"),
+      onPress: () => this.dispatch("buyKeys", { count: parseInt(this.keyCountInput, 10) }),
     });
-    this.buyBtnBg.on("pointerover", () => this.tweens.add({ targets: this.buyBtn, scale: 1.04, duration: 80 }));
-    this.buyBtnBg.on("pointerout",  () => this.tweens.add({ targets: this.buyBtn, scale: 1.0, duration: 80 }));
 
     this.buyBtnLabel = this.add.text(0, 0, "Buy 1 Key", {
       fontSize: "19px", fontStyle: "bold", color: "#35240f",

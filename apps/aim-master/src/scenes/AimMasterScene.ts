@@ -344,11 +344,10 @@ export class AimMasterScene extends BaseScene {
       .setStrokeStyle(2, 0xffd700)
       .setOrigin(0.5);
     this.lobbyStartBtnBg.setInteractive({ useHandCursor: true });
-    this.lobbyStartBtnBg.on("pointerover",  () => this.tweens.add({ targets: this.lobbyStartBtnBg, scale: 1.04, duration: 80 }));
-    this.lobbyStartBtnBg.on("pointerout",   () => this.tweens.add({ targets: this.lobbyStartBtnBg, scale: 1.0,  duration: 80 }));
-    this.lobbyStartBtnBg.on("pointerdown",  () => {
-      this.tweens.add({ targets: this.lobbyStartBtnBg, scale: 0.96, duration: 60, yoyo: true });
-      this.dispatch("startGame", { difficulty: this.selectedDifficulty });
+    this.bindGameButton(this.lobbyStartBtnBg, {
+      targets: this.lobbyStartBtnBg,
+      pressScale: 0.96,
+      onPress: () => this.dispatch("startGame", { difficulty: this.selectedDifficulty }),
     });
 
     this.lobbyStartBtnLabel = this.add.text(W / 2, H - 40, "Start Game", {
@@ -491,11 +490,10 @@ export class AimMasterScene extends BaseScene {
       .setStrokeStyle(2, 0x80ffa0)
       .setOrigin(0.5);
     this.submitBtnBg.setInteractive({ useHandCursor: true });
-    this.submitBtnBg.on("pointerover",  () => this.tweens.add({ targets: this.submitBtnContainer, scale: 1.04, duration: 80 }));
-    this.submitBtnBg.on("pointerout",   () => this.tweens.add({ targets: this.submitBtnContainer, scale: 1.0,  duration: 80 }));
-    this.submitBtnBg.on("pointerdown",  () => {
-      this.tweens.add({ targets: this.submitBtnContainer, scale: 0.96, duration: 60, yoyo: true });
-      this.dispatch("submitSolution", {});
+    this.bindGameButton(this.submitBtnBg, {
+      targets: this.submitBtnContainer,
+      pressScale: 0.96,
+      onPress: () => this.dispatch("submitSolution", {}),
     });
     this.submitBtnLabel = this.add.text(0, 0, "Submit Shots", {
       fontSize: "17px", fontStyle: "bold", color: "#0a2010",

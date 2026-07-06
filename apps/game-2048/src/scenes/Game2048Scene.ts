@@ -422,12 +422,13 @@ export class Game2048Scene extends BaseScene {
       color: "#ffffff",
     }).setOrigin(0.5);
 
-    bg.on("pointerover", () => bg.setFillStyle(0xe04000));
-    bg.on("pointerout",  () => bg.setFillStyle(0xf65e3b));
-    bg.on("pointerdown", () => {
-      if (this.bool("isStarting") || this.bool("isDealing")) return;
-      this.tweens.add({ targets: btn, scale: 0.95, duration: 60, yoyo: true });
-      this.dispatch("startGame", { difficulty: this.pickedDiff });
+    this.bindGameButton(bg, {
+      targets: btn,
+      pressScale: 0.95,
+      enabled: () => !this.bool("isStarting") && !this.bool("isDealing"),
+      onPress: () => this.dispatch("startGame", { difficulty: this.pickedDiff }),
+      onHoverIn: () => bg.setFillStyle(0xe04000),
+      onHoverOut: () => bg.setFillStyle(0xf65e3b),
     });
 
     btn.add([bg, txt]);
