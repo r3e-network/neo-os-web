@@ -19,6 +19,26 @@ import {
 } from "../apps/shared/gamefi";
 import type { RewardGameConfig, RewardGameSession, RewardGameStorage } from "../apps/shared/gamefi";
 import type { TeeSessionOp, TeeStepResult } from "../apps/shared/logic/tee-session";
+import { fromFixed8 } from "../apps/shared/utils/format";
+import { parseBigInt } from "../apps/shared/utils/parsers";
+import { eventStateValue } from "../apps/shared/utils/chain-events";
+import { eventHashMatches, mapField, normalizedHash } from "../apps/shared/gamefi";
+import {
+  toScriptHash,
+  buildLeaderboard,
+  formatFixed8Gas,
+  asNumber,
+  createGameSessionObservables,
+  applyGameSnapshot,
+  parsePlayerStats,
+} from "./game";
+import type {
+  LeaderEntry,
+  SolveRow,
+  GameSessionStatus,
+  SolvedEventSlots,
+  GameSessionObservables,
+} from "./game";
 
 export type FrameworkHost = "onegate" | "miniapp-platform" | "standalone";
 
@@ -1013,6 +1033,121 @@ export function createMiniAppFramework(
             return observeRewardGameSettlement(config, chainAdapter, gameId, solvedEvent, settlementOptions);
           },
         };
+      },
+
+      // ── player helpers ────────────────────────────────────────────────────
+      /**
+       * High-level helpers for the connected player.
+       * Used by game main.tsx files instead of re-implementing the
+       * addressToScriptHash + address.get() pattern inline.
+       */
+      player: {
+        /**
+         * Return the script-hash of the currently connected wallet.
+         * Returns "" when no wallet is connected (safe to pass to balances/stats
+         * calls which guard on empty hash).
+         */
+        scriptHash(): string {
+          return toScriptHash(chain.address.get());
+        },
+        /**
+         * Wait for wallet connection and return the script-hash.
+         * Throws if the wallet prompt is cancelled.
+         */
+        async ensureScriptHash(): Promise<string> {
+          const address = await chain.ensureWallet();
+          return toScriptHash(address);
+        },
+      },
+
+      // ── stats helpers ─────────────────────────────────────────────────────
+      /**
+       * High-level player stats helpers.
+       * Replaces the `refreshStats()` pattern that every game re-implements.
+       */
+      stats: {
+        /**
+         * Fetch statsOf(playerHash) from the contract and return
+         * `{ solves, totalWon }`.  Returns zeros on any error.
+         */
+        async load(playerHash?: string): Promise<{ solves: number; totalWon: number }> {
+          const hash = playerHash ?? toScriptHash(chain.address.get());
+          if (!hash) return { solves: 0, totalWon: 0 };
+          try {
+            const raw = await chain.read("statsOf", [{ type: "Hash160", value: hash }]);
+            return parsePlayerStats(raw);
+          } catch {
+            return { solves: 0, totalWon: 0 };
+          }
+        },
+      },
+
+      // ── leaderboard helpers ───────────────────────────────────────────────
+      /**
+       * High-level leaderboard helpers built on the unified buildLeaderboard()
+       * utility.  Replaces the `loadLeaderboard()` function that every game
+       * re-implements with slight variations.
+       */
+      leaderboard: {
+        /**
+         * Fetch `limit` solved events from the chain, build a ranked leaderboard,
+         * and extract the connected player's own history rows.
+         *
+         * @param eventName  On-chain event name (usually "Solved").
+         * @param slots      Optional override of event-state slot indices.
+         * @param limit      Number of events to scan (default 200).
+         */
+        async load<TRow extends SolveRow = SolveRow>(
+          eventName = "Solved",
+          slots?: SolvedEventSlots,
+          limit = 200,
+          extraRowFields?: (ev: unknown) => Partial<TRow>,
+        ): Promise<{ ranked: LeaderEntry[]; mine: TRow[] }> {
+          const playerHash = toScriptHash(chain.address.get());
+          try {
+            const events = await chain.listEvents?.(eventName, { limit }) ?? [];
+            return buildLeaderboard<TRow>(events, playerHash, slots, extraRowFields);
+          } catch {
+            return { ranked: [], mine: [] };
+          }
+        },
+      },
+
+      // ── session observables factory ────────────────────────────────────────
+      /**
+       * Session observable factory — creates the standard set of observables
+       * every reward game needs without boilerplate.
+       */
+      session: {
+        /**
+         * Create and return all standard game session observables.
+         * Pass the result directly as the `state` return value in setup().
+         *
+         * @example
+         * ```ts
+         * const obs = app.game.session.observables(ctx.t);
+         * // ... register actions using obs.gameStatus, obs.credit, etc.
+         * return { state: obs };
+         * ```
+         */
+        observables<THistory extends SolveRow = SolveRow>(
+          t?: (key: string) => string,
+        ): GameSessionObservables<THistory> {
+          return createGameSessionObservables<THistory>({ t });
+        },
+
+        /**
+         * Apply a getGame() on-chain snapshot to a set of session observables.
+         * Centralises the "read game + set status/difficulty/commitment/dealtAt/
+         * deadline/undos" pattern.
+         */
+        applySnapshot(
+          obs: Parameters<typeof applyGameSnapshot>[0],
+          game: unknown,
+          statusOf: (raw: number) => GameSessionStatus,
+        ): void {
+          applyGameSnapshot(obs, game, statusOf);
+        },
       },
     },
   };

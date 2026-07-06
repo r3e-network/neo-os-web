@@ -21,6 +21,11 @@
   --cclash-border: #eadfc8;
   --cclash-teal: #12a998;
   --cclash-gold: #d8a742;
+  // Semantic colour tokens — never use raw hex below this point.
+  --cclash-success: #067a5b;
+  --cclash-danger: #e25d4d;
+  --cclash-warning-ink: #8a4b0f;
+  --cclash-submit-ink: #173d38;
 }
 
 .cclash-playarea .mx2-stage {
@@ -50,13 +55,13 @@
 .cclash-playarea .mx2-stage__title {
   color: var(--cclash-ink);
   font-size: clamp(1.5rem, 3vw, 1.95rem);
-  font-weight: 560;
+  font-weight: 600;
 }
 
 .cclash-playarea .mx2-stage__subtitle {
   max-width: 560px;
   color: var(--cclash-muted);
-  font-weight: 420;
+  font-weight: 400;
 }
 
 // Center the score readout to match the centered scene composition
@@ -215,7 +220,7 @@
 .cclash-lobby__mission span {
   color: var(--cclash-teal);
   font-size: 0.68rem;
-  font-weight: 620;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -223,7 +228,7 @@
 .cclash-lobby__mission strong {
   color: var(--cclash-ink);
   font-size: 1.42rem;
-  font-weight: 620;
+  font-weight: 600;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
 }
@@ -241,7 +246,7 @@
   margin: 0;
   color: var(--cclash-muted);
   font-size: 0.74rem;
-  font-weight: 460;
+  font-weight: 400;
   line-height: 1.32;
 }
 
@@ -251,7 +256,7 @@
   gap: 5px;
 }
 
-.cclash-lobby__mission-ribbon b {
+.cclash-lobby__mission-badge {
   min-height: 24px;
   display: inline-flex;
   align-items: center;
@@ -259,9 +264,9 @@
   border-radius: 999px;
   background: rgba(242, 255, 251, 0.78);
   padding: 4px 7px;
-  color: #067a5b;
+  color: var(--cclash-success);
   font-size: 0.66rem;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .cclash-lobby__pool {
@@ -282,7 +287,7 @@
 .cclash-lobby__pool[data-ready="false"] {
   border-color: rgba(245, 158, 11, 0.2);
   background: #fff9ee;
-  color: #8a4b0f;
+  color: var(--cclash-warning-ink);
 }
 
 // Entry + time for the selected mode: desktop already shows these in the
@@ -375,7 +380,7 @@
 .cclash-mode__name {
   grid-area: name;
   min-width: 0;
-  font-weight: 590;
+  font-weight: 600;
   font-size: 0.86rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -387,7 +392,7 @@
   min-width: 0;
   color: var(--cclash-ink);
   font-size: 1.1rem;
-  font-weight: 620;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -411,7 +416,7 @@
   padding-top: 2px;
 }
 
-.cclash-mode__lights i {
+.cclash-mode__lights span {
   height: 7px;
   border-radius: 999px;
   background: var(--seq-color);
@@ -430,7 +435,7 @@
   p {
     margin: 0;
     font-size: 0.82rem;
-    color: rgba(79, 70, 60, 0.72);
+    color: color-mix(in srgb, var(--cclash-ink), transparent 28%);
     max-width: 320px;
     text-align: center;
   }
@@ -448,14 +453,7 @@
   }
 }
 
-.cclash-shuffle__retry {
-  padding: 8px 20px;
-  border: 1px solid rgba(10, 128, 80, 0.18);
-  border-radius: var(--mx2-r-md);
-  background: transparent;
-  color: #2b261f;
-  cursor: pointer;
-}
+/* mx2-btn--ghost provides all base styles; no override needed */
 
 /* ---------------------------------------------------------------- table -- */
 
@@ -502,14 +500,14 @@
   backdrop-filter: blur(4px);
 
   &[data-low="true"] .cclash-timer__clock {
-    color: #e25d4d;
+    color: var(--cclash-danger);
     animation: cclash-timer-alarm 1s ease-in-out infinite;
   }
 }
 
 .cclash-timer__clock {
   font-variant-numeric: tabular-nums;
-  font-weight: 620;
+  font-weight: 600;
   font-size: 1.05rem;
   color: var(--cclash-ink);
 }
@@ -531,7 +529,7 @@
 
 .cclash-timer__reward {
   font-size: 0.78rem;
-  font-weight: 590;
+  font-weight: 600;
   color: var(--cclash-teal);
 }
 
@@ -551,24 +549,24 @@
 
 .cclash-phase__watch {
   color: #996a0f;
-  font-weight: 590;
+  font-weight: 600;
   animation: cclash-blink 1s ease-in-out infinite;
 }
 
 .cclash-phase__repeat {
   color: var(--cclash-teal);
-  font-weight: 590;
+  font-weight: 600;
 }
 
 .cclash-phase__won {
   color: var(--cclash-teal);
-  font-weight: 620;
+  font-weight: 600;
   font-size: 1.1rem;
 }
 
 .cclash-phase__lost {
-  color: #e25d4d;
-  font-weight: 620;
+  color: var(--cclash-danger);
+  font-weight: 600;
   font-size: 1.1rem;
   animation: cclash-shake 460ms ease-in-out;
 }
@@ -616,6 +614,11 @@
   transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
   outline: none;
   opacity: 1;
+
+  &:focus-visible {
+    outline: 2px solid var(--cclash-teal);
+    outline-offset: 3px;
+  }
 
   &:hover:not(:disabled) {
     transform: scale(1.04);
@@ -704,6 +707,12 @@
     color: #8a4b0f;
   }
 
+  &[data-state="lost"] {
+    background: linear-gradient(180deg, rgba(226, 93, 77, 0.12), rgba(226, 93, 77, 0.04));
+    border: 1px solid rgba(226, 93, 77, 0.32);
+    color: var(--cclash-ink);
+  }
+
   strong {
     font-size: 1.02rem;
   }
@@ -732,54 +741,14 @@
   color: var(--cclash-muted);
 }
 
-.cclash-actions__submit {
-  padding: 10px 28px;
-  border: none;
-  border-radius: 12px;
+// Submit button: mx2-btn--primary provides base; override only for gradient branding.
+.cclash-actions__submit.mx2-btn--primary {
   background: linear-gradient(135deg, var(--cclash-teal), #77dbcb);
-  color: #173d38;
-  font-weight: 620;
-  cursor: pointer;
-  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(18, 169, 152, 0.25);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cclash-teal);
-    outline-offset: 2px;
-  }
+  color: var(--cclash-submit-ink);
+  border: none;
 }
 
-.cclash-actions__expire {
-  padding: 10px 28px;
-  border: 1px solid rgba(216, 167, 66, 0.24);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--cclash-ink);
-  cursor: pointer;
-  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(216, 167, 66, 0.2);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--cclash-teal);
-    outline-offset: 2px;
-  }
-}
+// Expire button: mx2-btn--ghost provides all base styles; no override needed.
 
 /* --------------------------------------------------------------- drawer -- */
 
@@ -821,7 +790,7 @@
 }
 
 .cclash-ranks__rank {
-  font-weight: 680;
+  font-weight: 700;
 }
 
 .cclash-ranks__addr {
@@ -837,24 +806,17 @@
 }
 
 .cclash-ranks__won {
-  font-weight: 620;
-  color: #067a5b;
+  font-weight: 600;
+  color: var(--cclash-success);
 }
 
 .cclash-ranks__me {
   font-size: 0.66rem;
-  font-weight: 680;
-  color: #067a5b;
+  font-weight: 700;
+  color: var(--cclash-success);
 }
 
-.cclash-ranks__refresh {
-  padding: 6px 16px;
-  border: 1px solid rgba(31, 41, 55, 0.2);
-  border-radius: var(--mx2-r-md);
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.78rem;
-}
+// Refresh button: mx2-btn--ghost provides all base styles; no override needed.
 
 .cclash-history {
   list-style: none;
@@ -878,8 +840,21 @@
 }
 
 .cclash-history__won {
-  color: #067a5b;
-  font-weight: 620;
+  color: var(--cclash-success);
+  font-weight: 600;
+}
+
+/* PlayStage root forwarded className — reserved for any future stage-level overrides. */
+.cclash-stage {
+  // Intentionally empty; remove className in TSX if no overrides are ever added.
+}
+
+/* Starting status paragraph shown while the lobby boots a paid round. */
+.cclash-lobby__starting {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--cclash-muted);
+  text-align: center;
 }
 
 /* ------------------------------------------------------------ keyframes -- */
@@ -1062,7 +1037,7 @@
     gap: 3px;
   }
 
-  .cclash-mode__lights i {
+  .cclash-mode__lights span {
     height: 6px;
   }
 

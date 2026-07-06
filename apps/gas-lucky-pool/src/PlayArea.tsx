@@ -95,6 +95,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const isOneGateClaimLaunch = isClaimOperation && Boolean(launchClaimKey);
   const launchOneGateAppId = getLaunchParam(launchContext, ["oneGateAppId", "oneGateId", "onegateAppId"], "");
   const claimSucceeded = lastSuccessType === "claim" && claimStatus === "paid" && Boolean(lastTxid) && !lastError;
+  const createSucceeded = lastSuccessType === "create" && Boolean(lastTxid) && !lastError;
 
   const [claimKey, setClaimKey] = useState(currentClaimKey || launchClaimKey);
   const [claimPreview, setClaimPreview] = useState(false);
@@ -490,8 +491,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   );
 
   const scene = (
-    <div className="vault-scene" data-state={createAnimating ? "funding" : rewardPlanReady ? "ready" : "draft"}>
-      <div className={["vault-scene__vault-shell", createAnimating ? "vault-scene__vault-shell--funding" : null, rewardPlanReady ? "vault-scene__vault-shell--ready" : null].filter(Boolean).join(" ")}>
+    <div className="vault-scene" data-state={createSucceeded ? "success" : createAnimating ? "funding" : rewardPlanReady ? "ready" : "draft"}>
+      <div className={["vault-scene__vault-shell", createAnimating ? "vault-scene__vault-shell--funding" : null, createSucceeded ? "vault-scene__vault-shell--success" : null, rewardPlanReady ? "vault-scene__vault-shell--ready" : null].filter(Boolean).join(" ")}>
         <img className="vault-scene__vault-art" src={VAULT_ART} alt="" aria-hidden="true" draggable={false} decoding="async" />
         <div className="vault-scene__vault-badge" aria-hidden="true">
           <CoinArt size={30} variant="gas" />
@@ -510,6 +511,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       <div className="vault-scene__meter" aria-hidden="true">
         <span style={{ width: `${Math.max(8, fillPct)}%` }} />
       </div>
+      {createSucceeded && <ParticleBurst coins count={14} />}
       {createAnimating && <ParticleBurst coins count={8} />}
       {createAnimating && (
         <div className="vault-scene__coin-stream" aria-hidden="true">
@@ -527,7 +529,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         <span>{t("rewardRouteUnwrap")}</span>
       </div>
       <p className="vault-scene__status" aria-live="polite">
-        {createAnimating ? t("creatingPool") : rewardPlanReady ? t("rewardMachineReady") : t("rewardMachineDraft")}
+        {createSucceeded ? t("claimCongratsTitle") : createAnimating ? t("creatingPool") : rewardPlanReady ? t("rewardMachineReady") : t("rewardMachineDraft")}
       </p>
     </div>
   );
@@ -547,6 +549,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             className={["vault-plan-card", activePlan === plan.key ? "vault-plan-card--active" : null].filter(Boolean).join(" ")}
             onClick={() => applyRewardPlan(plan)}
             disabled={createAnimating}
+            aria-pressed={activePlan === plan.key}
           >
             <span className="vault-plan-card__coin" aria-hidden="true">
               <CoinArt size={34} variant="gas" decorative />
@@ -581,13 +584,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         ]}
         actions={{
           primary: {
-            label: createAnimating ? t("creatingPool") : t("createPool"),
-            onClick: () => void handleCreate(),
-            disabled: createAnimating || !rewardPlanReady,
+            label: createSucceeded ? t("viewOnExplorer") : createAnimating ? t("creatingPool") : t("createPool"),
+            onClick: () => void (createSucceeded ? window.open(explorerTxUrl(lastTxid, launchContext.network), "_blank") : handleCreate()),
+            disabled: !createSucceeded && (createAnimating || !rewardPlanReady),
             loading: createAnimating,
           },
         }}
-        drawerToggleLabel={t("managePoolShort")}
+        drawerToggleLabel={t("manageExistingTitle")}
         drawer={{
           title: t("manageExistingTitle"),
           children: creatorDrawer,

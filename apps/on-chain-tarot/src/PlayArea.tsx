@@ -187,8 +187,12 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
                     .filter(Boolean)
                     .join(" ")}
                   onClick={() => card && !card.flipped && void dispatch("flipCard", index)}
-                  disabled={!card || card.flipped || isDealing}
-                  aria-label={t(slotKey)}
+                  disabled={isDealing || Boolean(card && card.flipped)}
+                  aria-label={
+                    revealed && card
+                      ? `${t(slotKey)}: ${card.name}, ${cardKeywords(card)}`
+                      : t(slotKey)
+                  }
                 >
                   <span className="tarot-scene__slot-frame">
                     {card ? (
@@ -332,18 +336,27 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
           title: t("readingIntentTitle"),
           children: (
             <>
-              <div className="tarot-drawer__intent-grid" aria-label={t("quickIntentLabel")}>
-                {questionPresets.map((preset) => (
-                  <button
-                    key={preset.valueKey}
-                    type="button"
-                    className="tarot-drawer__intent-card"
-                    onClick={() => void dispatch("setQuestion", t(preset.valueKey))}
-                  >
-                    <span>{t(preset.labelKey)}</span>
-                    <strong>{t(preset.valueKey)}</strong>
-                  </button>
-                ))}
+              <div
+                role="radiogroup"
+                className="tarot-drawer__intent-grid"
+                aria-label={t("quickIntentLabel")}
+              >
+                {questionPresets.map((preset) => {
+                  const isSelected = t(preset.valueKey) === question;
+                  return (
+                    <button
+                      key={preset.valueKey}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className="mx2-btn tarot-drawer__intent-card"
+                      onClick={() => void dispatch("setQuestion", t(preset.valueKey))}
+                    >
+                      <span>{t(preset.labelKey)}</span>
+                      <strong>{t(preset.valueKey)}</strong>
+                    </button>
+                  );
+                })}
               </div>
               <label className="tarot-drawer__question-card">
                 <span className="tarot-drawer__question-label">{t("questionLabel")}</span>
@@ -362,20 +375,20 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
                 </span>
               </label>
 
-              <div className="tarot-drawer__flow" aria-label={t("readingFlowTitle")}>
-                <span>
+              <ol className="tarot-drawer__flow" aria-label={t("readingFlowTitle")}>
+                <li>
                   <strong>{t("readingStepOneShort")}</strong>
                   <em>{t("readingStepOneCopy")}</em>
-                </span>
-                <span>
+                </li>
+                <li>
                   <strong>{t("readingStepTwoShort")}</strong>
                   <em>{t("readingStepTwoCopy")}</em>
-                </span>
-                <span>
+                </li>
+                <li>
                   <strong>{t("readingStepThreeShort")}</strong>
                   <em>{t("readingStepThreeCopy")}</em>
-                </span>
-              </div>
+                </li>
+              </ol>
 
               <div className="tarot-drawer__safety">
                 <h4>{t("verificationPanelTitle")}</h4>

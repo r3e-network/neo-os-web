@@ -153,6 +153,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div
       className="survivor-scene"
       data-state={buyAnimating ? "buying" : settleAnimating ? "settling" : liveDanger ? dangerLevel : needsLifecycleSync ? "ended" : "idle"}
+      data-danger={liveDanger ? dangerLevel : "low"}
       style={sceneStyle}
     >
       <img className="survivor-scene__arena-art" src={ARENA_IMAGE} alt="" aria-hidden="true" />
@@ -179,7 +180,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         className="survivor-scene__relic"
         onClick={() => void handleBuyKeys()}
         disabled={!canBuyKeys || buyAnimating}
-        aria-label={buyAnimating ? t("buying") : t("buyKeys")}
+        aria-label={settleAnimating ? t("settlingRound") : buyAnimating ? t("buying") : t("buyKeys")}
       >
         <img className="survivor-scene__relic-art" src={RELIC_IMAGE} alt="" aria-hidden="true" />
         <span className="survivor-scene__relic-scrim" aria-hidden="true" />
@@ -249,7 +250,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {serviceNotice && <p className="survivor-scene__notice" role="alert">{serviceNotice}</p>}
 
-      <p className="survivor-scene__status" aria-live="polite">
+      {(buyAnimating || settleAnimating) && (
+        <span
+          className="survivor-scene__tx-announce"
+          aria-live="assertive"
+          aria-atomic="true"
+          style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap' }}
+        >
+          {buyAnimating ? t("buying") : t("settlingRound")}
+        </span>
+      )}
+
+      <p className="survivor-scene__status" aria-live="polite" aria-atomic="true">
         {buyAnimating
           ? t("buying")
           : settleAnimating
@@ -284,7 +296,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   .filter(Boolean).join(" ")}
                 onClick={() => handleKeyCountChange(preset)}
                 disabled={buyAnimating}
-                aria-pressed={active}
+                aria-pressed={active ? "true" : "false"}
                 aria-label={`${preset} ${t("keysSuffix")}`}
               >
                 <span className="survivor-preset__icon" aria-hidden="true">
@@ -365,9 +377,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         }
         score={[
           { label: t("totalPot"), value: totalPotDisplay, accent: true },
-          { label: t("yourKeys"), value: String(userKeys) },
+          { label: t("yourKeys"), value: `${userKeys} · ${userSharePercent > 0 ? `${userSharePercent.toFixed(1)}%` : "—"}` },
           { label: t("totalKeys"), value: String(totalKeys) },
-          { label: t("share"), value: userSharePercent > 0 ? `${userSharePercent.toFixed(1)}%` : "—" },
         ]}
         actions={{
           primary: {

@@ -333,7 +333,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           );
         })}
       </div>
-      <p className="sheep-lobby__pool">
+      <p className="sheep-lobby__pool" data-ready={rewardPoolReady ? "true" : "false"}>
         {t("poolLine", { pool: poolFree.toFixed(2) })}
         {creditGas > 0 ? ` · ${t("creditLine", { credit: creditGas.toFixed(2) })}` : ""}
         {!rewardPoolReady ? ` · ${t("statusPoolLow")}` : ""}

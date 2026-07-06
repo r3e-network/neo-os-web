@@ -307,11 +307,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       )}
 
       {/* mode switch */}
-      <div className="redenv-scene__tabs" role="tablist">
+      <div className="redenv-scene__tabs" role="tablist" aria-label={t("title")}>
         <button
           type="button"
           role="tab"
+          id="redenv-tab-claim"
           aria-selected={mode === "claim"}
+          tabIndex={mode === "claim" ? 0 : -1}
           className={["redenv-tab", mode === "claim" ? "redenv-tab--active" : null].filter(Boolean).join(" ")}
           onClick={() => setMode("claim")}
         >
@@ -320,7 +322,9 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         <button
           type="button"
           role="tab"
+          id="redenv-tab-create"
           aria-selected={mode === "create"}
+          tabIndex={mode === "create" ? 0 : -1}
           className={["redenv-tab", mode === "create" ? "redenv-tab--active" : null].filter(Boolean).join(" ")}
           onClick={() => setMode("create")}
         >

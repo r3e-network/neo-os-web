@@ -487,7 +487,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </div>
       <p
         className="snake-lobby__pool"
-        data-blocked={walletConnected ? undefined : "true"}
+        data-blocked={!walletConnected || !rewardPoolReady ? "true" : "false"}
       >
         {walletConnected
           ? t("poolLine", { pool: poolFree.toFixed(2) })
@@ -567,7 +567,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           />
         </span>
       </div>
-      <p className="snake-controls-hint">{t("controlsHint")}</p>
+      <p className="snake-controls-hint" role="note">{t("controlsHint")}</p>
       {!minSolveReached && hasWon && (
         <p className="snake-hint" role="status">
           {t("minSolveHint", {
@@ -591,6 +591,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const scene = (
     <div
       className="snake-scene"
+      style={{ borderRadius: "var(--mx2-r-lg)" }}
       data-state={
         isSubmitting
           ? "submitting"
@@ -715,7 +716,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ),
         }}
         scene={scene}
-        score={gameStatus === "idle" ? undefined : [
+        score={[
           {
             label: t("scoreReward"),
             value: `${gasDisplay(rule.rewardFixed8)} GAS`,
@@ -774,7 +775,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {myHistory.length > 0 ? (
                 <ul className="mx2-history">
                   {myHistory.map((row) => (
-                    <li key={row.gameId} className="mx2-history__item" data-outcome="won">
+                    <li key={row.gameId} className="mx2-history__item" data-outcome={parseFloat(row.payout) > 0 ? "won" : "lost"}>
                       <span className="mx2-history__face">
                         {t(`difficulty_${ruleOf(row.difficulty).key}`)}
                       </span>

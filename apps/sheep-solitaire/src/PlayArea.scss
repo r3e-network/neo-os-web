@@ -86,10 +86,19 @@
   overflow: hidden;
   isolation: isolate;
   padding: 18px 16px 16px;
-  border: 1px solid rgba(63, 98, 18, 0.1);
+  border: 1px solid rgba(63, 98, 18, 0.12);
   border-radius: 22px;
   background: var(--sheep-paper);
-  box-shadow: none;
+  box-shadow:
+    0 2px 8px rgba(56, 42, 20, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.sheep-scene[data-state="gameover"] {
+  border-color: rgba(180, 35, 24, 0.3);
+  box-shadow:
+    0 2px 8px rgba(180, 35, 24, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .sheep-scene > *:not(.sheep-scene__felt, .sheep-scene__mascot) {
@@ -427,6 +436,13 @@
   color: var(--mx2-text-muted);
   font-size: 0.8rem;
   text-align: center;
+  transition: all 180ms ease;
+}
+
+.sheep-lobby__pool[data-ready="false"] {
+  border-color: rgba(180, 35, 24, 0.24);
+  background: rgba(251, 113, 133, 0.06);
+  color: #991b1b;
 }
 
 .sheep-lobby__result {
@@ -467,8 +483,9 @@
 
 .sheep-timer__clock {
   font-variant-numeric: tabular-nums;
-  font-size: 1.06rem;
-  font-weight: 650;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .sheep-timer__reward {
@@ -487,10 +504,11 @@
 }
 
 .sheep-timer__track {
-  height: 8px;
+  height: 9px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(31, 41, 55, 0.08);
+  box-shadow: inset 0 1px 2px rgba(56, 42, 20, 0.06);
 }
 
 .sheep-timer__track i {
@@ -570,8 +588,8 @@
 }
 
 .sheep-card--exposed:hover:not(:disabled) {
-  transform: translateY(-6px) scale(1.03);
-  filter: drop-shadow(0 10px 16px rgba(63, 98, 18, 0.14));
+  transform: translateY(-6px) scale(1.04);
+  filter: drop-shadow(0 12px 20px rgba(63, 98, 18, 0.18));
 }
 
 .sheep-card--exposed:active:not(:disabled) {
@@ -637,9 +655,12 @@
   justify-items: center;
   overflow: hidden;
   padding: 14px 18px;
-  border: 1px solid rgba(63, 98, 18, 0.12);
+  border: 1px solid rgba(63, 98, 18, 0.14);
   border-radius: 16px;
-  background: rgba(255, 253, 248, 0.74);
+  background: rgba(255, 253, 248, 0.84);
+  box-shadow:
+    0 2px 6px rgba(56, 42, 20, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .sheep-slots__tray-art {
@@ -730,18 +751,47 @@
   color: var(--mx2-text);
   font-size: 0.75rem;
   font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.sheep-tool:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(63, 98, 18, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 14px rgba(56, 42, 20, 0.1);
+}
+
+.sheep-tool:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+  box-shadow: none;
 }
 
 .sheep-tool--armed {
-  border-color: rgba(185, 28, 28, 0.38);
-  background: rgba(185, 28, 28, 0.07);
+  border-color: rgba(185, 28, 28, 0.52);
+  background: rgba(185, 28, 28, 0.09);
   color: #991b1b;
   font-weight: 650;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.1);
+}
+
+.sheep-tool--armed:hover:not(:disabled) {
+  border-color: rgba(185, 28, 28, 0.7);
+  background: rgba(185, 28, 28, 0.13);
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.14), 0 0 0 3px rgba(185, 28, 28, 0.1);
 }
 
 .sheep-tool:disabled {
-  cursor: default;
-  opacity: 0.45;
+  cursor: not-allowed;
+  opacity: 0.42;
+  transform: none;
 }
 
 .sheep-shuffle {

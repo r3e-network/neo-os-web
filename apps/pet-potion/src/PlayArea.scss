@@ -11,16 +11,21 @@
 
 .pp-playarea {
   display: block;
-  --mx2-stage-floor: #faf9f7;
-  --pp-ink: #463b2f;
-  --pp-muted: #75685a;
-  --pp-panel: #fffdf8;
-  --pp-warm: #fff6e4;
-  --pp-border: #eadfc8;
-  --pp-jade: #16c784;
-  --pp-jade-strong: #0ea371;
-  --pp-gold: #d8a742;
-  --pp-rose: #ef8ca8;
+  /* Canvas tokens — map to mx2 system so dark-mode / theming applies */
+  --mx2-stage-floor: var(--mx2-bg);
+  --pp-ink: var(--mx2-ink);
+  --pp-muted: var(--mx2-text-muted);
+  --pp-panel: var(--mx2-surface);
+  --pp-warm: var(--mx2-accent-soft);  /* #fff6e6 in game category */
+  --pp-border: var(--mx2-border);
+  /* Theme accent overrides — intentional, game-specific palette */
+  --pp-jade: #16c784;         /* ≈ var(--mx2-brand), pet-care positive indicator */
+  --pp-jade-strong: #0ea371;  /* ≈ var(--mx2-brand-hover) */
+  --pp-gold: #d8a742;         /* secondary game accent (gold tier / rewards) */
+  --pp-rose: #ef8ca8;         /* tertiary game accent (pet / affection action) */
+  /* Per-action hover accent colors */
+  --pp-action-feed: #f97316;  /* warm orange — feed action */
+  --pp-action-rest: #9c8ad4;  /* soft lavender — rest action */
 }
 
 .pp-playarea .mx2-stage__scene {
@@ -67,7 +72,7 @@
   gap: 12px;
   overflow: hidden;
   padding: 14px;
-  border: 1px solid rgba(234, 223, 200, 0.7);
+  border: 1px solid color-mix(in srgb, var(--pp-border) 70%, transparent);
   border-radius: 10px;
   background: rgba(255, 253, 248, 0.94);
   box-shadow: var(--mx2-shadow);
@@ -317,7 +322,7 @@
   border: 1px solid var(--pp-border);
   border-radius: 8px;
   padding: 7px 8px;
-  background: #ffffff;
+  background: var(--mx2-surface);
   box-shadow: none;
   cursor: pointer;
   text-align: left;
@@ -787,7 +792,7 @@
   &:hover:not(:disabled) {
     transform: translateY(-2px);
     border-color: rgba(22, 199, 132, 0.32);
-    background: #ffffff;
+    background: var(--mx2-surface);
     box-shadow: 0 8px 18px rgba(98, 67, 21, 0.07);
   }
 
@@ -814,7 +819,7 @@
 
   /* Per-action styling — warm nursery accents (apricot / gold / rose / soft lavender) */
   &[data-action="feed"]:hover:not(:disabled) {
-    border-color: #f97316;
+    border-color: var(--pp-action-feed);
     box-shadow: 0 0 12px rgba(249, 115, 22, 0.2);
   }
   &[data-action="play"]:hover:not(:disabled) {
@@ -826,7 +831,7 @@
     box-shadow: 0 0 12px rgba(239, 140, 168, 0.2);
   }
   &[data-action="rest"]:hover:not(:disabled) {
-    border-color: #9c8ad4;
+    border-color: var(--pp-action-rest);
     box-shadow: 0 0 12px rgba(156, 138, 212, 0.2);
   }
 }
