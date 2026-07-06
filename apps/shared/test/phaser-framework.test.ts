@@ -63,11 +63,34 @@ describe("root Phaser framework", () => {
       resolve(repoRoot, "apps/on-chain-tarot/src/scenes/TarotScene.ts"),
       "utf8",
     );
+    const migratedScenes = [
+      "burn-league",
+      "color-clash",
+      "fogplay",
+      "pet-potion",
+      "red-envelope",
+    ].map((app) =>
+      readFileSync(resolve(repoRoot, `apps/${app}/src/scenes`, `${toSceneName(app)}.ts`), "utf8"),
+    );
 
     expect(baseScene).toContain("protected bindGameButton");
     expect(baseScene).toContain("protected pressFeedback");
     expect(baseScene).toContain("prefers-reduced-motion");
     expect(diceScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     expect(tarotScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    for (const scene of migratedScenes) {
+      expect(scene).toContain("this.bindGameButton");
+    }
   });
 });
+
+function toSceneName(app: string): string {
+  const names: Record<string, string> = {
+    "burn-league": "BurnLeagueScene",
+    "color-clash": "ColorClashScene",
+    fogplay: "FogplayScene",
+    "pet-potion": "PetPotionScene",
+    "red-envelope": "RedEnvelopeScene",
+  };
+  return names[app]!;
+}
