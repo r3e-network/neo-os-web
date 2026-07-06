@@ -21,8 +21,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     openingId:     val<string | null>("openingId") ?? null,
     luckyMessage:  val<{ amount?: number; from?: string } | null>("luckyMessage") ?? null,
     envelopes:     val("envelopes") ?? [],
+    pools:         val("pools") ?? [],
     isLoading:     bool("isLoading"),
+    isCreating:    bool("isCreating"),
     prepaidCredit: val<number>("prepaidCredit") ?? 0,
+    lastCreatedEnvelopeId: val<string>("lastCreatedEnvelopeId") ?? "",
+    envelopeCount: val<number>("envelopeCount") ?? 0,
+    claimCount:    val<number>("claimCount") ?? 0,
+    totalCreated:  val<number>("totalCreated") ?? 0,
+    totalClaimed:  val<number>("totalClaimed") ?? 0,
   };
   return (
     <div className="redenv-play-area mx2 mx2-cat-game">
