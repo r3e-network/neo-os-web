@@ -151,6 +151,22 @@ describe("root Phaser framework", () => {
         ],
       },
       {
+        app: "red-envelope",
+        scene: "RedEnvelopeScene",
+        assets: [
+          "./red-envelope-stage.webp",
+          "./red-envelope-claim-card.webp",
+          "@shared/assets/tokens/gas-icon.svg?url",
+        ],
+        usage: [
+          "REDENV_ASSETS",
+          "ENVELOPE_PLANS",
+          "dispatch(\"createEnvelope\"",
+          "dispatch(\"claimEnvelope\"",
+          "dispatch(\"shareEnvelope\"",
+        ],
+      },
+      {
         app: "color-clash",
         scene: "ColorClashScene",
         assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
@@ -282,6 +298,23 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: vault art should be loaded from assets, not hand-drawn as primitives`).not.toContain(
           "drawVaultDoor",
+        );
+      }
+      if (app === "red-envelope") {
+        expect(source, `${app}: Phaser create action should match the registered framework action`).not.toContain(
+          "sendEnvelopes",
+        );
+        expect(source, `${app}: Phaser claim action should match the registered framework action`).not.toContain(
+          "openEnvelope",
+        );
+        expect(source, `${app}: red envelope should use loaded art, not the old hand-drawn flap helper`).not.toContain(
+          "drawFlap",
+        );
+        expect(source, `${app}: red envelope should use loaded art, not the old hand-drawn seal helper`).not.toContain(
+          "drawSeal",
+        );
+        expect(source, `${app}: open affordance should be a real action button, not old placeholder copy`).not.toContain(
+          "TAP TO OPEN",
         );
       }
     }
