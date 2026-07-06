@@ -21,15 +21,22 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     dangerLevel:      str("dangerLevel", "low"),
     dangerLevelText:  str("dangerLevelText", ""),
     totalPotDisplay:  str("totalPotDisplay", "0.00 GAS"),
+    keyCount:         str("keyCount", "1"),
+    keyValidationError: str("keyValidationError", ""),
+    estimatedCost:    str("estimatedCost", "0.00"),
     userKeys:         num("userKeys"),
     totalKeys:        num("totalKeysDisplay"),
     lastBuyerLabel:   str("lastBuyerLabel", "--"),
     isRoundActive:    bool("isRoundActive"),
     isBuyingKeys:     bool("isBuyingKeys"),
     isSettling:       bool("isSettling"),
+    needsLifecycleSync: bool("needsLifecycleSync"),
     roundDataAvailable: bool("roundDataAvailable"),
+    roundStatusDisplay: str("roundStatusDisplay", ""),
+    shouldPulse:      bool("shouldPulse"),
     serviceNotice:    str("serviceNotice", ""),
     prepaidCredit:    num("prepaidCredit"),
+    viewerAddress:    str("viewerAddress", ""),
   };
   return (
     <div className="survivor-play-area mx2 mx2-cat-game">
@@ -43,8 +50,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
         }}
         scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={560} />}
         actions={{
-          secondary: bool("isSettling")
-            ? [{ label: t("settleSeason"), onClick: () => void dispatch("settle"), loading: bool("isSettling") }]
+          secondary: bool("needsLifecycleSync")
+            ? [{ label: t("settleRound"), onClick: () => void dispatch("settleRound"), loading: bool("isSettling") }]
             : (num("prepaidCredit") > 0
               ? [{ label: t("withdrawCredit"), onClick: () => void dispatch("withdrawCredit") }]
               : undefined),
