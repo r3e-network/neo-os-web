@@ -1,7 +1,6 @@
 import { createObservable, defineMiniApp } from "@shared/react";
 import { parseBigInt } from "@shared/utils/parsers";
 import { asNumber } from "@framework/game";
-import type { LeaderEntry, SolveRow } from "@framework/game";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -72,7 +71,7 @@ defineMiniApp({
     // The wrapper methods delegate verbatim to the @shared/gamefi
     // startRewardGame / finalizeRewardGame orchestration; keep the canonical
     // SDK verbs at the entry/settlement call sites.
-    const { start, finalize } = rewardGame;
+    const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;
 
     const refreshBalances = async (): Promise<void> => {
       try {
@@ -194,7 +193,7 @@ defineMiniApp({
       obs.isStarting.set(true);
       obs.lastStatus.set(ctx.t("statusStarting"));
       try {
-        const started = await start(difficulty);
+        const started = await startRewardGame(difficulty);
         const gameId = started.gameId;
         obs.activeGameId.set(gameId);
         obs.gameDifficulty.set(difficulty);
@@ -244,7 +243,7 @@ defineMiniApp({
         if (!session) throw new Error(ctx.t("statusFailed"));
         // The accuracy hits are re-derived by the kernel from the sealed aim
         // op-log (engine.replay); the client no longer signs a ring count.
-        const finalized = await finalize(session);
+        const finalized = await finalizeRewardGame(session);
         const settled = finalized.settlement;
         obs.lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
         obs.lastElapsedMs.set(settled.elapsedMs);

@@ -17,7 +17,7 @@ import { PlayArea } from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, emptyBoard, BOARD_SIZE } from "./logic/game-rules";
-import type { LeaderEntry, SolveRow } from "@framework/game";
+import type { GameSessionStatus, LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
 const appId       = "miniapp-merge-kingdom";
@@ -43,6 +43,17 @@ const rewardGameConfig = {
     target:       rule.targetTile,
   })),
 };
+
+function sessionStatusOf(raw: number): GameSessionStatus {
+  switch (statusOf(raw)) {
+    case "awaiting-bind": return "committed";
+    case "playing": return "dealt";
+    case "solved": return "solved";
+    case "expired": return "expired";
+    case "refunded": return "refunded";
+    default: return "unknown";
+  }
+}
 
 // Merge-Kingdom SolveRow adds tileAchieved (unique field)
 interface MergeRow extends SolveRow {
@@ -319,7 +330,7 @@ defineMiniApp({
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, board, tileAchieved, moveCount, lastPayoutFixed8 },
+      state: { ...obs, board, tileAchieved, moveCount, lastPayoutFixed8, walletConnected: app.chain.address },
       loadData: async () => {
         await refreshBalances();
         const playerHash = app.game.player.scriptHash();
@@ -333,7 +344,7 @@ defineMiniApp({
             if (active !== "0") {
               obs.activeGameId.set(active);
               const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(active)]);
-              app.game.session.applySnapshot(obs, game, statusOf);
+              app.game.session.applySnapshot(obs, game, sessionStatusOf);
               if (obs.gameStatus.get() === "dealt") {
                 await resumeSession(active, obs.gameDifficulty.get());
               } else if (obs.gameStatus.get() === "committed") {
@@ -375,6 +386,7 @@ function MergeKingdomAdapter(props: PlayAreaProps) {
     isStarting:      bool("isStarting"),
     isDealing:       bool("isDealing"),
     isSubmitting:    bool("isSubmitting"),
+    walletConnected: bool("walletConnected"),
     lastStatus:      str("lastStatus", ""),
   };
 

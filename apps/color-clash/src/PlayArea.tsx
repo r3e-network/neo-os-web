@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
+import type { LeaderEntry } from "@framework/game";
 import {
   ruleOf,
   payoutFixed8,
@@ -12,7 +13,7 @@ import {
 } from "./logic/game-rules";
 import "./PlayArea.scss";
 
-interface AppState {
+export interface AppState {
   credit: number;
   poolFree: number;
   activeGameId: string | null;
@@ -27,18 +28,18 @@ interface AppState {
   lastPayout: number;
   lastElapsedMs: number;
   seqAchieved: number;
-  leaderboard: Array<{ player: string; totalWon: number; solved: number }>;
+  leaderboard: LeaderEntry[];
   myRank: number;
   myTotalWon: number;
   mySolves: number;
-  myHistory: Array<{ gameId: string; difficulty: number; payout: number; solveMs: number; undos: number; seqAchieved: number }>;
+  myHistory: Array<{ gameId: string; difficulty: number; payout: number | string; solveMs: number; undos: number; seqAchieved: number }>;
   isStarting: boolean;
   isDealing: boolean;
   isSubmitting: boolean;
   lastStatus: string;
 }
 
-interface Actions {
+export interface Actions {
   startGame: (difficulty: number) => Promise<void>;
   retryDeal: () => Promise<void>;
   recordPress: (color: number) => Promise<void>;
@@ -82,6 +83,16 @@ function shortAddr(addr: string): string {
   if (addr.length <= 12) return addr;
   return `${addr.slice(0, 8)}…${addr.slice(-4)}`;
 }
+
+type LeaderRow = {
+  address?: string;
+  player?: string;
+  rank?: number;
+  totalWon?: number;
+  solves?: number;
+  solved?: number;
+  isUser?: boolean;
+};
 
 function gasAmountDisplay(amount: number): string {
   if (!Number.isFinite(amount)) return "0.00";
@@ -569,15 +580,23 @@ export function PlayArea({ state, actions }: Props) {
         <p className="cclash-drawer__empty">{t("leaderboardEmpty")}</p>
       ) : (
         <ol className="cclash-ranks">
-          {state.leaderboard.map((entry, i) => (
-            <li key={entry.player} className="cclash-ranks__row" data-me={i + 1 === state.myRank ? "true" : undefined}>
-              <span className="cclash-ranks__rank">#{i + 1}</span>
-              <span className="cclash-ranks__addr">{shortAddr(entry.player)}</span>
-              <span className="cclash-ranks__solves">{t("solvesCount", { count: entry.solved })}</span>
-              <span className="cclash-ranks__won">{gasAmountDisplay(entry.totalWon)} GAS</span>
-              {i + 1 === state.myRank && <span className="cclash-ranks__me">{t("youTag")}</span>}
+          {state.leaderboard.map((rawEntry, index) => {
+            const entry = rawEntry as LeaderRow;
+            const address = String(entry.address ?? entry.player ?? "");
+            const solves = Number(entry.solves ?? entry.solved ?? 0);
+            const totalWon = Number(entry.totalWon ?? 0);
+            const rank = entry.rank ?? index + 1;
+            const isUser = entry.isUser ?? (state.myRank > 0 && rank === state.myRank);
+            return (
+            <li key={address || index} className="cclash-ranks__row" data-me={isUser ? "true" : undefined}>
+              <span className="cclash-ranks__rank">#{rank}</span>
+              <span className="cclash-ranks__addr">{shortAddr(address)}</span>
+              <span className="cclash-ranks__solves">{t("solvesCount", { count: solves })}</span>
+              <span className="cclash-ranks__won">{gasAmountDisplay(totalWon)} GAS</span>
+              {isUser && <span className="cclash-ranks__me">{t("youTag")}</span>}
             </li>
-          ))}
+            );
+          })}
         </ol>
       )}
       <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void actions.refreshLeaderboard()}>
@@ -593,7 +612,9 @@ export function PlayArea({ state, actions }: Props) {
               <span>#{h.gameId}</span>
               <span>{t(`difficulty_${DIFF_KEYS[h.difficulty]}`)}</span>
               <span>{t("scoreSeqLen")}: {h.seqAchieved}</span>
-              <span className="cclash-history__won">+{gasDisplay(h.payout)} GAS</span>
+              <span className="cclash-history__won">
+                +{typeof h.payout === "number" ? `${gasDisplay(h.payout)} GAS` : h.payout}
+              </span>
             </li>
           ))}
         </ul>

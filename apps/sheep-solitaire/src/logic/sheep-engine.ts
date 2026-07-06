@@ -78,7 +78,9 @@ function shuffle<T>(arr: T[], rand: () => number): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    const current = a[i]!;
+    a[i] = a[j]!;
+    a[j] = current;
   }
   return a;
 }
@@ -132,13 +134,13 @@ export function generateCardLayout(seed: number, cardTypes: number): LayoutResul
   let id = 0;
 
   // Layer 2 (bottom) first
-  const lc2 = layerConfigs[2];
+  const lc2 = layerConfigs[2]!;
   for (let i = 0; i < cardsPerLayer && i < shuffled2.length; i++) {
     const col = i % lc2.cols;
     const row = Math.floor(i / lc2.cols);
     cards.push({
       id: id++,
-      symbol: shuffled2[i],
+      symbol: shuffled2[i]!,
       layer: 2,
       col,
       row,
@@ -146,13 +148,13 @@ export function generateCardLayout(seed: number, cardTypes: number): LayoutResul
   }
 
   // Layer 1 (middle)
-  const lc1 = layerConfigs[1];
+  const lc1 = layerConfigs[1]!;
   for (let i = 0; i < cardsPerLayer && i < shuffled1.length; i++) {
     const col = i % lc1.cols;
     const row = Math.floor(i / lc1.cols);
     cards.push({
       id: id++,
-      symbol: shuffled1[i],
+      symbol: shuffled1[i]!,
       layer: 1,
       col,
       row,
@@ -160,13 +162,13 @@ export function generateCardLayout(seed: number, cardTypes: number): LayoutResul
   }
 
   // Layer 0 (top)
-  const lc0 = layerConfigs[0];
+  const lc0 = layerConfigs[0]!;
   for (let i = 0; i < cardsPerLayer && i < shuffled0.length; i++) {
     const col = i % lc0.cols;
     const row = Math.floor(i / lc0.cols);
     cards.push({
       id: id++,
-      symbol: shuffled0[i],
+      symbol: shuffled0[i]!,
       layer: 0,
       col,
       row,
@@ -195,13 +197,13 @@ export function computeExposed(cards: CardData[]): boolean[] {
   const exposed = new Array(cards.length).fill(true);
   const byLayer: CardData[][] = [[], [], []];
   for (const c of cards) {
-    byLayer[c.layer].push(c);
+    byLayer[c.layer]?.push(c);
   }
 
   // For each card on a lower layer, check if any higher-layer card blocks it
   for (const card of cards) {
     if (card.layer === 0) continue; // top layer is always exposed
-    for (const higher of byLayer[card.layer - 1]) {
+    for (const higher of byLayer[card.layer - 1] ?? []) {
       // Check if higher card overlaps this card
       const dx = Math.abs(higher.col - card.col);
       const dy = Math.abs(higher.row - card.row);

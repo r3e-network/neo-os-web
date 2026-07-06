@@ -1,7 +1,7 @@
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { LastSurvivorScene } from "./scenes/LastSurvivorScene";
 import "./PlayArea.scss";
 
@@ -14,7 +14,7 @@ interface P {
 const GAME_CONFIG = { scene: [LastSurvivorScene], width: 420, height: 600 } as const;
 
 export default function PhaserPlayArea({ t, state, dispatch }: P) {
-  const { str, bool, num, val } = useStateBindings(state);
+  const { str, bool, num } = useStateBindings(state);
   const bridgeState = {
     countdown:        str("countdown", "00:00:00"),
     dangerProgress:   num("dangerProgress"),

@@ -72,7 +72,7 @@ export class GameBridge {
 
   on<K extends keyof BridgeEventMap>(
     event: K,
-    listener: BridgeListener<BridgeEventMap[K]>,
+    listener: BridgeListener<K>,
   ): () => void {
     const key = event as string;
     if (!this.listeners.has(key)) this.listeners.set(key, new Set());
@@ -83,7 +83,7 @@ export class GameBridge {
 
   off<K extends keyof BridgeEventMap>(
     event: K,
-    listener: BridgeListener<BridgeEventMap[K]>,
+    listener: BridgeListener<K>,
   ): void {
     this.listeners.get(event as string)?.delete(listener as BridgeListener<never>);
   }

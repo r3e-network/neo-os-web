@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { ParticleBurst } from "@shared/art";
-import { PlayStage, Button } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2";
+import type { LeaderEntry, SolveRow } from "@framework/game";
 import { Crosshair, RefreshCw } from "lucide-react";
 import {
   DIFFICULTY_RULES,
@@ -19,7 +20,6 @@ import {
   DEFAULT_CONFIG,
 } from "./logic/aim-engine";
 import type { HitResult } from "./logic/aim-engine";
-import type { LeaderEntry, SolveRow } from "./main";
 import "./PlayArea.scss";
 
 const SUBMIT_BUFFER_MS = 15_000;
@@ -630,6 +630,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           };
 
   const secondaryActions = [
+    ...(gameStatus === "committed"
+      ? [
+          {
+            label: t("checkDealAgain"),
+            onClick: () => void dispatch("retryDeal", {}),
+            disabled: isDealing,
+            hint: t("shufflingCopy"),
+          },
+        ]
+      : []),
     ...(timeUp || (gameStatus === "committed" && !isDealing)
       ? [
           {
@@ -728,32 +738,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               ) : (
                 <p>{t("leaderboardEmpty")}</p>
               )}
-              <Button
-                variant="ghost"
+              <button
+                type="button"
+                className="mx2-btn mx2-btn--ghost"
                 onClick={() => void dispatch("refreshLeaderboard", {})}
-                icon={<RefreshCw size={16} aria-hidden="true" />}
               >
+                <RefreshCw size={16} aria-hidden="true" />
                 {t("refreshRanks")}
-              </Button>
+              </button>
               <h4>{t("historyTitle")}</h4>
               {myHistory.length > 0 ? (
                 <ul className="mx2-history">
-                  {myHistory.map((row) => (
-                    <li
-                      key={row.gameId}
-                      className="mx2-history__item"
-                      data-outcome={row.payout && Number(row.payout) > 0 ? "won" : "lost"}
-                    >
-                      <span className="mx2-history__face">
-                        {t(`difficulty_${ruleOf(row.difficulty).key}`)}
-                      </span>
-                      <span className="mx2-history__stake">{formatClock(row.elapsedMs)}</span>
-                      <span className="mx2-history__result">
-                        {t("historyRings", { rings: row.ringsHit })}
-                      </span>
-                      <span className="mx2-history__stake">{row.payout}</span>
-                    </li>
-                  ))}
+                  {myHistory.map((row) => {
+                    const ringsHit = Number(row.ringsHit ?? 0);
+                    return (
+                      <li
+                        key={row.gameId}
+                        className="mx2-history__item"
+                        data-outcome={row.payout && Number.parseFloat(row.payout) > 0 ? "won" : "lost"}
+                      >
+                        <span className="mx2-history__face">
+                          {t(`difficulty_${ruleOf(row.difficulty).key}`)}
+                        </span>
+                        <span className="mx2-history__stake">{formatClock(row.solveMs)}</span>
+                        <span className="mx2-history__result">
+                          {t("historyRings", { rings: Number.isFinite(ringsHit) ? ringsHit : 0 })}
+                        </span>
+                        <span className="mx2-history__stake">{row.payout}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p>{t("historyEmpty")}</p>

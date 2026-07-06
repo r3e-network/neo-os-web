@@ -108,21 +108,21 @@ function shortHash(value: string, head = 10, tail = 6): string {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
-  const creditGas = val<number>("credit", 0);
-  const poolFree = val<number>("poolFree", 0);
+  const creditGas = val<number>("credit", 0) ?? 0;
+  const poolFree = val<number>("poolFree", 0) ?? 0;
   const activeGameId = str("activeGameId", "0");
   const gameStatus = str("gameStatus", "idle");
-  const gameDifficulty = val<number>("gameDifficulty", 0) as Difficulty;
+  const gameDifficulty = (val<number>("gameDifficulty", 0) ?? 0) as Difficulty;
   const clues = str("clues", "");
   const commitmentHex = str("commitment", "");
-  const dealtAt = val<number>("dealtAt", 0);
-  const deadline = val<number>("deadline", 0);
-  const undosUsed = val<number>("undosUsed", 0);
+  const dealtAt = val<number>("dealtAt", 0) ?? 0;
+  const deadline = val<number>("deadline", 0) ?? 0;
+  const undosUsed = val<number>("undosUsed", 0) ?? 0;
   const lastPayout = str("lastPayout", "");
-  const leaderboard = val<LeaderEntry[]>("leaderboard", []);
-  const myRank = val<number>("myRank", 0);
-  const myTotalWon = val<number>("myTotalWon", 0);
-  const myHistory = val<SolveRow[]>("myHistory", []);
+  const leaderboard = val<LeaderEntry[]>("leaderboard", []) ?? [];
+  const myRank = val<number>("myRank", 0) ?? 0;
+  const myTotalWon = val<number>("myTotalWon", 0) ?? 0;
+  const myHistory = val<SolveRow[]>("myHistory", []) ?? [];
   const isStarting = bool("isStarting");
   const isDealing = bool("isDealing");
   const isSubmitting = bool("isSubmitting");
@@ -830,7 +830,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <span className="mx2-history__face">
                         {t(`difficulty_${ruleOf(row.difficulty).key}`)}
                       </span>
-                      <span className="mx2-history__stake">{formatClock(row.elapsedMs)}</span>
+                      <span className="mx2-history__stake">{formatClock(row.solveMs)}</span>
                       <span className="mx2-history__result">
                         {t("historyUndos", { undos: row.undos })}
                       </span>

@@ -55,7 +55,8 @@ export function generatePlatforms(seed: Uint8Array, difficulty: number): Platfor
     2: { minWidth: 70, maxWidth: 100, minGap: 140, maxGap: 260, count: 35 },  // Hard: narrow, long gaps
   };
 
-  const config = configs[difficulty] ?? configs[0];
+  const fallbackConfig = configs[0]!;
+  const config = configs[difficulty] ?? fallbackConfig;
   const platforms: Platform[] = [];
 
   // Starting platform

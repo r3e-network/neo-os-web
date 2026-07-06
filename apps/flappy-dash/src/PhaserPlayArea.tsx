@@ -12,9 +12,9 @@ import Phaser from "phaser";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { FlappyScene } from "./scenes/FlappyScene";
-import { DIFFICULTY_RULES, formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
+import { formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
 import type { LeaderEntry, SolveRow } from "./main";
 import "./PlayArea.scss";
 

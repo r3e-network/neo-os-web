@@ -8,7 +8,7 @@
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { AimMasterScene } from "./scenes/AimMasterScene";
 import { ruleOf, formatClock, gasDisplay } from "./logic/game-rules";
 import "./PlayArea.scss";
@@ -45,7 +45,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const gameStatus     = str("gameStatus", "idle");
   const gameDifficulty = val<number>("gameDifficulty", 0) ?? 0;
   const deadline       = val<number>("deadline", 0) ?? 0;
-  const dealtAt        = val<number>("dealtAt", 0) ?? 0;
   const targetAccuracy = val<number>("targetAccuracy", 3) ?? 3;
   const isSubmitting   = bool("isSubmitting");
   const isDealing      = bool("isDealing") || bool("isStarting");

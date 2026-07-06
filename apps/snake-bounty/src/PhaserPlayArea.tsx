@@ -30,7 +30,7 @@ import { useCallback } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { SnakeScene } from "./scenes/SnakeScene";
 import {
   ruleOf,

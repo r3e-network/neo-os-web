@@ -1,7 +1,7 @@
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@shared/phaser/PhaserGameComponent";
+import { PhaserGameComponent } from "@framework/phaser";
 import { TarotScene } from "./scenes/TarotScene";
 import "./PlayArea.scss";
 
@@ -37,12 +37,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           subtitle: t("appSubtitle"),
         }}
         scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={520} />}
-        actions={allFlipped
-          ? { primary: { label: t("newReading"), onClick: () => void dispatch("reset") } }
-          : !hasDrawn
-            ? { primary: { label: t("drawAction"), onClick: () => void dispatch("draw"), loading: bool("isLoading") } }
-            : undefined
-        }
+        actions={{
+          primary: allFlipped
+            ? { label: t("newReading"), onClick: () => void dispatch("reset") }
+            : !hasDrawn
+              ? { label: t("drawAction"), onClick: () => void dispatch("draw"), loading: bool("isLoading") }
+              : undefined,
+        }}
         drawerToggleLabel={t("fairnessTitle")}
         drawer={{ children: <p>{t("fairnessCopy")}</p> }}
       />

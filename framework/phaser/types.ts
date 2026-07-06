@@ -30,9 +30,13 @@ export interface GameBridgeOptions {
 
 // ── PhaserGameComponent props ─────────────────────────────────────────────────
 
+export type PhaserGameConfig = Omit<Phaser.Types.Core.GameConfig, "scene"> & {
+  scene?: Phaser.Types.Core.GameConfig["scene"] | readonly Phaser.Types.Scenes.SceneType[];
+};
+
 export interface PhaserGameProps {
   /** The Phaser.Game config to boot from (scene list, physics, etc.). */
-  config: Phaser.Types.Core.GameConfig;
+  config: PhaserGameConfig;
   /** Current app state to push into the running game whenever it changes. */
   state?: GameState;
   /** Dispatch function forwarded to the game scene. */
@@ -43,4 +47,10 @@ export interface PhaserGameProps {
   height?: string | number;
   /** Optional extra CSS class for the container div. */
   className?: string;
+  /** Accessible name for the canvas host. */
+  ariaLabel?: string;
+  /** Text shown while the Phaser scene boots. */
+  loadingLabel?: string;
+  /** Called when the scene reports that it is ready. */
+  onReady?: () => void;
 }
