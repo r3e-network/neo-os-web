@@ -2,7 +2,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Dice Game",
-  description: "Pick one face and roll on Neo N3 or Neo X (auto-detected from your wallet). On Neo N3 the roll settles atomically on-chain — instant payout, no oracle.",
+  description: "Pick one face, stake GAS, and reveal the roll with a verified on-chain settlement flow on Neo N3 or Neo X.",
   icon: "dice",
   category: "game",
   shell: "game",

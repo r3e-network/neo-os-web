@@ -7,6 +7,7 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
+import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
 
 // ── Casino color palette ─────────────────────────────────────────────────────
 const FELT_GREEN   = 0x1a5c2e;
@@ -14,30 +15,43 @@ const FELT_DARK    = 0x0f3d1e;
 const FELT_TRIM    = 0x276639;
 const GOLD         = 0xd4a843;
 const GOLD_LIGHT   = 0xf0c866;
-const CHIP_GREEN   = 0x3fb950;
-const CHIP_BLUE    = 0x58a6ff;
-const CHIP_RED     = 0xe25d4d;
-const CHIP_BLACK   = 0x444444;
-const DIE_WHITE    = 0xfafafa;
-const DIE_SHADOW   = 0xd0c8b8;
-const DOT_COLOR    = 0x1a1a1a;
 const TABLE_EDGE   = 0x8b4513;
 const TEXT_CREAM   = 0xfff8e8;
+const DIE_SIZE     = 88;
+
+const DIE_FACE_ASSETS = [
+  "dice-die-white-1",
+  "dice-die-white-2",
+  "dice-die-white-3",
+  "dice-die-white-4",
+  "dice-die-white-5",
+  "dice-die-white-6",
+] as const;
+const DIE_FACE_FILES = [
+  "./art/die-white-1.webp",
+  "./art/die-white-2.webp",
+  "./art/die-white-3.webp",
+  "./art/die-white-4.webp",
+  "./art/die-white-5.webp",
+  "./art/die-white-6.webp",
+] as const;
+const ASSET_HERO_DIE = "dice-hero-die";
+const ASSET_GAS_ICON = "dice-gas-token-icon";
 
 // Chip preset definitions
 const CHIP_PRESETS = [
-  { amount: "0.10", color: CHIP_GREEN,  label: "0.10" },
-  { amount: "0.50", color: CHIP_BLUE,   label: "0.50" },
-  { amount: "1.00", color: CHIP_RED,    label: "1.00" },
-  { amount: "5.00", color: CHIP_BLACK,  label: "5.00" },
-];
+  { amount: "0.10", asset: "dice-chip-green", file: "./art/chip-green.webp", label: "0.10" },
+  { amount: "0.50", asset: "dice-chip-blue",  file: "./art/chip-blue.webp",  label: "0.50" },
+  { amount: "1.00", asset: "dice-chip-red",   file: "./art/chip-red.webp",   label: "1.00" },
+  { amount: "5.00", asset: "dice-chip-black", file: "./art/chip-black.webp", label: "5.00" },
+] as const;
 
 const PAYOUT_MULT = 5.7;
 
 export class DiceScene extends BaseScene {
   // ── Scene objects ──────────────────────────────────────────────────────────
   private diceGroup!: Phaser.GameObjects.Container;
-  private dieFace1!: Phaser.GameObjects.Graphics;   // main die
+  private dieFace1!: Phaser.GameObjects.Image;   // main die
   private dieShadowRect!: Phaser.GameObjects.Rectangle;
 
   private faceButtons: Phaser.GameObjects.Container[] = [];
@@ -60,6 +74,17 @@ export class DiceScene extends BaseScene {
   constructor() { super("DiceScene"); }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+
+  preload(): void {
+    DIE_FACE_ASSETS.forEach((key, index) => {
+      this.load.image(key, DIE_FACE_FILES[index]!);
+    });
+    CHIP_PRESETS.forEach((chip) => {
+      this.load.image(chip.asset, chip.file);
+    });
+    this.load.image(ASSET_HERO_DIE, "./art/hero-die.webp");
+    this.load.image(ASSET_GAS_ICON, gasIconUrl);
+  }
 
   create(): void {
     super.create();
@@ -119,7 +144,7 @@ export class DiceScene extends BaseScene {
 
     // Refresh static die face when idle
     if (!rolling && !outcome) {
-      this.drawDieFace(this.dieFace1, this.selectedFace);
+      this.setDieFace(this.selectedFace);
     }
 
     // Roll button state
@@ -156,69 +181,42 @@ export class DiceScene extends BaseScene {
       grain.lineBetween(rimDepth, y, W - rimDepth, y);
     }
 
-    // Casino logo / text watermark
-    this.add.text(W / 2, H * 0.5, "NEO CASINO", {
-      fontSize: "18px",
-      fontStyle: "bold",
-      color: "#ffffff",
-      letterSpacing: 8,
-    }).setOrigin(0.5).setAlpha(0.04);
+    this.add.image(W * 0.78, H * 0.19, ASSET_HERO_DIE)
+      .setDisplaySize(72, 82)
+      .setAngle(10)
+      .setAlpha(0.14);
   }
 
   private buildDice(W: number, H: number): void {
     const cx = W / 2;
     const cy = H * 0.3;
-    const sz = 80;
 
     // Shadow
-    this.dieShadowRect = this.add.rectangle(cx + 6, cy + 8, sz, sz, 0x000000, 0.3);
+    this.dieShadowRect = this.add.rectangle(
+      cx + 6,
+      cy + 10,
+      DIE_SIZE,
+      DIE_SIZE * 0.88,
+      0x000000,
+      0.28,
+    );
     this.dieShadowRect.setBlendMode(Phaser.BlendModes.MULTIPLY);
 
-    // Die graphics object
-    this.dieFace1 = this.add.graphics();
+    // Die texture object
+    this.dieFace1 = this.add.image(0, 0, this.dieAssetKey(this.selectedFace))
+      .setDisplaySize(DIE_SIZE, DIE_SIZE);
     this.diceGroup = this.add.container(cx, cy, [this.dieFace1]);
-    this.drawDieFace(this.dieFace1, this.selectedFace);
+    this.setDieFace(this.selectedFace);
   }
 
-  /** Draw a single die face with proper dot layout. */
-  private drawDieFace(g: Phaser.GameObjects.Graphics, face: number): void {
-    g.clear();
-    const sz = 80;
-    const half = sz / 2;
-    const r = 14; // corner radius
-    const dotR = 7;
-
-    // Die body
-    g.fillStyle(DIE_WHITE);
-    g.fillRoundedRect(-half, -half, sz, sz, r);
-    // Edge shading (left/top lighter, right/bottom darker)
-    g.fillStyle(0xffffff, 0.35);
-    g.fillRoundedRect(-half, -half, sz / 4, sz, r);
-    g.fillStyle(DIE_SHADOW, 0.45);
-    g.fillRoundedRect(half - sz / 4, -half, sz / 4, sz, r);
-
-    // Die border
-    g.lineStyle(2, DIE_SHADOW, 0.6);
-    g.strokeRoundedRect(-half, -half, sz, sz, r);
-
-    // Draw dots for the given face
-    g.fillStyle(DOT_COLOR);
-    const positions = DiceScene.DOT_POSITIONS[face - 1] ?? [];
-    const spacing = sz * 0.28;
-    positions.forEach(([px, py]) => {
-      g.fillCircle(px * spacing, py * spacing, dotR);
-    });
+  private dieAssetKey(face: number): string {
+    const index = Math.max(0, Math.min(5, Math.round(face) - 1));
+    return DIE_FACE_ASSETS[index] ?? DIE_FACE_ASSETS[5];
   }
 
-  /** Classic die dot layout for faces 1–6. */
-  private static readonly DOT_POSITIONS: [number, number][][] = [
-    [[0, 0]],                                                     // 1
-    [[-1, -1], [1, 1]],                                           // 2
-    [[-1, -1], [0, 0], [1, 1]],                                   // 3
-    [[-1, -1], [1, -1], [-1, 1], [1, 1]],                        // 4
-    [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],                // 5
-    [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]],      // 6
-  ];
+  private setDieFace(face: number): void {
+    this.dieFace1.setTexture(this.dieAssetKey(face)).setDisplaySize(DIE_SIZE, DIE_SIZE);
+  }
 
   // ── Face picker (1–6 buttons) ──────────────────────────────────────────────
 
@@ -257,34 +255,32 @@ export class DiceScene extends BaseScene {
       onHoverOut: () => bg.setAlpha(1.0),
     });
 
-    const label = this.add.text(0, 0, String(face), {
-      fontSize: "18px",
-      fontStyle: "bold",
-      color: "#d4a843",
-    }).setOrigin(0.5);
+    const die = this.add.image(0, 0, this.dieAssetKey(face))
+      .setDisplaySize(28, 28)
+      .setAlpha(0.86);
 
-    c.add([bg, label]);
+    c.add([bg, die]);
     c.setData("bg", bg);
-    c.setData("label", label);
+    c.setData("die", die);
     return c;
   }
 
   private highlightFaceBtn(btn: Phaser.GameObjects.Container, active: boolean): void {
-    const bg    = btn.getData("bg") as Phaser.GameObjects.Graphics;
-    const label = btn.getData("label") as Phaser.GameObjects.Text;
+    const bg  = btn.getData("bg") as Phaser.GameObjects.Graphics;
+    const die = btn.getData("die") as Phaser.GameObjects.Image;
     bg.clear();
     bg.fillStyle(active ? GOLD : FELT_DARK, 1);
     bg.lineStyle(2, active ? GOLD_LIGHT : GOLD, active ? 1 : 0.4);
     bg.fillRoundedRect(-18, -18, 36, 36, 8);
     bg.strokeRoundedRect(-18, -18, 36, 36, 8);
-    label.setColor(active ? "#1a1a1a" : "#d4a843");
+    die.setDisplaySize(active ? 32 : 28, active ? 32 : 28).setAlpha(active ? 1 : 0.72);
   }
 
   // ── Chip tray ──────────────────────────────────────────────────────────────
 
   private buildChipTray(W: number, H: number): void {
-    const y = H * 0.69;
-    this.add.text(W / 2, y - 26, "Stake Amount", {
+    const y = H * 0.705;
+    this.add.text(W / 2, y - 44, "Stake Amount", {
       fontSize: "12px",
       color: "#d4a843",
       letterSpacing: 2,
@@ -295,7 +291,7 @@ export class DiceScene extends BaseScene {
 
     CHIP_PRESETS.forEach((chip, i) => {
       const x = startX + i * 70;
-      const btn = this.buildChip(x, y, chip.color, chip.label, () => {
+      const btn = this.buildChip(x, y, chip.asset, chip.label, () => {
         this.dispatch("setStakeAmount", { amount: chip.amount });
       });
       this.chipButtons.push(btn);
@@ -304,58 +300,65 @@ export class DiceScene extends BaseScene {
 
   private buildChip(
     x: number, y: number,
-    color: number, label: string,
+    asset: string, label: string,
     onPress: () => void,
   ): Phaser.GameObjects.Container {
     const c = this.add.container(x, y);
 
-    // Chip body (stacked circles for 3D look)
-    const shadow = this.add.ellipse(2, 3, 50, 50, 0x000000, 0.35);
-    const body   = this.add.circle(0, 0, 24, color);
-    const rim    = this.add.graphics();
-    rim.lineStyle(4, 0xffffff, 0.25);
-    rim.strokeCircle(0, 0, 22);
-    const inner  = this.add.graphics();
-    inner.lineStyle(2, 0xffffff, 0.15);
-    inner.strokeCircle(0, 0, 16);
+    const shadow = this.add.ellipse(3, 5, 52, 18, 0x000000, 0.34);
+    const activeRing = this.add.graphics();
+    const chip = this.add.image(0, 0, asset).setDisplaySize(56, 56);
 
     const lbl = this.add.text(0, 0, label, {
       fontSize: "11px",
       fontStyle: "bold",
       color: "#ffffff",
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setStroke("#1b2a1b", 3);
 
-    body.setInteractive(new Phaser.Geom.Circle(0, 0, 26), Phaser.Geom.Circle.Contains);
-    this.bindGameButton(body, {
+    const hit = this.add.circle(0, 0, 30, 0xffffff, 0);
+    hit.setInteractive(new Phaser.Geom.Circle(0, 0, 30), Phaser.Geom.Circle.Contains);
+    this.bindGameButton(hit, {
       targets: c,
       hoverScale: null,
       pressScale: 0.9,
       pressDuration: 80,
       onPress,
-      onHoverIn: () =>
-        body.setFillStyle(Phaser.Display.Color.IntegerToColor(color).lighten(20).color),
-      onHoverOut: () => body.setFillStyle(color),
+      onHoverIn: () => {
+        chip.setScale(1.06);
+        lbl.setScale(1.06);
+      },
+      onHoverOut: () => {
+        chip.setScale(1);
+        lbl.setScale(1);
+      },
     });
 
-    c.add([shadow, body, rim, inner, lbl]);
-    c.setData("body", body);
-    c.setData("color", color);
+    c.add([shadow, activeRing, chip, lbl, hit]);
+    c.setData("ring", activeRing);
+    c.setData("chip", chip);
+    c.setData("label", lbl);
     return c;
   }
 
   private highlightChipBtn(btn: Phaser.GameObjects.Container, _index: number, active: boolean): void {
     btn.setScale(active ? 1.12 : 1.0);
+    const ring = btn.getData("ring") as Phaser.GameObjects.Graphics;
+    ring.clear();
+    if (active) {
+      ring.lineStyle(3, GOLD_LIGHT, 0.92);
+      ring.strokeCircle(0, 0, 31);
+    }
   }
 
   // ── Payout row ─────────────────────────────────────────────────────────────
 
   private buildPayoutRow(W: number, H: number): void {
-    this.stakeLabel = this.add.text(W / 2 - 70, H * 0.79, "Stake: 0.10 GAS", {
+    this.stakeLabel = this.add.text(W / 2 - 70, H * 0.805, "Stake: 0.10 GAS", {
       fontSize: "14px",
       color: "#d4a843",
     }).setOrigin(0.5);
 
-    this.payoutLabel = this.add.text(W / 2 + 70, H * 0.79, "Win: 0.57 GAS", {
+    this.payoutLabel = this.add.text(W / 2 + 70, H * 0.805, "Win: 0.57 GAS", {
       fontSize: "14px",
       color: "#f0c866",
       fontStyle: "bold",
@@ -365,7 +368,7 @@ export class DiceScene extends BaseScene {
   // ── Roll button ────────────────────────────────────────────────────────────
 
   private buildRollButton(W: number, H: number): void {
-    const c = this.add.container(W / 2, H * 0.9);
+    const c = this.add.container(W / 2, H * 0.915);
 
     this.rollBtnBg = this.add.graphics();
     this.drawRollBtnBg(true);
@@ -475,7 +478,7 @@ export class DiceScene extends BaseScene {
 
     if (roll) {
       const faceNum = parseInt(roll, 10);
-      if (!isNaN(faceNum)) this.drawDieFace(this.dieFace1, faceNum);
+      if (!isNaN(faceNum)) this.setDieFace(faceNum);
     }
   }
 
@@ -492,7 +495,7 @@ export class DiceScene extends BaseScene {
       callback: () => {
         this.shuffleCounter++;
         const face = (this.shuffleCounter % 6) + 1;
-        this.drawDieFace(this.dieFace1, face);
+        this.setDieFace(face);
         this.tweens.add({
           targets: this.diceGroup,
           angle: Phaser.Math.Between(-12, 12),
@@ -535,7 +538,7 @@ export class DiceScene extends BaseScene {
       duration: 200,
       ease: "Bounce.easeOut",
     });
-    this.drawDieFace(this.dieFace1, face);
+    this.setDieFace(face);
   }
 
   // ── Particle effect (win coins) ────────────────────────────────────────────
@@ -545,19 +548,9 @@ export class DiceScene extends BaseScene {
     for (let i = 0; i < 14; i++) {
       const x = Phaser.Math.Between(W * 0.1, W * 0.9);
       const coin = this.add.container(x, H * 0.3);
-      const coinArt = this.add.graphics();
-      coinArt.fillStyle(0xffdf68, 1);
-      coinArt.fillCircle(0, 0, 10);
-      coinArt.lineStyle(2, 0xd09a2a, 1);
-      coinArt.strokeCircle(0, 0, 10);
-      coinArt.fillStyle(0xffffff, 0.36);
-      coinArt.fillCircle(-3, -4, 3);
-      const coinMark = this.add.text(0, 0, "G", {
-        fontSize: "10px",
-        fontStyle: "bold",
-        color: "#6b4e00",
-      }).setOrigin(0.5);
-      coin.add([coinArt, coinMark]);
+      const halo = this.add.ellipse(0, 0, 24, 24, 0xffdf68, 0.94);
+      const coinIcon = this.add.image(0, 0, ASSET_GAS_ICON).setDisplaySize(18, 18);
+      coin.add([halo, coinIcon]);
       this.tweens.add({
         targets: coin,
         y: Phaser.Math.Between(H * 0.1, H * 0.6),
