@@ -1,9 +1,14 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   formatBridgeError,
   GameBridge,
   type GameBridgeError,
 } from "@framework/phaser/GameBridge";
+
+const repoRoot = resolve(fileURLToPath(import.meta.url), "..", "..", "..", "..");
 
 describe("root Phaser framework", () => {
   it("surfaces rejected game dispatches as bridge errors", async () => {
@@ -46,5 +51,23 @@ describe("root Phaser framework", () => {
 
   it("normalizes unknown errors into a product-safe fallback", () => {
     expect(formatBridgeError({})).toBe("The game action could not be completed.");
+  });
+
+  it("centralizes in-canvas game button motion in the root framework", () => {
+    const baseScene = readFileSync(resolve(repoRoot, "framework/phaser/BaseScene.ts"), "utf8");
+    const diceScene = readFileSync(
+      resolve(repoRoot, "apps/dice-game/src/scenes/DiceScene.ts"),
+      "utf8",
+    );
+    const tarotScene = readFileSync(
+      resolve(repoRoot, "apps/on-chain-tarot/src/scenes/TarotScene.ts"),
+      "utf8",
+    );
+
+    expect(baseScene).toContain("protected bindGameButton");
+    expect(baseScene).toContain("protected pressFeedback");
+    expect(baseScene).toContain("prefers-reduced-motion");
+    expect(diceScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    expect(tarotScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
   });
 });
