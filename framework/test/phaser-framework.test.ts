@@ -113,6 +113,19 @@ describe("root Phaser framework", () => {
   it("uses real game art assets for migrated Phaser scenes", () => {
     const migratedAssetScenes = [
       {
+        app: "aim-master",
+        scene: "AimMasterScene",
+        assets: [
+          "./art/range-backdrop.webp",
+          "./art/target-board.webp",
+          "./art/reticle.webp",
+          "./art/badge-easy.webp",
+          "./art/badge-medium.webp",
+          "./art/badge-hard.webp",
+        ],
+        usage: ["AIM_ASSETS", "DIFFICULTY_BADGES", "dealingReticle", "buildTargetBoard"],
+      },
+      {
         app: "color-clash",
         scene: "ColorClashScene",
         assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
@@ -214,6 +227,14 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: bunny poses should switch texture assets instead of hand drawing`).not.toContain(
           "drawBunny",
+        );
+      }
+      if (app === "aim-master") {
+        expect(source, `${app}: range background should use loaded art, not manual sky constants`).not.toContain(
+          "SKY_TOP_HEX",
+        );
+        expect(source, `${app}: target board should use loaded art, not the old hand-drawn target note`).not.toContain(
+          "Concentric-ring target board",
         );
       }
     }

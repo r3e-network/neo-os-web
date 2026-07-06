@@ -2,9 +2,9 @@
  * AimMasterScene.ts — Phaser 3 scene for the Aim Master archery game.
  *
  * Renders:
- *  - Outdoorsy archery range background with warm sky gradient (#87ceeb → #f5e6c8)
- *  - Concentric-ring target board centered in the upper half
- *  - Oscillating crosshair / gauge reticle (pendulum mechanic)
+ *  - Real archery range backdrop
+ *  - Target board sprite centered in the upper half
+ *  - Oscillating reticle sprite / gauge mechanic
  *  - Round progress dots at top (accuracy hits vs required)
  *  - Timer bar with clock
  *  - Score / accuracy label
@@ -41,10 +41,6 @@ import {
 const W = 400;
 const H = 600;
 
-// Sky background gradient stops
-const SKY_TOP_HEX    = 0x87ceeb;
-const SKY_BOTTOM_HEX = 0xf5e6c8;
-
 // Target board
 const TGT_CX     = W / 2;
 const TGT_CY     = 195;
@@ -73,29 +69,45 @@ const GAUGE_HEIGHT = 16;
 // ── Color palette ────────────────────────────────────────────────────────────
 
 const C = {
-  grass:       0x4a7c3f,
-  grassLight:  0x5a9448,
-  grassDark:   0x3a6330,
-  fencePole:   0x8b6914,
-  fenceRail:   0xa07830,
-  panelBg:     0x1a1208,
-  panelBorder: 0x6b4a20,
-  accent:      0xe8b84b,
-  accentDark:  0xb8891b,
+  canvas:      0xfaf9f7,
+  surface:     0xffffff,
+  surfaceAlt:  0xfffbeb,
+  border:      0xe8e6e1,
+  borderStrong: 0xd4d0c9,
+  ink:         0x1a1a19,
+  inkSoft:     0x5c5a56,
+  inkTertiary: 0x8b8984,
+  brand:       0x16c784,
+  brandHover:  0x0ea371,
+  accent:      0xf59e0b,
   white:       0xffffff,
   black:       0x000000,
-  textMuted:   0xc0a070,
   good:        0x48d890,
   danger:      0xe04040,
-  timerFull:   0x48b0e0,
+  timerFull:   0x16c784,
   timerLow:    0xe06030,
   dotHit:      0x48d890,
-  dotCurrent:  0xe8b84b,
-  dotPending:  0x50505a,
+  dotCurrent:  0xf59e0b,
+  dotPending:  0xd4d0c9,
   dotMiss:     0xe04040,
-  reticle:     0xffffff,
-  reticleShadow: 0x000000,
 };
+
+const AIM_ASSETS = {
+  range: "aim-range-backdrop",
+  target: "aim-target-board",
+  reticle: "aim-reticle",
+  badgeEasy: "aim-badge-easy",
+  badgeMedium: "aim-badge-medium",
+  badgeHard: "aim-badge-hard",
+} as const;
+
+const DIFFICULTY_BADGES = [
+  AIM_ASSETS.badgeEasy,
+  AIM_ASSETS.badgeMedium,
+  AIM_ASSETS.badgeHard,
+] as const;
+
+const FONT_FAMILY = "Inter, Arial, sans-serif";
 
 // ── Difficulty speed config (pendulum period in ms) ──────────────────────────
 
@@ -110,7 +122,7 @@ export class AimMasterScene extends BaseScene {
   private lobbyContainer!: Phaser.GameObjects.Container;
   private diffCards: Phaser.GameObjects.Container[] = [];
   private poolText!: Phaser.GameObjects.Text;
-  private lobbyStartBtnBg!: Phaser.GameObjects.Rectangle;
+  private lobbyStartBtnBg!: Phaser.GameObjects.Graphics;
   private lobbyStartBtnLabel!: Phaser.GameObjects.Text;
   private selectedDifficulty = 0;
 
@@ -134,7 +146,7 @@ export class AimMasterScene extends BaseScene {
 
   // ── Dealing UI ─────────────────────────────────────────────────────────────
   private dealingContainer!: Phaser.GameObjects.Container;
-  private dealingDots: Phaser.GameObjects.Arc[] = [];
+  private dealingReticle!: Phaser.GameObjects.Image;
   private dealingTween: Phaser.Tweens.Tween | null = null;
 
   // ── Status bar (shared) ────────────────────────────────────────────────────
@@ -172,6 +184,15 @@ export class AimMasterScene extends BaseScene {
   }
 
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
+
+  preload(): void {
+    this.load.image(AIM_ASSETS.range, "./art/range-backdrop.webp");
+    this.load.image(AIM_ASSETS.target, "./art/target-board.webp");
+    this.load.image(AIM_ASSETS.reticle, "./art/reticle.webp");
+    this.load.image(AIM_ASSETS.badgeEasy, "./art/badge-easy.webp");
+    this.load.image(AIM_ASSETS.badgeMedium, "./art/badge-medium.webp");
+    this.load.image(AIM_ASSETS.badgeHard, "./art/badge-hard.webp");
+  }
 
   create(): void {
     super.create();
@@ -219,9 +240,6 @@ export class AimMasterScene extends BaseScene {
     this.dealtAt   = dealtAt;
     this.currentDifficulty = difficulty;
 
-    // Status bar
-    if (lastStatus) this.statusText.setText(lastStatus);
-
     // Pool text in lobby
     this.poolText.setText(`Pool: ${poolFree.toFixed(2)} GAS`);
 
@@ -244,6 +262,10 @@ export class AimMasterScene extends BaseScene {
       this.syncGameUI(pattern, targetAcc, difficulty, isSubmitting);
     }
 
+    const fallbackStatus = this.defaultStatusText(showLobby, showDealing, showGame, isStarting, isSubmitting, poolFree);
+    const forceFallback = showLobby && !this.selectedPoolIsReady(poolFree);
+    this.statusText.setText(forceFallback ? fallbackStatus : lastStatus || fallbackStatus);
+
     // Dealing animation
     if (showDealing && !this.dealingTween) {
       this.startDealingAnimation();
@@ -261,97 +283,76 @@ export class AimMasterScene extends BaseScene {
   // ── Background ─────────────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    // Sky gradient — drawn as stacked thin horizontal rectangles
-    const gradientSteps = 40;
-    const horizonY = H * 0.52;
-    for (let i = 0; i < gradientSteps; i++) {
-      const t   = i / (gradientSteps - 1);
-      const y0  = (horizonY / gradientSteps) * i;
-      const yH  = horizonY / gradientSteps + 1; // +1 to prevent seams
-      // Lerp SKY_TOP_HEX → SKY_BOTTOM_HEX
-      const r1 = (SKY_TOP_HEX >> 16) & 0xff;
-      const g1 = (SKY_TOP_HEX >> 8)  & 0xff;
-      const b1 =  SKY_TOP_HEX        & 0xff;
-      const r2 = (SKY_BOTTOM_HEX >> 16) & 0xff;
-      const g2 = (SKY_BOTTOM_HEX >> 8)  & 0xff;
-      const b2 =  SKY_BOTTOM_HEX        & 0xff;
-      const r  = Math.round(r1 + (r2 - r1) * t);
-      const g  = Math.round(g1 + (g2 - g1) * t);
-      const b  = Math.round(b1 + (b2 - b1) * t);
-      const color = (r << 16) | (g << 8) | b;
-      this.add.rectangle(W / 2, y0 + yH / 2, W, yH + 1, color);
-    }
-
-    // Ground / grass
-    this.add.rectangle(W / 2, H * 0.73, W, H * 0.43, C.grass);
-    // Grass highlight stripe
-    this.add.rectangle(W / 2, horizonY + 4, W, 8, C.grassLight);
-    // Distant dirt mound under target
-    this.add.ellipse(TGT_CX, H * 0.52 - 4, 160, 32, C.grassDark);
-
-    // Archery range lane markers (two parallel white lines)
-    const gfx = this.add.graphics();
-    gfx.lineStyle(2, 0xffffff, 0.25);
-    gfx.lineBetween(TGT_CX - 55, horizonY, TGT_CX - 70, H);
-    gfx.lineBetween(TGT_CX + 55, horizonY, TGT_CX + 70, H);
-
-    // Fence posts (simple wooden pillars on left/right)
-    for (let i = 0; i < 4; i++) {
-      const px = i * 105 + 15;
-      this.add.rectangle(px, H * 0.68, 8, 80, C.fencePole);
-      this.add.rectangle(px + 52, H * 0.68, 8, 80, C.fencePole);
-    }
-    // Fence rail
-    this.add.rectangle(W / 2, H * 0.64, W, 7, C.fenceRail);
-    this.add.rectangle(W / 2, H * 0.72, W, 5, C.fenceRail);
+    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+    this.add.image(W / 2, 0, AIM_ASSETS.range)
+      .setOrigin(0.5, 0)
+      .setDisplaySize(W, 240)
+      .setAlpha(0.96);
+    this.add.rectangle(W / 2, 250, W, 70, 0xffffff, 0.42);
+    this.add.rectangle(W / 2, 390, W, 300, 0xf4f2ef, 0.82);
   }
 
   // ── Lobby container ────────────────────────────────────────────────────────
 
   private buildLobbyContainer(): void {
-    this.lobbyContainer = this.add.container(0, 0);
+    this.lobbyContainer = this.add.container(0, 0).setDepth(20);
 
-    // Title
-    const titleBg = this.add.rectangle(W / 2, 32, 260, 40, C.panelBg, 200)
-      .setStrokeStyle(1, C.panelBorder);
-    const titleTxt = this.add.text(W / 2, 32, "Archery Range", {
-      fontSize: "18px", fontStyle: "bold", color: "#e8b84b",
-    }).setOrigin(0.5);
-    this.lobbyContainer.add([titleBg, titleTxt]);
+    const veil = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.14);
+    const heroTarget = this.add.image(W / 2, 168, AIM_ASSETS.target)
+      .setDisplaySize(184, 184);
+    const heroReticle = this.add.image(W / 2, 168, AIM_ASSETS.reticle)
+      .setDisplaySize(126, 126)
+      .setAlpha(0.92);
+    this.tweens.add({
+      targets: heroReticle,
+      angle: 8,
+      scale: 1.04,
+      duration: 900,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.lobbyContainer.add([veil, heroTarget, heroReticle]);
 
-    // Pool status
-    this.poolText = this.add.text(W / 2, H - 80, "Pool: 0.00 GAS", {
-      fontSize: "14px", color: "#c0a070",
-    }).setOrigin(0.5);
-    this.lobbyContainer.add(this.poolText);
-
-    // Difficulty cards — horizontal row, each 118px wide, 10px gap
-    const cardW = 116;
-    const cardH = 180;
-    const cardY = 290;
-    const totalW = DIFFICULTY_RULES.length * cardW + (DIFFICULTY_RULES.length - 1) * 10;
+    const cardW = 112;
+    const cardH = 116;
+    const cardY = 360;
+    const totalW = DIFFICULTY_RULES.length * cardW + (DIFFICULTY_RULES.length - 1) * 12;
     const startX = (W - totalW) / 2 + cardW / 2;
 
     DIFFICULTY_RULES.forEach((rule, i) => {
-      const cx = startX + i * (cardW + 10);
+      const cx = startX + i * (cardW + 12);
       const card = this.buildDiffCard(cx, cardY, cardW, cardH, rule);
       this.diffCards.push(card);
       this.lobbyContainer.add(card);
     });
 
-    // Start button
-    this.lobbyStartBtnBg = this.add.rectangle(W / 2, H - 40, 200, 46, C.accent)
-      .setStrokeStyle(2, 0xffd700)
-      .setOrigin(0.5);
-    this.lobbyStartBtnBg.setInteractive({ useHandCursor: true });
+    this.poolText = this.add.text(W / 2, H - 108, "Pool: 0.00 GAS", {
+      fontSize: "12px",
+      fontFamily: FONT_FAMILY,
+      color: "#5c5a56",
+    }).setOrigin(0.5);
+    this.lobbyContainer.add(this.poolText);
+
+    this.lobbyStartBtnBg = this.add.graphics();
+    this.drawLobbyStartButton(false, false);
+    this.lobbyStartBtnBg.setInteractive(
+      new Phaser.Geom.Rectangle(W / 2 - 106, H - 82, 212, 44),
+      Phaser.Geom.Rectangle.Contains,
+    );
     this.bindGameButton(this.lobbyStartBtnBg, {
       targets: this.lobbyStartBtnBg,
       pressScale: 0.96,
       onPress: () => this.dispatch("startGame", { difficulty: this.selectedDifficulty }),
     });
+    this.lobbyStartBtnBg.on("pointerover", () => this.drawLobbyStartButton(false, true));
+    this.lobbyStartBtnBg.on("pointerout", () => this.drawLobbyStartButton(false, false));
 
-    this.lobbyStartBtnLabel = this.add.text(W / 2, H - 40, "Start Game", {
-      fontSize: "18px", fontStyle: "bold", color: "#1a1208",
+    this.lobbyStartBtnLabel = this.add.text(W / 2, H - 60, "Start Aim", {
+      fontSize: "15px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#ffffff",
     }).setOrigin(0.5);
 
     this.lobbyContainer.add([this.lobbyStartBtnBg, this.lobbyStartBtnLabel]);
@@ -362,51 +363,53 @@ export class AimMasterScene extends BaseScene {
     rule: (typeof DIFFICULTY_RULES)[number],
   ): Phaser.GameObjects.Container {
     const c = this.add.container(cx, cy);
+    const active = rule.difficulty === this.selectedDifficulty;
 
-    const bg = this.add.rectangle(0, 0, cardW, cardH, C.panelBg)
-      .setStrokeStyle(2, C.panelBorder)
-      .setOrigin(0.5);
-    bg.setInteractive({ useHandCursor: true });
+    const bg = this.add.graphics();
+    this.drawDiffCardBackground(bg, cardW, cardH, active, false);
+    bg.setInteractive(
+      new Phaser.Geom.Rectangle(-cardW / 2, -cardH / 2, cardW, cardH),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    bg.on("pointerover", () => this.drawDiffCardBackground(bg, cardW, cardH, true, true));
+    bg.on("pointerout", () =>
+      this.drawDiffCardBackground(bg, cardW, cardH, rule.difficulty === this.selectedDifficulty, false));
     bg.on("pointerdown", () => {
       this.selectedDifficulty = rule.difficulty;
       this.syncLobbyCards(false, this.num("poolFree", 0));
     });
 
-    const nameColors: Record<string, string> = {
-      easy:   "#48d890",
-      medium: "#e8b84b",
-      hard:   "#e04040",
-    };
-    const nameColor = nameColors[rule.key] ?? "#ffffff";
+    const badgeKey = DIFFICULTY_BADGES[rule.difficulty] ?? AIM_ASSETS.badgeEasy;
+    const badge = this.add.image(0, -32, badgeKey).setDisplaySize(44, 44);
 
-    const nameTxt = this.add.text(0, -62, rule.key.toUpperCase(), {
-      fontSize: "13px", fontStyle: "bold", color: nameColor,
+    const nameTxt = this.add.text(0, -2, rule.key.toUpperCase(), {
+      fontSize: "12px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#1a1a19",
     }).setOrigin(0.5);
 
-    const timeTxt = this.add.text(0, -40, `${Math.round(rule.limitMs / 1000)}s`, {
-      fontSize: "20px", fontStyle: "bold", color: "#ffffff",
+    const accTxt = this.add.text(0, 18, `${rule.targetAccuracy} hits`, {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      color: "#5c5a56",
     }).setOrigin(0.5);
 
-    const accTxt = this.add.text(0, -12, `${rule.targetAccuracy} hits`, {
-      fontSize: "13px", color: "#c0a070",
+    const rewardTxt = this.add.text(0, 38, `${gasDisplay(rule.rewardFixed8)} GAS`, {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#0ea371",
     }).setOrigin(0.5);
 
-    const entryTxt = this.add.text(0, 12, `Entry: ${gasDisplay(rule.entryFixed8)} GAS`, {
-      fontSize: "11px", color: "#a09070",
+    const entryTxt = this.add.text(0, cardH / 2 - 10, `Entry ${gasDisplay(rule.entryFixed8)}`, {
+      fontSize: "10px",
+      fontFamily: FONT_FAMILY,
+      color: "#8b8984",
     }).setOrigin(0.5);
 
-    const rewardTxt = this.add.text(0, 36, `Win: ${gasDisplay(rule.rewardFixed8)} GAS`, {
-      fontSize: "12px", fontStyle: "bold", color: "#e8b84b",
-    }).setOrigin(0.5);
-
-    // Mini target decoration
-    const miniTgt = this.add.container(0, 66);
-    for (let r = 3; r >= 0; r--) {
-      const radius = 6 + r * 5;
-      const color  = (RING_COLORS[r] as number) ?? C.white;
-      miniTgt.add(this.add.circle(0, 0, radius, color).setStrokeStyle(1, 0x333333));
-    }
-    c.add([bg, nameTxt, timeTxt, accTxt, entryTxt, rewardTxt, miniTgt]);
+    const dot = this.add.circle(-cardW / 2 + 12, -cardH / 2 + 12, 5, C.accent, active ? 1 : 0);
+    c.add([bg, badge, nameTxt, accTxt, rewardTxt, entryTxt, dot]);
     return c;
   }
 
@@ -415,20 +418,45 @@ export class AimMasterScene extends BaseScene {
     const poolEnough = poolFree >= Number(gasDisplay(rule.rewardFixed8));
 
     this.diffCards.forEach((card, i) => {
-      const bg  = card.list[0] as Phaser.GameObjects.Rectangle;
+      const bg  = card.list[0] as Phaser.GameObjects.Graphics;
+      const dot = card.list[card.list.length - 1] as Phaser.GameObjects.Arc;
       const active = i === this.selectedDifficulty;
-      bg.setStrokeStyle(2, active ? C.accent : C.panelBorder);
-      bg.setFillStyle(active ? 0x2a1a08 : C.panelBg);
+      this.drawDiffCardBackground(bg, 112, 116, active, false);
+      dot.setAlpha(active ? 1 : 0);
     });
 
-    this.lobbyStartBtnBg.setFillStyle(
-      isStarting || !poolEnough ? C.panelBorder : C.accent,
-    );
-    this.lobbyStartBtnLabel.setText(isStarting ? "Starting…" : "Start Game");
+    this.drawLobbyStartButton(isStarting || !poolEnough, false);
+    this.lobbyStartBtnLabel.setText(isStarting ? "Starting…" : "Start Aim");
     this.lobbyStartBtnBg.disableInteractive();
     if (!isStarting && poolEnough) {
-      this.lobbyStartBtnBg.setInteractive({ useHandCursor: true });
+      this.lobbyStartBtnBg.setInteractive(
+        new Phaser.Geom.Rectangle(W / 2 - 106, H - 82, 212, 44),
+        Phaser.Geom.Rectangle.Contains,
+      );
     }
+  }
+
+  private drawDiffCardBackground(
+    bg: Phaser.GameObjects.Graphics,
+    w: number,
+    h: number,
+    active: boolean,
+    hover: boolean,
+  ): void {
+    bg.clear();
+    bg.fillStyle(active || hover ? C.surfaceAlt : C.surface, active ? 0.98 : 0.92);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+    bg.lineStyle(2, active || hover ? C.accent : C.border, 1);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
+  }
+
+  private drawLobbyStartButton(disabled: boolean, hover: boolean): void {
+    this.lobbyStartBtnBg.clear();
+    const fill = disabled ? C.borderStrong : hover ? C.brandHover : C.brand;
+    this.lobbyStartBtnBg.fillStyle(fill, 1);
+    this.lobbyStartBtnBg.fillRoundedRect(W / 2 - 106, H - 82, 212, 44, 12);
+    this.lobbyStartBtnBg.lineStyle(2, disabled ? C.borderStrong : C.brandHover, 1);
+    this.lobbyStartBtnBg.strokeRoundedRect(W / 2 - 106, H - 82, 212, 44, 12);
   }
 
   // ── Game container ─────────────────────────────────────────────────────────
@@ -438,13 +466,16 @@ export class AimMasterScene extends BaseScene {
 
     // Progress dots row (built lazily in syncGameUI)
     // Timer bar
-    const timerBgRect = this.add.rectangle(W / 2, 22, W - 40, 10, 0x333333)
+    const timerBgRect = this.add.rectangle(W / 2, 22, W - 40, 10, C.surface, 0.86)
+      .setStrokeStyle(1, C.border)
       .setOrigin(0.5);
     this.timerBarBg = timerBgRect;
     this.timerBar = this.add.rectangle(GAUGE_LEFT + 10, 22, W - 40, 10, C.timerFull)
       .setOrigin(0, 0.5);
     this.timerClock = this.add.text(W / 2, 38, "00:00", {
-      fontSize: "13px", color: "#c0b080",
+      fontSize: "13px",
+      fontFamily: FONT_FAMILY,
+      color: "#5c5a56",
     }).setOrigin(0.5);
     this.gameContainer.add([timerBgRect, this.timerBar, this.timerClock]);
 
@@ -453,10 +484,10 @@ export class AimMasterScene extends BaseScene {
 
     // Gauge track
     const gaugeTrackBg = this.add.rectangle(
-      W / 2, GAUGE_Y, GAUGE_W + 20, GAUGE_HEIGHT + 10, 0x1a1208,
-    ).setStrokeStyle(2, C.panelBorder).setOrigin(0.5);
+      W / 2, GAUGE_Y, GAUGE_W + 20, GAUGE_HEIGHT + 10, C.surface, 0.94,
+    ).setStrokeStyle(2, C.border).setOrigin(0.5);
     this.gaugeTrack = this.add.rectangle(
-      GAUGE_LEFT, GAUGE_Y, GAUGE_W, GAUGE_HEIGHT, 0x404030,
+      GAUGE_LEFT, GAUGE_Y, GAUGE_W, GAUGE_HEIGHT, 0xe8e6e1,
     ).setOrigin(0, 0.5);
     this.gameContainer.add([gaugeTrackBg, this.gaugeTrack]);
 
@@ -474,13 +505,18 @@ export class AimMasterScene extends BaseScene {
 
     // Score row
     this.scoreText = this.add.text(W / 2, GAUGE_Y + 36, "0 / 0 hits", {
-      fontSize: "15px", color: "#e8b84b",
+      fontSize: "15px",
+      fontFamily: FONT_FAMILY,
+      color: "#1a1a19",
     }).setOrigin(0.5);
     this.gameContainer.add(this.scoreText);
 
     // Feedback text (hit/miss overlay)
     this.feedbackText = this.add.text(TGT_CX, TGT_CY - 10, "", {
-      fontSize: "22px", fontStyle: "bold", color: "#ffffff",
+      fontSize: "22px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#ffffff",
     }).setOrigin(0.5).setDepth(10);
     this.gameContainer.add(this.feedbackText);
 
@@ -496,7 +532,10 @@ export class AimMasterScene extends BaseScene {
       onPress: () => this.dispatch("submitSolution", {}),
     });
     this.submitBtnLabel = this.add.text(0, 0, "Submit Shots", {
-      fontSize: "17px", fontStyle: "bold", color: "#0a2010",
+      fontSize: "17px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#0a2010",
     }).setOrigin(0.5);
     this.submitBtnContainer.add([this.submitBtnBg, this.submitBtnLabel]);
     this.submitBtnContainer.setVisible(false);
@@ -508,33 +547,20 @@ export class AimMasterScene extends BaseScene {
   private buildTargetBoard(): void {
     this.targetContainer = this.add.container(TGT_CX, TGT_CY);
 
-    // Shadow
-    this.targetContainer.add(
-      this.add.ellipse(4, 8, TGT_RADIUS * 2 + 8, TGT_RADIUS * 2 + 8, 0x000000, 60),
-    );
+    const shadow = this.add.ellipse(4, 8, TGT_RADIUS * 2 + 10, TGT_RADIUS * 2 + 10, 0x1a1a19, 0.12);
+    const target = this.add.image(0, 0, AIM_ASSETS.target)
+      .setDisplaySize(TGT_RADIUS * 2, TGT_RADIUS * 2);
+    this.targetContainer.add([shadow, target]);
 
-    // Rings from outside in (so inner draws on top)
+    // Transparent feedback rings follow the real target art without replacing it.
     for (let r = RING_OUTER_RADII.length - 1; r >= 0; r--) {
       const radius = RING_OUTER_RADII[r]!;
       const color  = (RING_COLORS[r] as number) ?? C.white;
-      const stroke = r === RING_OUTER_RADII.length - 1 ? 2 : 1;
-      const strokeColor = 0x555555;
       const ring = this.add.circle(0, 0, radius, color)
-        .setStrokeStyle(stroke, strokeColor);
+        .setAlpha(0);
       this.targetRings.push(ring);
       this.targetContainer.add(ring);
     }
-
-    // Bullseye X crosshair
-    const xGfx = this.add.graphics();
-    xGfx.lineStyle(2, 0x000000, 0.5);
-    const bs = RING_OUTER_RADII[0]!;
-    xGfx.lineBetween(-bs, 0, bs, 0);
-    xGfx.lineBetween(0, -bs, 0, bs);
-    this.targetContainer.add(xGfx);
-
-    // Target post (stick)
-    this.add.rectangle(TGT_CX, H * 0.495, 10, 80, C.fencePole);
 
     this.gameContainer.add(this.targetContainer);
   }
@@ -549,7 +575,7 @@ export class AimMasterScene extends BaseScene {
         const logPos = cfg.centre + side * dist;
         const vx = GAUGE_LEFT + (logPos / cfg.width) * GAUGE_W;
         if (vx < GAUGE_LEFT || vx > GAUGE_RIGHT) continue;
-        const marker = this.add.rectangle(vx, GAUGE_Y, 2, GAUGE_HEIGHT + 8, C.accent, 120)
+        const marker = this.add.rectangle(vx, GAUGE_Y, 2, GAUGE_HEIGHT + 8, C.accent, 0.42)
           .setOrigin(0.5);
         this.gaugeRingMarkers.push(marker);
         this.gameContainer.add(marker);
@@ -566,42 +592,39 @@ export class AimMasterScene extends BaseScene {
     const initX = GAUGE_LEFT + (DEFAULT_CONFIG.centre / DEFAULT_CONFIG.width) * GAUGE_W;
     this.gaugeReticle = this.add.container(initX, GAUGE_Y);
 
-    // Shadow
-    const shadow = this.add.rectangle(2, 2, 4, GAUGE_HEIGHT + 16, C.reticleShadow, 80)
-      .setOrigin(0.5);
-    // Main bar
-    const bar = this.add.rectangle(0, 0, 4, GAUGE_HEIGHT + 16, C.reticle)
-      .setOrigin(0.5);
-    // Crosshair arms
-    const hArm = this.add.rectangle(0, 0, 20, 2, C.reticle, 200).setOrigin(0.5);
-    // Arrow head triangle (top)
-    const tri = this.add.triangle(0, -(GAUGE_HEIGHT / 2 + 12), -5, 0, 5, 0, 0, 10, C.reticle);
-
-    this.gaugeReticle.add([shadow, bar, hArm, tri]);
+    const reticle = this.add.image(0, 0, AIM_ASSETS.reticle)
+      .setDisplaySize(42, 42)
+      .setAlpha(0.96);
+    this.gaugeReticle.add(reticle);
     this.gameContainer.add(this.gaugeReticle);
   }
 
   // ── Dealing container ──────────────────────────────────────────────────────
 
   private buildDealingContainer(): void {
-    this.dealingContainer = this.add.container(0, 0);
+    this.dealingContainer = this.add.container(0, 0).setDepth(25);
 
-    const panel = this.add.rectangle(W / 2, H / 2, 240, 120, C.panelBg, 220)
-      .setStrokeStyle(2, C.panelBorder);
-    const label = this.add.text(W / 2, H / 2 - 24, "Preparing round…", {
-      fontSize: "15px", color: "#c0a070",
+    const bg = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.66);
+    const panel = this.add.rectangle(W / 2, H / 2, 244, 154, C.surface, 0.96)
+      .setStrokeStyle(1, C.border);
+    const target = this.add.image(W / 2, H / 2 + 18, AIM_ASSETS.target)
+      .setDisplaySize(82, 82)
+      .setAlpha(0.86);
+    this.dealingReticle = this.add.image(W / 2, H / 2 + 18, AIM_ASSETS.reticle)
+      .setDisplaySize(72, 72);
+    const label = this.add.text(W / 2, H / 2 - 48, "Preparing round", {
+      fontSize: "16px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#1a1a19",
+    }).setOrigin(0.5);
+    const hint = this.add.text(W / 2, H / 2 - 26, "TEE is sealing the aim pattern", {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      color: "#5c5a56",
     }).setOrigin(0.5);
 
-    // 5 pulsing dots
-    const dotRow = this.add.container(W / 2, H / 2 + 18);
-    const dotSpacing = 24;
-    const dotStart   = -(dotSpacing * 2);
-    for (let i = 0; i < 5; i++) {
-      const dot = this.add.circle(dotStart + i * dotSpacing, 0, 7, C.accent);
-      this.dealingDots.push(dot);
-      dotRow.add(dot);
-    }
-    this.dealingContainer.add([panel, label, dotRow]);
+    this.dealingContainer.add([bg, panel, label, hint, target, this.dealingReticle]);
     this.dealingContainer.setVisible(false);
   }
 
@@ -609,7 +632,9 @@ export class AimMasterScene extends BaseScene {
 
   private buildStatusBar(): void {
     this.statusText = this.add.text(W / 2, H - 12, "", {
-      fontSize: "12px", color: "#c0a070",
+      fontSize: "12px",
+      fontFamily: FONT_FAMILY,
+      color: "#5c5a56",
     }).setOrigin(0.5).setDepth(5);
   }
 
@@ -649,11 +674,41 @@ export class AimMasterScene extends BaseScene {
     this.submitBtnContainer.setVisible(showSubmit);
     if (isSubmitting) {
       this.submitBtnLabel.setText("Submitting…");
-      this.submitBtnBg.setFillStyle(C.panelBorder);
+      this.submitBtnBg.setFillStyle(C.borderStrong);
     } else {
       this.submitBtnLabel.setText("Submit Shots");
       this.submitBtnBg.setFillStyle(C.good);
     }
+  }
+
+  private defaultStatusText(
+    showLobby: boolean,
+    showDealing: boolean,
+    showGame: boolean,
+    isStarting: boolean,
+    isSubmitting: boolean,
+    poolFree: number,
+  ): string {
+    if (showGame) {
+      return this.pendingSubmit || isSubmitting
+        ? "Submit your verified shot sequence"
+        : "Tap the gauge when the reticle crosses center";
+    }
+    if (showDealing) return "TEE is sealing the aim pattern";
+    if (showLobby) {
+      const rule = ruleOf(this.selectedDifficulty);
+      const poolEnough = poolFree >= Number(gasDisplay(rule.rewardFixed8));
+      if (isStarting) return "Starting sealed round";
+      return poolEnough
+        ? "Choose a target lane to enter"
+        : "Reward pool needs GAS before entry";
+    }
+    return "";
+  }
+
+  private selectedPoolIsReady(poolFree: number): boolean {
+    const rule = ruleOf(this.selectedDifficulty);
+    return poolFree >= Number(gasDisplay(rule.rewardFixed8));
   }
 
   private rebuildProgressDots(count: number): void {
@@ -670,7 +725,7 @@ export class AimMasterScene extends BaseScene {
 
     for (let i = 0; i < count; i++) {
       const dot = this.add.circle(startX + i * spacing, 60, dotR, C.dotPending)
-        .setStrokeStyle(1.5, 0x333333);
+        .setStrokeStyle(1.5, C.borderStrong);
       this.progressDots.push(dot);
       this.gameContainer.add(dot);
     }
@@ -683,7 +738,7 @@ export class AimMasterScene extends BaseScene {
       } else if (i === this.accuracyHits) {
         dot.setFillStyle(C.dotCurrent).setStrokeStyle(2, C.accent);
       } else {
-        dot.setFillStyle(C.dotPending).setStrokeStyle(1.5, 0x333333);
+        dot.setFillStyle(C.dotPending).setStrokeStyle(1.5, C.borderStrong);
       }
     });
   }
@@ -769,18 +824,14 @@ export class AimMasterScene extends BaseScene {
 
   private startDealingAnimation(): void {
     if (this.dealingTween) return;
-    this.dealingTween = this.tweens.addCounter({
-      from: 0, to: 4,
-      duration: 400,
+    this.dealingTween = this.tweens.add({
+      targets: this.dealingReticle,
+      angle: 360,
+      scale: 1.12,
+      duration: 900,
+      ease: "Sine.easeInOut",
+      yoyo: true,
       repeat: -1,
-      onRepeat: (tween: Phaser.Tweens.Tween) => {
-        const raw = tween.getValue();
-        const idx = Math.round(raw ?? 0) % 5;
-        this.dealingDots.forEach((dot, i) => {
-          dot.setAlpha(i === idx ? 1 : 0.3);
-          dot.setScale(i === idx ? 1.3 : 1);
-        });
-      },
     });
   }
 
@@ -790,7 +841,7 @@ export class AimMasterScene extends BaseScene {
       this.dealingTween.destroy();
       this.dealingTween = null;
     }
-    this.dealingDots.forEach((dot) => dot.setAlpha(1).setScale(1));
+    this.dealingReticle?.setAngle(0).setScale(1);
   }
 
   private onStatusTransition(newStatus: string, _prevStatus: string): void {
@@ -897,14 +948,16 @@ export class AimMasterScene extends BaseScene {
     if (!ringObj) return;
 
     const origScale = ringObj.scaleX;
+    ringObj.setAlpha(0.32);
     this.tweens.add({
       targets:   ringObj,
       scaleX:    1.25,
       scaleY:    1.25,
+      alpha:     0,
       duration:  120,
       ease:      "Sine.easeOut",
       yoyo:      true,
-      onComplete: () => ringObj.setScale(origScale),
+      onComplete: () => ringObj.setScale(origScale).setAlpha(0),
     });
     // Flash bright
     const origColor = (RING_COLORS[ring] as number) ?? C.white;
