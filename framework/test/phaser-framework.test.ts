@@ -136,6 +136,21 @@ describe("root Phaser framework", () => {
         usage: ["BURN_ASSETS", "gasTokens", "brazierImage", "dispatch(\"burn\""],
       },
       {
+        app: "gas-lucky-pool",
+        scene: "GasLuckyPoolScene",
+        assets: [
+          "./gas-vault-stage.webp",
+          "@shared/assets/tokens/gas-icon.svg?url",
+        ],
+        usage: [
+          "GAS_POOL_ASSETS",
+          "REWARD_PLANS",
+          "dispatch(\"createPool\"",
+          "dispatch(\"claimPool\"",
+          "dispatch(\"checkClaimStatus\"",
+        ],
+      },
+      {
         app: "color-clash",
         scene: "ColorClashScene",
         assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
@@ -253,6 +268,20 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: brazier should use loaded art, not the old hand-drawn body helper`).not.toContain(
           "drawBrazierBody",
+        );
+      }
+      if (app === "gas-lucky-pool") {
+        expect(source, `${app}: Phaser claim action should match the registered framework action`).not.toContain(
+          "claimReward",
+        );
+        expect(source, `${app}: Phaser create action should send the validated pool form`).not.toContain(
+          "selectFundAmount",
+        );
+        expect(source, `${app}: claim flow should not present a fake text-entry placeholder`).not.toContain(
+          "paste claim key here",
+        );
+        expect(source, `${app}: vault art should be loaded from assets, not hand-drawn as primitives`).not.toContain(
+          "drawVaultDoor",
         );
       }
     }

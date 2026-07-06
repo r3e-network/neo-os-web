@@ -1,471 +1,694 @@
 /**
- * GasLuckyPoolScene — Vault funding and lucky-claim game in Phaser 3.
+ * GasLuckyPoolScene - Phaser 3 OneGate Vault surface.
  *
- * Visual design: bank-vault door drawn with Phaser.Graphics (circular door,
- * dial, bolts), dark steel background, gold chip rain on win.
- * Create tab: fund amount pickers + create button.
- * Claim tab: claim key entry + claim button.
+ * Chain/backend behavior stays in useGasLuckyPool/main.tsx. This scene owns the
+ * consumer-facing vault interaction: choose a reward pack, fund it, or claim an
+ * existing OneGate reward link.
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
-import type { GameState } from "@framework/phaser";
+import type { GameBridgeError, GameState } from "@framework/phaser";
+import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
+import { formatGas } from "@shared/utils/format";
 
-// ── Palette ────────────────────────────────────────────────────────────────────
+const GAS_POOL_ASSETS = {
+  vaultStage: "gas-pool-vault-stage",
+  gasIcon: "gas-pool-gas-icon",
+} as const;
+
 const C = {
-  bgDark:   0x08111a,
-  steel:    0x1c2b3a,
-  steelLt:  0x2a3f52,
-  teal:     0x16c784,
-  tealDim:  0x0d7a50,
-  gold:     0xd4a843,
-  goldLt:   0xf0c866,
-  muted:    0x3d566e,
-  mutedLt:  0x5a7a94,
-  white:    0xffffff,
-  red:      0xe25d4d,
-  vaultGray: 0x2c3e50,
-  vaultRim:  0x3d5166,
-  dialRing:  0x8a9ba8,
-  boltColor: 0x4a6070,
+  canvas: 0xfffbef,
+  surface: 0xffffff,
+  stroke: 0xead7ad,
+  strokeStrong: 0xeab84d,
+  ink: 0x2a2117,
+  green: 0x16a86b,
+  gold: 0xf5b640,
+  goldDeep: 0xb77915,
+  red: 0xd84d3f,
+  disabled: 0xd8cdb9,
+  white: 0xffffff,
+} as const;
+
+const FONT = "Inter, Arial, sans-serif";
+const MODE_BUTTON_W = 134;
+const MODE_BUTTON_H = 34;
+
+type Mode = "create" | "claim";
+
+const REWARD_PLANS = [
+  {
+    key: "small",
+    title: "Starter",
+    amount: "20",
+    minClaim: "1",
+    maxClaim: "3",
+    maxClaims: "10",
+    expiryHours: "24",
+  },
+  {
+    key: "balanced",
+    title: "Party",
+    amount: "50",
+    minClaim: "1",
+    maxClaim: "5",
+    maxClaims: "25",
+    expiryHours: "72",
+  },
+  {
+    key: "jackpot",
+    title: "Jackpot",
+    amount: "100",
+    minClaim: "5",
+    maxClaim: "20",
+    maxClaims: "10",
+    expiryHours: "168",
+  },
+] as const;
+
+const PROGRESS_LABEL: Record<string, string> = {
+  wallet: "Wallet ready",
+  submitted: "Submitted",
+  submitting: "Submitting claim",
+  confirming: "Confirming on chain",
+  paid: "GAS received",
+  failed: "Needs retry",
 };
 
-export class GasLuckyPoolScene extends BaseScene {
-  private vaultContainer!: Phaser.GameObjects.Container;
-  private vaultDoorG!: Phaser.GameObjects.Graphics;
-  private dialG!: Phaser.GameObjects.Graphics;
-  private dialAngle = 0;
+function truncateMiddle(value: string, head = 7, tail = 4): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length <= head + tail + 3) return trimmed;
+  return `${trimmed.slice(0, head)}...${trimmed.slice(-tail)}`;
+}
 
-  private modeLabel!: Phaser.GameObjects.Text;
+function compactError(value: string): string {
+  const firstLine = value.split("\n")[0]?.trim() ?? "";
+  if (!firstLine) return "";
+  return firstLine.length > 58 ? `${firstLine.slice(0, 55)}...` : firstLine;
+}
+
+export class GasLuckyPoolScene extends BaseScene {
+  private heroImage!: Phaser.GameObjects.Image;
+  private vaultGlow!: Phaser.GameObjects.Ellipse;
+  private coinStream: Phaser.GameObjects.Container[] = [];
+
   private createPanel!: Phaser.GameObjects.Container;
   private claimPanel!: Phaser.GameObjects.Container;
-  private resultLabel!: Phaser.GameObjects.Text;
-  private statusBar!: Phaser.GameObjects.Text;
-  private modeBtns: Phaser.GameObjects.Container[] = [];
-  private activeMode = 0;
+  private modeButtons = new Map<Mode, Phaser.GameObjects.Container>();
+  private planCards: Phaser.GameObjects.Container[] = [];
 
-  constructor() { super("GasLuckyPoolScene"); }
+  private resultPill!: Phaser.GameObjects.Container;
+  private resultText!: Phaser.GameObjects.Text;
+  private statusText!: Phaser.GameObjects.Text;
+  private createSummaryText!: Phaser.GameObjects.Text;
+  private claimKeyText!: Phaser.GameObjects.Text;
+  private claimRangeText!: Phaser.GameObjects.Text;
+  private claimProgressText!: Phaser.GameObjects.Text;
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  private createButton!: Phaser.GameObjects.Container;
+  private createButtonBg!: Phaser.GameObjects.Graphics;
+  private createButtonLabel!: Phaser.GameObjects.Text;
+  private claimButton!: Phaser.GameObjects.Container;
+  private claimButtonBg!: Phaser.GameObjects.Graphics;
+  private claimButtonLabel!: Phaser.GameObjects.Text;
+  private checkButton!: Phaser.GameObjects.Container;
+  private checkButtonBg!: Phaser.GameObjects.Graphics;
+  private checkButtonLabel!: Phaser.GameObjects.Text;
+
+  private activeMode: Mode = "create";
+  private selectedPlanIndex = 1;
+  private hasClaimContext = false;
+  private hasClaimKey = false;
+  private busy = false;
+  private autoSelectedMode = false;
+  private lastRewardText = "";
+
+  constructor() {
+    super("GasLuckyPoolScene");
+  }
+
+  preload(): void {
+    this.load.image(GAS_POOL_ASSETS.vaultStage, "./gas-vault-stage.webp");
+    this.load.image(GAS_POOL_ASSETS.gasIcon, gasIconUrl);
+  }
 
   create(): void {
     super.create();
     const { width: W, height: H } = this.scale;
-    this.drawBackground(W, H);
-    this.buildVault(W, H);
-    this.buildModeTabs(W, H);
-    this.buildCreatePanel(W, H);
-    this.buildClaimPanel(W, H);
-    this.buildResultArea(W, H);
-    this.buildStatusBar(W, H);
 
-    // Idle dial rotation
-    this.tweens.add({
-      targets: this,
-      dialAngle: 360,
-      duration: 8000,
-      repeat: -1,
-      onUpdate: () => this.redrawDial(),
-    });
-
+    this.buildBackground(W, H);
+    this.buildHero(W);
+    this.buildResultPill(W);
+    this.buildModeTabs(W);
+    this.buildCreatePanel(W);
+    this.buildClaimPanel(W);
+    this.buildStatus(W, H);
+    this.switchMode("create");
     this.onStateUpdate(this.state);
   }
 
-  protected onStateUpdate(state: GameState): void {
-    const result   = this.str("lastClaimAmount", "");
-    const luckPct  = this.str("lastClaimLuckPercent", "");
+  protected onStateUpdate(_state: GameState): void {
+    const claimKey = this.str("currentClaimKey", "");
+    const poolId = this.str("currentPoolId", "");
+    const range = this.str("currentRange", "1-5 GAS");
+    const progress = this.str("claimProgress", "");
+    const status = this.str("claimStatus", "");
     const lastStatus = this.str("lastStatus", "");
-    const isLoading  = this.bool("isLoading");
+    const lastError = this.str("lastError", "");
+    const lastTxid = this.str("lastTxid", "");
+    const amount = this.str("lastClaimAmount", "0");
+    const luck = this.str("lastClaimLuckPercent", "");
 
-    this.resultLabel.setText(
-      result && result !== "0"
-        ? `+${result} GAS  (${luckPct} luck)`
-        : "",
-    );
+    this.hasClaimContext = Boolean(claimKey || poolId);
+    this.hasClaimKey = Boolean(claimKey);
+    this.busy = this.bool("isLoading") || this.bool("isCreating") || this.bool("isClaiming");
 
-    this.statusBar.setText(lastStatus);
-
-    // Vault door pulses when loading
-    if (isLoading) {
-      this.tweens.add({
-        targets: this.vaultDoorG,
-        alpha: 0.6,
-        duration: 300,
-        yoyo: true,
-        repeat: 3,
-        onComplete: () => this.vaultDoorG.setAlpha(1),
-      });
+    if (!this.autoSelectedMode) {
+      this.autoSelectedMode = true;
+      this.switchMode(this.hasClaimContext ? "claim" : "create");
     }
 
-    // Show result chips on win
-    if (result && result !== "0") this.spawnChipRain();
+    const rewardText = amount && amount !== "0" ? `+${formatGas(amount, 4)} GAS` : "";
+    this.resultText.setText(
+      rewardText ? `${rewardText}${luck ? `  ${luck}% luck` : ""}` : "Pack a vault. Share a claim. Let GAS land.",
+    );
+    this.setResultState(Boolean(rewardText), Boolean(lastError));
+
+    this.claimKeyText.setText(
+      claimKey
+        ? truncateMiddle(claimKey)
+        : poolId
+          ? `Pool #${poolId}`
+          : "Open a OneGate claim link",
+    );
+    this.claimRangeText.setText(range || "Reward range updates after loading");
+    this.claimProgressText.setText(PROGRESS_LABEL[progress] ?? PROGRESS_LABEL[status] ?? "Ready to unwrap");
+
+    this.statusText.setText(
+      compactError(lastError) ||
+        (lastTxid ? `Latest tx ${truncateMiddle(lastTxid, 8, 6)}` : "") ||
+        lastStatus ||
+        "OneGate-ready GAS reward vault",
+    );
+
+    this.updateButtons();
+    this.updateCoinMotion();
+
+    if (rewardText && rewardText !== this.lastRewardText) {
+      this.lastRewardText = rewardText;
+      this.spawnRewardBurst();
+    }
   }
 
-  // ── Background ─────────────────────────────────────────────────────────────
-
-  private drawBackground(W: number, H: number): void {
-    this.add.rectangle(W / 2, H / 2, W, H, C.bgDark);
-
-    // Steel panel border
-    const g = this.add.graphics();
-    g.lineStyle(1, C.steel, 0.6);
-    for (let x = 0; x <= W; x += 36) g.lineBetween(x, 0, x, H);
-    for (let y = 0; y <= H; y += 36) g.lineBetween(0, y, W, y);
-
-    // Outer frame
-    g.lineStyle(3, C.steelLt, 0.7);
-    g.strokeRoundedRect(6, 6, W - 12, H - 12, 18);
+  protected onBridgeError(error: GameBridgeError): void {
+    this.statusText.setText(compactError(error.message) || "The vault action could not be completed.");
+    this.setResultState(false, true);
   }
 
-  // ── Vault door ─────────────────────────────────────────────────────────────
+  private buildBackground(W: number, H: number): void {
+    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
 
-  private buildVault(W: number, H: number): void {
-    const cx = W / 2;
-    const cy = H * 0.24;
-
-    this.vaultContainer = this.add.container(cx, cy);
-
-    // Ambient glow (pulsing)
-    const glow = this.add.ellipse(cx, cy, 160, 160, C.teal, 0.07);
-    this.tweens.add({
-      targets: glow,
-      alpha: { from: 0.07, to: 0.15 },
-      scaleX: { from: 1, to: 1.1 },
-      scaleY: { from: 1, to: 1.1 },
-      duration: 2200,
-      ease: "Sine.easeInOut",
+    const topGlow = this.add.ellipse(W / 2, 112, 390, 250, 0xffe1a3, 0.34);
+    const lowerGlow = this.add.ellipse(W / 2, 360, 380, 260, 0xd8f6df, 0.22);
+    this.animate({
+      targets: [topGlow, lowerGlow],
+      alpha: { from: 0.24, to: 0.42 },
+      duration: 2400,
       yoyo: true,
       repeat: -1,
+      ease: "Sine.easeInOut",
     });
 
-    this.vaultDoorG = this.add.graphics();
-    this.vaultContainer.add(this.vaultDoorG);
-    this.drawVaultDoor(this.vaultDoorG);
+    const frame = this.add.graphics();
+    frame.lineStyle(2, C.stroke, 0.72);
+    frame.strokeRoundedRect(10, 10, W - 20, H - 20, 26);
+  }
 
-    this.dialG = this.add.graphics();
-    this.vaultContainer.add(this.dialG);
-    this.redrawDial();
+  private buildHero(W: number): void {
+    this.vaultGlow = this.add.ellipse(W / 2, 142, 286, 170, C.gold, 0.18);
+    this.heroImage = this.add.image(W / 2, 144, GAS_POOL_ASSETS.vaultStage)
+      .setDisplaySize(360, 238)
+      .setOrigin(0.5);
 
-    // Hover bob
-    this.tweens.add({
-      targets: this.vaultContainer,
-      y: cy - 7,
+    this.animate({
+      targets: this.vaultGlow,
+      scaleX: { from: 1, to: 1.08 },
+      scaleY: { from: 1, to: 1.08 },
+      alpha: { from: 0.15, to: 0.26 },
       duration: 1800,
-      ease: "Sine.easeInOut",
       yoyo: true,
       repeat: -1,
+      ease: "Sine.easeInOut",
     });
 
-    // Title
-    this.add.text(cx, cy + 72, "GAS LUCKY POOL", {
-      fontSize: "14px",
-      fontStyle: "bold",
-      color: "#d4a843",
-      letterSpacing: 3,
-    }).setOrigin(0.5);
-  }
-
-  private drawVaultDoor(g: Phaser.GameObjects.Graphics): void {
-    const R   = 52;   // door radius
-    const bR  = 3;    // bolt radius
-    const bDist = 36;  // bolt ring distance
-
-    // Door body (dark circle)
-    g.fillStyle(C.vaultGray);
-    g.fillCircle(0, 0, R);
-
-    // Outer rim
-    g.lineStyle(6, C.vaultRim);
-    g.strokeCircle(0, 0, R);
-
-    // Inner ring
-    g.lineStyle(2, C.steelLt, 0.7);
-    g.strokeCircle(0, 0, R * 0.72);
-
-    // Spoke lines (4 spokes)
-    g.lineStyle(2, C.muted, 0.5);
-    for (let a = 0; a < 4; a++) {
-      const rad = Phaser.Math.DegToRad(a * 90);
-      g.lineBetween(
-        Math.cos(rad) * (R * 0.2), Math.sin(rad) * (R * 0.2),
-        Math.cos(rad) * (R * 0.7), Math.sin(rad) * (R * 0.7),
-      );
-    }
-
-    // Bolts at cardinal positions
-    g.fillStyle(C.boltColor);
-    g.lineStyle(1, C.mutedLt, 0.5);
-    for (let a = 0; a < 4; a++) {
-      const rad = Phaser.Math.DegToRad(a * 90 + 45);
-      const bx = Math.cos(rad) * bDist;
-      const by = Math.sin(rad) * bDist;
-      g.fillCircle(bx, by, bR);
-      g.strokeCircle(bx, by, bR);
-    }
-
-    // Center hub
-    g.fillStyle(C.steelLt);
-    g.fillCircle(0, 0, R * 0.18);
-    g.lineStyle(1, C.dialRing, 0.9);
-    g.strokeCircle(0, 0, R * 0.18);
-  }
-
-  private redrawDial(): void {
-    const g = this.dialG;
-    g.clear();
-
-    const R = 52;
-    const dialR = R * 0.30;
-    const angle = Phaser.Math.DegToRad(this.dialAngle);
-
-    // Dial body
-    g.fillStyle(C.steel);
-    g.fillCircle(0, 0, dialR);
-    g.lineStyle(2, C.dialRing);
-    g.strokeCircle(0, 0, dialR);
-
-    // Indicator dot
-    g.fillStyle(C.teal);
-    g.fillCircle(
-      Math.cos(angle) * (dialR * 0.65),
-      Math.sin(angle) * (dialR * 0.65),
-      3,
-    );
-
-    // Tick marks
-    g.lineStyle(1, C.mutedLt, 0.45);
-    for (let t = 0; t < 12; t++) {
-      const a = Phaser.Math.DegToRad(t * 30);
-      const inner = dialR * 0.74;
-      const outer = dialR * 0.9;
-      g.lineBetween(Math.cos(a) * inner, Math.sin(a) * inner, Math.cos(a) * outer, Math.sin(a) * outer);
-    }
-  }
-
-  // ── Mode tabs ──────────────────────────────────────────────────────────────
-
-  private buildModeTabs(W: number, H: number): void {
-    const y = H * 0.44;
-    const labels = ["CREATE VAULT", "CLAIM REWARD"];
-
-    labels.forEach((label, i) => {
-      const x = W / 2 + (i === 0 ? -82 : 82);
-      const c = this.add.container(x, y);
-      const isActive = i === 0;
-      const bg = this.add.graphics();
-      bg.fillStyle(isActive ? C.teal : C.steel);
-      bg.fillRoundedRect(-70, -18, 140, 36, 8);
-      bg.lineStyle(1, isActive ? C.teal : C.muted);
-      bg.strokeRoundedRect(-70, -18, 140, 36, 8);
-
-      bg.setInteractive(new Phaser.Geom.Rectangle(-70, -18, 140, 36), Phaser.Geom.Rectangle.Contains);
-      bg.on("pointerdown", () => this.switchMode(i));
-
-      const lbl = this.add.text(0, 0, label, {
-        fontSize: "11px",
-        fontStyle: "bold",
-        color: isActive ? "#0a1f30" : "#5a7a94",
-        letterSpacing: 1,
-      }).setOrigin(0.5);
-
-      c.add([bg, lbl]);
-      c.setData("bg", bg);
-      c.setData("lbl", lbl);
-      this.modeBtns.push(c);
-    });
-  }
-
-  private switchMode(mode: number): void {
-    this.activeMode = mode;
-    this.modeBtns.forEach((btn, i) => {
-      const bg  = btn.getData("bg") as Phaser.GameObjects.Graphics;
-      const lbl = btn.getData("lbl") as Phaser.GameObjects.Text;
-      const active = i === mode;
-      bg.clear();
-      bg.fillStyle(active ? C.teal : C.steel);
-      bg.fillRoundedRect(-70, -18, 140, 36, 8);
-      bg.lineStyle(1, active ? C.teal : C.muted);
-      bg.strokeRoundedRect(-70, -18, 140, 36, 8);
-      lbl.setColor(active ? "#0a1f30" : "#5a7a94");
-    });
-    this.createPanel.setVisible(mode === 0);
-    this.claimPanel.setVisible(mode === 1);
-  }
-
-  // ── Create panel ───────────────────────────────────────────────────────────
-
-  private buildCreatePanel(W: number, H: number): void {
-    this.createPanel = this.add.container(0, 0);
-    const y0 = H * 0.54;
-
-    this.createPanel.add(
-      this.add.text(W / 2, y0, "FUND AMOUNT (GAS)", {
-        fontSize: "11px", color: "#5a7a94", letterSpacing: 2,
-      }).setOrigin(0.5),
-    );
-
-    const amounts = ["20", "50", "100", "200"];
-    let selectedAmount = "50";
-    const amtBtns: Phaser.GameObjects.Container[] = [];
-
-    amounts.forEach((a, i) => {
-      const x = W / 2 + (i - 1.5) * 68;
-      const btn = this.makeAmountButton(x, y0 + 34, a, a === selectedAmount);
-      amtBtns.push(btn);
-      this.createPanel.add(btn);
-      btn.getData("bg").on("pointerdown", () => {
-        selectedAmount = a;
-        amtBtns.forEach((b, j) => this.highlightAmountBtn(b, amounts[j] === a));
-        this.dispatch("selectFundAmount", { amount: a });
+    for (let i = 0; i < 5; i += 1) {
+      const coin = this.makeGasBadge(W / 2 + (i - 2) * 34, 206 + (i % 2) * 10, 26)
+        .setAlpha(0.82);
+      this.coinStream.push(coin);
+      this.animate({
+        targets: coin,
+        y: coin.y - 8,
+        angle: i % 2 === 0 ? 8 : -8,
+        duration: 1200 + i * 90,
+        delay: i * 80,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
       });
-    });
-
-    // Slots and expiry summary
-    this.createPanel.add(
-      this.add.text(W / 2, y0 + 72, "10 claim slots  ·  24 h expiry", {
-        fontSize: "11px", color: "#3d566e",
-      }).setOrigin(0.5),
-    );
-
-    // Create button
-    const createBtn = this.makeActionButton(W / 2, y0 + 102, "CREATE VAULT", C.teal, 0.06);
-    this.bindGameButton(createBtn.getAt(0), {
-      targets: createBtn,
-      pressScale: 0.95,
-      pressDuration: 80,
-      onPress: () => this.dispatch("createPool", { amount: selectedAmount, slots: "10", expiry: "24" }),
-    });
-    this.createPanel.add(createBtn);
+    }
   }
 
-  private makeAmountButton(x: number, y: number, label: string, active: boolean): Phaser.GameObjects.Container {
-    const c = this.add.container(x, y);
+  private makeGasBadge(x: number, y: number, size: number): Phaser.GameObjects.Container {
+    const badge = this.add.container(x, y);
+    const coin = this.add.graphics();
+    coin.fillStyle(0xffcf63, 0.98);
+    coin.fillCircle(0, 0, size / 2);
+    coin.fillStyle(0xffffff, 0.24);
+    coin.fillCircle(-size * 0.14, -size * 0.16, size * 0.17);
+    coin.lineStyle(Math.max(1.2, size * 0.08), 0xbf8220, 0.58);
+    coin.strokeCircle(0, 0, size / 2 - 1);
+    const mark = this.add.image(0, 0, GAS_POOL_ASSETS.gasIcon)
+      .setDisplaySize(size * 0.58, size * 0.58)
+      .setOrigin(0.5);
+    badge.add([coin, mark]);
+    return badge;
+  }
+
+  private buildResultPill(W: number): void {
+    this.resultPill = this.add.container(W / 2, 268);
     const bg = this.add.graphics();
-    this.renderAmountBg(bg, active);
-    bg.setInteractive(new Phaser.Geom.Rectangle(-28, -16, 56, 32), Phaser.Geom.Rectangle.Contains);
-    const lbl = this.add.text(0, 0, label, {
-      fontSize: "14px", fontStyle: "bold", color: active ? "#0a1f30" : "#16c784",
-    }).setOrigin(0.5);
-    c.add([bg, lbl]);
-    c.setData("bg", bg);
-    c.setData("lbl", lbl);
-    return c;
+    bg.fillStyle(C.surface, 0.94);
+    bg.fillRoundedRect(-165, -22, 330, 44, 22);
+    bg.lineStyle(1, C.stroke, 0.86);
+    bg.strokeRoundedRect(-165, -22, 330, 44, 22);
+
+    const icon = this.makeGasBadge(-140, 0, 28);
+    this.resultText = this.add.text(-108, 0, "", {
+      fontFamily: FONT,
+      fontSize: "13px",
+      color: "#6f5a37",
+      fontStyle: "500",
+      fixedWidth: 242,
+    }).setOrigin(0, 0.5);
+
+    this.resultPill.add([bg, icon, this.resultText]);
+    this.resultPill.setData("bg", bg);
   }
 
-  private renderAmountBg(bg: Phaser.GameObjects.Graphics, active: boolean): void {
+  private setResultState(success: boolean, error: boolean): void {
+    const bg = this.resultPill.getData("bg") as Phaser.GameObjects.Graphics;
     bg.clear();
-    bg.fillStyle(active ? C.teal : C.steel);
-    bg.fillRoundedRect(-28, -16, 56, 32, 8);
-    bg.lineStyle(1, active ? C.teal : C.muted);
-    bg.strokeRoundedRect(-28, -16, 56, 32, 8);
+    bg.fillStyle(success ? 0xf0fff3 : error ? 0xfff1ec : C.surface, 0.96);
+    bg.fillRoundedRect(-165, -22, 330, 44, 22);
+    bg.lineStyle(1, success ? C.green : error ? C.red : C.stroke, 0.9);
+    bg.strokeRoundedRect(-165, -22, 330, 44, 22);
+    this.resultText.setColor(success ? "#0f7d56" : error ? "#a83a2d" : "#6f5a37");
   }
 
-  private highlightAmountBtn(btn: Phaser.GameObjects.Container, active: boolean): void {
-    this.renderAmountBg(btn.getData("bg"), active);
-    (btn.getData("lbl") as Phaser.GameObjects.Text).setColor(active ? "#0a1f30" : "#16c784");
+  private buildModeTabs(W: number): void {
+    const y = 315;
+    this.makeModeButton(W / 2 - 72, y, "create", "Fund vault");
+    this.makeModeButton(W / 2 + 72, y, "claim", "Claim GAS");
   }
 
-  // ── Claim panel ────────────────────────────────────────────────────────────
+  private makeModeButton(x: number, y: number, mode: Mode, label: string): void {
+    const button = this.add.container(x, y);
+    const bg = this.add.graphics();
+    const text = this.add.text(0, 0, label, {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#6f5a37",
+      fontStyle: "600",
+    }).setOrigin(0.5);
 
-  private buildClaimPanel(W: number, H: number): void {
-    this.claimPanel = this.add.container(0, 0);
-    const y0 = H * 0.54;
-
-    this.claimPanel.add(
-      this.add.text(W / 2, y0, "ENTER CLAIM KEY", {
-        fontSize: "11px", color: "#5a7a94", letterSpacing: 2,
-      }).setOrigin(0.5),
+    bg.setInteractive(
+      new Phaser.Geom.Rectangle(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H),
+      Phaser.Geom.Rectangle.Contains,
     );
-
-    // Key input placeholder
-    const inputBg = this.add.graphics();
-    inputBg.lineStyle(2, C.muted);
-    inputBg.strokeRoundedRect(W / 2 - 140, y0 + 22, 280, 42, 10);
-    this.claimPanel.add(inputBg);
-
-    this.claimPanel.add(
-      this.add.text(W / 2, y0 + 43, "paste claim key here", {
-        fontSize: "12px", color: "#3d566e",
-      }).setOrigin(0.5),
-    );
-
-    // Claim button
-    const claimBtn = this.makeActionButton(W / 2, y0 + 102, "CLAIM REWARD", C.gold, 0.0);
-    this.bindGameButton(claimBtn.getAt(0), {
-      targets: claimBtn,
-      pressScale: 0.95,
-      pressDuration: 80,
-      onPress: () => this.dispatch("claimReward", {}),
+    this.bindGameButton(bg, {
+      targets: button,
+      pressScale: 0.97,
+      onPress: () => this.switchMode(mode),
     });
-    this.claimPanel.add(claimBtn);
 
+    button.add([bg, text]);
+    button.setData("bg", bg);
+    button.setData("text", text);
+    this.modeButtons.set(mode, button);
+  }
+
+  private switchMode(mode: Mode): void {
+    this.activeMode = mode;
+    this.createPanel?.setVisible(mode === "create");
+    this.claimPanel?.setVisible(mode === "claim");
+
+    for (const [key, button] of this.modeButtons) {
+      const active = key === mode;
+      const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
+      const text = button.getData("text") as Phaser.GameObjects.Text;
+      bg.clear();
+      bg.fillStyle(active ? C.ink : C.surface, active ? 1 : 0.94);
+      bg.fillRoundedRect(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H, 17);
+      bg.lineStyle(1, active ? C.ink : C.stroke, 0.95);
+      bg.strokeRoundedRect(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H, 17);
+      text.setColor(active ? "#fff6df" : "#6f5a37");
+    }
+  }
+
+  private buildCreatePanel(W: number): void {
+    this.createPanel = this.add.container(0, 0);
+    this.createPanel.add(
+      this.add.text(W / 2, 355, "Choose a reward pack", {
+        fontFamily: FONT,
+        fontSize: "14px",
+        color: "#2a2117",
+        fontStyle: "600",
+      }).setOrigin(0.5),
+    );
+
+    REWARD_PLANS.forEach((_, index) => {
+      const card = this.makePlanCard(70 + index * 140, 415, index);
+      this.planCards.push(card);
+      this.createPanel.add(card);
+    });
+
+    this.createSummaryText = this.add.text(W / 2, 496, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#7a623a",
+      fixedWidth: 330,
+      align: "center",
+    }).setOrigin(0.5);
+    this.createPanel.add(this.createSummaryText);
+
+    this.createButton = this.makeActionButton(W / 2, 535, "Pack vault", "primary");
+    this.createButtonBg = this.createButton.getData("bg") as Phaser.GameObjects.Graphics;
+    this.createButtonLabel = this.createButton.getData("label") as Phaser.GameObjects.Text;
+    this.bindGameButton(this.createButtonBg, {
+      targets: this.createButton,
+      enabled: () => !this.busy,
+      pressScale: 0.97,
+      onPress: () => this.dispatchCreate(),
+    });
+    this.createPanel.add(this.createButton);
+
+    this.selectPlan(this.selectedPlanIndex, false);
+  }
+
+  private makePlanCard(x: number, y: number, index: number): Phaser.GameObjects.Container {
+    const plan = REWARD_PLANS[index]!;
+    const card = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.setInteractive(new Phaser.Geom.Rectangle(-56, -48, 112, 96), Phaser.Geom.Rectangle.Contains);
+    this.bindGameButton(bg, {
+      targets: card,
+      pressScale: 0.96,
+      onPress: () => this.selectPlan(index, true),
+    });
+
+    const title = this.add.text(0, -30, plan.title, {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#6f5a37",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    const amount = this.add.text(0, -4, `${plan.amount}`, {
+      fontFamily: FONT,
+      fontSize: "21px",
+      color: "#2a2117",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    const gas = this.add.text(0, 17, "GAS", {
+      fontFamily: FONT,
+      fontSize: "10px",
+      color: "#a18455",
+      fontStyle: "600",
+      letterSpacing: 1,
+    }).setOrigin(0.5);
+    const detail = this.add.text(0, 34, `${plan.maxClaims} claims`, {
+      fontFamily: FONT,
+      fontSize: "10px",
+      color: "#7a623a",
+    }).setOrigin(0.5);
+
+    card.add([bg, title, amount, gas, detail]);
+    card.setData("bg", bg);
+    card.setData("title", title);
+    card.setData("amount", amount);
+    return card;
+  }
+
+  private selectPlan(index: number, animate: boolean): void {
+    this.selectedPlanIndex = index;
+    this.planCards.forEach((card, cardIndex) => this.renderPlanCard(card, cardIndex === index));
+
+    const plan = REWARD_PLANS[index]!;
+    this.createSummaryText?.setText(
+      `${plan.maxClaims} claims - ${plan.minClaim}-${plan.maxClaim} GAS each - ${plan.expiryHours}h expiry`,
+    );
+    if (animate) {
+      this.animate({
+        targets: this.vaultGlow,
+        alpha: { from: 0.3, to: 0.18 },
+        duration: 180,
+        ease: "Sine.easeOut",
+      });
+    }
+  }
+
+  private renderPlanCard(card: Phaser.GameObjects.Container, active: boolean): void {
+    const bg = card.getData("bg") as Phaser.GameObjects.Graphics;
+    const title = card.getData("title") as Phaser.GameObjects.Text;
+    const amount = card.getData("amount") as Phaser.GameObjects.Text;
+
+    bg.clear();
+    bg.fillStyle(active ? 0xfff1c9 : C.surface, active ? 1 : 0.96);
+    bg.fillRoundedRect(-56, -48, 112, 96, 18);
+    bg.lineStyle(active ? 2 : 1, active ? C.strokeStrong : C.stroke, 0.96);
+    bg.strokeRoundedRect(-56, -48, 112, 96, 18);
+    title.setColor(active ? "#8a5b06" : "#6f5a37");
+    amount.setColor(active ? "#8a5b06" : "#2a2117");
+  }
+
+  private dispatchCreate(): void {
+    const plan = REWARD_PLANS[this.selectedPlanIndex]!;
+    this.dispatch("createPool", {
+      totalAmount: plan.amount,
+      minClaim: plan.minClaim,
+      maxClaim: plan.maxClaim,
+      maxClaims: plan.maxClaims,
+      expiryHours: plan.expiryHours,
+    });
+  }
+
+  private buildClaimPanel(W: number): void {
+    this.claimPanel = this.add.container(0, 0);
+    this.claimPanel.add(
+      this.add.text(W / 2, 356, "Unwrap your reward", {
+        fontFamily: FONT,
+        fontSize: "14px",
+        color: "#2a2117",
+        fontStyle: "600",
+      }).setOrigin(0.5),
+    );
+
+    const ticket = this.add.container(W / 2, 421);
+    const ticketBg = this.add.graphics();
+    ticketBg.fillStyle(C.surface, 0.97);
+    ticketBg.fillRoundedRect(-150, -48, 300, 96, 22);
+    ticketBg.lineStyle(1, C.stroke, 0.95);
+    ticketBg.strokeRoundedRect(-150, -48, 300, 96, 22);
+    ticketBg.lineStyle(1, C.stroke, 0.5);
+    ticketBg.lineBetween(-118, -48, -118, 48);
+    ticketBg.lineBetween(118, -48, 118, 48);
+
+    const coin = this.makeGasBadge(-124, -15, 36);
+    this.claimKeyText = this.add.text(-78, -19, "", {
+      fontFamily: FONT,
+      fontSize: "17px",
+      color: "#2a2117",
+      fontStyle: "600",
+      fixedWidth: 188,
+    }).setOrigin(0, 0.5);
+    this.claimRangeText = this.add.text(-78, 9, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#7a623a",
+      fixedWidth: 205,
+    }).setOrigin(0, 0.5);
+    this.claimProgressText = this.add.text(-78, 30, "", {
+      fontFamily: FONT,
+      fontSize: "11px",
+      color: "#0f7d56",
+      fixedWidth: 205,
+    }).setOrigin(0, 0.5);
+
+    ticket.add([ticketBg, coin, this.claimKeyText, this.claimRangeText, this.claimProgressText]);
+    this.claimPanel.add(ticket);
+
+    this.checkButton = this.makeActionButton(W / 2 - 72, 515, "Check", "secondary", 122);
+    this.checkButtonBg = this.checkButton.getData("bg") as Phaser.GameObjects.Graphics;
+    this.checkButtonLabel = this.checkButton.getData("label") as Phaser.GameObjects.Text;
+    this.bindGameButton(this.checkButtonBg, {
+      targets: this.checkButton,
+      enabled: () => this.hasClaimKey && !this.busy,
+      pressScale: 0.97,
+      onPress: () => this.dispatchCheckClaim(),
+    });
+
+    this.claimButton = this.makeActionButton(W / 2 + 76, 515, "Claim", "primary", 154);
+    this.claimButtonBg = this.claimButton.getData("bg") as Phaser.GameObjects.Graphics;
+    this.claimButtonLabel = this.claimButton.getData("label") as Phaser.GameObjects.Text;
+    this.bindGameButton(this.claimButtonBg, {
+      targets: this.claimButton,
+      enabled: () => this.hasClaimContext && !this.busy,
+      pressScale: 0.97,
+      onPress: () => this.dispatchClaim(),
+    });
+
+    this.claimPanel.add([this.checkButton, this.claimButton]);
     this.claimPanel.setVisible(false);
   }
 
   private makeActionButton(
-    x: number, y: number,
+    x: number,
+    y: number,
     label: string,
-    color: number,
-    glowAlpha = 0,
+    tone: "primary" | "secondary",
+    width = 224,
   ): Phaser.GameObjects.Container {
-    const c = this.add.container(x, y);
+    const button = this.add.container(x, y);
     const bg = this.add.graphics();
-    bg.fillStyle(color);
-    bg.fillRoundedRect(-110, -24, 220, 48, 14);
-    if (glowAlpha > 0) {
-      bg.fillStyle(0xffffff, glowAlpha);
-      bg.fillRoundedRect(-110, -24, 220, 20, { tl: 14, tr: 14, bl: 0, br: 0 });
+    const text = this.add.text(0, 0, label, {
+      fontFamily: FONT,
+      fontSize: "13px",
+      color: tone === "primary" ? "#2a2117" : "#6f5a37",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+
+    bg.setInteractive(new Phaser.Geom.Rectangle(-width / 2, -21, width, 42), Phaser.Geom.Rectangle.Contains);
+    button.add([bg, text]);
+    button.setData("bg", bg);
+    button.setData("label", text);
+    button.setData("tone", tone);
+    button.setData("width", width);
+    this.renderActionButton(button, true);
+    return button;
+  }
+
+  private renderActionButton(button: Phaser.GameObjects.Container, enabled: boolean): void {
+    const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
+    const label = button.getData("label") as Phaser.GameObjects.Text;
+    const tone = button.getData("tone") as "primary" | "secondary";
+    const width = button.getData("width") as number;
+
+    bg.clear();
+    if (!enabled) {
+      bg.fillStyle(C.disabled, 0.92);
+      bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
+      bg.lineStyle(1, C.disabled, 1);
+      bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
+      label.setColor("#8f826f");
+      button.setAlpha(0.8);
+      return;
     }
-    bg.setInteractive(new Phaser.Geom.Rectangle(-110, -24, 220, 48), Phaser.Geom.Rectangle.Contains);
-    bg.on("pointerover", () => bg.setAlpha(0.85));
-    bg.on("pointerout",  () => bg.setAlpha(1.0));
 
-    const lbl = this.add.text(0, 0, label, {
-      fontSize: "14px", fontStyle: "bold", color: "#0a1f30", letterSpacing: 2,
-    }).setOrigin(0.5);
-    c.add([bg, lbl]);
-    return c;
+    if (tone === "primary") {
+      bg.fillStyle(C.gold);
+      bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
+      bg.fillStyle(C.white, 0.2);
+      bg.fillRoundedRect(-width / 2 + 3, -18, width - 6, 17, 17);
+      bg.lineStyle(1, C.goldDeep, 0.55);
+      bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
+      label.setColor("#2a2117");
+    } else {
+      bg.fillStyle(C.surface, 0.98);
+      bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
+      bg.lineStyle(1, C.strokeStrong, 0.72);
+      bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
+      label.setColor("#6f5a37");
+    }
+    button.setAlpha(1);
   }
 
-  // ── Result area ────────────────────────────────────────────────────────────
+  private updateButtons(): void {
+    const createEnabled = !this.busy;
+    const claimEnabled = this.hasClaimContext && !this.busy;
+    const checkEnabled = this.hasClaimKey && !this.busy;
+    if (this.createButton) {
+      this.createButtonLabel.setText(this.busy ? "Working..." : "Pack vault");
+      this.renderActionButton(this.createButton, createEnabled);
+    }
+    if (this.claimButton) {
+      this.claimButtonLabel.setText(this.busy ? "Claiming..." : this.hasClaimContext ? "Claim" : "No link");
+      this.renderActionButton(this.claimButton, claimEnabled);
+    }
+    if (this.checkButton) {
+      this.checkButtonLabel.setText(this.busy ? "Wait" : "Check");
+      this.renderActionButton(this.checkButton, checkEnabled);
+    }
+  }
 
-  private buildResultArea(W: number, H: number): void {
-    this.resultLabel = this.add.text(W / 2, H * 0.84, "", {
-      fontSize: "18px", fontStyle: "bold", color: "#d4a843",
+  private dispatchClaim(): void {
+    const claimKey = this.str("currentClaimKey", "");
+    const poolId = this.str("currentPoolId", "");
+    if (!claimKey && !poolId) return;
+    this.dispatch("claimPool", {
+      claimKey: claimKey || undefined,
+      poolId: poolId || undefined,
+      appId: "miniapp-gas-lucky-pool",
+    });
+  }
+
+  private dispatchCheckClaim(): void {
+    const claimKey = this.str("currentClaimKey", "");
+    if (!claimKey) return;
+    this.dispatch("checkClaimStatus", { claimKey });
+  }
+
+  private buildStatus(W: number, H: number): void {
+    this.statusText = this.add.text(W / 2, H - 22, "", {
+      fontFamily: FONT,
+      fontSize: "11px",
+      color: "#7a623a",
+      fixedWidth: 340,
+      align: "center",
     }).setOrigin(0.5);
   }
 
-  private buildStatusBar(W: number, H: number): void {
-    this.statusBar = this.add.text(W / 2, H * 0.97, "", {
-      fontSize: "11px", color: "#3d566e",
-    }).setOrigin(0.5);
+  private updateCoinMotion(): void {
+    this.coinStream.forEach((coin, index) => {
+      const active = this.busy || this.activeMode === "claim";
+      coin.setAlpha(active ? 1 : 0.76);
+      if (!active) return;
+      coin.setRotation(Phaser.Math.DegToRad((this.time.now / 28 + index * 36) % 360));
+    });
   }
 
-  // ── Chip rain (win effect) ─────────────────────────────────────────────────
-
-  private spawnChipRain(): void {
-    const { width: W, height: H } = this.scale;
-    const colors = [C.gold, C.teal, 0xffffff, C.goldLt];
-    for (let i = 0; i < 18; i++) {
-      const g = this.add.graphics();
-      const col = colors[i % colors.length]!;
-      g.fillStyle(col);
-      g.fillCircle(0, 0, 7);
-      g.lineStyle(2, 0x000000, 0.3);
-      g.strokeCircle(0, 0, 7);
-      g.x = Phaser.Math.Between(W * 0.05, W * 0.95);
-      g.y = -20;
-
-      this.tweens.add({
-        targets: g,
-        y: H + 30,
-        x: g.x + Phaser.Math.Between(-80, 80),
+  private spawnRewardBurst(): void {
+    const { width: W } = this.scale;
+    for (let i = 0; i < 16; i += 1) {
+      const coin = this.makeGasBadge(W / 2, 248, 24)
+        .setAlpha(0.95);
+      this.animate({
+        targets: coin,
+        x: W / 2 + Phaser.Math.Between(-145, 145),
+        y: 118 + Phaser.Math.Between(-18, 110),
+        angle: Phaser.Math.Between(-220, 220),
         alpha: { from: 1, to: 0 },
-        angle: Phaser.Math.Between(-360, 360),
-        delay: i * 55,
-        duration: 1200,
-        ease: "Power2",
-        onComplete: () => g.destroy(),
+        duration: 900 + i * 22,
+        delay: i * 35,
+        ease: "Cubic.easeOut",
+        onComplete: () => coin.destroy(),
       });
     }
+    this.animate({
+      targets: this.resultPill,
+      scaleX: { from: 1.03, to: 1 },
+      scaleY: { from: 1.03, to: 1 },
+      duration: 260,
+      ease: "Back.easeOut",
+    });
   }
 }
