@@ -28,7 +28,7 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   assert.match(playArea, /OpenUiSegmented/);
   assert.match(playArea, /OpenUiTextArea/);
   assert.match(playArea, /OpenUiTextField/);
-  assert.match(playArea, /const RELAY_STATION_ART = "aa-relay-station\.jpg"/);
+  assert.match(playArea, /const RELAY_STATION_ART = "aa-relay-station\.webp"/);
   assert.ok(
     fs.existsSync(path.join(ROOT, "apps/aa-relay-console/public/aa-relay-station.webp")),
     "AA relay scene art must ship with the miniapp",

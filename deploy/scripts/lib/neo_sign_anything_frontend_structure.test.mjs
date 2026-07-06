@@ -35,8 +35,8 @@ test("Neo Sign Anything renders a v2 signature desk with proof drawer", () => {
     "signMessage",
     "broadcastMessage",
   ], "Neo Sign Anything");
-  assert.match(main, /ctx\.registerAction\("signMessage"/);
-  assert.match(main, /ctx\.registerAction\("broadcastMessage"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("signMessage"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("broadcastMessage"/);
   assertAssets(["apps/neo-sign-anything/public/signature-desk.webp"]);
   assertMessageKeys(messages, [
     "signHeroKicker",

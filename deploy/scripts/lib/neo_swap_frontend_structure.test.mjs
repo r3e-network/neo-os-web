@@ -56,8 +56,8 @@ test("Neo Swap renders a v2 DeFi route desk with official shared token assets", 
     "apps/shared/assets/tokens/neo-icon.svg",
     "apps/shared/assets/tokens/gas-icon.svg",
   ]);
-  assert.match(main, /ctx\.registerAction\("refreshRate"/);
-  assert.match(main, /ctx\.registerAction\("selectPair"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("refreshRate"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("selectPair"/);
   assert.match(main, /swap\.loadExchangeRate\(\)/);
   assertMessageKeys(messages, [
     "swapRouteReady",
@@ -67,7 +67,7 @@ test("Neo Swap renders a v2 DeFi route desk with official shared token assets", 
     "routeReview",
     "slippage",
   ], "Neo Swap");
-  assert.match(manifest, /"banner": "\/miniapps\/neo-swap\/banner\.jpg"/);
+  assert.match(manifest, /"banner": "\/miniapps\/neo-swap\/banner\.webp"/);
   assert.match(styles, /\.swap-terminal\s*\{/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assertModernTypography(`${styles}\n${tokenIconStyles}`, "Neo Swap");

@@ -40,7 +40,7 @@ test("Forever Album renders a clean v2 local memory workbench", () => {
   ], "Forever Album");
   assert.match(playArea, /type="file"[\s\S]*accept="image\/\*"/);
   assert.match(playArea, /type="checkbox"[\s\S]*checked=\{isEncrypted\}/);
-  assert.match(main, /ctx\.registerAction\("refreshPhotos"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("refreshPhotos"/);
   assertAssets(["apps/forever-album/public/forever-album-memory-stage.webp"]);
   assertMessageKeys(messages, [
     "vaultHeroTitle",

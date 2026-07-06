@@ -27,7 +27,7 @@ test("AA Session Key Lab exposes a wallet-style session workspace with guarded c
   assert.match(playArea, /OpenUiPanel/);
   assert.match(playArea, /OpenUiTextField/);
   assert.match(playArea, /OpenUiNotice/);
-  assert.match(playArea, /const SESSION_ART = "session-key-control\.jpg"/);
+  assert.match(playArea, /const SESSION_ART = "session-key-control\.webp"/);
   assert.ok(
     fs.existsSync(path.join(ROOT, "apps/aa-session-key-lab/public/session-key-control.webp")),
     "AA session scene art must ship with the miniapp",

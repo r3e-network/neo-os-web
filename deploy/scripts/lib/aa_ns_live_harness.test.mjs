@@ -20,8 +20,9 @@ test("NeoNS miniapp writes wallet targets as address records, not DNS A records"
   const source = fs.readFileSync(NEO_NS_HOOK, "utf8");
 
   assert.match(source, /NNS_RECORD_TYPE_ADDRESS\s*=\s*16/);
-  assert.match(source, /value:\s*String\(NNS_RECORD_TYPE_ADDRESS\)/);
+  assert.match(source, /app\.chain\.arg\.integer\(NNS_RECORD_TYPE_ADDRESS\)/);
   assert.doesNotMatch(source, /Type 1 is the "A" record \(Neo address as string\)/);
+  assert.doesNotMatch(source, /app\.chain\.arg\.integer\(1\)/);
 });
 
 test("AA market live harness signs escrow flows for both market and AA core contracts", () => {

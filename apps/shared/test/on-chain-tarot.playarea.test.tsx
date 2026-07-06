@@ -305,13 +305,13 @@ describe("On-Chain Tarot PlayArea (v2 scene-driven)", () => {
     expect(styles).not.toMatch(/\.tarot-scene__aura/);
     // The table stays clean while cards/text remain on high-contrast foreground pieces.
     expect(styles).toMatch(/\.tarot-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
-    expect(styles).toMatch(/\.tarot-play-area \.mx2-stage\s*\{[\s\S]*--mx2-scene-art-opacity:\s*0\.3/);
+    expect(styles).toMatch(/\.tarot-play-area \.mx2-stage\s*\{[\s\S]*--mx2-scene-art-opacity:\s*0\.16/);
     expect(styles).toMatch(/tarot-scene__cloth\s*\{[\s\S]*background:\s*#fffaf3/);
     expect(styles).toMatch(/tarot-scene__cloth::after\s*\{[\s\S]*linear-gradient/);
     expect(styles).toMatch(/\.tarot-scene__table-art\s*\{[\s\S]*object-fit:\s*cover/);
     expect(styles).toMatch(/\.tarot-scene__table-art\s*\{[\s\S]*opacity:\s*var\(--mx2-scene-art-opacity\)/);
     expect(styles).toMatch(/\.tarot-scene__table\s*\{[\s\S]*grid-template-columns:\s*minmax\(144px,\s*0\.36fr\) minmax\(360px,\s*1fr\)/);
-    expect(styles).toMatch(/\.tarot-scene__deck-zone\s*\{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.82\)/);
+    expect(styles).toMatch(/\.tarot-scene__deck-zone\s*\{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/);
     expect(styles).toMatch(/\.tarot-scene__reading-zone\s*\{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.78\)/);
     expect(styles).toMatch(/\.tarot-scene__deck\s*\{[\s\S]*position:\s*relative/);
     expect(styles).toMatch(/\.tarot-scene\s*\{[\s\S]*--tarot-card-w:\s*124px/);

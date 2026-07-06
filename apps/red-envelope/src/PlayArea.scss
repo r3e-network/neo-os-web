@@ -159,13 +159,13 @@
 .redenv-scene__packet-label span {
   font-size: 0.75rem;
   font-weight: 620;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 .redenv-scene__packet-label strong {
   font-size: 1.75rem;
   line-height: 1.04;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 .redenv-scene__ticket {
   position: relative;
@@ -270,7 +270,7 @@
 .redenv-scene__gift-copy span {
   font-size: 0.75rem;
   font-weight: 620;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 .redenv-scene__gift-copy strong {
@@ -387,7 +387,7 @@
   font-size: 0.75rem;
   font-weight: 680;
   color: #92400e;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -492,7 +492,7 @@
 .redenv-presets__label {
   font-size: 0.6875rem;
   font-weight: 680;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: #92400e;
 }
@@ -903,7 +903,7 @@
   }
   .redenv-presets__label {
     font-size: 0.625rem;
-    letter-spacing: 0.03em;
+    letter-spacing: 0;
     white-space: nowrap;
   }
   .redenv-presets__chips {

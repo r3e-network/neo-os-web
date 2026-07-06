@@ -33,7 +33,7 @@ test("Oracle Price Console renders a clean v2 market station backed by Morpheus 
   assert.match(playArea, /OpenUiSegmented/);
   assert.match(playArea, /OpenUiPanel/);
   assert.match(playArea, /PlayStage/);
-  assert.match(playArea, /const MARKET_STAGE_IMAGE = "oracle-market-stage\.jpg"/);
+  assert.match(playArea, /const MARKET_STAGE_IMAGE = "oracle-market-stage\.webp"/);
   assert.match(playArea, /className="oracle-price-play-area mx2 mx2-cat-tool"/);
   assert.match(playArea, /category="tool"/);
   assert.match(playArea, /className="price-stage-stack"/);
@@ -83,8 +83,8 @@ test("Oracle Price Console renders a clean v2 market station backed by Morpheus 
   assert.match(messages, /priceReferenceMethodValue/);
   assert.match(messages, /sourceOnChain/);
 
-  assert.match(index, /href="\.\/logo\.jpg"/);
-  assert.match(index, /content="\.\/banner\.jpg"/);
+  assert.match(index, /href="\.\/logo\.webp"/);
+  assert.match(index, /content="\.\/banner\.webp"/);
   assert.ok(exists("apps/oracle-price-console/public/oracle-market-stage.webp"));
   assert.ok(exists("apps/oracle-price-console/public/banner.webp"));
 
