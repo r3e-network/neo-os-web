@@ -1,6 +1,5 @@
-import { createObservable, type Observable } from "../apps/shared/react/context";
-import type { MiniAppLaunchContext } from "../apps/shared/utils/launch-params";
-import { addressToScriptHash } from "../apps/shared/utils/neo";
+import { createObservable, type Observable } from "./reactive";
+import { addressToScriptHash } from "./utils/neo";
 import {
   createLocalStorageRewardGameStorage,
   expireRewardGame,
@@ -16,13 +15,13 @@ import {
   rewardGameModeOf,
   startRewardGame,
   withdrawRewardCredit,
-} from "../apps/shared/gamefi";
-import type { RewardGameConfig, RewardGameSession, RewardGameStorage } from "../apps/shared/gamefi";
-import type { TeeSessionOp, TeeStepResult } from "../apps/shared/logic/tee-session";
-import { fromFixed8 } from "../apps/shared/utils/format";
-import { parseBigInt } from "../apps/shared/utils/parsers";
-import { eventStateValue } from "../apps/shared/utils/chain-events";
-import { eventHashMatches, mapField, normalizedHash } from "../apps/shared/gamefi";
+} from "./gamefi";
+import type { RewardGameConfig, RewardGameSession, RewardGameStorage } from "./gamefi";
+import type { TeeSessionOp, TeeStepResult } from "./logic/tee-session";
+import { fromFixed8 } from "./utils/format";
+import { parseBigInt } from "./utils/parsers";
+import { eventStateValue } from "./utils/chain-events";
+import { eventHashMatches, mapField, normalizedHash } from "./gamefi";
 import {
   toScriptHash,
   buildLeaderboard,
@@ -116,6 +115,18 @@ export interface MiniAppFrameworkOS {
   };
 }
 
+export interface FrameworkLaunchContext {
+  appId?: string;
+  source?: string | null;
+  operation?: string | null;
+  tab?: string | null;
+  network?: string | null;
+  params?: Record<string, string>;
+  keys?: string[];
+  hasParams?: boolean;
+  signature?: string;
+}
+
 export interface MiniAppFrameworkContext {
   services: {
     chain: MiniAppFrameworkChain;
@@ -127,7 +138,7 @@ export interface MiniAppFrameworkContext {
   state?: Record<string, Observable>;
   setStatus?: (message: string, type: "success" | "error" | "warning" | "info") => void;
   clearStatus?: () => void;
-  launchContext?: Partial<MiniAppLaunchContext>;
+  launchContext?: Partial<FrameworkLaunchContext>;
   registerAction?: (key: string, handler: (...args: unknown[]) => Promise<unknown>) => void;
 }
 

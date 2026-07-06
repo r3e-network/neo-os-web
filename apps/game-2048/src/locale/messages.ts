@@ -38,6 +38,7 @@ const appMessages = {
   timeUpAction: { en: "Time is up", zh: "时间到" },
 
   undoAction: { en: "Undo ({left} left, -30%)", zh: "撤回（剩 {left} 次，-30%）" },
+  useUndo: { en: "Use undo", zh: "使用撤回" },
   undoConfirm: { en: "Confirm undo — reward drops to {pct}%", zh: "确认撤回——奖励降至 {pct}%" },
   undoHint: {
     en: "Recorded by the enclave session — no transaction needed. Each undo burns 30% of the base reward; three max, and the count is signed into the settlement.",

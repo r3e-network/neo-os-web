@@ -7,7 +7,7 @@ import {
   eventHashMatches as addrEq,
   mapField,
   normalizedHash as normHash,
-} from "@shared/gamefi";
+} from "@framework/gamefi";
 import PlayArea from "./PlayArea";
 import manifest from "./manifest";
 import { messages } from "./locale/messages";

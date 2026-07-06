@@ -89,9 +89,7 @@
   border: 1px solid rgba(63, 98, 18, 0.12);
   border-radius: 22px;
   background: var(--sheep-paper);
-  box-shadow:
-    0 2px 8px rgba(56, 42, 20, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: var(--mx2-shadow);
 }
 
 .sheep-scene[data-state="gameover"] {
@@ -349,6 +347,7 @@
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .sheep-route-card {
@@ -484,7 +483,7 @@
 .sheep-timer__clock {
   font-variant-numeric: tabular-nums;
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 680;
   letter-spacing: -0.01em;
 }
 

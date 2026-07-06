@@ -16,6 +16,7 @@ const appMessages = {
   rankLabel: { en: "Global rank", zh: "全网排名" },
   sidebarTitle: { en: "My memory record", zh: "我的战绩" },
   creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
+  lobbyConsoleLabel: { en: "Color sequence console", zh: "颜色序列控制台" },
 
   difficultyTitle: { en: "Arcade mode", zh: "街机模式" },
   difficulty_easy: { en: "Pulse Arcade", zh: "脉冲街机" },

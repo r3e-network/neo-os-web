@@ -6,8 +6,8 @@
  * logic: pipe-layout seed delivery, flap recording, and solution finalization.
  */
 import { createObservable, defineMiniApp } from "@shared/react";
-import type { RewardGameSession } from "@shared/gamefi";
-import { mapField } from "@shared/gamefi";
+import type { RewardGameSession } from "@framework/gamefi";
+import { mapField } from "@framework/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
 import PlayArea from "./PlayArea";

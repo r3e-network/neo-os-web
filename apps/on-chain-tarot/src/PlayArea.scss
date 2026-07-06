@@ -10,7 +10,7 @@
 
 .tarot-play-area {
   display: block;
-  --mx2-stage-floor: var(--mx2-white, #ffffff);
+  --mx2-stage-floor: #ffffff;
 
   /* ── Local design tokens ──────────────────────────────────────
    * Centralised here so a single edit propagates everywhere.
@@ -49,7 +49,7 @@
 .tarot-scene__cloth {
   position: absolute;
   inset: 0;
-  background: var(--tarot-cloth-bg);
+  background: #fffaf3;
   opacity: 1;
   border-radius: var(--mx2-r-lg);
   border: 1px solid var(--tarot-border-warm);
@@ -86,7 +86,7 @@
   position: relative;
   z-index: 3;
   display: grid;
-  grid-template-columns: minmax(144px, 0.36fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(144px, 0.36fr) minmax(360px, 1fr);
   gap: 14px;
   align-items: stretch;
   min-height: 338px;
@@ -107,7 +107,7 @@
 .tarot-scene__deck-eyebrow {
   justify-self: center;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 680;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--mx2-text-muted);
@@ -500,7 +500,7 @@
   transform: translateX(-50%);
   margin: 0;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 680;
   color: var(--mx2-ink);
   background: rgba(255, 255, 255, 0.92);
   padding: 6px 14px;
@@ -617,7 +617,7 @@
 .tarot-drawer__intent-card span {
   color: var(--mx2-accent-strong);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -640,7 +640,7 @@
 }
 .tarot-drawer__question-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 680;
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--mx2-text-muted);
@@ -693,7 +693,7 @@
 .tarot-drawer__flow strong {
   color: var(--mx2-accent-strong);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 680;
 }
 .tarot-drawer__flow em {
   color: var(--mx2-text-2);

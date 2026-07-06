@@ -8,6 +8,7 @@ export default defineConfig({
   root: currentDir,
   resolve: {
     alias: {
+      "@framework": resolve(currentDir, "../..", "framework"),
       "@shared": currentDir,
       "@": currentDir,
     },

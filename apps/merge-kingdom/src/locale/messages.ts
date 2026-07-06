@@ -2,6 +2,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   appEyebrow: { en: "Merge Kingdom", zh: "合并王国" },
+  appTitle: { en: "Merge Kingdom", zh: "合并王国" },
   appSubtitle: {
     en: "Merge buildings into the crown before the clock runs out.",
     zh: "在倒计时结束前，把建筑合并成王冠。",
@@ -9,6 +10,7 @@ const appMessages = {
   playTab: { en: "Play", zh: "对局" },
   ranksTab: { en: "Ranks", zh: "排行" },
   lobbyTitle: { en: "Build the kingdom", zh: "建造你的王国" },
+  gameTitle: { en: "Kingdom board", zh: "王国棋盘" },
   playingTitle: { en: "{difficulty} merge in play", zh: "{difficulty}合并进行中" },
   statusWonTitle: { en: "Kingdom merged!", zh: "王国合并！" },
   networkBadge: { en: "Neo N3", zh: "Neo N3" },
@@ -46,6 +48,15 @@ const appMessages = {
   tileScore: { en: "Highest tile", zh: "最高方块" },
   tileTarget: { en: "Target: {tile}", zh: "目标：{tile}" },
   tileAchieved: { en: "Achieved: {tile}", zh: "已达：{tile}" },
+  srTargetBarLabel: { en: "Progress toward tile {tile}", zh: "冲向 {tile} 的进度" },
+  srTargetReached: { en: "Target tile {tile} reached", zh: "已达成目标方块 {tile}" },
+  srTimeLow: { en: "Less than 30 seconds left", zh: "剩余时间不足 30 秒" },
+  srTimerBarLabel: { en: "Time remaining", zh: "剩余时间" },
+  tileEmpty: { en: "Empty cell, row {row}, column {col}", zh: "空格，第 {row} 行第 {col} 列" },
+  tileOccupied: {
+    en: "{name}, row {row}, column {col}",
+    zh: "{name}，第 {row} 行第 {col} 列",
+  },
   movesCount: { en: "Moves: {n}", zh: "步数：{n}" },
   mergeBonus: { en: "Merge!", zh: "合并！" },
   selectTile: { en: "Select a tile to move", zh: "选择一个要移动的方块" },

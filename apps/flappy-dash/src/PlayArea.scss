@@ -56,7 +56,7 @@ $game-accent: #00af92;
   isolation: isolate;
   border: 1px solid rgba(77, 201, 246, 0.22);
   border-radius: var(--mx2-r-lg, 16px);
-  box-shadow: 0 2px 8px rgba(11, 103, 125, 0.06);
+  box-shadow: var(--mx2-shadow);
 }
 
 .flappy-scene__sky {
@@ -569,14 +569,12 @@ $game-accent: #00af92;
   &--crashed,
   &--won {
     background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(3px);
     animation: flappy-overlay-fade-in 250ms ease-out both;
     pointer-events: auto;
   }
 
   &--won {
     background: rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(2px);
 
     &[data-win="true"] {
       animation: flappy-win-overlay 250ms ease-out both;
@@ -878,7 +876,6 @@ $game-accent: #00af92;
   }
 
   .flappy-overlay {
-    backdrop-filter: none;
   }
 }
 

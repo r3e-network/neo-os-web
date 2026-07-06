@@ -49,6 +49,7 @@ const appMessages = {
   },
   submitAction: { en: "Submit solution", zh: "提交答案" },
   submitHint: { en: "Board complete — submit before the deadline", zh: "盘面已完成——在截止前提交" },
+  submittingTitle: { en: "Submitting solution", zh: "正在提交答案" },
   fillHint: { en: "{left} cells to fill", zh: "还剩 {left} 格" },
   timeUpAction: { en: "Time is up", zh: "时间到" },
 
@@ -72,7 +73,11 @@ const appMessages = {
 
   boardLabel: { en: "Sudoku board", zh: "数独棋盘" },
   cellLabel: { en: "Row {row}, column {col}", zh: "第 {row} 行第 {col} 列" },
+  cellNotesDesc: { en: "Notes: {notes}", zh: "候选数：{notes}" },
   notesToggle: { en: "Notes", zh: "笔记" },
+  timerProgress: { en: "Time remaining", zh: "剩余时间" },
+  padNoteLabel: { en: "Add note {digit}", zh: "添加候选数 {digit}" },
+  padPlaceLabel: { en: "Place {digit}", zh: "填入 {digit}" },
   rewardNow: { en: "{amount} GAS ({pct}%)", zh: "{amount} GAS（{pct}%）" },
   minSolveHint: {
     en: "Anti-bot floor: submission unlocks in {clock}",

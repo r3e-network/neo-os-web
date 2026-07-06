@@ -6,6 +6,11 @@ const appMessages = {
     en: "Pick cards from the pile into your slot bar — three matching cards auto-eliminate. Clear the board before the slots fill up to win!",
     zh: "从牌堆选取卡片放入卡槽——三张相同卡片自动消除。在卡槽满溢前清空所有卡片即可获胜！",
   },
+  rollTab: { en: "Board", zh: "牌局" },
+  rollDescription: {
+    en: "Pick exposed cards into the slot bar, match three to clear them, and empty the board before time runs out.",
+    zh: "选择可见卡片放入卡槽，三张相同即消除，并在倒计时前清空牌面。",
+  },
   playTab: { en: "Play", zh: "对局" },
   ranksTab: { en: "Ranks", zh: "排行" },
   lobbyTitle: { en: "Clear the meadow board", zh: "清空草地牌局" },
@@ -40,6 +45,7 @@ const appMessages = {
     zh: "支付报名费后，Morpheus 飞地密封你的牌面——链上只记录哈希承诺。",
   },
   submitAction: { en: "Submit win", zh: "提交获胜" },
+  submitSolution: { en: "Submit win", zh: "提交获胜" },
   submitHint: { en: "All cards cleared — submit before the deadline", zh: "已清空所有卡片——在截止前提交" },
   timeUpAction: { en: "Time is up", zh: "时间到" },
 
@@ -62,6 +68,7 @@ const appMessages = {
   },
 
   releaseAction: { en: "Release game", zh: "结算过期对局" },
+  expireGame: { en: "Release game", zh: "结算过期对局" },
   releaseHint: {
     en: "Frees the reward reservation of an expired game (refunds an undealt entry).",
     zh: "释放过期对局占用的奖励额度（未发牌的对局将退回报名费）。",
@@ -141,6 +148,10 @@ const appMessages = {
     zh: "1. 选择牌局路线并支付报名费（草地：0.02、庆典：0.10、山岭：0.20 GAS）。2. Morpheus 飞地生成三层牌面并将其哈希承诺绑定上链——只有暴露的卡片可见。3. 点击暴露的卡片将其移入 7 格卡槽。三张相同卡片自动消除。在截止时间前清空所有卡片即可获胜！4. 工具：撤回（最多 3 次，每次 -30%）、洗牌（每局 1 次，将卡槽卡片洗回牌堆）、移出三张（每局 1 次，从卡槽移除任意 3 张）。5. 飞地验证对局并签署结算，合约核验签名与承诺后发奖。",
   },
   fairnessTitle: { en: "Provably fair cards", zh: "可验证公平牌面" },
+  fairnessNote: {
+    en: "The layout is sealed inside the Morpheus enclave, revealed only as you pick exposed cards, and verified before payout.",
+    zh: "牌面在 Morpheus 飞地内密封，只在你选择可见卡片时揭示，并在派奖前验证。",
+  },
   fairnessCopy: {
     en: "The card layout is generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, and each card's symbol is revealed only as you pick it — so the full layout cannot be extracted or searched outside the app. At settlement the enclave signs the result and the contract verifies both the signature and that the problem hash equals the original commitment before paying.",
     zh: "牌面由 Morpheus TEE 用每局独立的密钥在飞地内生成：开局时链上只绑定其 SHA-256 承诺，且每张卡片的图案只在你选取时才揭示——完整牌面无法在平台之外提取或搜索。结算时飞地对结果签名，合约先核验签名、再核验问题哈希与开局承诺一致后才发奖。",

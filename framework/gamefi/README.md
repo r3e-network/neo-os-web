@@ -32,7 +32,7 @@ Games with different names can override `methods`, `events`, and `eventSlots` in
 
 Miniapps should normally access this through `ctx.framework.game.reward(...)`,
 which supplies the app id, chain adapter, and app-scoped op-log storage. Import
-`@shared/gamefi` directly only for low-level tests or custom runtimes.
+`@framework/gamefi` directly only for low-level tests or custom runtimes.
 
 ```ts
 import {
@@ -42,7 +42,7 @@ import {
   openRewardGameSession,
   recordRewardGameOp,
   startRewardGame,
-} from "@shared/gamefi";
+} from "@framework/gamefi";
 
 const rewardConfig = {
   appId: "miniapp-flappy-dash",
