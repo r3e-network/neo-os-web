@@ -73,3 +73,20 @@ the financial and confidential-compute state machine.
 See [MICROGAME_BACKLOG.md](./MICROGAME_BACKLOG.md) for candidate short-session
 GameFi games such as White Tile Rush, ten-second survival, stack timing, and
 other recognizable mobile challenge formats that fit this SDK.
+
+The backlog is also available as typed framework data:
+
+```ts
+import {
+  microgameArchetypeById,
+  recommendedMicrogameArchetypes,
+} from "@framework/gamefi";
+
+const whiteTile = microgameArchetypeById("white-tile-rush");
+const firstWave = recommendedMicrogameArchetypes(5);
+```
+
+New arcade miniapps should start from one of these archetypes or add a new one
+before implementation. The archetype must describe the main game object,
+mobile control model, deterministic verification, and anti-abuse checks. It is
+not enough to expose a payment form plus a submit button.
