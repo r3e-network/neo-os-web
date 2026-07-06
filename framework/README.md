@@ -23,8 +23,6 @@ reimplemented by every app:
 React miniapps receive the framework from `defineMiniApp` setup context:
 
 ```ts
-import { defineMiniApp } from "@shared/react/defineMiniApp";
-
 defineMiniApp({
   appId: "miniapp-example",
   playArea: PlayArea,
@@ -49,7 +47,11 @@ defineMiniApp({
 });
 ```
 
-`createMiniAppFramework(ctx, { appId })` remains available from `framework/` for
+Use the host miniapp runtime for `defineMiniApp`; the framework value itself is
+injected as `ctx.framework` and its implementation lives in the root
+`framework/` package.
+
+`createMiniAppFramework(ctx, { appId })` remains available from `@framework` for
 tests and custom embeds, but app entrypoints should prefer the runtime-provided
 `ctx.framework`.
 

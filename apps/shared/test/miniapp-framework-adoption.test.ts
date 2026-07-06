@@ -10,7 +10,7 @@ function read(path: string) {
 }
 
 describe("MiniApp framework adoption", () => {
-  it("routes entrypoint actions through the shared framework instead of raw context registration", () => {
+  it("routes entrypoint actions through the root framework instead of raw context registration", () => {
     const files = [
       ...globSync("apps/*/src/main.tsx", { cwd: root }),
       "apps/shared/factory/runtime.tsx",
