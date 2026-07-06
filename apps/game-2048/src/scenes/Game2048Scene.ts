@@ -24,8 +24,8 @@
  */
 
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState } from "@framework/phaser";
 import { tileValue } from "../logic/engine-2048";
 import { DIFFICULTY_RULES, gasDisplay } from "../logic/game-rules";
 

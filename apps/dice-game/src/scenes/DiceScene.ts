@@ -5,8 +5,8 @@
  * chip presets, payout display. Matches real-world dice/casino aesthetics.
  */
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState } from "@framework/phaser";
 
 // ── Casino color palette ─────────────────────────────────────────────────────
 const FELT_GREEN   = 0x1a5c2e;

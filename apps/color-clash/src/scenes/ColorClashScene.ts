@@ -6,8 +6,8 @@
  * beat-style scale pulse. Matches the original Simon electronic toy.
  */
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState } from "@framework/phaser";
 
 // ── Palette ────────────────────────────────────────────────────────────────────
 const PAD_DIM   = [0x991b1b, 0x1e3a8a, 0x14532d, 0x713f12] as const; // dim states

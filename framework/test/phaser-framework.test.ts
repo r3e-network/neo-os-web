@@ -6,9 +6,28 @@ import {
   formatBridgeError,
   GameBridge,
   type GameBridgeError,
-} from "@framework/phaser/GameBridge";
+} from "@framework/phaser";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const phaserSceneApps = [
+  ["aim-master", "AimMasterScene"],
+  ["burn-league", "BurnLeagueScene"],
+  ["color-clash", "ColorClashScene"],
+  ["dice-game", "DiceScene"],
+  ["flappy-dash", "FlappyScene"],
+  ["fogplay", "FogplayScene"],
+  ["game-2048", "Game2048Scene"],
+  ["gas-lucky-pool", "GasLuckyPoolScene"],
+  ["jump-rush", "JumpRushScene"],
+  ["last-survivor", "LastSurvivorScene"],
+  ["merge-kingdom", "MergeKingdomScene"],
+  ["on-chain-tarot", "TarotScene"],
+  ["pet-potion", "PetPotionScene"],
+  ["red-envelope", "RedEnvelopeScene"],
+  ["sheep-solitaire", "SheepScene"],
+  ["snake-bounty", "SnakeScene"],
+  ["sudoku", "SudokuScene"],
+] as const;
 
 describe("root Phaser framework", () => {
   it("surfaces rejected game dispatches as bridge errors", async () => {
@@ -53,6 +72,28 @@ describe("root Phaser framework", () => {
     expect(formatBridgeError({})).toBe("The game action could not be completed.");
   });
 
+  it("keeps Phaser game scenes on the root framework public API", () => {
+    const privatePhaserImport =
+      /@framework\/phaser\/(?:BaseScene|types|GameBridge|PhaserGameComponent)/;
+
+    for (const [app, scene] of phaserSceneApps) {
+      const source = readFileSync(
+        resolve(repoRoot, `apps/${app}/src/scenes/${scene}.ts`),
+        "utf8",
+      );
+
+      expect(source, `${app}: scene should import the public Phaser SDK`).toContain(
+        `from "@framework/phaser"`,
+      );
+      expect(source, `${app}: scene should not import private framework files`).not.toMatch(
+        privatePhaserImport,
+      );
+      expect(source, `${app}: scene should not depend on the old shared Phaser module`).not.toContain(
+        "@shared/phaser",
+      );
+    }
+  });
+
   it("centralizes in-canvas game button motion in the root framework", () => {
     const baseScene = readFileSync(resolve(repoRoot, "framework/phaser/BaseScene.ts"), "utf8");
     const diceScene = readFileSync(
@@ -64,18 +105,21 @@ describe("root Phaser framework", () => {
       "utf8",
     );
     const migratedScenes = [
+      "aim-master",
       "burn-league",
       "color-clash",
-      "fogplay",
       "flappy-dash",
-      "gas-lucky-pool",
+      "fogplay",
       "game-2048",
+      "gas-lucky-pool",
       "last-survivor",
-      "aim-master",
       "pet-potion",
       "red-envelope",
     ].map((app) =>
-      readFileSync(resolve(repoRoot, `apps/${app}/src/scenes`, `${toSceneName(app)}.ts`), "utf8"),
+      readFileSync(
+        resolve(repoRoot, `apps/${app}/src/scenes`, `${sceneNameForApp(app)}.ts`),
+        "utf8",
+      ),
     );
 
     expect(baseScene).toContain("protected bindGameButton");
@@ -89,18 +133,10 @@ describe("root Phaser framework", () => {
   });
 });
 
-function toSceneName(app: string): string {
-  const names: Record<string, string> = {
-    "burn-league": "BurnLeagueScene",
-    "color-clash": "ColorClashScene",
-    "flappy-dash": "FlappyScene",
-    "gas-lucky-pool": "GasLuckyPoolScene",
-    "game-2048": "Game2048Scene",
-    "last-survivor": "LastSurvivorScene",
-    "aim-master": "AimMasterScene",
-    fogplay: "FogplayScene",
-    "pet-potion": "PetPotionScene",
-    "red-envelope": "RedEnvelopeScene",
-  };
-  return names[app]!;
+function sceneNameForApp(app: string): string {
+  const scene = phaserSceneApps.find(([candidate]) => candidate === app)?.[1];
+  if (!scene) {
+    throw new Error(`Unknown Phaser scene app: ${app}`);
+  }
+  return scene;
 }
