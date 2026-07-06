@@ -28,7 +28,7 @@
 
 import Phaser from "phaser";
 import type { GameState } from "./types";
-import type { GameBridge } from "./GameBridge";
+import type { GameBridge, GameBridgeError } from "./GameBridge";
 
 // Injected by PhaserGameComponent before game boot.
 declare global {
@@ -49,10 +49,17 @@ export abstract class BaseScene extends Phaser.Scene {
 
   private stateUnsubscribe: (() => void) | null = null;
   private destroyUnsubscribe: (() => void) | null = null;
+  private errorUnsubscribe: (() => void) | null = null;
+  private motionQuery: MediaQueryList | null = null;
+  private motionChangeHandler: ((event: MediaQueryListEvent) => void) | null = null;
+  private cleanedUp = false;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   create(): void {
+    this.cleanupBaseScene();
+    this.cleanedUp = false;
+
     // Wire up the bridge
     if (window.__phaserBridge) {
       this.bridge = window.__phaserBridge;
@@ -72,20 +79,26 @@ export abstract class BaseScene extends Phaser.Scene {
       this.scene.stop();
     });
 
+    this.errorUnsubscribe = this.bridge.on("error", (error) => {
+      this.onBridgeError(error);
+    });
+
     // Seed with whatever state React already has
     this.state = this.bridge.getState();
     if (Object.keys(this.state).length > 0) {
       this.onStateUpdate(this.state);
     }
 
-    // Detect prefers-reduced-motion
-    this.reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    // Detect prefers-reduced-motion and keep it live while the scene is active.
+    this.bindReducedMotion();
 
     // Tell React the scene is ready
     this.bridge.notifyReady();
 
     // Responsive resize
     this.scale.on("resize", this.onResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupBaseScene, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupBaseScene, this);
   }
 
   // ── Scene resize ───────────────────────────────────────────────────────────
@@ -102,6 +115,11 @@ export abstract class BaseScene extends Phaser.Scene {
    * Override to update scene visuals / game phase.
    */
   protected abstract onStateUpdate(state: GameState): void;
+
+  /** Override when a scene wants to present dispatch failures in-canvas. */
+  protected onBridgeError(_error: GameBridgeError): void {
+    // Default: React host displays a concise recoverable error overlay.
+  }
 
   // ── Dispatch helpers ───────────────────────────────────────────────────────
 
@@ -141,35 +159,126 @@ export abstract class BaseScene extends Phaser.Scene {
     config: Phaser.Types.Tweens.TweenBuilderConfig,
   ): Phaser.Tweens.Tween | null {
     if (this.reducedMotion) {
-      // Jump to final value
-      if (config.targets && config.props) {
-        const targets = Array.isArray(config.targets)
-          ? config.targets
-          : [config.targets];
-        for (const target of targets) {
-          for (const [prop, value] of Object.entries(config.props)) {
-            (target as Record<string, unknown>)[prop] =
-              typeof value === "object" && value && "value" in value
-                ? (value as { value: unknown }).value
-                : value;
-          }
-        }
-      }
-      (config.onComplete as (() => void) | undefined)?.();
+      this.applyTweenEndState(config);
       return null;
     }
     return this.tweens.add(config);
   }
 
+  /** Alias used by newer scenes; keeps call sites readable. */
+  protected animate(
+    config: Phaser.Types.Tweens.TweenBuilderConfig,
+  ): Phaser.Tweens.Tween | null {
+    return this.tween(config);
+  }
+
+  protected animateCounter(
+    config: Phaser.Types.Tweens.NumberTweenBuilderConfig,
+  ): Phaser.Tweens.Tween | null {
+    if (this.reducedMotion) {
+      const callbackScope = (config.callbackScope as object | undefined) ?? this;
+      (config.onUpdate as ((...args: unknown[]) => void) | undefined)?.call(
+        callbackScope,
+        createReducedMotionCounter(config.to ?? config.from ?? 0),
+      );
+      (config.onComplete as ((...args: unknown[]) => void) | undefined)?.call(
+        callbackScope,
+      );
+      return null;
+    }
+    return this.tweens.addCounter(config);
+  }
+
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
   destroy(fromScene = false): void {
+    this.cleanupBaseScene();
+    void fromScene;
+  }
+
+  private cleanupBaseScene(): void {
+    if (this.cleanedUp) return;
+    this.cleanedUp = true;
+
     this.stateUnsubscribe?.();
     this.destroyUnsubscribe?.();
+    this.errorUnsubscribe?.();
     this.stateUnsubscribe = null;
     this.destroyUnsubscribe = null;
+    this.errorUnsubscribe = null;
     this.scale.off("resize", this.onResize, this);
-    void fromScene;
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.cleanupBaseScene, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.cleanupBaseScene, this);
+    this.unbindReducedMotion();
+  }
+
+  private bindReducedMotion(): void {
+    const query = window.matchMedia?.("(prefers-reduced-motion: reduce)") ?? null;
+    this.motionQuery = query;
+    this.reducedMotion = query?.matches ?? false;
+    if (!query) return;
+
+    this.motionChangeHandler = (event) => {
+      this.reducedMotion = event.matches;
+      this.onReducedMotionChange(event.matches);
+    };
+    if (query.addEventListener) {
+      query.addEventListener("change", this.motionChangeHandler);
+    } else {
+      query.addListener?.(this.motionChangeHandler);
+    }
+  }
+
+  private unbindReducedMotion(): void {
+    if (this.motionQuery && this.motionChangeHandler) {
+      if (this.motionQuery.removeEventListener) {
+        this.motionQuery.removeEventListener("change", this.motionChangeHandler);
+      } else {
+        this.motionQuery.removeListener?.(this.motionChangeHandler);
+      }
+    }
+    this.motionQuery = null;
+    this.motionChangeHandler = null;
+  }
+
+  protected onReducedMotionChange(_enabled: boolean): void {
+    // Scenes can override when they keep long-running tweens in fields.
+  }
+
+  private applyTweenEndState(
+    config: Phaser.Types.Tweens.TweenBuilderConfig,
+  ): void {
+    const targets = collectTweenTargets(config.targets);
+    const configRecord = config as Record<string, unknown>;
+    const tweenKeys = [
+      "x",
+      "y",
+      "alpha",
+      "angle",
+      "rotation",
+      "scale",
+      "scaleX",
+      "scaleY",
+      "displayWidth",
+      "displayHeight",
+    ];
+
+    for (const target of targets) {
+      const targetRecord = target as Record<string, unknown>;
+      for (const key of tweenKeys) {
+        if (key in configRecord) {
+          targetRecord[key] = resolveTweenValue(configRecord[key], targetRecord[key]);
+        }
+      }
+
+      if (config.props) {
+        for (const [key, value] of Object.entries(config.props)) {
+          targetRecord[key] = resolveTweenValue(value, targetRecord[key]);
+        }
+      }
+    }
+
+    (config.onComplete as ((...args: unknown[]) => void) | undefined)?.();
   }
 }
 
@@ -186,4 +295,34 @@ function createNopBridge(): GameBridge {
     setDispatch: () => {},
     destroy: () => {},
   } as unknown as GameBridge;
+}
+
+function collectTweenTargets(targets: unknown): unknown[] {
+  if (!targets) return [];
+  return Array.isArray(targets) ? targets : [targets];
+}
+
+function resolveTweenValue(value: unknown, current: unknown): unknown {
+  if (Array.isArray(value)) return value.at(-1);
+  if (typeof value === "string") {
+    const relative = /^([+-])=(\d+(?:\.\d+)?)$/.exec(value.trim());
+    if (relative && typeof current === "number") {
+      const delta = Number(relative[2]);
+      return relative[1] === "+" ? current + delta : current - delta;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : current;
+  }
+  if (typeof value === "object" && value) {
+    const record = value as Record<string, unknown>;
+    if ("to" in record) return resolveTweenValue(record.to, current);
+    if ("value" in record) return resolveTweenValue(record.value, current);
+  }
+  return value;
+}
+
+function createReducedMotionCounter(value: number): Pick<Phaser.Tweens.Tween, "getValue"> {
+  return {
+    getValue: () => value,
+  };
 }

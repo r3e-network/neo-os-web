@@ -7,7 +7,13 @@
  */
 export { PhaserGameComponent } from "./PhaserGameComponent";
 export { BaseScene } from "./BaseScene";
-export { GameBridge, getBridge, releaseBridge } from "./GameBridge";
+export {
+  GameBridge,
+  formatBridgeError,
+  getBridge,
+  releaseBridge,
+} from "./GameBridge";
+export type { GameBridgeError } from "./GameBridge";
 export type {
   GameState,
   DispatchFn,
