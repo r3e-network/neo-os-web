@@ -72,6 +72,7 @@ export abstract class BaseScene extends Phaser.Scene {
   private stateUnsubscribe: (() => void) | null = null;
   private destroyUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
+  private stateUpdateTimer: Phaser.Time.TimerEvent | null = null;
   private motionQuery: MediaQueryList | null = null;
   private motionChangeHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private cleanedUp = false;
@@ -93,7 +94,7 @@ export abstract class BaseScene extends Phaser.Scene {
     // Subscribe to state updates from React
     this.stateUnsubscribe = this.bridge.on("state", (newState) => {
       this.state = newState as GameState;
-      this.onStateUpdate(this.state);
+      this.queueStateUpdate();
     });
 
     // Subscribe to destroy signal
@@ -108,7 +109,7 @@ export abstract class BaseScene extends Phaser.Scene {
     // Seed with whatever state React already has
     this.state = this.bridge.getState();
     if (Object.keys(this.state).length > 0) {
-      this.onStateUpdate(this.state);
+      this.queueStateUpdate();
     }
 
     // Detect prefers-reduced-motion and keep it live while the scene is active.
@@ -137,6 +138,21 @@ export abstract class BaseScene extends Phaser.Scene {
    * Override to update scene visuals / game phase.
    */
   protected abstract onStateUpdate(state: GameState): void;
+
+  /**
+   * Child scenes call `super.create()` before building their UI objects. Queue
+   * bridge-driven state updates until the next Phaser tick so an already-warm
+   * React state snapshot cannot hit uninitialized labels, buttons, or layers.
+   */
+  private queueStateUpdate(): void {
+    if (this.stateUpdateTimer || this.cleanedUp) return;
+    this.stateUpdateTimer = this.time.delayedCall(0, () => {
+      this.stateUpdateTimer = null;
+      if (!this.cleanedUp) {
+        this.onStateUpdate(this.state);
+      }
+    });
+  }
 
   /** Override when a scene wants to present dispatch failures in-canvas. */
   protected onBridgeError(_error: GameBridgeError): void {
@@ -286,6 +302,11 @@ export abstract class BaseScene extends Phaser.Scene {
   private cleanupBaseScene(): void {
     if (this.cleanedUp) return;
     this.cleanedUp = true;
+
+    if (this.stateUpdateTimer) {
+      this.stateUpdateTimer.remove(false);
+      this.stateUpdateTimer = null;
+    }
 
     this.stateUnsubscribe?.();
     this.destroyUnsubscribe?.();
