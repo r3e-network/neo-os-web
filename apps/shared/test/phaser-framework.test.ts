@@ -67,6 +67,11 @@ describe("root Phaser framework", () => {
       "burn-league",
       "color-clash",
       "fogplay",
+      "flappy-dash",
+      "gas-lucky-pool",
+      "game-2048",
+      "last-survivor",
+      "aim-master",
       "pet-potion",
       "red-envelope",
     ].map((app) =>
@@ -88,6 +93,11 @@ function toSceneName(app: string): string {
   const names: Record<string, string> = {
     "burn-league": "BurnLeagueScene",
     "color-clash": "ColorClashScene",
+    "flappy-dash": "FlappyScene",
+    "gas-lucky-pool": "GasLuckyPoolScene",
+    "game-2048": "Game2048Scene",
+    "last-survivor": "LastSurvivorScene",
+    "aim-master": "AimMasterScene",
     fogplay: "FogplayScene",
     "pet-potion": "PetPotionScene",
     "red-envelope": "RedEnvelopeScene",
