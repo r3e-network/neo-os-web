@@ -20,6 +20,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     allFlipped:     bool("allFlipped"),
     readingMode:    val<string>("readingMode") ?? "idle",
     question:       val<string>("question") ?? "",
+    intentOptions: [
+      { label: t("intentClarityLabel"), question: t("questionPresetClarity") },
+      { label: t("intentDecisionLabel"), question: t("questionPresetDecision") },
+      { label: t("intentMomentumLabel"), question: t("questionPresetMomentum") },
+    ],
     drawn:          val("drawn") ?? [],
     isLoading:      bool("isLoading"),
     prepaidCredit:  val<number>("prepaidCredit") ?? 0,
