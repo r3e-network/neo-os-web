@@ -6,7 +6,7 @@
  * stat bars for Happiness / Hunger / Energy, 4 care action buttons.
  * No emoji — all art drawn programmatically.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

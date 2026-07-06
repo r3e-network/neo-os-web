@@ -22,7 +22,7 @@
  *   lastElapsedMs   number   elapsed ms of the last completed game
  *   lastStatus      string   human-readable status key
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";

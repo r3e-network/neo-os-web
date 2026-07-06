@@ -11,7 +11,7 @@ import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
 import { eventHashMatches as addrEq, mapField, normalizedHash as normHash } from "@framework/gamefi";
 import type { RewardGameSession } from "@framework/gamefi";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, ruleOf, statusOf, evolutionStage, MAX_MOVES } from "./logic/game-rules";
@@ -70,7 +70,7 @@ function petViewOf(view: Record<string, unknown>): Record<string, unknown> {
 
 defineMiniApp({
   appId,
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

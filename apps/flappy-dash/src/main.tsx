@@ -10,7 +10,7 @@ import type { RewardGameSession } from "@framework/gamefi";
 import { mapField } from "@framework/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
@@ -56,7 +56,7 @@ export type { FlappyRow as SolveRow };
 
 defineMiniApp({
   appId,
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

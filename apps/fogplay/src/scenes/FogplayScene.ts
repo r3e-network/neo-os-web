@@ -19,7 +19,7 @@
  *   "placeBet"     {}
  */
 
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

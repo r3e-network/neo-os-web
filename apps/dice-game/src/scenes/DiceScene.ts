@@ -4,7 +4,7 @@
  * Visual design: classic casino table with green felt, white dice,
  * chip presets, payout display. Matches real-world dice/casino aesthetics.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

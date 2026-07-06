@@ -6,7 +6,7 @@
  * Create tab: fund amount pickers + create button.
  * Claim tab: claim key entry + claim button.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

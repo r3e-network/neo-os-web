@@ -5,7 +5,7 @@
  * animated danger bar, key icon drawn with Graphics (not emoji),
  * gold buy button. The last buyer when the timer hits zero wins the pot.
  */
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 

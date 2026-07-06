@@ -5,21 +5,18 @@
  * are delegated to `ctx.framework`. Setup expresses only the game-specific
  * logic: sequence reveal-per-round, press recording, and solution finalization.
  */
-import React from "react";
-import { defineMiniApp, useStateBindings } from "@shared/react";
-import type { PlayAreaProps } from "@shared/react";
+import { createObservable, defineMiniApp } from "@shared/react";
 import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
 import { eventHashMatches as addrEq, mapField, normalizedHash as normHash } from "@framework/gamefi";
 import type { RewardGameSession } from "@framework/gamefi";
-import { PlayArea } from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf } from "./logic/game-rules";
 import type { GameSessionStatus, LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
-import { createObservable } from "@shared/react";
 
 const appId       = "miniapp-color-clash";
 const ENGINE_HASH = "074ec7a8437bb8dbdb7c5aca5ccdad1c970e07f1cdbf06358b89638d90539013";
@@ -78,7 +75,7 @@ const SOLVED_SLOTS = {
 
 defineMiniApp({
   appId,
-  playArea: ColorClashAdapter,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 
@@ -375,51 +372,3 @@ defineMiniApp({
     };
   },
 });
-
-// ── Adapter: bridges the new flat state shape to the PlayArea Props interface ─
-function ColorClashAdapter(props: PlayAreaProps) {
-  const { str, bool, num, val } = useStateBindings(props.state);
-  const credit      = num("credit");
-  const poolFree    = num("poolFree");
-  const activeGameId = val<string>("activeGameId");
-  const gameStatus  = str("gameStatus", "idle");
-  const gameDifficulty = num("gameDifficulty");
-  const sequence    = str("sequence", "");
-  const playerSequence = str("playerSequence", "");
-  const commitment  = str("commitment", "");
-  const dealtAt     = num("dealtAt");
-  const deadline    = num("deadline");
-  const undosUsed   = num("undosUsed");
-  const lastPayoutFixed8 = val<bigint>("lastPayoutFixed8", 0n) ?? 0n;
-  const lastElapsedMs = num("lastElapsedMs");
-  const seqAchieved = num("seqAchieved");
-  const leaderboard = (val("leaderboard") ?? []) as LeaderEntry[];
-  const myRank      = num("myRank");
-  const myTotalWon  = num("myTotalWon");
-  const mySolves    = num("mySolves");
-  const myHistory   = (val("myHistory") ?? []) as import("./PlayArea").AppState["myHistory"];
-  const isStarting  = bool("isStarting");
-  const isDealing   = bool("isDealing");
-  const isSubmitting = bool("isSubmitting");
-  const lastStatus  = str("lastStatus", "");
-
-  const state: import("./PlayArea").AppState = {
-    credit, poolFree, activeGameId, gameStatus, gameDifficulty,
-    sequence, playerSequence, commitment, dealtAt, deadline,
-    undosUsed, lastPayout: Number(lastPayoutFixed8), lastElapsedMs, seqAchieved,
-    leaderboard, myRank, myTotalWon, mySolves, myHistory,
-    isStarting, isDealing, isSubmitting, lastStatus,
-  };
-
-  const actions: import("./PlayArea").Actions = {
-    startGame:        (difficulty) => props.dispatch("startGame", difficulty),
-    retryDeal:        ()           => props.dispatch("retryDeal"),
-    recordPress:      (color)      => props.dispatch("recordPress", color),
-    submitSolution:   ()           => props.dispatch("submitSolution"),
-    expireGame:       ()           => props.dispatch("expireGame"),
-    withdrawWinnings: ()           => props.dispatch("withdrawWinnings"),
-    refreshLeaderboard: ()         => props.dispatch("refreshLeaderboard"),
-  };
-
-  return React.createElement(PlayArea, { state, actions });
-}
