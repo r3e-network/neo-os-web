@@ -212,15 +212,14 @@ export class TarotScene extends BaseScene {
       new Phaser.Geom.Rectangle(-cW / 2, -cH / 2, cW, cH),
       Phaser.Geom.Rectangle.Contains,
     );
-    back.on("pointerdown", () => {
-      if (!container.getData("flipped")) this.dispatch("flipCard", index);
+    this.bindGameButton(back, {
+      targets: container,
+      enabled: () => !container.getData("flipped"),
+      hoverScale: 1.04,
+      pressScale: 0.96,
+      hoverDuration: 100,
+      onPress: () => this.dispatch("flipCard", index),
     });
-    back.on("pointerover", () => {
-      if (!container.getData("flipped")) {
-        this.tweens.add({ targets: container, scale: 1.04, duration: 100 });
-      }
-    });
-    back.on("pointerout", () => this.tweens.add({ targets: container, scale: 1, duration: 100 }));
 
     container.setData("back", back);
     container.setData("face", face);
@@ -435,9 +434,14 @@ export class TarotScene extends BaseScene {
       bg.lineStyle(2, C.gold);
       bg.strokeRoundedRect(-50, -20, 100, 40, 8);
       bg.setInteractive(new Phaser.Geom.Rectangle(-50, -20, 100, 40), Phaser.Geom.Rectangle.Contains);
-      bg.on("pointerdown", () => this.dispatch("setIntent", key));
-      bg.on("pointerover", () => bg.setAlpha(0.8));
-      bg.on("pointerout",  () => bg.setAlpha(1.0));
+      this.bindGameButton(bg, {
+        targets: btn,
+        hoverScale: 1.04,
+        pressScale: 0.96,
+        onPress: () => this.dispatch("setIntent", key),
+        onHoverIn: () => bg.setAlpha(0.84),
+        onHoverOut: () => bg.setAlpha(1.0),
+      });
 
       const lbl = this.add.text(0, 0, label, {
         fontSize: "12px", color: "#8b6914",
@@ -457,9 +461,11 @@ export class TarotScene extends BaseScene {
     drawBg.lineStyle(2, C.goldLt);
     drawBg.strokeRoundedRect(-88, -26, 176, 52, 14);
     drawBg.setInteractive(new Phaser.Geom.Rectangle(-88, -26, 176, 52), Phaser.Geom.Rectangle.Contains);
-    drawBg.on("pointerdown", () => this.dispatch("draw"));
-    drawBg.on("pointerover", () => this.tweens.add({ targets: this.drawBtn, scale: 1.04, duration: 80 }));
-    drawBg.on("pointerout",  () => this.tweens.add({ targets: this.drawBtn, scale: 1.0, duration: 80 }));
+    this.bindGameButton(drawBg, {
+      targets: this.drawBtn,
+      pressScale: 0.95,
+      onPress: () => this.dispatch("draw"),
+    });
     const drawLbl = this.add.text(0, 0, "DRAW CARDS", {
       fontSize: "17px", fontStyle: "bold", color: "#35240f", letterSpacing: 2,
     }).setOrigin(0.5);
@@ -473,10 +479,14 @@ export class TarotScene extends BaseScene {
     resetBg.lineStyle(2, 0x6b7280);
     resetBg.strokeRoundedRect(-80, -24, 160, 48, 12);
     resetBg.setInteractive(new Phaser.Geom.Rectangle(-80, -24, 160, 48), Phaser.Geom.Rectangle.Contains);
-    resetBg.on("pointerdown", () => {
-      this.dispatch("reset");
-      this.cardContainers.forEach((cc) => cc.destroy());
-      this.cardContainers = [];
+    this.bindGameButton(resetBg, {
+      targets: this.resetBtn,
+      pressScale: 0.95,
+      onPress: () => {
+        this.dispatch("reset");
+        this.cardContainers.forEach((cc) => cc.destroy());
+        this.cardContainers = [];
+      },
     });
     const resetLbl = this.add.text(0, 0, "NEW READING", {
       fontSize: "15px", color: "#d1d5db",

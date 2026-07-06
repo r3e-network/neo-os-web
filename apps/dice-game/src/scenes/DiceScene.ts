@@ -248,9 +248,14 @@ export class DiceScene extends BaseScene {
     bg.fillRoundedRect(-18, -18, 36, 36, 8);
     bg.strokeRoundedRect(-18, -18, 36, 36, 8);
     bg.setInteractive(new Phaser.Geom.Rectangle(-18, -18, 36, 36), Phaser.Geom.Rectangle.Contains);
-    bg.on("pointerdown", () => this.dispatch("setSelectedFace", { face: String(face) }));
-    bg.on("pointerover", () => bg.setAlpha(0.8));
-    bg.on("pointerout",  () => bg.setAlpha(1.0));
+    this.bindGameButton(bg, {
+      targets: c,
+      hoverScale: 1.06,
+      pressScale: 0.92,
+      onPress: () => this.dispatch("setSelectedFace", { face: String(face) }),
+      onHoverIn: () => bg.setAlpha(0.86),
+      onHoverOut: () => bg.setAlpha(1.0),
+    });
 
     const label = this.add.text(0, 0, String(face), {
       fontSize: "18px",
@@ -321,12 +326,16 @@ export class DiceScene extends BaseScene {
     }).setOrigin(0.5);
 
     body.setInteractive(new Phaser.Geom.Circle(0, 0, 26), Phaser.Geom.Circle.Contains);
-    body.on("pointerdown", () => {
-      this.tweens.add({ targets: c, scale: 0.90, duration: 80, yoyo: true });
-      onPress();
+    this.bindGameButton(body, {
+      targets: c,
+      hoverScale: null,
+      pressScale: 0.9,
+      pressDuration: 80,
+      onPress,
+      onHoverIn: () =>
+        body.setFillStyle(Phaser.Display.Color.IntegerToColor(color).lighten(20).color),
+      onHoverOut: () => body.setFillStyle(color),
     });
-    body.on("pointerover", () => body.setFillStyle(Phaser.Display.Color.IntegerToColor(color).lighten(20).color));
-    body.on("pointerout",  () => body.setFillStyle(color));
 
     c.add([shadow, body, rim, inner, lbl]);
     c.setData("body", body);
@@ -372,17 +381,12 @@ export class DiceScene extends BaseScene {
       new Phaser.Geom.Rectangle(-88, -22, 176, 44),
       Phaser.Geom.Rectangle.Contains,
     );
-    this.rollBtnBg.on("pointerdown", () => {
-      if (!this.isRolling) {
-        this.tweens.add({ targets: c, scale: 0.95, duration: 80, yoyo: true });
-        this.dispatch("placeDiceBet", {});
-      }
-    });
-    this.rollBtnBg.on("pointerover", () => {
-      if (!this.isRolling) this.tweens.add({ targets: c, scale: 1.04, duration: 80 });
-    });
-    this.rollBtnBg.on("pointerout", () => {
-      this.tweens.add({ targets: c, scale: 1.0, duration: 80 });
+    this.bindGameButton(this.rollBtnBg, {
+      targets: c,
+      enabled: () => !this.isRolling,
+      pressScale: 0.95,
+      pressDuration: 80,
+      onPress: () => this.dispatch("placeDiceBet", {}),
     });
 
     c.add([this.rollBtnBg, label]);
