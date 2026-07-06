@@ -32,8 +32,8 @@
  */
 
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState } from "@framework/phaser";
 
 // Symbol indices 0–14 are drawn via SheepScene.drawCardSymbol — no emoji table needed.
 

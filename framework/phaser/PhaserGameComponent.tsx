@@ -26,7 +26,7 @@
  */
 
 import { useEffect, useRef, useId, useState } from "react";
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import { GameBridge } from "./GameBridge";
 import type { PhaserGameProps } from "./types";
 

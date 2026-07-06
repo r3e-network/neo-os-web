@@ -11,11 +11,13 @@ export default defineConfig({
     alias: {
       "@framework": currentDir,
       "@shared": resolve(repoRoot, "apps/shared"),
+      phaser: resolve(repoRoot, "node_modules/phaser/dist/phaser.esm.js"),
     },
   },
   test: {
     environment: "jsdom",
     include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
     exclude: ["**/node_modules/**", "**/dist/**"],
+    setupFiles: [resolve(currentDir, "test/setup.ts")],
   },
 });

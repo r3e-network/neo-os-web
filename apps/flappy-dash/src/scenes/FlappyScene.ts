@@ -28,8 +28,8 @@
  */
 
 import Phaser from "phaser";
-import { BaseScene } from "@framework/phaser/BaseScene";
-import type { GameState as BridgeState } from "@framework/phaser/types";
+import { BaseScene } from "@framework/phaser";
+import type { GameState as BridgeState } from "@framework/phaser";
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
