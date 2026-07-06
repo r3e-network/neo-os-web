@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 
 import { Stage, type StageProps } from "./Stage";
 import { ScoreReadout, type ScoreReadoutProps } from "./ScoreReadout";
@@ -43,6 +43,7 @@ export function PlayStage({
   drawerToggleLabel,
 }: PlayStageProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerId = useId();
   const hasDrawer = Boolean(drawer);
   return (
     <div className={["mx2", `mx2-cat-${category}`, "mx2-playstage", className]
@@ -61,9 +62,10 @@ export function PlayStage({
         drawerOpen={drawerOpen}
         onToggleDrawer={hasDrawer ? () => setDrawerOpen((v) => !v) : undefined}
         drawerToggleLabel={drawerToggleLabel}
+        drawerId={drawerId}
       />
       {hasDrawer && (
-        <DetailDrawer category={category} {...drawer} open={drawerOpen}>
+        <DetailDrawer category={category} {...drawer} id={drawerId} open={drawerOpen}>
           {drawer?.children}
         </DetailDrawer>
       )}
