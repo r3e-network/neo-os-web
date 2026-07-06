@@ -94,6 +94,22 @@ describe("root Phaser framework", () => {
     }
   });
 
+  it("keeps Phaser scene text free of emoji placeholders", () => {
+    const emojiPlaceholderPattern = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
+
+    for (const [app, scene] of phaserSceneApps) {
+      const source = readFileSync(
+        resolve(repoRoot, `apps/${app}/src/scenes/${scene}.ts`),
+        "utf8",
+      );
+
+      expect(
+        source,
+        `${app}: draw real game assets instead of emoji/text placeholders`,
+      ).not.toMatch(emojiPlaceholderPattern);
+    }
+  });
+
   it("centralizes in-canvas game button motion in the root framework", () => {
     const baseScene = readFileSync(resolve(repoRoot, "framework/phaser/BaseScene.ts"), "utf8");
     const diceScene = readFileSync(
