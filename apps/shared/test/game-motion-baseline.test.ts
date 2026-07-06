@@ -72,6 +72,26 @@ describe("Game miniapp motion baseline", () => {
     }
   });
 
+  it("uses the Phaser renderer as the production play surface for every Phaser game", () => {
+    for (const app of phaserGames) {
+      const main = readIfExists(resolve(appsRoot, app, "src/main.tsx"));
+
+      expect(main, `${app}: miniapp entry must exist`).not.toBe("");
+      expect(main, `${app}: production entry should import the Phaser play area`).toContain(
+        `import PhaserPlayArea from "./PhaserPlayArea";`,
+      );
+      expect(main, `${app}: production entry should mount the Phaser play area`).toContain(
+        "playArea: PhaserPlayArea",
+      );
+      expect(main, `${app}: production entry should not mount the legacy React play area`).not.toMatch(
+        /playArea:\s*(?:PlayArea|[A-Za-z]+Adapter)\b/,
+      );
+      expect(main, `${app}: production entry should not import the legacy play area`).not.toMatch(
+        /from\s+["']\.\/PlayArea["']/,
+      );
+    }
+  });
+
   it("keeps the root framework Phaser host accessible while scenes boot", () => {
     const phaserHost = readIfExists(
       resolve(appsRoot, "..", "framework/phaser/PhaserGameComponent.tsx"),

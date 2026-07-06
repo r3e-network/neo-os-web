@@ -9,14 +9,14 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useLastSurvivor } from "./composables/useLastSurvivor";
 
 defineMiniApp({
   appId: "miniapp-last-survivor",
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

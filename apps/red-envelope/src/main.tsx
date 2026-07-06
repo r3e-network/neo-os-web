@@ -3,14 +3,14 @@
  */
 
 import { defineMiniApp, createObservable, createDerived } from "@shared/react/defineMiniApp";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useRedEnvelope } from "./composables/useRedEnvelope";
 
 defineMiniApp({
   appId: "miniapp-redenvelope",
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

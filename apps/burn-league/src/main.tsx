@@ -8,7 +8,7 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import PlayArea from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useBurnLeague } from "./composables/useBurnLeague";
@@ -28,7 +28,7 @@ function normalizeLaunchAmount(value: unknown): string {
 
 defineMiniApp({
   appId: "miniapp-burn-league",
-  playArea: PlayArea,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 

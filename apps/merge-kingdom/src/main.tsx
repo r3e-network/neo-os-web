@@ -5,15 +5,13 @@
  * are delegated to `ctx.framework`. Setup expresses only the game-specific
  * logic: board management, tile-move recording, and solution finalization.
  */
-import React from "react";
-import { createObservable, defineMiniApp, useStateBindings } from "@shared/react";
-import type { PlayAreaProps } from "@shared/react";
+import { createObservable, defineMiniApp } from "@shared/react";
 import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
 import { eventHashMatches as addrEq, mapField, normalizedHash as normHash } from "@framework/gamefi";
 import type { RewardGameSession } from "@framework/gamefi";
-import { PlayArea } from "./PlayArea";
+import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, emptyBoard, BOARD_SIZE } from "./logic/game-rules";
@@ -72,7 +70,7 @@ function highestTile(board: number[][]): number {
 
 defineMiniApp({
   appId,
-  playArea: MergeKingdomAdapter,
+  playArea: PhaserPlayArea,
   manifest,
   messages,
 
@@ -359,46 +357,3 @@ defineMiniApp({
     };
   },
 });
-
-// ── Adapter ───────────────────────────────────────────────────────────────────
-function MergeKingdomAdapter(props: PlayAreaProps) {
-  const { str, bool, num, val } = useStateBindings(props.state);
-  const state: import("./PlayArea").AppState = {
-    credit:          num("credit"),
-    poolFree:        num("poolFree"),
-    activeGameId:    val<string | null>("activeGameId"),
-    gameStatus:      str("gameStatus", "idle"),
-    gameDifficulty:  num("gameDifficulty"),
-    board:           (val("board") ?? []) as number[][],
-    commitment:      str("commitment", ""),
-    dealtAt:         num("dealtAt"),
-    deadline:        num("deadline"),
-    undosUsed:       num("undosUsed"),
-    lastPayout:      Number(val<bigint>("lastPayoutFixed8", 0n) ?? 0n),
-    lastElapsedMs:   num("lastElapsedMs"),
-    tileAchieved:    num("tileAchieved"),
-    moveCount:       num("moveCount"),
-    leaderboard:     (val("leaderboard") ?? []) as import("./PlayArea").AppState["leaderboard"],
-    myRank:          num("myRank"),
-    myTotalWon:      num("myTotalWon"),
-    mySolves:        num("mySolves"),
-    myHistory:       (val("myHistory") ?? []) as import("./PlayArea").AppState["myHistory"],
-    isStarting:      bool("isStarting"),
-    isDealing:       bool("isDealing"),
-    isSubmitting:    bool("isSubmitting"),
-    walletConnected: bool("walletConnected"),
-    lastStatus:      str("lastStatus", ""),
-  };
-
-  const actions: import("./PlayArea").Actions = {
-    startGame:         (difficulty) => props.dispatch("startGame", difficulty),
-    retryDeal:         ()           => props.dispatch("retryDeal"),
-    recordMove:        (fr, fc, tr, tc) => props.dispatch("recordMove", fr, fc, tr, tc),
-    submitSolution:    ()           => props.dispatch("submitSolution"),
-    expireGame:        ()           => props.dispatch("expireGame"),
-    withdrawWinnings:  ()           => props.dispatch("withdrawWinnings"),
-    refreshLeaderboard: ()          => props.dispatch("refreshLeaderboard"),
-  };
-
-  return React.createElement(PlayArea, { state, actions });
-}
