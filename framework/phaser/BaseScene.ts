@@ -37,6 +37,28 @@ declare global {
   }
 }
 
+type SceneTweenTarget = Phaser.Types.Tweens.TweenBuilderConfig["targets"];
+
+type GameButtonFeedbackOptions = {
+  targets?: SceneTweenTarget;
+  enabled?: () => boolean;
+  onPress?: (pointer: Phaser.Input.Pointer) => void;
+  onHoverIn?: () => void;
+  onHoverOut?: () => void;
+  idleScale?: number;
+  hoverScale?: number | null;
+  pressScale?: number;
+  hoverDuration?: number;
+  pressDuration?: number;
+  cursor?: string | false;
+};
+
+type PressFeedbackOptions = {
+  scale?: number;
+  duration?: number;
+  ease?: string;
+};
+
 export abstract class BaseScene extends Phaser.Scene {
   /** Bridge instance injected by PhaserGameComponent via window.__phaserBridge. */
   protected bridge!: GameBridge;
@@ -189,6 +211,71 @@ export abstract class BaseScene extends Phaser.Scene {
     return this.tweens.addCounter(config);
   }
 
+  // ── Game interaction helpers ──────────────────────────────────────────────
+
+  /**
+   * Standardized hover/press feedback for in-canvas controls.
+   * Scenes still own layout and artwork; the framework owns game-feel basics.
+   */
+  protected bindGameButton(
+    hitTarget: Phaser.GameObjects.GameObject,
+    options: GameButtonFeedbackOptions = {},
+  ): void {
+    const targets = options.targets ?? hitTarget;
+    const isEnabled = () => options.enabled?.() ?? true;
+    const idleScale = options.idleScale ?? 1;
+    const hoverScale = options.hoverScale === undefined ? 1.04 : options.hoverScale;
+    const pressScale = options.pressScale ?? 0.96;
+    const hoverDuration = options.hoverDuration ?? 80;
+
+    this.setGameCursor(hitTarget, options.cursor);
+
+    hitTarget.on("pointerover", () => {
+      options.onHoverIn?.();
+      if (!isEnabled() || hoverScale === null) return;
+      this.animate({
+        targets,
+        scale: hoverScale,
+        duration: hoverDuration,
+        ease: "Sine.easeOut",
+      });
+    });
+
+    hitTarget.on("pointerout", () => {
+      options.onHoverOut?.();
+      if (hoverScale === null) return;
+      this.animate({
+        targets,
+        scale: idleScale,
+        duration: hoverDuration,
+        ease: "Sine.easeOut",
+      });
+    });
+
+    hitTarget.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (!isEnabled()) return;
+      this.pressFeedback(targets, {
+        scale: pressScale,
+        duration: options.pressDuration,
+      });
+      options.onPress?.(pointer);
+    });
+  }
+
+  protected pressFeedback(
+    targets: SceneTweenTarget,
+    options: PressFeedbackOptions = {},
+  ): Phaser.Tweens.Tween | null {
+    if (this.reducedMotion) return null;
+    return this.tweens.add({
+      targets,
+      scale: options.scale ?? 0.96,
+      duration: options.duration ?? 60,
+      ease: options.ease ?? "Sine.easeOut",
+      yoyo: true,
+    });
+  }
+
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
   destroy(fromScene = false): void {
@@ -248,6 +335,11 @@ export abstract class BaseScene extends Phaser.Scene {
   private applyTweenEndState(
     config: Phaser.Types.Tweens.TweenBuilderConfig,
   ): void {
+    if (config.yoyo) {
+      (config.onComplete as ((...args: unknown[]) => void) | undefined)?.();
+      return;
+    }
+
     const targets = collectTweenTargets(config.targets);
     const configRecord = config as Record<string, unknown>;
     const tweenKeys = [
@@ -279,6 +371,15 @@ export abstract class BaseScene extends Phaser.Scene {
     }
 
     (config.onComplete as ((...args: unknown[]) => void) | undefined)?.();
+  }
+
+  private setGameCursor(
+    hitTarget: Phaser.GameObjects.GameObject,
+    cursor: string | false | undefined,
+  ): void {
+    if (cursor === false) return;
+    const input = (hitTarget as { input?: { cursor?: string } }).input;
+    if (input) input.cursor = cursor ?? "pointer";
   }
 }
 
