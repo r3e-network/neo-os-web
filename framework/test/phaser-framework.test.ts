@@ -151,6 +151,20 @@ describe("root Phaser framework", () => {
         ],
         usage: ["DIE_FACE_ASSETS", "CHIP_PRESETS", "setDieFace", "ASSET_GAS_ICON"],
       },
+      {
+        app: "flappy-dash",
+        scene: "FlappyScene",
+        assets: [
+          "./flappy-sprites/background-day.webp",
+          "./flappy-sprites/base.webp",
+          "./flappy-sprites/bird-up.webp",
+          "./flappy-sprites/bird-mid.webp",
+          "./flappy-sprites/bird-down.webp",
+          "./flappy-sprites/pipe-top.webp",
+          "./flappy-sprites/pipe-bottom.webp",
+        ],
+        usage: ["FLAPPY_ASSETS", "birdSprite", "pipeSprites", "drawPipes"],
+      },
     ] as const;
 
     for (const { app, scene, assets, usage } of migratedAssetScenes) {
@@ -171,6 +185,14 @@ describe("root Phaser framework", () => {
       expect(source, `${app}: scene should not use text-only coin placeholders`).not.toContain(
         'coinMark',
       );
+      if (app === "flappy-dash") {
+        expect(source, `${app}: bird should be a loaded sprite, not a Graphics drawing`).not.toContain(
+          "birdGraphics",
+        );
+        expect(source, `${app}: pipes should be loaded sprites, not Graphics rectangles`).not.toContain(
+          "pipeGraphics",
+        );
+      }
     }
   });
 
