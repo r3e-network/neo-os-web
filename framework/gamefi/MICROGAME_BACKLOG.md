@@ -18,6 +18,11 @@ work behind the framework.
 
 ## Candidate Games
 
+The executable registry lives in
+[`microgame-archetypes.ts`](./microgame-archetypes.ts). Keep this table aligned
+with that file so new games can be scaffolded from a real product/game pattern
+instead of an ad hoc form.
+
 | Candidate | Familiar Pattern | Core Verb | TEE Verification | GameFi Fit | Notes |
 | --- | --- | --- | --- | --- | --- |
 | White Tile Rush | Don't Tap The White Tile | Tap safe tiles in order | Replay tile sequence and tap timestamps | High | Strong fit for 10-30s skill challenge. Use VRF/TEE generated tile lane sequence. |
@@ -35,6 +40,28 @@ work behind the framework.
 | Balance Beam | Keep pointer in safe zone | Hold/release or tilt-like drag | Replay moving safe zone and samples | Medium | Similar to Aim Master, but continuous. |
 | Falling Fruit | Catch / avoid falling objects | Move basket | Replay object seed and x-position samples | High | Works well with bright casual art and short rounds. |
 | Maze Blitz | Navigate a small maze | Swipe/drag | Replay maze seed and path samples | Medium | More implementation cost, but good skill signal. |
+| Helix Drop | Ball drop / rotating tower | Swipe rotate | Replay tower seed and rotation samples | Medium | Needs deterministic collision and readable depth. |
+| Line Rider Dash | One-line path / avoid walls | Hold/drag | Replay path samples against seeded walls | Medium | Very compact, but touch smoothing must be deterministic. |
+| Bubble Aim | Bubble shooter timing | Aim and release | Replay aim vector and bubble seed | Medium | Good casual art fit; more engine work than tap games. |
+| Jump Rope Rush | Rhythm jump challenge | Tap to jump | Replay rope phase and jump timestamps | High | Small asset surface; clear 30s score race. |
+
+## Archetype Contract
+
+Every challenge game should declare these fields in the framework registry
+before production work starts:
+
+- `id`, `name`, and familiar pattern.
+- One core verb and a 10-90 second session window.
+- Main play surface: the game object, board, character, or arena that occupies
+  the primary visual area.
+- Mobile control model: tap, hold, drag, swipe, or virtual stick. No text
+  inputs/selects in the primary game surface.
+- Deterministic verification: the seed, input log, and replay rule the TEE uses
+  to validate the result.
+- Anti-abuse rules: timestamp cadence, movement delta, visibility/focus,
+  collision consistency, or other verifier-side checks.
+- Mode templates: entry GAS, max reward GAS, round length, and target success
+  rate.
 
 ## Standard GameFi Design
 
