@@ -36,6 +36,8 @@ export interface ActionRailProps {
   readout?: React.ReactNode;
   /** Toggle button text for the tucked-away detail drawer. */
   drawerToggleLabel?: string;
+  /** The drawer element id controlled by the drawer toggle. */
+  drawerId?: string;
   onToggleDrawer?: () => void;
   drawerOpen?: boolean;
 }
@@ -48,6 +50,7 @@ export function ActionRail({
   secondaryToggleLabel = "More actions",
   readout,
   drawerToggleLabel = "Details",
+  drawerId = "mx2-detail-drawer",
   onToggleDrawer,
   drawerOpen,
 }: ActionRailProps) {
@@ -56,6 +59,12 @@ export function ActionRail({
   const secondaryActions = secondary ?? [];
   const inlineSecondary = secondaryActions.length <= 2 ? secondaryActions : [];
   const groupedSecondary = secondaryActions.length > 2 ? secondaryActions : [];
+  const hasDrawerToggle = Boolean(onToggleDrawer);
+
+  if (!primary && secondaryActions.length === 0 && !readout && !hasDrawerToggle) {
+    return null;
+  }
+
   const renderSecondaryAction = (
     action: ActionRailAction,
     index: number,
@@ -139,13 +148,13 @@ export function ActionRail({
             )}
           </div>
         )}
-        {onToggleDrawer && (
+        {hasDrawerToggle && (
           <button
             type="button"
             className="mx2-btn mx2-btn--ghost mx2-action-rail__drawer-toggle"
             onClick={onToggleDrawer}
             aria-expanded={drawerOpen || undefined}
-            aria-controls="mx2-detail-drawer"
+            aria-controls={drawerId}
           >
             <span>{drawerToggleLabel}</span>
             <ChevronDown

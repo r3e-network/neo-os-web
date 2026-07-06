@@ -8,13 +8,19 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ActionRail } from "../components-react/v2";
+import { ActionRail, PlayStage } from "../components-react/v2";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
 describe("ActionRail", () => {
+  it("does not render an empty rail when there is no action or drawer", () => {
+    const { container } = render(<ActionRail />);
+
+    expect(container.querySelector(".mx2-action-rail")).toBeNull();
+  });
+
   it("keeps one secondary action visible as a quiet support chip", () => {
     render(
       <ActionRail
@@ -100,5 +106,37 @@ describe("ActionRail", () => {
         .getByRole("button", { name: "More actions" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
+  });
+
+  it("gives each PlayStage drawer its own controlled region", () => {
+    render(
+      <>
+        <PlayStage
+          stage={{ title: "First", subtitle: "One" }}
+          scene={<div>Scene A</div>}
+          actions={{}}
+          drawerToggleLabel="First details"
+          drawer={{ children: <p>First drawer</p> }}
+        />
+        <PlayStage
+          stage={{ title: "Second", subtitle: "Two" }}
+          scene={<div>Scene B</div>}
+          actions={{}}
+          drawerToggleLabel="Second details"
+          drawer={{ children: <p>Second drawer</p> }}
+        />
+      </>,
+    );
+
+    const firstToggle = screen.getByRole("button", { name: "First details" });
+    const secondToggle = screen.getByRole("button", { name: "Second details" });
+    const firstDrawerId = firstToggle.getAttribute("aria-controls");
+    const secondDrawerId = secondToggle.getAttribute("aria-controls");
+
+    expect(firstDrawerId).toBeTruthy();
+    expect(secondDrawerId).toBeTruthy();
+    expect(firstDrawerId).not.toBe(secondDrawerId);
+    expect(document.getElementById(firstDrawerId!)).toBeTruthy();
+    expect(document.getElementById(secondDrawerId!)).toBeTruthy();
   });
 });
