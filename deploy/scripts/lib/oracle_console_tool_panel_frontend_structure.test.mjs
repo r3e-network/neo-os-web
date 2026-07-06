@@ -76,7 +76,7 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
 
   assert.match(component, /className="console-tool__hero"/);
   assert.match(component, /className="console-tool__stage"/);
-  assert.match(component, /oracle-workspace-stage\.jpg/);
+  assert.match(component, /oracle-workspace-stage\.webp/);
   assert.match(component, /className="console-tool__hero-meta"/);
   assert.match(component, /className="console-tool__workspace"/);
   assert.match(component, /className="console-tool__form"/);

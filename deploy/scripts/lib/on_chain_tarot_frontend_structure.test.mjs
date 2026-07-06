@@ -60,10 +60,11 @@ test("On-Chain Tarot renders a clean v2 card-reading table", () => {
   assert.ok(fs.existsSync(path.join(ROOT, "apps/on-chain-tarot/public/cards/index.json")));
   const cardImages = fs
     .readdirSync(path.join(ROOT, "apps/on-chain-tarot/public/cards"))
-    .filter((name) => /^\d{2}-.+\.jpg$/.test(name));
+    .filter((name) => /^\d{2}-.+\.webp$/.test(name));
   assert.equal(cardImages.length, 78, "tarot deck must ship all 78 card faces");
   assert.match(playArea, /mx2-deal/);
-  assert.doesNotMatch(playArea, /tarot-reading-table\.jpg|tarotTableUrl|tarot-scene__table-art/);
+  assert.match(playArea, /tarot-reading-table\.webp/);
+  assert.match(playArea, /tarot-scene__table-art/);
 
   for (const key of [
     "neoTarot",
@@ -83,9 +84,10 @@ test("On-Chain Tarot renders a clean v2 card-reading table", () => {
   }
 
   assert.match(styles, /\.tarot-play-area\s*\{[^}]*--mx2-stage-floor:\s*#ffffff/s);
-  assert.match(styles, /\.tarot-scene__cloth\s*\{[^}]*background:\s*#ffffff/s);
-  assert.match(styles, /\.tarot-scene__spread\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(var\(--tarot-card-w\),\s*166px\)\)/s);
-  assert.match(styles, /\.tarot-scene__spread::before\s*\{[^}]*background:\s*#ffffff/s);
+  assert.match(styles, /--mx2-scene-art-opacity:\s*0\.16/);
+  assert.match(styles, /\.tarot-scene__cloth\s*\{[^}]*background:\s*#fffaf3/s);
+  assert.match(styles, /\.tarot-scene__spread\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(var\(--tarot-card-w\),\s*150px\)\)/s);
+  assert.match(styles, /\.tarot-scene__spread::before\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/s);
   assert.match(styles, /\.tarot-scene__card-flip\s*\{[^}]*transform-style:\s*preserve-3d/s);
   assert.match(styles, /\.tarot-scene__slot--revealed \.tarot-scene__card-flip\s*\{[^}]*rotateY\(180deg\)/s);
   assert.match(styles, /\.tarot-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[^}]*white-space:\s*nowrap/s);
@@ -97,7 +99,6 @@ test("On-Chain Tarot renders a clean v2 card-reading table", () => {
   assertZeroLetterSpacing(styles);
   assert.match(styles, /text-transform:\s*uppercase/);
   assert.doesNotMatch(styles, /radial-gradient|backdrop-filter/);
-  assert.doesNotMatch(styles, /tarot-scene__table-art|tarot-reading-table|--mx2-scene-art-opacity/);
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /border-radius:\s*(?:2[9]|[3-9][0-9])px/);
 });

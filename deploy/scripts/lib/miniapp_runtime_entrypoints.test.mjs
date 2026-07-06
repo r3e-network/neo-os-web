@@ -84,10 +84,12 @@ test("burn league entrypoint matches its chain composable and rendered state sha
   const playAreaSource = read("apps/burn-league/src/PlayArea.tsx");
 
   // Migrated off the OS kernel to the standalone MiniAppBurnLeague contract: the
-  // composable is wired with the chain service and exposes a permissionless settle.
-  assert.match(mainSource, /chain:\s*ctx\.services\.chain/);
+  // composable is wired through the root miniapp framework and exposes a
+  // permissionless settle.
+  assert.match(mainSource, /useBurnLeague\(\{\s*app:\s*ctx\.framework/s);
+  assert.match(mainSource, /ctx\.framework\.chain\.address\.get\(\)/);
   assert.match(mainSource, /burn\.burnTokens/);
-  assert.match(mainSource, /registerAction\("settle"/);
+  assert.match(mainSource, /ctx\.framework\.actions\.register\(\s*"settle"/);
   assert.match(mainSource, /burnCount:\s*burn\.burnCount/);
   assert.doesNotMatch(mainSource, /nftService|paymentService|storageService|burnGas/);
   assert.doesNotMatch(mainSource, /ctx\.os\.(game|leaderboard|badge)/);

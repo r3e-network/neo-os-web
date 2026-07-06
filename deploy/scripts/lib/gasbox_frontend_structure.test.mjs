@@ -38,7 +38,7 @@ test("GasBox renders a game-like v2 capsule machine with drawer studio controls"
     "selectMachine",
     "openStudio",
   ], "GasBox");
-  assert.match(main, /ctx\.registerAction\("refreshMachines"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("refreshMachines"/);
   assert.match(main, /gasbox\.loadAll\(\)/);
   assertAssets([
     "apps/gasbox/public/gasbox-capsule-machine.webp",

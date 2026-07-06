@@ -24,7 +24,7 @@ test("AA Account Lab exposes a scene-led AA registration workspace", () => {
   assert.match(playArea, /OpenUiPanel/);
   assert.match(playArea, /OpenUiTextField/);
   assert.match(playArea, /OpenUiNotice/);
-  assert.match(playArea, /const ACCOUNT_ART = "account-control-center\.jpg"/);
+  assert.match(playArea, /const ACCOUNT_ART = "account-control-center\.webp"/);
   assert.ok(
     fs.existsSync(path.join(ROOT, "apps/aa-account-lab/public/account-control-center.webp")),
     "AA account scene art must ship with the miniapp",

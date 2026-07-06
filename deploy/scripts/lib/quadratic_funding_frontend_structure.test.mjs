@@ -14,7 +14,7 @@ test("Quadratic Funding renders a v2 donor desk with complete grant actions", ()
   const playArea = read("apps/quadratic-funding/src/PlayArea.tsx");
   const styles = read("apps/quadratic-funding/src/PlayArea.scss");
   const main = read("apps/quadratic-funding/src/main.tsx");
-  const page = read("apps/quadratic-funding/src/pages/index/composables/useQuadraticFundingPage.ts");
+  const page = read("apps/quadratic-funding/src/composables/useQuadraticFundingPage.ts");
   const messages = read("apps/quadratic-funding/src/locale/messages.ts");
 
   assertPlayStage(playArea, "defi", "Quadratic Funding");
@@ -41,7 +41,7 @@ test("Quadratic Funding renders a v2 donor desk with complete grant actions", ()
   assert.match(playArea, /dispatch\("contribute"/);
   assert.match(playArea, /dispatch\("registerProject"/);
   assert.match(playArea, /memo: contributionMemo/);
-  assert.match(main, /ctx\.registerAction\("selectRound"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("selectRound"/);
   assert.match(page, /const handleSelectRound = async/);
   assertAssets(["apps/quadratic-funding/public/funding-desk.webp"]);
   assertMessageKeys(messages, [

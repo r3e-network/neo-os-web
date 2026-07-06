@@ -107,17 +107,17 @@ test("Dice Game renders a resource-led v2 roll table", () => {
 
   // Light game table: real dice/chip resources, foreground controls, clean foundations.
   assert.match(styles, /\.dice-playarea\s*\{[^}]*--mx2-stage-floor:\s*#ffffff/s);
-  assert.match(styles, /\.dice-scene\s*\{[^}]*background:\s*#fff9ec/s);
+  assert.match(styles, /\.dice-scene\s*\{[^}]*background:\s*#fffdf7/s);
   assert.match(styles, /\.dice-scene__felt\s*\{[^}]*#fff8e8/s);
   assert.match(styles, /\.dice-scene__felt-track\s*\{[^}]*display:\s*none/s);
   assert.match(styles, /\.dice-scene__felt-track\s*\{[^}]*background:\s*transparent/s);
   assert.match(styles, /\.dice-scene__play-table\s*\{[^}]*min-height:\s*318px/s);
   assert.match(styles, /\.dice-bet-spots\s*\{[^}]*pointer-events:\s*none/s);
   assert.match(styles, /\.dice-bet-spot\s*\{[^}]*position:\s*absolute/s);
-  assert.match(styles, /\.dice-bet-spot--active\s*\{[^}]*background:\s*#f2fff8/s);
+  assert.match(styles, /\.dice-bet-spot--active\s*\{[^}]*background:\s*#f3fff9/s);
   assert.match(styles, /\.dice-scene__live-zone\s*\{[^}]*grid-template-columns:\s*88px minmax\(188px,\s*230px\) 88px/s);
   assert.match(styles, /\.dice-scene__die,\s*\n\.dice-scene__side-die\s*\{[^}]*object-fit:\s*contain/s);
-  assert.match(styles, /\.dice-scene__side-die\s*\{[^}]*opacity:\s*0\.36/s);
+  assert.match(styles, /\.dice-scene__side-die\s*\{[^}]*opacity:\s*0\.22/s);
   assert.match(styles, /\.dice-scene\[data-state="rolling"\] \.dice-scene__table-mat\s*\{[^}]*opacity:\s*0\.48/s);
   assert.match(styles, /\.dice-scene\[data-state="rolling"\] \.dice-scene__throw-path\s*\{[^}]*opacity:\s*0\.12/s);
   assert.match(styles, /\.dice-scene__die-anchor\.mx2-roll\s*\{[^}]*animation:\s*dice-clean-tumble/s);
@@ -129,8 +129,8 @@ test("Dice Game renders a resource-led v2 roll table", () => {
   assert.match(styles, /@keyframes dice-clean-tumble/);
   assert.match(styles, /@keyframes dice-landing-ready/);
   assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-scene__play-table[\s\S]*min-height:\s*278px/s);
-  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-bet-spot[\s\S]*width:\s*64px/s);
-  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-chip-btn[\s\S]*min-width:\s*48px/s);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-bet-spot[\s\S]*width:\s*58px/s);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.dice-chip-btn[\s\S]*min-width:\s*46px/s);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.dice-scene__die-anchor\.mx2-roll/s);
 
   assert.doesNotMatch(styles, /backdrop-filter/);

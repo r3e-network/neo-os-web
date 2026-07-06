@@ -33,7 +33,7 @@ test("AA Market Hub exposes wallet-style market overview and guarded listing loa
   assert.match(playArea, /category="defi"/);
   assert.match(playArea, /className="market-scene"/);
   assert.match(playArea, /className="market-scene__desk-card"/);
-  assert.match(playArea, /src="\.\/market-escrow-desk\.jpg"/);
+  assert.match(playArea, /src="\.\/market-escrow-desk\.webp"/);
   assert.match(playArea, /className="market-scene__route"/);
   assert.match(playArea, /className="market-scene__shelf"/);
   assert.match(playArea, /className="market-drawer"/);
