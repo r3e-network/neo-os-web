@@ -21,6 +21,26 @@ function frameworkSources(dir = frameworkRoot): string[] {
 }
 
 describe("framework package boundary", () => {
+  it("registers the framework as a root workspace package", () => {
+    const rootPackage = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8")) as {
+      workspaces?: string[];
+    };
+    const lockfile = JSON.parse(readFileSync(resolve(repoRoot, "package-lock.json"), "utf8")) as {
+      packages?: Record<
+        string,
+        { resolved?: string; link?: boolean; name?: string; workspaces?: string[] }
+      >;
+    };
+
+    expect(rootPackage.workspaces).toContain("framework");
+    expect(lockfile.packages?.[""].workspaces).toContain("framework");
+    expect(lockfile.packages?.framework?.name).toBe("@neo/miniapp-framework");
+    expect(lockfile.packages?.["node_modules/@neo/miniapp-framework"]).toMatchObject({
+      resolved: "framework",
+      link: true,
+    });
+  });
+
   it("keeps SDK implementation outside apps/shared", () => {
     expect(existsSync(frameworkRoot)).toBe(true);
 
