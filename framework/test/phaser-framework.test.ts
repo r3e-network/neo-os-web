@@ -167,6 +167,22 @@ describe("root Phaser framework", () => {
         ],
       },
       {
+        app: "last-survivor",
+        scene: "LastSurvivorScene",
+        assets: [
+          "./last-survivor-arena.webp",
+          "./logo.webp",
+          "@shared/assets/tokens/gas-icon.svg?url",
+        ],
+        usage: [
+          "SURVIVOR_ASSETS",
+          "KEY_PRESETS",
+          "dispatch(\"setKeyCount\"",
+          "dispatch(\"buyKeys\"",
+          "dispatch(\"settleRound\"",
+        ],
+      },
+      {
         app: "color-clash",
         scene: "ColorClashScene",
         assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
@@ -315,6 +331,17 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: open affordance should be a real action button, not old placeholder copy`).not.toContain(
           "TAP TO OPEN",
+        );
+      }
+      if (app === "last-survivor") {
+        expect(source, `${app}: Phaser buy action should pass the selected count directly`).not.toContain(
+          'dispatch("buyKeys", {',
+        );
+        expect(source, `${app}: Phaser settle action should match the registered framework action`).not.toContain(
+          'dispatch("settle",',
+        );
+        expect(source, `${app}: keys should use loaded art and UI, not the old hand-drawn icon`).not.toContain(
+          "drawKeyIcon",
         );
       }
     }
