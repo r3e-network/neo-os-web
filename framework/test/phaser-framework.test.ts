@@ -165,6 +165,21 @@ describe("root Phaser framework", () => {
         ],
         usage: ["FLAPPY_ASSETS", "birdSprite", "pipeSprites", "drawPipes"],
       },
+      {
+        app: "jump-rush",
+        scene: "JumpRushScene",
+        assets: [
+          "./art/bunny-hurt.webp",
+          "./art/bunny-jump.webp",
+          "./art/bunny-ready.webp",
+          "./art/bunny-stand.webp",
+          "./art/carrot-gold.webp",
+          "./art/cloud.webp",
+          "./art/platform-grass.webp",
+          "./art/platform-grass-small.webp",
+        ],
+        usage: ["JR_ASSETS", "bunnySprite", "setBunnyPose", "buildPlatformTile"],
+      },
     ] as const;
 
     for (const { app, scene, assets, usage } of migratedAssetScenes) {
@@ -191,6 +206,14 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: pipes should be loaded sprites, not Graphics rectangles`).not.toContain(
           "pipeGraphics",
+        );
+      }
+      if (app === "jump-rush") {
+        expect(source, `${app}: bunny should be a loaded sprite, not a Graphics drawing`).not.toContain(
+          "bunnyBody",
+        );
+        expect(source, `${app}: bunny poses should switch texture assets instead of hand drawing`).not.toContain(
+          "drawBunny",
         );
       }
     }
