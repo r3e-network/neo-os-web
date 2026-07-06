@@ -24,7 +24,7 @@
   --tarot-brand-glow: var(--mx2-shadow-glow, 0 10px 22px rgba(22, 199, 132, 0.18));
 }
 .tarot-play-area .mx2-stage {
-  --mx2-scene-art-opacity: 0.3;
+  --mx2-scene-art-opacity: 0.16;
 }
 .tarot-play-area .mx2-stage__scene {
   align-items: stretch;
@@ -108,7 +108,7 @@
   justify-self: center;
   font-size: 10px;
   font-weight: 680;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--mx2-text-muted);
 }
@@ -854,7 +854,7 @@
     border-radius: 18px;
   }
   .tarot-scene__spread {
-    grid-template-columns: repeat(3, minmax(78px, 1fr));
+    grid-template-columns: repeat(3, minmax(96px, 1fr));
     gap: 8px;
     width: min(100%, 318px);
     margin-top: 0;

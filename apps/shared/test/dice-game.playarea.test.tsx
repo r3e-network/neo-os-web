@@ -289,7 +289,7 @@ describe("Dice Game PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/\.dice-scene\[data-state="rolling"\] \.dice-scene__bet-lane\s*\{[\s\S]*animation:\s*dice-bet-lane-lift/);
     expect(styles).toMatch(/@keyframes dice-bet-beam/);
     expect(styles).not.toMatch(/\.dice-scene__die,[\s\S]*\.dice-scene__side-die\s*\{[^}]*object-fit:\s*cover/);
-    expect(styles).toMatch(/\.dice-chip-tray\s*\{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.88\)/);
+    expect(styles).toMatch(/\.dice-chip-tray\s*\{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.94\)/);
     expect(styles).toMatch(/\.dice-chip-btn\s*\{[\s\S]*border-radius:\s*999px/);
     expect(styles).toMatch(/\.dice-chip-btn\s*\{[\s\S]*min-width:\s*58px/);
     expect(styles).toMatch(/\.dice-chip-btn img\s*\{[\s\S]*width:\s*52px/);

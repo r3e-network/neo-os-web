@@ -24,7 +24,7 @@ test("AA Permissions Lab exposes a guarded wallet-style permissions workspace", 
   assert.match(playArea, /OpenUiPanel/);
   assert.match(playArea, /OpenUiTextField/);
   assert.match(playArea, /OpenUiNotice/);
-  assert.match(playArea, /const PERMISSION_CONSOLE_ART = "permission-console\.jpg"/);
+  assert.match(playArea, /const PERMISSION_CONSOLE_ART = "permission-console\.webp"/);
   assert.ok(
     fs.existsSync(path.join(ROOT, "apps/aa-permissions-lab/public/permission-console.webp")),
     "AA permissions scene art must ship with the miniapp",

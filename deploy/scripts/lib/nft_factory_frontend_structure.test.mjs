@@ -29,7 +29,7 @@ test("NFT Factory renders an NFT-native drop studio with real assets", () => {
     "domain-factory-choice",
     "domain-factory-toggle-button",
   ], "NFT Factory");
-  assert.match(playArea, /src="\.\/nft-drop-preview\.jpg"/);
+  assert.match(playArea, /src="\.\/nft-drop-preview\.webp"/);
   assert.match(playArea, /dispatch\("generatePlan"/);
   assert.match(playArea, /dispatch\("signCurrentPlan"\)/);
   assert.match(playArea, /dispatch\("executePlan"\)/);
@@ -41,10 +41,10 @@ test("NFT Factory renders an NFT-native drop studio with real assets", () => {
   assert.match(styles, /@media \(max-width:/);
   assertMessageKeys(messages, ["dropStudio", "dropStudioHint", "previewTransferPolicy"], "Factory messages");
   assert.match(appMessages, /title:\s*\{\s*en:\s*"NFT Factory"/);
-  assert.match(indexHtml, /href="\.\/logo\.jpg"/);
-  assert.match(indexHtml, /content="\.\/banner\.jpg"/);
-  assert.match(manifest, /"icon": "\/miniapps\/nft-factory\/logo\.jpg"/);
-  assert.match(manifest, /"banner": "\/miniapps\/nft-factory\/banner\.jpg"/);
+  assert.match(indexHtml, /href="\.\/logo\.webp"/);
+  assert.match(indexHtml, /content="\.\/banner\.webp"/);
+  assert.match(manifest, /"icon": "\/miniapps\/nft-factory\/logo\.webp"/);
+  assert.match(manifest, /"banner": "\/miniapps\/nft-factory\/banner\.webp"/);
   assertAssets([
     "apps/nft-factory/public/nft-drop-preview.webp",
     "apps/nft-factory/public/banner.webp",

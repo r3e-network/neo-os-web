@@ -38,8 +38,8 @@ test("Red Envelope renders a playful v2 claim and creator workspace", () => {
     "withdrawCredit",
     "dismissOverlay",
   ], "Red Envelope");
-  assert.match(main, /ctx\.registerAction\("claimEnvelope"/);
-  assert.match(main, /ctx\.registerAction\("createEnvelope"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("claimEnvelope"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("createEnvelope"/);
   assertAssets(["apps/red-envelope/public/red-envelope-claim-card.webp"]);
   assertMessageKeys(messages, [
     "redEnvelopeHeroTitle",
