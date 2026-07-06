@@ -24,7 +24,7 @@
 >   `onMiniAppResult` parses the RESULT CODEC and runs the uniform settle body
 >   (target/window/undo → payout → Solved leaderboard). Trust root = the kernel's
 >   shared verifier (per-game `SetTeeSigner` deleted).
-> - **Client**: one shared `apps/shared/logic/tee-session.ts` on the generic
+> - **Client**: one root-level `framework/logic/tee-session.ts` on the generic
 >   `/api/morpheus/session/*` endpoints, sealing the finalize op-log with the
 >   confidential envelope (like `private-transfer`). No per-game service.
 > - **RESULT CODEC** (worker builds, contract parses, kernel hashes SHA256):

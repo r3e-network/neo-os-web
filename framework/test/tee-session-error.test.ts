@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { teeSessionStart } from "../logic/tee-session";
+import { teeSessionStart } from "@framework/logic/tee-session";
 
 describe("Morpheus TEE session errors", () => {
   it("surfaces the human-readable runtime message before the machine code", async () => {
