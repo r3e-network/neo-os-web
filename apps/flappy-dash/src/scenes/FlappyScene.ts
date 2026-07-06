@@ -2,10 +2,10 @@
  * FlappyScene — Phaser 3 scene for the Flappy Dash miniapp.
  *
  * Renders:
- *  - Parallax sky background (blue gradient + scrolling clouds)
+ *  - Parallax Flappy-style sky background
  *  - Scrolling ground strip at bottom
- *  - Pipes (green) generated deterministically from seed
- *  - Yellow bird with wing-flap animation
+ *  - Pipe sprites generated deterministically from seed
+ *  - Bird sprite animation with up/mid/down wing frames
  *  - Score counter (pipes passed) as HUD pill
  *  - Lobby: 3 difficulty cards (idle / solved / expired states)
  *  - Overlays: "Tap to fly", crash, win, committed/dealing
@@ -42,6 +42,7 @@ import {
   createGameState,
   updateFrame,
   flap as engineFlap,
+  type Pipe,
 } from "../logic/flappy-engine";
 import type { GameState as FlappyGameState } from "../logic/flappy-engine";
 import { DIFFICULTY_RULES, ruleOf, gasDisplay } from "../logic/game-rules";
@@ -54,37 +55,33 @@ const H = CANVAS_HEIGHT;  // 600
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const C = {
-  skyTop:       0x4dc9f6,
-  skyBot:       0xb8e6ff,
-  cloud:        0xffffff,
-  pipeBody:     0x2ecc71,
-  pipeCap:      0x27ae60,
-  pipeShine:    0x58d68d,
-  ground:       0x8B4513,
-  groundTop:    0x228B22,
-  birdBody:     0xf5c842,
-  birdWing:     0xe8a800,
-  birdEye:      0x333333,
-  birdBeak:     0xe74c3c,
-  scoreText:    0xffffff,
-  scorePill:    0x00000000,
-  hudPanel:     0x000000,
   white:        0xffffff,
   black:        0x000000,
-  cardBg:       0x162032,
-  cardBorder:   0x2a4a6b,
-  cardActive:   0x1a5c8a,
+  cardBg:       0xf5fbff,
+  cardBorder:   0x7ccde8,
+  cardActive:   0xe4fff5,
   cardAccent:   0x16c784,
   btnPrimary:   0x1e88e5,
   btnDisabled:  0x334455,
-  muted:        0x7a9ab5,
-  overlay:      0x000000,
   overlayWin:   0x0d2b1a,
   overlayCrash: 0x1a0a0a,
 };
 
 // Frames between recordFlap reports to React
 const REPORT_INTERVAL_FRAMES = 120; // ~2 s at 60 fps
+
+const FLAPPY_ASSETS = {
+  background: "flappy-background-day",
+  ground: "flappy-ground-base",
+  birdUp: "flappy-bird-up",
+  birdMid: "flappy-bird-mid",
+  birdDown: "flappy-bird-down",
+  pipeTop: "flappy-pipe-top",
+  pipeBottom: "flappy-pipe-bottom",
+} as const;
+
+const BACKGROUND_SCALE = (H - GROUND_HEIGHT) / 144;
+const GROUND_TILE_SCALE = GROUND_HEIGHT / 24;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,12 +91,15 @@ type GameStatus = "idle" | "committed" | "dealt" | "solved" | "expired";
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
 export class FlappyScene extends BaseScene {
-  // ── Graphics layers ───────────────────────────────────────────────────────
-  private bgGraphics!: Phaser.GameObjects.Graphics;
-  private cloudGraphics!: Phaser.GameObjects.Graphics;
-  private groundGraphics!: Phaser.GameObjects.Graphics;
-  private pipeGraphics!: Phaser.GameObjects.Graphics;
-  private birdGraphics!: Phaser.GameObjects.Graphics;
+  // ── Sprite layers ─────────────────────────────────────────────────────────
+  private backgroundSprite!: Phaser.GameObjects.TileSprite;
+  private groundSprite!: Phaser.GameObjects.TileSprite;
+  private pipeLayer!: Phaser.GameObjects.Container;
+  private pipeSprites = new Map<
+    Pipe,
+    { top: Phaser.GameObjects.Image; bottom: Phaser.GameObjects.Image }
+  >();
+  private birdSprite!: Phaser.GameObjects.Image;
   private hudGraphics!: Phaser.GameObjects.Graphics;
 
   // ── HUD text ──────────────────────────────────────────────────────────────
@@ -143,8 +143,6 @@ export class FlappyScene extends BaseScene {
   private reportTimer = 0;      // frames since last recordFlap
   private deadlineMs = 0;
   private lastReportedScore = -1;
-  private birdWingAngle = 0;
-  private birdWingDir = 1;
 
   constructor() {
     super("FlappyScene");
@@ -152,16 +150,46 @@ export class FlappyScene extends BaseScene {
 
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
 
+  preload(): void {
+    this.load.image(FLAPPY_ASSETS.background, "./flappy-sprites/background-day.webp");
+    this.load.image(FLAPPY_ASSETS.ground, "./flappy-sprites/base.webp");
+    this.load.image(FLAPPY_ASSETS.birdUp, "./flappy-sprites/bird-up.webp");
+    this.load.image(FLAPPY_ASSETS.birdMid, "./flappy-sprites/bird-mid.webp");
+    this.load.image(FLAPPY_ASSETS.birdDown, "./flappy-sprites/bird-down.webp");
+    this.load.image(FLAPPY_ASSETS.pipeTop, "./flappy-sprites/pipe-top.webp");
+    this.load.image(FLAPPY_ASSETS.pipeBottom, "./flappy-sprites/pipe-bottom.webp");
+  }
+
   create(): void {
     super.create();
 
     // Render layers (order matters: lowest depth first)
-    this.bgGraphics    = this.add.graphics();
-    this.cloudGraphics = this.add.graphics();
-    this.pipeGraphics  = this.add.graphics();
-    this.groundGraphics = this.add.graphics();
-    this.birdGraphics  = this.add.graphics();
-    this.hudGraphics   = this.add.graphics();
+    this.backgroundSprite = this.add.tileSprite(
+      0,
+      0,
+      W,
+      H - GROUND_HEIGHT,
+      FLAPPY_ASSETS.background,
+    ).setOrigin(0).setDepth(0);
+    this.backgroundSprite.setTileScale(BACKGROUND_SCALE, BACKGROUND_SCALE);
+
+    this.pipeLayer = this.add.container(0, 0).setDepth(2);
+    this.groundSprite = this.add.tileSprite(
+      0,
+      H - GROUND_HEIGHT,
+      W,
+      GROUND_HEIGHT,
+      FLAPPY_ASSETS.ground,
+    ).setOrigin(0).setDepth(3);
+    this.groundSprite.setTileScale(GROUND_TILE_SCALE, GROUND_TILE_SCALE);
+
+    this.birdSprite = this.add.image(
+      BIRD_X + BIRD_WIDTH / 2,
+      H / 2,
+      FLAPPY_ASSETS.birdMid,
+    ).setDisplaySize(BIRD_WIDTH, BIRD_HEIGHT).setDepth(4).setVisible(false);
+
+    this.hudGraphics = this.add.graphics().setDepth(9);
 
     this.scoreText = this.add.text(W / 2, 18, "0", {
       fontSize: "30px",
@@ -183,8 +211,9 @@ export class FlappyScene extends BaseScene {
     this.input.keyboard?.on("keydown-UP",        this.handleTap, this);
     this.input.keyboard?.on("keydown-W",         this.handleTap, this);
 
-    // Draw initial static sky so there's no blank frame
+    // Draw initial static scene so there's no blank frame.
     this.drawSky();
+    this.drawGround(0);
 
     this.onStateUpdate(this.state);
   }
@@ -239,10 +268,6 @@ export class FlappyScene extends BaseScene {
     // Advance scrolling even while stepping physics
     this.cloudOffset += delta * 0.03;
     this.groundOffset += this.localPhase === "playing" ? delta * 0.12 : 0;
-
-    // Animate bird wing
-    this.birdWingAngle += 0.18 * this.birdWingDir;
-    if (this.birdWingAngle > 0.5 || this.birdWingAngle < -0.3) this.birdWingDir *= -1;
 
     // Redraw game frame
     if (this.flappyState) {
@@ -319,7 +344,6 @@ export class FlappyScene extends BaseScene {
 
     if (this.localPhase === "playing") {
       engineFlap(this.flappyState);
-      this.birdWingAngle = -0.4; // snap wing down on flap
       this.dispatch("recordFlap", { pipes: this.flappyState.score });
     }
   }
@@ -337,126 +361,67 @@ export class FlappyScene extends BaseScene {
   // ── Drawing helpers ────────────────────────────────────────────────────────
 
   private drawSky(): void {
-    const g = this.bgGraphics;
-    g.clear();
-    // Sky gradient approximated with two bands
-    g.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1);
-    g.fillRect(0, 0, W, H - GROUND_HEIGHT);
-    // Ground brown base
-    g.fillStyle(C.ground, 1);
-    g.fillRect(0, H - GROUND_HEIGHT, W, GROUND_HEIGHT);
-    // Green grass strip at top of ground
-    g.fillStyle(C.groundTop, 1);
-    g.fillRect(0, H - GROUND_HEIGHT, W, 8);
-  }
-
-  private drawClouds(frame: number): void {
-    const g = this.cloudGraphics;
-    g.clear();
-    g.fillStyle(C.cloud, 0.65);
-    const offX = (this.cloudOffset + frame * 0.15) % 500;
-    for (let i = 0; i < 5; i++) {
-      const cx = ((i * 170 - offX + 900) % 600) - 60;
-      const cy = 35 + i * 22;
-      g.fillEllipse(cx,      cy,      90, 38);
-      g.fillEllipse(cx + 28, cy - 12, 68, 34);
-      g.fillEllipse(cx + 55, cy,      78, 30);
-    }
+    this.backgroundSprite.setVisible(true);
+    this.backgroundSprite.setTilePosition(this.cloudOffset * 0.18, 0);
   }
 
   private drawGround(frame: number): void {
-    const g = this.groundGraphics;
-    g.clear();
-    // Scrolling tick marks
-    g.lineStyle(2, 0x2d8a2d, 0.8);
-    const gOff = (this.groundOffset + frame * 2) % 40;
-    for (let x = -gOff; x < W; x += 40) {
-      g.lineBetween(x, H - GROUND_HEIGHT + 2, x + 15, H - GROUND_HEIGHT + 10);
-    }
+    this.groundSprite.setVisible(true);
+    this.groundSprite.setTilePosition((this.groundOffset + frame * 2) / GROUND_TILE_SCALE, 0);
   }
 
   private drawPipes(gs: FlappyGameState): void {
-    const g = this.pipeGraphics;
-    g.clear();
+    const livePipes = new Set(gs.pipes);
     for (const p of gs.pipes) {
       const topH    = p.gapY;
       const botY    = p.gapY + PIPE_GAP;
       const botH    = H - GROUND_HEIGHT - botY;
       const x       = p.x;
-      const pw      = PIPE_WIDTH;
 
-      // Top pipe body
-      g.fillStyle(C.pipeBody, 1);
-      g.fillRect(x, 0, pw, topH);
-      // Top pipe cap
-      g.fillStyle(C.pipeCap, 1);
-      g.fillRect(x - 4, topH - 20, pw + 8, 20);
-      // Top pipe shine
-      g.fillStyle(C.pipeShine, 0.7);
-      g.fillRect(x + 4, 0, 6, Math.max(0, topH - 22));
+      let sprites = this.pipeSprites.get(p);
+      if (!sprites) {
+        sprites = {
+          top: this.add.image(0, 0, FLAPPY_ASSETS.pipeTop).setOrigin(0, 0),
+          bottom: this.add.image(0, 0, FLAPPY_ASSETS.pipeBottom).setOrigin(0, 0),
+        };
+        this.pipeLayer.add([sprites.top, sprites.bottom]);
+        this.pipeSprites.set(p, sprites);
+      }
 
-      // Bottom pipe body
-      g.fillStyle(C.pipeBody, 1);
-      g.fillRect(x, botY, pw, botH);
-      // Bottom pipe cap
-      g.fillStyle(C.pipeCap, 1);
-      g.fillRect(x - 4, botY, pw + 8, 20);
-      // Bottom pipe shine
-      g.fillStyle(C.pipeShine, 0.7);
-      g.fillRect(x + 4, botY + 22, 6, Math.max(0, botH - 22));
+      sprites.top
+        .setPosition(x, 0)
+        .setDisplaySize(PIPE_WIDTH, Math.max(1, topH));
+      sprites.bottom
+        .setPosition(x, botY)
+        .setDisplaySize(PIPE_WIDTH, Math.max(1, botH));
+    }
+
+    for (const [pipe, sprites] of this.pipeSprites) {
+      if (livePipes.has(pipe)) continue;
+      sprites.top.destroy();
+      sprites.bottom.destroy();
+      this.pipeSprites.delete(pipe);
     }
   }
 
   private drawBird(gs: FlappyGameState): void {
-    const g  = this.birdGraphics;
-    g.clear();
     const bx  = BIRD_X;
     const by  = gs.bird.y;
     const cx  = bx + BIRD_WIDTH  / 2;
     const cy  = by + BIRD_HEIGHT / 2;
-    const rot = (gs.bird.rotation * Math.PI) / 180;
+    const frame =
+      gs.bird.vy < -1.4
+        ? FLAPPY_ASSETS.birdUp
+        : gs.bird.vy > 2.2
+          ? FLAPPY_ASSETS.birdDown
+          : FLAPPY_ASSETS.birdMid;
 
-    g.save();
-
-    // Translate to bird center, rotate, then draw
-    const cos = Math.cos(rot);
-    const sin = Math.sin(rot);
-
-    // Helper: transform local point to world
-    const tx = (lx: number, ly: number) => cx + lx * cos - ly * sin;
-    const ty = (lx: number, ly: number) => cy + lx * sin + ly * cos;
-
-    // Wing (drawn behind body)
-    const wFlap = this.birdWingAngle * 8;
-    g.fillStyle(C.birdWing, 1);
-    g.fillEllipse(
-      tx(-4, wFlap),
-      ty(-4, wFlap),
-      BIRD_WIDTH * 0.65,
-      BIRD_HEIGHT * 0.52,
-    );
-
-    // Body
-    g.fillStyle(C.birdBody, 1);
-    g.fillEllipse(cx, cy, BIRD_WIDTH, BIRD_HEIGHT);
-
-    // Eye white
-    g.fillStyle(C.white, 1);
-    g.fillCircle(tx(7, -4), ty(7, -4), 5);
-
-    // Eye pupil
-    g.fillStyle(C.birdEye, 1);
-    g.fillCircle(tx(8, -4), ty(8, -4), 2.5);
-
-    // Beak
-    g.fillStyle(C.birdBeak, 1);
-    g.fillTriangle(
-      tx(BIRD_WIDTH / 2 - 2, 0), ty(BIRD_WIDTH / 2 - 2, 0),
-      tx(BIRD_WIDTH / 2 + 8, 2), ty(BIRD_WIDTH / 2 + 8, 2),
-      tx(BIRD_WIDTH / 2 - 2, 6), ty(BIRD_WIDTH / 2 - 2, 6),
-    );
-
-    g.restore();
+    this.birdSprite
+      .setVisible(true)
+      .setTexture(frame)
+      .setDisplaySize(BIRD_WIDTH, BIRD_HEIGHT)
+      .setPosition(cx, cy)
+      .setAngle(gs.bird.rotation);
   }
 
   private drawScorePill(score: number): void {
@@ -481,7 +446,6 @@ export class FlappyScene extends BaseScene {
     if (!this.flappyState) return;
     const gs = this.flappyState;
     this.drawSky();
-    this.drawClouds(gs.frame);
     this.drawPipes(gs);
     this.drawGround(gs.frame);
     this.drawBird(gs);
@@ -498,16 +462,6 @@ export class FlappyScene extends BaseScene {
 
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0).setDepth(20);
-
-    // Background sky for lobby
-    const lobbyBg = this.add.graphics();
-    lobbyBg.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1);
-    lobbyBg.fillRect(0, 0, W, H - GROUND_HEIGHT);
-    lobbyBg.fillStyle(C.ground, 1);
-    lobbyBg.fillRect(0, H - GROUND_HEIGHT, W, GROUND_HEIGHT);
-    lobbyBg.fillStyle(C.groundTop, 1);
-    lobbyBg.fillRect(0, H - GROUND_HEIGHT, W, 8);
-    this.lobbyContainer.add(lobbyBg);
 
     // Title eyebrow
     const eyebrow = this.add.text(W / 2, 28, "FLAPPY DASH", {
@@ -531,28 +485,28 @@ export class FlappyScene extends BaseScene {
     this.difficultyCards = [];
     DIFFICULTY_RULES.forEach((rule, i) => {
       const cardX = W / 2;
-      const cardY = 118 + i * 118;
+      const cardY = 126 + i * 96;
       const card  = this.buildDifficultyCard(cardX, cardY, rule);
       this.difficultyCards.push(card);
       this.lobbyContainer.add(card);
     });
 
     // Pool status label
-    this.poolLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 90, "", {
+    this.poolLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 128, "", {
       fontSize: "12px",
-      color: "#7a9ab5",
+      color: "#2e6686",
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(this.poolLabel);
 
     // Lobby status (e.g. "Not enough GAS in pool")
-    this.lobbyStatusLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 74, "", {
+    this.lobbyStatusLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 110, "", {
       fontSize: "11px",
       color: "#e25d4d",
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(this.lobbyStatusLabel);
 
     // Start button
-    this.startButton = this.add.container(W / 2, H - GROUND_HEIGHT - 44);
+    this.startButton = this.add.container(W / 2, H - GROUND_HEIGHT - 66);
     this.startBtnBg  = this.add.rectangle(0, 0, 200, 44, C.btnPrimary)
       .setStrokeStyle(2, 0x42a5f5)
       .setOrigin(0.5);
@@ -577,10 +531,10 @@ export class FlappyScene extends BaseScene {
     rule: typeof DIFFICULTY_RULES[number],
   ): Phaser.GameObjects.Container {
     const c     = this.add.container(cx, cy);
-    const cardW = 340;
-    const cardH = 104;
+    const cardW = 322;
+    const cardH = 88;
 
-    const bg = this.add.rectangle(0, 0, cardW, cardH, C.cardBg)
+    const bg = this.add.rectangle(0, 0, cardW, cardH, C.cardBg, 0.88)
       .setStrokeStyle(2, C.cardBorder)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
@@ -588,26 +542,29 @@ export class FlappyScene extends BaseScene {
       this.pickedDifficulty = rule.difficulty;
       this.updateCardHighlights();
     });
-    bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0x1e2d3e); });
-    bg.on("pointerout",   () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(C.cardBg); });
+    bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0xeafcff, 0.94); });
+    bg.on("pointerout",   () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(C.cardBg, 0.88); });
 
-    const diffLabel = this.add.text(-cardW / 2 + 18, -36, rule.key.toUpperCase(), {
+    const bird = this.add.image(-cardW / 2 + 26, -20, FLAPPY_ASSETS.birdMid)
+      .setDisplaySize(28, 24);
+
+    const diffLabel = this.add.text(-cardW / 2 + 52, -28, rule.key.toUpperCase(), {
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#12364a",
     }).setOrigin(0, 0.5);
 
-    const pipesLabel = this.add.text(-cardW / 2 + 18, -10, `${rule.targetPipes} pipes`, {
+    const pipesLabel = this.add.text(-cardW / 2 + 52, -2, `${rule.targetPipes} pipes`, {
       fontSize: "12px",
-      color: "#7a9ab5",
+      color: "#2e6686",
     }).setOrigin(0, 0.5);
 
-    const timeLabel = this.add.text(-cardW / 2 + 18, 14, `${Math.round(rule.limitMs / 60000)} min`, {
+    const timeLabel = this.add.text(-cardW / 2 + 52, 22, `${Math.round(rule.limitMs / 60000)} min`, {
       fontSize: "12px",
-      color: "#7a9ab5",
+      color: "#2e6686",
     }).setOrigin(0, 0.5);
 
-    const rewardLabel = this.add.text(cardW / 2 - 18, -10, `Win ${gasDisplay(rule.rewardFixed8)} GAS`, {
+    const rewardLabel = this.add.text(cardW / 2 - 18, -14, `Win ${gasDisplay(rule.rewardFixed8)} GAS`, {
       fontSize: "14px",
       fontStyle: "bold",
       color: "#16c784",
@@ -615,13 +572,13 @@ export class FlappyScene extends BaseScene {
 
     const entryLabel = this.add.text(cardW / 2 - 18, 14, `Entry ${gasDisplay(rule.entryFixed8)} GAS`, {
       fontSize: "11px",
-      color: "#7a9ab5",
+      color: "#2e6686",
     }).setOrigin(1, 0.5);
 
     // Active indicator dot (initially hidden)
     const dot = this.add.circle(-cardW / 2 + 7, -cardH / 2 + 7, 5, C.cardAccent, 0);
 
-    c.add([bg, diffLabel, pipesLabel, timeLabel, rewardLabel, entryLabel, dot]);
+    c.add([bg, bird, diffLabel, pipesLabel, timeLabel, rewardLabel, entryLabel, dot]);
     return c;
   }
 
@@ -631,7 +588,7 @@ export class FlappyScene extends BaseScene {
       const active = rule.difficulty === this.pickedDifficulty;
       const bg     = card.list[0] as Phaser.GameObjects.Rectangle;
       const dot    = card.list[card.list.length - 1] as Phaser.GameObjects.Arc;
-      bg.setFillStyle(active ? C.cardActive : C.cardBg);
+      bg.setFillStyle(active ? C.cardActive : C.cardBg, active ? 0.96 : 0.88);
       bg.setStrokeStyle(2, active ? C.cardAccent : C.cardBorder);
       dot.setAlpha(active ? 1 : 0);
     });
@@ -680,9 +637,7 @@ export class FlappyScene extends BaseScene {
   private buildDealingScreen(): void {
     this.dealingContainer = this.add.container(0, 0).setDepth(20).setVisible(false);
 
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1);
-    bg.fillRect(0, 0, W, H);
+    const bg = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.24);
     this.dealingContainer.add(bg);
 
     const title = this.add.text(W / 2, H / 2 - 60, "Sealing Pipes…", {
@@ -700,19 +655,19 @@ export class FlappyScene extends BaseScene {
     }).setOrigin(0.5);
     this.dealingContainer.add(hint);
 
-    // Animated pipe icons cycling
-    const pipeIcons: Phaser.GameObjects.Graphics[] = [];
+    // Animated pipe sprites cycling while the verified pipe route is prepared.
+    const pipeIcons: Phaser.GameObjects.Image[] = [];
     for (let i = 0; i < 5; i++) {
-      const dot = this.add.graphics();
-      dot.fillStyle(C.pipeBody, 1);
-      dot.fillRoundedRect(0, 0, 14, 40, 4);
-      dot.setPosition(W / 2 - 40 + i * 20, H / 2 + 20);
-      dot.setAlpha(0.3);
-      this.dealingContainer.add(dot);
-      pipeIcons.push(dot);
+      const pipe = this.add.image(
+        W / 2 - 40 + i * 20,
+        H / 2 + 40,
+        i % 2 === 0 ? FLAPPY_ASSETS.pipeTop : FLAPPY_ASSETS.pipeBottom,
+      ).setDisplaySize(14, 56).setAlpha(0.3);
+      this.dealingContainer.add(pipe);
+      pipeIcons.push(pipe);
 
       this.tweens.add({
-        targets: dot,
+        targets: pipe,
         alpha: 1,
         scaleY: 1.3,
         duration: 400,
@@ -926,12 +881,11 @@ export class FlappyScene extends BaseScene {
     this.readyContainer.setVisible(false);
     this.scoreText.setVisible(false);
     this.hudGraphics.clear();
-    // Draw static sky behind lobby
+    this.birdSprite.setVisible(false);
+    this.clearPipeSprites();
+    // Draw static scene behind lobby.
     this.drawSky();
-    this.pipeGraphics.clear();
-    this.birdGraphics.clear();
-    this.groundGraphics.clear();
-    this.cloudGraphics.clear();
+    this.drawGround(0);
   }
 
   private showDealingLayer(): void {
@@ -940,6 +894,8 @@ export class FlappyScene extends BaseScene {
     this.overlayContainer.setVisible(false);
     this.readyContainer.setVisible(false);
     this.scoreText.setVisible(false);
+    this.birdSprite.setVisible(false);
+    this.clearPipeSprites();
     this.hudGraphics.clear();
   }
 
@@ -962,5 +918,13 @@ export class FlappyScene extends BaseScene {
 
   private hideReadyOverlay(): void {
     this.readyContainer.setVisible(false);
+  }
+
+  private clearPipeSprites(): void {
+    for (const sprites of this.pipeSprites.values()) {
+      sprites.top.destroy();
+      sprites.bottom.destroy();
+    }
+    this.pipeSprites.clear();
   }
 }
