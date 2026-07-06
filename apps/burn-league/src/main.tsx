@@ -2,7 +2,7 @@
  * Burn League — React Entry Point
  *
  * Drives the standalone on-chain MiniAppBurnLeague contract directly via
- * ctx.services.chain (no OS service proxies). The composable owns all contract
+ * ctx.framework.chain (no OS service proxies). The composable owns all contract
  * reads/writes; this file wires the chain service, the burn/settle/refresh
  * actions, and the 1s season-countdown ticker.
  */
@@ -33,13 +33,14 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    // getAddress omitted: the composable defaults to app.chain.address.get(),
+    // which is the same observable passthrough.
     const burn = useBurnLeague({
       app: ctx.framework,
       t: ctx.t,
-      getAddress: () => ctx.services.chain.address.get(),
     });
 
-    burn.setAddress(ctx.services.chain.address.get() ?? null);
+    burn.setAddress(ctx.framework.chain.address.get() ?? null);
 
     // Tick the season countdown / phase derivation once per second.
     const tickerInterval = setInterval(() => burn.updateNow(), 1000);
@@ -51,19 +52,24 @@ defineMiniApp({
     );
     if (launchAmount) burn.burnAmount.set(launchAmount);
 
-    ctx.framework.actions.register("burn", async (amount: unknown) => {
-      await ctx.services.notify.guard(
-        () => burn.burnTokens(String(amount)),
-        "burnSuccess",
-      );
-    });
+    // successKey delegates the success/error toasts to the framework's own
+    // notify.guardResult wrapping — same semantics as the previous manual
+    // ctx.services.notify.guard (toast on success, toast + swallow on error).
+    ctx.framework.actions.register(
+      "burn",
+      async (amount: unknown) => {
+        await burn.burnTokens(String(amount));
+      },
+      { successKey: "burnSuccess" },
+    );
 
-    ctx.framework.actions.register("settle", async () => {
-      await ctx.services.notify.guard(
-        () => burn.settleSeason(),
-        "settleSuccess",
-      );
-    });
+    ctx.framework.actions.register(
+      "settle",
+      async () => {
+        await burn.settleSeason();
+      },
+      { successKey: "settleSuccess" },
+    );
 
     ctx.framework.actions.register("withdrawCredit", async () => {
       await ctx.services.notify.guard(async () => {

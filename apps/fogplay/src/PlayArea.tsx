@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { ChipArt, CoinArt, ParticleBurst } from "@shared/art";
+import { ChipArt, ParticleBurst } from "@shared/art";
 import { PlayStage } from "@shared/components-react/v2";
 import ThreeDCoin from "./components/ThreeDCoin";
+import { BET_PRESETS } from "./composables/useCoinFlip";
 import coinHeadsUrl from "./static/coin_heads.png";
 import coinTailsUrl from "./static/coin_tails.png";
 import holoPedestalUrl from "./static/holo_pedestal.webp";
@@ -15,14 +16,15 @@ interface P {
   dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 interface GameHistory {
-  id: string;
+  id?: string;
+  betId?: string;
   result?: string;
   choice?: string;
-  amount?: string;
+  amount?: string | number;
+  won?: boolean;
   [k: string]: unknown;
 }
 
-const BET_PRESETS = ["0.1", "0.5", "1", "5"];
 type CoinSide = "heads" | "tails";
 const SIDE_ASSETS: Record<CoinSide, string> = {
   heads: coinHeadsUrl,
@@ -48,7 +50,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const losses = num("losses");
   const totalGames = num("totalGames");
   const totalWon = str("formattedTotalWon", "0");
-  const betAmount = str("betAmount", "0.1");
+  const betAmount = str("betAmount", "1");
   const choice = asSide(str("choice", "heads"));
   const isFlipping = bool("isFlipping");
   const revealing = bool("revealing");
@@ -99,13 +101,20 @@ export default function PlayArea({ t, state, dispatch }: P) {
         ? t("youWon")
         : t("youLost")
       : t("title");
+  // A stalled reveal is the highest-stakes state in the app (the wager is
+  // escrowed on-chain) — surface it in the scene status pill, not just the drawer.
+  const revealStalled = revealFailed && !coinAnimating && !showResult;
+  const firstRun = totalGames === 0 && !showResult && !coinAnimating && !revealStalled && !validationError;
   const statusText = coinAnimating
     ? revealing
       ? t("betPlacedRevealing")
       : t("committing")
     : showResult
       ? displayOutcome || (result === "won" ? t("youWon") : t("youLost"))
-      : validationError || `${t("betHeader")} ${betAmount} GAS`;
+      : revealStalled
+        ? t("revealStalled")
+        : validationError ||
+          (firstRun ? t("firstRoundPrompt") : `${t("betHeader")} ${betAmount} ${t("tokenGas")}`);
 
   const scene = (
     <div
@@ -174,15 +183,28 @@ export default function PlayArea({ t, state, dispatch }: P) {
       </div>
 
       {showResult && result === "won" && <ParticleBurst coins count={10} />}
-      <p className="fogplay-scene__status" aria-live="polite">{statusText}</p>
+      <p
+        className="fogplay-scene__status"
+        aria-live="polite"
+        data-tone={revealStalled ? "alert" : undefined}
+      >
+        {statusText}
+        {firstRun && <span className="fogplay-scene__status-sub">{t("oddsChip")}</span>}
+      </p>
     </div>
   );
 
   const controls = (
     <div className="fogplay-controls">
       <div className="fogplay-controls__header">
-        <span>{t("wager")}</span>
-        <strong>{payoutPreview} GAS</strong>
+        <span className="fogplay-controls__header-cell">
+          <span>{t("wager")}</span>
+          <b>{betAmount} {t("tokenGas")}</b>
+        </span>
+        <span className="fogplay-controls__header-cell fogplay-controls__header-cell--payout">
+          <span>{t("payoutPreviewLabel")}</span>
+          <strong>{payoutPreview} {t("tokenGas")}</strong>
+        </span>
       </div>
       <div className="fogplay-controls__bets">
         {BET_PRESETS.map((p) => (
@@ -200,7 +222,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             aria-pressed={betAmount === p}
           >
             <ChipArt label={p} size={46} selected={betAmount === p} />
-            <span>{p} GAS</span>
+            <span>{t("tokenGas")}</span>
           </button>
         ))}
       </div>
@@ -221,7 +243,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
               <span className="mx2-badge" data-tone="accent">
                 <span className="mx2-badge__dot" /> {wins}W / {losses}L
               </span>
-              {hasCredit && <span className="mx2-badge">{formattedCredit} GAS</span>}
+              {hasCredit && <span className="mx2-badge">{formattedCredit}</span>}
             </>
           ),
         }}
@@ -233,7 +255,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
         }
         score={[
           { label: t("choiceHeader"), value: t(choice), accent: true },
-          { label: t("wager"), value: `${betAmount} GAS` },
+          { label: t("wager"), value: `${betAmount} ${t("tokenGas")}` },
           { label: t("totalGames"), value: String(totalGames) },
           { label: t("totalWon"), value: totalWon },
         ]}
@@ -263,41 +285,48 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 ]
               : []),
             ...(showResult
-              ? [{ label: t("title"), onClick: () => void dispatch("resetGame"), hint: "Reset" }]
+              ? [{ label: t("playAgain"), onClick: () => void dispatch("resetGame"), hint: t("playAgain") }]
               : []),
           ],
         }}
-        drawerToggleLabel={t("totalGames")}
+        drawerToggleLabel={t("gameHistory")}
         drawer={{
-          title: t("totalGames"),
+          title: t("gameHistory"),
           children: (
             <>
-              <h4>{t("totalGames")}</h4>
+              <h4>{t("gameHistory")}</h4>
               {gameHistory.length > 0 ? (
                 <ul className="mx2-history">
                   {gameHistory.slice(0, 8).map((g) => {
                     const historySide = asSide(String(g.choice ?? "heads"));
+                    // History rows arrive either from the composable (won:
+                    // boolean, betId) or test fixtures (result: string, id) —
+                    // normalize both shapes to one outcome tone + label.
+                    const won = g.result === "won" || g.won === true;
+                    const lost = g.result === "lost" || g.won === false;
                     return (
                       <li
-                        key={g.id}
+                        key={String(g.id ?? g.betId ?? "")}
                         className="mx2-history__item"
-                        data-outcome={g.result === "won" ? "won" : g.result === "lost" ? undefined : undefined}
+                        data-outcome={won ? "won" : lost ? "lost" : undefined}
                       >
                         <span className="mx2-history__face">{t(historySide)}</span>
                         <span className="mx2-history__stake">{g.amount}</span>
-                        <span className="mx2-history__result">{g.result}</span>
+                        <span className="mx2-history__result">
+                          {won ? t("youWon") : lost ? t("youLost") : ""}
+                        </span>
                       </li>
                     );
                   })}
                 </ul>
               ) : (
-                <p>--</p>
+                <p>{t("noHistory")}</p>
               )}
               <h4>{t("commitRevealTimeline")}</h4>
               <p>{t("timelineCommit")}</p>
               <p>{t("timelineReveal") || t("timelineResultReady")}</p>
               <p>
-                {t("wagerRange")}: {formattedMaxPayable} GAS
+                {t("wagerRange")}: {formattedMaxPayable}
               </p>
               {revealFailed && <p className="fogplay-controls__error">{t("timelineNeedsRetry")}</p>}
             </>
@@ -309,7 +338,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <div className="fogplay-win-overlay__card mx2-rise-in">
             <ParticleBurst coins count={14} />
             <img className="fogplay-win-overlay__coin" src={coinHeadsUrl} alt="" draggable={false} />
-            <CoinArt size={48} variant="gas" className="mx2-float" />
             <h3>{t("youWon")}</h3>
             <p className="fogplay-win-overlay__amount">{winAmount}</p>
             <button
@@ -317,7 +345,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
               className="mx2-btn mx2-btn--primary"
               onClick={() => void dispatch("dismissOverlay")}
             >
-              {t("title")}
+              {t("overlayTapContinue")}
             </button>
           </div>
         </div>

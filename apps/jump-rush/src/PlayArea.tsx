@@ -247,18 +247,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         } else {
           setComboCount(0);
         }
-
-        // Auto-submit if target reached
-        if (newIdx >= targetJumps) {
-          // Will be handled by submit logic
-        }
       } else {
         // Missed!
         setMissed(true);
         setComboCount(0);
       }
     }, JUMP_DURATION_MS);
-  }, [nextPlatform, currentPlatformIdx, platforms, dispatch, targetJumps, startJumpPreview]);
+  }, [nextPlatform, currentPlatformIdx, platforms, dispatch, startJumpPreview]);
 
   // Global mouse/touch listeners for charge
   const handlePointerDown = useCallback(() => {
@@ -433,9 +428,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="jr-lobby-preview__goal">
         <span>{t("targetJumps", { count: rule.targetJumps })}</span>
         <strong>{t("winAmount", { amount: gasDisplay(rule.rewardFixed8) })}</strong>
-      </div>
-      <div className="jr-lobby-preview__meter">
-        <span />
       </div>
     </div>
   );

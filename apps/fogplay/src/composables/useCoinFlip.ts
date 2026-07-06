@@ -29,10 +29,11 @@
  *
  * TWO-STEP UX: a play is no longer instant. placeBet() commits, surfaces a clear
  * "Bet placed — revealing on the next block…" pending state, waits one block, then
- * settles and shows the real result. The pending betId is persisted in component
- * state (pendingBetId observable) so a reload can resume, and settle() is exposed
- * via revealResult() as a safe, idempotent retry. A win/loss is NEVER claimed
- * before the Settled event is read.
+ * settles and shows the real result. The pending bet {betId, choice, amount} is
+ * persisted via app.state.persisted (localStorage) so a reload mid-reveal resumes
+ * with the manual "Reveal result" path, and settle() is exposed via revealResult()
+ * as a safe, idempotent retry. A win/loss is NEVER claimed before the Settled
+ * event is read.
  *
  * Contract interaction model (verified against MiniAppCoinFlipV2 ABI):
  *
@@ -207,10 +208,12 @@ export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
   const validationError = createObservable<string | null>(null);
 
   // -- Pending bet (committed, awaiting reveal) -------------------------------
-  // Persisted so a reload can resume the settle and a failed settle can be
-  // retried via revealResult(). pendingBet is set the moment commit confirms and
-  // cleared once the Settled outcome is read.
-  const pendingBet = createObservable<PendingBet | null>(null);
+  // Persisted (app.state.persisted → localStorage under the app's namespace) so
+  // a reload can resume the settle and a failed settle can be retried via
+  // revealResult(). pendingBet is set the moment commit confirms and cleared
+  // once the Settled outcome is read; loadAll() surfaces a restored pending bet
+  // as a stalled reveal so the manual "Reveal result" path is visible again.
+  const pendingBet = app.state.persisted<PendingBet | null>("pendingBet", null);
   const hasPendingBet = createDerived(() => pendingBet.get() !== null, [pendingBet]);
   /** True when a committed bet failed to settle and needs a manual retry. */
   const revealFailed = createObservable(false);
@@ -465,12 +468,17 @@ export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
 
   /**
    * Load all data (player stats, game history, bankroll + prepaid credit).
-   * Called by defineMiniApp on mount and when the wallet connects. Also resumes
-   * a settle for any bet that was committed but never revealed (e.g. a reload
-   * mid-flow) — kicked off without blocking the load.
+   * Called by defineMiniApp on mount and when the wallet connects. Also checks
+   * for a persisted committed-but-unrevealed bet (e.g. a reload mid-reveal) and
+   * surfaces it as a stalled reveal so the manual "Reveal result" retry is
+   * visible — settle stays user-triggered (permissionless + idempotent), so no
+   * transaction is auto-fired here.
    */
   const loadAll = async () => {
     setAddress(app.chain.address.get() ?? null);
+    if (pendingBet.get() !== null && !isFlipping.get() && !revealing.get()) {
+      revealFailed.set(true);
+    }
     await Promise.all([loadStats(), loadHistory(), loadBankrollAndCredit()]);
   };
 

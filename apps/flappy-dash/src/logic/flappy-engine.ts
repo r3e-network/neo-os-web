@@ -29,7 +29,7 @@ const BIRD_START_Y = CANVAS_HEIGHT / 2 - BIRD_HEIGHT / 2;
 
 /** Pipe geometry. */
 export const PIPE_WIDTH = 52;
-const PIPE_GAP = 140; // vertical gap between top and bottom pipe
+export const PIPE_GAP = 140; // vertical gap between top and bottom pipe
 const PIPE_SPEED = 2.5; // px per frame (scrolls left)
 const PIPE_SPAWN_INTERVAL = 100; // frames between pipes
 const MIN_PIPE_TOP = 60; // min top-edge of the gap from canvas top

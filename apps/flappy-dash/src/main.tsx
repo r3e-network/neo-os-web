@@ -13,17 +13,9 @@ import {
   gasDisplay,
 } from "./logic/game-rules";
 import {
-  createLocalStorageRewardGameStorage,
   eventHashMatches as addrEq,
-  expireRewardGame,
-  finalizeRewardGame,
   mapField,
   normalizedHash as normHash,
-  openRewardGameSession,
-  recordRewardGameOp,
-  refreshRewardGameBalances,
-  startRewardGame,
-  withdrawRewardCredit,
   type RewardGameConfig,
   type RewardGameSession,
 } from "@shared/gamefi";
@@ -51,8 +43,6 @@ const rewardGameConfig: RewardGameConfig = {
     target: rule.targetPipes,
   })),
 };
-
-const opStorage = createLocalStorageRewardGameStorage<TeeOp>(OPS_STORAGE_PREFIX);
 
 function asNumber(value: unknown): number {
   const n = Number(parseBigInt(value));
@@ -82,6 +72,17 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    // Framework reward-game surface: owns session open/start/finalize/expire/
+    // withdraw, balances, and the localStorage op-log (same key prefix as the
+    // previous hand-wired store, so in-flight op logs survive the migration).
+    const reward = ctx.framework.game.reward<TeeOp>(rewardGameConfig, {
+      storagePrefix: OPS_STORAGE_PREFIX,
+    });
+    // The wrapper methods delegate verbatim to the @shared/gamefi
+    // startRewardGame / finalizeRewardGame orchestration; keep the canonical
+    // SDK verbs at the entry/settlement call sites.
+    const { start: startRewardGame, finalize: finalizeRewardGame } = reward;
+
     const credit = createObservable(0);
     const poolFree = createObservable(0);
     const activeGameId = createObservable("0");
@@ -108,18 +109,16 @@ defineMiniApp({
     // deterministic session start, so nothing here needs durable storage).
     let session: RewardGameSession | null = null;
 
+    // Little-endian script hash used ONLY for event-hash comparisons in the
+    // leaderboard rebuild — contract args take the address via arg.hash160.
     const playerScriptHash = (): string => {
-      const player = ctx.services.chain.address.get();
+      const player = ctx.framework.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
     const refreshBalances = async (): Promise<void> => {
       try {
-        const balances = await refreshRewardGameBalances(
-          rewardGameConfig,
-          ctx.services.chain,
-          playerScriptHash(),
-        );
+        const balances = await reward.balances();
         poolFree.set(balances.poolFreeGas);
         credit.set(balances.creditGas);
       } catch {
@@ -128,11 +127,11 @@ defineMiniApp({
     };
 
     const refreshStats = async (): Promise<void> => {
-      const playerHash = playerScriptHash();
-      if (!playerHash) return;
+      const player = ctx.framework.chain.address.get();
+      if (!player) return;
       try {
         const stats = await ctx.framework.chain.readRaw("statsOf", [
-          ctx.framework.chain.arg.hash160(playerHash),
+          ctx.framework.chain.arg.hash160(player),
         ]);
         mySolves.set(asNumber(mapField(stats, "solved")));
         myTotalWon.set(fromFixed8(parseBigInt(mapField(stats, "totalWon"))));
@@ -211,12 +210,7 @@ defineMiniApp({
       isDealing.set(true);
       lastStatus.set(ctx.t("statusSealing"));
       try {
-        const started = await openRewardGameSession(
-          rewardGameConfig,
-          ctx.services.chain,
-          gameId,
-          difficulty,
-        );
+        const started = await reward.openSession(gameId, difficulty);
         session = started;
         seed.set(String(started.view.seed ?? ""));
         commitment.set(started.commitment);
@@ -243,12 +237,7 @@ defineMiniApp({
     /** Reattach to an active game after a reload: same identity, same seed. */
     const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
       try {
-        const started = await openRewardGameSession(
-          rewardGameConfig,
-          ctx.services.chain,
-          gameId,
-          difficulty,
-        );
+        const started = await reward.openSession(gameId, difficulty);
         if (commitment.get() && started.commitment !== commitment.get()) {
           throw new Error(ctx.t("statusFailed"));
         }
@@ -262,7 +251,7 @@ defineMiniApp({
 
     const sendOp = async (op: TeeOp): Promise<void> => {
       if (!session) throw new Error(ctx.t("statusFailed"));
-      await recordRewardGameOp(session, opStorage, op);
+      await reward.recordOp(session, op);
     };
 
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
@@ -272,12 +261,7 @@ defineMiniApp({
       isStarting.set(true);
       lastStatus.set(ctx.t("statusStarting"));
       try {
-        const started = await startRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          difficulty,
-          opStorage,
-        );
+        const started = await startRewardGame(difficulty);
         const gameId = started.gameId;
         activeGameId.set(gameId);
         gameDifficulty.set(difficulty);
@@ -336,12 +320,7 @@ defineMiniApp({
         if (!session) throw new Error(ctx.t("statusFailed"));
         // The pipes score is re-derived by the kernel from the sealed flap op-log
         // (engine.replay); the client no longer signs a state hash.
-        const finalized = await finalizeRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          session,
-          opStorage,
-        );
+        const finalized = await finalizeRewardGame(session);
         const settled = finalized.settlement;
         lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
         lastElapsedMs.set(settled.elapsedMs);
@@ -373,7 +352,7 @@ defineMiniApp({
       const gameId = activeGameId.get();
       if (gameId === "0") return;
       try {
-        await expireRewardGame(rewardGameConfig, ctx.services.chain, gameId, opStorage);
+        await reward.expire(gameId);
         gameStatus.set("expired");
         activeGameId.set("0");
         session = null;
@@ -388,8 +367,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawWinnings", async () => {
-      const playerHash = playerScriptHash();
-      if (!playerHash) {
+      if (!ctx.framework.chain.address.get()) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
         return;
       }
@@ -398,11 +376,7 @@ defineMiniApp({
         return;
       }
       await ctx.services.notify.guard(async () => {
-        await withdrawRewardCredit(
-          rewardGameConfig,
-          ctx.services.chain,
-          ctx.framework.amount.gasToFixed8(credit.get()),
-        );
+        await reward.withdrawCredit(ctx.framework.amount.gasToFixed8(credit.get()));
         await refreshBalances();
       }, "creditWithdrawn");
     });
@@ -437,13 +411,13 @@ defineMiniApp({
       },
       loadData: async () => {
         await refreshBalances();
-        const playerHash = playerScriptHash();
-        if (playerHash) {
+        const player = ctx.framework.chain.address.get();
+        if (player) {
           try {
             const active = String(
               parseBigInt(
                 await ctx.framework.chain.readRaw("activeGameOf", [
-                  ctx.framework.chain.arg.hash160(playerHash),
+                  ctx.framework.chain.arg.hash160(player),
                 ]),
               ) ?? "0",
             );

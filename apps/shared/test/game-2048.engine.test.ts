@@ -13,12 +13,13 @@ import {
 import {
   applyStep,
   buildRun,
+  forgetRun,
   persistRun,
   restoreRun,
   startRun,
   trimLastMove,
 } from "../../game-2048/src/logic/run-store";
-import type { LiveRun } from "../../game-2048/src/logic/run-store";
+import type { LiveRun, RunStorage } from "../../game-2048/src/logic/run-store";
 
 /**
  * The spawn stream lives in the Morpheus enclave (see the worker suite in
@@ -140,22 +141,43 @@ describe("2048 run store (TEE-confirmed fold)", () => {
     expect(boardHex(trimmed.board)).toBe(boardHex((reference as LiveRun).board));
   });
 
+  // Mirrors the framework's app.storage.local contract (JSON round-trip KV),
+  // which is what main.tsx injects in production.
+  function memoryRunStorage(): RunStorage & { keys(): string[] } {
+    const map = new Map<string, unknown>();
+    return {
+      get<T>(key: string, fallback: T | null = null): T | null {
+        return map.has(key) ? (JSON.parse(String(map.get(key))) as T) : fallback;
+      },
+      set(key: string, value: unknown): void {
+        map.set(key, JSON.stringify(value));
+      },
+      delete(key: string): void {
+        map.delete(key);
+      },
+      keys(): string[] {
+        return [...map.keys()];
+      },
+    };
+  }
+
   it("restores a persisted run only when the history folds cleanly", () => {
+    const storage = memoryRunStorage();
     let run = startRun(INIT) as LiveRun;
     run = play(run, MOVE_LEFT, 15, 1);
-    persistRun("9", run);
-    const restored = restoreRun("9", INIT) as LiveRun;
+    persistRun(storage, "9", run);
+    expect(storage.keys()).toEqual(["run:9"]);
+    const restored = restoreRun(storage, "9", INIT) as LiveRun;
     expect(restored.moves).toEqual([MOVE_LEFT]);
     expect(boardHex(restored.board)).toBe(boardHex(run.board));
     // A different initial board (different game) discards the stored history.
-    const other = restoreRun("9", [2, ...INIT.slice(1)]) as LiveRun;
+    const other = restoreRun(storage, "9", [2, ...INIT.slice(1)]) as LiveRun;
     expect(other.moves).toEqual([]);
     // Corrupted spawn history falls back to a fresh run.
-    window.localStorage.setItem(
-      "miniapp-game-2048:run:9",
-      JSON.stringify({ initBoard: INIT, moves: [3], spawns: [{ pos: 0, exp: 1 }] }),
-    );
-    expect((restoreRun("9", INIT) as LiveRun).moves).toEqual([]);
-    window.localStorage.removeItem("miniapp-game-2048:run:9");
+    storage.set("run:9", { initBoard: INIT, moves: [3], spawns: [{ pos: 0, exp: 1 }] });
+    expect((restoreRun(storage, "9", INIT) as LiveRun).moves).toEqual([]);
+    // Settling or expiring a game clears its persisted log.
+    forgetRun(storage, "9");
+    expect(storage.keys()).toEqual([]);
   });
 });

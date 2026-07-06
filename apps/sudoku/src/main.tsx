@@ -108,7 +108,7 @@ defineMiniApp({
     let session: RewardGameSession | null = null;
 
     const playerScriptHash = (): string => {
-      const player = ctx.services.chain.address.get();
+      const player = ctx.framework.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
@@ -425,6 +425,11 @@ defineMiniApp({
       }
     });
 
+    // Framework operation wrapper: same semantics as the old notify.guard —
+    // success toast only after a real withdrawal, error toast + swallow on
+    // failure — while the precondition early-returns stay clear of the toast.
+    const withdrawOp = ctx.framework.operations.create("withdrawWinnings");
+
     ctx.framework.actions.register("withdrawWinnings", async () => {
       const playerHash = playerScriptHash();
       if (!playerHash) {
@@ -435,14 +440,14 @@ defineMiniApp({
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await withdrawOp.run(async () => {
         await withdrawRewardCredit(
           rewardGameConfig,
           ctx.services.chain,
           ctx.framework.amount.gasToFixed8(credit.get()),
         );
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {

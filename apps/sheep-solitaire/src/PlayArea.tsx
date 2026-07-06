@@ -77,6 +77,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [pickedDifficulty, setPickedDifficulty] = useState(0);
   const [undoArmed, setUndoArmed] = useState(false);
+  const undoArmTimer = useRef<number | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [matchedSlots, setMatchedSlots] = useState<number[]>([]);
   // Immediate local pick cue, released on a timer so a card never sticks in its
@@ -118,6 +119,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   useEffect(() => {
     setUndoArmed(false);
   }, [gameStatus, activeGameId]);
+
+  // Auto-disarm the undo confirm after 4s so a stale armed state can't confirm
+  // a reward penalty minutes later by accident (mirrors the pickPreview timer).
+  useEffect(() => {
+    if (undoArmTimer.current !== null) {
+      window.clearTimeout(undoArmTimer.current);
+      undoArmTimer.current = null;
+    }
+    if (!undoArmed) return undefined;
+    undoArmTimer.current = window.setTimeout(() => {
+      setUndoArmed(false);
+      undoArmTimer.current = null;
+    }, 4000);
+    return () => {
+      if (undoArmTimer.current !== null) {
+        window.clearTimeout(undoArmTimer.current);
+        undoArmTimer.current = null;
+      }
+    };
+  }, [undoArmed]);
 
   // Trigger match animation when matching happens
   useEffect(() => {
@@ -554,7 +575,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const scene = (
     <div className="sheep-scene" data-state={sceneState}>
       <span className="sheep-scene__felt" aria-hidden="true" />
-      <img className="sheep-scene__banner" src="./banner.webp" alt="" draggable={false} />
       <img className="sheep-scene__mascot" src={SHEEP_ART.mascot} alt="" draggable={false} />
       {showingDealing || (gameStatus === "dealt" && pileCards.length === 0)
         ? dealingStage
@@ -598,34 +618,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               : t("statusPoolLow"),
           };
 
+  // Undo / Shuffle / Remove-3 live only in the in-scene .sheep-tools toolbar
+  // next to the slots they act on — no duplicate copies in the action rail.
   const secondaryActions = [
-    ...(gameStatus === "dealt" && !submitWindowClosed && !isGameOver
-      ? [
-          {
-            label: undoArmed
-              ? t("undoConfirm", { pct: rewardPctAfterUndos(undosUsed + 1) })
-              : t("undoAction", { left: undosLeft }),
-            onClick: () => void confirmUndo(),
-            disabled: busy || undosLeft <= 0 || slotCards.length === 0,
-            icon: <Undo2 size={16} aria-hidden="true" />,
-            hint: t("undoHint"),
-          },
-          {
-            label: t("shuffleAction", { left: shuffleLeft }),
-            onClick: () => void handleShuffle(),
-            disabled: busy || shuffleLeft <= 0 || slotCards.length === 0,
-            icon: <Shuffle size={16} aria-hidden="true" />,
-            hint: t("shuffleHint"),
-          },
-          {
-            label: t("remove3Action", { left: remove3Left }),
-            onClick: () => void handleRemove3(),
-            disabled: busy || remove3Left <= 0 || slotCards.length === 0,
-            icon: <Trash2 size={16} aria-hidden="true" />,
-            hint: t("remove3Hint"),
-          },
-        ]
-      : []),
     ...(timeUp || isGameOver || (gameStatus === "committed" && !isDealing)
       ? [
           {

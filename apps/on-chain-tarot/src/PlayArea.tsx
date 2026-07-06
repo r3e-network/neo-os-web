@@ -119,6 +119,9 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
       />
       <div className="tarot-scene__table">
         <div className="tarot-scene__deck-zone">
+          <span className="tarot-scene__deck-eyebrow" aria-hidden="true">
+            {t("neoTarot")}
+          </span>
           {/* The deck / dealing source */}
           <div className="tarot-scene__deck" aria-hidden="true">
             {[0, 1, 2].map((cardIndex) => (
@@ -134,7 +137,9 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
           </div>
           <div className="tarot-scene__slip" aria-live="polite">
             <span>{t("questionPreviewLabel")}</span>
-            <strong>{questionText || t("questionPreviewFallback")}</strong>
+            <strong data-empty={!questionText || undefined}>
+              {questionText || t("questionPreviewFallback")}
+            </strong>
           </div>
         </div>
 
@@ -284,9 +289,14 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
               <span className="mx2-badge" data-tone="accent">
                 <span className="mx2-badge__dot" /> {t("tarotFee")}
               </span>
-              {oracleReady && (
-                <span className="mx2-badge">{t("oraclePendingShort")}</span>
-              )}
+              {oracleReady &&
+                (allFlipped ? (
+                  <span className="mx2-badge" data-tone="accent">
+                    {t("oracleVerifiedShort")}
+                  </span>
+                ) : (
+                  <span className="mx2-badge">{t("oraclePendingShort")}</span>
+                ))}
             </>
           ),
         }}
@@ -389,6 +399,7 @@ export default function PlayArea({ t, state, dispatch }: LocalPlayAreaProps) {
                   <button
                     type="button"
                     className="mx2-btn mx2-btn--ghost"
+                    disabled={isDealing}
                     onClick={() => void dispatch("withdrawCredit")}
                   >
                     {t("withdrawCredit")}

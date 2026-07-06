@@ -1,9 +1,10 @@
 /**
  * GasBox — React Entry Point
  *
- * Drives the standalone MiniAppGasBox contract directly via ctx.services.chain.
- * Prizes are drawn and paid ON-CHAIN in the pull tx (no client-side simulation,
- * no oracle).
+ * Drives the standalone MiniAppGasBox contract via the framework chain layer
+ * (ctx.framework.chain), with the shared ChainService retained only for
+ * prepayAndInvoke and event-log recovery (see useGasBox). Prizes are drawn and
+ * paid ON-CHAIN in the pull tx (no client-side simulation, no oracle).
  */
 
 import { defineMiniApp, createObservable, createDerived } from "@shared/react/defineMiniApp";
@@ -27,21 +28,22 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    gasbox.setAddress(ctx.services.chain.address.get() ?? null);
+    gasbox.setAddress(ctx.framework.chain.address.get() ?? null);
 
     // Per-user pull counter. Pulls settle per-tx on chain (no per-player counter
     // on the contract), so this is a durable client-side tally keyed by wallet
-    // address via os.storage, incremented only after a confirmed Settled event.
+    // address via the framework's remote storage (an unprefixed passthrough over
+    // os.storage), incremented only after a confirmed Settled event.
     const userPulls = createObservable(0);
 
     const userPullsStorageKey = (addr: string | null): string | null =>
       addr ? `gasbox:userPulls:${addr}` : null;
 
     const persistUserPulls = async (value: number): Promise<void> => {
-      const key = userPullsStorageKey(ctx.services.chain.address.get() ?? null);
+      const key = userPullsStorageKey(ctx.framework.chain.address.get() ?? null);
       if (!key) return;
       try {
-        await ctx.os.storage.set(key, value);
+        await ctx.framework.storage.remote.set(key, value);
       } catch (e) {
         // A failed persist must not break the pull flow; the in-memory tally
         // still reflects the session. Surface for diagnostics only.
@@ -53,13 +55,13 @@ defineMiniApp({
     };
 
     const loadUserPulls = async (): Promise<void> => {
-      const key = userPullsStorageKey(ctx.services.chain.address.get() ?? null);
+      const key = userPullsStorageKey(ctx.framework.chain.address.get() ?? null);
       if (!key) {
         userPulls.set(0);
         return;
       }
       try {
-        const stored = await ctx.os.storage.get(key);
+        const stored = await ctx.framework.storage.remote.get(key);
         const n = Number(stored);
         userPulls.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
       } catch (e) {
@@ -254,7 +256,7 @@ defineMiniApp({
         walletAddress: gasbox.address,
       },
       loadData: async () => {
-        gasbox.setAddress(ctx.services.chain.address.get() ?? null);
+        gasbox.setAddress(ctx.framework.chain.address.get() ?? null);
         await Promise.all([gasbox.loadAll(), loadUserPulls()]);
         applyLaunchSelection();
       },

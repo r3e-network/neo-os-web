@@ -3,6 +3,17 @@
 @use "@shared/components-react/v2/v2" as *;
 
 .gasbox-play-area {
+  // Amber accent family (single source for the machine's gold trim hairlines).
+  --gasbox-amber-16: rgba(217, 119, 6, 0.16);
+  --gasbox-amber-18: rgba(217, 119, 6, 0.18);
+  --gasbox-amber-20: rgba(217, 119, 6, 0.2);
+  --gasbox-amber-22: rgba(217, 119, 6, 0.22);
+  --gasbox-amber-26: rgba(217, 119, 6, 0.26);
+  --gasbox-amber-34: rgba(217, 119, 6, 0.34);
+  // Warm stone neutrals (#44403c base) for quiet card hairlines.
+  --gasbox-line-10: rgba(68, 64, 60, 0.1);
+  --gasbox-line-12: rgba(68, 64, 60, 0.12);
+  --gasbox-line-16: rgba(68, 64, 60, 0.16);
   display: block;
 }
 
@@ -25,7 +36,9 @@
   overflow: hidden;
   padding: clamp(18px, 3vw, 32px);
   isolation: isolate;
-  background: #ffffff;
+  // Flat warm cream keeps the gacha cabinet on a working surface, not a
+  // decorative gradient backdrop (background-clarity governance).
+  background: #fdf8f1;
   border: 1px solid var(--mx2-scene-rim);
 }
 
@@ -57,7 +70,7 @@
 }
 
 .gasbox-scene[data-state="pulling"] .gasbox-scene__machine-art {
-  filter: drop-shadow(0 24px 44px rgba(217, 119, 6, 0.34));
+  filter: drop-shadow(0 24px 44px var(--gasbox-amber-34));
 }
 
 .gasbox-scene__capsule-track {
@@ -146,7 +159,7 @@
   align-items: center;
   gap: 14px;
   padding: 16px;
-  border: 1px solid rgba(217, 119, 6, 0.22);
+  border: 1px solid var(--gasbox-amber-22);
   border-radius: var(--mx2-r);
   background: #ffffff;
   box-shadow: var(--mx2-shadow);
@@ -156,19 +169,19 @@
   display: grid;
   gap: 12px;
   padding: 18px;
-  border: 1px solid rgba(217, 119, 6, 0.2);
+  border: 1px solid var(--gasbox-amber-20);
   border-radius: var(--mx2-r);
   background: #ffffff;
   box-shadow: var(--mx2-shadow);
 }
 
 .gasbox-scene__sync-capsules {
-  min-height: 86px;
+  min-height: 76px;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0;
-  padding: 4px 0 0;
+  padding: 4px 0 0 4px;
 }
 
 .gasbox-scene__sync-capsules img {
@@ -217,7 +230,7 @@
   align-items: center;
   min-height: 30px;
   padding: 6px 10px;
-  border: 1px solid rgba(217, 119, 6, 0.18);
+  border: 1px solid var(--gasbox-amber-18);
   border-radius: var(--mx2-r-pill);
   background: rgba(255, 250, 240, 0.92);
   color: var(--mx2-text-2);
@@ -227,21 +240,29 @@
 
 .gasbox-scene__shelf {
   display: flex;
+  align-items: flex-end;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid rgba(31, 41, 55, 0.1);
-  border-radius: var(--mx2-r);
-  background: #ffffff;
+  width: fit-content;
+  justify-self: center;
+  gap: 0;
+  padding: 8px 18px;
+  border: 1px solid var(--gasbox-amber-16);
+  border-radius: var(--mx2-r-pill);
+  background: rgba(255, 250, 240, 0.8);
   box-shadow: var(--mx2-shadow-sm);
 }
 
 .gasbox-scene__shelf img {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
+  margin-left: -8px;
   filter: drop-shadow(0 8px 12px rgba(127, 84, 26, 0.14));
   transform: translateY(calc(var(--gasbox-shelf-index) * -2px));
+}
+
+.gasbox-scene__shelf img:first-child {
+  margin-left: 0;
 }
 
 .gasbox-scene__result-art {
@@ -287,19 +308,33 @@
   animation: gasbox-result-pop 420ms var(--mx2-ease-snap) both;
 }
 
+// Payoff escalation: the revealed prize reads louder than the idle "Prize focus"
+// card — green kicker matching the win border, slightly larger prize name.
+.gasbox-scene[data-state="result"] .gasbox-scene__result-kicker {
+  color: #15803d;
+}
+
+.gasbox-scene[data-state="result"] .gasbox-scene__result strong {
+  font-size: 23px;
+  letter-spacing: -0.01em;
+}
+
 .gasbox-scene__status {
   position: absolute;
   z-index: 3;
-  left: clamp(16px, 3vw, 30px);
-  right: clamp(16px, 3vw, 30px);
+  left: 50%;
+  right: auto;
   bottom: clamp(14px, 2vw, 20px);
+  transform: translateX(-50%);
+  width: fit-content;
+  max-width: min(88%, 62ch);
   margin: 0;
   min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 8px 14px;
-  border: 1px solid rgba(31, 41, 55, 0.12);
+  border: 1px solid var(--gasbox-line-12);
   border-radius: var(--mx2-r-pill);
   background: #ffffff;
   box-shadow: var(--mx2-shadow-sm);
@@ -334,7 +369,7 @@
   align-items: center;
   gap: 8px;
   background: #ffffff;
-  border: 1px solid rgba(31, 41, 55, 0.16);
+  border: 1px solid var(--gasbox-line-16);
   border-radius: var(--mx2-r-pill);
   padding: 6px 13px 6px 8px;
   font-family: inherit;
@@ -367,10 +402,21 @@
   border-color: var(--mx2-accent);
 }
 
+.gasbox-machine-chip:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.gasbox-machine-chip:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
+}
+
 .gasbox-machine-chip--active {
   background: var(--mx2-accent-soft);
-  border-color: rgba(217, 119, 6, 0.38);
+  border-color: rgba(180, 83, 9, 0.55);
   color: var(--mx2-accent-strong);
+  font-weight: 650;
+  box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.2), var(--mx2-shadow-sm);
 }
 
 .gasbox-machine-chip:disabled {
@@ -383,7 +429,7 @@
   gap: 12px;
   margin-top: 14px;
   padding: 14px;
-  border: 1px solid rgba(31, 41, 55, 0.12);
+  border: 1px solid var(--gasbox-line-12);
   border-radius: var(--mx2-r);
   background: #ffffff;
   box-shadow: var(--mx2-shadow-sm);
@@ -419,7 +465,7 @@
   display: grid;
   gap: 12px;
   padding: 14px;
-  border: 1px solid rgba(31, 41, 55, 0.12);
+  border: 1px solid var(--gasbox-line-12);
   border-radius: var(--mx2-r);
   background: #ffffff;
   box-shadow: var(--mx2-shadow-sm);
@@ -479,13 +525,13 @@
   gap: 10px;
   min-height: 60px;
   padding: 9px;
-  border: 1px solid rgba(31, 41, 55, 0.1);
+  border: 1px solid var(--gasbox-line-10);
   border-radius: var(--mx2-r);
   background: #ffffff;
 }
 
 .gasbox-machine-list__item[data-active="true"] {
-  border-color: rgba(217, 119, 6, 0.34);
+  border-color: var(--gasbox-amber-34);
   background: rgba(255, 250, 240, 0.9);
 }
 
@@ -524,7 +570,7 @@
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border: 1px dashed rgba(217, 119, 6, 0.26);
+  border: 1px dashed var(--gasbox-amber-26);
   border-radius: var(--mx2-r);
   background: rgba(255, 250, 240, 0.72);
 }
@@ -711,6 +757,9 @@
     left: 12px;
     right: 12px;
     bottom: 12px;
+    transform: none;
+    width: auto;
+    max-width: none;
     min-height: 38px;
     display: -webkit-box;
     overflow: hidden;
@@ -732,10 +781,14 @@
     flex-wrap: nowrap;
     width: 100%;
     padding-bottom: 4px;
+    padding-right: 16px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
   }
 
   .gasbox-machine-chip {
     flex: 0 0 auto;
+    scroll-snap-align: start;
   }
 
   .gasbox-play-area .mx2-score {
@@ -774,6 +827,7 @@
   .gasbox-scene__machine-art,
   .gasbox-scene__capsule--rolling,
   .gasbox-scene__capsule--drop,
+  .gasbox-scene__sync-capsules img,
   .gasbox-scene__result {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;

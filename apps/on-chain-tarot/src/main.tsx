@@ -17,15 +17,16 @@ defineMiniApp({
   setup(ctx) {
     const tarot = useTarot({
       app: ctx.framework,
-      cache: ctx.services.cache,
       clipboard: ctx.services.clipboard,
       t: ctx.t,
     });
 
-    tarot.setAddress(ctx.services.chain.address.get() ?? null);
+    tarot.setAddress(ctx.framework.chain.address.get() ?? null);
 
-    ctx.framework.actions.register("draw", async () => {
-      await ctx.services.notify.guard(() => tarot.draw(), "cardsDrawn");
+    // Success/error toasts come from the framework action wrapper (successKey
+    // + automatic error notification) — no hand-rolled notify.guard.
+    ctx.framework.actions.register("draw", () => tarot.draw(), {
+      successKey: "cardsDrawn",
     });
 
     ctx.framework.actions.register("reset", async () => {
@@ -44,16 +45,18 @@ defineMiniApp({
       await tarot.copyReading();
     });
 
+    // Error toasts come from the framework action wrapper. The success toast
+    // stays on ctx.services.notify.success because it is conditional (only
+    // when amount > 0) and parameterized — the framework's successKey path
+    // supports neither, and the framework exposes no notify surface.
     ctx.framework.actions.register("withdrawCredit", async () => {
-      await ctx.services.notify.guard(async () => {
-        const { amount } = await tarot.withdrawCredit();
-        if (amount > 0) {
-          ctx.services.notify.success("creditWithdrawn", {
-            amount: Number(amount.toFixed(4)),
-            tokenGas: ctx.t("tokenGas"),
-          });
-        }
-      });
+      const { amount } = await tarot.withdrawCredit();
+      if (amount > 0) {
+        ctx.services.notify.success("creditWithdrawn", {
+          amount: Number(amount.toFixed(4)),
+          tokenGas: ctx.t("tokenGas"),
+        });
+      }
     });
 
     return {

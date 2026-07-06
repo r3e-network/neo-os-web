@@ -161,11 +161,11 @@ export function PlayArea({ state, actions }: Props) {
     [actions, startActionPreview],
   );
 
-  // Stat bar color
+  // Stat bar color — stays inside the nursery palette (jade / gold / warm red).
   const statColor = (value: number): string => {
-    if (value >= 70) return "#2ecc71";
-    if (value >= 40) return "#f39c12";
-    return "#e74c3c";
+    if (value >= 70) return "#16c784";
+    if (value >= 40) return "#d8a742";
+    return "#dc4b3e";
   };
 
   // Build scene content
@@ -433,15 +433,13 @@ export function PlayArea({ state, actions }: Props) {
 
           {/* Action counter */}
           <div className="pp-counter">
-            {state.actionsUsed} / 40 {t("actionHint")}
+            {t("actionsCounter", { used: state.actionsUsed, max: 40 })}
           </div>
 
-          {/* Status / submit */}
+          {/* Status / claim hint — the PlayStage rail primary owns the claim action */}
           <div className="pp-footer-actions">
             {state.lastStatus === "all-correct" && !state.isSubmitting && (
-              <button className="pp-footer-actions__submit" onClick={actions.submitSolution}>
-                {t("submitAction")}
-              </button>
+              <span className="pp-footer-actions__reached">{t("targetReachedHint")}</span>
             )}
             {state.isSubmitting && <span>{t("statusSubmitting")}</span>}
             {timeLeft <= 0 && state.lastStatus !== "all-correct" && (
@@ -521,16 +519,14 @@ export function PlayArea({ state, actions }: Props) {
 
   // Leaderboard drawer content
   const drawerContent = (
-    <div>
+    <div className="pp-drawer">
       <div className="pp-drawer__head">
         <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
         <p>{t("leaderboardIntro")}</p>
       </div>
       <h4>{t("leaderboardTitle")}</h4>
       {state.leaderboard.length === 0 ? (
-        <p style={{ color: "var(--mx2-text-muted)", fontSize: "0.8rem" }}>
-          {t("leaderboardEmpty")}
-        </p>
+        <p className="pp-drawer__empty">{t("leaderboardEmpty")}</p>
       ) : (
         <ol className="pp-ranks">
           {state.leaderboard.map((entry, i) => (
@@ -559,11 +555,9 @@ export function PlayArea({ state, actions }: Props) {
       </button>
 
       {/* History */}
-      <h4 style={{ marginTop: 16 }}>{t("historyTitle")}</h4>
+      <h4 className="pp-drawer__subhead">{t("historyTitle")}</h4>
       {state.myHistory.length === 0 ? (
-        <p style={{ color: "var(--mx2-text-muted)", fontSize: "0.8rem" }}>
-          {t("historyEmpty")}
-        </p>
+        <p className="pp-drawer__empty">{t("historyEmpty")}</p>
       ) : (
         <ul className="pp-history">
           {state.myHistory.map((h) => (
@@ -594,7 +588,11 @@ export function PlayArea({ state, actions }: Props) {
         className="pp-stage"
         stage={{
           eyebrow: t("appEyebrow"),
-          title: isPlaying ? t("happinessTarget", { happiness: ruleOf(state.gameDifficulty).targetHappiness }) : state.gameStatus === "solved" ? t("statusWonTitle") : t("lobbyTitle"),
+          title: isPlaying
+            ? t("playingTitle", { difficulty: t(`difficulty_${difficultyKey(state.gameDifficulty)}`) })
+            : state.gameStatus === "solved"
+              ? t("statusWonTitle")
+              : t("lobbyTitle"),
           subtitle: t("appSubtitle"),
           badges: (
             <span className="mx2-badge" data-tone="accent">

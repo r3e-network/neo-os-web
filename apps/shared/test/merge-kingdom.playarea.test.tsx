@@ -320,7 +320,7 @@ describe("merge-kingdom playarea", () => {
   });
 
   it("shows the won state with payout after a solved game", () => {
-    const { getByText } = render(
+    const { getAllByText, getByText } = render(
       <PlayArea
         state={state({
           gameStatus: "solved",
@@ -331,7 +331,8 @@ describe("merge-kingdom playarea", () => {
         actions={makeActions()}
       />,
     );
-    expect(getByText("You reached the target tile!")).toBeTruthy();
+    // Rendered in both the stage title and the result card.
+    expect(getAllByText("You reached the target tile!").length).toBeGreaterThanOrEqual(1);
     expect(getByText("Solved! 0.07 GAS credited")).toBeTruthy();
   });
 
@@ -375,6 +376,8 @@ describe("merge-kingdom playarea", () => {
       <PlayArea
         state={state({
           gameStatus: "solved",
+          // credit is a GAS decimal (creditGas from the reward SDK), not fixed8.
+          credit: 0.07,
           lastPayout: 7_000_000,
         })}
         actions={actions}

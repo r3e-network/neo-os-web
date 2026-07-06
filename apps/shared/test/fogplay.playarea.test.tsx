@@ -150,7 +150,7 @@ describe("Fogplay PlayArea (v2)", () => {
 
   it("renders the resource-led coin-flip scene with heads/tails choice", () => { const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />); expect(container.querySelector(".fogplay-scene")).toBeTruthy(); expect(container.querySelector(".fogplay-scene__arena")).toBeTruthy(); expect(container.querySelector(".fogplay-scene__coin")).toBeTruthy(); expect(container.querySelector(".coin-scene")).toBeTruthy(); expect(container.querySelector(".fogplay-scene__pedestal")).toBeTruthy(); expect(container.querySelector(".fogplay-scene__coin-face")).toBeNull(); expect(container.querySelector(".fogplay-scene__backdrop")).toBeNull(); expect(container.querySelectorAll(".fogplay-choice-btn").length).toBe(2); });
   it("dispatches setChoice when selecting heads/tails", () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />); fireEvent.click(container.querySelectorAll(".fogplay-choice-btn")[1]); expect(d).toHaveBeenCalledWith("setChoice", "tails"); });
-  it("dispatches setBetAmount on preset click", () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />); fireEvent.click(container.querySelectorAll(".fogplay-bet-chip")[2]); expect(d).toHaveBeenCalledWith("setBetAmount", "1"); });
+  it("dispatches setBetAmount on preset click", () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />); fireEvent.click(container.querySelectorAll(".fogplay-bet-chip")[2]); expect(d).toHaveBeenCalledWith("setBetAmount", "10"); });
   it("dispatches placeBet on primary action", async () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />); fireEvent.click(container.querySelector(".mx2-btn--primary") as Element); await waitFor(() => expect(d).toHaveBeenCalledWith("placeBet")); });
   it("shows the flipping scene state immediately after the primary action", async () => {
     const d = vi.fn(() => new Promise<void>(() => undefined));
@@ -164,6 +164,28 @@ describe("Fogplay PlayArea (v2)", () => {
   it("dispatches revealResult when bet is pending", async () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state({ hasPendingBet:true, canBet:false })} dispatch={d} />); fireEvent.click(container.querySelector(".mx2-btn--primary") as Element); await waitFor(() => expect(d).toHaveBeenCalledWith("revealResult")); });
   it("shows win overlay when showWinOverlay is true", () => { const { container } = render(<PlayArea t={t} state={state({ showWinOverlay:true, winAmount:"1.5 GAS" })} dispatch={vi.fn()} />); expect(container.querySelector(".fogplay-win-overlay")).toBeTruthy(); expect(container.textContent).toContain("1.5 GAS"); });
   it("shows game history in drawer", () => { const { container } = render(<PlayArea t={t} state={state({ gameHistory: [{ id:"1", choice:"heads", amount:"0.5", result:"won" }] })} dispatch={vi.fn()} />); fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element); expect(container.textContent).toContain("Heads"); });
+  it("tones history rows by outcome for both fixture and composable shapes", () => {
+    const { container } = render(<PlayArea t={t} state={state({ gameHistory: [
+      { id: "1", choice: "heads", amount: "0.5", result: "won" },
+      { betId: "2", choice: "tails", amount: 1, won: false },
+    ] })} dispatch={vi.fn()} />);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const rows = container.querySelectorAll(".mx2-history__item");
+    expect(rows[0].getAttribute("data-outcome")).toBe("won");
+    expect(rows[1].getAttribute("data-outcome")).toBe("lost");
+  });
+  it("surfaces a stalled reveal in the scene status pill with an alert tone", () => {
+    const { container } = render(<PlayArea t={t} state={state({ revealFailed: true, hasPendingBet: true, canBet: false })} dispatch={vi.fn()} />);
+    const pill = container.querySelector(".fogplay-scene__status") as HTMLElement;
+    expect(pill.getAttribute("data-tone")).toBe("alert");
+    expect(pill.textContent).toContain("revealStalled");
+  });
+  it("shows the first-round onboarding prompt for a brand-new player", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const pill = container.querySelector(".fogplay-scene__status") as HTMLElement;
+    expect(pill.textContent).toContain("firstRoundPrompt");
+    expect(container.querySelector(".fogplay-scene__status-sub")).toBeTruthy();
+  });
   it("has reduced-motion", () => {
     const s = readFileSync(path.join(appsRoot(), "fogplay/src/PlayArea.scss"), "utf8");
     expect(s).toMatch(/prefers-reduced-motion/);

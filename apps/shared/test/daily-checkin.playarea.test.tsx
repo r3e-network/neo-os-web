@@ -16,6 +16,8 @@ function t(key: string, params: Record<string, string | number> = {}) {
     checkInNow: "Check In Now",
     checkInReady: "Ready",
     claimRewards: "Claim Rewards",
+    connectPrompt: "Connect to start",
+    connectWallet: "Connect Wallet",
     currentStreak: "Current Streak",
     dayCompleted: "Completed",
     dayPending: "Pending",
@@ -25,6 +27,7 @@ function t(key: string, params: Record<string, string | number> = {}) {
     highestStreak: "Highest Streak",
     milestoneReached: "Milestone reached",
     milestones: "Milestones",
+    nextCheckin: "Next Check-in",
     nextReward: "Next reward",
     notCheckedIn: "Not checked in today",
     recentCheckins: "Recent Check-ins",
@@ -61,14 +64,18 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     checkinHistory: [],
     currentStreak: "0 Days",
     currentStreakRaw: 0,
+    hasLoadedStatus: true,
     highestStreak: "0 Days",
     isCheckingIn: false,
     isClaiming: false,
     isPaused: false,
+    nextUtcMidnight: 0,
     rewardPoolBalance: "0 GAS",
     rewardsUnderfunded: false,
     totalClaimed: "0 GAS",
+    twoWeekRewardLabel: "0.02 GAS",
     unclaimedRewards: "0 GAS",
+    weekRewardLabel: "0.01 GAS",
     ...o,
   };
   return Object.fromEntries(
@@ -106,6 +113,8 @@ describe("daily-checkin PlayArea (v2)", () => {
     expect(container.querySelector(".dci-streak-card__summary")).toBeTruthy();
     expect(container.querySelectorAll(".dci-day-node")).toHaveLength(7);
     expect(container.querySelectorAll(".dci-day-node--complete")).toHaveLength(3);
+    // The reward node advertises the contract-reported milestone payout.
+    expect(container.querySelectorAll(".dci-day-node")[6]?.textContent).toContain("0.01 GAS");
     expect(container.querySelector(".dci-side-panel")).toBeNull();
     expect(container.querySelector(".dci-focus-card")).toBeNull();
     expect(container.querySelector(".mx2-score")).toBeNull();
@@ -120,6 +129,55 @@ describe("daily-checkin PlayArea (v2)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Check In Now/ }));
 
     expect(dispatch).toHaveBeenCalledWith("doCheckIn");
+  });
+
+  it("shows the next check-in countdown once today's check-in is locked", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          canCheckIn: false,
+          hasLoadedStatus: true,
+          nextUtcMidnight: Date.now() + 3_600_000,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const countdown = container.querySelector(".dci-streak-card__countdown");
+    expect(countdown).toBeTruthy();
+    expect(countdown?.textContent).toContain("Next Check-in");
+    expect(countdown?.textContent).toMatch(/\d{2}:\d{2}:\d{2}/);
+    // Zero progress hides the meter so the artwork never shows an empty pill.
+    expect(container.querySelector(".dci-plaza-art__meter")).toBeNull();
+  });
+
+  it("hides the countdown while a check-in is still available", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ canCheckIn: true, nextUtcMidnight: Date.now() + 3_600_000 })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".dci-streak-card__countdown")).toBeNull();
+  });
+
+  it("invites the wallet connection before the first status load", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ hasLoadedStatus: false })} dispatch={dispatch} />,
+    );
+
+    expect(container.querySelector(".dci-streak-card__badge")?.textContent).toContain(
+      "Connect to start",
+    );
+    expect(container.querySelector(".dci-streak-card__countdown")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/ }));
+
+    expect(dispatch).toHaveBeenCalledWith("refreshStatus");
   });
 
   it("uses claim as the primary action only when rewards are claimable", () => {

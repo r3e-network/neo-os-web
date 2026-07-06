@@ -9,7 +9,10 @@ export const manifest: MiniAppManifest = {
   shell: "game",
 
   gamePage: {
-    categoryColor: "#22C55E",
+    // Matches the app's --mx2-brand override (src/PlayArea.scss); the splash
+    // shell injects this as its --n3h-accent inline, so it must be the same
+    // jade the in-game shell renders.
+    categoryColor: "#00af92",
     heroBadgeKey: "networkBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
@@ -23,7 +26,9 @@ export const manifest: MiniAppManifest = {
         titleKey: "fairnessTitle",
         descKey: "fairnessCopy",
         large: true,
-        gradient: "linear-gradient(135deg, #F0FDF4 0%, #BBF7D0 46%, #22C55E 100%)",
+        // Jade ramp built from the app's brand-light/subtle/brand values so the
+        // splash feature card reads in the same green family as the CTA.
+        gradient: "linear-gradient(135deg, #e4f8f2 0%, #bdeadf 46%, #00af92 100%)",
       },
       { titleKey: "difficultyTitle", descKey: "startDescription" },
       { titleKey: "leaderboardTitle", descKey: "leaderboardIntro" },

@@ -340,7 +340,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (isBody) classes.push("snake-cell--body");
     if (isTail) classes.push("snake-cell--tail");
     if (isFood) classes.push("snake-cell--food");
-    if (crashed) classes.push("snake-cell--crashed");
+    // Crash feedback stays on the snake itself — flashing all 400 cells reads
+    // as a full-board strobe rather than a crash site.
+    if (crashed && bodyIndex >= 0) classes.push("snake-cell--crashed");
 
     return (
       <div
@@ -447,8 +449,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <img src={SNAKE_ART.reward} alt="" draggable={false} />
             {t("winAmount", { amount: gasDisplay(rule.rewardFixed8) })}
           </span>
+          {/* Target length lives on the HUD headline + route cards already —
+              three pills keep the ribbon on a single row at both breakpoints. */}
           <span>{t("entryAmount", { amount: gasDisplay(rule.entryFixed8) })}</span>
-          <span>{t("targetRibbon", { target: rule.targetLength })}</span>
           <span>{t("timeAmount", { minutes: Math.round(rule.limitMs / 60000) })}</span>
         </div>
       </section>
@@ -482,7 +485,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           );
         })}
       </div>
-      <p className="snake-lobby__pool">
+      <p
+        className="snake-lobby__pool"
+        data-blocked={walletConnected ? undefined : "true"}
+      >
         {walletConnected
           ? t("poolLine", { pool: poolFree.toFixed(2) })
           : t("walletRequiredStatus")}

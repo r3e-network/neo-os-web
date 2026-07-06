@@ -10,18 +10,9 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, ruleOf, statusOf, evolutionStage, MAX_MOVES } from "./logic/game-rules";
 import {
-  createLocalStorageRewardGameStorage,
   eventHashMatches as addrEq,
-  expireRewardGame,
-  finalizeRewardGame,
   mapField,
   normalizedHash as normHash,
-  openRewardGameSession,
-  recordRewardGameOp,
-  refreshRewardGameBalances,
-  replayRewardGameOps,
-  startRewardGame,
-  withdrawRewardCredit,
   type RewardGameConfig,
   type RewardGameSession,
 } from "@shared/gamefi";
@@ -48,8 +39,6 @@ const rewardGameConfig: RewardGameConfig = {
     target: rule.targetHappiness,
   })),
 };
-
-const opStorage = createLocalStorageRewardGameStorage<TeeOp>(OPS_STORAGE_PREFIX);
 
 interface LeaderEntry {
   player: string;
@@ -118,6 +107,18 @@ defineMiniApp({
 
     let session: RewardGameSession | null = null;
 
+    const app = ctx.framework;
+    // All reward-game plumbing (entry payment, enclave session, op-log storage,
+    // settlement, credit withdrawal) goes through the framework's reward-game
+    // runner; the explicit storagePrefix keeps existing op logs resumable.
+    const rewardGame = app.game.reward<TeeOp>(rewardGameConfig, {
+      storagePrefix: OPS_STORAGE_PREFIX,
+    });
+    // The wrapper methods delegate verbatim to the @shared/gamefi
+    // startRewardGame / finalizeRewardGame orchestration; keep the canonical
+    // SDK verbs at the entry/settlement call sites.
+    const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;
+
     const publishView = (view: { happiness: number; hunger: number; energy: number; stage?: number }): void => {
       const happy = clampStat(view.happiness);
       petHappiness.set(happy);
@@ -128,17 +129,13 @@ defineMiniApp({
     };
 
     const playerScriptHash = (): string => {
-      const player = ctx.services.chain.address.get();
+      const player = app.chain.address.get();
       return player ? addressToScriptHash(player) : "";
     };
 
     const refreshBalances = async (): Promise<void> => {
       try {
-        const balances = await refreshRewardGameBalances(
-          rewardGameConfig,
-          ctx.services.chain,
-          playerScriptHash(),
-        );
+        const balances = await rewardGame.balances(playerScriptHash());
         poolFree.set(balances.poolFreeGas);
         credit.set(balances.creditGas);
       } catch {
@@ -217,7 +214,7 @@ defineMiniApp({
       isDealing.set(true);
       lastStatus.set("shuffling");
       try {
-        session = await openRewardGameSession(rewardGameConfig, ctx.services.chain, gameId, difficulty);
+        session = await rewardGame.openSession(gameId, difficulty);
         commitment.set(session.commitment);
         publishView({
           happiness: Number(session.view.happiness ?? 50),
@@ -256,7 +253,7 @@ defineMiniApp({
 
     const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
       try {
-        const restored = await openRewardGameSession(rewardGameConfig, ctx.services.chain, gameId, difficulty);
+        const restored = await rewardGame.openSession(gameId, difficulty);
         if (commitment.get() && restored.commitment !== commitment.get()) {
           throw new Error(ctx.t("statusFailed"));
         }
@@ -268,10 +265,10 @@ defineMiniApp({
           energy: Number(restored.view.energy ?? 50),
           stage: Number(restored.view.stage ?? 0),
         });
-        const ops = opStorage.load(gameId);
+        const ops = rewardGame.storage.load(gameId);
         actionsUsed.set(ops.length);
         actionHistory.set(ops.map((op) => op.type));
-        await replayRewardGameOps(restored, ops, (step) => {
+        await rewardGame.replayOps(restored, ops, (step) => {
           applyStepView(step.view);
         });
       } catch {
@@ -285,12 +282,7 @@ defineMiniApp({
       isStarting.set(true);
       lastStatus.set("starting");
       try {
-        const started = await startRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          difficulty,
-          opStorage,
-        );
+        const started = await startRewardGame(difficulty);
         const gameId = started.gameId;
         activeGameId.set(gameId);
         gameDifficulty.set(difficulty);
@@ -323,7 +315,7 @@ defineMiniApp({
       if (!op || !op.type || !gameId || !session || gameStatus.get() !== "playing") return;
       if (actionsUsed.get() >= MAX_MOVES) return;
       try {
-        const { step, opLog } = await recordRewardGameOp(session, opStorage, op);
+        const { step, opLog } = await rewardGame.recordOp(session, op);
         applyStepView(step.view);
         actionsUsed.set(opLog.length);
         actionHistory.set([...actionHistory.get(), op.type]);
@@ -346,12 +338,7 @@ defineMiniApp({
         if (!session) throw new Error(ctx.t("statusFailed"));
         // The peak happiness is re-derived by the kernel from the sealed care
         // op-log (engine.replay); the client no longer signs a happiness value.
-        const finalized = await finalizeRewardGame(
-          rewardGameConfig,
-          ctx.services.chain,
-          session,
-          opStorage,
-        );
+        const finalized = await finalizeRewardGame(session);
         const settled = finalized.settlement;
         let achieved = happinessAchieved.get();
         let undos = undosUsed.get();
@@ -391,7 +378,7 @@ defineMiniApp({
       const gameId = activeGameId.get();
       if (!gameId) return;
       try {
-        await expireRewardGame(rewardGameConfig, ctx.services.chain, gameId, opStorage);
+        await rewardGame.expire(gameId);
         gameStatus.set("expired");
         session = null;
         activeGameId.set(null);
@@ -403,19 +390,20 @@ defineMiniApp({
       }
     });
 
+    // Framework operation wrapper: same semantics as the old notify.guard —
+    // success toast only after a real withdrawal, error toast + swallow on
+    // failure — while the no-credit early return stays silent.
+    const withdrawOp = app.operations.create("withdrawWinnings");
+
     ctx.framework.actions.register("withdrawWinnings", async () => {
       if (credit.get() <= 0) {
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
-        await withdrawRewardCredit(
-          rewardGameConfig,
-          ctx.services.chain,
-          ctx.framework.amount.gasToFixed8(credit.get()),
-        );
+      await withdrawOp.run(async () => {
+        await rewardGame.withdrawCredit(app.amount.gasToFixed8(credit.get()));
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {

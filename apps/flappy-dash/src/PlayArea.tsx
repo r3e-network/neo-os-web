@@ -12,6 +12,7 @@ import {
   BIRD_HEIGHT,
   BIRD_X,
   PIPE_WIDTH,
+  PIPE_GAP,
   createGameState,
   updateFrame,
   flap,
@@ -308,7 +309,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     pipeBottomSprite?: HTMLImageElement,
   ) {
     const topHeight = gapY;
-    const bottomY = gapY + 140; // PIPE_GAP
+    const bottomY = gapY + PIPE_GAP;
     const bottomHeight = CANVAS_HEIGHT - GROUND_HEIGHT - bottomY;
 
     if (pipeTopSprite && pipeBottomSprite) {
@@ -433,6 +434,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   }, [dispatch, startFlapPreview]);
 
+  // Keyboard flapping (Space/ArrowUp) while a run is live — the universal
+  // flappy input on desktop. Detaches outside the ready/playing phases so it
+  // never hijacks Space from overlay buttons or drawer content.
+  useEffect(() => {
+    if (gameStatus !== "dealt" || (localPhase !== "ready" && localPhase !== "playing")) {
+      return undefined;
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space" && e.code !== "ArrowUp") return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      handleTap();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [gameStatus, localPhase, handleTap]);
+
   const handlePlayAgain = useCallback(() => {
     if (gameStatus === "solved" || gameStatus === "expired") {
       if (!rewardPoolReady) return;
@@ -483,12 +507,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         })}
       >
         <div className="flappy-lobby__pixel-scene" aria-hidden="true">
-          <img
+          <div
             className="flappy-lobby__pixel-bg"
-            src={FLAPPY_SPRITES.background}
-            alt=""
-            decoding="async"
-            draggable={false}
+            style={{ backgroundImage: `url(${FLAPPY_SPRITES.background})` }}
           />
           <img
             className="flappy-lobby__pipe flappy-lobby__pipe--top"
@@ -514,12 +535,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             decoding="async"
             draggable={false}
           />
-          <img
+          <div
             className="flappy-lobby__base"
-            src={FLAPPY_SPRITES.base}
-            alt=""
-            decoding="async"
-            draggable={false}
+            style={{ backgroundImage: `url(${FLAPPY_SPRITES.base})` }}
           />
         </div>
         <div className="flappy-lobby__flight-scrim" aria-hidden="true" />
@@ -608,6 +626,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
         className="flappy-canvas"
+        tabIndex={0}
         onClick={handleTap}
         onTouchEnd={(e) => {
           e.preventDefault();
@@ -643,21 +662,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </p>
           )}
           <div className="flappy-overlay__actions">
-            <button
-              type="button"
-              className="mx2-btn mx2-btn--primary"
-              onClick={handlePlayAgain}
-            >
-              {t("retryAction")}
-            </button>
-            {localPhase === "won" && (
+            {localPhase === "won" ? (
+              <>
+                <button
+                  type="button"
+                  className="mx2-btn mx2-btn--primary"
+                  onClick={handleSubmit}
+                  disabled={busy || isSubmitting}
+                >
+                  {t("submitAction")}
+                </button>
+                <button
+                  type="button"
+                  className="mx2-btn mx2-btn--ghost"
+                  onClick={handlePlayAgain}
+                >
+                  {t("retryAction")}
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                className="mx2-btn mx2-btn--secondary"
-                onClick={handleSubmit}
-                disabled={busy || isSubmitting}
+                className="mx2-btn mx2-btn--primary"
+                onClick={handlePlayAgain}
               >
-                {t("submitAction")}
+                {t("retryAction")}
               </button>
             )}
           </div>
@@ -692,8 +721,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         : gameStatus === "dealt" && gameState
           ? canvasStage
           : difficultyPicker}
+      {/* Reserved for live operation feedback (sealing, submitting, errors) —
+          the idle "ready" line would triple up with the stage title and the
+          statusbar chip, so it stays blank while keeping the live region. */}
       <p className="flappy-scene__status" aria-live="polite">
-        {lastStatus}
+        {lastStatus === t("statusReady") ? "" : lastStatus}
       </p>
     </div>
   );

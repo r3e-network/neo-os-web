@@ -18,37 +18,10 @@ import type { TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
 const appId = "miniapp-jump-rush";
 
 const LEADERBOARD_EVENT_LIMIT = 200;
-const OPS_STORAGE_PREFIX = "miniapp-jump-rush:ops:";
 
 function asNumber(value: unknown): number {
   const n = Number(parseBigInt(value));
   return Number.isFinite(n) ? n : 0;
-}
-
-function loadOps(gameId: string): TeeOp[] {
-  try {
-    const raw = window.localStorage.getItem(OPS_STORAGE_PREFIX + gameId);
-    const parsed = raw ? (JSON.parse(raw) as TeeOp[]) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveOps(gameId: string, ops: TeeOp[]): void {
-  try {
-    window.localStorage.setItem(OPS_STORAGE_PREFIX + gameId, JSON.stringify(ops));
-  } catch {
-    /* telemetry log is best-effort */
-  }
-}
-
-function forgetOps(gameId: string): void {
-  try {
-    window.localStorage.removeItem(OPS_STORAGE_PREFIX + gameId);
-  } catch {
-    /* nothing to clean */
-  }
 }
 
 export interface LeaderEntry {
@@ -117,6 +90,31 @@ defineMiniApp({
     // TEE session context for the active game (rebuilt idempotently from the
     // deterministic teeStart, so nothing here needs durable storage).
     let session: (TeeStartResult & { identity: TeeIdentity }) | null = null;
+
+    // Per-game TEE op log through the framework's namespaced local KV instead
+    // of raw window.localStorage (best-effort telemetry + undo accounting).
+    const opsKey = (gameId: string): string => `ops/${gameId}`;
+
+    const loadOps = (gameId: string): TeeOp[] => {
+      const parsed = app.storage.local.get<TeeOp[]>(opsKey(gameId), []);
+      return Array.isArray(parsed) ? parsed : [];
+    };
+
+    const saveOps = (gameId: string, ops: TeeOp[]): void => {
+      try {
+        app.storage.local.set(opsKey(gameId), ops);
+      } catch {
+        /* telemetry log is best-effort */
+      }
+    };
+
+    const forgetOps = (gameId: string): void => {
+      try {
+        app.storage.local.delete(opsKey(gameId));
+      } catch {
+        /* nothing to clean */
+      }
+    };
 
     const playerScriptHash = (): string => {
       const player = app.chain.address.get();
@@ -492,6 +490,11 @@ defineMiniApp({
       }
     });
 
+    // Framework operation keeps notify.guard semantics: success toast only
+    // after a real withdrawal, error toast + swallow on failure — while the
+    // pre-check early returns stay silent.
+    const withdrawOp = app.operations.create("withdrawWinnings");
+
     ctx.framework.actions.register("withdrawWinnings", async () => {
       const playerHash = playerScriptHash();
       if (!playerHash) {
@@ -502,7 +505,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await withdrawOp.run(async () => {
         await app.chain.ensureWallet();
         await app.chain.invoke(
           "withdraw",
@@ -510,7 +513,7 @@ defineMiniApp({
           { waitForEvent: "CreditWithdrawn" },
         );
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {

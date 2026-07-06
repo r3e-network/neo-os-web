@@ -26,7 +26,7 @@
 
 .aim-playarea .mx2-stage {
   padding: 22px 24px 20px;
-  background: #fffdf8;
+  background: var(--aim-panel);
 }
 
 .aim-playarea .mx2-stage__head {
@@ -105,14 +105,19 @@
   animation: aim-submit-pulse 1200ms ease-in-out infinite;
 }
 
+/* Run complete, waiting on the anti-bot floor: one short acknowledgement
+   glow, then the gauge rests until the real submission starts. */
+.aim-scene[data-state="ready"] .aim-gauge {
+  animation: aim-submit-pulse 250ms ease-out;
+}
+
 .aim-scene[data-state="won"] .aim-lobby__result[data-state="won"] {
-  animation: aim-win-glow 1600ms ease-in-out infinite alternate;
+  animation: aim-banner-in 200ms ease-out, aim-win-glow 1600ms ease-in-out 2 alternate;
 }
 
 .aim-scene__status {
   margin: 2px 0 0;
   font-size: 0.82rem;
-  color: var(--mx2-text-muted);
   text-align: center;
   min-height: 1.2em;
   color: var(--aim-muted);
@@ -168,12 +173,13 @@
   z-index: 1;
 }
 
+/* The hero target and reticle hold still — the sweep strip below is the one
+   piece of lobby motion, because it is the piece that teaches the mechanic. */
 .aim-lobby__target {
   width: 100%;
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 18px 28px rgba(101, 72, 24, 0.2));
-  animation: aim-target-idle 2400ms ease-in-out infinite;
 }
 
 .aim-lobby__reticle {
@@ -182,7 +188,6 @@
   height: 43%;
   object-fit: contain;
   filter: drop-shadow(0 8px 16px rgba(26, 168, 150, 0.24));
-  animation: aim-reticle-breathe 1800ms ease-in-out infinite;
 }
 
 .aim-lobby__range-copy {
@@ -227,7 +232,7 @@
   border-radius: 999px;
   background:
     linear-gradient(90deg, rgba(255, 248, 234, 0.88), rgba(255, 253, 248, 0.96), rgba(255, 248, 234, 0.88)),
-    #fffdf8;
+    var(--aim-panel);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
@@ -279,8 +284,9 @@
   font-weight: 650;
 }
 
-.aim-lobby__ribbon-prize {
-  color: var(--aim-teal) !important;
+.aim-lobby__ribbon .aim-lobby__ribbon-prize {
+  color: var(--aim-teal);
+  font-weight: 650;
 }
 
 .aim-lobby__cards {
@@ -319,6 +325,12 @@
     transform: translateY(-2px);
     border-color: rgba(26, 168, 150, 0.5);
     background: #fffaf0;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
   }
 
   &--active {
@@ -387,6 +399,7 @@
   flex-direction: column;
   gap: 4px;
   text-align: center;
+  animation: aim-banner-in 200ms ease-out;
 
   &[data-state="won"] {
     background: linear-gradient(180deg, rgba(26, 168, 150, 0.14), rgba(26, 168, 150, 0.05));
@@ -470,9 +483,14 @@
   background: rgba(255, 253, 248, 0.9);
   color: var(--aim-ink);
 
+  /* Low-time alarm: steady coral (no blinking) so the numerals stay readable
+     exactly when the player needs them most. */
   &[data-low="true"] .aim-timer__clock {
     color: var(--aim-coral);
-    animation: aim-timer-alarm 1s ease-in-out infinite;
+  }
+
+  &[data-low="true"] .aim-timer__track i {
+    background: linear-gradient(90deg, var(--aim-coral), #f0937f);
   }
 }
 
@@ -514,11 +532,16 @@
   padding: 18px clamp(12px, 3vw, 28px);
   border: 1px solid var(--aim-border);
   border-radius: 8px;
-  background: linear-gradient(180deg, #fffaf0, #fffdf8);
+  background: linear-gradient(180deg, #fffaf0, var(--aim-panel));
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+
+  &:focus-visible {
+    outline: 2px solid var(--aim-teal);
+    outline-offset: 2px;
+  }
 }
 
 .aim-gauge__target-board {
@@ -587,19 +610,24 @@
   filter: drop-shadow(0 10px 18px rgba(26, 168, 150, 0.28));
 }
 
-/* Ring labels under the gauge */
+/* Ring labels under the gauge — positioned at the same geometry as the ring
+   markers above, so every number sits under the boundary it names. */
 .aim-gauge__labels {
   position: absolute;
   left: clamp(24px, 8%, 52px);
   right: clamp(24px, 8%, 52px);
   bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 4px;
+  height: 1em;
   font-size: 0.65rem;
   color: #9b8a72;
   pointer-events: none;
   user-select: none;
+
+  span {
+    position: absolute;
+    transform: translateX(-50%);
+    line-height: 1;
+  }
 }
 
 /* ------------------------------------------------------ round display -- */
@@ -638,6 +666,8 @@
 
 /* ---------------------------------------------------- hit/miss overlay -- */
 
+/* Lives inside .aim-gauge-wrap so the flash centers over the target board
+   and never covers the timer row or the round-progress dots. */
 .aim-feedback {
   position: absolute;
   inset: 0;
@@ -818,16 +848,6 @@
   }
 }
 
-@keyframes aim-target-idle {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-1deg);
-  }
-  50% {
-    transform: translateY(-4px) rotate(1deg);
-  }
-}
-
 @keyframes aim-reticle-breathe {
   0%,
   100% {
@@ -922,16 +942,6 @@
   }
   to {
     box-shadow: 0 0 26px rgba(0, 175, 146, 0.35);
-  }
-}
-
-@keyframes aim-timer-alarm {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
   }
 }
 

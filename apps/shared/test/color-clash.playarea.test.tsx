@@ -258,7 +258,8 @@ describe("color-clash playarea", () => {
     expect(styles).toMatch(/\.cclash-mode__lights\s*\{[\s\S]*grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.cclash-lobby__console\s*\{[\s\S]*min-height:\s*318px/);
     expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.cclash-lobby__modes\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.cclash-mode__meta\s*\{[\s\S]*display:\s*none/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.cclash-mode__meta\s*\{[\s\S]*font-size:\s*0\.6rem/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.cclash-mode__meta-time\s*\{[\s\S]*display:\s*none/);
     expect(mobileStyleBlock(styles, ".cclash-lobby__modes")).not.toMatch(/grid-template-columns:\s*1fr/);
   });
 

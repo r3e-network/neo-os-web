@@ -76,6 +76,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const liveDanger = isRoundActive && roundDataAvailable && totalKeys > 0;
   const awaitingFirstKey = isRoundActive && roundDataAvailable && totalKeys <= 0;
   const canBuyKeys = roundDataAvailable && isRoundActive && !needsLifecycleSync;
+  // The relic clock only counts when a round is genuinely live or freshly
+  // ended; otherwise the relic invites instead of showing dead zeros.
+  const relicIdle = !liveDanger && !needsLifecycleSync;
   const safeDangerProgress = Math.max(0, Math.min(100, dangerProgress || 0));
   const visualKeyCount = buyAnimating && motionKeyCount ? motionKeyCount : localKeyCount;
   const selectedKeyCountNumber = Number(localKeyCount || "1") || 1;
@@ -161,7 +164,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span>{t("totalPot")}</span>
           <strong>{totalPotDisplay}</strong>
         </div>
-        <div className="survivor-scene__timer" data-danger={dangerLevel} data-pulse={shouldPulse ? "true" : undefined}>
+        <div
+          className="survivor-scene__timer"
+          data-danger={liveDanger ? dangerLevel : "low"}
+          data-pulse={liveDanger && shouldPulse ? "true" : undefined}
+        >
           <Timer size={16} />
           <span>{countdown}</span>
         </div>
@@ -179,12 +186,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <span className="survivor-scene__danger-track" aria-hidden="true">
           <span className="survivor-scene__danger-fill" />
         </span>
-        <span className="survivor-scene__relic-copy">
+        <span className="survivor-scene__relic-copy" data-idle={relicIdle ? "true" : undefined}>
           <span>
-            <Flame size={14} /> {dangerLevelText || t("safe")}
+            <Flame size={14} /> {liveDanger ? dangerLevelText : t("safe")}
           </span>
-          <strong>{countdown}</strong>
-          <em>{t("buyKeys")}</em>
+          {relicIdle ? (
+            <strong className="survivor-scene__relic-invite">
+              {awaitingFirstKey ? t("awaitingFirstKey") : t("roundNotStarted")}
+            </strong>
+          ) : (
+            <strong>{countdown}</strong>
+          )}
+          <em>{canBuyKeys ? t("buyKeys") : t("refreshToPlay")}</em>
         </span>
       </button>
 
@@ -193,7 +206,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <KeyRound size={14} />
           <em>{t("beatBuyKey")}</em>
         </span>
-        <span role="listitem" data-active={liveDanger || shouldPulse ? "true" : undefined}>
+        <span role="listitem" data-active={liveDanger ? "true" : undefined}>
           <Timer size={14} />
           <em>{t("beatExtendClock")}</em>
         </span>
@@ -222,15 +235,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       <div className="survivor-scene__readout">
-        {lastBuyerLabel !== "--" && (
+        {lastBuyer && (
           <div className="survivor-scene__leader">
             <span>{t("currentLeader")}</span>
             <code>{shortAddr(lastBuyerLabel)}</code>
           </div>
         )}
         <div className="survivor-scene__cost">
-          <span>{t("estimatedCost")}</span>
-          <strong>{estimatedCost} GAS</strong>
+          <span>{t("yourKeys")}</span>
+          <strong>{userKeys} · {userSharePercent > 0 ? `${userSharePercent.toFixed(1)}%` : "—"}</strong>
         </div>
       </div>
 
@@ -257,7 +270,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="survivor-controls__dock">
         <div className="survivor-controls__core">
           <span>{t("keyChamber")}</span>
-          <strong>{localKeyCount || "1"} {t("keysSuffix")}</strong>
+          <strong>{localKeyCount || "1"} {t((localKeyCount || "1") === "1" ? "keySuffixOne" : "keysSuffix")}</strong>
           <em>{t("nextCost", { amount: estimatedCost })}</em>
         </div>
         <div className="survivor-controls__presets" aria-label={t("keyCapsules")}>
@@ -279,7 +292,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
                 <span>
                   <strong>{preset}</strong>
-                  <em>{t("keysSuffix")}</em>
+                  <em>{t(preset === "1" ? "keySuffixOne" : "keysSuffix")}</em>
                 </span>
               </button>
             );
@@ -301,7 +314,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </span>
             <strong>{localKeyCount || "1"}</strong>
-            <span>{t("keysSuffix")}</span>
+            <span>{t((localKeyCount || "1") === "1" ? "keySuffixOne" : "keysSuffix")}</span>
           </output>
           <button
             type="button"
@@ -426,7 +439,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <h3>{viewerIsWinner ? t("youWon") : t("winnerDeclared")}</h3>
             <p className="survivor-climax__pot">{totalPotDisplay}</p>
-            {lastBuyerLabel !== "--" && (
+            {lastBuyer && (
               <p className="survivor-climax__winner">{shortAddr(lastBuyerLabel)}</p>
             )}
             {!viewerIsWinner && (

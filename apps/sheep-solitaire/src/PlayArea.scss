@@ -3,433 +3,6 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* ===== Theme & Layout ===== */
-$bg-dark: #fff6e8;
-$bg-card: #ffffff;
-$bg-slot: #f4eadc;
-$text-primary: #2b261f;
-$text-secondary: #6f6256;
-$accent: #e8a87c;
-$accent-glow: #f0c8a0;
-$success: #7ed6a5;
-$danger: #e77f67;
-$gold: #f9d976;
-
-// Neutral canvas wrapper (background-clarity gate); the felt backdrop lives on
-// the .sheep-scene__felt child instead.
-.sheep-scene {
-  position: relative;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: $text-primary;
-  font-family: "Segoe UI", "PingFang SC", system-ui, -apple-system, sans-serif;
-  --accent: #{$accent};
-  --bg-card: #{$bg-card};
-}
-
-.sheep-scene__felt {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  border-radius: var(--mx2-r-lg);
-  pointer-events: none;
-  background: linear-gradient(135deg, $bg-dark 0%, #f4eadc 100%);
-}
-
-.sheep-scene > *:not(.sheep-scene__felt, .sheep-scene__mascot) {
-  position: relative;
-  z-index: 1;
-}
-
-/* ===== Lobby ===== */
-.sheep-lobby {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  flex: 1;
-
-  &__header {
-    text-align: center;
-
-    h2 { font-size: 1.5rem; margin: 0 0 0.25rem; color: $gold; }
-    p { font-size: 0.9rem; color: $text-secondary; margin: 0; }
-  }
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-
-    @media (max-width: 560px) {
-      grid-template-columns: 1fr;
-    }
-  }
-}
-
-.sheep-lobby-card {
-  background: $bg-card;
-  border-radius: 1rem;
-  padding: 1.25rem;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba($accent, 0.28);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent 60%, rgba($accent, 0.1));
-    pointer-events: none;
-  }
-
-  &:hover, &--selected {
-    border-color: $accent;
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba($accent, 0.2);
-  }
-
-  &__difficulty {
-    font-size: 1.1rem;
-    font-weight: 680;
-    color: $accent;
-  }
-
-  &__reward {
-    font-size: 1.5rem;
-    font-weight: 680;
-    color: $gold;
-  }
-
-  &__details {
-    font-size: 0.8rem;
-    color: $text-secondary;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  &__action {
-    margin-top: 0.5rem;
-    padding: 0.6rem;
-    border: none;
-    border-radius: 0.5rem;
-    background: $accent;
-    color: $bg-dark;
-    font-weight: 680;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.2s;
-
-    &:hover { background: $accent-glow; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-  }
-}
-
-/* ===== Game Board ===== */
-.sheep-board {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  gap: 1rem;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Status Bar */
-.sheep-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba($bg-card, 0.8);
-  border-radius: 0.75rem;
-  backdrop-filter: blur(10px);
-
-  &__score {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
-  &__timer {
-    font-family: "Courier New", monospace;
-    font-size: 1.25rem;
-    font-weight: 680;
-    color: $accent;
-
-    &--alarm { color: $danger; animation: sheep-timer-pulse 0.5s ease-in-out infinite; }
-  }
-
-  &__count {
-    font-size: 0.85rem;
-    color: $text-secondary;
-  }
-}
-
-/* Card Pile Area */
-.sheep-pile {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  min-height: 300px;
-  perspective: 800px;
-}
-
-.sheep-card {
-  position: absolute;
-  width: 68px;
-  height: 92px;
-  border-radius: 0.6rem;
-  background: linear-gradient(145deg, #fffdf7, #f4eadc);
-  border: 1px solid rgba($accent, 0.28);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8rem;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none;
-  box-shadow: 0 2px 8px rgba(79, 70, 60, 0.12);
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-
-  &--layer-0 {
-    z-index: 3;
-    &:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 8px 24px rgba($accent, 0.3); }
-  }
-  &--layer-1 { z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
-  &--layer-2 { z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.6); }
-
-  &--blocked {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(0.5);
-    &:hover { transform: none; box-shadow: none; }
-  }
-
-  &--selected {
-    animation: sheep-card-fly 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  &--removing {
-    animation: sheep-card-remove 0.4s ease-in forwards;
-  }
-
-  &__symbol {
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  }
-}
-
-/* Slot Bar */
-.sheep-slots {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  padding: 0.75rem;
-  background: rgba($bg-slot, 0.8);
-  border-radius: 1rem;
-  min-height: 60px;
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.05);
-
-  &--full {
-    animation: sheep-slot-shake 0.5s ease-in-out;
-    border-color: $danger;
-  }
-}
-
-.sheep-slot {
-  width: 52px;
-  height: 52px;
-  border-radius: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  transition: all 0.2s;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  position: relative;
-
-  &--filled {
-    background: rgba($accent, 0.15);
-    border: 1px solid rgba($accent, 0.3);
-    animation: sheep-slot-pop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  &--match {
-    animation: sheep-match-glow 0.5s ease-in-out;
-    border-color: $success;
-    background: rgba($success, 0.2);
-  }
-}
-
-/* Tools */
-.sheep-tools {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  padding: 0.5rem;
-}
-
-.sheep-tool-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.6rem 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  background: rgba($bg-card, 0.6);
-  color: $text-primary;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 70px;
-
-  &:hover:not(:disabled) {
-    border-color: $accent;
-    background: rgba($accent, 0.1);
-  }
-
-  &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-
-  &__icon { font-size: 1.3rem; }
-  &__label { font-size: 0.7rem; color: $text-secondary; }
-
-  &--danger:hover:not(:disabled) {
-    border-color: $danger;
-    background: rgba($danger, 0.1);
-  }
-}
-
-/* ===== Animations ===== */
-@keyframes sheep-card-fly {
-  0% { transform: scale(1) translateY(0) rotateY(0); opacity: 1; }
-  50% { transform: scale(0.8) translateY(-60px) rotateY(180deg); opacity: 0.7; }
-  100% { transform: scale(0) translateY(-120px) rotateY(360deg); opacity: 0; }
-}
-
-@keyframes sheep-card-remove {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0) translateY(-40px); opacity: 0; }
-}
-
-@keyframes sheep-slot-pop {
-  0% { transform: scale(0.5); }
-  60% { transform: scale(1.15); }
-  100% { transform: scale(1); }
-}
-
-@keyframes sheep-match-glow {
-  0% { box-shadow: 0 0 0 rgba($success, 0); }
-  50% { box-shadow: 0 0 20px rgba($success, 0.5); }
-  100% { box-shadow: 0 0 0 rgba($success, 0); }
-}
-
-@keyframes sheep-slot-shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 50%, 90% { transform: translateX(-6px); }
-  30%, 70% { transform: translateX(6px); }
-}
-
-@keyframes sheep-timer-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes sheep-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-@keyframes sheep-glow-pulse {
-  0%, 100% { box-shadow: 0 0 5px rgba($accent, 0.3); }
-  50% { box-shadow: 0 0 20px rgba($accent, 0.6); }
-}
-
-/* Victory / Game Over overlays */
-.sheep-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  z-index: 10;
-  border-radius: 1rem;
-
-  &__title {
-    font-size: 2rem;
-    font-weight: 680;
-    margin-bottom: 0.5rem;
-  }
-
-  &__subtitle {
-    font-size: 1rem;
-    color: $text-secondary;
-    margin-bottom: 1.5rem;
-  }
-
-  &--victory {
-    .sheep-overlay__title { color: $gold; }
-    animation: sheep-victory-glow 2s ease-in-out infinite;
-  }
-
-  &--defeat {
-    .sheep-overlay__title { color: $danger; }
-  }
-}
-
-@keyframes sheep-victory-glow {
-  0%, 100% { box-shadow: inset 0 0 30px rgba($gold, 0); }
-  50% { box-shadow: inset 0 0 60px rgba($gold, 0.15); }
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 560px) {
-  .sheep-card {
-    width: 52px;
-    height: 72px;
-    font-size: 1.3rem;
-  }
-
-  .sheep-slot {
-    width: 40px;
-    height: 40px;
-    font-size: 1.1rem;
-  }
-
-  .sheep-lobby-card__reward { font-size: 1.2rem; }
-}
-
-/* ===== Reduced motion ===== */
-@media (prefers-reduced-motion: reduce) {
-  .sheep-card { transition: none; }
-  .sheep-card--selected { animation: none; display: none; }
-  .sheep-card--removing { animation: none; display: none; }
-  .sheep-slot--match { animation: none; }
-  .sheep-slots--full { animation: none; }
-  .sheep-overlay--victory { animation: none; }
-}
-
 /* ===== v2 class-name alignment (current PlayArea.tsx) ===== */
 .sheep-playarea {
   display: block;
@@ -481,7 +54,7 @@ $gold: #f9d976;
 .sheep-playarea .mx2-eyebrow,
 .sheep-playarea .mx2-stage__title {
   color: #423629;
-  font-weight: 560;
+  font-weight: 600;
 }
 
 .sheep-playarea .mx2-stage__head {
@@ -497,7 +70,7 @@ $gold: #f9d976;
 .sheep-playarea .mx2-stage__subtitle {
   max-width: 610px;
   color: #746756;
-  font-weight: 430;
+  font-weight: 400;
   font-size: 0.98rem;
   line-height: 1.42;
 }
@@ -519,6 +92,11 @@ $gold: #f9d976;
   box-shadow: none;
 }
 
+.sheep-scene > *:not(.sheep-scene__felt, .sheep-scene__mascot) {
+  position: relative;
+  z-index: 1;
+}
+
 .sheep-scene[data-state="idle"],
 .sheep-scene[data-state="won"] {
   min-height: 0;
@@ -533,20 +111,15 @@ $gold: #f9d976;
 }
 
 .sheep-scene__felt {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
   background:
     radial-gradient(circle at 20% 8%, rgba(190, 242, 100, 0.2), transparent 32%),
     radial-gradient(circle at 82% 16%, rgba(250, 204, 21, 0.13), transparent 34%),
     linear-gradient(180deg, #fffdf7 0%, var(--sheep-cream) 100%);
-}
-
-.sheep-scene__banner {
-  width: min(100%, 560px);
-  max-height: 190px;
-  display: none;
-  object-fit: cover;
-  border: 1px solid rgba(63, 98, 18, 0.1);
-  border-radius: calc(var(--mx2-r-lg) - 6px);
-  box-shadow: var(--sheep-shadow);
 }
 
 .sheep-scene__mascot {
@@ -564,7 +137,7 @@ $gold: #f9d976;
 
 .sheep-scene[data-state="won"] .sheep-scene__mascot {
   opacity: 0.14;
-  animation: sheep-float 2.8s ease-in-out infinite;
+  animation: sheep-float 2.8s ease-in-out 3;
 }
 
 .sheep-scene[data-state="dealing"] .sheep-shuffle__cards img {
@@ -626,7 +199,7 @@ $gold: #f9d976;
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 18px 26px rgba(56, 42, 20, 0.16));
-  animation: sheep-float 2.8s ease-in-out infinite;
+  animation: sheep-float 2.8s ease-in-out 3;
   pointer-events: none;
 }
 
@@ -647,7 +220,7 @@ $gold: #f9d976;
   object-fit: contain;
   filter: drop-shadow(0 10px 14px rgba(56, 42, 20, 0.13));
   transform: translate(var(--tile-x), var(--tile-y)) rotate(var(--tile-rotate));
-  animation: sheep-tile-idle 2600ms ease-in-out infinite;
+  animation: sheep-tile-idle 2600ms ease-in-out 3;
   animation-delay: var(--tile-delay);
 }
 
@@ -718,7 +291,7 @@ $gold: #f9d976;
 .sheep-lobby__brief strong {
   color: #463a2d;
   font-size: clamp(1.32rem, 3vw, 1.88rem);
-  font-weight: 570;
+  font-weight: 600;
   line-height: 1.12;
 }
 
@@ -892,15 +465,25 @@ $gold: #f9d976;
   gap: 10px;
 }
 
-.sheep-timer__clock,
+.sheep-timer__clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.06rem;
+  font-weight: 650;
+}
+
 .sheep-timer__reward {
   font-variant-numeric: tabular-nums;
+  color: var(--mx2-text-muted);
+  font-size: 0.78rem;
   font-weight: 650;
 }
 
 .sheep-timer[data-low="true"] .sheep-timer__clock {
   color: #b42318;
-  animation: sheep-timer-pulse 900ms ease-in-out infinite;
+}
+
+.sheep-timer[data-low="true"] .sheep-timer__track i {
+  background: linear-gradient(90deg, #b42318, #e8846b);
 }
 
 .sheep-timer__track {
@@ -933,7 +516,7 @@ $gold: #f9d976;
   place-items: center;
   overflow: hidden;
   border: 1px solid var(--sheep-line);
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--sheep-cream);
 }
 
@@ -943,7 +526,7 @@ $gold: #f9d976;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.72;
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -974,6 +557,8 @@ $gold: #f9d976;
   width: 58px;
   height: 58px;
   flex: 0 0 auto;
+  display: grid;
+  place-items: center;
   border: none;
   border-radius: 10px;
   background: transparent;
@@ -989,9 +574,21 @@ $gold: #f9d976;
   filter: drop-shadow(0 10px 16px rgba(63, 98, 18, 0.14));
 }
 
+.sheep-card--exposed:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.96);
+  transition-duration: 80ms;
+}
+
+.sheep-card:focus-visible {
+  outline: 2px solid var(--sheep-green-deep);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
 .sheep-card--blocked {
-  opacity: 0.34;
+  opacity: 0.52;
   filter: saturate(0.45);
+  cursor: default;
 }
 
 .sheep-card--blocked::before {
@@ -1041,7 +638,7 @@ $gold: #f9d976;
   overflow: hidden;
   padding: 14px 18px;
   border: 1px solid rgba(63, 98, 18, 0.12);
-  border-radius: 8px;
+  border-radius: 16px;
   background: rgba(255, 253, 248, 0.74);
 }
 
@@ -1072,8 +669,14 @@ $gold: #f9d976;
   display: grid;
   place-items: center;
   border: 1px solid rgba(63, 98, 18, 0.08);
-  border-radius: 8px;
+  border-radius: 12px;
   background: rgba(255, 253, 248, 0.26);
+}
+
+.sheep-slot--empty {
+  border: 1px dashed rgba(63, 98, 18, 0.28);
+  background: rgba(56, 42, 20, 0.05);
+  box-shadow: inset 0 1px 3px rgba(56, 42, 20, 0.08);
 }
 
 .sheep-slot--filled {
@@ -1131,7 +734,9 @@ $gold: #f9d976;
 
 .sheep-tool--armed {
   border-color: rgba(185, 28, 28, 0.38);
+  background: rgba(185, 28, 28, 0.07);
   color: #991b1b;
+  font-weight: 650;
 }
 
 .sheep-tool:disabled {
@@ -1230,21 +835,21 @@ $gold: #f9d976;
   font-size: 0.78rem;
 }
 
-@keyframes sheep-banner-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 @keyframes sheep-card-pop {
   0% { transform: scale(0.98); }
   65% { transform: scale(1.02); }
   100% { transform: scale(1); }
+}
+
+@keyframes sheep-slot-pop {
+  0% { transform: scale(0.5); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes sheep-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
 }
 
 @keyframes sheep-tile-idle {
@@ -1265,6 +870,24 @@ $gold: #f9d976;
   to {
     opacity: 1;
     transform: translateY(-8px) rotate(2deg);
+  }
+}
+
+/* Narrow-desktop guard: keep the floating tile pile clear of both the
+   headline text (left) and the mascot art (right). */
+@media (min-width: 561px) and (max-width: 900px) {
+  .sheep-lobby__tile-pile {
+    right: clamp(170px, 30vw, 240px);
+    width: 120px;
+  }
+
+  .sheep-lobby__tile-pile img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .sheep-lobby__brief strong {
+    max-width: 240px;
   }
 }
 
@@ -1301,10 +924,6 @@ $gold: #f9d976;
   .sheep-scene[data-state="dealing"],
   .sheep-scene[data-state="submitting"] {
     min-height: 420px;
-  }
-
-  .sheep-scene__banner {
-    max-height: 150px;
   }
 
   .sheep-lobby {
@@ -1348,6 +967,9 @@ $gold: #f9d976;
     min-height: 27px;
     padding: 5px 7px;
     font-size: 0.64rem;
+    /* Near-opaque pill so the floating tile art behind never muddies the
+       win/entry/time copy on the tight mobile canvas. */
+    background: rgba(255, 255, 255, 0.92);
   }
 
   .sheep-lobby__mascot {
@@ -1429,8 +1051,8 @@ $gold: #f9d976;
   }
 
   .sheep-card {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
   }
 
   .sheep-slots {
@@ -1439,5 +1061,25 @@ $gold: #f9d976;
 
   .sheep-slots__bar {
     gap: 5px;
+  }
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .sheep-card,
+  .sheep-route-card,
+  .sheep-timer__track i {
+    transition: none;
+  }
+
+  .sheep-card--pick-anim,
+  .sheep-card--match-anim,
+  .sheep-slot--filled,
+  .sheep-route-card--active,
+  .sheep-lobby__mascot,
+  .sheep-lobby__tile-pile img,
+  .sheep-scene[data-state="won"] .sheep-scene__mascot,
+  .sheep-scene[data-state="dealing"] .sheep-shuffle__cards img {
+    animation: none;
   }
 }

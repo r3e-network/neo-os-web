@@ -98,7 +98,7 @@ describe("GasBox PlayArea (v2)", () => {
     expect(container.querySelector(".gasbox-scene__sync-card")).toBeTruthy();
     expect(container.querySelectorAll(".gasbox-scene__sync-capsules img")).toHaveLength(5);
     expect(container.textContent).toContain("Market sync in progress");
-    expect(container.textContent).toContain("Refresh market");
+    expect(container.textContent).toContain("Find machines");
     expect(container.textContent).not.toContain("No prize");
     expect(container.querySelector(".gasbox-scene__result")).toBeNull();
     expect(container.querySelector(".mx2-score")).toBeNull();

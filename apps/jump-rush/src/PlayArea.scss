@@ -14,12 +14,12 @@
 
 .jr-playarea {
   display: block;
-  --jr-sky-top: #87ceeb;
-  --jr-sky-bottom: #e0f4ff;
+  --jr-sky-top: #b6e0f3;
+  --jr-sky-bottom: #f2faff;
   --jr-cloud-color: rgba(255, 255, 255, 0.85);
-  --jr-platform-color: #6b8cff;
-  --jr-platform-top: #7fa3ff;
-  --jr-platform-surface: #b3d0ff;
+  --jr-platform-color: #16a34a;
+  --jr-platform-top: #4ade80;
+  --jr-platform-surface: #bbf7d0;
   --jr-perfect-color: #34d399;
   --jr-perfect-glow: rgba(52, 211, 153, 0.45);
   --jr-combo-color: #f97316;
@@ -36,9 +36,9 @@
     --jr-sky-top: #f7efe2;
     --jr-sky-bottom: #fff4df;
     --jr-cloud-color: rgba(255, 255, 255, 0.08);
-    --jr-platform-color: #3b5fcf;
-    --jr-platform-top: #4f72e0;
-    --jr-platform-surface: #6988eb;
+    --jr-platform-color: #15803d;
+    --jr-platform-top: #22a55b;
+    --jr-platform-surface: #6fcf8f;
     --jr-charge-bar-bg: rgba(255, 255, 255, 0.1);
   }
 }
@@ -71,7 +71,7 @@
   padding: 18px 16px 16px;
   isolation: isolate;
   border-radius: var(--mx2-r-lg);
-  box-shadow: 0 24px 58px rgba(53, 126, 171, 0.12);
+  box-shadow: 0 14px 36px rgba(53, 126, 171, 0.1);
 }
 
 .jr-scene__sky {
@@ -102,12 +102,14 @@
   animation: jr-banner-in 480ms ease-out both;
 }
 
+// Spinner-equivalent wait pulse: runs only while the settlement tx is in
+// flight, so infinite here is the "still working" cue, kept short and soft.
 .jr-scene[data-state="submitting"] .jr-board-container {
-  animation: jr-board-breathe 1200ms ease-in-out infinite;
+  animation: jr-board-breathe 900ms ease-in-out infinite;
 }
 
 .jr-scene[data-state="won"] .jr-lobby__result[data-state="won"] {
-  animation: jr-win-glow 1600ms ease-in-out infinite alternate;
+  animation: jr-win-glow 1600ms ease-in-out 3 alternate forwards;
 }
 
 .jr-scene__status {
@@ -399,32 +401,13 @@
   color: var(--mx2-text-muted);
   font-size: 0.68rem;
   font-weight: 620;
+  letter-spacing: 0.05em;
 }
 
 .jr-lobby-preview__goal strong {
   color: #167449;
   font-size: 0.9rem;
   font-weight: 680;
-}
-
-.jr-lobby-preview__meter {
-  position: absolute;
-  right: 24px;
-  bottom: 18px;
-  left: 24px;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(26, 26, 25, 0.08);
-}
-
-.jr-lobby-preview__meter span {
-  display: block;
-  width: 46%;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #16c784 0%, #f59e0b 100%);
-  animation: jr-lobby-meter 1800ms ease-in-out infinite;
 }
 
 .jr-lobby__modes {
@@ -458,16 +441,16 @@
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    border-color: rgba(107, 140, 255, 0.4);
+    border-color: rgba(22, 163, 74, 0.32);
     background: rgba(255, 255, 255, 0.56);
   }
 
   &--active {
-    border-color: rgba(107, 140, 255, 0.75);
+    border-color: rgba(22, 163, 74, 0.45);
     background: #ffffff;
     box-shadow:
-      0 0 0 3px rgba(107, 140, 255, 0.12),
-      0 8px 18px rgba(107, 140, 255, 0.16);
+      0 0 0 3px rgba(22, 163, 74, 0.12),
+      0 8px 18px rgba(22, 163, 74, 0.14);
     animation: jr-card-pop 240ms ease-out;
   }
 
@@ -477,15 +460,20 @@
   }
 }
 
+// Eyebrow above the number: the reward is the reason to pick a route, so the
+// route name steps back and the payout leads.
 .jr-mode__name {
-  font-weight: 620;
-  font-size: 0.86rem;
+  font-weight: 650;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mx2-text-muted);
 }
 
 .jr-mode__reward {
-  font-size: 0.9rem;
-  font-weight: 620;
-  color: #3b5fcf;
+  font-size: 1rem;
+  font-weight: 650;
+  color: #0f9d6a;
 }
 
 .jr-mode__meta {
@@ -504,11 +492,11 @@
 .jr-mode__track span {
   height: 4px;
   border-radius: 999px;
-  background: rgba(107, 140, 255, 0.18);
+  background: rgba(22, 163, 74, 0.16);
 }
 
 .jr-mode--active .jr-mode__track span {
-  background: linear-gradient(90deg, #16c784, #77d5ff);
+  background: linear-gradient(90deg, #16c784, #86efac);
 }
 
 .jr-mode--active .jr-mode__track span:nth-child(2) {
@@ -538,17 +526,23 @@
     background: rgba(255, 255, 255, 0.72);
   }
 
+  // The blocking condition reads as a warm warning, and the raw numbers step
+  // back so the actionable message leads.
+  .jr-lobby__status {
+    color: #92400e;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(254, 243, 199, 0.7);
+  }
+
+  &:not([data-ready="true"]) span:not(.jr-lobby__status) {
+    opacity: 0.75;
+  }
+
   &[data-ready="true"] .jr-lobby__status {
     color: #067a5b;
     border-color: rgba(52, 211, 153, 0.24);
     background: rgba(52, 211, 153, 0.1);
   }
-}
-
-.jr-lobby__status {
-  color: #3159b8;
-  border-color: rgba(107, 140, 255, 0.28) !important;
-  background: rgba(226, 235, 255, 0.62) !important;
 }
 
 .jr-lobby__result {
@@ -972,7 +966,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #16c784, #7dd3fc);
+  background: linear-gradient(90deg, #16c784, #86efac);
   box-shadow: 0 0 12px rgba(20, 184, 166, 0.24);
   transition: width 260ms var(--mx2-ease-snap);
 }
@@ -981,7 +975,7 @@
   color: var(--mx2-text-muted);
   font-size: 0.62rem;
   text-transform: uppercase;
-  letter-spacing: 0;
+  letter-spacing: 0.05em;
 }
 
 .jr-hud__value {
@@ -989,9 +983,12 @@
   font-variant-numeric: tabular-nums;
   font-size: 0.9rem;
 
+  // Three pulses when the final-30s window opens, then steady red emphasis —
+  // no endless blinking during the part of the run that needs the most focus.
   &[data-low="true"] {
     color: #b42318;
-    animation: jr-timer-alarm 1s ease-in-out infinite;
+    font-weight: 650;
+    animation: jr-timer-alarm 1s ease-in-out 3;
   }
 }
 
@@ -1034,8 +1031,8 @@
   font-size: 0.8rem;
 
   &[data-me="true"] {
-    background: rgba(107, 140, 255, 0.1);
-    border: 1px solid rgba(107, 140, 255, 0.35);
+    background: rgba(22, 163, 74, 0.08);
+    border: 1px solid rgba(22, 163, 74, 0.32);
   }
 }
 
@@ -1057,13 +1054,13 @@
 
 .jr-ranks__won {
   font-weight: 620;
-  color: #3b5fcf;
+  color: #0f9d6a;
 }
 
 .jr-ranks__me {
   font-size: 0.66rem;
   font-weight: 680;
-  color: #3b5fcf;
+  color: #0f9d6a;
 }
 
 .jr-drawer__seed {
@@ -1125,16 +1122,6 @@
   }
   to {
     transform: translateY(-8px) rotate(8deg);
-  }
-}
-
-@keyframes jr-lobby-meter {
-  0%,
-  100% {
-    width: 34%;
-  }
-  50% {
-    width: 72%;
   }
 }
 
@@ -1213,10 +1200,10 @@
 @keyframes jr-board-breathe {
   0%,
   100% {
-    box-shadow: 0 4px 12px rgba(107, 140, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
   }
   50% {
-    box-shadow: 0 4px 28px rgba(107, 140, 255, 0.28);
+    box-shadow: 0 4px 24px rgba(22, 163, 74, 0.2);
   }
 }
 
@@ -1234,7 +1221,10 @@
     transform: translateX(0);
   }
   to {
-    transform: translateX(calc(100vw + 200px));
+    // Container-relative constant (board max 760px + widest cloud + start
+    // offset) so the whole cycle is spent on visible drift instead of
+    // animating far off the right edge of the viewport.
+    transform: translateX(960px);
   }
 }
 
@@ -1459,12 +1449,31 @@
     width: 54px;
   }
 
+  // The bottom-right quadrant is crowded on phones (mid platform + ghost +
+  // carrot); the goal card moves to the top-right sky where nothing lives.
   .jr-lobby-preview__goal {
-    min-width: 118px;
-    padding: 8px 10px;
+    min-width: 108px;
+    padding: 7px 10px;
+    top: 14px;
     right: 12px;
-    bottom: 56px;
+    bottom: auto;
     border-radius: 14px;
+  }
+
+  .jr-lobby-preview__sun {
+    top: 14px;
+    right: 132px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .jr-lobby-preview__cloud--front {
+    display: none;
+  }
+
+  .jr-lobby-preview__carrot {
+    right: 42px;
+    bottom: 96px;
   }
 
   .jr-lobby__modes {
@@ -1478,7 +1487,11 @@
   }
 
   .jr-mode__reward {
-    font-size: 0.78rem;
+    font-size: 0.88rem;
+  }
+
+  .jr-mode__name {
+    font-size: 0.64rem;
   }
 
   .jr-mode__meta {
@@ -1522,9 +1535,12 @@
     width: 66px;
   }
 
+  // On touch the player's thumb covers the bottom-center of the board, so the
+  // charge feedback rides just below the HUD row where it stays visible.
   .jr-charge-bar {
     min-width: 140px;
-    bottom: 12px;
+    bottom: auto;
+    top: 52px;
   }
 
   .jr-perfect-popup {
