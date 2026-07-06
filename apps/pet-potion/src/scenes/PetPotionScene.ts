@@ -427,12 +427,14 @@ export class PetPotionScene extends BaseScene {
       bg.lineStyle(2, color);
       bg.strokeRoundedRect(-56, -20, 112, 40, 10);
       bg.setInteractive(new Phaser.Geom.Rectangle(-56, -20, 112, 40), Phaser.Geom.Rectangle.Contains);
-      bg.on("pointerdown", () => {
-        this.tweens.add({ targets: c, scale: 0.92, duration: 60, yoyo: true });
-        this.dispatch("recordAction", { type: key });
+      this.bindGameButton(bg, {
+        targets: c,
+        hoverScale: 1.04,
+        pressScale: 0.92,
+        onPress: () => this.dispatch("recordAction", { type: key }),
+        onHoverIn: () => bg.setAlpha(0.84),
+        onHoverOut: () => bg.setAlpha(1.0),
       });
-      bg.on("pointerover", () => bg.setAlpha(0.8));
-      bg.on("pointerout",  () => bg.setAlpha(1.0));
 
       const lbl = this.add.text(0, 0, label, {
         fontSize: "13px", fontStyle: "bold", color: "#ffffff", letterSpacing: 1,
@@ -456,12 +458,12 @@ export class PetPotionScene extends BaseScene {
     bg.lineStyle(2, C.tealLt, 0.8);
     bg.strokeRoundedRect(-96, -26, 192, 52, 14);
     bg.setInteractive(new Phaser.Geom.Rectangle(-96, -26, 192, 52), Phaser.Geom.Rectangle.Contains);
-    bg.on("pointerdown", () => {
-      this.tweens.add({ targets: this.startBtn, scale: 0.95, duration: 80, yoyo: true });
-      this.dispatch("startGame", this.num("gameDifficulty", 0));
+    this.bindGameButton(bg, {
+      targets: this.startBtn,
+      pressScale: 0.95,
+      pressDuration: 80,
+      onPress: () => this.dispatch("startGame", this.num("gameDifficulty", 0)),
     });
-    bg.on("pointerover", () => this.tweens.add({ targets: this.startBtn, scale: 1.04, duration: 80 }));
-    bg.on("pointerout",  () => this.tweens.add({ targets: this.startBtn, scale: 1.0, duration: 80 }));
 
     const lbl = this.add.text(0, 0, "START GAME", {
       fontSize: "17px", fontStyle: "bold", color: "#ffffff", letterSpacing: 2,
