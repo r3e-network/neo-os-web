@@ -132,6 +132,25 @@ describe("root Phaser framework", () => {
         ],
         usage: ["SNAKE_ASSETS.head", "SNAKE_ASSETS.food", "SNAKE_ASSETS.badges"],
       },
+      {
+        app: "dice-game",
+        scene: "DiceScene",
+        assets: [
+          "./art/die-white-1.webp",
+          "./art/die-white-2.webp",
+          "./art/die-white-3.webp",
+          "./art/die-white-4.webp",
+          "./art/die-white-5.webp",
+          "./art/die-white-6.webp",
+          "./art/chip-green.webp",
+          "./art/chip-blue.webp",
+          "./art/chip-red.webp",
+          "./art/chip-black.webp",
+          "./art/hero-die.webp",
+          "@shared/assets/tokens/gas-icon.svg?url",
+        ],
+        usage: ["DIE_FACE_ASSETS", "CHIP_PRESETS", "setDieFace", "ASSET_GAS_ICON"],
+      },
     ] as const;
 
     for (const { app, scene, assets, usage } of migratedAssetScenes) {
@@ -146,6 +165,12 @@ describe("root Phaser framework", () => {
       for (const token of usage) {
         expect(source, `${app}: scene should place loaded art through ${token}`).toContain(token);
       }
+      expect(source, `${app}: scene should not draw dice pips by hand`).not.toContain(
+        "DOT_POSITIONS",
+      );
+      expect(source, `${app}: scene should not use text-only coin placeholders`).not.toContain(
+        'coinMark',
+      );
     }
   });
 
