@@ -10,24 +10,20 @@ import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 
 // ── Palette ────────────────────────────────────────────────────────────────────
-const PAD_DIM   = [0x991b1b, 0x1e3a8a, 0x14532d, 0x713f12] as const; // dim states
 const PAD_LIT   = [0xf87171, 0x60a5fa, 0x4ade80, 0xfcd34d] as const; // lit states
 const PAD_GLOW  = [0xff9999, 0x93c5fd, 0x86efac, 0xfde68a] as const; // glow halos
-const BOARD_BG  = 0x0f172a;
-const BOARD_RIM = 0x1e293b;
-const CENTER_BG = 0x1e293b;
-const TEXT_MUTED = "#64748b";
-const TEXT_MAIN  = "#f1f5f9";
-
-const PAD_LABELS = ["▲", "◀", "▼", "▶"] as const;   // Top / Left / Bottom / Right
+const BOARD_BG  = 0xf4ead6;
+const BOARD_RIM = 0xb9873c;
+const CENTER_BG = 0x3a2f23;
+const TEXT_MUTED = "#7c6a52";
+const TEXT_MAIN  = "#fff8e8";
+const ASSET_MEMORY_CONSOLE = "color-clash-memory-console";
+const ASSET_ARCADE_TABLE = "color-clash-arcade-table";
 
 // Pad layout: 4 quadrants of the circle
 // Top=0, Right=1, Bottom=2, Left=3  (matches classic Simon CCW order for colors)
-const PAD_ANGLES = [270, 0, 90, 180] as const;   // degrees from center
-
 export class ColorClashScene extends BaseScene {
   private padGraphics: Phaser.GameObjects.Graphics[] = [];
-  private padLabels: Phaser.GameObjects.Text[] = [];
   private padGlows: Phaser.GameObjects.Ellipse[] = [];
 
   private roundLabel!: Phaser.GameObjects.Text;
@@ -44,6 +40,11 @@ export class ColorClashScene extends BaseScene {
   constructor() { super("ColorClashScene"); }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+
+  preload(): void {
+    this.load.image(ASSET_MEMORY_CONSOLE, "./art/memory-console.webp");
+    this.load.image(ASSET_ARCADE_TABLE, "./art/arcade-table.webp");
+  }
 
   create(): void {
     super.create();
@@ -117,12 +118,15 @@ export class ColorClashScene extends BaseScene {
   // ── Background ─────────────────────────────────────────────────────────────
 
   private drawBackground(W: number, H: number): void {
-    // Dark slate background
     this.add.rectangle(W / 2, H / 2, W, H, BOARD_BG);
-    // Subtle radial gradient ring
+    this.add.image(W / 2, H * 0.48, ASSET_ARCADE_TABLE)
+      .setDisplaySize(W * 1.18, Math.min(156, H * 0.28))
+      .setAlpha(0.72);
     const rim = this.add.graphics();
-    rim.lineStyle(60, 0x1e293b, 0.5);
-    rim.strokeCircle(W / 2, H * 0.46, W * 0.52);
+    rim.fillStyle(0xfffbef, 0.55);
+    rim.fillRoundedRect(14, 14, W - 28, H - 28, 24);
+    rim.lineStyle(2, 0xd8b46d, 0.42);
+    rim.strokeRoundedRect(14, 14, W - 28, H - 28, 24);
   }
 
   // ── Main board (4 quadrant pads) ───────────────────────────────────────────
@@ -134,18 +138,25 @@ export class ColorClashScene extends BaseScene {
     const innerR = R * 0.18;  // center hub radius
     const gap    = 5;          // px gap between pads
 
+    this.add.image(cx, cy, ASSET_MEMORY_CONSOLE)
+      .setDisplaySize(R * 2.18, R * 2.18)
+      .setDepth(1);
+
     // Board outline
     const outline = this.add.graphics();
-    outline.lineStyle(5, BOARD_RIM, 0.8);
+    outline.setDepth(2);
+    outline.lineStyle(5, BOARD_RIM, 0.55);
     outline.strokeCircle(cx, cy, R + 5);
 
     // 4 pads: top, right, bottom, left
     for (let i = 0; i < 4; i++) {
       // Glow halo (behind pad)
       const glow = this.add.ellipse(cx, cy, R * 1.9, R * 1.9, PAD_LIT[i]!, 0.0);
+      glow.setDepth(3);
       this.padGlows.push(glow);
 
       const g = this.add.graphics();
+      g.setDepth(4);
       this.padGraphics.push(g);
       this.drawPad(g, cx, cy, R, innerR, gap, i, false);
 
@@ -177,16 +188,6 @@ export class ColorClashScene extends BaseScene {
         }
       });
 
-      // Pad label (positioned in center of quadrant)
-      const labelAngle = Phaser.Math.DegToRad(PAD_ANGLES[i]!);
-      const lx = cx + Math.cos(labelAngle) * R * 0.62;
-      const ly = cy + Math.sin(labelAngle) * R * 0.62;
-      const lbl = this.add.text(lx, ly, PAD_LABELS[i]!, {
-        fontSize: "22px",
-        fontStyle: "bold",
-        color: "#ffffff",
-      }).setOrigin(0.5).setAlpha(0.5);
-      this.padLabels.push(lbl);
     }
   }
 
@@ -211,13 +212,16 @@ export class ColorClashScene extends BaseScene {
     lit: boolean,
   ): void {
     g.clear();
+    if (!lit) {
+      return;
+    }
     const startDeg = index * 90 - 45 + (gap / outerR) * (180 / Math.PI);
     const endDeg   = startDeg + 90 - (gap / outerR) * 2 * (180 / Math.PI);
     const startRad = Phaser.Math.DegToRad(startDeg);
     const endRad   = Phaser.Math.DegToRad(endDeg);
 
-    const color = lit ? PAD_LIT[index]! : PAD_DIM[index]!;
-    g.fillStyle(color, lit ? 1.0 : 0.85);
+    const color = PAD_LIT[index]!;
+    g.fillStyle(color, 0.28);
 
     // Build the pie ring shape
     g.beginPath();
@@ -226,13 +230,10 @@ export class ColorClashScene extends BaseScene {
     g.closePath();
     g.fillPath();
 
-    // Lighter edge on lit pad
-    if (lit) {
-      g.lineStyle(3, PAD_GLOW[index]!, 0.7);
-      g.beginPath();
-      g.arc(cx, cy, outerR - 2, startRad, endRad, false);
-      g.strokePath();
-    }
+    g.lineStyle(4, PAD_GLOW[index]!, 0.82);
+    g.beginPath();
+    g.arc(cx, cy, outerR - 2, startRad, endRad, false);
+    g.strokePath();
   }
 
   private lightPad(index: number, on: boolean, alpha = 1): void {
@@ -242,7 +243,6 @@ export class ColorClashScene extends BaseScene {
     const innerR = R * 0.18;
     this.drawPad(this.padGraphics[index]!, cx, cy, R, innerR, 5, index, on);
     this.padGlows[index]?.setAlpha(on ? alpha * 0.12 : 0);
-    this.padLabels[index]?.setAlpha(on ? 0.95 : 0.5);
   }
 
   // ── Center hub ─────────────────────────────────────────────────────────────

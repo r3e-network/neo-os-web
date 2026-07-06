@@ -107,7 +107,15 @@ const C = {
 // ── Difficulty label table ────────────────────────────────────────────────────
 
 const DIFF_LABELS = ["Easy", "Medium", "Hard"] as const;
-const DIFF_BADGES = [0x16a34a, 0xf4a820, 0xe25d4d] as const;
+const SNAKE_ASSETS = {
+  head: "snake-head",
+  body: "snake-body-straight",
+  tail: "snake-tail",
+  food: "food-bounty",
+  reward: "reward-trophy",
+  target: "target-badge",
+  badges: ["badge-easy", "badge-medium", "badge-hard"],
+} as const;
 
 
 // ── Scene class ───────────────────────────────────────────────────────────────
@@ -122,6 +130,7 @@ export class SnakeScene extends BaseScene {
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private snakeGfx!:     Phaser.GameObjects.Graphics;
   private foodGfx!:      Phaser.GameObjects.Graphics;
+  private foodSprite!:   Phaser.GameObjects.Image;
   private hudGfx!:       Phaser.GameObjects.Graphics;
 
   // ── HUD text ─────────────────────────────────────────────────────────────
@@ -175,7 +184,15 @@ export class SnakeScene extends BaseScene {
   // ── Phaser lifecycle ──────────────────────────────────────────────────────
 
   preload(): void {
-    // All rendering uses Phaser primitives — no external assets required
+    this.load.image(SNAKE_ASSETS.head, "./art/snake-head.webp");
+    this.load.image(SNAKE_ASSETS.body, "./art/snake-body-straight.webp");
+    this.load.image(SNAKE_ASSETS.tail, "./art/snake-tail.webp");
+    this.load.image(SNAKE_ASSETS.food, "./art/food-bounty.webp");
+    this.load.image(SNAKE_ASSETS.reward, "./art/reward-trophy.webp");
+    this.load.image(SNAKE_ASSETS.target, "./art/target-badge.webp");
+    this.load.image(SNAKE_ASSETS.badges[0], "./art/badge-easy.webp");
+    this.load.image(SNAKE_ASSETS.badges[1], "./art/badge-medium.webp");
+    this.load.image(SNAKE_ASSETS.badges[2], "./art/badge-hard.webp");
   }
 
   create(): void {
@@ -236,6 +253,7 @@ export class SnakeScene extends BaseScene {
     this.gridGraphics.setVisible(inPlay);
     this.snakeGfx.setVisible(inPlay);
     this.foodGfx.setVisible(inPlay);
+    this.foodSprite.setVisible(inPlay);
     this.hudGfx.setVisible(inPlay);
     this.timerLabel.setVisible(inPlay);
     this.lengthLabel.setVisible(inPlay);
@@ -486,6 +504,9 @@ export class SnakeScene extends BaseScene {
   private buildFoodLayer(): void {
     this.foodGfx = this.add.graphics();
     this.foodGfx.setVisible(false);
+    this.foodSprite = this.add.image(0, 0, SNAKE_ASSETS.food)
+      .setDisplaySize(CELL + 8, CELL + 8)
+      .setVisible(false);
   }
 
   // ── Build: target badge ──────────────────────────────────────────────────
@@ -602,8 +623,8 @@ export class SnakeScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0);
 
-    const titleMark = this.add.graphics();
-    this.drawSnakeMedallion(titleMark, this.scW / 2 - 92, 28, 0.58);
+    const titleMark = this.add.image(this.scW / 2 - 96, 28, SNAKE_ASSETS.head)
+      .setDisplaySize(40, 40);
 
     const title = this.add.text(this.scW / 2 + 12, 28, "Snake Bounty", {
       fontSize: "20px",
@@ -624,8 +645,7 @@ export class SnakeScene extends BaseScene {
     arenaGfx.strokeRoundedRect(GRID_LEFT, 66, GRID_PX, 160, 12);
 
     // Mini snake preview (decorative)
-    const previewGfx = this.add.graphics();
-    this.drawMiniSnakePreview(previewGfx);
+    const preview = this.buildMiniSnakePreview();
 
     // Labels inside arena
     const arenaTitle = this.add.text(GRID_LEFT + 16, 86, "How to Play", {
@@ -679,7 +699,7 @@ export class SnakeScene extends BaseScene {
       title,
       sub,
       arenaGfx,
-      previewGfx,
+      preview,
       arenaTitle,
       arenaCopy,
       ...this.lobbyCards,
@@ -688,68 +708,32 @@ export class SnakeScene extends BaseScene {
     ]);
   }
 
-  private drawMiniSnakePreview(gfx: Phaser.GameObjects.Graphics): void {
-    // Decorative mini snake path on the right side of the arena panel
-    const body: Array<{ x: number; y: number }> = [
-      { x: 340, y: 110 },
-      { x: 320, y: 110 },
-      { x: 300, y: 110 },
-      { x: 280, y: 110 },
-      { x: 260, y: 110 },
+  private buildMiniSnakePreview(): Phaser.GameObjects.Container {
+    const preview = this.add.container(0, 0);
+    const pieces: Array<{
+      key: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      angle?: number;
+    }> = [
+      { key: SNAKE_ASSETS.tail, x: 258, y: 112, width: 30, height: 22, angle: 180 },
+      { key: SNAKE_ASSETS.body, x: 286, y: 112, width: 34, height: 22 },
+      { key: SNAKE_ASSETS.body, x: 314, y: 112, width: 34, height: 22 },
+      { key: SNAKE_ASSETS.head, x: 346, y: 108, width: 42, height: 42 },
+      { key: SNAKE_ASSETS.food, x: 365, y: 158, width: 28, height: 28 },
     ];
-    // Body segments
-    gfx.fillStyle(C.body, 0.7);
-    for (let i = 1; i < body.length; i++) {
-      gfx.fillRoundedRect(body[i]!.x - 7, body[i]!.y - 7, 14, 14, 4);
-    }
-    // Head
-    gfx.fillStyle(C.head, 0.9);
-    gfx.fillRoundedRect(body[0]!.x - 9, body[0]!.y - 9, 18, 18, 6);
-    // Food dot
-    gfx.fillStyle(C.gold, 1);
-    gfx.fillCircle(365, 158, 6);
-    gfx.fillStyle(C.goldLight, 0.6);
-    gfx.fillCircle(365, 158, 9);
-  }
 
-  private drawSnakeMedallion(
-    gfx: Phaser.GameObjects.Graphics,
-    x: number,
-    y: number,
-    scale = 1,
-  ): void {
-    gfx.fillStyle(C.cardActiveBg, 1);
-    gfx.fillCircle(x, y, 22 * scale);
-    gfx.lineStyle(2 * scale, C.gold, 0.9);
-    gfx.strokeCircle(x, y, 22 * scale);
-    gfx.lineStyle(5 * scale, C.tail, 0.95);
-    gfx.beginPath();
-    gfx.moveTo(x - 13 * scale, y + 3 * scale);
-    gfx.lineTo(x - 5 * scale, y - 6 * scale);
-    gfx.lineTo(x + 6 * scale, y - 6 * scale);
-    gfx.lineTo(x + 12 * scale, y + 1 * scale);
-    gfx.strokePath();
-    gfx.fillStyle(C.head, 1);
-    gfx.fillRoundedRect(x + 8 * scale, y - 8 * scale, 10 * scale, 10 * scale, 3 * scale);
-    gfx.fillStyle(C.goldLight, 1);
-    gfx.fillCircle(x + 15 * scale, y - 5 * scale, 1.6 * scale);
-  }
-
-  private drawDifficultyBadge(
-    gfx: Phaser.GameObjects.Graphics,
-    x: number,
-    y: number,
-    difficulty: Difficulty,
-  ): void {
-    const color = DIFF_BADGES[difficulty];
-    gfx.fillStyle(color, 0.28);
-    gfx.fillCircle(x, y, 18);
-    gfx.lineStyle(2, color, 0.95);
-    gfx.strokeCircle(x, y, 18);
-    gfx.fillStyle(color, 0.92);
-    for (let i = 0; i <= difficulty; i++) {
-      gfx.fillRoundedRect(x - 10 + i * 9, y + 7 - i * 6, 5, 8 + i * 6, 2);
+    for (const piece of pieces) {
+      preview.add(
+        this.add.image(piece.x, piece.y, piece.key)
+          .setDisplaySize(piece.width, piece.height)
+          .setAngle(piece.angle ?? 0),
+      );
     }
+
+    return preview;
   }
 
   private makeCard(
@@ -767,8 +751,8 @@ export class SnakeScene extends BaseScene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const badge = this.add.graphics();
-    this.drawDifficultyBadge(badge, 0, -28, difficulty);
+    const badge = this.add.image(0, -28, SNAKE_ASSETS.badges[difficulty])
+      .setDisplaySize(42, 42);
 
     const label = this.add.text(0, -6, DIFF_LABELS[difficulty], {
       fontSize: "13px",
@@ -917,18 +901,10 @@ export class SnakeScene extends BaseScene {
     // Outer glow
     gfx.fillStyle(C.goldLight, 0.25 + this.foodPulse * 0.15);
     gfx.fillCircle(px, py, r + 3);
-    // Gold circle (apple-like)
-    gfx.fillStyle(C.star, 1);
-    gfx.fillCircle(px, py, r);
-    // Highlight
-    gfx.fillStyle(0xffffff, 0.35);
-    gfx.fillCircle(px - r * 0.3, py - r * 0.3, r * 0.35);
-    // Stem
-    gfx.lineStyle(1.5, 0x2d6a4f, 0.8);
-    gfx.beginPath();
-    gfx.moveTo(px, py - r);
-    gfx.lineTo(px + 2, py - r - 4);
-    gfx.strokePath();
+    this.foodSprite
+      .setPosition(px, py)
+      .setDisplaySize((CELL + 8) * scale, (CELL + 8) * scale)
+      .setVisible(true);
   }
 
   // ── HUD update ────────────────────────────────────────────────────────────
