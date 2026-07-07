@@ -10,13 +10,13 @@ import type { GameState } from "@framework/phaser";
 import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
 
 // ── Casino color palette ─────────────────────────────────────────────────────
-const FELT_GREEN   = 0x1a5c2e;
-const FELT_DARK    = 0x0f3d1e;
-const FELT_TRIM    = 0x276639;
+const FELT_GREEN   = 0x2f8f58;
+const FELT_DARK    = 0x176238;
 const GOLD         = 0xd4a843;
 const GOLD_LIGHT   = 0xf0c866;
-const TABLE_EDGE   = 0x8b4513;
-const TEXT_CREAM   = 0xfff8e8;
+const CREAM        = 0xfff8e8;
+const FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
+const TEXT_RESOLUTION = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 const DIE_SIZE     = 88;
 
 const DIE_FACE_ASSETS = [
@@ -53,11 +53,14 @@ export class DiceScene extends BaseScene {
   private diceGroup!: Phaser.GameObjects.Container;
   private dieFace1!: Phaser.GameObjects.Image;   // main die
   private dieShadowRect!: Phaser.GameObjects.Rectangle;
+  private throwTrail!: Phaser.GameObjects.Graphics;
+  private throwGhosts: Phaser.GameObjects.Image[] = [];
 
   private faceButtons: Phaser.GameObjects.Container[] = [];
   private chipButtons: Phaser.GameObjects.Container[] = [];
   private rollBtn!: Phaser.GameObjects.Container;
   private rollBtnBg!: Phaser.GameObjects.Graphics;
+  private rollBtnLabel!: Phaser.GameObjects.Text;
 
   private payoutLabel!: Phaser.GameObjects.Text;
   private stakeLabel!: Phaser.GameObjects.Text;
@@ -91,7 +94,7 @@ export class DiceScene extends BaseScene {
     const { width: W, height: H } = this.scale;
     this.buildTable(W, H);
     this.buildDice(W, H);
-    this.buildFacePicker(W, H);
+    this.buildBettingSpots(W, H);
     this.buildChipTray(W, H);
     this.buildPayoutRow(W, H);
     this.buildRollButton(W, H);
@@ -100,7 +103,7 @@ export class DiceScene extends BaseScene {
     this.onStateUpdate(this.state);
   }
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const faceStr   = this.str("selectedFace",  "6");
     const stakeStr  = this.str("stakeAmount",   "0.10 GAS").replace(/\s*GAS$/i, "");
     const rolling   = this.bool("isSubmitting") || this.bool("isResolving");
@@ -123,9 +126,10 @@ export class DiceScene extends BaseScene {
     });
 
     // Labels
-    this.stakeLabel.setText(`Stake: ${this.stakeAmount.toFixed(2)} GAS`);
-    this.payoutLabel.setText(`Win: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
-    this.statusBar.setText(status);
+    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} GAS`);
+    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
+    const normalizedStatus = status.trim();
+    this.statusBar.setText(normalizedStatus === "Ready" || normalizedStatus === "就绪" ? "" : status);
 
     // Rolling animation
     if (rolling && !this.isRolling) {
@@ -151,45 +155,74 @@ export class DiceScene extends BaseScene {
     const canRoll = !rolling;
     this.rollBtnBg.clear();
     this.drawRollBtnBg(canRoll);
+    this.rollBtnLabel.setText(rolling ? "ROLLING..." : "THROW DICE");
   }
 
   // ── Table construction ─────────────────────────────────────────────────────
 
   private buildTable(W: number, H: number): void {
-    // Outer wood rim
     const rimDepth = 20;
-    this.add.rectangle(W / 2, H / 2, W, H, TABLE_EDGE);
-
-    // Green felt area
+    this.add.rectangle(W / 2, H / 2, W, H, 0xb77b39);
     this.add.rectangle(W / 2, H / 2, W - rimDepth * 2, H - rimDepth * 2, FELT_GREEN);
+    this.add.rectangle(W / 2, H / 2 + 2, W - 52, H - 72, 0x23824e, 0.82)
+      .setStrokeStyle(2, 0x74d49a, 0.28);
 
-    // Inner darker oval (betting area)
-    const oval = this.add.ellipse(
-      W / 2, H * 0.5,
-      W * 0.8, H * 0.62,
-      FELT_DARK,
-    );
-    // Gold trim ring
+    // Main throw mat: a clean visual stage, not a configuration form.
+    this.add.ellipse(W / 2, H * 0.42, W * 0.78, H * 0.54, FELT_DARK, 0.86);
     const trimG = this.add.graphics();
-    trimG.lineStyle(3, GOLD, 0.55);
-    trimG.strokeEllipse(W / 2, H * 0.5, W * 0.8 + 8, H * 0.62 + 8);
+    trimG.lineStyle(3, GOLD, 0.62);
+    trimG.strokeEllipse(W / 2, H * 0.42, W * 0.78 + 8, H * 0.54 + 8);
+    trimG.lineStyle(1, 0xffffff, 0.22);
+    trimG.strokeEllipse(W / 2, H * 0.42, W * 0.78 - 24, H * 0.54 - 24);
 
-    // Subtle felt grain lines
     const grain = this.add.graphics();
-    grain.lineStyle(1, 0x186231, 0.18);
+    grain.lineStyle(1, 0x0d5a32, 0.16);
     for (let y = rimDepth; y < H - rimDepth; y += 22) {
       grain.lineBetween(rimDepth, y, W - rimDepth, y);
     }
 
-    this.add.image(W * 0.78, H * 0.19, ASSET_HERO_DIE)
-      .setDisplaySize(72, 82)
+    this.throwTrail = this.add.graphics();
+    this.throwTrail.lineStyle(3, GOLD_LIGHT, 0.18);
+    const start = { x: W * 0.24, y: H * 0.36 };
+    const control = { x: W * 0.5, y: H * 0.18 };
+    const end = { x: W * 0.76, y: H * 0.36 };
+    let prev = start;
+    for (let step = 1; step <= 18; step++) {
+      const t = step / 18;
+      const inv = 1 - t;
+      const next = {
+        x: inv * inv * start.x + 2 * inv * t * control.x + t * t * end.x,
+        y: inv * inv * start.y + 2 * inv * t * control.y + t * t * end.y,
+      };
+      this.throwTrail.lineBetween(prev.x, prev.y, next.x, next.y);
+      prev = next;
+    }
+
+    this.add.text(W / 2, 42, "LUCKY FACE TABLE", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      fontStyle: "bold",
+      color: "#fff8e8",
+      letterSpacing: 2,
+    }).setOrigin(0.5).setAlpha(0.82);
+
+    this.add.text(W / 2, 64, "Pick a face, stack a chip, throw once.", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "12px",
+      color: "#d9f8df",
+    }).setOrigin(0.5).setAlpha(0.78);
+
+    this.add.image(W * 0.78, H * 0.18, ASSET_HERO_DIE)
+      .setDisplaySize(66, 74)
       .setAngle(10)
-      .setAlpha(0.14);
+      .setAlpha(0.13);
   }
 
   private buildDice(W: number, H: number): void {
     const cx = W / 2;
-    const cy = H * 0.3;
+    const cy = H * 0.28;
 
     // Shadow
     this.dieShadowRect = this.add.rectangle(
@@ -207,6 +240,18 @@ export class DiceScene extends BaseScene {
       .setDisplaySize(DIE_SIZE, DIE_SIZE);
     this.diceGroup = this.add.container(cx, cy, [this.dieFace1]);
     this.setDieFace(this.selectedFace);
+
+    this.throwGhosts = [
+      this.add.image(W * 0.31, H * 0.33, ASSET_HERO_DIE),
+      this.add.image(W * 0.50, H * 0.22, ASSET_HERO_DIE),
+      this.add.image(W * 0.69, H * 0.33, ASSET_HERO_DIE),
+    ].map((ghost, index) => {
+      ghost
+        .setDisplaySize(38 + index * 4, 42 + index * 4)
+        .setAngle(index === 1 ? -10 : 14)
+        .setAlpha(0);
+      return ghost;
+    });
   }
 
   private dieAssetKey(face: number): string {
@@ -218,21 +263,29 @@ export class DiceScene extends BaseScene {
     this.dieFace1.setTexture(this.dieAssetKey(face)).setDisplaySize(DIE_SIZE, DIE_SIZE);
   }
 
-  // ── Face picker (1–6 buttons) ──────────────────────────────────────────────
+  // ── Betting spots (1–6 face targets) ───────────────────────────────────────
 
-  private buildFacePicker(W: number, H: number): void {
-    const y = H * 0.57;
-    this.add.text(W / 2, y - 24, "Pick Your Number", {
-      fontSize: "12px",
-      color: "#d4a843",
+  private buildBettingSpots(W: number, H: number): void {
+    const y = H * 0.56;
+    this.add.text(W / 2, y - 33, "Prediction rail", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      fontStyle: "bold",
+      color: "#fff8e8",
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0.9);
 
-    const totalW = 6 * 48;
-    const startX = W / 2 - totalW / 2 + 24;
+    const rail = this.add.rectangle(W / 2, y + 5, W - 58, 62, 0xffffff, 0.12)
+      .setStrokeStyle(1, 0xffffff, 0.18)
+      .setOrigin(0.5);
+    void rail;
+
+    const totalW = 6 * 54;
+    const startX = W / 2 - totalW / 2 + 27;
 
     for (let i = 1; i <= 6; i++) {
-      const x = startX + (i - 1) * 48;
+      const x = startX + (i - 1) * 54;
       const btn = this.buildFaceButton(x, y, i);
       this.faceButtons.push(btn);
     }
@@ -241,25 +294,36 @@ export class DiceScene extends BaseScene {
   private buildFaceButton(x: number, y: number, face: number): Phaser.GameObjects.Container {
     const c = this.add.container(x, y);
     const bg = this.add.graphics();
-    bg.fillStyle(FELT_DARK, 1);
-    bg.lineStyle(2, GOLD, 0.4);
-    bg.fillRoundedRect(-18, -18, 36, 36, 8);
-    bg.strokeRoundedRect(-18, -18, 36, 36, 8);
-    bg.setInteractive(new Phaser.Geom.Rectangle(-18, -18, 36, 36), Phaser.Geom.Rectangle.Contains);
+    bg.fillStyle(CREAM, 0.95);
+    bg.lineStyle(2, GOLD, 0.48);
+    bg.fillRoundedRect(-23, -24, 46, 52, 14);
+    bg.strokeRoundedRect(-23, -24, 46, 52, 14);
+    bg.setInteractive(new Phaser.Geom.Rectangle(-23, -24, 46, 52), Phaser.Geom.Rectangle.Contains);
     this.bindGameButton(bg, {
       targets: c,
       hoverScale: 1.06,
       pressScale: 0.92,
-      onPress: () => this.dispatch("setSelectedFace", { face: String(face) }),
+      onPress: () => {
+        this.selectedFace = face;
+        this.refreshBettingState();
+        this.dispatch("setSelectedFace", { face: String(face) });
+      },
       onHoverIn: () => bg.setAlpha(0.86),
       onHoverOut: () => bg.setAlpha(1.0),
     });
 
     const die = this.add.image(0, 0, this.dieAssetKey(face))
-      .setDisplaySize(28, 28)
-      .setAlpha(0.86);
+      .setDisplaySize(34, 34)
+      .setAlpha(0.9);
+    const odd = this.add.text(0, 22, "5.7x", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "9px",
+      fontStyle: "bold",
+      color: "#5b3a12",
+    }).setOrigin(0.5).setAlpha(0.72);
 
-    c.add([bg, die]);
+    c.add([bg, die, odd]);
     c.setData("bg", bg);
     c.setData("die", die);
     return c;
@@ -269,20 +333,30 @@ export class DiceScene extends BaseScene {
     const bg  = btn.getData("bg") as Phaser.GameObjects.Graphics;
     const die = btn.getData("die") as Phaser.GameObjects.Image;
     bg.clear();
-    bg.fillStyle(active ? GOLD : FELT_DARK, 1);
-    bg.lineStyle(2, active ? GOLD_LIGHT : GOLD, active ? 1 : 0.4);
-    bg.fillRoundedRect(-18, -18, 36, 36, 8);
-    bg.strokeRoundedRect(-18, -18, 36, 36, 8);
-    die.setDisplaySize(active ? 32 : 28, active ? 32 : 28).setAlpha(active ? 1 : 0.72);
+    bg.fillStyle(active ? 0xfff0bd : CREAM, active ? 1 : 0.95);
+    bg.lineStyle(active ? 3 : 2, active ? GOLD_LIGHT : GOLD, active ? 1 : 0.48);
+    bg.fillRoundedRect(-23, -24, 46, 52, 14);
+    bg.strokeRoundedRect(-23, -24, 46, 52, 14);
+    if (active) {
+      bg.lineStyle(1, 0xffffff, 0.58);
+      bg.strokeRoundedRect(-18, -19, 36, 42, 11);
+    }
+    die.setDisplaySize(active ? 39 : 34, active ? 39 : 34).setAlpha(active ? 1 : 0.82);
   }
 
   // ── Chip tray ──────────────────────────────────────────────────────────────
 
   private buildChipTray(W: number, H: number): void {
     const y = H * 0.705;
-    this.add.text(W / 2, y - 44, "Stake Amount", {
-      fontSize: "12px",
-      color: "#d4a843",
+    this.add.rectangle(W / 2, y, W - 74, 72, 0xffffff, 0.14)
+      .setStrokeStyle(1, 0xffffff, 0.18)
+      .setOrigin(0.5);
+    this.add.text(W / 2, y - 42, "Chip rail", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      fontStyle: "bold",
+      color: "#fff8e8",
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0.9);
 
@@ -292,6 +366,8 @@ export class DiceScene extends BaseScene {
     CHIP_PRESETS.forEach((chip, i) => {
       const x = startX + i * 70;
       const btn = this.buildChip(x, y, chip.asset, chip.label, () => {
+        this.stakeAmount = Number(chip.amount);
+        this.refreshBettingState();
         this.dispatch("setStakeAmount", { amount: chip.amount });
       });
       this.chipButtons.push(btn);
@@ -310,6 +386,8 @@ export class DiceScene extends BaseScene {
     const chip = this.add.image(0, 0, asset).setDisplaySize(56, 56);
 
     const lbl = this.add.text(0, 0, label, {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "11px",
       fontStyle: "bold",
       color: "#ffffff",
@@ -324,11 +402,11 @@ export class DiceScene extends BaseScene {
       pressDuration: 80,
       onPress,
       onHoverIn: () => {
-        chip.setScale(1.06);
+        chip.setDisplaySize(60, 60);
         lbl.setScale(1.06);
       },
       onHoverOut: () => {
-        chip.setScale(1);
+        chip.setDisplaySize(56, 56);
         lbl.setScale(1);
       },
     });
@@ -353,13 +431,21 @@ export class DiceScene extends BaseScene {
   // ── Payout row ─────────────────────────────────────────────────────────────
 
   private buildPayoutRow(W: number, H: number): void {
-    this.stakeLabel = this.add.text(W / 2 - 70, H * 0.805, "Stake: 0.10 GAS", {
-      fontSize: "14px",
-      color: "#d4a843",
+    this.add.rectangle(W / 2, H * 0.815, W - 88, 32, 0x0f4b2b, 0.68)
+      .setStrokeStyle(1, GOLD, 0.32)
+      .setOrigin(0.5);
+    this.stakeLabel = this.add.text(W / 2 - 76, H * 0.815, "On table: 0.10 GAS", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "13px",
+      fontStyle: "bold",
+      color: "#fff8e8",
     }).setOrigin(0.5);
 
-    this.payoutLabel = this.add.text(W / 2 + 70, H * 0.805, "Win: 0.57 GAS", {
-      fontSize: "14px",
+    this.payoutLabel = this.add.text(W / 2 + 78, H * 0.815, "Hit pays: 0.57 GAS", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "13px",
       color: "#f0c866",
       fontStyle: "bold",
     }).setOrigin(0.5);
@@ -373,7 +459,9 @@ export class DiceScene extends BaseScene {
     this.rollBtnBg = this.add.graphics();
     this.drawRollBtnBg(true);
 
-    const label = this.add.text(0, 0, "ROLL THE DICE", {
+    const label = this.add.text(0, 0, "THROW DICE", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "17px",
       fontStyle: "bold",
       color: "#1a1a1a",
@@ -389,11 +477,15 @@ export class DiceScene extends BaseScene {
       enabled: () => !this.isRolling,
       pressScale: 0.95,
       pressDuration: 80,
-      onPress: () => this.dispatch("placeDiceBet", {}),
+      onPress: () => this.dispatch("placeDiceBet", {
+        chosenNumber: String(this.selectedFace),
+        amount: this.stakeAmount.toFixed(2),
+      }),
     });
 
     c.add([this.rollBtnBg, label]);
     this.rollBtn = c;
+    this.rollBtnLabel = label;
   }
 
   private drawRollBtnBg(enabled: boolean): void {
@@ -411,10 +503,25 @@ export class DiceScene extends BaseScene {
   // ── Status bar ─────────────────────────────────────────────────────────────
 
   private buildStatusBar(W: number, H: number): void {
-    this.statusBar = this.add.text(W / 2, H * 0.96, "", {
+    this.statusBar = this.add.text(W / 2, H * 0.865, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "12px",
-      color: "#a89070",
-    }).setOrigin(0.5);
+      color: "#d9f8df",
+    }).setOrigin(0.5).setDepth(2);
+  }
+
+  private refreshBettingState(): void {
+    this.faceButtons.forEach((btn, i) => {
+      this.highlightFaceBtn(btn, i + 1 === this.selectedFace);
+    });
+    this.chipButtons.forEach((btn, i) => {
+      const presetAmt = parseFloat(CHIP_PRESETS[i]!.amount);
+      this.highlightChipBtn(btn, i, Math.abs(presetAmt - this.stakeAmount) < 0.001);
+    });
+    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} GAS`);
+    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
+    if (!this.isRolling) this.setDieFace(this.selectedFace);
   }
 
   // ── Result banner ──────────────────────────────────────────────────────────
@@ -423,18 +530,22 @@ export class DiceScene extends BaseScene {
     const c = this.add.container(W / 2, H * 0.3);
 
     const bg = this.add.graphics();
-    bg.fillStyle(0x000000, 0.82);
+    bg.fillStyle(0xfff8e8, 0.94);
     bg.fillRoundedRect(-120, -48, 240, 96, 18);
     bg.lineStyle(3, GOLD);
     bg.strokeRoundedRect(-120, -48, 240, 96, 18);
 
     const title = this.add.text(0, -18, "", {
-      fontSize: "30px",
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "28px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#201811",
     }).setOrigin(0.5);
 
     const sub = this.add.text(0, 18, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "15px",
       color: GOLD_LIGHT.toString(16).padStart(6, "0"),
     }).setOrigin(0.5);
@@ -487,6 +598,7 @@ export class DiceScene extends BaseScene {
   private startRoll(): void {
     this.isRolling = true;
     this.resultBanner.setVisible(false);
+    this.throwTrail.setAlpha(0.8);
 
     this.shuffleCounter = 0;
     this.shuffleTimer = this.time.addEvent({
@@ -498,7 +610,8 @@ export class DiceScene extends BaseScene {
         this.setDieFace(face);
         this.tweens.add({
           targets: this.diceGroup,
-          angle: Phaser.Math.Between(-12, 12),
+          x: this.scale.width / 2 + Phaser.Math.Between(-18, 18),
+          angle: Phaser.Math.Between(-24, 24),
           duration: 60,
           ease: "Power1",
         });
@@ -513,11 +626,36 @@ export class DiceScene extends BaseScene {
       },
     });
 
-    // Toss animation on the die
+    this.throwGhosts.forEach((ghost, index) => {
+      ghost.setAlpha(0).setScale(0.9).setVisible(true);
+      this.tweens.add({
+        targets: ghost,
+        alpha: { from: 0, to: 0.24 },
+        scale: { from: 0.82, to: 1.1 },
+        angle: ghost.angle + 60,
+        delay: index * 90,
+        duration: 260,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    });
+
+    this.tweens.add({
+      targets: this.throwTrail,
+      alpha: { from: 0.18, to: 0.72 },
+      duration: 360,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
     this.tweens.add({
       targets: this.diceGroup,
-      y: "-=30",
-      duration: 200,
+      y: { from: this.scale.height * 0.28 + 18, to: this.scale.height * 0.28 - 34 },
+      scaleX: { from: 0.96, to: 1.1 },
+      scaleY: { from: 0.96, to: 1.1 },
+      duration: 220,
       ease: "Sine.easeOut",
       yoyo: true,
       repeat: -1,
@@ -529,11 +667,18 @@ export class DiceScene extends BaseScene {
     this.shuffleTimer?.remove();
     this.tweens.killTweensOf(this.diceGroup);
     this.tweens.killTweensOf(this.dieShadowRect);
+    this.tweens.killTweensOf(this.throwTrail);
+    this.throwTrail.setAlpha(1);
+    for (const ghost of this.throwGhosts) {
+      this.tweens.killTweensOf(ghost);
+      ghost.setAlpha(0).setScale(1);
+    }
 
     // Settle animation
     this.tweens.add({
       targets: this.diceGroup,
-      y: this.scale.height * 0.3,
+      x: this.scale.width / 2,
+      y: this.scale.height * 0.28,
       angle: 0,
       duration: 200,
       ease: "Bounce.easeOut",

@@ -254,7 +254,17 @@ describe("root Phaser framework", () => {
           "./art/hero-die.webp",
           "@shared/assets/tokens/gas-icon.svg?url",
         ],
-        usage: ["DIE_FACE_ASSETS", "CHIP_PRESETS", "setDieFace", "ASSET_GAS_ICON"],
+        usage: [
+          "DIE_FACE_ASSETS",
+          "CHIP_PRESETS",
+          "setDieFace",
+          "ASSET_GAS_ICON",
+          "buildBettingSpots",
+          "throwGhosts",
+          "dispatch(\"placeDiceBet\", {",
+          "chosenNumber: String(this.selectedFace)",
+          "amount: this.stakeAmount.toFixed(2)",
+        ],
       },
       {
         app: "game-2048",
@@ -458,6 +468,39 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: target board should use loaded art, not the old hand-drawn target note`).not.toContain(
           "Concentric-ring target board",
+        );
+      }
+      if (app === "dice-game") {
+        const mainSource = readFileSync(
+          resolve(repoRoot, "apps/dice-game/src/main.tsx"),
+          "utf8",
+        );
+        expect(source, `${app}: Phaser scene should use betting-table language instead of form labels`).not.toContain(
+          "Pick Your Number",
+        );
+        expect(source, `${app}: Phaser scene should use chip-rail language instead of form labels`).not.toContain(
+          "Stake Amount",
+        );
+        expect(source, `${app}: CTA should use table action language instead of old generic copy`).not.toContain(
+          "ROLL THE DICE",
+        );
+        expect(source, `${app}: face selection should be table betting spots`).toContain(
+          "Prediction rail",
+        );
+        expect(source, `${app}: stake selection should be a chip rail`).toContain(
+          "Chip rail",
+        );
+        expect(source, `${app}: rolling state should animate a dice throw trail`).toContain(
+          "throwTrail",
+        );
+        expect(source, `${app}: CTA should be a dice throw action`).toContain(
+          "THROW DICE",
+        );
+        expect(mainSource, `${app}: production action registry should accept Phaser face selection`).toContain(
+          'ctx.framework.actions.register("setSelectedFace"',
+        );
+        expect(mainSource, `${app}: production action registry should accept Phaser chip selection`).toContain(
+          'ctx.framework.actions.register("setStakeAmount"',
         );
       }
       if (app === "game-2048") {
