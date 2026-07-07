@@ -2,10 +2,9 @@
  * SudokuScene — Phaser 3 scene for the Sudoku miniapp.
  *
  * Renders a full Sudoku game inside the Phaser canvas:
- *  - Lobby with 3 difficulty seal badges
- *  - 9×9 grid with warm paper aesthetic, bold 3×3 box borders
- *  - Given cells (grey bg, bold dark digit), player cells (white bg, blue digit)
- *  - Gold selection ring, red-tint conflict highlight
+ *  - Lobby with three sealed puzzle routes
+ *  - 9×9 grid on loaded paper/cell art with bold 3×3 box borders
+ *  - Given cells, placed cells, selected cells, and conflict cells use real art
  *  - Digit picker 1–9 and Undo button below the grid
  *  - Timer bar + reward-percentage HUD
  *  - Submit / Start buttons
@@ -45,53 +44,66 @@ const H         = 600;
 const CELL      = 36;                           // px per cell
 const GRID_W    = 9 * CELL;                     // 324
 const GRID_X    = (W - GRID_W) / 2;            // 38  — left edge of grid
-const GRID_Y    = 52;                           // top edge of grid
+const GRID_Y    = 64;                           // top edge of grid
 const DIGIT_Y   = GRID_Y + GRID_W + 22;        // digit bar center y  (~398)
 const UNDO_Y    = DIGIT_Y + 52;                 // undo button center  (~450)
 const ACTION_Y  = UNDO_Y + 52;                  // submit/start center (~502)
 const STATUS_Y  = ACTION_Y + 46;               // status text         (~548)
 const TIMER_Y   = 20;                           // timer bar center y
 
+const FONT_FAMILY = "Inter, Arial, sans-serif";
+
 // ── Colour palette ─────────────────────────────────────────────────────────────
 const C = {
-  paper:         0xf5e6c8,
-  paperEdge:     0xe8d0a0,
-  tableCloth:    0x3d2410,
-  gridLine:      0xb09070,
-  boxLine:       0x4a2c10,
-  cellGiven:     0xd8c89a,
-  cellPlayer:    0xfaf6ee,
-  cellEmpty:     0xf0e4c0,
-  cellConflict:  0xffddcc,
-  selRing:       0xd4a843,
-  selRingInner:  0xfce88a,
-  digitGiven:    0x2a1a08,
-  digitPlayer:   0x1a4a8f,
-  digitConflict: 0xcc2200,
+  appBg:         0xfff8ea,
+  appBgWarm:     0xffefd0,
+  paper:         0xfffbf1,
+  paperEdge:     0xe8c982,
+  gridLine:      0xd7c4a2,
+  boxLine:       0x6c5230,
+  selRing:       0xf0b733,
+  selRingInner:  0xffe9a6,
+  digitGiven:    0x2d2114,
+  digitPlayer:   0x175f91,
+  digitConflict: 0xc83c21,
   gold:          0xd4a843,
   goldLight:     0xf0c866,
   goldDark:      0x8a6820,
-  btnBg:         0x2a1a08,
-  btnBorder:     0x7a5a28,
-  btnActive:     0xb8860b,
-  btnText:       0xd4a843,
+  btnBg:         0xfffbf1,
+  btnBorder:     0xd9bf85,
+  btnActive:     0xffe3a8,
+  btnText:       0x4b351c,
   timerFull:     0x4aaa55,
   timerMid:      0xd4a843,
   timerLow:      0xcc4422,
   white:         0xffffff,
-  muted:         0xa08060,
+  muted:         0xb38b55,
   red:           0xcc2200,
   green:         0x1a7a30,
-  diffEasy:      0x2a7a3a,
-  diffMedium:    0x8a6a10,
-  diffHard:      0x7a1a10,
+  diffEasy:      0x6dbf7b,
+  diffMedium:    0xdbab40,
+  diffHard:      0xdd6958,
 } as const;
 
 // ── Difficulty display data ────────────────────────────────────────────────────
 const DIFF_LABELS  = ["Easy", "Medium", "Hard"] as const;
-const DIFF_ICONS   = ["◆", "◆◆", "◆◆◆"] as const;   // drawn text symbols, no emoji
 const DIFF_COLORS  = [C.diffEasy, C.diffMedium, C.diffHard] as const;
 const DIFF_REWARDS = ["0.1 GAS", "0.5 GAS", "1.0 GAS"] as const;
+const DIFF_COPY    = ["Warm-up grid", "Ranked grid", "Master grid"] as const;
+
+const SUDOKU_ASSETS = {
+  paperGrid: "sudoku-paper-grid",
+  cellGiven: "sudoku-cell-given",
+  cellPlaced: "sudoku-cell-placed",
+  cellSelected: "sudoku-cell-selected",
+  cellConflict: "sudoku-cell-conflict",
+  noteToken: "sudoku-note-token",
+  pencil: "sudoku-pencil",
+  rewardTrophy: "sudoku-reward-trophy",
+  sealedEnvelope: "sudoku-sealed-envelope",
+  solvedBadge: "sudoku-solved-badge",
+  seals: ["sudoku-seal-easy", "sudoku-seal-medium", "sudoku-seal-hard"],
+} as const;
 
 // ── Move history entry ─────────────────────────────────────────────────────────
 interface MoveEntry { cell: number; prev: number; }
@@ -115,7 +127,9 @@ export class SudokuScene extends BaseScene {
   // ── Scene-level display objects ────────────────────────────────────────────
 
   // Grid
-  private cellBg!:   Phaser.GameObjects.Rectangle[];
+  private paperBoard!: Phaser.GameObjects.Image;
+  private cellArt!:   Phaser.GameObjects.Image[];
+  private cellHit!:   Phaser.GameObjects.Rectangle[];
   private cellText!: Phaser.GameObjects.Text[];
   private gridLines!: Phaser.GameObjects.Graphics;
   private selRing!:   Phaser.GameObjects.Rectangle;
@@ -132,11 +146,13 @@ export class SudokuScene extends BaseScene {
   // Undo button
   private undoBtn!:     Phaser.GameObjects.Container;
   private undoBtnText!: Phaser.GameObjects.Text;
+  private undoButtonEnabled = false;
 
   // Action button (Start / Submit)
   private actionBtn!:     Phaser.GameObjects.Container;
   private actionBtnText!: Phaser.GameObjects.Text;
   private actionBtnBg!:   Phaser.GameObjects.Rectangle;
+  private actionButtonEnabled = false;
 
   // Status
   private statusLabel!: Phaser.GameObjects.Text;
@@ -147,10 +163,12 @@ export class SudokuScene extends BaseScene {
   private lobbyPoolText!: Phaser.GameObjects.Text;
   private lobbyTitleText!: Phaser.GameObjects.Text;
   private lobbySubText!: Phaser.GameObjects.Text;
+  private lobbyRewardArt!: Phaser.GameObjects.Image;
+  private lobbyResultBadge!: Phaser.GameObjects.Image;
 
   // Dealing overlay
   private dealingContainer!: Phaser.GameObjects.Container;
-  private dealingDots: Phaser.GameObjects.Text[] = [];
+  private dealingDots: Phaser.GameObjects.Arc[] = [];
 
   // Game group (all non-lobby objects)
   private gameGroupObjects: Phaser.GameObjects.GameObject[] = [];
@@ -161,16 +179,21 @@ export class SudokuScene extends BaseScene {
   // ── Scene construction ─────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    // Dark tablecloth surround
-    this.add.rectangle(W / 2, H / 2, W, H, C.tableCloth);
-    // Warm paper area
-    this.add.rectangle(W / 2, H / 2, W - 8, H - 8, C.paper)
-      .setStrokeStyle(3, C.paperEdge);
+    this.add.rectangle(W / 2, H / 2, W, H, C.appBg);
+    this.add.rectangle(W / 2, 118, W, 236, C.appBgWarm, 0.68);
+    this.add.rectangle(W / 2, H - 82, W - 28, 150, C.paper, 0.62)
+      .setStrokeStyle(1, C.paperEdge, 0.35);
   }
 
   private buildGrid(): void {
-    this.cellBg   = [];
+    this.cellArt  = [];
+    this.cellHit  = [];
     this.cellText = [];
+
+    this.paperBoard = this.add.image(W / 2, GRID_Y + GRID_W / 2, SUDOKU_ASSETS.paperGrid)
+      .setDisplaySize(GRID_W + 28, GRID_W + 28)
+      .setAlpha(0.98);
+    this.gameGroupObjects.push(this.paperBoard);
 
     for (let i = 0; i < 81; i++) {
       const row = Math.floor(i / 9);
@@ -178,24 +201,35 @@ export class SudokuScene extends BaseScene {
       const cx  = GRID_X + col * CELL + CELL / 2;
       const cy  = GRID_Y + row * CELL + CELL / 2;
 
-      const bg = this.add.rectangle(cx, cy, CELL - 1, CELL - 1, C.cellEmpty)
-        .setStrokeStyle(0.5, C.gridLine);
-      bg.setInteractive({ useHandCursor: true });
-      bg.on("pointerdown", () => this.handleCellTap(i));
-      bg.on("pointerover", () => {
-        if (i !== this.selectedCell) bg.setAlpha(0.85);
-      });
-      bg.on("pointerout", () => bg.setAlpha(1));
+      const art = this.add.image(cx, cy, SUDOKU_ASSETS.cellPlaced)
+        .setDisplaySize(CELL - 3, CELL - 3)
+        .setAlpha(0.32);
 
       const txt = this.add.text(cx, cy, "", {
+        fontFamily: FONT_FAMILY,
         fontSize: "20px",
         fontStyle: "bold",
-        color: "#2a1a08",
-      }).setOrigin(0.5).setAlpha(0);
+        color: "#2d2114",
+      }).setOrigin(0.5).setAlpha(0).setDepth(8);
 
-      this.cellBg.push(bg);
+      const hit = this.add.rectangle(cx, cy, CELL, CELL, C.white, 0.001)
+        .setDepth(9);
+      hit.setInteractive({ useHandCursor: true });
+      this.bindGameButton(hit, {
+        targets: art,
+        hoverScale: 1.035,
+        pressScale: 0.94,
+        onHoverIn: () => {
+          if (i !== this.selectedCell) art.setAlpha(Math.min(1, art.alpha + 0.14));
+        },
+        onHoverOut: () => this.renderBoard(),
+        onPress: () => this.handleCellTap(i),
+      });
+
+      this.cellArt.push(art);
+      this.cellHit.push(hit);
       this.cellText.push(txt);
-      this.gameGroupObjects.push(bg, txt);
+      this.gameGroupObjects.push(art, txt, hit);
     }
 
     // Grid line graphics (thin cell lines + thick box lines)
@@ -207,7 +241,7 @@ export class SudokuScene extends BaseScene {
     this.selRing = this.add.rectangle(-999, -999, CELL + 2, CELL + 2)
       .setStrokeStyle(3, C.selRing)
       .setFillStyle(C.selRingInner, 0.25)
-      .setDepth(10);
+      .setDepth(6);
     this.gameGroupObjects.push(this.selRing);
   }
 
@@ -237,8 +271,8 @@ export class SudokuScene extends BaseScene {
   private buildTimerHUD(): void {
     // Timer track background
     this.timerBg = this.add.rectangle(
-      GRID_X + GRID_W / 2, TIMER_Y, GRID_W, 12, 0x000000, 80,
-    ).setStrokeStyle(1, C.boxLine);
+      GRID_X + GRID_W / 2, TIMER_Y, GRID_W, 12, C.white, 0.82,
+    ).setStrokeStyle(1, C.paperEdge, 0.72);
 
     // Timer fill bar (starts at full width)
     this.timerBar = this.add.rectangle(
@@ -246,12 +280,14 @@ export class SudokuScene extends BaseScene {
     ).setOrigin(0, 0.5);
 
     this.timerLabel = this.add.text(GRID_X + GRID_W / 2, TIMER_Y + 14, "00:00", {
+      fontFamily: FONT_FAMILY,
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#5a3e28",
+      color: "#4b351c",
     }).setOrigin(0.5, 0);
 
     this.rewardLabel = this.add.text(GRID_X + GRID_W - 2, TIMER_Y + 14, "100%", {
+      fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#8a6820",
     }).setOrigin(1, 0);
@@ -276,20 +312,28 @@ export class SudokuScene extends BaseScene {
   private buildUndoButton(): void {
     this.undoBtn = this.add.container(W / 2, UNDO_Y);
 
-    const bg = this.add.rectangle(0, 0, 160, 36, C.btnBg)
+    const bg = this.add.rectangle(0, 0, 168, 38, C.btnBg)
       .setStrokeStyle(1.5, C.btnBorder)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", () => this.handleUndo());
-    bg.on("pointerover", () => bg.setFillStyle(0x3a2a10));
-    bg.on("pointerout",  () => bg.setFillStyle(C.btnBg));
+    this.bindGameButton(bg, {
+      targets: this.undoBtn,
+      enabled: () => this.undoButtonEnabled,
+      onHoverIn: () => bg.setFillStyle(C.btnActive),
+      onHoverOut: () => bg.setFillStyle(C.btnBg),
+      onPress: () => this.handleUndo(),
+    });
 
-    this.undoBtnText = this.add.text(0, 0, "↩ Undo (3 left)", {
+    const pencil = this.add.image(-58, 0, SUDOKU_ASSETS.pencil)
+      .setDisplaySize(24, 24);
+
+    this.undoBtnText = this.add.text(12, 0, "Undo (3 left)", {
+      fontFamily: FONT_FAMILY,
       fontSize: "13px",
-      color: "#d4a843",
+      color: "#4b351c",
     }).setOrigin(0.5);
 
-    this.undoBtn.add([bg, this.undoBtnText]);
+    this.undoBtn.add([bg, pencil, this.undoBtnText]);
     this.gameGroupObjects.push(this.undoBtn);
   }
 
@@ -300,18 +344,17 @@ export class SudokuScene extends BaseScene {
       .setStrokeStyle(2, C.goldLight)
       .setOrigin(0.5);
     this.actionBtnBg.setInteractive({ useHandCursor: true });
-    this.actionBtnBg.on("pointerover", () =>
-      this.tweens.add({ targets: this.actionBtn, scale: 1.04, duration: 80 }),
-    );
-    this.actionBtnBg.on("pointerout", () =>
-      this.tweens.add({ targets: this.actionBtn, scale: 1.0, duration: 80 }),
-    );
-    this.actionBtnBg.on("pointerdown", () => this.handleActionButton());
+    this.bindGameButton(this.actionBtnBg, {
+      targets: this.actionBtn,
+      enabled: () => this.actionButtonEnabled,
+      onPress: () => this.handleActionButton(),
+    });
 
-    this.actionBtnText = this.add.text(0, 0, "▶ Start Game", {
+    this.actionBtnText = this.add.text(0, 0, "Start game", {
+      fontFamily: FONT_FAMILY,
       fontSize: "17px",
       fontStyle: "bold",
-      color: "#2a1a08",
+      color: "#2d2114",
     }).setOrigin(0.5);
 
     this.actionBtn.add([this.actionBtnBg, this.actionBtnText]);
@@ -320,9 +363,11 @@ export class SudokuScene extends BaseScene {
 
   private buildStatusLabel(): void {
     this.statusLabel = this.add.text(W / 2, STATUS_Y, "", {
+      fontFamily: FONT_FAMILY,
       fontSize: "12px",
-      color: "#8a6820",
+      color: "#7a5a28",
       wordWrap: { width: W - 40 },
+      align: "center",
     }).setOrigin(0.5, 0);
   }
 
@@ -330,19 +375,25 @@ export class SudokuScene extends BaseScene {
     this.lobbyContainer = this.add.container(0, 0);
     this.diffBtns = [];
 
+    const envelope = this.add.image(W / 2, 72, SUDOKU_ASSETS.sealedEnvelope)
+      .setDisplaySize(92, 74)
+      .setAlpha(0.96);
+
     // Lobby title
-    this.lobbyTitleText = this.add.text(W / 2, 68, "SUDOKU", {
-      fontSize: "28px",
+    this.lobbyTitleText = this.add.text(W / 2, 132, "Sudoku Vault", {
+      fontFamily: FONT_FAMILY,
+      fontSize: "26px",
       fontStyle: "bold",
-      color: "#2a1a08",
+      color: "#2d2114",
     }).setOrigin(0.5);
 
-    this.lobbySubText = this.add.text(W / 2, 104, "Choose difficulty to begin", {
+    this.lobbySubText = this.add.text(W / 2, 162, "Pick a sealed puzzle route", {
+      fontFamily: FONT_FAMILY,
       fontSize: "13px",
-      color: "#8a6820",
+      color: "#7a5a28",
     }).setOrigin(0.5);
 
-    this.lobbyContainer.add([this.lobbyTitleText, this.lobbySubText]);
+    this.lobbyContainer.add([envelope, this.lobbyTitleText, this.lobbySubText]);
 
     // 3 difficulty seal buttons
     const cardW  = 104;
@@ -351,18 +402,31 @@ export class SudokuScene extends BaseScene {
 
     for (let d = 0; d < 3; d++) {
       const x   = startX + d * (cardW + 10);
-      const btn = this.makeDiffCard(x, 210, cardW, cardH, d);
+      const btn = this.makeDiffCard(x, 270, cardW, cardH, d);
       this.diffBtns.push(btn);
       this.lobbyContainer.add(btn);
     }
 
     // Pool info
-    this.lobbyPoolText = this.add.text(W / 2, 300, "", {
+    this.lobbyPoolText = this.add.text(W / 2, 364, "", {
+      fontFamily: FONT_FAMILY,
       fontSize: "12px",
-      color: "#8a6820",
+      color: "#7a5a28",
       align: "center",
     }).setOrigin(0.5);
-    this.lobbyContainer.add(this.lobbyPoolText);
+
+    this.lobbyRewardArt = this.add.image(W / 2 - 38, 420, SUDOKU_ASSETS.rewardTrophy)
+      .setDisplaySize(58, 58)
+      .setAlpha(0.82);
+    this.lobbyResultBadge = this.add.image(W / 2 + 38, 420, SUDOKU_ASSETS.solvedBadge)
+      .setDisplaySize(58, 58)
+      .setAlpha(0.42);
+
+    this.lobbyContainer.add([
+      this.lobbyPoolText,
+      this.lobbyRewardArt,
+      this.lobbyResultBadge,
+    ]);
   }
 
   private makeDiffCard(
@@ -370,39 +434,44 @@ export class SudokuScene extends BaseScene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
 
-    const bg = this.add.rectangle(0, 0, cw, ch, C.btnBg)
+    const bg = this.add.rectangle(0, 0, cw, ch, C.btnBg, 0.98)
       .setStrokeStyle(2, DIFF_COLORS[difficulty] ?? C.btnBorder)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", () => {
-      this.pickedDifficulty = difficulty;
-      this.updateDiffCards();
-      this.tweens.add({ targets: container, scaleX: 0.94, scaleY: 0.94, duration: 60, yoyo: true });
+    this.bindGameButton(bg, {
+      targets: container,
+      hoverScale: 1.03,
+      pressScale: 0.94,
+      onPress: () => {
+        this.pickedDifficulty = difficulty;
+        this.updateDiffCards();
+      },
     });
 
-    const iconLbl = this.add.text(0, -38, DIFF_ICONS[difficulty] ?? "◆", {
-      fontSize: "18px",
-      fontStyle: "bold",
-      color: `#${DIFF_COLORS[difficulty]?.toString(16).padStart(6, "0") ?? "d4a843"}`,
-    }).setOrigin(0.5);
+    const seal = this.add.image(0, -34, SUDOKU_ASSETS.seals[difficulty] ?? SUDOKU_ASSETS.seals[0])
+      .setDisplaySize(58, 58);
 
-    const name = this.add.text(0, -8, DIFF_LABELS[difficulty] ?? "Easy", {
+    const name = this.add.text(0, 5, DIFF_LABELS[difficulty] ?? "Easy", {
+      fontFamily: FONT_FAMILY,
       fontSize: "14px",
       fontStyle: "bold",
-      color: "#f0e4c0",
+      color: "#2d2114",
     }).setOrigin(0.5);
 
-    const reward = this.add.text(0, 14, DIFF_REWARDS[difficulty] ?? "0.1 GAS", {
-      fontSize: "12px",
-      color: "#d4a843",
-    }).setOrigin(0.5);
-
-    const pick = this.add.text(0, 38, "tap to pick", {
+    const route = this.add.text(0, 25, DIFF_COPY[difficulty] ?? "Warm-up grid", {
+      fontFamily: FONT_FAMILY,
       fontSize: "10px",
-      color: "#a08060",
-    }).setOrigin(0.5).setName("pick-hint");
+      color: "#7a5a28",
+    }).setOrigin(0.5);
 
-    container.add([bg, iconLbl, name, reward, pick]);
+    const reward = this.add.text(0, 44, DIFF_REWARDS[difficulty] ?? "0.1 GAS", {
+      fontFamily: FONT_FAMILY,
+      fontSize: "12px",
+      fontStyle: "bold",
+      color: "#8a6820",
+    }).setOrigin(0.5);
+
+    container.add([bg, seal, name, route, reward]);
     return container;
   }
 
@@ -410,20 +479,23 @@ export class SudokuScene extends BaseScene {
     this.dealingContainer = this.add.container(W / 2, H / 2);
     this.dealingContainer.setDepth(20);
 
-    const overlay = this.add.rectangle(0, 0, W, H, 0x000000, 140).setOrigin(0.5);
+    const overlay = this.add.rectangle(0, 0, W, H, 0xfff4dd, 0.88).setOrigin(0.5);
+    const envelope = this.add.image(0, -54, SUDOKU_ASSETS.sealedEnvelope)
+      .setDisplaySize(112, 90);
 
-    const title = this.add.text(0, -40, "Shuffling puzzle…", {
+    const title = this.add.text(0, 24, "Sealing puzzle...", {
+      fontFamily: FONT_FAMILY,
       fontSize: "20px",
       fontStyle: "bold",
-      color: "#f5e6c8",
+      color: "#2d2114",
     }).setOrigin(0.5);
 
-    const dot1 = this.add.text(-30, 10, "●", { fontSize: "16px", color: "#d4a843" }).setOrigin(0.5);
-    const dot2 = this.add.text(0,   10, "●", { fontSize: "16px", color: "#d4a843" }).setOrigin(0.5);
-    const dot3 = this.add.text(30,  10, "●", { fontSize: "16px", color: "#d4a843" }).setOrigin(0.5);
+    const dot1 = this.add.circle(-24, 62, 5, C.gold).setOrigin(0.5);
+    const dot2 = this.add.circle(0,   62, 5, C.gold).setOrigin(0.5);
+    const dot3 = this.add.circle(24,  62, 5, C.gold).setOrigin(0.5);
     this.dealingDots = [dot1, dot2, dot3];
 
-    this.dealingContainer.add([overlay, title, dot1, dot2, dot3]);
+    this.dealingContainer.add([overlay, envelope, title, dot1, dot2, dot3]);
     this.dealingContainer.setVisible(false);
 
     // Animate dots
@@ -444,30 +516,48 @@ export class SudokuScene extends BaseScene {
     x: number, y: number, bw: number, bh: number, label: string, cb: () => void,
   ): Phaser.GameObjects.Container {
     const c = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, bw, bh, C.btnBg)
-      .setStrokeStyle(1, C.btnBorder)
-      .setOrigin(0.5);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerdown", () => {
-      this.tweens.add({ targets: c, scaleX: 0.88, scaleY: 0.88, duration: 55, yoyo: true });
-      cb();
+    const bg = this.add.image(0, 0, SUDOKU_ASSETS.noteToken)
+      .setDisplaySize(bw, bh)
+      .setAlpha(0.92);
+    const hit = this.add.rectangle(0, 0, bw, bh, C.white, 0.001);
+    hit.setInteractive({ useHandCursor: true });
+    this.bindGameButton(hit, {
+      targets: c,
+      hoverScale: 1.07,
+      pressScale: 0.9,
+      onHoverIn: () => bg.setAlpha(1),
+      onHoverOut: () => bg.setAlpha(0.92),
+      onPress: () => {
+        cb();
+      },
     });
-    bg.on("pointerover", () => bg.setFillStyle(0x3a2a10));
-    bg.on("pointerout",  () => bg.setFillStyle(C.btnBg));
 
     const txt = this.add.text(0, 0, label, {
+      fontFamily: FONT_FAMILY,
       fontSize: "16px",
       fontStyle: "bold",
-      color: "#d4a843",
+      color: "#4b351c",
     }).setOrigin(0.5);
-    c.add([bg, txt]);
+    c.add([bg, txt, hit]);
     return c;
   }
 
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
 
   preload(): void {
-    // All rendering uses Phaser primitives — no external assets needed.
+    this.load.image(SUDOKU_ASSETS.paperGrid, "./paper-grid.webp");
+    this.load.image(SUDOKU_ASSETS.cellGiven, "./art/cell-given.webp");
+    this.load.image(SUDOKU_ASSETS.cellPlaced, "./art/cell-placed.webp");
+    this.load.image(SUDOKU_ASSETS.cellSelected, "./art/cell-selected.webp");
+    this.load.image(SUDOKU_ASSETS.cellConflict, "./art/cell-conflict.webp");
+    this.load.image(SUDOKU_ASSETS.noteToken, "./art/note-token.webp");
+    this.load.image(SUDOKU_ASSETS.pencil, "./art/pencil.webp");
+    this.load.image(SUDOKU_ASSETS.rewardTrophy, "./art/reward-trophy.webp");
+    this.load.image(SUDOKU_ASSETS.sealedEnvelope, "./art/sealed-envelope.webp");
+    this.load.image(SUDOKU_ASSETS.solvedBadge, "./art/solved-badge.webp");
+    this.load.image(SUDOKU_ASSETS.seals[0], "./art/seal-easy.webp");
+    this.load.image(SUDOKU_ASSETS.seals[1], "./art/seal-medium.webp");
+    this.load.image(SUDOKU_ASSETS.seals[2], "./art/seal-hard.webp");
   }
 
   create(): void {
@@ -518,29 +608,42 @@ export class SudokuScene extends BaseScene {
     const isLobby   = view === "lobby";
     const isDealing = view === "dealing";
 
-    this.gameGroupObjects.forEach((o) => {
-      (o as { setVisible?: (v: boolean) => void }).setVisible?.(isGame);
-    });
+    this.gameGroupObjects.forEach((o) => this.setObjectActive(o, isGame));
 
     // Action button participates in both lobby (start) and game (submit)
-    this.actionBtn.setVisible(isGame || isLobby);
+    this.setObjectActive(this.actionBtn, isGame || isLobby);
     this.statusLabel.setVisible(true);
-    this.lobbyContainer.setVisible(isLobby);
-    this.dealingContainer.setVisible(isDealing);
+    this.setObjectActive(this.lobbyContainer, isLobby);
+    this.setObjectActive(this.dealingContainer, isDealing);
+  }
+
+  private setObjectActive(object: Phaser.GameObjects.GameObject, active: boolean): void {
+    (object as { setVisible?: (visible: boolean) => void }).setVisible?.(active);
+    const input = (object as { input?: { enabled?: boolean } }).input;
+    if (input) input.enabled = active;
+
+    if (object instanceof Phaser.GameObjects.Container) {
+      object.list.forEach((child) => {
+        this.setObjectActive(child as Phaser.GameObjects.GameObject, active);
+      });
+    }
   }
 
   private updateDiffCards(): void {
     this.diffBtns.forEach((btn, d) => {
       const bg     = btn.list[0] as Phaser.GameObjects.Rectangle;
+      const seal   = btn.list[1] as Phaser.GameObjects.Image;
       const active = d === this.pickedDifficulty;
-      bg.setFillStyle(active ? (DIFF_COLORS[d] ?? C.btnBg) : C.btnBg);
+      bg.setFillStyle(active ? C.btnActive : C.btnBg, active ? 1 : 0.98);
       bg.setStrokeStyle(active ? 3 : 1.5, DIFF_COLORS[d] ?? C.btnBorder);
+      seal.setAlpha(active ? 1 : 0.72);
+      seal.setDisplaySize(active ? 64 : 58, active ? 64 : 58);
     });
   }
 
   // ── BaseScene: state handler ───────────────────────────────────────────────
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const gameStatus = this.str("gameStatus", "idle");
     const clues      = this.str("clues", "");
     const undosUsed  = this.num("undosUsed", 0);
@@ -556,6 +659,8 @@ export class SudokuScene extends BaseScene {
 
     this.deadline = deadline;
     this.dealtAt  = dealtAt;
+    this.actionButtonEnabled = false;
+    this.undoButtonEnabled = false;
 
     // ── View routing ──────────────────────────────────────────────────────
     const isDealing =
@@ -580,18 +685,30 @@ export class SudokuScene extends BaseScene {
         `Pool: ${poolFree.toFixed(2)} GAS  ·  ${limitMin} min limit`,
       );
       this.updateDiffCards();
+      this.actionButtonEnabled = !busy;
 
       if (gameStatus === "solved") {
-        this.actionBtnText.setText("▶ Play Again");
+        this.actionBtnText.setText("Play again");
+        this.actionBtnText.setColor("#ffffff");
         this.actionBtnBg.setFillStyle(C.green);
+        this.actionBtnBg.setStrokeStyle(2, 0x3cbf66);
+        this.lobbyRewardArt.setAlpha(0.95);
+        this.lobbyResultBadge.setAlpha(1);
       } else if (gameStatus === "expired") {
-        this.actionBtnText.setText("▶ Try Again");
+        this.actionBtnText.setText("Try again");
+        this.actionBtnText.setColor("#ffffff");
         this.actionBtnBg.setFillStyle(C.red);
+        this.actionBtnBg.setStrokeStyle(2, 0xe27d66);
+        this.lobbyRewardArt.setAlpha(0.58);
+        this.lobbyResultBadge.setAlpha(0.34);
       } else {
-        this.actionBtnText.setText(busy ? "Starting…" : "▶ Start Game");
+        this.actionBtnText.setText(busy ? "Starting..." : "Start game");
+        this.actionBtnText.setColor("#2d2114");
         this.actionBtnBg.setFillStyle(busy ? C.muted : C.gold);
+        this.actionBtnBg.setStrokeStyle(2, C.goldLight);
+        this.lobbyRewardArt.setAlpha(0.82);
+        this.lobbyResultBadge.setAlpha(0.42);
       }
-      this.actionBtnBg.setInteractive(!busy ? { useHandCursor: true } : {});
     }
 
     // ── Game view ─────────────────────────────────────────────────────────
@@ -609,22 +726,9 @@ export class SudokuScene extends BaseScene {
         undosLeft > 0 ? `Undo (${undosLeft} left)` : "No undos left",
       );
 
-      const undoBg = this.undoBtn.list[0] as Phaser.GameObjects.Rectangle;
-      undoBg.setFillStyle(undosLeft > 0 && !busy ? C.btnBg : 0x1a1208);
+      this.setUndoButtonState(undosLeft > 0 && !busy && this.moveHistory.length > 0);
 
-      if (this.boardComplete && !busy) {
-        this.actionBtnText.setText("Submit Solution");
-        this.actionBtnBg.setFillStyle(C.green);
-      } else if (busy) {
-        this.actionBtnText.setText("Submitting…");
-        this.actionBtnBg.setFillStyle(C.muted);
-      } else {
-        this.actionBtnText.setText("Fill the grid…");
-        this.actionBtnBg.setFillStyle(C.muted);
-      }
-      this.actionBtnBg.setInteractive(
-        this.boardComplete && !busy ? { useHandCursor: true } : {},
-      );
+      this.setGameActionState(busy);
     }
 
     this.prevStatus = gameStatus;
@@ -665,15 +769,24 @@ export class SudokuScene extends BaseScene {
       const isSelected  = i === this.selectedCell;
       const isConflict  = this.conflicts.has(i);
 
-      // ── Background colour ──────────────────────────────────────────────
-      let bgColor: number = C.cellEmpty;
-      if (isGiven)    bgColor = C.cellGiven;
-      else if (digit) bgColor = C.cellPlayer;
+      const art = this.cellArt[i]!;
+      const hit = this.cellHit[i]!;
+      art.clearTint();
 
-      if (isConflict) bgColor = C.cellConflict;
-
-      const bg = this.cellBg[i]!;
-      bg.setFillStyle(bgColor);
+      let texture = SUDOKU_ASSETS.cellPlaced;
+      let alpha = digit ? 0.9 : 0.28;
+      if (isGiven) {
+        texture = SUDOKU_ASSETS.cellGiven;
+        alpha = 0.98;
+      }
+      if (isSelected) {
+        texture = SUDOKU_ASSETS.cellSelected;
+        alpha = 1;
+      }
+      if (isConflict) {
+        texture = SUDOKU_ASSETS.cellConflict;
+        alpha = 1;
+      }
 
       // Highlight cells in the same row / col / box as selection
       if (this.selectedCell >= 0 && !isSelected && !isConflict) {
@@ -685,10 +798,14 @@ export class SudokuScene extends BaseScene {
           Math.floor(row / 3) === Math.floor(selRow / 3) &&
           Math.floor(col / 3) === Math.floor(selCol / 3);
         if (row === selRow || col === selCol || sameBox) {
-          // subtle warm tint on peers
-          bg.setFillStyle(isGiven ? 0xcabf9a : 0xf8eedd);
+          alpha = Math.max(alpha, isGiven ? 0.86 : 0.46);
+          art.setTint(0xffe8b5);
         }
       }
+
+      art.setTexture(texture);
+      art.setAlpha(alpha);
+      hit.setAlpha(0.001);
 
       // ── Text ─────────────────────────────────────────────────────────
       const txt = this.cellText[i]!;
@@ -721,6 +838,35 @@ export class SudokuScene extends BaseScene {
     }
   }
 
+  private setUndoButtonState(enabled: boolean): void {
+    this.undoButtonEnabled = enabled;
+    const undoBg = this.undoBtn.list[0] as Phaser.GameObjects.Rectangle;
+    undoBg.setFillStyle(enabled ? C.btnBg : 0xf1e0be);
+    undoBg.setAlpha(enabled ? 1 : 0.72);
+  }
+
+  private setGameActionState(busy: boolean): void {
+    if (this.boardComplete && !busy) {
+      this.actionButtonEnabled = true;
+      this.actionBtnText.setText("Submit solution");
+      this.actionBtnText.setColor("#ffffff");
+      this.actionBtnBg.setFillStyle(C.green);
+      this.actionBtnBg.setStrokeStyle(2, 0x3cbf66);
+    } else if (busy) {
+      this.actionButtonEnabled = false;
+      this.actionBtnText.setText("Submitting...");
+      this.actionBtnText.setColor("#ffffff");
+      this.actionBtnBg.setFillStyle(C.muted);
+      this.actionBtnBg.setStrokeStyle(2, C.btnBorder);
+    } else {
+      this.actionButtonEnabled = false;
+      this.actionBtnText.setText("Solve to unlock");
+      this.actionBtnText.setColor("#7a5a28");
+      this.actionBtnBg.setFillStyle(0xf1e0be);
+      this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
+    }
+  }
+
   // ── Interaction handlers ───────────────────────────────────────────────────
 
   private handleCellTap(index: number): void {
@@ -750,11 +896,13 @@ export class SudokuScene extends BaseScene {
 
     this.board[this.selectedCell] = digit;
     this.renderBoard();
+    this.setUndoButtonState(MAX_UNDOS - this.num("undosUsed", 0) > 0);
+    this.setGameActionState(false);
 
     // Micro-bounce on the selected cell
-    const bg = this.cellBg[this.selectedCell];
-    if (bg) {
-      this.tweens.add({ targets: bg, scaleX: 1.12, scaleY: 1.12, duration: 60, yoyo: true });
+    const art = this.cellArt[this.selectedCell];
+    if (art) {
+      this.pressFeedback(art, { scale: 1.12, duration: 60 });
     }
 
     // Fire-and-forget telemetry to the React/chain layer
@@ -774,6 +922,10 @@ export class SudokuScene extends BaseScene {
     this.board[last.cell] = last.prev;
     this.selectedCell = last.cell;
     this.renderBoard();
+    this.setUndoButtonState(
+      MAX_UNDOS - this.num("undosUsed", 0) > 0 && this.moveHistory.length > 0,
+    );
+    this.setGameActionState(false);
 
     void this.bridge.dispatch("useUndo", {});
   }
