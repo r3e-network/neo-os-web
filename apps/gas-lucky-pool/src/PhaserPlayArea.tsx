@@ -42,7 +42,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           title:    t("appTitle"),
           subtitle: t("appSubtitle"),
         }}
-        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={540} />}
+        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
         actions={{}}
         drawerToggleLabel={t("drawerTitle")}
         drawer={{ children: <p>{t("howItWorks")}</p> }}

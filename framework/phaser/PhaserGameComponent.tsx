@@ -35,6 +35,10 @@ type AutoMobileSize = {
   height: number;
 };
 
+const MOBILE_VIEWPORT_WIDTH = 760;
+const MIN_MOBILE_GAME_WIDTH = 280;
+const MIN_MOBILE_GAME_HEIGHT = 360;
+
 export function PhaserGameComponent({
   config,
   state,
@@ -161,7 +165,12 @@ export function PhaserGameComponent({
       frame = requestAnimationFrame(() => {
         const viewport = window.visualViewport;
         const viewportWidth = viewport?.width ?? window.innerWidth;
-        if (viewportWidth > 640) {
+        const isCoarsePointer =
+          window.matchMedia?.("(pointer: coarse)").matches ?? false;
+        const isMobileViewport =
+          viewportWidth <= MOBILE_VIEWPORT_WIDTH || isCoarsePointer;
+
+        if (!isMobileViewport) {
           setAutoMobileSizePx(null);
           return;
         }
@@ -169,23 +178,20 @@ export function PhaserGameComponent({
         const hostRect = host.getBoundingClientRect();
         const parentRect = host.parentElement?.getBoundingClientRect();
         const hostWidth = parentRect?.width || hostRect.width || window.innerWidth;
-        const designWidth = numericDimension(config.width, 400);
-        const designHeight = numericDimension(config.height, 560);
         const availableWidth = Math.round(
-          Math.max(280, Math.min(hostWidth, viewportWidth)),
+          Math.max(MIN_MOBILE_GAME_WIDTH, Math.min(hostWidth, viewportWidth)),
         );
-        const aspectHeight = availableWidth * (designHeight / designWidth);
         const viewportHeight = viewport?.height ?? window.innerHeight;
         const viewportTop = viewport?.offsetTop ?? 0;
         const hostTop = Math.max(0, hostRect.top - viewportTop);
-        const bottomReserve = viewportHeight < 620 ? 4 : 8;
+        const bottomReserve = viewportHeight < 620 ? 0 : 6;
         const availableHeight = Math.max(
-          320,
+          MIN_MOBILE_GAME_HEIGHT,
           viewportHeight - hostTop - bottomReserve,
         );
         const nextSize = {
           width:  availableWidth,
-          height: Math.round(Math.max(aspectHeight, availableHeight)),
+          height: Math.round(availableHeight),
         };
 
         setAutoMobileSizePx((current) =>
