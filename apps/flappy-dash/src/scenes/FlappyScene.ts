@@ -7,7 +7,7 @@
  *  - Pipe sprites generated deterministically from seed
  *  - Bird sprite animation with up/mid/down wing frames
  *  - Score counter (pipes passed) as HUD pill
- *  - Lobby: 3 difficulty cards (idle / solved / expired states)
+ *  - Lobby: arcade-style route selector (idle / solved / expired states)
  *  - Overlays: "Tap to fly", crash, win, committed/dealing
  *
  * State received from React (via GameBridge):
@@ -51,18 +51,24 @@ import { DIFFICULTY_RULES, ruleOf, gasDisplay } from "../logic/game-rules";
 
 const W = CANVAS_WIDTH;   // 400
 const H = CANVAS_HEIGHT;  // 600
+const UI_FONT = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const C = {
   white:        0xffffff,
   black:        0x000000,
-  cardBg:       0xf5fbff,
-  cardBorder:   0x7ccde8,
-  cardActive:   0xe4fff5,
-  cardAccent:   0x16c784,
-  btnPrimary:   0x1e88e5,
-  btnDisabled:  0x334455,
+  ink:          0x173247,
+  inkSoft:      0x42677c,
+  panelBg:      0xfffff7,
+  panelStroke:  0xf2b25d,
+  chipBg:       0xf6fdff,
+  chipBorder:   0x8bd7ea,
+  chipActive:   0xe7fff4,
+  chipAccent:   0x16c784,
+  btnPrimary:   0xffa83d,
+  btnStroke:    0xffd076,
+  btnDisabled:  0xf8e5bf,
   overlayWin:   0x0d2b1a,
   overlayCrash: 0x1a0a0a,
 };
@@ -80,7 +86,10 @@ const FLAPPY_ASSETS = {
   pipeBottom: "flappy-pipe-bottom",
 } as const;
 
-const BACKGROUND_SCALE = (H - GROUND_HEIGHT) / 144;
+// Show the playable skyline/sky portion of the 108x144 Flappy sprite sheet.
+// Cropping out the lowest street band keeps foreground pipes/bird unambiguous.
+const BACKGROUND_VISIBLE_SOURCE_HEIGHT = 120;
+const BACKGROUND_SCALE = (H - GROUND_HEIGHT) / BACKGROUND_VISIBLE_SOURCE_HEIGHT;
 const GROUND_TILE_SCALE = GROUND_HEIGHT / 24;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -113,6 +122,10 @@ export class FlappyScene extends BaseScene {
   private startBtnLabel!: Phaser.GameObjects.Text;
   private poolLabel!: Phaser.GameObjects.Text;
   private lobbyStatusLabel!: Phaser.GameObjects.Text;
+  private routeTitleLabel!: Phaser.GameObjects.Text;
+  private routeTargetLabel!: Phaser.GameObjects.Text;
+  private routeRewardLabel!: Phaser.GameObjects.Text;
+  private routeEntryLabel!: Phaser.GameObjects.Text;
 
   // ── Overlay layer ─────────────────────────────────────────────────────────
   private overlayContainer!: Phaser.GameObjects.Container;
@@ -192,6 +205,7 @@ export class FlappyScene extends BaseScene {
     this.hudGraphics = this.add.graphics().setDepth(9);
 
     this.scoreText = this.add.text(W / 2, 18, "0", {
+      fontFamily: UI_FONT,
       fontSize: "30px",
       fontStyle: "bold",
       color: "#ffffff",
@@ -278,7 +292,7 @@ export class FlappyScene extends BaseScene {
 
   // ── BaseScene abstract implementation ──────────────────────────────────────
 
-  protected onStateUpdate(bridgeState: BridgeState): void {
+  protected onStateUpdate(_bridgeState: BridgeState): void {
     const status      = this.str("gameStatus", "idle") as GameStatus;
     const seed        = this.str("seed", "");
     const activeGame  = this.str("activeGameId", "0");
@@ -463,52 +477,143 @@ export class FlappyScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0).setDepth(20);
 
-    // Title eyebrow
-    const eyebrow = this.add.text(W / 2, 28, "FLAPPY DASH", {
-      fontSize: "12px",
-      color: "#4dc9f6",
+    const eyebrow = this.add.text(W / 2, 24, "VERIFIED FLIGHT CHALLENGE", {
+      fontFamily: UI_FONT,
+      fontSize: "10px",
+      color: "#247a99",
       fontStyle: "bold",
-      letterSpacing: 4,
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(eyebrow);
 
-    const titleTxt = this.add.text(W / 2, 48, "Choose Difficulty", {
-      fontSize: "20px",
-      color: "#ffffff",
+    const titleTxt = this.add.text(W / 2, 42, "Flappy Dash", {
+      fontFamily: UI_FONT,
+      fontSize: "31px",
+      color: "#173247",
       fontStyle: "bold",
-      stroke: "#000000",
-      strokeThickness: 3,
+      stroke: "#ffffff",
+      strokeThickness: 5,
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(titleTxt);
 
-    // Difficulty cards
+    const heroPanel = this.add.rectangle(W / 2, 174, 330, 176, C.white, 0.42)
+      .setStrokeStyle(1, 0xffffff, 0.42)
+      .setOrigin(0.5);
+    this.lobbyContainer.add(heroPanel);
+
+    const heroPipeTopLeft = this.add.image(70, 130, FLAPPY_ASSETS.pipeTop)
+      .setDisplaySize(58, 166)
+      .setAlpha(0.92);
+    const heroPipeBottomLeft = this.add.image(70, 286, FLAPPY_ASSETS.pipeBottom)
+      .setDisplaySize(58, 166)
+      .setAlpha(0.92);
+    const heroPipeTopRight = this.add.image(W - 70, 116, FLAPPY_ASSETS.pipeTop)
+      .setDisplaySize(58, 150)
+      .setAlpha(0.82);
+    const heroPipeBottomRight = this.add.image(W - 70, 274, FLAPPY_ASSETS.pipeBottom)
+      .setDisplaySize(58, 150)
+      .setAlpha(0.82);
+    this.lobbyContainer.add([
+      heroPipeTopLeft,
+      heroPipeBottomLeft,
+      heroPipeTopRight,
+      heroPipeBottomRight,
+    ]);
+
+    const heroBirdShadow = this.add.ellipse(W / 2, 238, 84, 18, 0x0f3a50, 0.14);
+    const heroBird = this.add.image(W / 2, 176, FLAPPY_ASSETS.birdMid)
+      .setDisplaySize(76, 64)
+      .setAngle(-6);
+    const heroCopy = this.add.text(W / 2, 258, "Pass the gates, prove the run, claim GAS.", {
+      fontFamily: UI_FONT,
+      fontSize: "12px",
+      color: "#2f6175",
+    }).setOrigin(0.5);
+    this.lobbyContainer.add([heroBirdShadow, heroBird, heroCopy]);
+
+    this.tweens.add({
+      targets: heroBird,
+      y: heroBird.y - 10,
+      angle: 5,
+      duration: 760,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tweens.add({
+      targets: heroBirdShadow,
+      scaleX: 0.82,
+      alpha: 0.08,
+      duration: 760,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+
+    const routePanel = this.add.rectangle(W / 2, 334, 330, 74, C.panelBg, 0.96)
+      .setStrokeStyle(2, C.panelStroke, 0.86)
+      .setOrigin(0.5);
+    this.lobbyContainer.add(routePanel);
+
+    this.routeTitleLabel = this.add.text(54, 306, "", {
+      fontFamily: UI_FONT,
+      fontSize: "14px",
+      fontStyle: "bold",
+      color: "#173247",
+    }).setOrigin(0, 0);
+    this.routeTargetLabel = this.add.text(54, 330, "", {
+      fontFamily: UI_FONT,
+      fontSize: "12px",
+      color: "#42677c",
+    }).setOrigin(0, 0);
+    this.routeRewardLabel = this.add.text(W - 54, 305, "", {
+      fontFamily: UI_FONT,
+      fontSize: "18px",
+      fontStyle: "bold",
+      color: "#16a873",
+    }).setOrigin(1, 0);
+    this.routeEntryLabel = this.add.text(W - 54, 333, "", {
+      fontFamily: UI_FONT,
+      fontSize: "11px",
+      color: "#6b8190",
+    }).setOrigin(1, 0);
+    this.lobbyContainer.add([
+      this.routeTitleLabel,
+      this.routeTargetLabel,
+      this.routeRewardLabel,
+      this.routeEntryLabel,
+    ]);
+
     this.difficultyCards = [];
     DIFFICULTY_RULES.forEach((rule, i) => {
-      const cardX = W / 2;
-      const cardY = 126 + i * 96;
+      const cardX = 75 + i * 125;
+      const cardY = 408;
       const card  = this.buildDifficultyCard(cardX, cardY, rule);
       this.difficultyCards.push(card);
       this.lobbyContainer.add(card);
     });
 
-    // Pool status label
-    this.poolLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 128, "", {
+    const controlPanel = this.add.rectangle(W / 2, H - GROUND_HEIGHT - 42, 330, 88, C.white, 0.82)
+      .setStrokeStyle(1, 0xffffff, 0.62)
+      .setOrigin(0.5);
+    this.lobbyContainer.add(controlPanel);
+
+    this.poolLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 78, "", {
+      fontFamily: UI_FONT,
       fontSize: "12px",
-      color: "#2e6686",
+      color: "#315f74",
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(this.poolLabel);
 
-    // Lobby status (e.g. "Not enough GAS in pool")
-    this.lobbyStatusLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 110, "", {
+    this.lobbyStatusLabel = this.add.text(W / 2, H - GROUND_HEIGHT - 60, "", {
+      fontFamily: UI_FONT,
       fontSize: "11px",
-      color: "#e25d4d",
+      color: "#7b6b5c",
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(this.lobbyStatusLabel);
 
-    // Start button
-    this.startButton = this.add.container(W / 2, H - GROUND_HEIGHT - 66);
-    this.startBtnBg  = this.add.rectangle(0, 0, 200, 44, C.btnPrimary)
-      .setStrokeStyle(2, 0x42a5f5)
+    this.startButton = this.add.container(W / 2, H - GROUND_HEIGHT - 24);
+    this.startBtnBg  = this.add.rectangle(0, 0, 224, 44, C.btnPrimary)
+      .setStrokeStyle(2, C.btnStroke)
       .setOrigin(0.5);
     this.startBtnBg.setInteractive({ useHandCursor: true });
     this.bindGameButton(this.startBtnBg, {
@@ -516,10 +621,11 @@ export class FlappyScene extends BaseScene {
       pressScale: 0.95,
       onPress: () => this.onStartPressed(),
     });
-    this.startBtnLabel = this.add.text(0, 0, "Start Game", {
-      fontSize: "17px",
+    this.startBtnLabel = this.add.text(0, 0, "Launch Run", {
+      fontFamily: UI_FONT,
+      fontSize: "16px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#173247",
     }).setOrigin(0.5);
     this.startButton.add([this.startBtnBg, this.startBtnLabel]);
     this.lobbyContainer.add(this.startButton);
@@ -531,54 +637,40 @@ export class FlappyScene extends BaseScene {
     rule: typeof DIFFICULTY_RULES[number],
   ): Phaser.GameObjects.Container {
     const c     = this.add.container(cx, cy);
-    const cardW = 322;
-    const cardH = 88;
+    const cardW = 104;
+    const cardH = 58;
 
-    const bg = this.add.rectangle(0, 0, cardW, cardH, C.cardBg, 0.88)
-      .setStrokeStyle(2, C.cardBorder)
+    const bg = this.add.rectangle(0, 0, cardW, cardH, C.chipBg, 0.92)
+      .setStrokeStyle(2, C.chipBorder)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
     bg.on("pointerdown", () => {
       this.pickedDifficulty = rule.difficulty;
       this.updateCardHighlights();
     });
-    bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0xeafcff, 0.94); });
-    bg.on("pointerout",   () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(C.cardBg, 0.88); });
+    bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0xffffff, 0.98); });
+    bg.on("pointerout",   () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(C.chipBg, 0.92); });
 
-    const bird = this.add.image(-cardW / 2 + 26, -20, FLAPPY_ASSETS.birdMid)
-      .setDisplaySize(28, 24);
+    const bird = this.add.image(-cardW / 2 + 22, -12, FLAPPY_ASSETS.birdMid)
+      .setDisplaySize(28, 24)
+      .setAngle(-8);
 
-    const diffLabel = this.add.text(-cardW / 2 + 52, -28, rule.key.toUpperCase(), {
-      fontSize: "13px",
-      fontStyle: "bold",
-      color: "#12364a",
-    }).setOrigin(0, 0.5);
-
-    const pipesLabel = this.add.text(-cardW / 2 + 52, -2, `${rule.targetPipes} pipes`, {
+    const diffLabel = this.add.text(-cardW / 2 + 42, -19, this.routeName(rule), {
+      fontFamily: UI_FONT,
       fontSize: "12px",
-      color: "#2e6686",
-    }).setOrigin(0, 0.5);
-
-    const timeLabel = this.add.text(-cardW / 2 + 52, 22, `${Math.round(rule.limitMs / 60000)} min`, {
-      fontSize: "12px",
-      color: "#2e6686",
-    }).setOrigin(0, 0.5);
-
-    const rewardLabel = this.add.text(cardW / 2 - 18, -14, `Win ${gasDisplay(rule.rewardFixed8)} GAS`, {
-      fontSize: "14px",
       fontStyle: "bold",
-      color: "#16c784",
-    }).setOrigin(1, 0.5);
+      color: "#173247",
+    }).setOrigin(0, 0.5);
 
-    const entryLabel = this.add.text(cardW / 2 - 18, 14, `Entry ${gasDisplay(rule.entryFixed8)} GAS`, {
+    const pipesLabel = this.add.text(-cardW / 2 + 14, 16, `${rule.targetPipes} gates`, {
+      fontFamily: UI_FONT,
       fontSize: "11px",
-      color: "#2e6686",
-    }).setOrigin(1, 0.5);
+      color: "#42677c",
+    }).setOrigin(0, 0.5);
 
-    // Active indicator dot (initially hidden)
-    const dot = this.add.circle(-cardW / 2 + 7, -cardH / 2 + 7, 5, C.cardAccent, 0);
+    const dot = this.add.circle(cardW / 2 - 14, -cardH / 2 + 14, 5, C.chipAccent, 0);
 
-    c.add([bg, bird, diffLabel, pipesLabel, timeLabel, rewardLabel, entryLabel, dot]);
+    c.add([bg, bird, diffLabel, pipesLabel, dot]);
     return c;
   }
 
@@ -588,10 +680,24 @@ export class FlappyScene extends BaseScene {
       const active = rule.difficulty === this.pickedDifficulty;
       const bg     = card.list[0] as Phaser.GameObjects.Rectangle;
       const dot    = card.list[card.list.length - 1] as Phaser.GameObjects.Arc;
-      bg.setFillStyle(active ? C.cardActive : C.cardBg, active ? 0.96 : 0.88);
-      bg.setStrokeStyle(2, active ? C.cardAccent : C.cardBorder);
+      bg.setFillStyle(active ? C.chipActive : C.chipBg, active ? 0.98 : 0.92);
+      bg.setStrokeStyle(2, active ? C.chipAccent : C.chipBorder);
       dot.setAlpha(active ? 1 : 0);
     });
+    this.updateRoutePanel();
+  }
+
+  private updateRoutePanel(): void {
+    if (!this.routeTitleLabel) return;
+    const rule = ruleOf(this.pickedDifficulty);
+    this.routeTitleLabel.setText(`${this.routeName(rule)} route`);
+    this.routeTargetLabel.setText(`${rule.targetPipes} gate run - ${Math.round(rule.limitMs / 60000)} min timer`);
+    this.routeRewardLabel.setText(`${gasDisplay(rule.rewardFixed8)} GAS`);
+    this.routeEntryLabel.setText(`Entry ${gasDisplay(rule.entryFixed8)} GAS`);
+  }
+
+  private routeName(rule: typeof DIFFICULTY_RULES[number]): string {
+    return rule.key.charAt(0).toUpperCase() + rule.key.slice(1);
   }
 
   private updateLobbyUI(
@@ -609,13 +715,13 @@ export class FlappyScene extends BaseScene {
     this.lobbyStatusLabel.setText(poolReady ? "" : "Pool too low to cover reward");
 
     this.startBtnBg.setFillStyle(busy || !poolReady ? C.btnDisabled : C.btnPrimary);
-    this.startBtnLabel.setText(isStarting ? "Starting…" : "Start Game");
+    this.startBtnLabel.setText(isStarting ? "Launching..." : "Launch Run");
 
     // Show result banners by tinting the eyebrow area
     if (status === "solved") {
-      this.startBtnLabel.setText("Play Again");
+      this.startBtnLabel.setText("Fly Again");
     } else if (status === "expired") {
-      this.startBtnLabel.setText("Try Again");
+      this.startBtnLabel.setText("Retry Run");
     }
 
     // Update card highlights to match current difficulty from bridge
@@ -641,6 +747,7 @@ export class FlappyScene extends BaseScene {
     this.dealingContainer.add(bg);
 
     const title = this.add.text(W / 2, H / 2 - 60, "Sealing Pipes…", {
+      fontFamily: UI_FONT,
       fontSize: "22px",
       fontStyle: "bold",
       color: "#ffffff",
@@ -650,6 +757,7 @@ export class FlappyScene extends BaseScene {
     this.dealingContainer.add(title);
 
     const hint = this.add.text(W / 2, H / 2 - 20, "Waiting for on-chain randomness", {
+      fontFamily: UI_FONT,
       fontSize: "13px",
       color: "#7a9ab5",
     }).setOrigin(0.5);
@@ -689,14 +797,16 @@ export class FlappyScene extends BaseScene {
       .setOrigin(0.5);
 
     const tapLabel = this.add.text(0, -14, "Tap to Fly!", {
+      fontFamily: UI_FONT,
       fontSize: "24px",
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
 
     const hintLabel = this.add.text(0, 16, "Space / ↑ on desktop", {
+      fontFamily: UI_FONT,
       fontSize: "12px",
-      color: "#7a9ab5",
+      color: "#dff9ff",
     }).setOrigin(0.5);
 
     this.readyContainer.add([bg, tapLabel, hintLabel]);
@@ -722,12 +832,14 @@ export class FlappyScene extends BaseScene {
       .setOrigin(0.5);
 
     this.overlayTitle = this.add.text(0, -68, "", {
+      fontFamily: UI_FONT,
       fontSize: "32px",
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
 
     this.overlayBody = this.add.text(0, -24, "", {
+      fontFamily: UI_FONT,
       fontSize: "14px",
       color: "#7a9ab5",
       align: "center",
@@ -744,6 +856,7 @@ export class FlappyScene extends BaseScene {
       onPress: () => this.onOverlayAction(),
     });
     this.overlayActionLabel = this.add.text(0, 0, "Try Again", {
+      fontFamily: UI_FONT,
       fontSize: "15px",
       fontStyle: "bold",
       color: "#ffffff",
@@ -763,6 +876,7 @@ export class FlappyScene extends BaseScene {
       onPress: () => this.onOverlaySecondAction(),
     });
     this.overlaySecondLabel = this.add.text(0, 0, "Submit Score", {
+      fontFamily: UI_FONT,
       fontSize: "13px",
       color: "#7a9ab5",
     }).setOrigin(0.5);
