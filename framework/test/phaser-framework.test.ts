@@ -276,6 +276,27 @@ describe("root Phaser framework", () => {
         ],
       },
       {
+        app: "merge-kingdom",
+        scene: "MergeKingdomScene",
+        assets: [
+          "./art/tile-0002-grass-plot.webp",
+          "./art/tile-0064-market-stall.webp",
+          "./art/tile-1024-royal-castle.webp",
+          "./art/tile-2048-crystal-citadel.webp",
+        ],
+        usage: [
+          "TILE_ASSETS",
+          "TILE_FILES",
+          "buildLobbyPreviewBoard",
+          "updateLobbyPreviewBoard",
+          "updateRoutePanel",
+          "this.load.image",
+          "this.add.image",
+          "dispatch(\"startGame\"",
+          "dispatch(\"recordMove\"",
+        ],
+      },
+      {
         app: "flappy-dash",
         scene: "FlappyScene",
         assets: [
@@ -451,6 +472,26 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: scene should not advertise empty cells as placeholders`).not.toContain(
           "empty placeholder",
+        );
+      }
+      if (app === "merge-kingdom") {
+        expect(source, `${app}: scene should use loaded tile art instead of primitive-only rendering`).not.toContain(
+          "No external assets",
+        );
+        expect(source, `${app}: scene should not document primitive-only rendering`).not.toContain(
+          "everything rendered with Phaser primitives",
+        );
+        expect(source, `${app}: lobby CTA should use kingdom gameplay language`).not.toContain(
+          "Start Kingdom",
+        );
+        expect(source, `${app}: loading state should not keep old text-only shuffle copy`).not.toContain(
+          "Shuffling tiles",
+        );
+        expect(source, `${app}: loading state should not keep old generic start copy`).not.toContain(
+          "Starting game",
+        );
+        expect(source, `${app}: primary CTA should be a realm action, not generic demo copy`).toContain(
+          "Build Realm",
         );
       }
       if (app === "color-clash") {
