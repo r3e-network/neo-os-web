@@ -148,6 +148,28 @@ describe("Game miniapp motion baseline", () => {
     }
   });
 
+  it("keeps Aim Master Phaser layout driven by the resized canvas", () => {
+    const scene = readIfExists(
+      resolve(appsRoot, "aim-master/src/scenes/AimMasterScene.ts"),
+    );
+
+    expect(scene).toContain("protected onResize");
+    expect(scene).toContain("this.scale.width");
+    expect(scene).toContain("this.scale.height");
+    expect(scene).toContain("rebuildResponsiveScene");
+    expect(scene).toContain("gaugeXFromLogical");
+    expect(scene).toContain("gaugeLogicalFromX");
+    expect(scene).not.toMatch(/const\s+W\s*=\s*400/);
+    expect(scene).not.toMatch(/const\s+H\s*=\s*600/);
+    expect(scene).not.toContain("GAUGE_Y");
+    expect(scene).not.toContain("GAUGE_LEFT");
+    expect(scene).not.toContain("GAUGE_RIGHT");
+    expect(scene).not.toContain("TGT_CX");
+    expect(scene).not.toContain("TGT_CY");
+    expect(scene).not.toContain("scale: 1.04");
+    expect(scene).not.toContain("scale: 1.12");
+  });
+
   it("keeps Snake Bounty Phaser route cards synced with progression-gated starts", () => {
     const scene = readIfExists(
       resolve(appsRoot, "snake-bounty/src/scenes/SnakeScene.ts"),
