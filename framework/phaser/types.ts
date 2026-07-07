@@ -44,12 +44,6 @@ export interface PhaserGameProps {
   state?: GameState;
   /** Dispatch function forwarded to the game scene. */
   dispatch: DispatchFn;
-  /** CSS width of the game container (defaults to 100%). */
-  width?: string | number;
-  /** CSS height of the game container (defaults to 560px). */
-  height?: string | number;
-  /** Automatically fill the mobile viewport with a resized game host. Defaults to true. */
-  autoMobileSize?: boolean;
   /** Optional extra CSS class for the container div. */
   className?: string;
   /** Accessible name for the canvas host. */

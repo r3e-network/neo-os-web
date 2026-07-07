@@ -97,6 +97,25 @@ defineMiniApp({
       obs.myHistory.set(mine);
     };
 
+    const refreshProgression = async () => {
+      try {
+        const progression = await rewardGame.progression(2);
+        obs.progressionRequiredDifficulty.set(progression.requiredDifficulty);
+        obs.progressionMaxDifficulty.set(progression.maxDifficulty);
+        obs.progressionHardChallengeLevel.set(progression.hardChallengeLevel);
+        obs.progressionEffectiveLimitMs.set(progression.effectiveLimitMs ?? 0);
+        if (obs.gameDifficulty.get() < progression.requiredDifficulty) {
+          obs.gameDifficulty.set(progression.requiredDifficulty);
+        }
+        obs.progressionReady.set(true);
+      } catch {
+        obs.progressionReady.set(false);
+        if (obs.gameStatus.get() === "idle") {
+          obs.lastStatus.set(ctx.t("progressionUnavailable"));
+        }
+      }
+    };
+
     // ── Session helpers ───────────────────────────────────────────────────────
     const openSession = async (gameId: string, difficulty: number): Promise<boolean> => {
       obs.isDealing.set(true);
@@ -146,6 +165,7 @@ defineMiniApp({
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form       = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
+      if (obs.progressionReady.get() && difficulty < obs.progressionRequiredDifficulty.get()) return;
       obs.isStarting.set(true);
       obs.lastStatus.set(ctx.t("statusStarting"));
       try {
@@ -174,6 +194,13 @@ defineMiniApp({
       } finally {
         obs.isStarting.set(false);
       }
+    });
+
+    app.actions.register("selectDifficulty", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as { difficulty?: unknown };
+      const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
+      if (obs.progressionReady.get() && difficulty < obs.progressionRequiredDifficulty.get()) return;
+      obs.gameDifficulty.set(difficulty);
     });
 
     app.actions.register("retryDeal", async () => {
@@ -211,7 +238,7 @@ defineMiniApp({
           obs.lastStatus.set(ctx.t("statusExpired"));
           ctx.setStatus(ctx.t("statusExpired"), "info");
         }
-        await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
+        await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard(), refreshProgression()]);
         return finalized.tx;
       } catch (error) {
         const msg = error instanceof Error ? error.message : ctx.t("statusFailed");
@@ -279,7 +306,7 @@ defineMiniApp({
             }
           } catch { /* no active game */ }
         }
-        await Promise.all([refreshStats(), loadLeaderboard()]);
+        await Promise.all([refreshStats(), loadLeaderboard(), refreshProgression()]);
         if (obs.gameStatus.get() === "idle") obs.lastStatus.set(ctx.t("statusReady"));
       },
     };

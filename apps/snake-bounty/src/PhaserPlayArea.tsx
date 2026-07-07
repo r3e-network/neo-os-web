@@ -73,6 +73,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const creditGas      = val<number>("credit", 0) ?? 0;
   const myTotalWon     = val<number>("myTotalWon", 0) ?? 0;
   const myRank         = val<number>("myRank", 0) ?? 0;
+  const progressionReady = bool("progressionReady");
+  const requiredDifficulty = val<number>("progressionRequiredDifficulty", 0) ?? 0;
 
   const rule     = ruleOf(gameDifficulty);
   const nowMs    = Date.now();
@@ -92,6 +94,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     isSubmitting,
     lastStatus,
     walletConnected,
+    progressionReady,
+    progressionRequiredDifficulty: requiredDifficulty,
   };
 
   // ── Dispatch forwarding ───────────────────────────────────────────────────
@@ -109,7 +113,23 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : t("lobbyTitle");
 
   // ── Primary action ────────────────────────────────────────────────────────
-  const canStart  = walletConnected && poolFree >= Number(gasDisplay(rule.entryFixed8));
+  const routeLocked = progressionReady && gameDifficulty < requiredDifficulty;
+  const routeScore = !progressionReady
+    ? [{
+        label: t("progressionStatusLabel"),
+        value: t("progressionUnavailableShort"),
+      }]
+    : routeLocked
+      ? [{
+          label: t("progressionStatusLabel"),
+          value: t("progressionNextRoute", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) }),
+        }]
+      : [];
+  const canStart  =
+    walletConnected &&
+    progressionReady &&
+    !routeLocked &&
+    poolFree >= Number(gasDisplay(rule.rewardFixed8));
   const timeUp    = gameStatus === "dealt" && deadline > 0 && remainMs <= 0;
 
   type PrimaryAction = {
@@ -157,6 +177,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       icon:     <Play size={16} aria-hidden="true" />,
       hint:     !walletConnected
                   ? t("walletRequiredStatus")
+                  : !progressionReady
+                  ? t("progressionUnavailable")
+                  : routeLocked
+                  ? t("progressionCleared", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) })
                   : !canStart
                   ? t("statusPoolLow")
                   : t("startHint", { amount: gasDisplay(rule.entryFixed8) }),
@@ -209,6 +233,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           />
         }
         score={[
+          ...routeScore,
           {
             label:  t("scoreReward"),
             value:  `${gasDisplay(rule.rewardFixed8)} GAS`,

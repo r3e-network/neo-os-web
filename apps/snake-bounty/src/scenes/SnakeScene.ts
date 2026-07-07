@@ -37,11 +37,9 @@ import {
   step,
   snakeLength,
   hasReachedTarget,
-  stateToSolutionString,
 } from "../logic/snake-engine";
 import type { SnakeState, Direction } from "../logic/snake-engine";
 import {
-  DIFFICULTY_RULES,
   formatClock,
   gasDisplay,
   ruleOf,
@@ -52,13 +50,31 @@ import type { Difficulty } from "../logic/game-rules";
 
 const W = 440;              // canvas width
 const H = 580;              // canvas height
-const CELL = 20;            // px per grid cell (20×20 = 400px grid)
-const GRID_PX = GRID_SIZE * CELL;   // 400
-const GRID_LEFT = (W - GRID_PX) / 2; // 20 — left edge of grid
-const GRID_TOP  = 78;       // y of grid top edge (below HUD)
 const GAME_TICK_MS = 200;
 const SUBMIT_BUFFER_MS = 15_000;
 const MIN_SOLVE_BUFFER_MS = 10_000;
+
+type SnakeLayout = {
+  cell: number;
+  gridPx: number;
+  gridLeft: number;
+  gridTop: number;
+  hudTop: number;
+  controlsY: number;
+  hintY: number;
+  statusY: number;
+  lobbyTitleY: number;
+  lobbySubY: number;
+  lobbyPanelX: number;
+  lobbyPanelY: number;
+  lobbyPanelW: number;
+  lobbyPanelH: number;
+  lobbyCardsY: number;
+  lobbyCardW: number;
+  lobbyCardH: number;
+  lobbyCardGap: number;
+  lobbyStatusY: number;
+};
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 
@@ -125,6 +141,7 @@ export class SnakeScene extends BaseScene {
   // ── Layout dims (computed after scale is known) ──────────────────────────
   private scW = W;
   private scH = H;
+  private layout = this.computeLayout(W, H);
 
   // ── Graphics layers ──────────────────────────────────────────────────────
   private gridGraphics!: Phaser.GameObjects.Graphics;
@@ -181,6 +198,59 @@ export class SnakeScene extends BaseScene {
     super("SnakeScene");
   }
 
+  private computeLayout(width: number, height: number): SnakeLayout {
+    const outerPad = width < 400 ? 12 : 20;
+    const maxGridByWidth = width - outerPad * 2;
+    const maxGridByHeight = Math.max(260, height - 178);
+    const cell = Math.max(
+      14,
+      Math.floor(Math.min(20, maxGridByWidth / GRID_SIZE, maxGridByHeight / GRID_SIZE)),
+    );
+    const gridPx = cell * GRID_SIZE;
+    const gridLeft = Math.round((width - gridPx) / 2);
+    const hudTop = height < 620 ? 8 : 12;
+    const gridTop = hudTop + 70;
+    const controlsY = gridTop + gridPx + 18;
+    const hintY = controlsY + 18;
+
+    const lobbyTitleY = Math.max(26, Math.round(height * 0.05));
+    const lobbySubY = lobbyTitleY + 24;
+    const lobbyPanelX = outerPad;
+    const lobbyPanelY = lobbySubY + 18;
+    const lobbyCardW = Math.min(118, Math.floor((width - outerPad * 2 - 16) / 3));
+    const lobbyCardH = height < 620 ? 92 : 104;
+    const lobbyCardGap = Math.max(6, Math.floor((width - outerPad * 2 - lobbyCardW * 3) / 2));
+    const lobbyPanelH = Math.max(178, Math.min(236, Math.round(height * 0.29)));
+    const lobbyCardsY = Math.max(
+      lobbyPanelY + lobbyPanelH + lobbyCardH / 2 + 34,
+      height - (height < 620 ? 124 : 146),
+    );
+    const lobbyStatusY = lobbyCardsY - lobbyCardH / 2 - 20;
+    const lobbyPanelW = width - outerPad * 2;
+
+    return {
+      cell,
+      gridPx,
+      gridLeft,
+      gridTop,
+      hudTop,
+      controlsY,
+      hintY,
+      statusY: height - 14,
+      lobbyTitleY,
+      lobbySubY,
+      lobbyPanelX,
+      lobbyPanelY,
+      lobbyPanelW,
+      lobbyPanelH,
+      lobbyCardsY,
+      lobbyCardW,
+      lobbyCardH,
+      lobbyCardGap,
+      lobbyStatusY,
+    };
+  }
+
   // ── Phaser lifecycle ──────────────────────────────────────────────────────
 
   preload(): void {
@@ -201,6 +271,7 @@ export class SnakeScene extends BaseScene {
     const { width: ww, height: hh } = this.scale;
     this.scW = ww;
     this.scH = hh;
+    this.layout = this.computeLayout(ww, hh);
 
     this.buildBackground();
     this.buildGrid();
@@ -221,11 +292,10 @@ export class SnakeScene extends BaseScene {
 
   // ── BaseScene abstract implementation ─────────────────────────────────────
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const gameStatus = this.str("gameStatus", "idle");
     const clues      = this.str("clues", "");
     const isDealing  = this.bool("isDealing");
-    const isStarting = this.bool("isStarting");
     const isSubmitting = this.bool("isSubmitting");
     const lastStatus = this.str("lastStatus", "");
 
@@ -260,6 +330,7 @@ export class SnakeScene extends BaseScene {
     this.controlsHint.setVisible(inPlay);
     this.targetBadge.setVisible(inPlay);
     this.hintLabel.setVisible(inPlay);
+    this.statusLabel.setVisible(inPlay);
 
     if (inPlay) {
       this.updateHUD();
@@ -284,6 +355,7 @@ export class SnakeScene extends BaseScene {
 
     // ── Lobby card highlights ──────────────────────────────────────────────
     if (!inPlay) {
+      this.ensureSelectableDifficulty();
       this.updateLobbyCards();
     }
   }
@@ -435,10 +507,11 @@ export class SnakeScene extends BaseScene {
   private buildGrid(): void {
     this.gridGraphics = this.add.graphics();
     const gfx = this.gridGraphics;
+    const { cell, gridLeft, gridTop, gridPx } = this.layout;
 
     // Grid background — lighter green
     gfx.fillStyle(C.feltInner, 1);
-    gfx.fillRoundedRect(GRID_LEFT - 2, GRID_TOP - 2, GRID_PX + 4, GRID_PX + 4, 10);
+    gfx.fillRoundedRect(gridLeft - 2, gridTop - 2, gridPx + 4, gridPx + 4, 10);
 
     // Alternating cell checker pattern
     for (let row = 0; row < GRID_SIZE; row++) {
@@ -446,17 +519,17 @@ export class SnakeScene extends BaseScene {
         const even = (row + col) % 2 === 0;
         gfx.fillStyle(even ? 0x2b6349 : 0x2d6a4f, 1);
         gfx.fillRect(
-          GRID_LEFT + col * CELL,
-          GRID_TOP  + row * CELL,
-          CELL,
-          CELL,
+          gridLeft + col * cell,
+          gridTop  + row * cell,
+          cell,
+          cell,
         );
       }
     }
 
     // Grid border
     gfx.lineStyle(2, C.feltBorder, 0.8);
-    gfx.strokeRoundedRect(GRID_LEFT - 2, GRID_TOP - 2, GRID_PX + 4, GRID_PX + 4, 10);
+    gfx.strokeRoundedRect(gridLeft - 2, gridTop - 2, gridPx + 4, gridPx + 4, 10);
 
     this.gridGraphics.setVisible(false);
   }
@@ -465,28 +538,29 @@ export class SnakeScene extends BaseScene {
 
   private buildHUD(): void {
     this.hudGfx = this.add.graphics();
+    const { gridLeft, gridPx, hudTop } = this.layout;
     // HUD panel background
     this.hudGfx.fillStyle(C.hudBg, 0.9);
-    this.hudGfx.fillRoundedRect(GRID_LEFT, 8, GRID_PX, 60, 8);
+    this.hudGfx.fillRoundedRect(gridLeft, hudTop, gridPx, 60, 8);
     this.hudGfx.setVisible(false);
 
     // Timer bar track
     this.hudGfx.fillStyle(C.barBg, 1);
-    this.hudGfx.fillRoundedRect(GRID_LEFT + 8, 18, GRID_PX - 16, 10, 5);
+    this.hudGfx.fillRoundedRect(gridLeft + 8, hudTop + 10, gridPx - 16, 10, 5);
 
     // Length bar track
     this.hudGfx.fillStyle(C.barBg, 1);
-    this.hudGfx.fillRoundedRect(GRID_LEFT + 8, 38, GRID_PX - 16, 8, 4);
+    this.hudGfx.fillRoundedRect(gridLeft + 8, hudTop + 30, gridPx - 16, 8, 4);
 
     // Timer clock label
-    this.timerLabel = this.add.text(GRID_LEFT + 10, 54, "00:00", {
+    this.timerLabel = this.add.text(gridLeft + 10, hudTop + 46, "00:00", {
       fontSize: "12px",
       color: "#5af5d0",
       fontStyle: "bold",
     }).setOrigin(0, 0.5).setVisible(false);
 
     // Length label
-    this.lengthLabel = this.add.text(GRID_LEFT + GRID_PX / 2, 54, "0 / 10 cells", {
+    this.lengthLabel = this.add.text(gridLeft + gridPx / 2, hudTop + 46, "0 / 10 cells", {
       fontSize: "12px",
       color: "#d4a843",
     }).setOrigin(0.5, 0.5).setVisible(false);
@@ -505,7 +579,7 @@ export class SnakeScene extends BaseScene {
     this.foodGfx = this.add.graphics();
     this.foodGfx.setVisible(false);
     this.foodSprite = this.add.image(0, 0, SNAKE_ASSETS.food)
-      .setDisplaySize(CELL + 8, CELL + 8)
+      .setDisplaySize(this.layout.cell + 8, this.layout.cell + 8)
       .setVisible(false);
   }
 
@@ -513,8 +587,8 @@ export class SnakeScene extends BaseScene {
 
   private buildTargetBadge(): void {
     this.targetBadge = this.add.text(
-      GRID_LEFT + GRID_PX - 8,
-      54,
+      this.layout.gridLeft + this.layout.gridPx - 8,
+      this.layout.hudTop + 46,
       "",
       {
         fontSize: "11px",
@@ -529,7 +603,7 @@ export class SnakeScene extends BaseScene {
   private buildStatusRow(): void {
     this.controlsHint = this.add.text(
       this.scW / 2,
-      GRID_TOP + GRID_PX + 14,
+      this.layout.controlsY,
       "Arrow keys / WASD / Swipe",
       {
         fontSize: "11px",
@@ -539,19 +613,19 @@ export class SnakeScene extends BaseScene {
 
     this.hintLabel = this.add.text(
       this.scW / 2,
-      GRID_TOP + GRID_PX + 30,
+      this.layout.hintY,
       "",
       {
         fontSize: "11px",
         color: "#f97066",
         fontStyle: "bold",
-        wordWrap: { width: GRID_PX },
+        wordWrap: { width: this.layout.gridPx },
       },
     ).setOrigin(0.5).setVisible(false);
 
     this.statusLabel = this.add.text(
       this.scW / 2,
-      this.scH - 14,
+      this.layout.statusY,
       "",
       {
         fontSize: "10px",
@@ -591,6 +665,7 @@ export class SnakeScene extends BaseScene {
       fontStyle: "bold",
     }).setOrigin(0.5);
     btnBg.on("pointerdown", () => {
+      if (!this.canStartSelectedDifficulty()) return;
       this.dispatch("startGame", { difficulty: this.pickedDifficulty });
     });
     this.overlayBtn = this.add.container(0, 0, [btnBg, btnTxt]);
@@ -622,17 +697,19 @@ export class SnakeScene extends BaseScene {
 
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0);
+    const layout = this.layout;
+    const panelMidY = layout.lobbyPanelY + layout.lobbyPanelH / 2;
 
-    const titleMark = this.add.image(this.scW / 2 - 96, 28, SNAKE_ASSETS.head)
+    const titleMark = this.add.image(this.scW / 2 - 96, layout.lobbyTitleY, SNAKE_ASSETS.head)
       .setDisplaySize(40, 40);
 
-    const title = this.add.text(this.scW / 2 + 12, 28, "Snake Bounty", {
+    const title = this.add.text(this.scW / 2 + 12, layout.lobbyTitleY, "Snake Bounty", {
       fontSize: "20px",
       fontStyle: "bold",
       color: "#d4a843",
     }).setOrigin(0.5);
 
-    const sub = this.add.text(this.scW / 2, 50, "Grow the snake to win GAS", {
+    const sub = this.add.text(this.scW / 2, layout.lobbySubY, "Grow the snake to win GAS", {
       fontSize: "12px",
       color: "#80b89a",
     }).setOrigin(0.5);
@@ -640,20 +717,33 @@ export class SnakeScene extends BaseScene {
     // Arena preview panel
     const arenaGfx = this.add.graphics();
     arenaGfx.fillStyle(C.cardBg, 1);
-    arenaGfx.fillRoundedRect(GRID_LEFT, 66, GRID_PX, 160, 12);
+    arenaGfx.fillRoundedRect(
+      layout.lobbyPanelX,
+      layout.lobbyPanelY,
+      layout.lobbyPanelW,
+      layout.lobbyPanelH,
+      12,
+    );
     arenaGfx.lineStyle(1, C.cardBorder, 0.7);
-    arenaGfx.strokeRoundedRect(GRID_LEFT, 66, GRID_PX, 160, 12);
+    arenaGfx.strokeRoundedRect(
+      layout.lobbyPanelX,
+      layout.lobbyPanelY,
+      layout.lobbyPanelW,
+      layout.lobbyPanelH,
+      12,
+    );
 
     // Mini snake preview (decorative)
     const preview = this.buildMiniSnakePreview();
+    const trail = this.buildBountyTrail();
 
     // Labels inside arena
-    const arenaTitle = this.add.text(GRID_LEFT + 16, 86, "How to Play", {
+    const arenaTitle = this.add.text(layout.lobbyPanelX + 18, panelMidY - 54, "How to Play", {
       fontSize: "13px",
       fontStyle: "bold",
       color: "#ffe066",
     });
-    const arenaCopy = this.add.text(GRID_LEFT + 16, 106, [
+    const arenaCopy = this.add.text(layout.lobbyPanelX + 18, panelMidY - 28, [
       "• Navigate the snake to eat food",
       "• Grow to the target length",
       "• Don't hit walls or yourself",
@@ -662,13 +752,14 @@ export class SnakeScene extends BaseScene {
       fontSize: "11px",
       color: "#80b89a",
       lineSpacing: 5,
+      wordWrap: { width: Math.max(220, layout.lobbyPanelW - 36) },
     });
 
     // Difficulty cards row
-    const cardsY = 250;
-    const cardW  = 118;
-    const cardH  = 100;
-    const gap    = 8;
+    const cardsY = layout.lobbyCardsY;
+    const cardW  = layout.lobbyCardW;
+    const cardH  = layout.lobbyCardH;
+    const gap    = layout.lobbyCardGap;
     const totalW = 3 * cardW + 2 * gap;
     const cardsX = (this.scW - totalW) / 2;
 
@@ -682,17 +773,11 @@ export class SnakeScene extends BaseScene {
     }
 
     // Pool info line
-    const poolText = this.add.text(this.scW / 2, 366, "", {
+    const poolText = this.add.text(this.scW / 2, layout.lobbyStatusY, "", {
       fontSize: "11px",
       color: "#80b89a",
     }).setOrigin(0.5);
     this.lobbyStatusText = poolText;
-
-    // Start hint
-    const startHint = this.add.text(this.scW / 2, 386, "Select a route, then press Play", {
-      fontSize: "10px",
-      color: "#5af5d0",
-    }).setOrigin(0.5).setAlpha(0.7);
 
     this.lobbyContainer.add([
       titleMark,
@@ -700,16 +785,20 @@ export class SnakeScene extends BaseScene {
       sub,
       arenaGfx,
       preview,
+      trail,
       arenaTitle,
       arenaCopy,
       ...this.lobbyCards,
       poolText,
-      startHint,
     ]);
   }
 
   private buildMiniSnakePreview(): Phaser.GameObjects.Container {
     const preview = this.add.container(0, 0);
+    const { lobbyPanelX, lobbyPanelY, lobbyPanelW, lobbyPanelH } = this.layout;
+    const right = lobbyPanelX + lobbyPanelW - 52;
+    const midY = lobbyPanelY + Math.min(lobbyPanelH - 72, Math.max(78, lobbyPanelH * 0.48));
+    const foodY = lobbyPanelY + lobbyPanelH - 42;
     const pieces: Array<{
       key: string;
       x: number;
@@ -718,11 +807,11 @@ export class SnakeScene extends BaseScene {
       height: number;
       angle?: number;
     }> = [
-      { key: SNAKE_ASSETS.tail, x: 258, y: 112, width: 30, height: 22, angle: 180 },
-      { key: SNAKE_ASSETS.body, x: 286, y: 112, width: 34, height: 22 },
-      { key: SNAKE_ASSETS.body, x: 314, y: 112, width: 34, height: 22 },
-      { key: SNAKE_ASSETS.head, x: 346, y: 108, width: 42, height: 42 },
-      { key: SNAKE_ASSETS.food, x: 365, y: 158, width: 28, height: 28 },
+      { key: SNAKE_ASSETS.tail, x: right - 86, y: midY, width: 30, height: 22, angle: 180 },
+      { key: SNAKE_ASSETS.body, x: right - 58, y: midY, width: 34, height: 22 },
+      { key: SNAKE_ASSETS.body, x: right - 30, y: midY, width: 34, height: 22 },
+      { key: SNAKE_ASSETS.head, x: right + 2, y: midY - 4, width: 42, height: 42 },
+      { key: SNAKE_ASSETS.food, x: right + 22, y: foodY, width: 28, height: 28 },
     ];
 
     for (const piece of pieces) {
@@ -734,6 +823,40 @@ export class SnakeScene extends BaseScene {
     }
 
     return preview;
+  }
+
+  private buildBountyTrail(): Phaser.GameObjects.Graphics {
+    const gfx = this.add.graphics();
+    const {
+      lobbyPanelY,
+      lobbyPanelH,
+      lobbyCardsY,
+      lobbyCardH,
+      lobbyStatusY,
+    } = this.layout;
+    const startY = lobbyPanelY + lobbyPanelH + 18;
+    const endY = Math.min(lobbyStatusY - 20, lobbyCardsY - lobbyCardH / 2 - 28);
+    if (endY <= startY) return gfx;
+
+    const points = 8;
+    gfx.lineStyle(2, C.cardBorder, 0.26);
+    for (let i = 0; i < points; i++) {
+      const progress = i / (points - 1);
+      const x = this.scW / 2 + Math.sin(progress * Math.PI * 2) * 44;
+      const y = startY + (endY - startY) * progress;
+      gfx.fillStyle(i === points - 1 ? C.gold : C.cardBorder, i === points - 1 ? 0.46 : 0.32);
+      gfx.fillCircle(x, y, i === points - 1 ? 5 : 3);
+      if (i > 0) {
+        const prev = (i - 1) / (points - 1);
+        const px = this.scW / 2 + Math.sin(prev * Math.PI * 2) * 44;
+        const py = startY + (endY - startY) * prev;
+        gfx.beginPath();
+        gfx.moveTo(px, py);
+        gfx.lineTo(x, y);
+        gfx.strokePath();
+      }
+    }
+    return gfx;
   }
 
   private makeCard(
@@ -770,10 +893,19 @@ export class SnakeScene extends BaseScene {
       color: "#5af5d0",
     }).setOrigin(0.5);
 
-    container.add([bg, badge, label, targetTxt, entryTxt]);
+    const lockTxt = this.add.text(0, 42, "Cleared", {
+      fontSize: "10px",
+      color: "#f9d27a",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setVisible(false);
+
+    container.add([bg, badge, label, targetTxt, entryTxt, lockTxt]);
+    container.setData("difficulty", difficulty);
 
     bg.on("pointerdown", () => {
+      if (this.isDifficultyLocked(difficulty)) return;
       this.pickedDifficulty = difficulty;
+      this.dispatch("selectDifficulty", { difficulty });
       this.updateLobbyCards();
       this.tweens.add({
         targets: container,
@@ -784,7 +916,7 @@ export class SnakeScene extends BaseScene {
       });
     });
     bg.on("pointerover", () => {
-      if (difficulty !== this.pickedDifficulty) {
+      if (!this.isDifficultyLocked(difficulty) && difficulty !== this.pickedDifficulty) {
         bg.setStrokeStyle(2, C.muted);
       }
     });
@@ -796,28 +928,72 @@ export class SnakeScene extends BaseScene {
   }
 
   private updateLobbyCards(): void {
+    this.ensureSelectableDifficulty();
     for (let i = 0; i < this.lobbyCards.length; i++) {
       const card     = this.lobbyCards[i]!;
       const bg       = card.list[0] as Phaser.GameObjects.Rectangle;
+      const label    = card.list[2] as Phaser.GameObjects.Text;
+      const target   = card.list[3] as Phaser.GameObjects.Text;
+      const entry    = card.list[4] as Phaser.GameObjects.Text;
+      const lock     = card.list[5] as Phaser.GameObjects.Text;
+      const locked   = this.isDifficultyLocked(i as Difficulty);
       const isActive = i === this.pickedDifficulty;
-      bg.setFillStyle(isActive ? C.cardActiveBg : C.cardBg);
-      bg.setStrokeStyle(2, isActive ? C.cardActive : C.cardBorder);
+      bg.setFillStyle(locked ? 0x183226 : isActive ? C.cardActiveBg : C.cardBg);
+      bg.setStrokeStyle(2, locked ? 0x425846 : isActive ? C.cardActive : C.cardBorder);
+      label.setColor(locked ? "#8e9f91" : "#d4a843");
+      target.setColor(locked ? "#6f8474" : "#80b89a");
+      entry.setText(locked ? "Completed" : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`);
+      entry.setColor(locked ? "#8e9f91" : "#5af5d0");
+      lock.setVisible(locked);
+      card.setAlpha(locked ? 0.58 : 1);
+      if (bg.input) bg.input.enabled = !locked;
     }
     // Update pool text
     const poolFree = this.num("poolFree", 0);
     const rule     = ruleOf(this.pickedDifficulty);
-    const needed   = Number(gasDisplay(rule.entryFixed8));
-    const ready    = poolFree >= needed;
+    const needed   = Number(gasDisplay(rule.rewardFixed8));
+    const progressionReady = this.bool("progressionReady", false);
+    const locked   = this.isDifficultyLocked(this.pickedDifficulty);
+    const ready    = progressionReady && !locked && poolFree >= needed;
     if (this.lobbyStatusText) {
       const reward  = gasDisplay(rule.rewardFixed8);
       const time    = Math.round(rule.limitMs / 60000);
-      this.lobbyStatusText.setText(
-        ready
-          ? `Pool: ${poolFree.toFixed(2)} GAS  ·  Win: ${reward} GAS  ·  ${time} min`
-          : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS needed)`,
-      );
+      const statusText = !progressionReady
+        ? "Checking account route history"
+        : locked
+          ? `Route cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
+          : ready
+            ? `Pool: ${poolFree.toFixed(2)} GAS  ·  Win: ${reward} GAS  ·  ${time} min`
+            : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
+      this.lobbyStatusText.setText(statusText);
       this.lobbyStatusText.setColor(ready ? "#80b89a" : "#f97066");
     }
+  }
+
+  private requiredDifficulty(): Difficulty {
+    return Math.max(0, Math.min(2, this.num("progressionRequiredDifficulty", 0))) as Difficulty;
+  }
+
+  private routeName(difficulty: Difficulty): string {
+    return DIFF_LABELS[difficulty] ?? "next route";
+  }
+
+  private isDifficultyLocked(difficulty: Difficulty): boolean {
+    return this.bool("progressionReady", false) && difficulty < this.requiredDifficulty();
+  }
+
+  private ensureSelectableDifficulty(): void {
+    if (this.isDifficultyLocked(this.pickedDifficulty)) {
+      this.pickedDifficulty = this.requiredDifficulty();
+    }
+  }
+
+  private canStartSelectedDifficulty(): boolean {
+    if (!this.bool("progressionReady", false)) return false;
+    if (this.isDifficultyLocked(this.pickedDifficulty)) return false;
+    const poolFree = this.num("poolFree", 0);
+    const rule = ruleOf(this.pickedDifficulty);
+    return poolFree >= Number(gasDisplay(rule.rewardFixed8));
   }
 
   // ── Draw: snake ───────────────────────────────────────────────────────────
@@ -825,6 +1001,7 @@ export class SnakeScene extends BaseScene {
   private drawSnake(): void {
     if (!this.snake) return;
     const gfx = this.snakeGfx;
+    const { cell, gridLeft, gridTop } = this.layout;
     gfx.clear();
 
     const body = this.snake.body;
@@ -832,37 +1009,36 @@ export class SnakeScene extends BaseScene {
 
     for (let i = len - 1; i >= 0; i--) {
       const seg = body[i]!;
-      const px  = GRID_LEFT + seg.x * CELL;
-      const py  = GRID_TOP  + seg.y * CELL;
+      const px  = gridLeft + seg.x * cell;
+      const py  = gridTop  + seg.y * cell;
 
       if (i === 0) {
         // Head — teal rounded rectangle, slightly larger
         const crashed = this.crashed || this.snake.dead;
         gfx.fillStyle(crashed ? C.lose : C.head, 1);
-        gfx.fillRoundedRect(px + 1, py + 1, CELL - 2, CELL - 2, 5);
+        gfx.fillRoundedRect(px + 1, py + 1, cell - 2, cell - 2, 5);
         gfx.lineStyle(1.5, crashed ? 0xf97066 : C.headStroke, 0.8);
-        gfx.strokeRoundedRect(px + 1, py + 1, CELL - 2, CELL - 2, 5);
+        gfx.strokeRoundedRect(px + 1, py + 1, cell - 2, cell - 2, 5);
         // Eyes
-        this.drawSnakeEyes(gfx, seg, px, py);
+        this.drawSnakeEyes(gfx, px, py);
       } else if (i === len - 1 && len > 1) {
         // Tail — smaller, lighter
         const alpha = this.crashed ? 0.4 : 0.8;
         gfx.fillStyle(C.tail, alpha);
-        gfx.fillRoundedRect(px + 4, py + 4, CELL - 8, CELL - 8, 3);
+        gfx.fillRoundedRect(px + 4, py + 4, cell - 8, cell - 8, 3);
       } else {
         // Body — jade squares with stroke
         const alpha = this.crashed ? 0.5 : 1;
         gfx.fillStyle(C.body, alpha);
-        gfx.fillRect(px + 2, py + 2, CELL - 4, CELL - 4);
+        gfx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
         gfx.lineStyle(1, C.bodyDark, 0.4);
-        gfx.strokeRect(px + 2, py + 2, CELL - 4, CELL - 4);
+        gfx.strokeRect(px + 2, py + 2, cell - 4, cell - 4);
       }
     }
   }
 
   private drawSnakeEyes(
     gfx: Phaser.GameObjects.Graphics,
-    head: { x: number; y: number },
     px: number,
     py: number,
   ): void {
@@ -870,6 +1046,7 @@ export class SnakeScene extends BaseScene {
     const dir    = this.localDir;
     // Eye offsets relative to cell center — rotated by direction
     type Offset = { ex1: number; ey1: number; ex2: number; ey2: number };
+    const eye = Math.max(1, Math.round(this.layout.cell / 10));
     const offsets: Record<Direction, Offset> = {
       0: { ex1: -4, ey1: -2, ex2:  4, ey2: -2 }, // up
       1: { ex1:  2, ey1: -4, ex2:  2, ey2:  4 }, // right
@@ -877,14 +1054,14 @@ export class SnakeScene extends BaseScene {
       3: { ex1: -2, ey1: -4, ex2: -2, ey2:  4 }, // left
     };
     const off = offsets[dir];
-    const cx  = px + CELL / 2;
-    const cy  = py + CELL / 2;
+    const cx  = px + this.layout.cell / 2;
+    const cy  = py + this.layout.cell / 2;
     gfx.fillStyle(0xffffff, 0.9);
-    gfx.fillCircle(cx + off.ex1, cy + off.ey1, 2);
-    gfx.fillCircle(cx + off.ex2, cy + off.ey2, 2);
+    gfx.fillCircle(cx + off.ex1, cy + off.ey1, eye);
+    gfx.fillCircle(cx + off.ex2, cy + off.ey2, eye);
     gfx.fillStyle(0x1a3a2b, 1);
-    gfx.fillCircle(cx + off.ex1, cy + off.ey1, 1);
-    gfx.fillCircle(cx + off.ex2, cy + off.ey2, 1);
+    gfx.fillCircle(cx + off.ex1, cy + off.ey1, Math.max(1, eye - 1));
+    gfx.fillCircle(cx + off.ex2, cy + off.ey2, Math.max(1, eye - 1));
   }
 
   // ── Draw: food ────────────────────────────────────────────────────────────
@@ -893,17 +1070,18 @@ export class SnakeScene extends BaseScene {
     if (!this.snake) return;
     const gfx   = this.foodGfx;
     const food  = this.snake.food;
+    const { cell, gridLeft, gridTop } = this.layout;
     const scale = 1 + this.foodPulse * 0.18;
-    const px    = GRID_LEFT + food.x * CELL + CELL / 2;
-    const py    = GRID_TOP  + food.y * CELL + CELL / 2;
-    const r     = (CELL / 2 - 1) * scale;
+    const px    = gridLeft + food.x * cell + cell / 2;
+    const py    = gridTop  + food.y * cell + cell / 2;
+    const r     = (cell / 2 - 1) * scale;
     gfx.clear();
     // Outer glow
     gfx.fillStyle(C.goldLight, 0.25 + this.foodPulse * 0.15);
     gfx.fillCircle(px, py, r + 3);
     this.foodSprite
       .setPosition(px, py)
-      .setDisplaySize((CELL + 8) * scale, (CELL + 8) * scale)
+      .setDisplaySize((cell + 8) * scale, (cell + 8) * scale)
       .setVisible(true);
   }
 
@@ -925,27 +1103,28 @@ export class SnakeScene extends BaseScene {
 
     // Redraw HUD bars
     const hudGfx = this.hudGfx;
+    const { gridLeft, gridPx, hudTop } = this.layout;
     hudGfx.clear();
     // Panel
     hudGfx.fillStyle(C.hudBg, 0.9);
-    hudGfx.fillRoundedRect(GRID_LEFT, 8, GRID_PX, 60, 8);
+    hudGfx.fillRoundedRect(gridLeft, hudTop, gridPx, 60, 8);
     // Timer bar track
     hudGfx.fillStyle(C.barBg, 1);
-    hudGfx.fillRoundedRect(GRID_LEFT + 8, 18, GRID_PX - 16, 10, 5);
+    hudGfx.fillRoundedRect(gridLeft + 8, hudTop + 10, gridPx - 16, 10, 5);
     // Timer bar fill
     if (timePct > 0) {
-      const fillW = Math.max(4, (GRID_PX - 16) * timePct);
+      const fillW = Math.max(4, (gridPx - 16) * timePct);
       hudGfx.fillStyle(isLow ? C.timerLow : C.timerFill, 1);
-      hudGfx.fillRoundedRect(GRID_LEFT + 8, 18, fillW, 10, 5);
+      hudGfx.fillRoundedRect(gridLeft + 8, hudTop + 10, fillW, 10, 5);
     }
     // Length bar track
     hudGfx.fillStyle(C.barBg, 1);
-    hudGfx.fillRoundedRect(GRID_LEFT + 8, 38, GRID_PX - 16, 8, 4);
+    hudGfx.fillRoundedRect(gridLeft + 8, hudTop + 30, gridPx - 16, 8, 4);
     // Length bar fill
     if (lengthPct > 0) {
-      const fillW = Math.max(4, (GRID_PX - 16) * lengthPct);
+      const fillW = Math.max(4, (gridPx - 16) * lengthPct);
       hudGfx.fillStyle(this.targetReached ? C.win : C.lengthFill, 1);
-      hudGfx.fillRoundedRect(GRID_LEFT + 8, 38, fillW, 8, 4);
+      hudGfx.fillRoundedRect(gridLeft + 8, hudTop + 30, fillW, 8, 4);
     }
 
     // Timer label

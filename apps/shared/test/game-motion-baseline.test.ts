@@ -103,7 +103,7 @@ describe("Game miniapp motion baseline", () => {
     expect(phaserHost).toContain(`role="application"`);
     expect(phaserHost).toContain("data-ready");
     expect(phaserHost).toContain("loadingLabel");
-    expect(phaserHost).toContain("autoMobileSize = true");
+    expect(phaserHost).toContain("The displayed host size is framework-owned");
     expect(phaserHost).toContain("window.visualViewport");
     expect(phaserHost).toContain(`window.matchMedia?.("(pointer: coarse)")`);
     expect(phaserHost).toContain("MOBILE_VIEWPORT_WIDTH");
@@ -114,8 +114,14 @@ describe("Game miniapp motion baseline", () => {
     expect(phaserHost).toContain("height: Math.round(availableHeight)");
     expect(phaserHost).toContain("viewportHeight - hostTop - bottomReserve");
     expect(phaserHost).toContain("data-auto-mobile-size");
+    expect(phaserHost).toContain(`const resolvedWidth = autoMobileSizePx?.width ?? "100%"`);
+    expect(phaserHost).toContain(`const resolvedHeight = autoMobileSizePx?.height ?? "100%"`);
+    expect(phaserHost).toContain("minHeight: autoMobileSizePx ? undefined");
     expect(phaserHost).toContain("gameRef.current?.scale.setGameSize(autoMobileSizePx.width, autoMobileSizePx.height)");
     expect(phaserHost).toContain("gameRef.current?.scale.refresh()");
+    expect(phaserHost).not.toContain("width = ");
+    expect(phaserHost).not.toContain("height = 560");
+    expect(phaserHost).not.toContain("autoMobileSize =");
     expect(phaserHost).not.toContain("Math.max(aspectHeight, availableHeight)");
     expect(phaserHost).not.toContain("viewportHeight * 0.78");
     expect(phaserHost).not.toContain("viewportHeight * 0.86");
@@ -132,11 +138,45 @@ describe("Game miniapp motion baseline", () => {
         expect(mount, `${app}: mobile height should be framework-owned`).not.toMatch(
           /\sheight=/,
         );
-        expect(mount, `${app}: should not disable automatic mobile sizing`).not.toContain(
-          "autoMobileSize={false}",
+        expect(mount, `${app}: mobile width should be framework-owned`).not.toMatch(
+          /\swidth=/,
+        );
+        expect(mount, `${app}: should not manually configure automatic mobile sizing`).not.toContain(
+          "autoMobileSize",
         );
       }
     }
+  });
+
+  it("keeps Snake Bounty Phaser route cards synced with progression-gated starts", () => {
+    const scene = readIfExists(
+      resolve(appsRoot, "snake-bounty/src/scenes/SnakeScene.ts"),
+    );
+    const wrapper = readIfExists(
+      resolve(appsRoot, "snake-bounty/src/PhaserPlayArea.tsx"),
+    );
+    const main = readIfExists(
+      resolve(appsRoot, "snake-bounty/src/main.tsx"),
+    );
+
+    expect(scene).toContain(`this.dispatch("selectDifficulty", { difficulty })`);
+    expect(scene).toContain("isDifficultyLocked");
+    expect(scene).toContain("progressionRequiredDifficulty");
+    expect(scene).toContain("type SnakeLayout");
+    expect(scene).toContain("computeLayout(width: number, height: number)");
+    expect(scene).toContain("this.layout = this.computeLayout(ww, hh)");
+    expect(scene).toContain("buildBountyTrail");
+    expect(scene).not.toContain("const CELL =");
+    expect(scene).not.toContain("const GRID_TOP");
+    expect(scene).not.toContain("const GRID_PX");
+    expect(wrapper).toContain("progressionReady");
+    expect(wrapper).toContain("progressionRequiredDifficulty");
+    expect(wrapper).toContain("progressionUnavailableShort");
+    expect(wrapper).toContain("progressionNextRoute");
+    expect(wrapper).toContain("poolFree >= Number(gasDisplay(rule.rewardFixed8))");
+    expect(main).toContain(`app.actions.register("selectDifficulty"`);
+    expect(main).toContain("refreshProgression");
+    expect(main).toContain("obs.progressionRequiredDifficulty.set");
   });
 
   it("keeps game stages large and touchable on mobile", () => {
