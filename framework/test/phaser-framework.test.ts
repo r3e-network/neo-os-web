@@ -203,8 +203,25 @@ describe("root Phaser framework", () => {
       {
         app: "color-clash",
         scene: "ColorClashScene",
-        assets: ["./art/memory-console.webp", "./art/arcade-table.webp"],
-        usage: ["ASSET_MEMORY_CONSOLE", "ASSET_ARCADE_TABLE"],
+        assets: [
+          "./art/memory-console.webp",
+          "./art/arcade-table.webp",
+          "./art/pad-red.webp",
+          "./art/pad-blue.webp",
+          "./art/pad-green.webp",
+          "./art/pad-yellow.webp",
+          "./art/badge-easy.webp",
+          "./art/badge-hard.webp",
+        ],
+        usage: [
+          "CLASH_ASSETS",
+          "PAD_FILES.forEach",
+          "BADGE_FILES.forEach",
+          "buildModeDock",
+          "buildPadButtons",
+          "dispatch(\"startGame\"",
+          "dispatch(\"recordPress\"",
+        ],
       },
       {
         app: "snake-bounty",
@@ -425,6 +442,17 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: scene should not advertise empty cells as placeholders`).not.toContain(
           "empty placeholder",
+        );
+      }
+      if (app === "color-clash") {
+        expect(source, `${app}: Phaser start action should use arcade-run language instead of demo copy`).not.toContain(
+          "START GAME",
+        );
+        expect(source, `${app}: Phaser scene should not keep the old generic start copy`).not.toContain(
+          "Start Game",
+        );
+        expect(source, `${app}: pad input should be gated by live game state before dispatch`).toContain(
+          "if (!this.canPressPads()) return;",
         );
       }
       if (app === "burn-league") {
