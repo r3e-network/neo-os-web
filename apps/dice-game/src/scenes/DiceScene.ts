@@ -7,7 +7,7 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
-import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
+import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 // ── Casino color palette ─────────────────────────────────────────────────────
 const FELT_GREEN   = 0x2f8f58;
@@ -86,7 +86,7 @@ export class DiceScene extends BaseScene {
       this.load.image(chip.asset, chip.file);
     });
     this.load.image(ASSET_HERO_DIE, "./art/hero-die.webp");
-    this.load.image(ASSET_GAS_ICON, gasIconUrl);
+    this.load.image(ASSET_GAS_ICON, officialGasTokenPhaserUrl);
   }
 
   create(): void {

@@ -8,7 +8,7 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameBridgeError, GameState } from "@framework/phaser";
-import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
+import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 import { formatGas } from "@shared/utils/format";
 
 const GAS_POOL_ASSETS = {
@@ -130,7 +130,7 @@ export class GasLuckyPoolScene extends BaseScene {
 
   preload(): void {
     this.load.image(GAS_POOL_ASSETS.vaultStage, "./gas-vault-stage.webp");
-    this.load.image(GAS_POOL_ASSETS.gasIcon, gasIconUrl);
+    this.load.image(GAS_POOL_ASSETS.gasIcon, officialGasTokenPhaserUrl);
   }
 
   create(): void {

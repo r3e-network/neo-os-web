@@ -131,7 +131,7 @@ describe("root Phaser framework", () => {
         assets: [
           "./burn-league-arena.webp",
           "./logo.webp",
-          "gasIconUrl",
+          "officialGasTokenPhaserUrl",
         ],
         usage: ["BURN_ASSETS", "gasTokens", "brazierImage", "dispatch(\"burn\""],
       },
@@ -140,7 +140,7 @@ describe("root Phaser framework", () => {
         scene: "GasLuckyPoolScene",
         assets: [
           "./gas-vault-stage.webp",
-          "@shared/assets/tokens/gas-icon.svg?url",
+          "officialGasTokenPhaserUrl",
         ],
         usage: [
           "GAS_POOL_ASSETS",
@@ -156,7 +156,7 @@ describe("root Phaser framework", () => {
         assets: [
           "./red-envelope-stage.webp",
           "./red-envelope-claim-card.webp",
-          "@shared/assets/tokens/gas-icon.svg?url",
+          "officialGasTokenPhaserUrl",
         ],
         usage: [
           "REDENV_ASSETS",
@@ -172,7 +172,7 @@ describe("root Phaser framework", () => {
         assets: [
           "./last-survivor-arena.webp",
           "./logo.webp",
-          "@shared/assets/tokens/gas-icon.svg?url",
+          "officialGasTokenPhaserUrl",
         ],
         usage: [
           "SURVIVOR_ASSETS",
@@ -252,7 +252,7 @@ describe("root Phaser framework", () => {
           "./art/chip-red.webp",
           "./art/chip-black.webp",
           "./art/hero-die.webp",
-          "@shared/assets/tokens/gas-icon.svg?url",
+          "officialGasTokenPhaserUrl",
         ],
         usage: [
           "DIE_FACE_ASSETS",

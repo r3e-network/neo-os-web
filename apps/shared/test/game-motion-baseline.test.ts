@@ -106,9 +106,12 @@ describe("Game miniapp motion baseline", () => {
     expect(phaserHost).toContain("autoMobileSize = true");
     expect(phaserHost).toContain("window.visualViewport");
     expect(phaserHost).toContain("new ResizeObserver");
+    expect(phaserHost).toContain("availableWidth");
     expect(phaserHost).toContain("availableHeight");
+    expect(phaserHost).toContain("Math.max(aspectHeight, availableHeight)");
     expect(phaserHost).toContain("viewportHeight - hostTop - bottomReserve");
     expect(phaserHost).toContain("data-auto-mobile-size");
+    expect(phaserHost).toContain("gameRef.current?.scale.setGameSize(autoMobileSizePx.width, autoMobileSizePx.height)");
     expect(phaserHost).toContain("gameRef.current?.scale.refresh()");
     expect(phaserHost).not.toContain("viewportHeight * 0.78");
     expect(phaserHost).not.toContain("viewportHeight * 0.86");
@@ -126,9 +129,11 @@ describe("Game miniapp motion baseline", () => {
     expect(v2Styles).toContain("display: none !important");
     expect(v2Styles).toContain(".mx2-cat-game .mx2-stage__scene");
     expect(v2Styles).toContain("min-height: 0 !important");
+    expect(v2Styles).toContain("justify-content: stretch");
     expect(v2Styles).toContain("padding: 0 !important");
     expect(v2Styles).toContain('.mx2-cat-game .mx2-stage__scene [role="application"]');
     expect(v2Styles).toContain("width: 100% !important");
+    expect(v2Styles).toContain("max-width: 100%");
   });
 
   it("keeps every game surface animated, asset-led, and reduced-motion safe", () => {
