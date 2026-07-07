@@ -47,6 +47,7 @@ const rewardGameConfig = {
     minSolveMs:   rule.minSolveMs,
     target:       rule.targetTile,
   })),
+  progression: { enabled: true },
 };
 
 // 2048 Solved event: gameId(0) player(1) difficulty(2) elapsedMs(3) undos(4) payout(5) totalWon(6)

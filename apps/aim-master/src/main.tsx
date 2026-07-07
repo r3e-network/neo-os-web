@@ -41,6 +41,7 @@ const rewardGameConfig: RewardGameConfig = {
     minSolveMs: rule.minSolveMs,
     target: rule.targetAccuracy,
   })),
+  progression: { enabled: true },
 };
 
 defineMiniApp({

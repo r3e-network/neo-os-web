@@ -38,6 +38,7 @@ const rewardGameConfig = {
     minSolveMs:   rule.minSolveMs,
     target:       rule.targetPipes,
   })),
+  progression: { enabled: true },
 };
 
 // Flappy-Dash SolveRow adds pipes count

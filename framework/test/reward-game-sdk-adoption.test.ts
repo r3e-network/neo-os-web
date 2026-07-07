@@ -36,6 +36,9 @@ describe("reward-game SDK adoption", () => {
       expect(source, `${appId} should use SDK finalize settlement orchestration`).toContain(
         "finalizeRewardGame(",
       );
+      expect(source, `${appId} should enable account progression before paid starts`).toContain(
+        "progression: { enabled: true }",
+      );
     }
   });
 });

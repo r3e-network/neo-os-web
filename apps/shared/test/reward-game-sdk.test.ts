@@ -11,9 +11,11 @@ import {
   recordRewardGameOp,
   replayRewardGameOps,
   refreshRewardGameBalances,
+  rewardGameProgressionOf,
   startRewardGame,
 } from "../../../framework/gamefi";
 import type { TeeIdentity, TeeSessionOp } from "../../../framework/logic/tee-session";
+import { addressToScriptHash } from "../../../framework/utils/neo";
 
 const teeMocks = vi.hoisted(() => ({
   seal: vi.fn(),
@@ -67,6 +69,7 @@ function makeChain(overrides?: {
   startEvent?: unknown;
   solvedEvent?: unknown;
   gameSnapshots?: unknown[];
+  events?: unknown[];
 }): RewardGameChain & { calls: ChainCall[] } {
   const calls: ChainCall[] = [];
   const snapshots = [...(overrides?.gameSnapshots ?? [])];
@@ -116,9 +119,61 @@ function makeChain(overrides?: {
         return { txid: "0xpayment", event: overrides?.startEvent };
       },
     ),
+    listEvents: vi.fn(async () => overrides?.events ?? []),
     calls,
   };
   return chain;
+}
+
+const progressionConfig: RewardGameConfig = {
+  ...config,
+  modes: [
+    {
+      id: 0,
+      key: "easy",
+      entryFixed8: 2_000_000n,
+      rewardFixed8: 10_000_000n,
+      limitMs: 120_000,
+      minSolveMs: 20_000,
+      target: 5,
+    },
+    {
+      id: 1,
+      key: "medium",
+      entryFixed8: 10_000_000n,
+      rewardFixed8: 50_000_000n,
+      limitMs: 180_000,
+      minSolveMs: 30_000,
+      target: 10,
+    },
+    {
+      id: 2,
+      key: "hard",
+      entryFixed8: 20_000_000n,
+      rewardFixed8: 100_000_000n,
+      limitMs: 300_000,
+      minSolveMs: 45_000,
+      target: 20,
+    },
+  ],
+  progression: {
+    enabled: true,
+    hardLimitStepMs: 10_000,
+    hardLimitMinMs: 180_000,
+  },
+};
+
+function solvedEvent(difficulty: number, playerHash = addressToScriptHash(PLAYER)): unknown {
+  return {
+    state: [
+      { value: "42" },
+      { value: playerHash },
+      { value: String(difficulty) },
+      { value: "1000" },
+      { value: "0" },
+      { value: "10000000" },
+    ],
+  };
 }
 
 function makeIdentity(gameId = "42"): TeeIdentity {
@@ -155,6 +210,75 @@ describe("reward-game SDK", () => {
     };
 
     await expect(startRewardGame(badConfig, makeChain(), 0)).rejects.toThrow(/positive entry/);
+  });
+
+  it("derives account progression from solved difficulties", () => {
+    const fresh = rewardGameProgressionOf(progressionConfig, [], 0);
+    const afterEasy = rewardGameProgressionOf(progressionConfig, [0], 0);
+    const hardLoop = rewardGameProgressionOf(progressionConfig, [0, 1, 2, 2], 2);
+    const gappedModeConfig: RewardGameConfig = {
+      ...progressionConfig,
+      modes: [progressionConfig.modes[0]!, { ...progressionConfig.modes[2]!, id: 5 }],
+    };
+
+    expect(fresh).toMatchObject({
+      allowed: true,
+      requiredDifficulty: 0,
+      hardChallengeLevel: 0,
+    });
+    expect(afterEasy).toMatchObject({
+      allowed: false,
+      requiredDifficulty: 1,
+      reason: "difficulty-locked",
+    });
+    expect(hardLoop).toMatchObject({
+      allowed: true,
+      requiredDifficulty: 2,
+      hardWins: 2,
+      hardChallengeLevel: 3,
+      effectiveLimitMs: 280_000,
+    });
+    expect(rewardGameProgressionOf(gappedModeConfig, [0], 0)).toMatchObject({
+      allowed: false,
+      requiredDifficulty: 5,
+    });
+  });
+
+  it("blocks lower completed difficulties before sending a payment transaction", async () => {
+    const chain = makeChain({
+      events: [solvedEvent(0)],
+      startEvent: { state: [{ value: "42" }] },
+    });
+
+    await expect(startRewardGame(progressionConfig, chain, 0)).rejects.toThrow(/difficulty 1 or higher/);
+    expect(chain.listEvents).toHaveBeenCalledWith("Solved", { limit: 300 });
+    expect(chain.invoke).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when progression is enabled but solved history is unavailable", async () => {
+    const chain = makeChain();
+    delete (chain as Partial<RewardGameChain>).listEvents;
+
+    await expect(startRewardGame(progressionConfig, chain, 0)).rejects.toThrow(/progression history/);
+    expect(chain.invoke).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+  });
+
+  it("allows the next required difficulty after a lower tier has been solved", async () => {
+    const chain = makeChain({
+      events: [solvedEvent(0)],
+      startEvent: { state: [{ value: "43" }] },
+    });
+
+    const started = await startRewardGame(progressionConfig, chain, 1);
+
+    expect(started.progression).toMatchObject({
+      allowed: true,
+      requiredDifficulty: 1,
+    });
+    expect(started.mode.id).toBe(1);
+    expect(chain.invokeWithPayment).toHaveBeenCalled();
   });
 
   it("refreshes pool balance without requiring a connected wallet", async () => {
