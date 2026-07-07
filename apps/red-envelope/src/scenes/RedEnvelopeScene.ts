@@ -8,7 +8,7 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameBridgeError, GameState } from "@framework/phaser";
-import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
+import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 const REDENV_ASSETS = {
   stage: "redenv-stage",
@@ -120,7 +120,7 @@ export class RedEnvelopeScene extends BaseScene {
   preload(): void {
     this.load.image(REDENV_ASSETS.stage, "./red-envelope-stage.webp");
     this.load.image(REDENV_ASSETS.claimCard, "./red-envelope-claim-card.webp");
-    this.load.image(REDENV_ASSETS.gasIcon, gasIconUrl);
+    this.load.image(REDENV_ASSETS.gasIcon, officialGasTokenPhaserUrl);
   }
 
   create(): void {

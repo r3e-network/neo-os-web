@@ -34,6 +34,8 @@ describe("official token assets", () => {
   it("keeps official Neo Press Kit NEO and GAS icons in shared assets", () => {
     const neoIcon = readShared("assets/tokens/neo-icon.svg");
     const gasIcon = readShared("assets/tokens/gas-icon.svg");
+    const neoPng = fs.readFileSync(path.join(process.cwd(), "assets/tokens/neo-icon.png"));
+    const gasPng = fs.readFileSync(path.join(process.cwd(), "assets/tokens/gas-icon.png"));
 
     expect(neoIcon).toContain('viewBox="0 0 512 512"');
     expect(neoIcon).toContain("#00e599");
@@ -43,6 +45,9 @@ describe("official token assets", () => {
     expect(gasIcon).toContain('viewBox="0 0 512 512"');
     expect(gasIcon).toContain("#01e397");
     expect(gasIcon).toContain("M263.41,438.88");
+
+    expect(neoPng.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect(gasPng.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
   });
 
   it("renders shared CoinArt with official token image assets instead of a hand-drawn N coin", () => {
@@ -81,10 +86,11 @@ describe("official token assets", () => {
   it("prevents miniapps from bypassing the shared official NEO/GAS token component", () => {
     const allowedDirectImports = new Set([
       "apps/shared/art/CoinArt.tsx",
+      "apps/shared/art/token-assets.ts",
       "apps/shared/test/official-token-assets.test.tsx",
     ]);
     const runtimeSource = /^(apps\/(?!shared\/)[^/]+\/src\/|platform\/host-app\/components\/playarea\/).*\.(?:tsx?|jsx?|vue|svelte|scss|css)$/;
-    const directTokenArtwork = /assets\/tokens\/(?:neo|gas)-icon\.svg|(?:neo|gas)-token\.(?:svg|png|webp|jpe?g)/i;
+    const directTokenArtwork = /assets\/tokens\/(?:neo|gas)-icon\.(?:svg|png)|(?:neo|gas)-token\.(?:svg|png|webp|jpe?g)/i;
 
     const offenders = gitFiles().flatMap((file) => {
       const violations: string[] = [];
