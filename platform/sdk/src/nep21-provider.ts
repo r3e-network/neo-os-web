@@ -44,6 +44,24 @@ export type NeoDapiAuthenticationPayload = {
   Timestamp?: number;
 };
 
+export type NeoDapiPaymentRequest<TArg = { type: string; value: unknown }> = {
+  asset: string;
+  from?: string;
+  to: string;
+  amount: string;
+  data?: TArg;
+  purpose?: string;
+  details?: string;
+  timeoutSeconds?: number;
+};
+
+export type NeoDapiPaymentResult = {
+  transactionHash: string;
+  blockTime?: number;
+  succeeded: boolean;
+  confirmed?: boolean;
+};
+
 export interface NeoDapiProvider<
   TArg = { type: string; value: unknown },
   TCallResult = unknown,
@@ -77,6 +95,9 @@ export interface NeoDapiProvider<
     amount: string,
     data?: TArg,
   ) => Promise<unknown>;
+  requestPayment?: (
+    request: NeoDapiPaymentRequest<TArg>,
+  ) => Promise<NeoDapiPaymentResult>;
   signMessage?: (
     message: string,
     account?: string,
@@ -232,6 +253,7 @@ function hasUsableDapiCapability(provider: Partial<NeoDapiProvider>): boolean {
     typeof provider.invoke === "function" ||
     typeof provider.call === "function" ||
     typeof provider.send === "function" ||
+    typeof provider.requestPayment === "function" ||
     typeof provider.signMessage === "function" ||
     typeof provider.authenticate === "function" ||
     typeof provider.getBalance === "function"
@@ -1107,6 +1129,8 @@ function getHostWalletBridgeProvider(win: Nep21Window): NeoDapiProvider | null {
       }),
     send: (asset, from, to, amount, data) =>
       hostBridgeRequest(win, "send", { asset, from, to, amount, data }),
+    requestPayment: (request) =>
+      hostBridgeRequest(win, "requestPayment", request),
     signMessage: (message, account) =>
       hostBridgeRequest(win, "signMessage", { message, account }),
     on: (event, listener) => {

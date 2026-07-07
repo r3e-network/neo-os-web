@@ -22,6 +22,11 @@ const cfg: MiniAppSDKConfig = {
 
 function createWalletWindow() {
   const invoke = vi.fn(async () => ({ txid: "0xtest" }));
+  const requestPayment = vi.fn(async () => ({
+    transactionHash: "0xpayment",
+    blockTime: 1781764300,
+    succeeded: true,
+  }));
   const provider = {
     name: "Test NEP-21 connector",
     dapiVersion: "1.0.0",
@@ -31,6 +36,7 @@ function createWalletWindow() {
       { hash: ACCOUNT_HASH, address: "NTestAddress", isDefault: true },
     ]),
     invoke,
+    requestPayment,
   };
   const win: Record<string, unknown> = {
     location: { search: "", href: "http://localhost/", host: "localhost" },
@@ -44,7 +50,7 @@ function createWalletWindow() {
     NEP21Provider: provider,
   };
   win.parent = win;
-  return { win, provider, invoke };
+  return { win, provider, invoke, requestPayment };
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -381,6 +387,37 @@ describe("createMiniAppSDK", () => {
   });
 
   describe("pending invocation intents", () => {
+    it("requests native OneGate payments through the dAPI provider", async () => {
+      const wallet = createWalletWindow();
+      vi.stubGlobal("window", wallet.win);
+      const sdk = createMiniAppSDK(cfg);
+
+      const payment = await sdk.payments.requestPayment({
+        asset: GAS_HASH,
+        to: "NRecipientAddress111111111111111111111",
+        amount: "100000000",
+        purpose: "Arcade continue",
+        details: "1 GAS credit",
+        timeoutSeconds: 30,
+      });
+
+      expect(payment).toEqual({
+        transactionHash: "0xpayment",
+        blockTime: 1781764300,
+        succeeded: true,
+        confirmed: true,
+      });
+      expect(wallet.requestPayment).toHaveBeenCalledWith({
+        asset: GAS_HASH,
+        from: ACCOUNT_HASH,
+        to: "NRecipientAddress111111111111111111111",
+        amount: "100000000",
+        purpose: "Arcade continue",
+        details: "1 GAS credit",
+        timeoutSeconds: 30,
+      });
+    });
+
     it("invokeIntent consumes a payGAS intent exactly once", async () => {
       vi.stubGlobal(
         "fetch",

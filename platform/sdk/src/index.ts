@@ -34,6 +34,8 @@ export type {
   NeoDapiAuthenticationResponse,
   NeoDapiEventName,
   NeoDapiInvocation,
+  NeoDapiPaymentRequest,
+  NeoDapiPaymentResult,
   NeoDapiProvider,
   Nep21ProviderPreference,
   Nep21Window,

@@ -1,3 +1,8 @@
+import type {
+  NeoDapiPaymentRequest,
+  NeoDapiPaymentResult,
+} from "./nep21-provider.js";
+
 export type ContractParam =
   | { type: "String"; value: string }
   | { type: "Integer"; value: string }
@@ -386,6 +391,7 @@ export interface MiniAppSDK {
   };
   payments: {
     payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse>;
+    requestPayment(request: NeoDapiPaymentRequest<ContractParam>): Promise<NeoDapiPaymentResult>;
     // Convenience: create the intent via the gateway, then submit via the wallet.
     payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<IntentWithTx<PayGASResponse>>;
   };

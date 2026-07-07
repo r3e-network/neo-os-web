@@ -28,6 +28,13 @@ const sdk = createMiniAppSDK({
 });
 
 await sdk.payments.payGAS("my-app", "1.5", "entry fee");
+await sdk.payments.requestPayment({
+  asset: "0xd2a4cff31913016155e38e474a2c06d08be276cf", // GAS
+  to: "NRecipientAddress111111111111111111111",
+  amount: "150000000", // 1.5 GAS in base units
+  purpose: "Entry fee",
+  details: "Unlock tournament round",
+});
 await sdk.governance.vote("my-app", "proposal-1", "10", true);
 await sdk.stats.getMyUsage(); // uses appId from config when provided
 ```
@@ -40,6 +47,7 @@ Notes:
   - `sdk.wallet.signMessage(message)` for wallet-auth and binding flows
   - `sdk.wallet.invokeInvocation(invocation)` (NEP-21 dAPI first, NeoLine N3 fallback)
   - `sdk.wallet.invokeIntent(request_id)` for intents created during this session
+  - `sdk.payments.requestPayment(request)` for OneGate native payment prompts; when the wallet only supports legacy `send`, the SDK falls back to submission and returns `confirmed: false`
   - `sdk.payments.payGASAndInvoke(...)` / `sdk.governance.voteAndInvoke(...)` convenience helpers
   - `sdk.stats.getMyUsage(appId?, date?)` for per-user daily usage (base units)
 
