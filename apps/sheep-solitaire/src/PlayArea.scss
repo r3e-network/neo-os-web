@@ -75,6 +75,21 @@
   line-height: 1.42;
 }
 
+.sheep-phaser-shell {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.sheep-phaser-lobby-hitarea {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  cursor: pointer;
+  background: transparent;
+  touch-action: none;
+}
+
 .sheep-scene {
   width: 100%;
   position: relative;
