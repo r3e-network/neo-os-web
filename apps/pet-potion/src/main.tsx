@@ -38,6 +38,7 @@ const rewardGameConfig = {
     minSolveMs:   rule.minSolveMs,
     target:       rule.targetHappiness,
   })),
+  progression: { enabled: true },
 };
 
 // Pet-Potion SolveRow adds happinessAchieved

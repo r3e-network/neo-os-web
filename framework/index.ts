@@ -8,25 +8,21 @@ import {
   observeRewardGameSettlement,
   openRewardGameSession,
   readRewardGameSnapshot,
+  readRewardGameProgression,
   recoverActiveRewardGame,
   recordRewardGameOp,
   refreshRewardGameBalances,
   replayRewardGameOps,
   rewardGameModeOf,
+  rewardGameProgressionOf,
   startRewardGame,
   withdrawRewardCredit,
 } from "./gamefi";
 import type { RewardGameConfig, RewardGameSession, RewardGameStorage } from "./gamefi";
 import type { TeeSessionOp, TeeStepResult } from "./logic/tee-session";
-import { fromFixed8 } from "./utils/format";
-import { parseBigInt } from "./utils/parsers";
-import { eventStateValue } from "./utils/chain-events";
-import { eventHashMatches, mapField, normalizedHash } from "./gamefi";
 import {
   toScriptHash,
   buildLeaderboard,
-  formatFixed8Gas,
-  asNumber,
   createGameSessionObservables,
   applyGameSnapshot,
   parsePlayerStats,
@@ -608,6 +604,12 @@ export function createMiniAppFramework(
       args: FrameworkContractArg[],
       invokeOptions?: FrameworkInvokeOptions,
     ) => chain.invokeWithPayment(paymentAmount, memo, operation, args, invokeOptions),
+    ...(chain.listEvents
+      ? {
+          listEvents: (eventName: string, options?: { limit?: number; offset?: number }) =>
+            chain.listEvents?.(eventName, options) ?? Promise.resolve([]),
+        }
+      : {}),
   });
 
   const framework = {
@@ -998,6 +1000,11 @@ export function createMiniAppFramework(
           },
           balances(playerHash?: string) {
             return refreshRewardGameBalances(config, chainAdapter, playerHash);
+          },
+          progression(difficulty: number | string, playerHash?: string) {
+            const hash = playerHash ?? toScriptHash(chain.address.get());
+            if (!hash) return Promise.resolve(rewardGameProgressionOf(config, [], difficulty));
+            return readRewardGameProgression(config, chainAdapter, hash, difficulty);
           },
           start(difficulty: number) {
             return startRewardGame(config, chainAdapter, difficulty, storage);

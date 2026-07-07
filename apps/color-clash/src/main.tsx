@@ -64,6 +64,7 @@ const rewardGameConfig = {
     minSolveMs:   rule.minSolveMs,
     target:       rule.targetSeq,
   })),
+  progression: { enabled: true },
 };
 
 // Slot layout for the Color-Clash Solved event:

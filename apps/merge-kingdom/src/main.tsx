@@ -40,6 +40,7 @@ const rewardGameConfig = {
     minSolveMs:   rule.minSolveMs,
     target:       rule.targetTile,
   })),
+  progression: { enabled: true },
 };
 
 function sessionStatusOf(raw: number): GameSessionStatus {

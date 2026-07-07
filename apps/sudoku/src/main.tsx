@@ -37,6 +37,7 @@ const rewardGameConfig = {
     limitMs:      rule.limitMs,
     minSolveMs:   rule.minSolveMs,
   })),
+  progression: { enabled: true },
 };
 
 // Slot layout for the Sudoku Solved event:
