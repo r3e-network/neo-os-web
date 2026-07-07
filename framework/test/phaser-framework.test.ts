@@ -240,6 +240,25 @@ describe("root Phaser framework", () => {
         usage: ["DIE_FACE_ASSETS", "CHIP_PRESETS", "setDieFace", "ASSET_GAS_ICON"],
       },
       {
+        app: "game-2048",
+        scene: "Game2048Scene",
+        assets: [
+          "./tile-felt.webp",
+          "./art/tile-e1.webp",
+          "./art/tile-e11.webp",
+          "./art/tile-e12.webp",
+        ],
+        usage: [
+          "RUSH_ASSETS",
+          "this.load.image(RUSH_ASSETS.felt",
+          "buildLobbyHeroBoard",
+          "RUSH_ASSETS.tile",
+          "this.add.image(CW / 2, GRID_TOP + gridH / 2, RUSH_ASSETS.felt",
+          "dispatch(\"startGame\"",
+          "dispatch(\"playMove\"",
+        ],
+      },
+      {
         app: "flappy-dash",
         scene: "FlappyScene",
         assets: [
@@ -392,6 +411,20 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: target board should use loaded art, not the old hand-drawn target note`).not.toContain(
           "Concentric-ring target board",
+        );
+      }
+      if (app === "game-2048") {
+        expect(source, `${app}: lobby should be a board-first game surface, not a form prompt`).not.toContain(
+          "Choose Difficulty",
+        );
+        expect(source, `${app}: primary CTA should use game-run language instead of generic demo copy`).not.toContain(
+          "Start Game",
+        );
+        expect(source, `${app}: loading state should use tile assets, not old text-only shuffle copy`).not.toContain(
+          "Shuffling tiles",
+        );
+        expect(source, `${app}: scene should not advertise empty cells as placeholders`).not.toContain(
+          "empty placeholder",
         );
       }
       if (app === "burn-league") {
