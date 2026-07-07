@@ -19,6 +19,12 @@ const GAME_CONFIG = {
   transparent: true,
 } as const;
 
+const LOBBY_CARD_BOUNDS = [
+  { difficulty: 0, x: 200, y: 122, w: 340, h: 158 },
+  { difficulty: 1, x: 200, y: 292, w: 340, h: 158 },
+  { difficulty: 2, x: 200, y: 462, w: 340, h: 158 },
+] as const;
+
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
 
@@ -27,6 +33,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isStarting  = bool("isStarting");
   const isSubmitting = bool("isSubmitting");
   const isGameOver  = bool("isGameOver");
+  const isLobbyInteractive =
+    (gameStatus === "idle" || gameStatus === "expired" || gameStatus === "refunded") &&
+    !isStarting &&
+    !isDealing;
 
   // Bridge state snapshot: all values must be plain (serializable)
   const bridgeState = {
@@ -65,6 +75,32 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? t("statusDealt")
     : t("rollDescription");
 
+  const handleLobbyPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isLobbyInteractive) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * GAME_CONFIG.width;
+    const y = ((event.clientY - rect.top) / rect.height) * GAME_CONFIG.height;
+    const hit = LOBBY_CARD_BOUNDS.find((card) =>
+      x >= card.x - card.w / 2 &&
+      x <= card.x + card.w / 2 &&
+      y >= card.y - card.h / 2 &&
+      y <= card.y + card.h / 2,
+    );
+    if (!hit) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const bridge = (window as typeof window & {
+      __phaserBridge?: { dispatch(action: string, ...args: unknown[]): void };
+    }).__phaserBridge;
+    if (bridge) {
+      bridge.dispatch("startGame", { difficulty: hit.difficulty });
+    } else {
+      void dispatch("startGame", { difficulty: hit.difficulty });
+    }
+  };
+
   return (
     <div className="sheep-playarea mx2 mx2-cat-game">
       <PlayStage
@@ -81,12 +117,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           ),
         }}
         scene={
-          <PhaserGameComponent
-            config={GAME_CONFIG}
-            state={bridgeState}
-            dispatch={dispatch}
-            height={580}
-          />
+          <div className="sheep-phaser-shell">
+            <PhaserGameComponent
+              config={GAME_CONFIG}
+              state={bridgeState}
+              dispatch={dispatch}
+              height={580}
+            />
+            {isLobbyInteractive ? (
+              <div
+                className="sheep-phaser-lobby-hitarea"
+                aria-hidden="true"
+                onPointerDown={handleLobbyPointerDown}
+              />
+            ) : null}
+          </div>
         }
         actions={{
           primary: gameStatus === "solved"

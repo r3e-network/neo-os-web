@@ -295,6 +295,30 @@ describe("root Phaser framework", () => {
           "dispatch(\"submitSolution\"",
         ],
       },
+      {
+        app: "sheep-solitaire",
+        scene: "SheepScene",
+        assets: [
+          "./art/meadow-table.webp",
+          "./art/slot-tray.webp",
+          "./art/mascot-sheep.webp",
+          "./art/badge-easy.webp",
+          "./art/badge-medium.webp",
+          "./art/badge-hard.webp",
+          "./art/tile-00-wool-flower.webp",
+          "./art/tile-14-carousel.webp",
+        ],
+        usage: [
+          "SHEEP_ASSETS",
+          "this.load.image(SHEEP_ASSETS.table",
+          "this.load.image(SHEEP_ASSETS.tray",
+          "this.load.image(SHEEP_ASSETS.mascot",
+          "this.load.image(SHEEP_ASSETS.tiles[0]",
+          "this.tileAssetKey(card.symbol)",
+          "dispatch(\"startGame\"",
+          "dispatch(\"pickCard\"",
+        ],
+      },
     ] as const;
 
     for (const { app, scene, assets, usage } of migratedAssetScenes) {
@@ -412,6 +436,14 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: scene should not advertise programmatic art as the visual system`).not.toContain(
           "all art drawn programmatically",
+        );
+      }
+      if (app === "sheep-solitaire") {
+        expect(source, `${app}: tile faces should use real tile images, not old geometric symbols`).not.toContain(
+          "drawCardSymbol",
+        );
+        expect(source, `${app}: mascot should use loaded art, not an old graphics emblem`).not.toContain(
+          "drawSheepEmblem",
         );
       }
     }

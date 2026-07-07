@@ -14,6 +14,14 @@ describe("GameFi microgame archetypes", () => {
     expect(microgameArchetypeById("ten-second-stand")?.familiarPattern).toContain(
       "survival",
     );
+    expect(microgameArchetypeById("piano-sprint")?.familiarPattern).toContain(
+      "piano tile",
+    );
+    expect(microgameArchetypeById("traffic-dash")?.coreVerb).toBe("swipe");
+    expect(microgameArchetypeById("memory-chain")?.verification).toContain("Replay");
+    expect(microgameArchetypeById("jump-rope-rush")?.assetDirection).toContain(
+      "Character poses",
+    );
   });
 
   it("recommends high-fit candidates first", () => {
@@ -30,6 +38,8 @@ describe("GameFi microgame archetypes", () => {
   });
 
   it("keeps every archetype game-first, verifiable, and anti-abuse aware", () => {
+    expect(MICROGAME_ARCHETYPES.length).toBeGreaterThanOrEqual(10);
+
     for (const candidate of MICROGAME_ARCHETYPES) {
       expect(validateMicrogameArchetype(candidate), candidate.id).toEqual([]);
       expect(candidate.verification, candidate.id).toMatch(/Replay|Verify/);
