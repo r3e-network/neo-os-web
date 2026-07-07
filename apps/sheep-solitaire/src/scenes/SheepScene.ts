@@ -35,12 +35,34 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 
-// Symbol indices 0–14 are drawn via SheepScene.drawCardSymbol — no emoji table needed.
-
 const DIFFICULTY_LABELS = ["Easy", "Medium", "Hard"] as const;
 const DIFFICULTY_ENTRY   = ["0.02 GAS", "0.10 GAS", "0.20 GAS"] as const;
 const DIFFICULTY_REWARD  = ["0.10 GAS", "0.50 GAS", "1.00 GAS"] as const;
 const DIFFICULTY_TIMER   = ["5:00",     "8:00",     "12:00"] as const;
+
+const SHEEP_ASSETS = {
+  table: "sheep-meadow-table",
+  tray: "sheep-slot-tray",
+  mascot: "sheep-mascot",
+  badges: ["sheep-badge-easy", "sheep-badge-medium", "sheep-badge-hard"],
+  tiles: [
+    "sheep-tile-wool-flower",
+    "sheep-tile-apple",
+    "sheep-tile-orange",
+    "sheep-tile-lemon",
+    "sheep-tile-grape",
+    "sheep-tile-strawberry",
+    "sheep-tile-peach",
+    "sheep-tile-cherry",
+    "sheep-tile-star",
+    "sheep-tile-bell",
+    "sheep-tile-target",
+    "sheep-tile-ribbon",
+    "sheep-tile-crystal",
+    "sheep-tile-tent",
+    "sheep-tile-carousel",
+  ],
+} as const;
 
 const C = {
   meadow:      0x3a7c47,
@@ -67,6 +89,8 @@ const C = {
   lobbyCard0:  0x2a7a3a,
   lobbyCard1:  0x7a6020,
   lobbyCard2:  0x7a2a2a,
+  panel:       0xfff8e8,
+  ink:         0x2f281d,
 } as const;
 
 interface CardView {
@@ -80,6 +104,7 @@ interface CardView {
 // ── Layout constants ─────────────────────────────────────────────────────────
 const CARD_W    = 48;
 const CARD_H    = 58;
+const TILE_ART_SIZE = 54;
 const CARD_STEP_X = 53;
 const CARD_STEP_Y = 63;
 const TRAY_Y_FRAC = 0.625;
@@ -130,6 +155,30 @@ export class SheepScene extends BaseScene {
 
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
 
+  preload(): void {
+    this.load.image(SHEEP_ASSETS.table, "./art/meadow-table.webp");
+    this.load.image(SHEEP_ASSETS.tray, "./art/slot-tray.webp");
+    this.load.image(SHEEP_ASSETS.mascot, "./art/mascot-sheep.webp");
+    this.load.image(SHEEP_ASSETS.badges[0], "./art/badge-easy.webp");
+    this.load.image(SHEEP_ASSETS.badges[1], "./art/badge-medium.webp");
+    this.load.image(SHEEP_ASSETS.badges[2], "./art/badge-hard.webp");
+    this.load.image(SHEEP_ASSETS.tiles[0], "./art/tile-00-wool-flower.webp");
+    this.load.image(SHEEP_ASSETS.tiles[1], "./art/tile-01-apple.webp");
+    this.load.image(SHEEP_ASSETS.tiles[2], "./art/tile-02-orange.webp");
+    this.load.image(SHEEP_ASSETS.tiles[3], "./art/tile-03-lemon.webp");
+    this.load.image(SHEEP_ASSETS.tiles[4], "./art/tile-04-grape.webp");
+    this.load.image(SHEEP_ASSETS.tiles[5], "./art/tile-05-strawberry.webp");
+    this.load.image(SHEEP_ASSETS.tiles[6], "./art/tile-06-peach.webp");
+    this.load.image(SHEEP_ASSETS.tiles[7], "./art/tile-07-cherry.webp");
+    this.load.image(SHEEP_ASSETS.tiles[8], "./art/tile-08-star.webp");
+    this.load.image(SHEEP_ASSETS.tiles[9], "./art/tile-09-bell.webp");
+    this.load.image(SHEEP_ASSETS.tiles[10], "./art/tile-10-target.webp");
+    this.load.image(SHEEP_ASSETS.tiles[11], "./art/tile-11-ribbon.webp");
+    this.load.image(SHEEP_ASSETS.tiles[12], "./art/tile-12-crystal.webp");
+    this.load.image(SHEEP_ASSETS.tiles[13], "./art/tile-13-tent.webp");
+    this.load.image(SHEEP_ASSETS.tiles[14], "./art/tile-14-carousel.webp");
+  }
+
   create(): void {
     super.create();
     const { width: W, height: H } = this.scale;
@@ -154,10 +203,10 @@ export class SheepScene extends BaseScene {
     const showResult = status === "solved" || (status === "dealt" && isGameOver);
     const showGame   = status === "dealt" && !isGameOver;
 
-    this.lobbyGroup .setVisible(showLobby  && !showLoad);
-    this.loadGroup  .setVisible(showLoad);
-    this.gameGroup  .setVisible(showGame);
-    this.resultGroup.setVisible(showResult);
+    this.setGroupActive(this.lobbyGroup, showLobby && !showLoad);
+    this.setGroupActive(this.loadGroup, showLoad);
+    this.setGroupActive(this.gameGroup, showGame);
+    this.setGroupActive(this.resultGroup, showResult);
 
     this.currentStatus = status;
 
@@ -171,14 +220,19 @@ export class SheepScene extends BaseScene {
   // ── Background ─────────────────────────────────────────────────────────────
 
   private buildBackground(W: number, H: number): void {
-    this.add.rectangle(W / 2, H / 2, W, H, C.meadow);
-    // Inner board border
-    this.add.rectangle(W / 2, H / 2, W - 24, H - 24, C.meadowDark)
-      .setStrokeStyle(3, C.goldLight);
-    // Subtle grass lines
-    const g = this.add.graphics();
-    g.lineStyle(1, C.meadowLight, 0.15);
-    for (let y = 20; y < H; y += 28) g.lineBetween(0, y, W, y);
+    this.add.rectangle(W / 2, H / 2, W, H, 0xfffbef);
+    this.add.rectangle(W / 2, H / 2, W - 18, H - 18, 0xf8f0dc)
+      .setStrokeStyle(2, 0xe7d19b);
+
+    const table = this.add.image(W / 2, H * 0.36, SHEEP_ASSETS.table)
+      .setDisplaySize(W - 18, 148)
+      .setAlpha(0.98);
+    table.setDepth(0);
+
+    this.add.rectangle(W / 2, H * 0.36, W - 24, 150, 0xffffff, 28)
+      .setStrokeStyle(1, 0xffffff, 50);
+    this.add.rectangle(W / 2, 78, W - 38, 74, C.panel, 235)
+      .setStrokeStyle(1, 0xe7d19b);
   }
 
   // ── Lobby ──────────────────────────────────────────────────────────────────
@@ -186,21 +240,21 @@ export class SheepScene extends BaseScene {
   private buildLobby(W: number, _H: number): void {
     this.lobbyGroup = this.add.container(0, 0);
 
-    const titleMark = this.add.graphics();
-    SheepScene.drawSheepEmblem(titleMark, W / 2 - 116, 52, 0.58);
+    const mascot = this.add.image(W / 2 - 118, 57, SHEEP_ASSETS.mascot)
+      .setDisplaySize(58, 58);
 
     const title = this.add.text(W / 2 + 14, 52, "Sheep Solitaire", {
       fontSize: "22px",
       fontStyle: "bold",
-      color: "#f0c866",
+      color: "#2f281d",
     }).setOrigin(0.5);
 
     const sub = this.add.text(W / 2, 82, "Match 3 tiles to clear the board", {
       fontSize: "13px",
-      color: "#c8d8b0",
+      color: "#7a6544",
     }).setOrigin(0.5);
 
-    this.lobbyGroup.add([titleMark, title, sub]);
+    this.lobbyGroup.add([mascot, title, sub]);
 
     // 3 difficulty cards
     const cardTopY = 122;
@@ -209,8 +263,8 @@ export class SheepScene extends BaseScene {
     const cardW    = W - 60;
     const cx       = W / 2;
 
-    const diffColors  = [C.lobbyCard0, C.lobbyCard1, C.lobbyCard2];
-    const diffBorders = [0x40b060, 0xa07830, 0xa03830];
+    const diffColors  = [0xfffbef, 0xfff7df, 0xffefe2];
+    const diffBorders = [0x9aca76, 0xdab159, 0xe78b77];
 
     for (let d = 0; d < 3; d++) {
       const y = cardTopY + d * (cardH + gap);
@@ -229,55 +283,64 @@ export class SheepScene extends BaseScene {
       .setStrokeStyle(2, borderColor);
     bg.setInteractive({ useHandCursor: true });
 
-    const label = this.add.text(cx, cy - 46, DIFFICULTY_LABELS[difficulty]!, {
+    const badge = this.add.image(cx - w / 2 + 54, cy - 36, SHEEP_ASSETS.badges[difficulty])
+      .setDisplaySize(58, 58);
+
+    const label = this.add.text(cx - 4, cy - 48, DIFFICULTY_LABELS[difficulty]!, {
       fontSize: "20px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#2f281d",
     }).setOrigin(0.5);
 
     const cardTypes = difficulty === 0 ? 8 : difficulty === 1 ? 12 : 15;
     const infoText  = `${cardTypes} tile types  ·  ${DIFFICULTY_TIMER[difficulty]}`;
-    const infoLabel = this.add.text(cx, cy - 18, infoText, {
+    const infoLabel = this.add.text(cx - 4, cy - 18, infoText, {
       fontSize: "13px",
-      color: "#d0d0a8",
+      color: "#7a6544",
     }).setOrigin(0.5);
 
-    const entryLabel = this.add.text(cx, cy + 10, `Entry: ${DIFFICULTY_ENTRY[difficulty]}`, {
+    const entryLabel = this.add.text(cx - 46, cy + 12, `Entry ${DIFFICULTY_ENTRY[difficulty]}`, {
       fontSize: "14px",
-      color: "#f0c866",
+      color: "#8f6a20",
     }).setOrigin(0.5);
 
-    const rewardLabel = this.add.text(cx, cy + 34, `Reward: ${DIFFICULTY_REWARD[difficulty]}`, {
+    const rewardLabel = this.add.text(cx + 70, cy + 12, `Win ${DIFFICULTY_REWARD[difficulty]}`, {
       fontSize: "15px",
       fontStyle: "bold",
-      color: "#7dd87d",
+      color: "#217d4d",
     }).setOrigin(0.5);
 
-    // Preview tile symbols (drawn)
+    // Preview real tile assets.
     const tileCount = Math.min(cardTypes, 8);
-    const tileStartX = cx - (tileCount / 2 - 0.5) * 28;
-    const previewLabels: Phaser.GameObjects.Graphics[] = [];
+    const tileStartX = cx - (tileCount / 2 - 0.5) * 30;
+    const previewLabels: Phaser.GameObjects.Image[] = [];
     for (let i = 0; i < tileCount; i++) {
-      const tg = this.add.graphics();
-      SheepScene.drawCardSymbol(tg, i, tileStartX + i * 28, cy + 62, 8, 0.8);
-      previewLabels.push(tg);
+      const tile = this.add.image(tileStartX + i * 30, cy + 56, this.tileAssetKey(i))
+        .setDisplaySize(30, 30);
+      previewLabels.push(tile);
     }
 
-    // Hover effect
-    bg.on("pointerover", () => {
+    const onHoverIn = () => {
       bg.setStrokeStyle(3, C.goldLight);
       this.tweens.add({ targets: bg, scaleX: 1.01, scaleY: 1.01, duration: 80 });
-    });
-    bg.on("pointerout", () => {
+    };
+    const onHoverOut = () => {
       bg.setStrokeStyle(2, borderColor);
       this.tweens.add({ targets: bg, scaleX: 1, scaleY: 1, duration: 80 });
-    });
-    bg.on("pointerdown", () => {
+    };
+    const onPress = () => {
       this.tweens.add({ targets: bg, scaleX: 0.97, scaleY: 0.97, duration: 60, yoyo: true });
       this.dispatch("startGame", { difficulty });
-    });
+    };
+    const bindStart = (target: Phaser.GameObjects.GameObject) => {
+      target.setInteractive({ useHandCursor: true });
+      target.on("pointerover", onHoverIn);
+      target.on("pointerout", onHoverOut);
+      target.on("pointerdown", onPress);
+    };
+    [bg, badge, label, infoLabel, entryLabel, rewardLabel, ...previewLabels].forEach(bindStart);
 
-    this.lobbyGroup.add([bg, label, infoLabel, entryLabel, rewardLabel, ...previewLabels]);
+    this.lobbyGroup.add([bg, badge, label, infoLabel, entryLabel, rewardLabel, ...previewLabels]);
   }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
@@ -285,22 +348,22 @@ export class SheepScene extends BaseScene {
   private buildLoadScreen(W: number, H: number): void {
     this.loadGroup = this.add.container(0, 0);
 
-    const bg = this.add.rectangle(W / 2, H / 2, W - 40, 140, C.meadowDark)
+    const bg = this.add.rectangle(W / 2, H / 2, W - 40, 140, C.panel)
       .setStrokeStyle(2, C.gold);
 
     const spinner = this.add.container(W / 2, H / 2 - 28);
-    const spinnerArt = this.add.graphics();
-    SheepScene.drawSheepEmblem(spinnerArt, 0, 0, 1.08);
+    const spinnerArt = this.add.image(0, 0, SHEEP_ASSETS.mascot)
+      .setDisplaySize(70, 70);
     spinner.add(spinnerArt);
 
     const loadText = this.add.text(W / 2, H / 2 + 24, "Preparing your board…", {
       fontSize: "16px",
-      color: "#f0c866",
+      color: "#2f281d",
     }).setOrigin(0.5);
 
     const subText = this.add.text(W / 2, H / 2 + 48, "Securing puzzle on-chain", {
       fontSize: "12px",
-      color: "#8aaa88",
+      color: "#7a6544",
     }).setOrigin(0.5);
 
     // Spin animation on spinner
@@ -334,14 +397,14 @@ export class SheepScene extends BaseScene {
 
     // ── Tray background ──────────────────────────────────────────────────────
     const trayY = H * TRAY_Y_FRAC;
-    const trayBg = this.add.rectangle(W / 2, trayY, W - 24, 76, C.tray)
-      .setStrokeStyle(2, C.gold);
+    const trayBg = this.add.image(W / 2, trayY, SHEEP_ASSETS.tray)
+      .setDisplaySize(W - 12, 76);
     this.gameGroup.add(trayBg);
 
     // Tray label
     const trayLabel = this.add.text(16, trayY - 46, "Tray", {
       fontSize: "11px",
-      color: "#d4a843",
+      color: "#8f6a20",
     }).setAlpha(0.8);
     this.gameGroup.add(trayLabel);
 
@@ -350,8 +413,9 @@ export class SheepScene extends BaseScene {
     const slotStartX = 16 + slotStep / 2;
     for (let i = 0; i < SLOT_COUNT; i++) {
       const sx = slotStartX + i * slotStep;
-      const slotBox = this.add.rectangle(sx, trayY, slotStep - 4, 64, C.traySlot)
-        .setStrokeStyle(1, C.traySlotBdr);
+      const slotBox = this.add.rectangle(sx, trayY, slotStep - 8, 56, 0xffffff, 8)
+        .setStrokeStyle(1, 0xd8bd81, 0.35)
+        .setAlpha(0.18);
       this.gameGroup.add(slotBox);
     }
 
@@ -557,34 +621,29 @@ export class SheepScene extends BaseScene {
   private makeCardSprite(card: CardView): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
 
-    const bgColor     = card.exposed ? C.card     : C.cardBlocked;
-    const borderColor = card.exposed ? C.cardBorder : C.cardBorderB;
-    const alpha       = card.exposed ? 1 : 0.75;
+    const alpha = card.exposed ? 1 : 0.58;
+    const shadow = this.add.ellipse(0, CARD_H / 2 - 3, CARD_W * 0.78, 8, 0x000000, 0.14);
+    const tile = this.add.image(0, 0, this.tileAssetKey(card.symbol))
+      .setDisplaySize(TILE_ART_SIZE, TILE_ART_SIZE)
+      .setAlpha(alpha);
 
-    // Card body
-    const bg = this.add.rectangle(0, 0, CARD_W, CARD_H, bgColor)
-      .setStrokeStyle(2, borderColor)
-      .setAlpha(alpha)
-      .setOrigin(0.5);
+    if (!card.exposed) {
+      tile.setTint(0x9f927d);
+    }
 
-    // Symbol drawn with graphics
-    const symG = this.add.graphics();
-    SheepScene.drawCardSymbol(symG, card.symbol, 0, -2, 14, card.exposed ? 1 : 0.55);
-
-    c.add([bg, symG]);
+    c.add([shadow, tile]);
 
     if (card.exposed) {
-      bg.setInteractive({ useHandCursor: true });
+      tile.setInteractive({ useHandCursor: true });
 
-      bg.on("pointerover", () => {
-        bg.setStrokeStyle(3, C.goldLight);
+      tile.on("pointerover", () => {
+        tile.clearTint();
         this.tweens.add({ targets: c, scaleX: 1.07, scaleY: 1.07, duration: 80 });
       });
-      bg.on("pointerout", () => {
-        bg.setStrokeStyle(2, borderColor);
+      tile.on("pointerout", () => {
         this.tweens.add({ targets: c, scaleX: 1, scaleY: 1, duration: 80 });
       });
-      bg.on("pointerdown", () => {
+      tile.on("pointerdown", () => {
         if (this.ghostInFlight) return;
         this.handleCardClick(card, c);
       });
@@ -652,14 +711,11 @@ export class SheepScene extends BaseScene {
       const x = slotStartX + idx * slotStep;
       const c = this.add.container(x, trayY);
 
-      const bg = this.add.rectangle(0, 0, slotW, 58, C.card)
-        .setStrokeStyle(2, C.cardBorder)
-        .setOrigin(0.5);
+      const bg = this.add.ellipse(0, 25, slotW * 0.78, 8, 0x000000, 0.1);
+      const tile = this.add.image(0, 0, this.tileAssetKey(card.symbol))
+        .setDisplaySize(48, 48);
 
-      const symG = this.add.graphics();
-      SheepScene.drawCardSymbol(symG, card.symbol, 0, -2, 12, 1);
-
-      c.add([bg, symG]);
+      c.add([bg, tile]);
       this.trayContainer.add(c);
     });
   }
@@ -775,158 +831,24 @@ export class SheepScene extends BaseScene {
     this.scene.restart();
   }
 
-  private static drawSheepEmblem(
-    g: Phaser.GameObjects.Graphics,
-    cx: number,
-    cy: number,
-    scale = 1,
-  ): void {
-    const s = scale;
-    g.fillStyle(0xfff8e8, 1);
-    g.fillCircle(cx - 12 * s, cy, 11 * s);
-    g.fillCircle(cx, cy - 7 * s, 13 * s);
-    g.fillCircle(cx + 13 * s, cy, 11 * s);
-    g.fillCircle(cx - 1 * s, cy + 8 * s, 13 * s);
-    g.fillStyle(0xd4a843, 1);
-    g.fillEllipse(cx - 19 * s, cy + 5 * s, 8 * s, 14 * s);
-    g.fillEllipse(cx + 19 * s, cy + 5 * s, 8 * s, 14 * s);
-    g.fillStyle(0x2a5c34, 1);
-    g.fillRoundedRect(cx - 10 * s, cy - 1 * s, 20 * s, 18 * s, 8 * s);
-    g.fillStyle(0xfff8e8, 1);
-    g.fillCircle(cx - 4 * s, cy + 5 * s, 1.6 * s);
-    g.fillCircle(cx + 4 * s, cy + 5 * s, 1.6 * s);
+  private setGroupActive(group: Phaser.GameObjects.Container, active: boolean): void {
+    this.setObjectActive(group, active);
   }
 
-  /**
-   * Draw a symbol for a given index (0–14) at absolute coordinates (cx, cy)
-   * with a given radius `r`. Uses 15 distinct geometric shapes + colors.
-   */
-  static drawCardSymbol(
-    g: Phaser.GameObjects.Graphics,
-    symbolIdx: number,
-    cx: number,
-    cy: number,
-    r: number,
-    alpha = 1,
-  ): void {
-    g.clear();
-    // 15 symbol types: each has a unique shape + color combination
-    const DEFS: Array<{ color: number; shape: string }> = [
-      { color: 0xf87171, shape: "circle"   },  // 0 red circle
-      { color: 0xfbbf24, shape: "diamond"  },  // 1 amber diamond
-      { color: 0x34d399, shape: "triangle" },  // 2 green triangle
-      { color: 0x60a5fa, shape: "square"   },  // 3 blue square
-      { color: 0xc084fc, shape: "star"     },  // 4 purple star
-      { color: 0xf97316, shape: "cross"    },  // 5 orange cross
-      { color: 0x38bdf8, shape: "hexagon"  },  // 6 sky hexagon
-      { color: 0xfb7185, shape: "heart"    },  // 7 rose heart
-      { color: 0xa3e635, shape: "ring"     },  // 8 lime ring
-      { color: 0xe879f9, shape: "moon"     },  // 9 fuchsia crescent
-      { color: 0xfde68a, shape: "sun"      },  // 10 yellow sun
-      { color: 0x6ee7b7, shape: "leaf"     },  // 11 mint leaf
-      { color: 0xf9a8d4, shape: "flower"   },  // 12 pink flower
-      { color: 0x93c5fd, shape: "drop"     },  // 13 blue drop
-      { color: 0xfcd34d, shape: "bolt"     },  // 14 yellow bolt
-    ];
-    const def = DEFS[symbolIdx % DEFS.length] ?? DEFS[0]!;
-    g.fillStyle(def.color, alpha);
-    g.lineStyle(1, 0xffffff, alpha * 0.4);
-
-    switch (def.shape) {
-      case "circle":
-        g.fillCircle(cx, cy, r);
-        g.strokeCircle(cx, cy, r);
-        break;
-      case "diamond":
-        g.fillPoints([
-          { x: cx, y: cy - r }, { x: cx + r * 0.7, y: cy },
-          { x: cx, y: cy + r }, { x: cx - r * 0.7, y: cy },
-        ] as Phaser.Types.Math.Vector2Like[], true);
-        break;
-      case "triangle":
-        g.fillTriangle(cx, cy - r, cx + r, cy + r * 0.6, cx - r, cy + r * 0.6);
-        break;
-      case "square":
-        g.fillRect(cx - r * 0.78, cy - r * 0.78, r * 1.56, r * 1.56);
-        break;
-      case "star": {
-        const pts: Phaser.Types.Math.Vector2Like[] = [];
-        for (let p = 0; p < 10; p++) {
-          const a = Phaser.Math.DegToRad(p * 36 - 90);
-          const rr = p % 2 === 0 ? r : r * 0.45;
-          pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr });
-        }
-        g.fillPoints(pts, true);
-        break;
-      }
-      case "cross":
-        g.fillRect(cx - r * 0.3, cy - r, r * 0.6, r * 2);
-        g.fillRect(cx - r, cy - r * 0.3, r * 2, r * 0.6);
-        break;
-      case "hexagon": {
-        const hp: Phaser.Types.Math.Vector2Like[] = [];
-        for (let h = 0; h < 6; h++) {
-          const a = Phaser.Math.DegToRad(h * 60 - 30);
-          hp.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
-        }
-        g.fillPoints(hp, true);
-        break;
-      }
-      case "heart": {
-        // Simple heart approximation
-        const hr = r * 0.55;
-        g.fillCircle(cx - hr, cy - r * 0.2, hr);
-        g.fillCircle(cx + hr, cy - r * 0.2, hr);
-        g.fillTriangle(cx - r, cy - r * 0.2, cx + r, cy - r * 0.2, cx, cy + r);
-        break;
-      }
-      case "ring":
-        g.strokeCircle(cx, cy, r);
-        g.lineStyle(r * 0.4, def.color, alpha);
-        g.strokeCircle(cx, cy, r * 0.7);
-        break;
-      case "moon":
-        g.fillCircle(cx, cy, r);
-        g.fillStyle(0xfff8e8, alpha);
-        g.fillCircle(cx + r * 0.45, cy - r * 0.25, r * 0.72);
-        break;
-      case "sun":
-        g.fillCircle(cx, cy, r * 0.55);
-        g.lineStyle(r * 0.35, def.color, alpha);
-        for (let s = 0; s < 8; s++) {
-          const a = Phaser.Math.DegToRad(s * 45);
-          g.lineBetween(
-            cx + Math.cos(a) * r * 0.65, cy + Math.sin(a) * r * 0.65,
-            cx + Math.cos(a) * r, cy + Math.sin(a) * r,
-          );
-        }
-        break;
-      case "leaf":
-        g.fillEllipse(cx, cy, r * 1.2, r * 1.9);
-        g.lineStyle(1, 0xffffff, alpha * 0.5);
-        g.lineBetween(cx, cy - r * 0.85, cx, cy + r * 0.85);
-        break;
-      case "flower":
-        for (let p = 0; p < 6; p++) {
-          const fa = Phaser.Math.DegToRad(p * 60);
-          g.fillEllipse(cx + Math.cos(fa) * r * 0.5, cy + Math.sin(fa) * r * 0.5, r * 0.7, r);
-        }
-        g.fillStyle(0xffffff, alpha * 0.8);
-        g.fillCircle(cx, cy, r * 0.35);
-        break;
-      case "drop":
-        g.fillEllipse(cx, cy + r * 0.2, r * 1.4, r * 1.2);
-        g.fillTriangle(cx - r * 0.5, cy, cx + r * 0.5, cy, cx, cy - r);
-        break;
-      case "bolt":
-        g.fillPoints([
-          { x: cx + r * 0.2, y: cy - r }, { x: cx - r * 0.2, y: cy },
-          { x: cx + r * 0.4, y: cy }, { x: cx - r * 0.2, y: cy + r },
-          { x: cx + r * 0.2, y: cy + r * 0.1 }, { x: cx - r * 0.4, y: cy + r * 0.1 },
-        ] as Phaser.Types.Math.Vector2Like[], true);
-        break;
-      default:
-        g.fillCircle(cx, cy, r);
+  private setObjectActive(target: Phaser.GameObjects.GameObject, active: boolean): void {
+    target.setVisible(active);
+    const interactiveTarget = target as Phaser.GameObjects.GameObject & {
+      input?: { enabled: boolean } | null;
+    };
+    if (interactiveTarget.input) {
+      interactiveTarget.input.enabled = active;
     }
+    if (target instanceof Phaser.GameObjects.Container) {
+      target.list.forEach((child) => this.setObjectActive(child as Phaser.GameObjects.GameObject, active));
+    }
+  }
+
+  private tileAssetKey(symbolIdx: number): string {
+    return SHEEP_ASSETS.tiles[Math.abs(symbolIdx) % SHEEP_ASSETS.tiles.length] ?? SHEEP_ASSETS.tiles[0];
   }
 }

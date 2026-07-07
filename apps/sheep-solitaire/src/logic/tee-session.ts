@@ -20,7 +20,7 @@ export interface TeeIdentity {
 export interface CardView {
   /** Unique identifier for this card within the game. */
   id: number;
-  /** Symbol index (0..cardTypes-1) mapping to emoji. */
+  /** Symbol index (0..cardTypes-1) mapping to the tile art family. */
   symbol: number;
   /** Layer depth (0=top, 1=middle, 2=bottom). */
   layer: number;
