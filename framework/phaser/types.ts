@@ -48,6 +48,8 @@ export interface PhaserGameProps {
   width?: string | number;
   /** CSS height of the game container (defaults to 560px). */
   height?: string | number;
+  /** Automatically size the game host from mobile viewport + scene aspect ratio. Defaults to true. */
+  autoMobileSize?: boolean;
   /** Optional extra CSS class for the container div. */
   className?: string;
   /** Accessible name for the canvas host. */

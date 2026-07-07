@@ -103,6 +103,32 @@ describe("Game miniapp motion baseline", () => {
     expect(phaserHost).toContain(`role="application"`);
     expect(phaserHost).toContain("data-ready");
     expect(phaserHost).toContain("loadingLabel");
+    expect(phaserHost).toContain("autoMobileSize = true");
+    expect(phaserHost).toContain("window.visualViewport");
+    expect(phaserHost).toContain("new ResizeObserver");
+    expect(phaserHost).toContain("availableHeight");
+    expect(phaserHost).toContain("viewportHeight - hostTop - bottomReserve");
+    expect(phaserHost).toContain("data-auto-mobile-size");
+    expect(phaserHost).toContain("gameRef.current?.scale.refresh()");
+    expect(phaserHost).not.toContain("viewportHeight * 0.78");
+    expect(phaserHost).not.toContain("viewportHeight * 0.86");
+  });
+
+  it("keeps game stages large and touchable on mobile", () => {
+    const v2Styles = readIfExists(
+      resolve(appsRoot, "shared/components-react/v2/v2.scss"),
+    );
+
+    expect(v2Styles).toContain("@media (max-width: 560px)");
+    expect(v2Styles).toContain(".mx2-cat-game.mx2-stage");
+    expect(v2Styles).toContain("padding: 8px 6px 10px !important");
+    expect(v2Styles).toContain(".mx2-cat-game .mx2-stage__subtitle");
+    expect(v2Styles).toContain("display: none !important");
+    expect(v2Styles).toContain(".mx2-cat-game .mx2-stage__scene");
+    expect(v2Styles).toContain("min-height: 0 !important");
+    expect(v2Styles).toContain("padding: 0 !important");
+    expect(v2Styles).toContain('.mx2-cat-game .mx2-stage__scene [role="application"]');
+    expect(v2Styles).toContain("width: 100% !important");
   });
 
   it("keeps every game surface animated, asset-led, and reduced-motion safe", () => {
