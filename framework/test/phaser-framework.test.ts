@@ -319,6 +319,37 @@ describe("root Phaser framework", () => {
           "dispatch(\"pickCard\"",
         ],
       },
+      {
+        app: "sudoku",
+        scene: "SudokuScene",
+        assets: [
+          "./paper-grid.webp",
+          "./art/cell-given.webp",
+          "./art/cell-placed.webp",
+          "./art/cell-selected.webp",
+          "./art/cell-conflict.webp",
+          "./art/note-token.webp",
+          "./art/pencil.webp",
+          "./art/reward-trophy.webp",
+          "./art/seal-easy.webp",
+          "./art/seal-medium.webp",
+          "./art/seal-hard.webp",
+          "./art/sealed-envelope.webp",
+          "./art/solved-badge.webp",
+        ],
+        usage: [
+          "SUDOKU_ASSETS",
+          "this.load.image(SUDOKU_ASSETS.paperGrid",
+          "this.paperBoard",
+          "this.cellArt",
+          "SUDOKU_ASSETS.seals",
+          "SUDOKU_ASSETS.noteToken",
+          "SUDOKU_ASSETS.rewardTrophy",
+          "dispatch(\"startGame\"",
+          "dispatch(\"recordMove\"",
+          "dispatch(\"submitSolution\"",
+        ],
+      },
     ] as const;
 
     for (const { app, scene, assets, usage } of migratedAssetScenes) {
@@ -446,6 +477,14 @@ describe("root Phaser framework", () => {
           "drawSheepEmblem",
         );
       }
+      if (app === "sudoku") {
+        expect(source, `${app}: difficulty cards should use seal art, not drawn text symbols`).not.toContain(
+          "DIFF_ICONS",
+        );
+        expect(source, `${app}: Phaser scene should not be documented as primitive-only rendering`).not.toContain(
+          "All rendering uses Phaser primitives",
+        );
+      }
     }
   });
 
@@ -470,6 +509,7 @@ describe("root Phaser framework", () => {
       "last-survivor",
       "pet-potion",
       "red-envelope",
+      "sudoku",
     ].map((app) =>
       readFileSync(
         resolve(repoRoot, `apps/${app}/src/scenes`, `${sceneNameForApp(app)}.ts`),
