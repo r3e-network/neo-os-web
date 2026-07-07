@@ -42,7 +42,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           title:    bool("isBurning") ? t("burning") : t("readyToBurn"),
           subtitle: t("subtitle"),
         }}
-        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={560} />}
+        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
         actions={{
           secondary: [
             ...(bool("isSettling") ? [{ label: t("settleSeason"), onClick: () => void dispatch("settle"), loading: bool("isSettling") }] : []),

@@ -48,7 +48,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           subtitle: t("appSubtitle"),
           badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> Neo</span>,
         }}
-        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={560} />}
+        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
         actions={{
           secondary: bool("needsLifecycleSync")
             ? [{ label: t("settleRound"), onClick: () => void dispatch("settleRound"), loading: bool("isSettling") }]

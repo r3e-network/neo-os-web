@@ -105,16 +105,38 @@ describe("Game miniapp motion baseline", () => {
     expect(phaserHost).toContain("loadingLabel");
     expect(phaserHost).toContain("autoMobileSize = true");
     expect(phaserHost).toContain("window.visualViewport");
+    expect(phaserHost).toContain(`window.matchMedia?.("(pointer: coarse)")`);
+    expect(phaserHost).toContain("MOBILE_VIEWPORT_WIDTH");
+    expect(phaserHost).toContain("MIN_MOBILE_GAME_HEIGHT");
     expect(phaserHost).toContain("new ResizeObserver");
     expect(phaserHost).toContain("availableWidth");
     expect(phaserHost).toContain("availableHeight");
-    expect(phaserHost).toContain("Math.max(aspectHeight, availableHeight)");
+    expect(phaserHost).toContain("height: Math.round(availableHeight)");
     expect(phaserHost).toContain("viewportHeight - hostTop - bottomReserve");
     expect(phaserHost).toContain("data-auto-mobile-size");
     expect(phaserHost).toContain("gameRef.current?.scale.setGameSize(autoMobileSizePx.width, autoMobileSizePx.height)");
     expect(phaserHost).toContain("gameRef.current?.scale.refresh()");
+    expect(phaserHost).not.toContain("Math.max(aspectHeight, availableHeight)");
     expect(phaserHost).not.toContain("viewportHeight * 0.78");
     expect(phaserHost).not.toContain("viewportHeight * 0.86");
+  });
+
+  it("does not hardcode mobile canvas heights in Phaser wrappers", () => {
+    for (const app of phaserGames) {
+      const wrapper = readIfExists(resolve(appsRoot, app, "src/PhaserPlayArea.tsx"));
+      const phaserMounts = wrapper.match(/<PhaserGameComponent[\s\S]*?\/>/g) ?? [];
+
+      expect(phaserMounts.length, `${app}: wrapper should mount Phaser`).toBeGreaterThan(0);
+
+      for (const mount of phaserMounts) {
+        expect(mount, `${app}: mobile height should be framework-owned`).not.toMatch(
+          /\sheight=/,
+        );
+        expect(mount, `${app}: should not disable automatic mobile sizing`).not.toContain(
+          "autoMobileSize={false}",
+        );
+      }
+    }
   });
 
   it("keeps game stages large and touchable on mobile", () => {
@@ -123,7 +145,10 @@ describe("Game miniapp motion baseline", () => {
     );
 
     expect(v2Styles).toContain("@media (max-width: 560px)");
+    expect(v2Styles).toContain("min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))");
+    expect(v2Styles).toContain("flex-direction: column");
     expect(v2Styles).toContain(".mx2-cat-game.mx2-stage");
+    expect(v2Styles).toContain("flex: 1 1 auto");
     expect(v2Styles).toContain("padding: 8px 6px 10px !important");
     expect(v2Styles).toContain(".mx2-cat-game .mx2-stage__subtitle");
     expect(v2Styles).toContain("display: none !important");

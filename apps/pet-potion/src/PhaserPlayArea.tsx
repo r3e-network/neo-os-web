@@ -36,7 +36,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           title:    isPlaying ? t("playingTitle") : isIdle ? t("lobbyTitle") : str("gameStatus", ""),
           subtitle: t("appSubtitle"),
         }}
-        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={520} />}
+        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
         actions={{
           primary: isPlaying
             ? { label: t("submitAction"), onClick: () => void dispatch("submitSolution"), disabled: bool("isSubmitting") }

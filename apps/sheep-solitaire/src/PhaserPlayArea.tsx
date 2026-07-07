@@ -122,7 +122,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               config={GAME_CONFIG}
               state={bridgeState}
               dispatch={dispatch}
-              height={580}
             />
             {isLobbyInteractive ? (
               <div
