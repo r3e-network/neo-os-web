@@ -245,6 +245,18 @@ defineMiniApp({
       }
     };
 
+    ctx.framework.actions.register("setSelectedFace", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as { face?: unknown };
+      selectedFace.set(sanitizeFace(form.face));
+    });
+
+    ctx.framework.actions.register("setStakeAmount", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as { amount?: unknown };
+      const nextAmount = sanitizeAmount(form.amount, maxStake.get());
+      stakeAmount.set(`${nextAmount} GAS`);
+      payoutPreview.set(payoutFor(nextAmount));
+    });
+
     /**
      * On (re)load, seed history from the connected player's Settled events so a
      * refresh doesn't lose a bet that DID settle on-chain. The v2
