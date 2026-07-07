@@ -56,7 +56,7 @@ const appMessages = {
   },
   playTab: { en: "Play", zh: "游戏" },
   ranksTab: { en: "Ranks", zh: "排行" },
-  lobbyTitle: { en: "Choose your flight", zh: "选择飞行路线" },
+  lobbyTitle: { en: "Flight deck", zh: "起飞控制台" },
   playingTitle: { en: "{difficulty} run in play", zh: "{difficulty}难度进行中" },
   statusWonTitle: { en: "Pipes cleared!", zh: "闯关成功！" },
   networkBadge: { en: "Neo N3", zh: "Neo N3" },
@@ -184,7 +184,7 @@ const appMessages = {
     zh: "对局 #{gameId} · 密封承诺 {commitment}",
   },
 
-  statusReady: { en: "Choose a flight route to take off", zh: "选择飞行路线即可起飞" },
+  statusReady: { en: "Pick a route and take off", zh: "选好路线即可起飞" },
   statusStarting: { en: "Paying entry and starting…", zh: "正在支付报名费并开局…" },
   statusStarted: { en: "Game started — generating pipes", zh: "对局已开始——正在生成管道" },
   statusShuffling: { en: "Generating your pipes…", zh: "正在生成管道…" },

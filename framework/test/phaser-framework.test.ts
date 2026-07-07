@@ -413,6 +413,15 @@ describe("root Phaser framework", () => {
         expect(source, `${app}: pipes should be loaded sprites, not Graphics rectangles`).not.toContain(
           "pipeGraphics",
         );
+        expect(source, `${app}: lobby should be a flight cockpit, not a generic picker prompt`).not.toContain(
+          "Choose Difficulty",
+        );
+        expect(source, `${app}: primary CTA should use game-run language instead of generic demo copy`).not.toContain(
+          "Start Game",
+        );
+        expect(source, `${app}: selected route details should be consolidated into the main flight panel`).toContain(
+          "updateRoutePanel",
+        );
       }
       if (app === "jump-rush") {
         expect(source, `${app}: bunny should be a loaded sprite, not a Graphics drawing`).not.toContain(

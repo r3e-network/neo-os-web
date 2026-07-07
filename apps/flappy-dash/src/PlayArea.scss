@@ -29,6 +29,17 @@ $game-accent: #00af92;
   display: block;
   --mx2-stage-floor: #faf9f7;
 
+  .mx2-stage__title {
+    font-size: 32px;
+    font-weight: 560;
+    line-height: 1.08;
+    letter-spacing: 0;
+  }
+
+  .mx2-stage__subtitle {
+    font-weight: 420;
+  }
+
   .mx2-stage__scene {
     min-height: 0;
     flex-direction: column;
