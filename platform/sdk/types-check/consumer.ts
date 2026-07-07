@@ -72,6 +72,8 @@ import type {
   NeoDapiAuthenticationResponse,
   NeoDapiEventName,
   NeoDapiInvocation,
+  NeoDapiPaymentRequest,
+  NeoDapiPaymentResult,
   NeoDapiProvider,
   Nep21ProviderPreference,
   Nep21Window,
@@ -141,6 +143,14 @@ const preference: Nep21ProviderPreference = "onegate";
 const provider: NeoDapiProvider | null = readImmediateNep21Provider({ preference });
 const accountsPromise: Promise<NeoDapiAccount[]> | undefined = provider?.getAccounts();
 void accountsPromise;
+const paymentRequest: NeoDapiPaymentRequest = {
+  asset: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+  to: "NRecipientAddress111111111111111111111",
+  amount: "100000000",
+};
+const paymentPromise: Promise<NeoDapiPaymentResult> | undefined =
+  provider?.requestPayment?.(paymentRequest);
+void paymentPromise;
 const bridgePromise: Promise<NeoDapiProvider> = waitForNep21Provider({ preference });
 void bridgePromise;
 const dapiWindow: Nep21Window = window as Nep21Window;
@@ -164,6 +174,8 @@ type SurfaceProbe = [
   NeoDapiAuthenticationResponse,
   NeoDapiEventName,
   NeoDapiInvocation,
+  NeoDapiPaymentRequest,
+  NeoDapiPaymentResult,
   ServiceHealthResponse,
   MiniAppListResponse,
   UserListResponse,

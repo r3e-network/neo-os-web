@@ -7,6 +7,8 @@ import type {
   MiniAppSDKConfig,
   NeoDapiAccount,
   NeoDapiProvider,
+  NeoDapiPaymentRequest,
+  NeoDapiPaymentResult,
   Nep21ProviderPreference,
   Nep21Window,
   SDKError,
@@ -81,8 +83,13 @@ describe("NEP-21 provider type surface", () => {
       () => Promise<NeoDapiAccount[]>
     >();
     expectTypeOf<NeoDapiProvider["invoke"]>().not.toBeNever();
+    expectTypeOf<NeoDapiProvider["requestPayment"]>().not.toBeNever();
     expectTypeOf<NeoDapiProvider["signMessage"]>().not.toBeNever();
     expectTypeOf<NeoDapiAccount["hash"]>().toEqualTypeOf<string>();
+    expectTypeOf<NeoDapiPaymentRequest["timeoutSeconds"]>().toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf<NeoDapiPaymentResult["succeeded"]>().toEqualTypeOf<boolean>();
   });
 
   it("constrains the provider preference union", () => {

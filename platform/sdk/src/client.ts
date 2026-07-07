@@ -51,6 +51,8 @@ import {
   waitForNep21Provider,
   type NeoDapiAccount as DapiAccount,
   type NeoDapiAuthenticationPayload,
+  type NeoDapiPaymentRequest,
+  type NeoDapiPaymentResult,
   type NeoDapiProvider as BaseNeoDapiProvider,
 } from "./nep21-provider.js";
 
@@ -668,6 +670,98 @@ async function invokeDirectInvocation(
   );
 }
 
+function normalizePaymentRequest(
+  request: NeoDapiPaymentRequest<ContractParam>,
+  from: string,
+): NeoDapiPaymentRequest<ContractParam> {
+  const asset = String(request.asset ?? "").trim();
+  const to = String(request.to ?? "").trim();
+  const amount = String(request.amount ?? "").trim();
+  if (!asset) throw new Error("payment missing asset");
+  if (!to) throw new Error("payment missing recipient");
+  if (!/^\d+$/.test(amount) || amount === "0") {
+    throw new Error("payment amount must be a positive integer string");
+  }
+  if (
+    request.timeoutSeconds !== undefined &&
+    (!Number.isFinite(request.timeoutSeconds) ||
+      request.timeoutSeconds < 1 ||
+      request.timeoutSeconds > 120)
+  ) {
+    throw new Error("payment timeoutSeconds must be between 1 and 120");
+  }
+  return {
+    ...request,
+    asset,
+    from: String(request.from ?? from).trim() || from,
+    to,
+    amount,
+  };
+}
+
+function normalizePaymentResult(result: unknown): NeoDapiPaymentResult {
+  if (typeof result === "string" && result.trim()) {
+    return {
+      transactionHash: result.trim(),
+      succeeded: true,
+      confirmed: false,
+    };
+  }
+  if (result && typeof result === "object") {
+    const record = result as Record<string, unknown>;
+    const transactionHash = String(
+      record.transactionHash ??
+        record.txid ??
+        record.txId ??
+        record.hash ??
+        record.txHash ??
+        "",
+    ).trim();
+    if (transactionHash) {
+      return {
+        transactionHash,
+        blockTime:
+          typeof record.blockTime === "number" ? record.blockTime : undefined,
+        succeeded: record.succeeded === false ? false : true,
+        confirmed:
+          typeof record.confirmed === "boolean"
+            ? record.confirmed
+            : typeof record.blockTime === "number",
+      };
+    }
+  }
+  throw new Error("wallet did not return a transaction hash");
+}
+
+async function requestDirectPayment(
+  request: NeoDapiPaymentRequest<ContractParam>,
+): Promise<NeoDapiPaymentResult> {
+  const context = await getNeoDapiContext();
+  if (!context) {
+    throw new Error("NEP-21 dAPI wallet not detected");
+  }
+  await assertNeoWalletMatchesActiveApp(context);
+  const from = context.accountHash ?? context.address;
+  const normalized = normalizePaymentRequest(request, from);
+  if (typeof context.provider.requestPayment === "function") {
+    return normalizePaymentResult(
+      await context.provider.requestPayment(normalized),
+    );
+  }
+  if (typeof context.provider.send !== "function") {
+    throw new Error("NEP-21 wallet does not support payments");
+  }
+  return normalizePaymentResult(
+    await context.provider.send(
+      normalized.asset,
+      normalized.from ?? from,
+      normalized.to,
+      normalized.amount,
+      normalized.data,
+    ),
+  );
+}
+
 // Pending invocation intents are consumable exactly once: wallet.invokeIntent
 // and the *AndInvoke helpers both remove the stored entry before submitting,
 // so a request_id can never replay the same to-be-signed invocation. Entries
@@ -939,6 +1033,9 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
           res.invocation,
         );
         return res;
+      },
+      async requestPayment(request) {
+        return requestDirectPayment(request);
       },
       async payGASAndInvoke(appId: string, amount: string, memo?: string) {
         const intent = await this.payGAS(appId, amount, memo);
