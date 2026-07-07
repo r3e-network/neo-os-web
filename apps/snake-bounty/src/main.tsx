@@ -38,6 +38,7 @@ const rewardGameConfig = {
     target:       rule.targetLength,
   })),
   eventSlots: { solvedPayout: 4 },
+  progression: { enabled: true },
 };
 
 // Snake Solved event: gameId(0) player(1) difficulty(2) elapsedMs(3) payout(4) totalWon(5)

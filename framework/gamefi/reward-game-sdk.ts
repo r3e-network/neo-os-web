@@ -58,6 +58,8 @@ export interface RewardGameEvents {
 
 export interface RewardGameEventSlots {
   gameStartedGameId: number;
+  solvedPlayer: number;
+  solvedDifficulty: number;
   solvedElapsedMs: number;
   solvedPayout: number;
 }
@@ -79,6 +81,31 @@ export interface RewardGameConfig {
     pollAttempts?: number;
     pollDelayMs?: number;
   };
+  progression?: RewardGameProgressionPolicy;
+}
+
+export interface RewardGameProgressionPolicy {
+  /**
+   * When true, startRewardGame reads the connected player's Solved history
+   * before payment and rejects lower completed tiers. This is product-side
+   * gating; contracts/TEE should still enforce the same rule for funds safety.
+   */
+  enabled?: boolean;
+  eventLimit?: number;
+  hardLimitStepMs?: number;
+  hardLimitMinMs?: number;
+}
+
+export interface RewardGameProgressionState {
+  requestedDifficulty: number;
+  requiredDifficulty: number;
+  maxDifficulty: number;
+  completedDifficulties: number[];
+  hardWins: number;
+  hardChallengeLevel: number;
+  allowed: boolean;
+  reason: "ok" | "difficulty-locked";
+  effectiveLimitMs?: number;
 }
 
 export interface RewardGameContractArg {
@@ -125,6 +152,7 @@ export interface RewardGameChain {
     args: RewardGameContractArg[],
     options?: RewardGameInvokeOptions,
   ): Promise<RewardGameTxResult>;
+  listEvents?(eventName: string, options?: { limit?: number; offset?: number }): Promise<unknown[]>;
 }
 
 export interface RewardGameBalances {
@@ -143,6 +171,7 @@ export interface RewardGameStartResult {
   mode: NormalizedRewardGameMode;
   usedCredit: boolean;
   balances: RewardGameBalances;
+  progression?: RewardGameProgressionState;
 }
 
 export type RewardGameSession = TeeStartResult & { identity: TeeIdentity };
@@ -232,6 +261,8 @@ const DEFAULT_EVENTS: RewardGameEvents = {
 
 const DEFAULT_EVENT_SLOTS: RewardGameEventSlots = {
   gameStartedGameId: 0,
+  solvedPlayer: 1,
+  solvedDifficulty: 2,
   solvedElapsedMs: 3,
   solvedPayout: 5,
 };
@@ -321,6 +352,83 @@ export function rewardGameModeOf(
     throw new RewardGameError("NO_MODE", `${config.appId} has no reward-game modes`);
   }
   return normalizeRewardGameMode(mode);
+}
+
+function rewardGameModeIds(config: RewardGameConfig): number[] {
+  return [...new Set(config.modes.map((mode) => Math.max(0, Math.trunc(Number(mode.id) || 0))))]
+    .sort((a, b) => a - b);
+}
+
+function maxRewardGameDifficulty(config: RewardGameConfig): number {
+  const ids = rewardGameModeIds(config);
+  return ids.length > 0 ? ids[ids.length - 1]! : 0;
+}
+
+export function rewardGameProgressionOf(
+  config: RewardGameConfig,
+  solvedDifficulties: readonly number[],
+  requestedDifficulty: number | string,
+): RewardGameProgressionState {
+  const requested = Math.max(0, Math.trunc(Number(requestedDifficulty) || 0));
+  const ids = rewardGameModeIds(config);
+  const maxDifficulty = maxRewardGameDifficulty(config);
+  const completed = [...new Set(
+    solvedDifficulties
+      .map((difficulty) => Math.max(0, Math.trunc(Number(difficulty) || 0)))
+      .filter((difficulty) => ids.includes(difficulty)),
+  )].sort((a, b) => a - b);
+  const highestCompleted = completed.length > 0 ? completed[completed.length - 1]! : -1;
+  const requiredDifficulty =
+    ids.find((difficulty) => difficulty > highestCompleted) ?? maxDifficulty;
+  const hardWins = solvedDifficulties
+    .map((difficulty) => Math.max(0, Math.trunc(Number(difficulty) || 0)))
+    .filter((difficulty) => difficulty === maxDifficulty)
+    .length;
+  const mode = rewardGameModeOf(config, Math.min(requested, maxDifficulty));
+  const hardLimitStepMs = Math.max(0, config.progression?.hardLimitStepMs ?? 15_000);
+  const hardLimitMinMs = Math.max(
+    mode.minSolveMs ?? 0,
+    config.progression?.hardLimitMinMs ?? Math.max(mode.minSolveMs ?? 0, Math.floor((mode.limitMs ?? 0) * 0.55)),
+  );
+  const effectiveLimitMs =
+    requested >= maxDifficulty && mode.limitMs !== undefined
+      ? Math.max(hardLimitMinMs, mode.limitMs - hardWins * hardLimitStepMs)
+      : mode.limitMs;
+  const allowed = requested >= requiredDifficulty;
+  return {
+    requestedDifficulty: requested,
+    requiredDifficulty,
+    maxDifficulty,
+    completedDifficulties: completed,
+    hardWins,
+    hardChallengeLevel: requested >= maxDifficulty ? hardWins + 1 : 0,
+    allowed,
+    reason: allowed ? "ok" : "difficulty-locked",
+    effectiveLimitMs,
+  };
+}
+
+export async function readRewardGameProgression(
+  config: RewardGameConfig,
+  chain: RewardGameChain,
+  playerHash: string,
+  requestedDifficulty: number | string,
+): Promise<RewardGameProgressionState> {
+  const events = rewardGameEvents(config);
+  const slots = rewardGameEventSlots(config);
+  if (!chain.listEvents) {
+    throw new RewardGameError(
+      "PROGRESSION_UNAVAILABLE",
+      "Reward-game progression history is unavailable",
+    );
+  }
+  const solvedEvents = await chain.listEvents(events.solved, {
+    limit: config.progression?.eventLimit ?? 300,
+  });
+  const solvedDifficulties = solvedEvents
+    .filter((event) => eventHashMatches(eventStateValue(event, slots.solvedPlayer), playerHash))
+    .map((event) => Number(parseBigInt(eventStateValue(event, slots.solvedDifficulty))));
+  return rewardGameProgressionOf(config, solvedDifficulties, requestedDifficulty);
 }
 
 export function rewardGameStatusOf(raw: unknown): RewardGameStatus {
@@ -508,6 +616,16 @@ export async function startRewardGame<Op extends TeeSessionOp = TeeSessionOp>(
   const playerHash = addressToScriptHash(player);
   if (!playerHash) throw new RewardGameError("BAD_WALLET", "Wallet address is not a valid Neo address");
 
+  const progression = config.progression?.enabled
+    ? await readRewardGameProgression(config, chain, playerHash, difficulty)
+    : undefined;
+  if (progression && !progression.allowed) {
+    throw new RewardGameError(
+      "DIFFICULTY_LOCKED",
+      `This account must play difficulty ${progression.requiredDifficulty} or higher`,
+    );
+  }
+
   const balances = await refreshRewardGameBalances(config, chain, playerHash);
   if (balances.poolFreeFixed8 < mode.rewardFixed8) {
     throw new RewardGameError("POOL_LOW", "Reward pool cannot cover this game's payout");
@@ -552,6 +670,7 @@ export async function startRewardGame<Op extends TeeSessionOp = TeeSessionOp>(
     mode,
     usedCredit,
     balances,
+    progression,
   };
 }
 
