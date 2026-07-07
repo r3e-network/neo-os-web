@@ -23,6 +23,10 @@
  *   );
  * }
  * ```
+ *
+ * `config.width`/`config.height` are the scene's logical coordinate system.
+ * The displayed host size is framework-owned and automatically expands to the
+ * available mobile viewport.
  */
 
 import { useEffect, useRef, useId, useState } from "react";
@@ -43,9 +47,6 @@ export function PhaserGameComponent({
   config,
   state,
   dispatch,
-  width = "100%",
-  height = 560,
-  autoMobileSize = true,
   className,
   ariaLabel = "Interactive game",
   loadingLabel = "Loading game",
@@ -151,11 +152,6 @@ export function PhaserGameComponent({
   }, [state]);
 
   useEffect(() => {
-    if (!autoMobileSize) {
-      setAutoMobileSizePx(null);
-      return;
-    }
-
     const host = containerRef.current;
     if (!host) return;
 
@@ -221,7 +217,7 @@ export function PhaserGameComponent({
       window.visualViewport?.removeEventListener("resize", updateSize);
       window.visualViewport?.removeEventListener("scroll", updateSize);
     };
-  }, [autoMobileSize, config.height, config.width]);
+  }, [config.height, config.width]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -240,8 +236,9 @@ export function PhaserGameComponent({
     return () => cancelAnimationFrame(frame);
   }, [autoMobileSizePx, config.height, config.width]);
 
-  const resolvedWidth = autoMobileSizePx?.width ?? width;
-  const resolvedHeight = autoMobileSizePx?.height ?? height;
+  const fallbackHeight = numericDimension(config.height, 560);
+  const resolvedWidth = autoMobileSizePx?.width ?? "100%";
+  const resolvedHeight = autoMobileSizePx?.height ?? "100%";
 
   return (
     <div
@@ -258,6 +255,7 @@ export function PhaserGameComponent({
         position: "relative",
         width: typeof resolvedWidth === "number" ? `${resolvedWidth}px` : resolvedWidth,
         height: typeof resolvedHeight === "number" ? `${resolvedHeight}px` : resolvedHeight,
+        minHeight: autoMobileSizePx ? undefined : `${fallbackHeight}px`,
         outline: "none",
         overflow: "hidden",
         // Prevent default touch scroll while the game handles pointer events

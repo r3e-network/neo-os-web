@@ -53,6 +53,30 @@ const appMessages = {
     en: "Connect wallet to start",
     zh: "连接钱包后开始",
   },
+  progressionChecking: {
+    en: "Checking account route history",
+    zh: "正在检查账户路线记录",
+  },
+  progressionUnavailable: {
+    en: "Route history is unavailable. Try again after the indexer reconnects.",
+    zh: "路线历史暂不可用。请在索引服务恢复后重试。",
+  },
+  progressionStatusLabel: {
+    en: "Route",
+    zh: "路线",
+  },
+  progressionUnavailableShort: {
+    en: "History offline",
+    zh: "历史离线",
+  },
+  progressionNextRoute: {
+    en: "Next: {difficulty}",
+    zh: "下一局：{difficulty}",
+  },
+  progressionCleared: {
+    en: "Route cleared. Play {difficulty} next.",
+    zh: "该路线已通关。下一局请挑战 {difficulty}。",
+  },
 
   startAction: { en: "Start hunt", zh: "开始追猎" },
   startHint: { en: "Entry {amount} GAS — deposited with this transaction", zh: "报名费 {amount} GAS——随本交易一并存入" },
