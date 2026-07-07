@@ -41,7 +41,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           title:    allFlipped ? t("oracleVerifiedShort") : hasDrawn ? t("oracleSealed") : t("awaitingDraw"),
           subtitle: t("appSubtitle"),
         }}
-        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} height={520} />}
+        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
         actions={{
           primary: allFlipped
             ? { label: t("newReading"), onClick: () => void dispatch("reset") }
