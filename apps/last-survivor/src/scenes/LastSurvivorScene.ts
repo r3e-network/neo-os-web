@@ -8,7 +8,7 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameBridgeError, GameState } from "@framework/phaser";
-import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
+import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 const SURVIVOR_ASSETS = {
   arena: "last-survivor-arena",
@@ -94,7 +94,7 @@ export class LastSurvivorScene extends BaseScene {
   preload(): void {
     this.load.image(SURVIVOR_ASSETS.arena, "./last-survivor-arena.webp");
     this.load.image(SURVIVOR_ASSETS.logo, "./logo.webp");
-    this.load.image(SURVIVOR_ASSETS.gasIcon, gasIconUrl);
+    this.load.image(SURVIVOR_ASSETS.gasIcon, officialGasTokenPhaserUrl);
   }
 
   create(): void {

@@ -482,11 +482,14 @@
     width: 100%;
     min-height: 0 !important;
     align-items: stretch;
+    justify-content: stretch;
     padding: 0 !important;
   }
 
   .mx2-cat-game .mx2-stage__scene [role="application"] {
     width: 100% !important;
+    max-width: 100%;
+    margin-inline: auto;
   }
 
   .mx2-score {

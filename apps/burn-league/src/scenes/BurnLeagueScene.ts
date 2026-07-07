@@ -8,7 +8,7 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState, GameBridgeError } from "@framework/phaser";
-import gasIconUrl from "@shared/assets/tokens/gas-icon.svg?url";
+import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 const BURN_ASSETS = {
   arena: "burn-league-arena",
@@ -76,7 +76,7 @@ export class BurnLeagueScene extends BaseScene {
   preload(): void {
     this.load.image(BURN_ASSETS.arena, "./burn-league-arena.webp");
     this.load.image(BURN_ASSETS.brazier, "./logo.webp");
-    this.load.image(BURN_ASSETS.gas, gasIconUrl);
+    this.load.image(BURN_ASSETS.gas, officialGasTokenPhaserUrl);
   }
 
   create(): void {

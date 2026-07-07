@@ -30,6 +30,11 @@ import * as Phaser from "phaser";
 import { GameBridge } from "./GameBridge";
 import type { PhaserGameProps } from "./types";
 
+type AutoMobileSize = {
+  width: number;
+  height: number;
+};
+
 export function PhaserGameComponent({
   config,
   state,
@@ -49,13 +54,14 @@ export function PhaserGameComponent({
   const gameRef      = useRef<Phaser.Game | null>(null);
   const bridgeRef    = useRef<GameBridge>(new GameBridge());
   const onReadyRef   = useRef(onReady);
+  const autoSizeAppliedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [bootKey, setBootKey] = useState(0);
   const [error, setError] = useState<{
     message: string;
     mode: "dismiss" | "retry";
   } | null>(null);
-  const [autoMobileHeight, setAutoMobileHeight] = useState<number | null>(null);
+  const [autoMobileSizePx, setAutoMobileSizePx] = useState<AutoMobileSize | null>(null);
   // Unique game ID for bridge registry — stable across re-renders
   const gameId       = useId();
 
@@ -142,7 +148,7 @@ export function PhaserGameComponent({
 
   useEffect(() => {
     if (!autoMobileSize) {
-      setAutoMobileHeight(null);
+      setAutoMobileSizePx(null);
       return;
     }
 
@@ -156,27 +162,38 @@ export function PhaserGameComponent({
         const viewport = window.visualViewport;
         const viewportWidth = viewport?.width ?? window.innerWidth;
         if (viewportWidth > 640) {
-          setAutoMobileHeight(null);
+          setAutoMobileSizePx(null);
           return;
         }
 
         const hostRect = host.getBoundingClientRect();
         const parentRect = host.parentElement?.getBoundingClientRect();
-        const hostWidth = hostRect.width || parentRect?.width || window.innerWidth;
+        const hostWidth = parentRect?.width || hostRect.width || window.innerWidth;
         const designWidth = numericDimension(config.width, 400);
         const designHeight = numericDimension(config.height, 560);
-        const aspectHeight = hostWidth * (designHeight / designWidth);
+        const availableWidth = Math.round(
+          Math.max(280, Math.min(hostWidth, viewportWidth)),
+        );
+        const aspectHeight = availableWidth * (designHeight / designWidth);
         const viewportHeight = viewport?.height ?? window.innerHeight;
         const viewportTop = viewport?.offsetTop ?? 0;
         const hostTop = Math.max(0, hostRect.top - viewportTop);
-        const bottomReserve = viewportHeight < 620 ? 8 : 12;
-        const availableHeight = Math.max(320, viewportHeight - hostTop - bottomReserve);
-        const nextHeight = Math.round(
-          Math.max(320, Math.min(aspectHeight, availableHeight)),
+        const bottomReserve = viewportHeight < 620 ? 4 : 8;
+        const availableHeight = Math.max(
+          320,
+          viewportHeight - hostTop - bottomReserve,
         );
+        const nextSize = {
+          width:  availableWidth,
+          height: Math.round(Math.max(aspectHeight, availableHeight)),
+        };
 
-        setAutoMobileHeight((current) =>
-          current === nextHeight ? current : nextHeight,
+        setAutoMobileSizePx((current) =>
+          current &&
+          current.width === nextSize.width &&
+          current.height === nextSize.height
+            ? current
+            : nextSize,
         );
       });
     };
@@ -201,14 +218,24 @@ export function PhaserGameComponent({
   }, [autoMobileSize, config.height, config.width]);
 
   useEffect(() => {
-    if (autoMobileHeight === null) return;
     const frame = requestAnimationFrame(() => {
+      if (autoMobileSizePx) {
+        autoSizeAppliedRef.current = true;
+        gameRef.current?.scale.setGameSize(autoMobileSizePx.width, autoMobileSizePx.height);
+      } else if (autoSizeAppliedRef.current) {
+        autoSizeAppliedRef.current = false;
+        gameRef.current?.scale.setGameSize(
+          numericDimension(config.width, 400),
+          numericDimension(config.height, 560),
+        );
+      }
       gameRef.current?.scale.refresh();
     });
     return () => cancelAnimationFrame(frame);
-  }, [autoMobileHeight]);
+  }, [autoMobileSizePx, config.height, config.width]);
 
-  const resolvedHeight = autoMobileHeight ?? height;
+  const resolvedWidth = autoMobileSizePx?.width ?? width;
+  const resolvedHeight = autoMobileSizePx?.height ?? height;
 
   return (
     <div
@@ -217,13 +244,13 @@ export function PhaserGameComponent({
       role="application"
       aria-label={ariaLabel}
       aria-busy={!ready && !error}
-      data-auto-mobile-size={autoMobileHeight !== null ? "true" : undefined}
+      data-auto-mobile-size={autoMobileSizePx !== null ? "true" : undefined}
       data-ready={ready ? "true" : "false"}
       data-error={error ? "true" : "false"}
       style={{
         display: "block",
         position: "relative",
-        width: typeof width === "number" ? `${width}px` : width,
+        width: typeof resolvedWidth === "number" ? `${resolvedWidth}px` : resolvedWidth,
         height: typeof resolvedHeight === "number" ? `${resolvedHeight}px` : resolvedHeight,
         outline: "none",
         overflow: "hidden",
