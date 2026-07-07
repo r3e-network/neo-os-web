@@ -447,6 +447,48 @@
     padding: 16px;
   }
 
+  .mx2-playstage.mx2-cat-game {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .mx2-cat-game.mx2-stage {
+    padding: 8px 6px 10px !important;
+  }
+
+  .mx2-cat-game .mx2-stage__head {
+    gap: 10px;
+    margin-bottom: 8px !important;
+    padding-inline: 2px;
+  }
+
+  .mx2-cat-game .mx2-stage__title {
+    margin-top: 2px;
+    font-size: clamp(22px, 7.2vw, 30px);
+    line-height: 1.16;
+  }
+
+  .mx2-cat-game .mx2-stage__subtitle {
+    display: none !important;
+  }
+
+  .mx2-cat-game .mx2-stage__badges {
+    max-width: 36%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .mx2-cat-game .mx2-stage__scene {
+    width: 100%;
+    min-height: 0 !important;
+    align-items: stretch;
+    padding: 0 !important;
+  }
+
+  .mx2-cat-game .mx2-stage__scene [role="application"] {
+    width: 100% !important;
+  }
+
   .mx2-score {
     padding-inline: 16px;
     scroll-padding-inline: 16px;

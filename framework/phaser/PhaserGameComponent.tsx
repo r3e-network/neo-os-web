@@ -36,6 +36,7 @@ export function PhaserGameComponent({
   dispatch,
   width = "100%",
   height = 560,
+  autoMobileSize = true,
   className,
   ariaLabel = "Interactive game",
   loadingLabel = "Loading game",
@@ -54,6 +55,7 @@ export function PhaserGameComponent({
     message: string;
     mode: "dismiss" | "retry";
   } | null>(null);
+  const [autoMobileHeight, setAutoMobileHeight] = useState<number | null>(null);
   // Unique game ID for bridge registry — stable across re-renders
   const gameId       = useId();
 
@@ -138,20 +140,91 @@ export function PhaserGameComponent({
     bridgeRef.current.sendState(state);
   }, [state]);
 
+  useEffect(() => {
+    if (!autoMobileSize) {
+      setAutoMobileHeight(null);
+      return;
+    }
+
+    const host = containerRef.current;
+    if (!host) return;
+
+    let frame = 0;
+    const updateSize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const viewport = window.visualViewport;
+        const viewportWidth = viewport?.width ?? window.innerWidth;
+        if (viewportWidth > 640) {
+          setAutoMobileHeight(null);
+          return;
+        }
+
+        const hostRect = host.getBoundingClientRect();
+        const parentRect = host.parentElement?.getBoundingClientRect();
+        const hostWidth = hostRect.width || parentRect?.width || window.innerWidth;
+        const designWidth = numericDimension(config.width, 400);
+        const designHeight = numericDimension(config.height, 560);
+        const aspectHeight = hostWidth * (designHeight / designWidth);
+        const viewportHeight = viewport?.height ?? window.innerHeight;
+        const viewportTop = viewport?.offsetTop ?? 0;
+        const hostTop = Math.max(0, hostRect.top - viewportTop);
+        const bottomReserve = viewportHeight < 620 ? 8 : 12;
+        const availableHeight = Math.max(320, viewportHeight - hostTop - bottomReserve);
+        const nextHeight = Math.round(
+          Math.max(320, Math.min(aspectHeight, availableHeight)),
+        );
+
+        setAutoMobileHeight((current) =>
+          current === nextHeight ? current : nextHeight,
+        );
+      });
+    };
+
+    updateSize();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateSize) : null;
+    resizeObserver?.observe(host);
+    if (host.parentElement) resizeObserver?.observe(host.parentElement);
+    window.addEventListener("resize", updateSize);
+    window.visualViewport?.addEventListener("resize", updateSize);
+    window.visualViewport?.addEventListener("scroll", updateSize);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateSize);
+      window.visualViewport?.removeEventListener("resize", updateSize);
+      window.visualViewport?.removeEventListener("scroll", updateSize);
+    };
+  }, [autoMobileSize, config.height, config.width]);
+
+  useEffect(() => {
+    if (autoMobileHeight === null) return;
+    const frame = requestAnimationFrame(() => {
+      gameRef.current?.scale.refresh();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [autoMobileHeight]);
+
+  const resolvedHeight = autoMobileHeight ?? height;
+
   return (
     <div
       ref={containerRef}
-      className={className}
+      className={["phaser-game-host", className].filter(Boolean).join(" ")}
       role="application"
       aria-label={ariaLabel}
       aria-busy={!ready && !error}
+      data-auto-mobile-size={autoMobileHeight !== null ? "true" : undefined}
       data-ready={ready ? "true" : "false"}
       data-error={error ? "true" : "false"}
       style={{
         display: "block",
         position: "relative",
         width: typeof width === "number" ? `${width}px` : width,
-        height: typeof height === "number" ? `${height}px` : height,
+        height: typeof resolvedHeight === "number" ? `${resolvedHeight}px` : resolvedHeight,
         outline: "none",
         overflow: "hidden",
         // Prevent default touch scroll while the game handles pointer events
@@ -232,3 +305,14 @@ export function PhaserGameComponent({
 }
 
 export default PhaserGameComponent;
+
+function numericDimension(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const numeric = Number.parseFloat(value);
+    if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  }
+  return fallback;
+}
