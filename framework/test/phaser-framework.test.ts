@@ -268,6 +268,33 @@ describe("root Phaser framework", () => {
         ],
         usage: ["JR_ASSETS", "bunnySprite", "setBunnyPose", "buildPlatformTile"],
       },
+      {
+        app: "pet-potion",
+        scene: "PetPotionScene",
+        assets: [
+          "./art/nursery-lab.webp",
+          "./art/pet-egg.webp",
+          "./art/pet-baby.webp",
+          "./art/pet-teen.webp",
+          "./art/pet-adult.webp",
+          "./art/action-feed.webp",
+          "./art/action-play.webp",
+          "./art/action-pet.webp",
+          "./art/action-rest.webp",
+          "./art/badge-easy.webp",
+          "./art/badge-medium.webp",
+          "./art/badge-hard.webp",
+        ],
+        usage: [
+          "PET_ASSETS",
+          "this.load.image(PET_ASSETS.lab",
+          "this.load.image(PET_ASSETS.actions.feed",
+          "this.load.image(PET_ASSETS.badges[0]",
+          "dispatch(\"recordAction\"",
+          "dispatch(\"startGame\"",
+          "dispatch(\"submitSolution\"",
+        ],
+      },
     ] as const;
 
     for (const { app, scene, assets, usage } of migratedAssetScenes) {
@@ -374,6 +401,17 @@ describe("root Phaser framework", () => {
         );
         expect(source, `${app}: intent chips should dispatch the registered question action`).not.toContain(
           "setIntent",
+        );
+      }
+      if (app === "pet-potion") {
+        expect(source, `${app}: pet should use loaded pet images instead of the old hand-drawn egg helper`).not.toContain(
+          "drawEgg",
+        );
+        expect(source, `${app}: pet should use loaded pet images instead of the old hand-drawn sprite helper`).not.toContain(
+          "drawSprite",
+        );
+        expect(source, `${app}: scene should not advertise programmatic art as the visual system`).not.toContain(
+          "all art drawn programmatically",
         );
       }
     }

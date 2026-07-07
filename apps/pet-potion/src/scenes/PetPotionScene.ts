@@ -1,489 +1,617 @@
 /**
- * PetPotionScene — Virtual pet care game in Phaser 3.
+ * PetPotionScene - Phaser 3 virtual pet nursery.
  *
- * Visual design: soft pastel garden background, pet drawn with Phaser.Graphics
- * progressing through 4 stages (Egg → Hatchling → Sprite → Bloom),
- * stat bars for Happiness / Hunger / Energy, 4 care action buttons.
- * No emoji — all art drawn programmatically.
+ * Chain, wallet, TEE, and settlement stay in main.tsx. This scene owns the
+ * playable surface: pick a nursery path, start a paid run, nurture the pet with
+ * real action assets, and claim once the happiness target is reached.
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
-import type { GameState } from "@framework/phaser";
+import type { GameBridgeError, GameState } from "@framework/phaser";
 
-// ── Palette ────────────────────────────────────────────────────────────────────
+const PET_ASSETS = {
+  lab: "pet-potion-lab",
+  egg: "pet-potion-egg",
+  pets: ["pet-potion-baby", "pet-potion-teen", "pet-potion-adult"],
+  actions: {
+    feed: "pet-potion-action-feed",
+    play: "pet-potion-action-play",
+    pet: "pet-potion-action-pet",
+    rest: "pet-potion-action-rest",
+  },
+  badges: ["pet-potion-badge-easy", "pet-potion-badge-medium", "pet-potion-badge-hard"],
+} as const;
+
 const C = {
-  bgTop:    0xfff0e6,
-  bgBot:    0xffeacc,
-  grass:    0x9ecb6e,
-  grassDk:  0x75a848,
-  soil:     0xd4954e,
-  teal:     0x16c784,
-  tealDk:   0x0d8a56,
-  tealLt:   0x20e897,
-  pink:     0xf72585,
-  orange:   0xe85d04,
-  blue:     0x4361ee,
-  gold:     0xd4a843,
-  goldLt:   0xf0c866,
-  eggWhite: 0xfef9ee,
-  eggSpot:  0xe8d4b8,
-  cream:    0xfff8e8,
-  muted:    0x8b7355,
-  border:   0xeadfc8,
-  statBg:   0xeadfc8,
-};
+  canvas: 0xfffbef,
+  surface: 0xffffff,
+  warm: 0xfff5dd,
+  stroke: 0xead7ad,
+  jade: 0x16a979,
+  gold: 0xd8a742,
+  orange: 0xf97316,
+  rose: 0xef6f9b,
+  blue: 0x5d7df0,
+  purple: 0x9274d8,
+  ink: 0x2f291f,
+  white: 0xffffff,
+} as const;
 
-// ── Stage definitions ──────────────────────────────────────────────────────────
-const STAGE_NAMES = ["Egg", "Hatchling", "Sprite", "Bloom"] as const;
-const GLOW_COLORS = [0xa8d8a8, 0x16c784, 0xf72585, 0xffd700] as const;
-
-// ── Action definitions (no emoji) ──────────────────────────────────────────────
+const FONT = "Inter, Arial, sans-serif";
 const ACTIONS = [
-  { key: "feed",  label: "FEED",  color: 0xe85d04 },
-  { key: "play",  label: "PLAY",  color: 0x7209b7 },
-  { key: "pet",   label: "PET",   color: 0xf72585 },
-  { key: "rest",  label: "REST",  color: 0x4361ee },
+  { key: "feed", label: "Feed", asset: PET_ASSETS.actions.feed, color: C.orange },
+  { key: "play", label: "Play", asset: PET_ASSETS.actions.play, color: C.purple },
+  { key: "pet", label: "Pet", asset: PET_ASSETS.actions.pet, color: C.rose },
+  { key: "rest", label: "Rest", asset: PET_ASSETS.actions.rest, color: C.blue },
 ] as const;
 
+const DIFFICULTIES = [
+  { id: 0, key: "easy", label: "Sprout", target: 50, entry: "0.02", reward: "0.10", badge: PET_ASSETS.badges[0] },
+  { id: 1, key: "medium", label: "Glow", target: 70, entry: "0.10", reward: "0.50", badge: PET_ASSETS.badges[1] },
+  { id: 2, key: "hard", label: "Royal", target: 100, entry: "0.20", reward: "1.00", badge: PET_ASSETS.badges[2] },
+] as const;
+
+type PetActionKey = keyof typeof PET_ASSETS.actions;
+
+type StatBar = {
+  fill: Phaser.GameObjects.Rectangle;
+  value: Phaser.GameObjects.Text;
+};
+
+type ModeCard = {
+  container: Phaser.GameObjects.Container;
+  bg: Phaser.GameObjects.Graphics;
+  label: Phaser.GameObjects.Text;
+  id: number;
+};
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function compactError(value: string): string {
+  const firstLine = value.split("\n")[0]?.trim() ?? "";
+  if (!firstLine) return "Action failed.";
+  return firstLine.length > 62 ? `${firstLine.slice(0, 59)}...` : firstLine;
+}
+
+function modeOf(id: number) {
+  return DIFFICULTIES.find((mode) => mode.id === id) ?? DIFFICULTIES[0];
+}
+
+function isPlayingStatus(status: string): boolean {
+  return status === "dealt" || status === "playing";
+}
+
 export class PetPotionScene extends BaseScene {
-  // Pet display
-  private petContainer!: Phaser.GameObjects.Container;
-  private petG!: Phaser.GameObjects.Graphics;
-  private stageGlow!: Phaser.GameObjects.Ellipse;
-  private stageLabel!: Phaser.GameObjects.Text;
+  private labImage!: Phaser.GameObjects.Image;
+  private labOverlay!: Phaser.GameObjects.Rectangle;
+  private titleText!: Phaser.GameObjects.Text;
+  private subtitleText!: Phaser.GameObjects.Text;
+  private petGlow!: Phaser.GameObjects.Ellipse;
+  private petShadow!: Phaser.GameObjects.Ellipse;
+  private petImage!: Phaser.GameObjects.Image;
+  private actionCue!: Phaser.GameObjects.Image;
+  private stageBadge!: Phaser.GameObjects.Text;
+  private targetText!: Phaser.GameObjects.Text;
+  private statusText!: Phaser.GameObjects.Text;
+  private goalFill!: Phaser.GameObjects.Rectangle;
+  private statBars: StatBar[] = [];
+  private actionButtons: Phaser.GameObjects.Container[] = [];
+  private modeCards: ModeCard[] = [];
+  private primaryButton!: Phaser.GameObjects.Container;
+  private primaryButtonBg!: Phaser.GameObjects.Graphics;
+  private primaryButtonLabel!: Phaser.GameObjects.Text;
+  private selectedDifficulty = 0;
   private currentStage = -1;
+  private lastActionCount = 0;
+  private cueTimer?: Phaser.Time.TimerEvent;
 
-  // Stat bars
-  private barFills: Phaser.GameObjects.Rectangle[] = [];
+  constructor() {
+    super("PetPotionScene");
+  }
 
-  // Controls
-  private actionBtns: Phaser.GameObjects.Container[] = [];
-  private targetFill!: Phaser.GameObjects.Rectangle;
-  private startBtn!: Phaser.GameObjects.Container;
-  private statusLabel!: Phaser.GameObjects.Text;
-
-  constructor() { super("PetPotionScene"); }
-
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  preload(): void {
+    this.load.image(PET_ASSETS.lab, "./art/nursery-lab.webp");
+    this.load.image(PET_ASSETS.egg, "./art/pet-egg.webp");
+    this.load.image(PET_ASSETS.pets[0], "./art/pet-baby.webp");
+    this.load.image(PET_ASSETS.pets[1], "./art/pet-teen.webp");
+    this.load.image(PET_ASSETS.pets[2], "./art/pet-adult.webp");
+    this.load.image(PET_ASSETS.actions.feed, "./art/action-feed.webp");
+    this.load.image(PET_ASSETS.actions.play, "./art/action-play.webp");
+    this.load.image(PET_ASSETS.actions.pet, "./art/action-pet.webp");
+    this.load.image(PET_ASSETS.actions.rest, "./art/action-rest.webp");
+    this.load.image(PET_ASSETS.badges[0], "./art/badge-easy.webp");
+    this.load.image(PET_ASSETS.badges[1], "./art/badge-medium.webp");
+    this.load.image(PET_ASSETS.badges[2], "./art/badge-hard.webp");
+  }
 
   create(): void {
     super.create();
     const { width: W, height: H } = this.scale;
-    this.drawBackground(W, H);
-    this.buildPetDisplay(W, H);
+
+    this.buildBackground(W, H);
+    this.buildHeader(W);
+    this.buildPetStage(W, H);
+    this.buildGoalMeter(W, H);
     this.buildStats(W, H);
-    this.buildTargetBar(W, H);
-    this.buildActions(W, H);
-    this.buildStartButton(W, H);
-    this.buildStatusLabel(W, H);
+    this.buildModeCards(W, H);
+    this.buildActionButtons(W, H);
+    this.buildPrimaryButton(W, H);
+    this.buildStatus(W, H);
+    this.startAmbientMotion();
     this.onStateUpdate(this.state);
   }
 
-  protected onStateUpdate(state: GameState): void {
-    const status      = this.str("gameStatus", "idle");
-    const stage       = Math.min(3, this.num("petStage", 0));
-    const happiness   = this.num("petHappiness", 50);
-    const hunger      = this.num("petHunger", 50);
-    const energy      = this.num("petEnergy", 50);
-    const achieved    = this.num("happinessAchieved", 0);
-    const isPlaying   = status === "dealt";
+  protected onStateUpdate(_state: GameState): void {
+    const status = this.str("gameStatus", "idle");
+    const isPlaying = isPlayingStatus(status);
+    const isLoading = this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting");
+    const stateDifficulty = Math.max(0, Math.min(2, this.num("gameDifficulty", this.selectedDifficulty)));
+    if (!isPlaying && status !== "idle") this.selectedDifficulty = stateDifficulty;
 
-    // Pet stage
-    if (stage !== this.currentStage) {
-      this.currentStage = stage;
-      this.drawPetStage(stage);
-      this.stageGlow.setFillStyle(GLOW_COLORS[stage]!, 0.18 + stage * 0.06);
-      this.stageLabel.setText(STAGE_NAMES[stage]!);
+    const happiness = this.num("petHappiness", 50);
+    const hunger = this.num("petHunger", 50);
+    const energy = this.num("petEnergy", 50);
+    const achieved = this.num("happinessAchieved", 0);
+    const actionsUsed = this.num("actionsUsed", 0);
+    const stage = Math.max(0, Math.min(2, this.num("petStage", 0)));
+    const activeMode = modeOf(isPlaying ? stateDifficulty : this.selectedDifficulty);
+    const targetReached = Math.max(achieved, happiness) >= activeMode.target;
+
+    this.modeCards.forEach((card) => card.container.setVisible(status === "idle" && !isLoading));
+    this.updateModeCards();
+    this.actionButtons.forEach((button) => button.setVisible(isPlaying && !this.bool("isSubmitting")));
+
+    this.titleText.setText(
+      isLoading
+        ? "Sealing pet"
+        : status === "solved"
+          ? "Pet evolved"
+          : status === "expired" || status === "refunded"
+            ? "Run closed"
+            : isPlaying
+              ? "Nurture the pet"
+              : "Open the nursery",
+    );
+    this.subtitleText.setText(
+      isPlaying
+        ? `${activeMode.label} path · target ${activeMode.target}`
+        : `${activeMode.entry} GAS entry · ${activeMode.reward} GAS reward`,
+    );
+
+    const visibleStage = status === "idle" || status === "expired" || status === "refunded"
+      ? -1
+      : stage;
+    this.updatePet(visibleStage, status);
+    this.updateStats(happiness, hunger, energy);
+    this.updateGoal(Math.max(achieved, happiness), activeMode.target);
+    this.updatePrimaryButton(status, isPlaying, isLoading, targetReached);
+
+    if (isPlaying && actionsUsed > this.lastActionCount) {
+      this.pulsePet();
     }
+    this.lastActionCount = actionsUsed;
 
-    // Stat bars
-    this.updateStatBar(0, happiness);
-    this.updateStatBar(1, 100 - hunger);  // lower hunger = better fed
-    this.updateStatBar(2, energy);
-
-    // Target bar
-    const rule = this.getDiffRule();
-    this.targetFill.setDisplaySize(Math.min(achieved / rule, 1) * 200, 10);
-
-    // Show/hide buttons
-    this.actionBtns.forEach((btn) => btn.setVisible(isPlaying));
-    const showStart = status === "idle" || status === "solved" || status === "expired";
-    this.startBtn.setVisible(showStart);
-
-    this.statusLabel.setText(this.str("lastStatus", ""));
+    this.targetText.setText(isPlaying ? `Goal ${Math.round(Math.max(achieved, happiness))}/${activeMode.target}` : `${activeMode.label} care path`);
+    this.statusText.setColor("#7b6d5a");
+    this.statusText.setText(
+      this.statusCopy(status, isLoading, targetReached, actionsUsed),
+    );
   }
 
-  // ── Background ─────────────────────────────────────────────────────────────
-
-  private drawBackground(W: number, H: number): void {
-    // Soft pastel background
-    this.add.rectangle(W / 2, H / 2, W, H, C.bgTop);
-    this.add.rectangle(W / 2, H * 0.75, W, H * 0.5, C.bgBot).setAlpha(0.5);
-
-    // Ground strip
-    this.add.rectangle(W / 2, H - 8, W, 16, C.grass);
-    this.add.rectangle(W / 2, H, W, 8, C.grassDk);
-
-    // Flower decorations
-    const g = this.add.graphics();
-    const flowerPositions = [30, 60, W - 60, W - 30];
-    flowerPositions.forEach((fx, i) => {
-      const fy = H - 22;
-      const col = i % 2 === 0 ? C.pink : C.teal;
-      g.fillStyle(col, 0.7);
-      g.fillCircle(fx, fy - 10, 6);
-      g.fillStyle(C.soil, 0.8);
-      g.fillRect(fx - 1, fy - 4, 2, 14);
-    });
-
-    // Frame border
-    g.lineStyle(2, C.border, 0.8);
-    g.strokeRoundedRect(10, 10, W - 20, H - 20, 20);
-
-    // Cloud accent
-    g.fillStyle(0xffffff, 0.55);
-    g.fillEllipse(50, 50, 80, 32);
-    g.fillEllipse(75, 40, 60, 28);
-    g.fillEllipse(W - 50, 60, 70, 28);
-    g.fillEllipse(W - 70, 48, 50, 24);
+  protected onBridgeError(error: GameBridgeError): void {
+    this.statusText?.setText(compactError(error.message));
+    this.statusText?.setColor("#d84d3f");
   }
 
-  // ── Pet display ────────────────────────────────────────────────────────────
+  private buildBackground(W: number, H: number): void {
+    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
 
-  private buildPetDisplay(W: number, H: number): void {
-    const cx = W / 2, cy = H * 0.27;
+    this.labImage = this.add.image(W / 2, H / 2, PET_ASSETS.lab);
+    this.coverImage(this.labImage, W, H);
+    this.labImage.setAlpha(0.44).setDepth(0);
 
-    // Glow circle
-    this.stageGlow = this.add.ellipse(cx, cy, 140, 100, GLOW_COLORS[0]!, 0.18);
-    this.tweens.add({
-      targets: this.stageGlow,
-      scaleX: 1.1, scaleY: 1.1,
-      duration: 1800, ease: "Sine.easeInOut", yoyo: true, repeat: -1,
-    });
+    this.labOverlay = this.add.rectangle(W / 2, H / 2, W, H, C.canvas, 0.52).setDepth(1);
+    this.add.rectangle(W / 2, H - 42, W - 34, 116, C.warm, 0.88)
+      .setStrokeStyle(1, C.stroke, 0.7)
+      .setDepth(2);
 
-    this.petContainer = this.add.container(cx, cy);
-    this.petG = this.add.graphics();
-    this.petContainer.add(this.petG);
-
-    // Stage name badge
-    this.stageLabel = this.add.text(cx, cy + 58, "Egg", {
-      fontSize: "12px", color: "#75685a", letterSpacing: 1,
-    }).setOrigin(0.5);
-
-    // Idle hover
-    this.tweens.add({
-      targets: this.petContainer,
-      y: cy - 7,
-      duration: 1500, ease: "Sine.easeInOut", yoyo: true, repeat: -1,
-    });
-
-    // Draw initial stage
-    this.drawPetStage(0);
+    const frame = this.add.graphics().setDepth(3);
+    frame.lineStyle(2, C.stroke, 0.65);
+    frame.strokeRoundedRect(12, 12, W - 24, H - 24, 22);
   }
 
-  /**
-   * Draw the pet for the given stage using Phaser.Graphics primitives.
-   * Stage 0: Egg — speckled oval
-   * Stage 1: Hatchling — small chick with cracked shell bottom
-   * Stage 2: Sprite — round creature with limbs
-   * Stage 3: Bloom — fairy/butterfly creature
-   */
-  private drawPetStage(stage: number): void {
-    const g = this.petG;
-    g.clear();
+  private buildHeader(W: number): void {
+    this.add.text(W / 2, 34, "PET POTION", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#0c705d",
+      fontStyle: "bold",
+      letterSpacing: 1.4,
+    }).setOrigin(0.5).setDepth(5);
 
-    switch (stage) {
-      case 0: this.drawEgg(g); break;
-      case 1: this.drawHatchling(g); break;
-      case 2: this.drawSprite(g); break;
-      case 3: this.drawBloom(g); break;
-    }
+    this.titleText = this.add.text(W / 2, 60, "", {
+      fontFamily: FONT,
+      fontSize: "25px",
+      color: "#2f291f",
+      fontStyle: "bold",
+    }).setOrigin(0.5).setDepth(5);
+
+    this.subtitleText = this.add.text(W / 2, 88, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#7b6d5a",
+      align: "center",
+    }).setOrigin(0.5).setDepth(5);
   }
 
-  private drawEgg(g: Phaser.GameObjects.Graphics): void {
-    // Egg body (taller ellipse)
-    g.fillStyle(C.eggWhite);
-    g.fillEllipse(0, 0, 72, 88);
-    g.lineStyle(2, C.eggSpot, 0.5);
-    g.strokeEllipse(0, 0, 72, 88);
+  private buildPetStage(W: number, H: number): void {
+    const cx = W / 2;
+    const cy = H * 0.34;
 
-    // Speckles
-    g.fillStyle(C.eggSpot, 0.6);
-    const speckles = [[-14, -20], [10, -8], [-4, 12], [18, 8], [-20, 6], [2, -30]];
-    speckles.forEach(([sx, sy]) => g.fillCircle(sx!, sy!, 4));
+    this.petGlow = this.add.ellipse(cx, cy + 8, 224, 168, C.jade, 0.12).setDepth(4);
+    this.petShadow = this.add.ellipse(cx, cy + 92, 164, 34, 0x5c4b2c, 0.16).setDepth(4);
+    this.petImage = this.add.image(cx, cy, PET_ASSETS.egg)
+      .setDisplaySize(190, 190)
+      .setDepth(6);
+    this.actionCue = this.add.image(cx + 78, cy + 54, PET_ASSETS.actions.feed)
+      .setDisplaySize(62, 62)
+      .setAlpha(0)
+      .setDepth(7);
 
-    // Shine
-    g.fillStyle(0xffffff, 0.45);
-    g.fillEllipse(-14, -24, 18, 10);
+    this.stageBadge = this.add.text(cx, cy + 112, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#0c705d",
+      fontStyle: "bold",
+      backgroundColor: "rgba(255,255,255,0.78)",
+      padding: { x: 12, y: 5 },
+    }).setOrigin(0.5).setDepth(7);
   }
 
-  private drawHatchling(g: Phaser.GameObjects.Graphics): void {
-    // Broken shell base
-    g.fillStyle(C.eggWhite);
-    g.fillEllipse(0, 24, 68, 28);
-    g.lineStyle(2, C.eggSpot, 0.5);
-    g.strokeEllipse(0, 24, 68, 28);
-
-    // Jagged crack line on shell
-    g.lineStyle(2, C.eggSpot);
-    g.lineBetween(-20, 14, -8, 8);
-    g.lineBetween(-8, 8, 4, 14);
-    g.lineBetween(4, 14, 16, 8);
-    g.lineBetween(16, 8, 26, 14);
-
-    // Body (chick)
-    g.fillStyle(0xfef08a);  // yellow
-    g.fillEllipse(0, -4, 52, 48);
-
-    // Head
-    g.fillStyle(0xfef08a);
-    g.fillCircle(0, -28, 26);
-
-    // Eye
-    g.fillStyle(0x1e293b);
-    g.fillCircle(10, -32, 5);
-    g.fillStyle(0xffffff, 0.7);
-    g.fillCircle(12, -34, 2);
-
-    // Beak
-    g.fillStyle(0xf97316);
-    g.fillTriangle(-2, -26, 10, -23, -2, -20);
-
-    // Wing tufts
-    g.fillStyle(0xfde68a);
-    g.fillEllipse(-26, -4, 16, 24);
-    g.fillEllipse(26, -4, 16, 24);
+  private buildGoalMeter(W: number, H: number): void {
+    const y = H * 0.58;
+    this.add.rectangle(W / 2, y, W - 86, 42, C.surface, 0.86)
+      .setStrokeStyle(1, C.stroke, 0.62)
+      .setDepth(5);
+    this.targetText = this.add.text(64, y - 10, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      color: "#2f291f",
+      fontStyle: "bold",
+    }).setDepth(6);
+    this.add.rectangle(W / 2, y + 10, W - 128, 9, 0xeadfc8, 0.95)
+      .setOrigin(0.5)
+      .setDepth(6);
+    this.goalFill = this.add.rectangle(64, y + 10, 0, 9, C.jade, 0.95)
+      .setOrigin(0, 0.5)
+      .setDepth(7);
   }
-
-  private drawSprite(g: Phaser.GameObjects.Graphics): void {
-    // Body
-    g.fillStyle(C.teal);
-    g.fillEllipse(0, 4, 58, 52);
-
-    // Belly spot
-    g.fillStyle(C.tealLt, 0.5);
-    g.fillEllipse(0, 10, 32, 26);
-
-    // Head
-    g.fillStyle(C.teal);
-    g.fillCircle(0, -26, 28);
-
-    // Eyes
-    g.fillStyle(0xffffff);
-    g.fillEllipse(-10, -30, 14, 16);
-    g.fillEllipse(10, -30, 14, 16);
-    g.fillStyle(0x1e293b);
-    g.fillCircle(-9, -29, 5);
-    g.fillCircle(11, -29, 5);
-    g.fillStyle(0xffffff, 0.8);
-    g.fillCircle(-7, -31, 2);
-    g.fillCircle(13, -31, 2);
-
-    // Ears/antennae
-    g.lineStyle(3, C.tealDk);
-    g.lineBetween(-12, -50, -20, -70);
-    g.lineBetween(12, -50, 20, -70);
-    g.fillStyle(C.pink);
-    g.fillCircle(-22, -70, 6);
-    g.fillCircle(22, -70, 6);
-
-    // Arms
-    g.fillStyle(C.teal);
-    g.fillEllipse(-32, 4, 14, 32);
-    g.fillEllipse(32, 4, 14, 32);
-
-    // Legs
-    g.fillEllipse(-14, 32, 14, 22);
-    g.fillEllipse(14, 32, 14, 22);
-  }
-
-  private drawBloom(g: Phaser.GameObjects.Graphics): void {
-    // Fairy wings (back)
-    g.fillStyle(C.pink, 0.35);
-    g.fillEllipse(-38, -14, 40, 70);
-    g.fillEllipse(38, -14, 40, 70);
-    g.fillStyle(C.teal, 0.25);
-    g.fillEllipse(-28, 10, 30, 44);
-    g.fillEllipse(28, 10, 30, 44);
-
-    // Body
-    g.fillStyle(C.pink);
-    g.fillEllipse(0, 6, 50, 44);
-
-    // Belly
-    g.fillStyle(0xffffff, 0.4);
-    g.fillEllipse(0, 12, 26, 22);
-
-    // Head
-    g.fillStyle(C.pink);
-    g.fillCircle(0, -22, 26);
-
-    // Hair/crown
-    g.fillStyle(C.goldLt);
-    g.fillEllipse(0, -44, 28, 12);
-    g.fillStyle(C.gold);
-    g.fillTriangle(-8, -40, 0, -56, 8, -40);
-    g.fillCircle(0, -56, 5);
-
-    // Eyes (happy)
-    g.fillStyle(0x1e293b);
-    g.fillCircle(-10, -24, 5);
-    g.fillCircle(10, -24, 5);
-    // Sparkle
-    g.fillStyle(0xffffff, 0.9);
-    g.fillCircle(-8, -26, 2);
-    g.fillCircle(12, -26, 2);
-
-    // Smile
-    g.lineStyle(2, 0x1e293b);
-    g.beginPath();
-    g.arc(0, -19, 6, Phaser.Math.DegToRad(10), Phaser.Math.DegToRad(170), false);
-    g.strokePath();
-
-    // Arms
-    g.fillStyle(C.pink);
-    g.fillEllipse(-28, 6, 12, 28);
-    g.fillEllipse(28, 6, 12, 28);
-
-    // Wing shimmer lines
-    g.lineStyle(1, 0xffffff, 0.5);
-    g.lineBetween(-36, -20, -30, 0);
-    g.lineBetween(36, -20, 30, 0);
-  }
-
-  // ── Stat bars ──────────────────────────────────────────────────────────────
 
   private buildStats(W: number, H: number): void {
-    const statDefs = [
-      { label: "Happiness", color: C.pink },
-      { label: "Fed",       color: C.orange },
-      { label: "Energy",    color: C.blue },
-    ];
-    const startY = H * 0.5;
-
-    statDefs.forEach(({ label, color }, i) => {
-      const y = startY + i * 36;
-      // Colored dot indicator
-      const g = this.add.graphics();
-      g.fillStyle(color, 0.9);
-      g.fillCircle(W / 2 - 116, y, 5);
-
-      this.add.text(W / 2 - 108, y, label, {
-        fontSize: "12px", color: "#75685a",
-      }).setOrigin(0, 0.5);
-
-      // Track
-      this.add.rectangle(W / 2 + 16, y, 196, 12, C.statBg).setOrigin(0, 0.5);
-      // Fill
-      const fill = this.add.rectangle(W / 2 + 16, y, 98, 10, color).setOrigin(0, 0.5);
-      this.barFills.push(fill);
+    const defs = [
+      { label: "Happy", color: C.rose },
+      { label: "Fed", color: C.orange },
+      { label: "Energy", color: C.blue },
+    ] as const;
+    const y0 = H * 0.64;
+    defs.forEach((def, index) => {
+      const y = y0 + index * 30;
+      this.add.text(44, y, def.label, {
+        fontFamily: FONT,
+        fontSize: "11px",
+        color: "#7b6d5a",
+        fontStyle: "bold",
+      }).setOrigin(0, 0.5).setDepth(6);
+      this.add.rectangle(112, y, W - 178, 9, 0xeadfc8, 0.88)
+        .setOrigin(0, 0.5)
+        .setDepth(6);
+      const fill = this.add.rectangle(112, y, 1, 9, def.color, 0.95)
+        .setOrigin(0, 0.5)
+        .setDepth(7);
+      const value = this.add.text(W - 50, y, "0", {
+        fontFamily: FONT,
+        fontSize: "11px",
+        color: "#2f291f",
+        fontStyle: "bold",
+      }).setOrigin(1, 0.5).setDepth(6);
+      this.statBars.push({ fill, value });
     });
   }
 
-  private updateStatBar(index: number, pct0to100: number): void {
-    const fill = this.barFills[index];
-    if (!fill) return;
-    const w = Math.max(0, Math.min(1, pct0to100 / 100)) * 196;
-    this.tweens.add({
-      targets: fill,
-      displayWidth: w,
-      duration: 300,
-      ease: "Power2",
-    });
-  }
-
-  // ── Target bar ─────────────────────────────────────────────────────────────
-
-  private buildTargetBar(W: number, H: number): void {
-    this.add.text(W / 2, H * 0.69, "HAPPINESS GOAL", {
-      fontSize: "10px", color: "#b8860b", letterSpacing: 2,
-    }).setOrigin(0.5);
-
-    const trackBg = this.add.rectangle(W / 2, H * 0.725, 200, 10, C.statBg).setOrigin(0.5);
-    this.targetFill = this.add.rectangle(W / 2 - 100, H * 0.725, 0, 10, C.gold).setOrigin(0, 0.5);
-
-    const g = this.add.graphics();
-    g.lineStyle(1, C.gold, 0.5);
-    g.strokeRect(W / 2 - 100, H * 0.725 - 5, 200, 10);
-  }
-
-  // ── Action buttons ─────────────────────────────────────────────────────────
-
-  private buildActions(W: number, H: number): void {
-    const positions = [
-      { x: W / 2 - 78, y: H * 0.81 },
-      { x: W / 2 + 78, y: H * 0.81 },
-      { x: W / 2 - 78, y: H * 0.895 },
-      { x: W / 2 + 78, y: H * 0.895 },
-    ];
-
-    ACTIONS.forEach(({ key, label, color }, i) => {
-      const { x, y } = positions[i]!;
-      const c = this.add.container(x, y);
-
+  private buildModeCards(W: number, H: number): void {
+    const startX = W / 2 - 118;
+    const y = H - 118;
+    DIFFICULTIES.forEach((mode, index) => {
+      const container = this.add.container(startX + index * 118, y).setDepth(8);
       const bg = this.add.graphics();
-      bg.fillStyle(color, 0.9);
-      bg.fillRoundedRect(-56, -20, 112, 40, 10);
-      bg.lineStyle(2, color);
-      bg.strokeRoundedRect(-56, -20, 112, 40, 10);
-      bg.setInteractive(new Phaser.Geom.Rectangle(-56, -20, 112, 40), Phaser.Geom.Rectangle.Contains);
-      this.bindGameButton(bg, {
-        targets: c,
-        hoverScale: 1.04,
-        pressScale: 0.92,
-        onPress: () => this.dispatch("recordAction", { type: key }),
-        onHoverIn: () => bg.setAlpha(0.84),
-        onHoverOut: () => bg.setAlpha(1.0),
-      });
-
-      const lbl = this.add.text(0, 0, label, {
-        fontSize: "13px", fontStyle: "bold", color: "#ffffff", letterSpacing: 1,
+      const badge = this.add.image(0, -18, mode.badge).setDisplaySize(42, 42);
+      const label = this.add.text(0, 14, mode.label, {
+        fontFamily: FONT,
+        fontSize: "12px",
+        color: "#2f291f",
+        fontStyle: "bold",
+      }).setOrigin(0.5);
+      const reward = this.add.text(0, 34, `${mode.reward} GAS`, {
+        fontFamily: FONT,
+        fontSize: "10px",
+        color: "#0c705d",
+        fontStyle: "bold",
       }).setOrigin(0.5);
 
-      c.add([bg, lbl]);
-      c.setVisible(false);
-      this.actionBtns.push(c);
+      bg.setInteractive(new Phaser.Geom.Rectangle(-49, -48, 98, 94), Phaser.Geom.Rectangle.Contains);
+      this.bindGameButton(bg, {
+        targets: container,
+        hoverScale: 1.04,
+        pressScale: 0.95,
+        onPress: () => {
+          this.selectedDifficulty = mode.id;
+          this.updateModeCards();
+          this.onStateUpdate(this.state);
+        },
+      });
+
+      container.add([bg, badge, label, reward]);
+      this.modeCards.push({ container, bg, label, id: mode.id });
     });
   }
 
-  // ── Start button ───────────────────────────────────────────────────────────
+  private buildActionButtons(W: number, H: number): void {
+    const y = H - 104;
+    const startX = W / 2 - 135;
+    ACTIONS.forEach((action, index) => {
+      const container = this.add.container(startX + index * 90, y).setDepth(9);
+      const bg = this.add.graphics();
+      this.renderActionButton(bg, action.color, false);
+      bg.setInteractive(new Phaser.Geom.Rectangle(-37, -44, 74, 88), Phaser.Geom.Rectangle.Contains);
+      this.bindGameButton(bg, {
+        targets: container,
+        hoverScale: 1.05,
+        pressScale: 0.91,
+        onPress: () => {
+          this.showActionCue(action.key);
+          this.dispatch("recordAction", { type: action.key });
+        },
+        onHoverIn: () => this.renderActionButton(bg, action.color, true),
+        onHoverOut: () => this.renderActionButton(bg, action.color, false),
+      });
 
-  private buildStartButton(W: number, H: number): void {
-    this.startBtn = this.add.container(W / 2, H * 0.87);
-    const bg = this.add.graphics();
-    bg.fillStyle(C.teal);
-    bg.fillRoundedRect(-96, -26, 192, 52, 14);
-    bg.fillStyle(0xffffff, 0.12);
-    bg.fillRoundedRect(-96, -26, 192, 22, { tl: 14, tr: 14, bl: 0, br: 0 });
-    bg.lineStyle(2, C.tealLt, 0.8);
-    bg.strokeRoundedRect(-96, -26, 192, 52, 14);
-    bg.setInteractive(new Phaser.Geom.Rectangle(-96, -26, 192, 52), Phaser.Geom.Rectangle.Contains);
-    this.bindGameButton(bg, {
-      targets: this.startBtn,
+      const icon = this.add.image(0, -12, action.asset).setDisplaySize(50, 50);
+      const label = this.add.text(0, 30, action.label, {
+        fontFamily: FONT,
+        fontSize: "11px",
+        color: "#2f291f",
+        fontStyle: "bold",
+      }).setOrigin(0.5);
+      container.add([bg, icon, label]);
+      container.setVisible(false);
+      this.actionButtons.push(container);
+    });
+  }
+
+  private buildPrimaryButton(W: number, H: number): void {
+    this.primaryButton = this.add.container(W / 2, H - 42).setDepth(10);
+    this.primaryButtonBg = this.add.graphics();
+    this.primaryButtonBg.setInteractive(new Phaser.Geom.Rectangle(-114, -23, 228, 46), Phaser.Geom.Rectangle.Contains);
+    this.bindGameButton(this.primaryButtonBg, {
+      targets: this.primaryButton,
+      hoverScale: 1.03,
       pressScale: 0.95,
-      pressDuration: 80,
-      onPress: () => this.dispatch("startGame", this.num("gameDifficulty", 0)),
+      onPress: () => this.handlePrimaryAction(),
     });
 
-    const lbl = this.add.text(0, 0, "START GAME", {
-      fontSize: "17px", fontStyle: "bold", color: "#ffffff", letterSpacing: 2,
+    this.primaryButtonLabel = this.add.text(0, 0, "Begin care", {
+      fontFamily: FONT,
+      fontSize: "15px",
+      color: "#ffffff",
+      fontStyle: "bold",
     }).setOrigin(0.5);
-
-    this.startBtn.add([bg, lbl]);
+    this.primaryButton.add([this.primaryButtonBg, this.primaryButtonLabel]);
   }
 
-  // ── Status ─────────────────────────────────────────────────────────────────
-
-  private buildStatusLabel(W: number, H: number): void {
-    this.statusLabel = this.add.text(W / 2, H * 0.97, "", {
-      fontSize: "11px", color: "#75685a",
-    }).setOrigin(0.5);
+  private buildStatus(W: number, H: number): void {
+    this.statusText = this.add.text(W / 2, H - 15, "", {
+      fontFamily: FONT,
+      fontSize: "10px",
+      color: "#7b6d5a",
+      align: "center",
+      wordWrap: { width: W - 64 },
+    }).setOrigin(0.5).setDepth(10);
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  private updatePet(stage: number, status: string): void {
+    const texture = stage < 0
+      ? PET_ASSETS.egg
+      : PET_ASSETS.pets[Math.max(0, Math.min(2, stage))]!;
+    if (stage !== this.currentStage || this.petImage.texture.key !== texture) {
+      this.currentStage = stage;
+      this.petImage.setTexture(texture);
+      const size = stage < 0 ? 178 : stage === 0 ? 182 : stage === 1 ? 202 : 218;
+      this.petImage.setDisplaySize(size, size);
+      this.tweens.add({
+        targets: this.petImage,
+        scaleX: this.petImage.scaleX * 1.04,
+        scaleY: this.petImage.scaleY * 1.04,
+        duration: 160,
+        ease: "Sine.easeOut",
+        yoyo: true,
+      });
+    }
 
-  private getDiffRule(): number {
-    const diff = this.num("gameDifficulty", 0);
-    return [60, 75, 90][diff] ?? 60;
+    const label = stage < 0
+      ? status === "expired" || status === "refunded" ? "Pet resting" : "Sealed egg"
+      : stage === 0 ? "Baby stage" : stage === 1 ? "Teen stage" : "Adult stage";
+    this.stageBadge.setText(label);
+    this.petGlow.setFillStyle(stage === 2 ? C.gold : C.jade, stage === 2 ? 0.18 : 0.12);
+  }
+
+  private updateStats(happiness: number, hunger: number, energy: number): void {
+    [happiness, 100 - hunger, energy].forEach((value, index) => {
+      const stat = this.statBars[index];
+      if (!stat) return;
+      const pct = clamp01(value / 100);
+      this.tweens.add({
+        targets: stat.fill,
+        displayWidth: pct * (this.scale.width - 178),
+        duration: 220,
+        ease: "Sine.easeOut",
+      });
+      stat.value.setText(String(Math.round(value)));
+    });
+  }
+
+  private updateGoal(value: number, target: number): void {
+    const pct = target > 0 ? clamp01(value / target) : 0;
+    this.tweens.add({
+      targets: this.goalFill,
+      displayWidth: pct * (this.scale.width - 128),
+      duration: 260,
+      ease: "Sine.easeOut",
+    });
+    this.goalFill.setFillStyle(pct >= 1 ? C.gold : C.jade);
+  }
+
+  private updatePrimaryButton(status: string, isPlaying: boolean, isLoading: boolean, targetReached: boolean): void {
+    const show = status === "idle" || status === "solved" || status === "expired" || status === "refunded" || (isPlaying && targetReached);
+    this.primaryButton.setVisible(show);
+    if (!show) return;
+
+    const label = isLoading
+      ? "Working..."
+      : isPlaying
+        ? "Claim reward"
+        : status === "solved"
+          ? "Raise another pet"
+          : status === "expired" || status === "refunded"
+            ? "Try again"
+            : "Begin care";
+    const enabled = !isLoading;
+    this.primaryButtonLabel.setText(label);
+    this.renderPrimaryButton(enabled, isPlaying);
+  }
+
+  private handlePrimaryAction(): void {
+    const status = this.str("gameStatus", "idle");
+    if (this.bool("isStarting") || this.bool("isSubmitting") || this.bool("isDealing")) return;
+    if (isPlayingStatus(status)) {
+      this.dispatch("submitSolution");
+      return;
+    }
+    this.dispatch("startGame", this.selectedDifficulty);
+  }
+
+  private showActionCue(key: PetActionKey): void {
+    this.cueTimer?.remove(false);
+    this.actionCue.setTexture(PET_ASSETS.actions[key]);
+    this.actionCue.setAlpha(0).setScale(0.72).setRotation(Phaser.Math.DegToRad(-6));
+    this.tweens.add({
+      targets: this.actionCue,
+      alpha: 1,
+      scale: 1,
+      y: this.petImage.y + 42,
+      duration: 120,
+      ease: "Back.easeOut",
+      yoyo: true,
+      hold: 360,
+      onComplete: () => this.actionCue.setAlpha(0),
+    });
+    this.pulsePet();
+  }
+
+  private pulsePet(): void {
+    this.tweens.add({
+      targets: this.petImage,
+      scaleX: this.petImage.scaleX * 1.04,
+      scaleY: this.petImage.scaleY * 1.04,
+      duration: 140,
+      ease: "Sine.easeOut",
+      yoyo: true,
+    });
+  }
+
+  private startAmbientMotion(): void {
+    this.tweens.add({
+      targets: this.petImage,
+      y: this.petImage.y - 7,
+      duration: 1800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    this.tweens.add({
+      targets: this.petGlow,
+      scaleX: 1.08,
+      scaleY: 1.08,
+      alpha: 0.18,
+      duration: 2200,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    this.tweens.add({
+      targets: this.labOverlay,
+      alpha: 0.6,
+      duration: 2800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  private updateModeCards(): void {
+    this.modeCards.forEach((card) => {
+      const active = card.id === this.selectedDifficulty;
+      this.renderModeCard(card.bg, active, false);
+      card.label.setColor(active ? "#0c705d" : "#2f291f");
+    });
+  }
+
+  private renderModeCard(bg: Phaser.GameObjects.Graphics, active: boolean, hover: boolean): void {
+    bg.clear();
+    bg.fillStyle(active ? 0xf2fffb : C.surface, hover || active ? 0.98 : 0.88);
+    bg.fillRoundedRect(-49, -48, 98, 94, 14);
+    bg.lineStyle(active ? 2 : 1, active ? C.jade : C.stroke, active ? 0.78 : 0.62);
+    bg.strokeRoundedRect(-49, -48, 98, 94, 14);
+  }
+
+  private renderActionButton(bg: Phaser.GameObjects.Graphics, color: number, hover: boolean): void {
+    bg.clear();
+    bg.fillStyle(C.surface, hover ? 0.98 : 0.9);
+    bg.fillRoundedRect(-37, -44, 74, 88, 14);
+    bg.fillStyle(color, hover ? 0.16 : 0.1);
+    bg.fillRoundedRect(-28, -38, 56, 56, 16);
+    bg.lineStyle(1, color, hover ? 0.58 : 0.32);
+    bg.strokeRoundedRect(-37, -44, 74, 88, 14);
+  }
+
+  private renderPrimaryButton(enabled: boolean, rewardTone: boolean): void {
+    this.primaryButtonBg.clear();
+    this.primaryButtonBg.fillStyle(enabled ? (rewardTone ? C.gold : C.jade) : 0xcdbf9c, enabled ? 0.96 : 0.72);
+    this.primaryButtonBg.fillRoundedRect(-114, -23, 228, 46, 16);
+    this.primaryButtonBg.fillStyle(C.white, 0.13);
+    this.primaryButtonBg.fillRoundedRect(-114, -23, 228, 19, { tl: 16, tr: 16, bl: 0, br: 0 });
+    this.primaryButtonBg.lineStyle(1, enabled ? C.white : C.stroke, enabled ? 0.36 : 0.4);
+    this.primaryButtonBg.strokeRoundedRect(-114, -23, 228, 46, 16);
+    this.primaryButtonBg.setAlpha(enabled ? 1 : 0.72);
+  }
+
+  private statusCopy(status: string, isLoading: boolean, targetReached: boolean, actionsUsed: number): string {
+    if (isLoading) return "Wallet and enclave are preparing the run.";
+    if (status === "solved") return "Reward credited. Start another care run when ready.";
+    if (status === "expired" || status === "refunded") return "This run is closed. Start a fresh pet when ready.";
+    if (isPlayingStatus(status)) {
+      if (targetReached) return "Target reached. Claim before the deadline.";
+      return `${actionsUsed} / 40 care actions used`;
+    }
+    return "Pick a nursery path. The TEE keeps pet stats sealed until settlement.";
+  }
+
+  private coverImage(image: Phaser.GameObjects.Image, W: number, H: number): void {
+    const source = image.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+    const sourceW = Number(source.width) || W;
+    const sourceH = Number(source.height) || H;
+    const scale = Math.max(W / sourceW, H / sourceH);
+    image.setScale(scale);
   }
 }
