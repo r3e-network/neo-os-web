@@ -44,6 +44,8 @@ import {
 
 export const SCENE_W = 400;
 export const SCENE_H = 600;
+const FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
+const TEXT_RESOLUTION = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 
 const TILE_SIZE = 72;
 const TILE_GAP  = 8;
@@ -83,6 +85,57 @@ const C = {
   timerLow:    0xdc2626,
   empty:       0x9e7b50,
 };
+
+const TILE_ASSETS: Record<number, string> = {
+  2:    "mk-tile-grass",
+  4:    "mk-tile-hut",
+  8:    "mk-tile-cottage",
+  16:   "mk-tile-house",
+  32:   "mk-tile-tower",
+  64:   "mk-tile-market",
+  128:  "mk-tile-forge",
+  256:  "mk-tile-gate",
+  512:  "mk-tile-keep",
+  1024: "mk-tile-castle",
+  2048: "mk-tile-citadel",
+  4096: "mk-tile-palace",
+};
+
+const TILE_FILES: Record<number, string> = {
+  2:    "./art/tile-0002-grass-plot.webp",
+  4:    "./art/tile-0004-wooden-hut.webp",
+  8:    "./art/tile-0008-stone-cottage.webp",
+  16:   "./art/tile-0016-village-house.webp",
+  32:   "./art/tile-0032-watchtower.webp",
+  64:   "./art/tile-0064-market-stall.webp",
+  128:  "./art/tile-0128-forge.webp",
+  256:  "./art/tile-0256-castle-gate.webp",
+  512:  "./art/tile-0512-castle-keep.webp",
+  1024: "./art/tile-1024-royal-castle.webp",
+  2048: "./art/tile-2048-crystal-citadel.webp",
+  4096: "./art/tile-4096-crown-palace.webp",
+};
+
+const LOBBY_PREVIEWS: number[][][] = [
+  [
+    [2, 0, 4, 0],
+    [0, 8, 0, 0],
+    [0, 0, 16, 0],
+    [0, 0, 0, 64],
+  ],
+  [
+    [2, 4, 8, 0],
+    [0, 16, 0, 32],
+    [64, 0, 128, 0],
+    [0, 0, 0, 256],
+  ],
+  [
+    [4, 8, 16, 32],
+    [0, 64, 0, 128],
+    [256, 0, 512, 0],
+    [0, 0, 0, 1024],
+  ],
+];
 
 // Tile fill colours keyed by tile value
 const TILE_FILL: Record<number, number> = {
@@ -139,9 +192,15 @@ const DIFF_LABELS = ["Easy", "Medium", "Hard"];
 interface TileObj {
   container: Phaser.GameObjects.Container;
   bg:        Phaser.GameObjects.Rectangle;
+  art:       Phaser.GameObjects.Image;
   nameText:  Phaser.GameObjects.Text;
   valBadge:  Phaser.GameObjects.Text;
   valBadgeBg:Phaser.GameObjects.Rectangle;
+}
+
+interface LobbyPreviewTile {
+  bg: Phaser.GameObjects.Rectangle;
+  art: Phaser.GameObjects.Image;
 }
 
 // ── Scene class ─────────────────────────────────────────────────────────────
@@ -179,6 +238,13 @@ export class MergeKingdomScene extends BaseScene {
   private startBtn!:    Phaser.GameObjects.Container;
   private startBtnText!:Phaser.GameObjects.Text;
   private poolText!:    Phaser.GameObjects.Text;
+  private lobbyPreviewTiles: LobbyPreviewTile[] = [];
+  private routeTargetArt!: Phaser.GameObjects.Image;
+  private routeTitleText!: Phaser.GameObjects.Text;
+  private routeGoalText!: Phaser.GameObjects.Text;
+  private routeRewardText!: Phaser.GameObjects.Text;
+  private routeEntryText!: Phaser.GameObjects.Text;
+  private routeTimeText!: Phaser.GameObjects.Text;
 
   // ── Loading ───────────────────────────────────────────────────────────────
   private loadingTiles: Phaser.GameObjects.Rectangle[] = [];
@@ -202,7 +268,9 @@ export class MergeKingdomScene extends BaseScene {
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
 
   preload(): void {
-    // No external assets — everything rendered with Phaser primitives
+    for (const [value, path] of Object.entries(TILE_FILES)) {
+      this.load.image(TILE_ASSETS[Number(value)]!, path);
+    }
   }
 
   create(): void {
@@ -228,7 +296,7 @@ export class MergeKingdomScene extends BaseScene {
 
   // ── BaseScene abstract ────────────────────────────────────────────────────
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const status     = this.str("gameStatus", "idle");
     const isStarting = this.bool("isStarting");
     const isDealing  = this.bool("isDealing");
@@ -294,43 +362,113 @@ export class MergeKingdomScene extends BaseScene {
   // ── Build: lobby ─────────────────────────────────────────────────────────
 
   private buildLobby(): void {
-    // Title
-    const title = this.add.text(SCENE_W / 2, 38, "Merge Kingdom", {
-      fontSize: "22px", fontStyle: "bold", color: "#2b261f",
+    const eyebrow = this.add.text(SCENE_W / 2, 22, "TEE-SEALED MERGE QUEST", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "10px",
+      fontStyle: "bold",
+      color: "#a07030",
     }).setOrigin(0.5);
 
-    const sub = this.add.text(SCENE_W / 2, 64, "Build your realm, tile by tile", {
-      fontSize: "13px", color: "#8b7355",
+    const title = this.add.text(SCENE_W / 2, 44, "Merge Kingdom", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "26px",
+      fontStyle: "bold",
+      color: "#2b261f",
     }).setOrigin(0.5);
 
-    // 3 difficulty cards
+    const sub = this.add.text(SCENE_W / 2, 70, "Move, merge, and raise the target building.", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "12px",
+      color: "#8b7355",
+    }).setOrigin(0.5);
+
+    const boardPanel = this.add.rectangle(SCENE_W / 2, 205, 214, 214, C.cream, 0.94)
+      .setStrokeStyle(2, C.goldDim, 0.75)
+      .setOrigin(0.5);
+    const boardShadow = this.add.rectangle(SCENE_W / 2 + 6, 212, 214, 214, 0x8b5e24, 0.14)
+      .setOrigin(0.5);
+    this.lobbyObjects.push(boardShadow, boardPanel);
+    this.buildLobbyPreviewBoard(SCENE_W / 2, 205);
+
+    const routePanel = this.add.rectangle(SCENE_W / 2, 352, 338, 78, C.white, 0.92)
+      .setStrokeStyle(1.5, C.cardBorder, 1)
+      .setOrigin(0.5);
+    this.routeTargetArt = this.add.image(67, 352, TILE_ASSETS[64]!)
+      .setDisplaySize(58, 58);
+    this.routeTitleText = this.add.text(106, 327, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "15px",
+      fontStyle: "bold",
+      color: "#2b261f",
+    }).setOrigin(0, 0);
+    this.routeGoalText = this.add.text(106, 350, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      color: "#8b7355",
+    }).setOrigin(0, 0);
+    this.routeRewardText = this.add.text(SCENE_W - 42, 327, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "16px",
+      fontStyle: "bold",
+      color: "#0f9f6e",
+    }).setOrigin(1, 0);
+    this.routeEntryText = this.add.text(SCENE_W - 42, 351, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "10px",
+      color: "#8b7355",
+    }).setOrigin(1, 0);
+    this.routeTimeText = this.add.text(SCENE_W - 42, 367, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "10px",
+      color: "#8b7355",
+    }).setOrigin(1, 0);
+    this.lobbyObjects.push(
+      routePanel,
+      this.routeTargetArt,
+      this.routeTitleText,
+      this.routeGoalText,
+      this.routeRewardText,
+      this.routeEntryText,
+      this.routeTimeText,
+    );
+
     this.diffCards = [];
-    const cardW = 340;
-    const cardH = 88;
-    const cardX = SCENE_W / 2;
-    const cardStartY = 130;
-    const cardStep = 106;
+    const cardW = 104;
+    const cardH = 54;
+    const startX = 76;
 
     DIFFICULTY_RULES.forEach((rule, i) => {
-      const cy = cardStartY + i * cardStep;
-      const card = this.buildDiffCard(cardX, cy, cardW, cardH, i, rule);
+      const card = this.buildDiffCard(startX + i * 124, 430, cardW, cardH, i, rule);
       this.diffCards.push(card);
       this.lobbyObjects.push(card);
     });
 
-    // Start button
-    this.startBtn = this.buildActionButton(SCENE_W / 2, 470, 188, 50, "Start Kingdom", () => {
+    this.startBtn = this.buildActionButton(SCENE_W / 2, 502, 216, 48, "Build Realm", () => {
       if (this.bool("walletConnected") === false) return;
       this.dispatch("startGame", this.selectedDiff);
     });
     this.startBtnText = this.startBtn.list[1] as Phaser.GameObjects.Text;
 
-    // Pool status
-    this.poolText = this.add.text(SCENE_W / 2, 534, "", {
-      fontSize: "11px", color: "#8b7355", align: "center", wordWrap: { width: 320 },
+    this.poolText = this.add.text(SCENE_W / 2, 554, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      color: "#8b7355",
+      align: "center",
+      wordWrap: { width: 320 },
     }).setOrigin(0.5);
 
-    this.lobbyObjects.push(title, sub, this.startBtn, this.poolText);
+    this.lobbyObjects.push(eyebrow, title, sub, this.startBtn, this.poolText);
+    this.updateRoutePanel();
+    this.updateLobbyPreviewBoard();
   }
 
   private buildDiffCard(
@@ -354,60 +492,109 @@ export class MergeKingdomScene extends BaseScene {
     bg.on("pointerdown", () => {
       this.selectedDiff = diffIdx;
       this.refreshDiffCards();
+      this.updateLobby();
       this.tweens.add({ targets: card, scaleX: 0.97, scaleY: 0.97, duration: 60, yoyo: true });
     });
 
-    // Tile crest (colored square for the target tile)
     const targetVal = rule.targetTile;
-    const cresthex  = TILE_FILL[targetVal] ?? 0x9e7b50;
-    const crest = this.add.rectangle(-w / 2 + 46, 0, 44, 44, cresthex)
-      .setStrokeStyle(1, C.boardBorder)
-      .setOrigin(0.5);
-    const crestText = this.add.text(-w / 2 + 46, 0, TILE_NAME[targetVal] ?? "?", {
-      fontSize: "9px", color: TILE_TEXT[targetVal] ?? "#ffffff",
-    }).setOrigin(0.5);
+    const crest = this.add.image(-w / 2 + 22, -8, this.tileAssetKey(targetVal))
+      .setDisplaySize(30, 30);
 
-    // Labels
-    const nameLabel = this.add.text(-w / 2 + 78, -14, DIFF_LABELS[diffIdx] ?? "", {
-      fontSize: "15px", fontStyle: "bold", color: "#2b261f",
+    const nameLabel = this.add.text(-w / 2 + 42, -14, DIFF_LABELS[diffIdx] ?? "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "12px",
+      fontStyle: "bold",
+      color: "#2b261f",
     }).setOrigin(0, 0.5);
-    const goalLabel = this.add.text(-w / 2 + 78, 6, `Goal: merge to ${targetVal}`, {
-      fontSize: "11px", color: "#8b7355",
+    const goalLabel = this.add.text(-w / 2 + 12, 17, `Reach ${targetVal}`, {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "10px",
+      color: "#8b7355",
     }).setOrigin(0, 0.5);
 
-    // Reward badge
-    const reward = this.add.text(w / 2 - 12, -12, `${gasDisplay(rule.reward)} GAS`, {
-      fontSize: "12px", fontStyle: "bold", color: "#a07030",
-    }).setOrigin(1, 0.5);
-    const entry = this.add.text(w / 2 - 12, 10, `Entry: ${gasDisplay(rule.entry)} GAS`, {
-      fontSize: "10px", color: "#8b7355",
-    }).setOrigin(1, 0.5);
-    const limitLabel = this.add.text(w / 2 - 12, 26, `${Math.round(rule.limitMs / 60000)} min`, {
-      fontSize: "10px", color: "#8b7355",
-    }).setOrigin(1, 0.5);
+    const dot = this.add.circle(w / 2 - 13, -h / 2 + 13, 5, C.gold, diffIdx === this.selectedDiff ? 1 : 0);
 
-    card.add([bg, crest, crestText, nameLabel, goalLabel, reward, entry, limitLabel]);
+    card.add([bg, crest, nameLabel, goalLabel, dot]);
     return card;
   }
 
   private refreshDiffCards(): void {
     this.diffCards.forEach((card, i) => {
       const bg = card.list[0] as Phaser.GameObjects.Rectangle;
+      const dot = card.list[card.list.length - 1] as Phaser.GameObjects.Arc;
       bg.setFillStyle(i === this.selectedDiff ? C.cardActive : C.cardBg);
       bg.setStrokeStyle(i === this.selectedDiff ? 2 : 1.5,
         i === this.selectedDiff ? C.gold : C.cardBorder);
+      dot.setAlpha(i === this.selectedDiff ? 1 : 0);
     });
-    this.updateLobby();
+    this.updateRoutePanel();
+    this.updateLobbyPreviewBoard();
+  }
+
+  private buildLobbyPreviewBoard(cx: number, cy: number): void {
+    const tile = 42;
+    const gap = 5;
+    const boardW = BOARD_SIZE * tile + (BOARD_SIZE - 1) * gap;
+    const startX = cx - boardW / 2 + tile / 2;
+    const startY = cy - boardW / 2 + tile / 2;
+    this.lobbyPreviewTiles = [];
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const x = startX + c * (tile + gap);
+        const y = startY + r * (tile + gap);
+        const bg = this.add.rectangle(x, y, tile, tile, 0xb9955e, 0.3)
+          .setStrokeStyle(1, 0xd9bd80, 0.82)
+          .setOrigin(0.5);
+        const art = this.add.image(x, y, this.tileAssetKey(2))
+          .setDisplaySize(tile - 5, tile - 5)
+          .setVisible(false);
+        this.lobbyPreviewTiles.push({ bg, art });
+        this.lobbyObjects.push(bg, art);
+      }
+    }
+  }
+
+  private updateLobbyPreviewBoard(): void {
+    const preview = LOBBY_PREVIEWS[this.selectedDiff] ?? LOBBY_PREVIEWS[0]!;
+    this.lobbyPreviewTiles.forEach((tile, idx) => {
+      const row = Math.floor(idx / BOARD_SIZE);
+      const col = idx % BOARD_SIZE;
+      const value = preview[row]?.[col] ?? 0;
+      tile.bg.setFillStyle(value > 0 ? 0xfff8e6 : 0xb9955e, value > 0 ? 0.96 : 0.28);
+      if (value > 0) {
+        tile.art.setTexture(this.tileAssetKey(value)).setVisible(true);
+      } else {
+        tile.art.setVisible(false);
+      }
+    });
+  }
+
+  private updateRoutePanel(): void {
+    if (!this.routeTitleText) return;
+    const rule = DIFFICULTY_RULES[this.selectedDiff] ?? DIFFICULTY_RULES[0]!;
+    this.routeTargetArt.setTexture(this.tileAssetKey(rule.targetTile));
+    this.routeTitleText.setText(`${DIFF_LABELS[this.selectedDiff] ?? "Easy"} route`);
+    this.routeGoalText.setText(`Reach ${TILE_NAME[rule.targetTile] ?? rule.targetTile} before the timer`);
+    this.routeRewardText.setText(`${gasDisplay(rule.reward)} GAS`);
+    this.routeEntryText.setText(`Entry ${gasDisplay(rule.entry)} GAS`);
+    this.routeTimeText.setText(`${Math.round(rule.limitMs / 60000)} min limit`);
   }
 
   // ── Build: loading ────────────────────────────────────────────────────────
 
   private buildLoading(): void {
-    const title = this.add.text(SCENE_W / 2, 220, "Preparing your kingdom…", {
+    const title = this.add.text(SCENE_W / 2, 220, "Preparing your kingdom...", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "16px", color: "#2b261f",
     }).setOrigin(0.5);
 
     this.loadingText = this.add.text(SCENE_W / 2, 248, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "12px", color: "#8b7355",
     }).setOrigin(0.5);
 
@@ -471,23 +658,34 @@ export class MergeKingdomScene extends BaseScene {
     const bg   = this.add.rectangle(0, 0, TILE_SIZE, TILE_SIZE, fill)
       .setStrokeStyle(1, C.boardBorder)
       .setOrigin(0.5);
+    const art = this.add.image(0, -2, this.tileAssetKey(2))
+      .setDisplaySize(TILE_SIZE - 10, TILE_SIZE - 10)
+      .setVisible(false);
 
     const nameText = this.add.text(0, -8, TILE_NAME[value] ?? "", {
-      fontSize: "12px", fontStyle: "bold",
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      fontStyle: "bold",
       color: TILE_TEXT[value] ?? "#ffffff",
-    }).setOrigin(0.5);
+      stroke: "#fff8e6",
+      strokeThickness: 2,
+    }).setOrigin(0.5).setVisible(false);
 
     // Value badge (bottom-right)
     const valBadgeBg = this.add.rectangle(TILE_SIZE / 2 - 14, TILE_SIZE / 2 - 10, 26, 16, 0xfffdf5, 230)
       .setStrokeStyle(1, 0xc0a060, 100)
       .setOrigin(0.5);
     const valBadge = this.add.text(TILE_SIZE / 2 - 14, TILE_SIZE / 2 - 10, "", {
-      fontSize: "9px", color: "#6e4a12",
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "9px",
+      color: "#6e4a12",
     }).setOrigin(0.5);
 
-    container.add([bg, nameText, valBadgeBg, valBadge]);
-    this.setTileValue({ container, bg, nameText, valBadge, valBadgeBg }, value);
-    return { container, bg, nameText, valBadge, valBadgeBg };
+    container.add([bg, art, nameText, valBadgeBg, valBadge]);
+    this.setTileValue({ container, bg, art, nameText, valBadge, valBadgeBg }, value);
+    return { container, bg, art, nameText, valBadge, valBadgeBg };
   }
 
   private setTileInteractive(t: TileObj, row: number, col: number): void {
@@ -511,15 +709,21 @@ export class MergeKingdomScene extends BaseScene {
     const fill   = TILE_FILL[value] ?? C.empty;
     const txtCol = TILE_TEXT[value]  ?? "#ffffff";
     const name   = TILE_NAME[value]  ?? "";
-    t.bg.setFillStyle(fill);
+    t.bg.setFillStyle(value > 0 ? C.cream : fill, value > 0 ? 0.98 : 1);
     t.nameText.setText(name).setColor(txtCol);
     if (value > 0) {
+      t.art.setTexture(this.tileAssetKey(value)).setVisible(true);
       t.valBadge.setText(String(value)).setVisible(true);
       t.valBadgeBg.setVisible(true);
     } else {
+      t.art.setVisible(false);
       t.valBadge.setVisible(false);
       t.valBadgeBg.setVisible(false);
     }
+  }
+
+  private tileAssetKey(value: number): string {
+    return TILE_ASSETS[value] ?? TILE_ASSETS[2]!;
   }
 
   private getTileVal(row: number, col: number): number {
@@ -539,10 +743,16 @@ export class MergeKingdomScene extends BaseScene {
     this.timerFill = this.add.rectangle(16, 20, timerBarW, 10, C.gold)
       .setOrigin(0, 0.5);
     this.timerText = this.add.text(SCENE_W - 12, 20, "0:00", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "12px", fontStyle: "bold", color: "#2b261f",
     }).setOrigin(1, 0.5);
-    const timerLabel = this.add.text(12, 20, "⏱", {
-      fontSize: "12px",
+    const timerLabel = this.add.text(12, 20, "TIME", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "9px",
+      fontStyle: "bold",
+      color: "#a07030",
     }).setOrigin(0, 0.5);
 
     // ── Target progress bar ────────────────────────────────────────────────
@@ -553,19 +763,27 @@ export class MergeKingdomScene extends BaseScene {
       .setDepth(-1)
       .setOrigin(0.5);
     this.targetText = this.add.text(SCENE_W / 2, 42, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "10px", color: "#a07030",
     }).setOrigin(0.5);
 
     // ── Stats row (below board) ────────────────────────────────────────────
     this.movesText = this.add.text(SCENE_W / 2 - 60, BOARD_BOTTOM + 18, "Moves: 0", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "13px", color: "#2b261f",
     }).setOrigin(0.5);
     this.bestTileText = this.add.text(SCENE_W / 2 + 60, BOARD_BOTTOM + 18, "Best: —", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "13px", color: "#a07030",
     }).setOrigin(0.5);
 
     // ── Hint / action text ─────────────────────────────────────────────────
     this.hintText = this.add.text(SCENE_W / 2, BOARD_BOTTOM + 44, "Tap a tile to select", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "12px", color: "#8b7355", align: "center",
     }).setOrigin(0.5);
 
@@ -601,14 +819,20 @@ export class MergeKingdomScene extends BaseScene {
       .setOrigin(0.5);
 
     this.resultTitle = this.add.text(0, -60, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "30px", fontStyle: "bold", color: "#2b261f",
     }).setOrigin(0.5);
 
     this.resultBody = this.add.text(0, -10, "", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "13px", color: "#8b7355", align: "center", wordWrap: { width: 300 },
     }).setOrigin(0.5);
 
     const hint = this.add.text(0, 66, "Use the Play Again button below", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "11px", color: "#a89070",
     }).setOrigin(0.5);
 
@@ -641,6 +865,8 @@ export class MergeKingdomScene extends BaseScene {
       onPress();
     });
     const txt = this.add.text(0, 0, label, {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
       fontSize: "15px", fontStyle: "bold", color: "#2b261f",
     }).setOrigin(0.5);
     btn.add([bg, txt]);
@@ -650,13 +876,6 @@ export class MergeKingdomScene extends BaseScene {
   // ── Update: lobby ─────────────────────────────────────────────────────────
 
   private updateLobby(): void {
-    const diff       = this.num("gameDifficulty", 0);
-    // Sync selectedDiff with state if it changed externally
-    if (diff !== this.selectedDiff) {
-      this.selectedDiff = diff;
-      this.refreshDiffCards();
-      return; // refreshDiffCards calls updateLobby again
-    }
     this.refreshDiffCards();
 
     const rule       = DIFFICULTY_RULES[this.selectedDiff];
@@ -668,9 +887,7 @@ export class MergeKingdomScene extends BaseScene {
     const btnBg = this.startBtn.list[0] as Phaser.GameObjects.Rectangle;
     const canStart = walletConn && !isStarting;
     btnBg.setFillStyle(canStart ? C.gold : C.muted);
-    (this.startBtn.list[1] as Phaser.GameObjects.Text).setText(
-      isStarting ? "Starting…" : "Start Kingdom",
-    );
+    this.startBtnText.setText(isStarting ? "Building..." : "Build Realm");
 
     const poolMsg = !walletConn
       ? "Connect wallet to play"
@@ -686,7 +903,9 @@ export class MergeKingdomScene extends BaseScene {
 
   private updateLoading(): void {
     const status = this.str("lastStatus", "");
-    this.loadingText.setText(status === "shuffling" ? "Shuffling tiles…" : "Starting game…");
+    this.loadingText.setText(
+      status === "shuffling" ? "Sealing the realm board..." : "Opening the kingdom gate...",
+    );
 
     // Kick off pulsing animation if not already running
     if (!this.loadTween && this.loadingTiles.length > 0) {
