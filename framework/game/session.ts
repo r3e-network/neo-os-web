@@ -17,6 +17,11 @@ export interface GameSessionObservables<THistory extends SolveRow = SolveRow> {
   activeGameId:    Observable<string>;
   gameStatus:      Observable<GameSessionStatus>;
   gameDifficulty:  Observable<number>;
+  progressionReady: Observable<boolean>;
+  progressionRequiredDifficulty: Observable<number>;
+  progressionMaxDifficulty: Observable<number>;
+  progressionHardChallengeLevel: Observable<number>;
+  progressionEffectiveLimitMs: Observable<number>;
   commitment:      Observable<string>;
   dealtAt:         Observable<number>;
   deadline:        Observable<number>;
@@ -49,6 +54,11 @@ export function createGameSessionObservables<THistory extends SolveRow = SolveRo
     activeGameId:    createObservable<string>("0"),
     gameStatus:      createObservable<GameSessionStatus>("idle"),
     gameDifficulty:  createObservable<number>(0),
+    progressionReady: createObservable<boolean>(false),
+    progressionRequiredDifficulty: createObservable<number>(0),
+    progressionMaxDifficulty: createObservable<number>(0),
+    progressionHardChallengeLevel: createObservable<number>(0),
+    progressionEffectiveLimitMs: createObservable<number>(0),
     commitment:      createObservable<string>(""),
     dealtAt:         createObservable<number>(0),
     deadline:        createObservable<number>(0),
