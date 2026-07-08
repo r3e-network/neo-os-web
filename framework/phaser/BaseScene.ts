@@ -61,6 +61,30 @@ type PressFeedbackOptions = {
 };
 
 export abstract class BaseScene extends Phaser.Scene {
+  /**
+   * Queue a batch of image assets on a scene's loader (framework-extraction
+   * plan §2/S12). `assets` maps texture key → URL; build URLs with
+   * `app.resources.url()/image()/tokenArt` so they resolve against the host
+   * base. Entries whose key already exists in the texture manager are skipped
+   * (scene restarts must not re-queue work) and empty keys/URLs are ignored.
+   *
+   * ```ts
+   * preload(): void {
+   *   BaseScene.preloadAssets(this, {
+   *     stage: "./gas-vault-stage.webp",
+   *     gasIcon: gasPhaserUrl,
+   *   });
+   * }
+   * ```
+   */
+  static preloadAssets(scene: Phaser.Scene, assets: Record<string, string>): void {
+    for (const [key, url] of Object.entries(assets)) {
+      if (!key || !url) continue;
+      if (scene.textures?.exists(key)) continue;
+      scene.load.image(key, url);
+    }
+  }
+
   /** Bridge instance injected by PhaserGameComponent via window.__phaserBridge. */
   protected bridge!: GameBridge;
 
