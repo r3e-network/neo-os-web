@@ -5,8 +5,10 @@ import {
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
 import { formatNum } from "@shared/utils/format";
-import { TRUSTANCHOR_AGENT_ACCOUNTS } from "../../trustanchor/src/data/agentAccounts";
-import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
+import {
+  TRUSTANCHOR_AGENT_ACCOUNTS,
+  useTrustAnchor,
+} from "@shared/composables/trustanchor";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./messages";

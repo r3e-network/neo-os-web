@@ -5,6 +5,14 @@
  * the direct-prepaid GAS pattern that most miniapps use for payments.
  * All transfers emit EventBus events for cross-component reactivity.
  *
+ * @deprecated Superseded by the framework funds surface (`app.funds` /
+ * `ctx.framework.funds`): `payAndCall` / `prepayAndCall` cover the prepaid
+ * lanes with notify policy + typed `FrameworkPrepaidActionError`, and
+ * `creditOf` / `withdrawCredit` cover credit recovery (framework-extraction
+ * plan, Wave 6). No miniapp consumes `services.transfer` anymore; the class
+ * stays only because {@link PlatformServices} still exposes it on the host
+ * service container. Do not add new call sites.
+ *
  * @example
  * ```ts
  * // Simple GAS transfer

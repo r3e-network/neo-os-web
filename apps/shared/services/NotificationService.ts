@@ -167,6 +167,16 @@ export class NotificationService {
    * {@link guardResult} when the caller needs to tell "fn resolved with a
    * falsy/void value" apart from "fn threw".
    *
+   * @deprecated Legacy positional path. Use the framework surface instead:
+   * `app.notify.guard(fn, { successKey, successParams, errorKey, rethrow })`
+   * — the options form threads toast params and typed errors
+   * (framework-extraction plan, Wave 6). Remaining positional consumers are
+   * the game miniapps (aim-master, burn-league, fogplay, gas-lucky-pool,
+   * last-survivor, on-chain-tarot, red-envelope, sheep-solitaire), which are
+   * outside the non-game extraction campaign. {@link guardResult} stays
+   * undeprecated: it is the host bridge the framework's own
+   * `runWithNotify` delegates to. Do not add new call sites.
+   *
    * @param fn         - The async operation to execute
    * @param successKey - Optional i18n key for the success message
    * @param errorKey   - Optional i18n key used as fallback when the error is not an Error instance
