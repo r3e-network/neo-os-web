@@ -30,7 +30,7 @@ import {
 import type { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
 import { useEvents, useWallet } from "../utils/wallet-sdk";
-import type { EventsListParams } from "../utils/wallet-sdk";
+import type { EventsListParams, InvokeParams } from "../utils/wallet-sdk";
 import type { WalletSDK } from "../utils/wallet-sdk";
 import { useAllEvents } from "../composables/useAllEvents";
 import {
@@ -127,6 +127,24 @@ export interface TxResult {
 }
 
 export type SignedMessageResult = string | { publicKey?: string; data?: string } | null;
+
+/** One call of a multi-invoke batch (single transaction, multiple scripts). */
+export interface MultiInvokeCall {
+  /** Target contract; defaults to the app's configured contract when omitted. */
+  scriptHash?: string;
+  operation: string;
+  args: ContractArg[];
+}
+
+/**
+ * Result of {@link ChainService.invokeMultiple}. `state`/`exception` carry the
+ * wallet-reported VM outcome through untouched so the framework surface
+ * (app.chain.invokeMultiple) can apply its FAULT-state sanitization.
+ */
+export interface MultiInvokeResult extends TxResult {
+  state?: string;
+  exception?: string;
+}
 
 export interface EventListOptions {
   limit?: number;
@@ -421,6 +439,59 @@ export class ChainService {
       // (the broadcast happened) so existing callers are unaffected.
       const verified = options?.waitForEvent ? Boolean(event) : true;
       return { txid, event, success: Boolean(txid), verified };
+    });
+  }
+
+  /**
+   * Multi-script single-transaction invoke with caller-provided signer scopes
+   * — the host lane behind `app.chain.invokeMultiple` (framework S7;
+   * aa-market-hub's transfer-then-settle batch). The wallet submits every
+   * call in ONE transaction, so a custom signer (e.g. scopes-16 with
+   * `allowedContracts`) can witness all of them. The wallet result's
+   * `state`/`exception` pass through untouched — FAULT sanitization is owned
+   * by the framework surface, keeping this lane byte-compatible with the raw
+   * `wallet.invokeMultiple` result apps consumed before.
+   *
+   * Emits TRANSACTION_SENT with the batch's final operation (the consuming
+   * business call of a transfer-then-act pair).
+   */
+  async invokeMultiple(
+    calls: MultiInvokeCall[],
+    options?: { signers?: WalletSigner[] },
+  ): Promise<MultiInvokeResult> {
+    return this.withProcessing(async () => {
+      const invokeArgs: InvokeParams[] = [];
+      for (const call of calls) {
+        invokeArgs.push({
+          scriptHash:
+            call.scriptHash ?? (await this.interaction.ensureContractAddress()),
+          operation: call.operation,
+          args: call.args,
+        });
+      }
+
+      const result = await this.wallet.invokeMultiple({
+        invokeArgs,
+        ...(options?.signers?.length ? { signers: options.signers } : {}),
+      });
+
+      const txid = String(result?.txid ?? "");
+      this.events.emit(EventBus.TRANSACTION_SENT, {
+        txid,
+        operation: invokeArgs[invokeArgs.length - 1]?.operation ?? "",
+      });
+
+      // No event wait on the batch lane — nothing to confirm separately, so
+      // verified defaults to true, matching the no-wait invoke() case.
+      return {
+        txid,
+        success: Boolean(txid),
+        verified: true,
+        ...(typeof result?.state === "string" ? { state: result.state } : {}),
+        ...(typeof result?.exception === "string"
+          ? { exception: result.exception }
+          : {}),
+      };
     });
   }
 

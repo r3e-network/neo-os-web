@@ -44,6 +44,44 @@ vi.mock("../utils/n3index", async (importOriginal) => {
 });
 
 import { useQuadraticRounds } from "../../quadratic-funding/src/composables/useQuadraticRounds";
+import { createQuadraticFlowKit } from "../../quadratic-funding/src/composables/quadraticFlowKit";
+import { createMiniAppFramework } from "../react";
+import { ChainService } from "../services/ChainService";
+import { CacheService } from "../services/CacheService";
+import { EventBus } from "../services/EventBus";
+
+/** Key-echo translator — the composable's copy keys are asserted verbatim. */
+function t(key: string, params?: Record<string, string | number>): string {
+  let out = key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      out = out.replaceAll(`{${k}}`, String(v));
+    }
+  }
+  return out;
+}
+
+/**
+ * Build the rounds composable exactly as the rewritten page does: a REAL
+ * ChainService over the mocked wallet-sdk lane above, wrapped in the MiniApp
+ * framework, plus the shared flow kit. The recorded invokeContract /
+ * invokeRead calls keep the exact pre-rewrite wire shapes, so every behavior
+ * assertion below is unchanged from the pre-rewrite snapshot.
+ */
+function makeRounds() {
+  const chain = new ChainService(
+    "miniapp-quadratic-funding",
+    t,
+    new CacheService("miniapp-quadratic-funding"),
+    new EventBus(),
+  );
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-quadratic-funding" },
+  );
+  const kit = createQuadraticFlowKit({ app, t, setStatus: () => {} });
+  return useQuadraticRounds({ app, t, kit });
+}
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -121,7 +159,7 @@ describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
   });
 
   it("deposits matching funds with a memo, then createRound with millisecond times", async () => {
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
 
     // End time 1h in the future, start time 30min in the future.
     const startMs = Date.now() + 30 * 60 * 1000;
@@ -168,7 +206,7 @@ describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
   });
 
   it("rejects a round whose end time is already in the past without any invoke", async () => {
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
     await rounds.createRound({
       title: "Late",
       description: "",
@@ -181,7 +219,7 @@ describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
   });
 
   it("rejects fractional NEO matching pool creation instead of truncating", async () => {
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
     await rounds.createRound({
       title: "NEO Round",
       description: "",
@@ -201,7 +239,7 @@ describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
       matchingPool: { type: "Integer", value: "10" },
       matchingRemaining: { type: "Integer", value: "10" },
     });
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
     await rounds.refreshRounds();
     invokeContract.mockClear();
 
@@ -227,7 +265,7 @@ describe("useQuadraticRounds identity + admin gating", () => {
       endTime: { type: "Integer", value: futureEnd },
       status: { type: "ByteString", value: btoa("upcoming") },
     });
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
     await rounds.refreshRounds();
 
     const round = rounds.selectedRound.get();
@@ -249,7 +287,7 @@ describe("useQuadraticRounds identity + admin gating", () => {
       totalContributed: { type: "Integer", value: "10000000" },
       matchingAllocated: { type: "Integer", value: "0" },
     });
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
     await rounds.refreshRounds();
 
     expect(rounds.isAdmin.get()).toBe(true);
@@ -267,7 +305,7 @@ describe("useQuadraticRounds identity + admin gating", () => {
       matchingRemaining: { type: "Integer", value: "700000000" },
       totalContributed: { type: "Integer", value: "10000000" },
     });
-    const rounds = useQuadraticRounds();
+    const rounds = makeRounds();
     await rounds.refreshRounds();
 
     expect(rounds.canClaimUnused.get()).toBe(true);

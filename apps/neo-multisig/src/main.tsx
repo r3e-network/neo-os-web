@@ -70,6 +70,12 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy storage namespace: the pre-framework activity log lived in raw
+  // localStorage as "multisig_vault_history" (runtime-cache, unprefixed).
+  // Pinning app.storage.local to "multisig_" keeps the composable's
+  // "vault_history" key resolving to that exact legacy key, so existing
+  // users keep their vault/request history (plan §3 migration hazard).
+  storagePrefix: "multisig_",
 
   setup(ctx) {
     const app = ctx.framework;
@@ -83,7 +89,7 @@ defineMiniApp({
       loadHistory,
       upsertHistory,
       updateHistoryStatus,
-    } = useMultisigHistory();
+    } = useMultisigHistory(app);
     const totalActions = createDerived(() => history.get().length, [history]);
 
     const connectedAddress = createObservable<string>(
@@ -134,6 +140,9 @@ defineMiniApp({
         connectedHasApproved.set(false);
         return;
       }
+      // framework-exempt: false-not-throw comparison key (§3.6) — an
+      // unparsable wallet address must resolve to "not approved" (disabled
+      // button state), never a thrown error; app.chain.arg.hash160 throws.
       const signerHash = addressToScriptHash(addr);
       if (!signerHash) {
         connectedHasApproved.set(false);
@@ -229,6 +238,12 @@ defineMiniApp({
     };
 
     // -- Actions --------------------------------------------------------------
+    //
+    // Toasts ride app.notify (S1): success keys carry params interpolated from
+    // POST-WRITE reads (the new vaultId/reqId, the resolved request status),
+    // and error copy keeps the app's formatErrorMessage sanitization (raw
+    // dumps → localized fallback) before the toast — app.notify.error still
+    // maps known chain/RPC failure families to platform copy.
 
     ctx.framework.actions.register("createVault", async (rawPayload: unknown) => {
       const payload = asRecord(rawPayload);
@@ -241,7 +256,7 @@ defineMiniApp({
         // Validate before invoking so a malformed signer set never hits chain.
         validateSignerSet(signers, threshold);
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastInvalidSigners")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastInvalidSigners")));
         return null;
       }
 
@@ -249,13 +264,14 @@ defineMiniApp({
       try {
         const creator = await app.chain.ensureWallet();
         const result = await api.createVault({ creator, signers, threshold });
-        // The new vaultId is the contract's lastVaultId after creation.
+        // The new vaultId is the contract's lastVaultId after creation — the
+        // post-write read that drives the success-toast params.
         const vaultId = await api.lastVaultId();
         if (vaultId > 0) await refreshVault(vaultId);
-        ctx.setStatus(ctx.t("toastVaultCreated", { id: vaultId }), "success");
+        app.notify.success("toastVaultCreated", { id: vaultId });
         return { ...result, vaultId };
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastVaultFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastVaultFailed")));
         return null;
       } finally {
         isCreatingVault.set(false);
@@ -269,11 +285,11 @@ defineMiniApp({
       const amount = asString(payload.amount);
 
       if (vaultId <= 0) {
-        ctx.setStatus(ctx.t("toastNoVault"), "error");
+        app.notify.error(ctx.t("toastNoVault"));
         return null;
       }
       if (!isValidAmount(amount, asset)) {
-        ctx.setStatus(ctx.t("toastInvalidAmount"), "error");
+        app.notify.error(ctx.t("toastInvalidAmount"));
         return null;
       }
 
@@ -282,13 +298,10 @@ defineMiniApp({
         const from = await app.chain.ensureWallet();
         const result = await api.deposit({ from, vaultId, amount, asset });
         await refreshVault(vaultId);
-        ctx.setStatus(
-          ctx.t("toastDeposited", { amount, asset }),
-          "success",
-        );
+        app.notify.success("toastDeposited", { amount, asset });
         return result;
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastDepositFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastDepositFailed")));
         return null;
       } finally {
         isDepositing.set(false);
@@ -304,15 +317,15 @@ defineMiniApp({
       const memo = asString(payload.memo);
 
       if (vaultId <= 0) {
-        ctx.setStatus(ctx.t("toastNoVault"), "error");
+        app.notify.error(ctx.t("toastNoVault"));
         return null;
       }
       if (!isValidAddress(recipient)) {
-        ctx.setStatus(ctx.t("toastInvalidAddress"), "error");
+        app.notify.error(ctx.t("toastInvalidAddress"));
         return null;
       }
       if (!isValidAmount(amount, asset)) {
-        ctx.setStatus(ctx.t("toastInvalidAmount"), "error");
+        app.notify.error(ctx.t("toastInvalidAmount"));
         return null;
       }
 
@@ -330,10 +343,10 @@ defineMiniApp({
         const reqId = await api.lastRequestId();
         if (reqId > 0) await refreshRequest(reqId);
         await refreshVault(vaultId);
-        ctx.setStatus(ctx.t("toastRequestCreated", { id: reqId }), "success");
+        app.notify.success("toastRequestCreated", { id: reqId });
         return { ...result, reqId };
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastCreateFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastCreateFailed")));
         return null;
       } finally {
         isProposing.set(false);
@@ -343,7 +356,7 @@ defineMiniApp({
     ctx.framework.actions.register("approveRequest", async (...args: unknown[]) => {
       const reqId = parseVaultId(args[0] ?? activeRequest.get()?.id);
       if (reqId <= 0) {
-        ctx.setStatus(ctx.t("toastNoRequest"), "error");
+        app.notify.error(ctx.t("toastNoRequest"));
         return null;
       }
 
@@ -353,8 +366,10 @@ defineMiniApp({
         const result = await api.approve(reqId, signer);
         const request = await refreshRequest(reqId);
         if (request?.vaultId) await refreshVault(request.vaultId);
+        // The toast is keyed on the POST-WRITE request status (an approval can
+        // execute the request, auto-cancel it, or just record the signature).
         if (request?.status === "executed") {
-          ctx.setStatus(ctx.t("toastRequestExecuted"), "success");
+          app.notify.success("toastRequestExecuted");
         } else if (request?.status === "cancelled") {
           // v2: the threshold approval found the vault underfunded and the
           // contract auto-cancelled the request (RequestUnfunded). Surface a
@@ -362,23 +377,22 @@ defineMiniApp({
           // of a generic approval/cancel toast.
           const notice = unfundedNotice.get();
           if (notice && notice.requestId === reqId) {
-            ctx.setStatus(
+            app.notify.error(
               ctx.t("toastRequestUnfunded", {
                 required: notice.required,
                 available: notice.available,
                 asset: notice.asset,
               }),
-              "error",
             );
           } else {
-            ctx.setStatus(ctx.t("toastRequestUnfundedShort"), "error");
+            app.notify.error(ctx.t("toastRequestUnfundedShort"));
           }
         } else {
-          ctx.setStatus(ctx.t("toastApproved"), "success");
+          app.notify.success("toastApproved");
         }
         return result;
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastApproveFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastApproveFailed")));
         return null;
       } finally {
         isApproving.set(false);
@@ -388,7 +402,7 @@ defineMiniApp({
     ctx.framework.actions.register("cancelRequest", async (...args: unknown[]) => {
       const reqId = parseVaultId(args[0] ?? activeRequest.get()?.id);
       if (reqId <= 0) {
-        ctx.setStatus(ctx.t("toastNoRequest"), "error");
+        app.notify.error(ctx.t("toastNoRequest"));
         return null;
       }
 
@@ -397,10 +411,10 @@ defineMiniApp({
         const caller = await app.chain.ensureWallet();
         const result = await api.cancel(reqId, caller);
         await refreshRequest(reqId);
-        ctx.setStatus(ctx.t("toastCancelled"), "success");
+        app.notify.success("toastCancelled");
         return result;
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastCancelFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastCancelFailed")));
         return null;
       } finally {
         isCancelling.set(false);
@@ -410,20 +424,20 @@ defineMiniApp({
     ctx.framework.actions.register("loadVault", async (...args: unknown[]) => {
       const vaultId = parseVaultId(args[0]);
       if (vaultId <= 0) {
-        ctx.setStatus(ctx.t("toastNoVault"), "error");
+        app.notify.error(ctx.t("toastNoVault"));
         return null;
       }
       isLoading.set(true);
       try {
         const vault = await refreshVault(vaultId);
         if (!vault) {
-          ctx.setStatus(ctx.t("toastVaultNotFound", { id: vaultId }), "error");
+          app.notify.error(ctx.t("toastVaultNotFound", { id: vaultId }));
           return null;
         }
-        ctx.setStatus(ctx.t("toastVaultLoaded", { id: vaultId }), "success");
+        app.notify.success("toastVaultLoaded", { id: vaultId });
         return vault;
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastLoadFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastLoadFailed")));
         return null;
       } finally {
         isLoading.set(false);
@@ -433,14 +447,14 @@ defineMiniApp({
     ctx.framework.actions.register("loadRequest", async (...args: unknown[]) => {
       const reqId = parseVaultId(args[0]);
       if (reqId <= 0) {
-        ctx.setStatus(ctx.t("toastNoRequest"), "error");
+        app.notify.error(ctx.t("toastNoRequest"));
         return null;
       }
       isLoading.set(true);
       try {
         const request = await refreshRequest(reqId);
         if (!request) {
-          ctx.setStatus(ctx.t("toastRequestNotFound", { id: reqId }), "error");
+          app.notify.error(ctx.t("toastRequestNotFound", { id: reqId }));
           return null;
         }
         // Load the parent vault too so the approval display can show the real
@@ -451,10 +465,10 @@ defineMiniApp({
         if (request.vaultId > 0) {
           await refreshVault(request.vaultId);
         }
-        ctx.setStatus(ctx.t("toastRequestLoaded", { id: reqId }), "success");
+        app.notify.success("toastRequestLoaded", { id: reqId });
         return request;
       } catch (err) {
-        ctx.setStatus(formatErrorMessage(err, ctx.t("toastLoadFailed")), "error");
+        app.notify.error(formatErrorMessage(err, ctx.t("toastLoadFailed")));
         return null;
       } finally {
         isLoading.set(false);

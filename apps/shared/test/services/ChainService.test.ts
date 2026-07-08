@@ -440,3 +440,84 @@ describe("ChainService.isProcessing write-in-flight flag", () => {
     expect(chain.isProcessing.get()).toBe(false);
   });
 });
+
+describe("ChainService.invokeMultiple batch lane", () => {
+  function stubWalletBatch(chain: ChainService, result: unknown) {
+    const invokeMultiple = vi.fn(async () => result);
+    (
+      chain as unknown as { wallet: { invokeMultiple: typeof invokeMultiple } }
+    ).wallet = { invokeMultiple };
+    return invokeMultiple;
+  }
+
+  it("submits every call in ONE wallet batch with the caller's signers", async () => {
+    const interaction = makeInteraction();
+    const { chain, events } = makeChain(interaction);
+    const walletInvoke = stubWalletBatch(chain, {
+      txid: "0xbatch",
+      state: "HALT",
+    });
+    const sent: unknown[] = [];
+    events.on(EventBus.TRANSACTION_SENT, (payload) => sent.push(payload));
+
+    const signers = [
+      { account: "NAddr", scopes: 16, allowedContracts: ["0xgas", "0xmkt"] },
+    ];
+    const result = await chain.invokeMultiple(
+      [
+        { scriptHash: "0xgas", operation: "transfer", args: [] },
+        { scriptHash: "0xmkt", operation: "settleListing", args: [] },
+      ],
+      { signers },
+    );
+
+    expect(walletInvoke).toHaveBeenCalledWith({
+      invokeArgs: [
+        { scriptHash: "0xgas", operation: "transfer", args: [] },
+        { scriptHash: "0xmkt", operation: "settleListing", args: [] },
+      ],
+      signers,
+    });
+    expect(result).toEqual({
+      txid: "0xbatch",
+      success: true,
+      verified: true,
+      state: "HALT",
+    });
+    // The batch reports the consuming call (last op) as its operation.
+    expect(sent).toEqual([{ txid: "0xbatch", operation: "settleListing" }]);
+  });
+
+  it("passes state/exception through untouched so the framework surface owns FAULT handling", async () => {
+    const interaction = makeInteraction();
+    const { chain } = makeChain(interaction);
+    stubWalletBatch(chain, {
+      txid: "0xfault",
+      state: "FAULT",
+      exception: "listing not active",
+    });
+
+    const result = await chain.invokeMultiple([
+      { scriptHash: "0xmkt", operation: "settleListing", args: [] },
+    ]);
+
+    expect(result.state).toBe("FAULT");
+    expect(result.exception).toBe("listing not active");
+    expect(result.txid).toBe("0xfault");
+    expect(chain.isProcessing.get()).toBe(false);
+  });
+
+  it("defaults a call's missing scriptHash to the app contract", async () => {
+    const ensureContractAddress = vi.fn(async () => "0xappcontract");
+    const interaction = makeInteraction({ ensureContractAddress });
+    const { chain } = makeChain(interaction);
+    const walletInvoke = stubWalletBatch(chain, { txid: "0x1" });
+
+    await chain.invokeMultiple([{ operation: "claim", args: [] }]);
+
+    expect(ensureContractAddress).toHaveBeenCalledTimes(1);
+    expect(walletInvoke).toHaveBeenCalledWith({
+      invokeArgs: [{ scriptHash: "0xappcontract", operation: "claim", args: [] }],
+    });
+  });
+});
