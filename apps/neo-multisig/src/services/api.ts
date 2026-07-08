@@ -1,8 +1,9 @@
 /**
  * Neo Multisig — on-chain vault service.
  *
- * Thin wrapper around the platform ChainService that talks to the deployed
- * MiniAppMultisig custody-vault contract (resolved from the app manifest).
+ * Thin wrapper around the framework chain surface (app.chain) that talks to
+ * the deployed MiniAppMultisig custody-vault contract (resolved from the app
+ * manifest).
  * Every method is a direct contract read or invoke — there is no off-chain
  * store. State (vault balances, request status, approval counts) is read back
  * from the contract via getVault / getRequest / balanceOf.
@@ -24,28 +25,11 @@ import {
   parseRequestUnfundedEvent,
   parseVault,
   validateSignerSet,
-  type ContractArg,
   type RequestUnfundedEvent,
   type RequestView,
   type VaultAsset,
   type VaultView,
 } from "../utils/vault";
-
-/**
- * A single contract argument as accepted by the platform chain layer. The
- * runtime SDK tolerates nested Array values (an array of ContractArg), which
- * the static framework `FrameworkContractArg` type narrows to scalars — this
- * widened alias is what we hand to the chain at the call boundary.
- */
-type ChainArg = { type: string; value: unknown };
-
-/**
- * Cast our typed vault args to the widened chain-arg shape the framework chain
- * layer accepts (it tolerates nested Array values the static type narrows).
- */
-function toChainArgs(args: ContractArg[]): ChainArg[] {
-  return args as unknown as ChainArg[];
-}
 
 export interface CreateVaultInput {
   creator: string;
@@ -92,13 +76,15 @@ export function createVaultApi(app: MiniAppFramework) {
   return {
     // -- Writes -------------------------------------------------------------
 
-    /** createVault(creator, signers[], threshold) — connected wallet witnesses. */
+    /**
+     * createVault(creator, signers[], threshold) — connected wallet witnesses.
+     * The signer list is a nested Array arg (the shape `app.chain.arg.array`
+     * builds), which `FrameworkContractArg` now types first-class — no
+     * widened-cast boundary needed.
+     */
     async createVault(input: CreateVaultInput) {
       const set = validateSignerSet(input.signers, input.threshold);
-      return app.chain.invoke(
-        "createVault",
-        toChainArgs(buildCreateVaultArgs(input.creator, set)) as never,
-      );
+      return app.chain.invoke("createVault", buildCreateVaultArgs(input.creator, set));
     },
 
     /**
@@ -117,7 +103,7 @@ export function createVaultApi(app: MiniAppFramework) {
       // refreshVault read reflect a CONFIRMED, in-block balance change — a
       // fire-and-forget transfer otherwise reports success while balances are
       // still stale (the user has to reload to see the deposit).
-      return app.chain.invoke("transfer", toChainArgs(args) as never, {
+      return app.chain.invoke("transfer", args, {
         scriptHash: assetHash(input.asset),
         waitForEvent: "Deposited",
       });
@@ -125,20 +111,17 @@ export function createVaultApi(app: MiniAppFramework) {
 
     /** createRequest(vaultId, creator, recipient, asset, amount, memo). */
     async createRequest(input: CreateRequestInput) {
-      return app.chain.invoke(
-        "createRequest",
-        toChainArgs(buildCreateRequestArgs(input)) as never,
-      );
+      return app.chain.invoke("createRequest", buildCreateRequestArgs(input));
     },
 
     /** approve(reqId, signer) — releases funds at threshold. */
     async approve(reqId: number, signer: string) {
-      return app.chain.invoke("approve", toChainArgs(buildApproveArgs(reqId, signer)) as never);
+      return app.chain.invoke("approve", buildApproveArgs(reqId, signer));
     },
 
     /** cancel(reqId, caller) — ANY vault signer (v2), pending requests only. */
     async cancel(reqId: number, caller: string) {
-      return app.chain.invoke("cancel", toChainArgs(buildCancelArgs(reqId, caller)) as never);
+      return app.chain.invoke("cancel", buildCancelArgs(reqId, caller));
     },
 
     // -- Reads --------------------------------------------------------------
@@ -160,7 +143,7 @@ export function createVaultApi(app: MiniAppFramework) {
     async balanceOf(vaultId: number, asset: VaultAsset): Promise<number> {
       const raw = await app.chain.readRaw("balanceOf", [
         app.chain.arg.integer(vaultId),
-        { type: "Hash160", value: assetHash(asset) },
+        app.chain.arg.hash160(assetHash(asset)),
       ]);
       return toNumber(raw);
     },
@@ -168,7 +151,7 @@ export function createVaultApi(app: MiniAppFramework) {
     async hasApproved(reqId: number, signer: string): Promise<boolean> {
       const raw = await app.chain.readRaw("hasApproved", [
         app.chain.arg.integer(reqId),
-        { type: "Hash160", value: signer },
+        app.chain.arg.hash160(signer),
       ]);
       return Boolean(raw);
     },

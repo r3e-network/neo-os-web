@@ -3,9 +3,18 @@
  *
  * Encrypted + time-locked messaging on Neo X, backed by MiniAppMessageEVM and
  * the Morpheus confidential oracle. See message-logic.ts for the model.
+ *
+ * Framework migration (plan §3 Wave 5, PARTIAL): the device plaintext cache
+ * rides app.storage.local (legacy keys pinned via storagePrefix) and the
+ * busyIds/isLoading/isSending status wiring rides app.operations. The EVM
+ * lane and the Morpheus confidential reveal protocol stay raw per plan §3.6
+ * (framework is N3-only; app.oracle does not cover the reveal protocol).
  */
 
 import { createObservable, defineMiniApp } from "@shared/react";
+// framework-exempt: EVM lane (plan §3.6) — Neo Message is a Neo X (EVM) app;
+// the framework chain surface is N3-only, so the EVM call/sign/decode helpers
+// stay raw until a framework/evm wave exists.
 import {
   encodeParams,
   evmCall,
@@ -19,7 +28,6 @@ import {
 import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import { sleep } from "@shared/utils/format";
 import { encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-confidential-envelope";
-import { safeReadJSON, safeWriteJSON } from "@shared/utils/safe-storage";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -37,6 +45,8 @@ import {
   type ComposeForm,
   type MessageView,
 } from "./message-logic";
+import { createRevealOperations, operationBusyFlag } from "./operation-busy";
+import { cachePlaintext, overlayCachedPlaintext } from "./plaintext-cache";
 
 const appId = "miniapp-neo-message";
 
@@ -53,27 +63,6 @@ const DEFAULT_FORM: ComposeForm = {
 // otherwise fire hundreds of parallel wallet-provider RPCs on every refresh.
 const PAGE_SIZE = 50;
 
-// Recipient-only plaintext is decrypted off-chain (never written on-chain), so
-// a refresh re-reads chain state with revealed=false and wipes it. Persist the
-// decrypted plaintext on-device, keyed by contract:id:recipient, and overlay it
-// back onto rows where the connected wallet is the recipient.
-const PLAINTEXT_KEY = `${MESSAGE_EVM_ADDRESS.toLowerCase()}:plaintext:v1`;
-
-function plaintextCacheKey(id: string, recipient: string): string {
-  return `${id}:${recipient.toLowerCase()}`;
-}
-
-function readPlaintextCache(): Record<string, string> {
-  const raw = safeReadJSON<Record<string, string>>(PLAINTEXT_KEY);
-  return raw && typeof raw === "object" ? raw : {};
-}
-
-function cachePlaintext(id: string, recipient: string, plaintext: string): void {
-  const cache = readPlaintextCache();
-  cache[plaintextCacheKey(id, recipient)] = plaintext;
-  safeWriteJSON(PLAINTEXT_KEY, cache);
-}
-
 // Cache with a short TTL, not forever: the kernel's oracle encryption key carries
 // a version and can be rotated (re-sealed in-TEE). A forever cache would keep
 // encrypting to a stale key after a rotation, producing permanently undecryptable
@@ -82,6 +71,9 @@ function cachePlaintext(id: string, recipient: string, plaintext: string): void 
 const ORACLE_KEY_TTL_MS = 5 * 60 * 1000;
 let cachedOraclePublicKey = "";
 let cachedOraclePublicKeyAt = 0;
+// framework-exempt: Morpheus confidential envelope lane (plan §3.6) — this
+// public-key fetch feeds the confidential seal protocol (the reveal's
+// encrypt-side counterpart), which app.oracle does not cover.
 async function getOraclePublicKey(): Promise<string> {
   if (cachedOraclePublicKey && Date.now() - cachedOraclePublicKeyAt < ORACLE_KEY_TTL_MS) {
     return cachedOraclePublicKey;
@@ -114,18 +106,34 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy storage namespace: the pre-framework device plaintext cache lived
+  // at "<contract-address>:plaintext:v1", so pin app.storage.local to the
+  // same "<contract-address>:" prefix — plaintext decrypted before the
+  // migration still overlays (storage keys stay byte-identical).
+  storagePrefix: `${MESSAGE_EVM_ADDRESS.toLowerCase()}:`,
 
   setup(ctx) {
+    const app = ctx.framework;
     const address = createObservable("");
     const networkSupported = createObservable(false);
     const hasWallet = createObservable(hasEvmWallet());
     const inbox = createObservable<MessageView[]>([]);
     const outbox = createObservable<MessageView[]>([]);
-    const isLoading = createObservable(false);
-    const isSending = createObservable(false);
+    // Busy/status wiring rides app.operations: one shared operation gates the
+    // list loaders (connectAndLoad / switchToNeoX / loadOlder previously
+    // shared one hand-rolled isLoading flag), one gates the send flow, and
+    // each reveal row gets its own operation. The ops carry no
+    // successKey/errorKey and every work function swallows its own errors —
+    // toast copy stays app-owned via ctx.setStatus, byte-identical to the
+    // pre-migration flow.
+    const loadOp = app.operations.create("loadMessages");
+    const sendOp = app.operations.create("sendMessage");
+    const isLoading = operationBusyFlag(loadOp);
+    const isSending = operationBusyFlag(sendOp);
     // Ids whose reveal is in flight — per-row so one slow poll does not disable
     // every other reveal button.
-    const busyIds = createObservable<string[]>([]);
+    const reveals = createRevealOperations((key) => app.operations.create(key));
+    const busyIds = reveals.busyIds;
     // Whether more inbox/outbox ids exist beyond the loaded page.
     const hasMore = createObservable(false);
     const pageSize = createObservable(PAGE_SIZE);
@@ -133,13 +141,6 @@ defineMiniApp({
     const composeForm = createObservable<ComposeForm>({ ...DEFAULT_FORM });
 
     const setForm = (patch: Partial<ComposeForm>) => composeForm.set({ ...composeForm.get(), ...patch });
-
-    const addBusy = (id: string) => {
-      if (!busyIds.get().includes(id)) busyIds.set([...busyIds.get(), id]);
-    };
-    const removeBusy = (id: string) => {
-      busyIds.set(busyIds.get().filter((x) => x !== id));
-    };
 
     const readMessage = async (id: string): Promise<MessageView | null> => {
       try {
@@ -158,20 +159,6 @@ defineMiniApp({
       } catch {
         return null;
       }
-    };
-
-    // Overlay any device-cached recipient-only plaintext back onto a row so a
-    // just-decrypted message survives a refresh without a fresh signature +
-    // oracle round-trip (only for rows the connected wallet can decrypt).
-    const overlayCachedPlaintext = (rows: MessageView[], who: string): MessageView[] => {
-      const cache = readPlaintextCache();
-      return rows.map((row) => {
-        if (row.revealed || row.plaintext || !addressesEqual(who, row.recipient)) {
-          return row;
-        }
-        const cached = cache[plaintextCacheKey(row.id, row.recipient)];
-        return cached ? { ...row, plaintext: cached, revealed: true } : row;
-      });
     };
 
     const loadIdsFor = async (
@@ -197,7 +184,10 @@ defineMiniApp({
         loadIdsFor(SELECTORS.inboxOf, who),
         loadIdsFor(SELECTORS.outboxOf, who),
       ]);
-      inbox.set(overlayCachedPlaintext(inboxResult.rows, who));
+      // Overlay any device-cached recipient-only plaintext back onto rows so a
+      // just-decrypted message survives a refresh without a fresh signature +
+      // oracle round-trip (only for rows the connected wallet can decrypt).
+      inbox.set(overlayCachedPlaintext(app.storage.local, inboxResult.rows, who));
       outbox.set(outboxResult.rows);
       const limit = pageSize.get();
       hasMore.set(inboxResult.total > limit || outboxResult.total > limit);
@@ -216,6 +206,8 @@ defineMiniApp({
       hasWallet.set(true);
       // ensureEvmWallet → ensureNeoXNetwork (wallet_switchEthereumChain /
       // wallet_addEthereumChain) then connectEvm.
+      // framework-exempt: EVM lane (plan §3.6) — the framework wallet/chain
+      // surface is N3-only; Neo X onboarding stays on the raw chain service.
       const addr = await ctx.services.chain.ensureEvmWallet(NEO_X_MAINNET);
       networkSupported.set(true);
       address.set(addr);
@@ -224,22 +216,26 @@ defineMiniApp({
 
     // ── actions ──────────────────────────────────────────────────────────────
 
-    ctx.framework.actions.register("connectAndLoad", async () => {
+    // connectAndLoad and switchToNeoX run the identical connect-then-refresh
+    // flow (both dispatch names stay registered for the PlayArea buttons); the
+    // shared loadOp preserves the old cross-action isLoading gate.
+    const connectAndLoad = async () => {
       if (isLoading.get()) return;
-      isLoading.set(true);
-      try {
-        const addr = await ensureNeoX();
-        await refreshLists(addr);
-        lastStatus.set(ctx.t("statusInboxLoaded"));
-        ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : ctx.t("error");
-        lastStatus.set(msg);
-        ctx.setStatus(msg, "error");
-      } finally {
-        isLoading.set(false);
-      }
-    });
+      await loadOp.run(async () => {
+        try {
+          const addr = await ensureNeoX();
+          await refreshLists(addr);
+          lastStatus.set(ctx.t("statusInboxLoaded"));
+          ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : ctx.t("error");
+          lastStatus.set(msg);
+          ctx.setStatus(msg, "error");
+        }
+      });
+    };
+    ctx.framework.actions.register("connectAndLoad", connectAndLoad);
+    ctx.framework.actions.register("switchToNeoX", connectAndLoad);
 
     ctx.framework.actions.register("sendMessage", async () => {
       if (isSending.get()) return;
@@ -257,39 +253,49 @@ defineMiniApp({
         ctx.setStatus(msg, "error");
         return;
       }
-      isSending.set(true);
-      lastStatus.set(ctx.t("statusEncrypting"));
-      ctx.setStatus(ctx.t("statusEncrypting"), "info");
-      try {
-        const sender = await ensureNeoX();
-        const pubKey = await getOraclePublicKey();
-        const envelope = await encryptTextWithOraclePublicKey(pubKey, String(form.body ?? "").trim());
-        const argsHex = encodeParams([
-          { t: "address", v: String(form.recipient).trim() },
-          { t: "bytes", v: utf8ToBytes(envelope) },
-          { t: "uint", v: check.unlockTime ?? 0 },
-        ]);
-        lastStatus.set(ctx.t("statusSending"));
-        ctx.setStatus(ctx.t("statusSending"), "info");
-        const result = await ctx.services.chain.invokeEvmWithValue({
-          address: MESSAGE_EVM_ADDRESS,
-          selector: SELECTORS.sendMessage,
-          argsHex,
-          eventTopic: TOPICS.MessageSent,
-        });
-        composeForm.set({ ...DEFAULT_FORM });
-        lastStatus.set(ctx.t("statusSent"));
-        ctx.setStatus(ctx.t("statusSent"), "success");
-        await refreshLists(sender);
-        return result;
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : ctx.t("statusFailed");
-        lastStatus.set(msg);
-        ctx.setStatus(msg, "error");
-        throw e;
-      } finally {
-        isSending.set(false);
-      }
+      // The send flow owns its multi-step messaging (encrypting → sending →
+      // sent) and must keep rethrowing to the dispatch layer, so the failure
+      // is captured inside the operation (the framework never auto-toasts)
+      // and rethrown after the run settles — the same status ordering the
+      // hand-rolled isSending flag produced (busy clears before the rethrow).
+      let failure: { error: unknown } | undefined;
+      const result = await sendOp.run(async () => {
+        lastStatus.set(ctx.t("statusEncrypting"));
+        ctx.setStatus(ctx.t("statusEncrypting"), "info");
+        try {
+          const sender = await ensureNeoX();
+          const pubKey = await getOraclePublicKey();
+          const envelope = await encryptTextWithOraclePublicKey(pubKey, String(form.body ?? "").trim());
+          const argsHex = encodeParams([
+            { t: "address", v: String(form.recipient).trim() },
+            { t: "bytes", v: utf8ToBytes(envelope) },
+            { t: "uint", v: check.unlockTime ?? 0 },
+          ]);
+          lastStatus.set(ctx.t("statusSending"));
+          ctx.setStatus(ctx.t("statusSending"), "info");
+          // framework-exempt: EVM lane (plan §3.6) — sendMessage writes go
+          // through the raw EVM invoke; the framework chain surface is N3-only.
+          const tx = await ctx.services.chain.invokeEvmWithValue({
+            address: MESSAGE_EVM_ADDRESS,
+            selector: SELECTORS.sendMessage,
+            argsHex,
+            eventTopic: TOPICS.MessageSent,
+          });
+          composeForm.set({ ...DEFAULT_FORM });
+          lastStatus.set(ctx.t("statusSent"));
+          ctx.setStatus(ctx.t("statusSent"), "success");
+          await refreshLists(sender);
+          return tx;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : ctx.t("statusFailed");
+          lastStatus.set(msg);
+          ctx.setStatus(msg, "error");
+          failure = { error: e };
+          return undefined;
+        }
+      });
+      if (failure) throw failure.error;
+      return result;
     });
 
     // Recipient-only reveal: prove recipient via wallet signature, decrypt
@@ -297,44 +303,47 @@ defineMiniApp({
     ctx.framework.actions.register("revealRecipient", async (row: unknown) => {
       const msg = row as MessageView;
       if (!msg?.id || busyIds.get().includes(msg.id)) return;
-      addBusy(msg.id);
-      lastStatus.set(ctx.t("statusRevealing"));
-      ctx.setStatus(ctx.t("statusRevealing"), "info");
-      try {
-        const addr = await ensureNeoX();
-        if (!addressesEqual(addr, msg.recipient)) {
-          throw new Error(ctx.t("errorNotRecipient"));
+      await reveals.opFor(msg.id).run(async () => {
+        lastStatus.set(ctx.t("statusRevealing"));
+        ctx.setStatus(ctx.t("statusRevealing"), "info");
+        try {
+          const addr = await ensureNeoX();
+          if (!addressesEqual(addr, msg.recipient)) {
+            throw new Error(ctx.t("errorNotRecipient"));
+          }
+          // framework-exempt: Morpheus confidential reveal protocol (plan
+          // §3.6) — the recipient proves themselves with an EVM personal_sign
+          // over the worker's byte-identical statement and the oracle edge
+          // decrypts off-chain; app.oracle does not cover this protocol.
+          const issuedAt = Math.floor(Date.now() / 1000);
+          const statement = buildRevealStatement(NEO_X_CHAIN_ID, MESSAGE_EVM_ADDRESS, msg.id, issuedAt);
+          const signature = await evmPersonalSign(statement);
+          const res = await fetchWithTimeout(`${ORACLE_EDGE_BASE}/oracle/message-reveal`, {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify({ chain: "neox", messageId: msg.id, signature, issuedAt }),
+          });
+          const body = (await res.json()) as { plaintext?: string; error?: string };
+          if (!res.ok || typeof body.plaintext !== "string") {
+            throw new Error(body.error || ctx.t("statusFailed"));
+          }
+          const plaintext = body.plaintext;
+          // Show plaintext locally without writing it on-chain, and cache it so a
+          // refresh does not force another signature + oracle round-trip.
+          cachePlaintext(app.storage.local, msg.id, msg.recipient, plaintext);
+          inbox.set(
+            inbox.get().map((r) =>
+              r.id === msg.id ? { ...r, plaintext, revealed: true } : r,
+            ),
+          );
+          lastStatus.set(ctx.t("statusRevealed"));
+          ctx.setStatus(ctx.t("statusRevealed"), "success");
+        } catch (e) {
+          const m = e instanceof Error ? e.message : ctx.t("statusFailed");
+          lastStatus.set(m);
+          ctx.setStatus(m, "error");
         }
-        const issuedAt = Math.floor(Date.now() / 1000);
-        const statement = buildRevealStatement(NEO_X_CHAIN_ID, MESSAGE_EVM_ADDRESS, msg.id, issuedAt);
-        const signature = await evmPersonalSign(statement);
-        const res = await fetchWithTimeout(`${ORACLE_EDGE_BASE}/oracle/message-reveal`, {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ chain: "neox", messageId: msg.id, signature, issuedAt }),
-        });
-        const body = (await res.json()) as { plaintext?: string; error?: string };
-        if (!res.ok || typeof body.plaintext !== "string") {
-          throw new Error(body.error || ctx.t("statusFailed"));
-        }
-        const plaintext = body.plaintext;
-        // Show plaintext locally without writing it on-chain, and cache it so a
-        // refresh does not force another signature + oracle round-trip.
-        cachePlaintext(msg.id, msg.recipient, plaintext);
-        inbox.set(
-          inbox.get().map((r) =>
-            r.id === msg.id ? { ...r, plaintext, revealed: true } : r,
-          ),
-        );
-        lastStatus.set(ctx.t("statusRevealed"));
-        ctx.setStatus(ctx.t("statusRevealed"), "success");
-      } catch (e) {
-        const m = e instanceof Error ? e.message : ctx.t("statusFailed");
-        lastStatus.set(m);
-        ctx.setStatus(m, "error");
-      } finally {
-        removeBusy(msg.id);
-      }
+      });
     });
 
     // Time-locked reveal: trigger the on-chain requestReveal; the relayer
@@ -380,74 +389,57 @@ defineMiniApp({
     ctx.framework.actions.register("requestTimedReveal", async (row: unknown) => {
       const msg = row as MessageView;
       if (!msg?.id || busyIds.get().includes(msg.id)) return;
-      addBusy(msg.id);
-      lastStatus.set(ctx.t("statusRequestingReveal"));
-      ctx.setStatus(ctx.t("statusRequestingReveal"), "info");
-      try {
-        await ensureNeoX();
-        await ctx.services.chain.invokeEvmWithValue({
-          address: MESSAGE_EVM_ADDRESS,
-          selector: SELECTORS.requestReveal,
-          uintArgs: [msg.id],
-          eventTopic: TOPICS.RevealRequested,
-        });
-        lastStatus.set(ctx.t("statusWaitingReveal"));
-        ctx.setStatus(ctx.t("statusWaitingReveal"), "info");
-        for (let i = 0; i < 36; i += 1) {
-          await sleep(5000);
-          const updated = await readMessage(msg.id);
-          if (updated?.revealed) {
-            patchRevealed(msg.id, updated);
-            lastStatus.set(ctx.t("statusRevealed"));
-            ctx.setStatus(ctx.t("statusRevealed"), "success");
-            return;
+      await reveals.opFor(msg.id).run(async () => {
+        lastStatus.set(ctx.t("statusRequestingReveal"));
+        ctx.setStatus(ctx.t("statusRequestingReveal"), "info");
+        try {
+          await ensureNeoX();
+          // framework-exempt: EVM lane (plan §3.6) — requestReveal writes go
+          // through the raw EVM invoke; the framework chain surface is N3-only.
+          await ctx.services.chain.invokeEvmWithValue({
+            address: MESSAGE_EVM_ADDRESS,
+            selector: SELECTORS.requestReveal,
+            uintArgs: [msg.id],
+            eventTopic: TOPICS.RevealRequested,
+          });
+          lastStatus.set(ctx.t("statusWaitingReveal"));
+          ctx.setStatus(ctx.t("statusWaitingReveal"), "info");
+          for (let i = 0; i < 36; i += 1) {
+            await sleep(5000);
+            const updated = await readMessage(msg.id);
+            if (updated?.revealed) {
+              patchRevealed(msg.id, updated);
+              lastStatus.set(ctx.t("statusRevealed"));
+              ctx.setStatus(ctx.t("statusRevealed"), "success");
+              return;
+            }
           }
+          lastStatus.set(ctx.t("statusRevealPending"));
+          ctx.setStatus(ctx.t("statusRevealPending"), "info");
+          // The relayer is taking >3 min: keep checking in the background so the
+          // row patches itself instead of going stale until a manual Refresh.
+          scheduleBackgroundRecheck(msg.id);
+        } catch (e) {
+          const m = e instanceof Error ? e.message : ctx.t("statusFailed");
+          lastStatus.set(m);
+          ctx.setStatus(m, "error");
         }
-        lastStatus.set(ctx.t("statusRevealPending"));
-        ctx.setStatus(ctx.t("statusRevealPending"), "info");
-        // The relayer is taking >3 min: keep checking in the background so the
-        // row patches itself instead of going stale until a manual Refresh.
-        scheduleBackgroundRecheck(msg.id);
-      } catch (e) {
-        const m = e instanceof Error ? e.message : ctx.t("statusFailed");
-        lastStatus.set(m);
-        ctx.setStatus(m, "error");
-      } finally {
-        removeBusy(msg.id);
-      }
-    });
-
-    ctx.framework.actions.register("switchToNeoX", async () => {
-      if (isLoading.get()) return;
-      isLoading.set(true);
-      try {
-        const addr = await ensureNeoX();
-        await refreshLists(addr);
-        lastStatus.set(ctx.t("statusInboxLoaded"));
-        ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : ctx.t("error");
-        lastStatus.set(msg);
-        ctx.setStatus(msg, "error");
-      } finally {
-        isLoading.set(false);
-      }
+      });
     });
 
     ctx.framework.actions.register("loadOlder", async () => {
       const who = address.get();
       if (!who || isLoading.get()) return;
-      isLoading.set(true);
-      try {
-        pageSize.set(pageSize.get() + PAGE_SIZE);
-        await refreshLists(who);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : ctx.t("error");
-        lastStatus.set(msg);
-        ctx.setStatus(msg, "error");
-      } finally {
-        isLoading.set(false);
-      }
+      await loadOp.run(async () => {
+        try {
+          pageSize.set(pageSize.get() + PAGE_SIZE);
+          await refreshLists(who);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : ctx.t("error");
+          lastStatus.set(msg);
+          ctx.setStatus(msg, "error");
+        }
+      });
     });
 
     ctx.framework.actions.register("updateCompose", async (patch: unknown) => {
@@ -471,6 +463,8 @@ defineMiniApp({
       loadData: async () => {
         try {
           hasWallet.set(hasEvmWallet());
+          // framework-exempt: EVM lane (plan §3.6) — network detection for the
+          // Neo X gate stays on the raw chain service (framework is N3-only).
           const net = await ctx.services.chain.detectNetwork();
           const supported = ctx.services.chain.isEvmNetwork(net);
           networkSupported.set(supported);

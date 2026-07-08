@@ -2,6 +2,9 @@
  * AA Market Hub — React Entry Point
  *
  * Uses the React defineMiniApp runtime with createObservable state.
+ * Toasts ride the framework: read-lane actions wrap in app.notify.guard and
+ * every write toasts from inside its app.operations operation (same keys the
+ * retired raw notify-service guard wrappers used).
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -15,41 +18,38 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Pre-framework config lived at "aa-market-hub:<key>" — pin the prefix so
+  // app.storage.local resolves the exact same localStorage entries.
+  storagePrefix: "aa-market-hub:",
 
   setup(ctx) {
-    const hub = useAAMarketHub({
-      app: ctx.framework,
-      eventBus: ctx.services.events,
-      t: ctx.t,
-    });
+    const app = ctx.framework;
+    const hub = useAAMarketHub({ app, t: ctx.t });
     const toActionString = (value: unknown) =>
       value === undefined || value === null ? "" : String(value);
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      const addr = await ctx.services.notify.guard(
-        () => hub.connectWallet(),
-        undefined,
-        "connectFailed",
-      );
+    app.actions.register("connectWallet", async () => {
+      const addr = await app.notify.guard(() => hub.connectWallet(), {
+        errorKey: "connectFailed",
+      });
       if (addr)
         ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
     });
 
-    ctx.framework.actions.register("loadListings", async (marketHashInput: unknown) => {
+    app.actions.register("loadListings", async (marketHashInput: unknown) => {
       hub.marketHash.set(String(marketHashInput));
-      await ctx.services.notify.guard(
-        () => hub.loadListings(),
-        "marketLoaded",
-        "loadListingsFailed",
-      );
+      await app.notify.guard(() => hub.loadListings(), {
+        successKey: "marketLoaded",
+        errorKey: "loadListingsFailed",
+      });
     });
 
-    ctx.framework.actions.register("selectListing", async (listingId: unknown) => {
+    app.actions.register("selectListing", async (listingId: unknown) => {
       const listing = hub.listings.get().find((l) => l.id === String(listingId));
       if (listing) hub.selectListing(listing);
     });
 
-    ctx.framework.actions.register("createListing", async (...args: unknown[]) => {
+    app.actions.register("createListing", async (...args: unknown[]) => {
       const [
         marketHashInput,
         aaContractHash,
@@ -69,11 +69,9 @@ defineMiniApp({
       hub.priceGas.set(toActionString(priceGas));
       hub.listingTitle.set(toActionString(title));
       hub.metadataUri.set(toActionString(metadataUri));
-      const result = await ctx.services.notify.guard(
-        () => hub.submitCreateListing(),
-        undefined,
-        "actionFailed",
-      );
+      // The create operation toasts failures ("actionFailed" fallback) and
+      // resolves undefined for them; only a landed write reaches setStatus.
+      const result = await hub.submitCreateListing();
       if (result)
         ctx.setStatus(
           `${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`,
@@ -82,39 +80,19 @@ defineMiniApp({
       return result;
     });
 
-    ctx.framework.actions.register("updatePrice", async (nextPriceGas: unknown) => {
+    app.actions.register("updatePrice", async (nextPriceGas: unknown) => {
       hub.nextPriceGas.set(String(nextPriceGas));
-      await ctx.services.notify.guard(
-        () => hub.submitUpdatePrice(),
-        "updatePriceSuccess",
-        "actionFailed",
-      );
+      await hub.submitUpdatePrice();
     });
 
-    ctx.framework.actions.register("cancelSelected", () =>
-      ctx.services.notify.guard(
-        () => hub.submitCancelSelected(),
-        "cancelListingSuccess",
-        "actionFailed",
-      ),
-    );
+    app.actions.register("cancelSelected", () => hub.submitCancelSelected());
 
-    ctx.framework.actions.register("buySelected", async (newBackupOwner: unknown) => {
+    app.actions.register("buySelected", async (newBackupOwner: unknown) => {
       hub.newBackupOwner.set(String(newBackupOwner));
-      await ctx.services.notify.guard(
-        () => hub.submitBuySelected(),
-        "buyListingSuccess",
-        "actionFailed",
-      );
+      await hub.submitBuySelected();
     });
 
-    ctx.framework.actions.register("refundSelected", () =>
-      ctx.services.notify.guard(
-        () => hub.submitRefundSelected(),
-        "refundPendingSuccess",
-        "actionFailed",
-      ),
-    );
+    app.actions.register("refundSelected", () => hub.submitRefundSelected());
 
     return {
       state: {

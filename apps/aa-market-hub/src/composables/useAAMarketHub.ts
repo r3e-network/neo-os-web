@@ -3,11 +3,15 @@
  *
  * Uses createObservable instead of Vue ref/computed/watch.
  * Called once during setup, returns observables that React components subscribe to.
+ *
+ * All chain traffic rides the framework (app.chain reads/writes, the
+ * transfer-then-settle buy via app.chain.invokeMultiple) and every write runs
+ * inside an app.operations operation that owns its busy flag and toast keys —
+ * the runWriteAction hand-roll and its dead eventBus emits are retired.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { EventBus } from "@shared/services";
 import type { MiniAppFramework } from "@shared/react";
 import {
   buyAddressListing,
@@ -21,28 +25,40 @@ import {
   type MarketListing,
   updateAddressListingPrice,
 } from "../utils/aa-market";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import {
   addressToScriptHash,
   normalizeScriptHash,
   parseHash160,
 } from "@shared/utils/neo";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useWallet } from "@shared/utils/wallet-sdk";
 
-const MARKET_HASH_STORAGE_KEY = "aa-market-hub:market-hash";
-const AA_HASH_STORAGE_KEY = "aa-market-hub:aa-contract-hash";
+// Config persistence rides app.storage.local. main.tsx pins
+// `storagePrefix: "aa-market-hub:"`, so these keys resolve to the exact
+// pre-framework localStorage entries ("aa-market-hub:market-hash" /
+// "aa-market-hub:aa-contract-hash") — existing user overrides keep working.
+const MARKET_HASH_STORAGE_KEY = "market-hash";
+const AA_HASH_STORAGE_KEY = "aa-contract-hash";
 
 export interface UseAAMarketHubOptions {
   app: MiniAppFramework;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
-  const wallet = useWallet() as WalletSDK;
+type MarketWriteOperation = ReturnType<MiniAppFramework["operations"]["create"]>;
 
+/**
+ * Read-only boolean observable that is true while the operation runs — the
+ * drop-in replacement for the hand-rolled per-action busy flags (`set` is a
+ * no-op; the operation state is the single source of truth).
+ */
+function operationRunning(op: MarketWriteOperation): Observable<boolean> {
+  return {
+    get: () => op.state.get().status === "running",
+    set: () => {},
+    subscribe: (fn) => op.state.subscribe(fn),
+  };
+}
+
+export function useAAMarketHub({ app, t }: UseAAMarketHubOptions) {
   // Form state
   const marketHash = createObservable("");
   const aaContractHash = createObservable(getDefaultAAContractHash());
@@ -57,14 +73,38 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
   const totalOnChainListings = createObservable(0);
   const listingsTruncated = createObservable(false);
   const isLoading = createObservable(false);
-  // Shared write flag (used by create) plus per-action flags so the four manage
-  // buttons spin independently instead of all at once.
-  const isSubmitting = createObservable(false);
-  const isUpdatingPrice = createObservable(false);
-  const isCancelling = createObservable(false);
-  const isBuying = createObservable(false);
-  const isRefunding = createObservable(false);
   const isWalletConnecting = createObservable(false);
+
+  // One framework operation per write so the four manage buttons spin
+  // independently instead of all at once; the shared isSubmitting flag
+  // derives from all of them (the legacy flag was set for every write).
+  const createListingOp = app.operations.create("createListing");
+  const updatePriceOp = app.operations.create("updatePrice");
+  const cancelListingOp = app.operations.create("cancelListing");
+  const buyListingOp = app.operations.create("buyListing");
+  const refundPendingOp = app.operations.create("refundPending");
+  const writeOps = [
+    createListingOp,
+    updatePriceOp,
+    cancelListingOp,
+    buyListingOp,
+    refundPendingOp,
+  ];
+
+  const isSubmitting: Observable<boolean> = {
+    get: () => writeOps.some((op) => op.state.get().status === "running"),
+    set: () => {},
+    subscribe: (fn) => {
+      const unsubs = writeOps.map((op) => op.state.subscribe(fn));
+      return () => {
+        unsubs.forEach((unsub) => unsub());
+      };
+    },
+  };
+  const isUpdatingPrice = operationRunning(updatePriceOp);
+  const isCancelling = operationRunning(cancelListingOp);
+  const isBuying = operationRunning(buyListingOp);
+  const isRefunding = operationRunning(refundPendingOp);
 
   const walletAddress: Observable<string> = {
     get: () => app.chain.address.get() || "",
@@ -212,12 +252,12 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
 
   // Persistence
   function persistConfig() {
-    writeCachedJSON(MARKET_HASH_STORAGE_KEY, marketHash.get().trim());
-    writeCachedJSON(AA_HASH_STORAGE_KEY, aaContractHash.get().trim());
+    app.storage.local.set(MARKET_HASH_STORAGE_KEY, marketHash.get().trim());
+    app.storage.local.set(AA_HASH_STORAGE_KEY, aaContractHash.get().trim());
   }
 
-  function readCachedString(key: string): string {
-    const cached = readCachedJSON<string>(key);
+  function readStoredString(key: string): string {
+    const cached = app.storage.local.get<string>(key);
     return typeof cached === "string" ? cached : "";
   }
 
@@ -235,18 +275,12 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
   async function connectWallet() {
     try {
       isWalletConnecting.set(true);
-      await wallet.connect();
+      await app.chain.ensureWallet();
       newBackupOwner.set(walletAddress.get());
-      eventBus.emit("wallet:connected", { address: walletAddress.get() });
       if (marketHash.get().trim()) {
         await loadListings();
       }
       return walletAddress.get();
-    } catch (error: unknown) {
-      eventBus.emit("wallet:error", {
-        message: formatErrorMessage(error, t("connectFailed")),
-      });
-      throw error;
     } finally {
       isWalletConnecting.set(false);
     }
@@ -259,7 +293,7 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
       }
       isLoading.set(true);
       const result = await listAddressListings(
-        wallet,
+        app,
         marketHash.get(),
         walletAddress.get(),
       );
@@ -285,42 +319,30 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
       }
 
       persistConfig();
-      eventBus.emit("listings:loaded", { count: currentListings.length });
-    } catch (error: unknown) {
-      eventBus.emit("listings:error", {
-        message: formatErrorMessage(error, t("loadListingsFailed")),
-      });
-      throw error;
     } finally {
       isLoading.set(false);
     }
   }
 
-  async function runWriteAction(
+  /**
+   * Run a market write inside its framework operation: the operation owns
+   * the busy flag AND the toast keys (the same keys the retired notify.guard
+   * wrappers used — success toast on the given key, error toast mapped with
+   * the errorKey fallback, failures swallowed). The chain lane itself is
+   * toast-silent (raw invoke / invokeMultiple notify:'silent') so nothing
+   * double-toasts.
+   */
+  async function runWrite(
+    op: MarketWriteOperation,
+    keys: { successKey?: string; errorKey: string },
     action: (address: string) => Promise<{ txid: string }>,
-    successMessage: string,
-    actionFlag?: ReturnType<typeof createObservable<boolean>>,
   ) {
-    try {
-      isSubmitting.set(true);
-      actionFlag?.set(true);
+    return op.run(async () => {
       const address = await app.chain.ensureWallet();
       const result = await action(address);
-      eventBus.emit("action:success", {
-        message: successMessage,
-        txid: result.txid,
-      });
       await loadListings();
       return result;
-    } catch (error: unknown) {
-      eventBus.emit("action:error", {
-        message: formatErrorMessage(error, t("actionFailed")),
-      });
-      throw error;
-    } finally {
-      isSubmitting.set(false);
-      actionFlag?.set(false);
-    }
+    }, keys);
   }
 
   // Pre-check that the account is registered in AA core and owned by the seller
@@ -354,82 +376,93 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
   }
 
   async function submitCreateListing() {
-    const result = await runWriteAction(async (address) => {
-      await assertCreatable(address);
-      return createAddressListing(wallet, marketHash.get(), address, {
-        aaContractHash: aaContractHash.get(),
-        accountIdHash: accountIdHash.get(),
-        priceGas: priceGas.get(),
-        title: listingTitle.get(),
-        metadataUri: metadataUri.get(),
-      });
-    }, t("createListingSuccess"));
-    accountIdHash.set("");
-    priceGas.set("");
-    listingTitle.set("");
-    metadataUri.set("");
+    // No successKey: main.tsx composes the txid-suffixed success status line
+    // itself, exactly as before.
+    const result = await runWrite(
+      createListingOp,
+      { errorKey: "actionFailed" },
+      async (address) => {
+        await assertCreatable(address);
+        return createAddressListing(app, marketHash.get(), address, {
+          aaContractHash: aaContractHash.get(),
+          accountIdHash: accountIdHash.get(),
+          priceGas: priceGas.get(),
+          title: listingTitle.get(),
+          metadataUri: metadataUri.get(),
+        });
+      },
+    );
+    // Clear the form only when the write landed (a failed write kept the
+    // fields before, and still does — the operation swallows the error after
+    // toasting it).
+    if (result) {
+      accountIdHash.set("");
+      priceGas.set("");
+      listingTitle.set("");
+      metadataUri.set("");
+    }
     return result;
   }
 
   async function submitUpdatePrice() {
     if (!selectedListing.get()) return;
-    return runWriteAction(
+    return runWrite(
+      updatePriceOp,
+      { successKey: "updatePriceSuccess", errorKey: "actionFailed" },
       (address) =>
         updateAddressListingPrice(
-          wallet,
+          app,
           marketHash.get(),
           address,
           selectedListing.get()!.id,
           nextPriceGas.get(),
         ),
-      t("updatePriceSuccess"),
-      isUpdatingPrice,
     );
   }
 
   async function submitCancelSelected() {
     if (!selectedListing.get()) return;
-    return runWriteAction(
+    return runWrite(
+      cancelListingOp,
+      { successKey: "cancelListingSuccess", errorKey: "actionFailed" },
       (address) =>
         cancelAddressListing(
-          wallet,
+          app,
           marketHash.get(),
           address,
           selectedListing.get()!.id,
         ),
-      t("cancelListingSuccess"),
-      isCancelling,
     );
   }
 
   async function submitBuySelected() {
     if (!selectedListing.get()) return;
-    return runWriteAction(
+    return runWrite(
+      buyListingOp,
+      { successKey: "buyListingSuccess", errorKey: "actionFailed" },
       (address) =>
         buyAddressListing(
-          wallet,
+          app,
           marketHash.get(),
           address,
           selectedListing.get()!,
           { newBackupOwner: newBackupOwner.get() },
         ),
-      t("buyListingSuccess"),
-      isBuying,
     );
   }
 
   async function submitRefundSelected() {
     if (!selectedListing.get()) return;
-    return runWriteAction(
+    return runWrite(
+      refundPendingOp,
+      { successKey: "refundPendingSuccess", errorKey: "actionFailed" },
       (address) =>
         refundPendingAddressPurchase(
-          wallet,
+          app,
           marketHash.get(),
           address,
           selectedListing.get()!.id,
         ),
-      t("refundPendingSuccess"),
-      isRefunding,
     );
   }
 
@@ -439,10 +472,10 @@ export function useAAMarketHub({ app, eventBus, t }: UseAAMarketHubOptions) {
     // immediately. The input stays editable as an advanced override, and a
     // cached override still wins.
     marketHash.set(
-      readCachedString(MARKET_HASH_STORAGE_KEY) || getDefaultMarketHash(),
+      readStoredString(MARKET_HASH_STORAGE_KEY) || getDefaultMarketHash(),
     );
     aaContractHash.set(
-      readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash(),
+      readStoredString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash(),
     );
     newBackupOwner.set(walletAddress.get());
     // Only auto-load the board when a wallet is already connected. Reading the

@@ -8,14 +8,16 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { fetchTreasuryData, type TreasuryData } from "./utils/treasury";
 import {
   buildTreasuryTransferIntent,
   type TreasuryTransferIntent,
 } from "./utils/treasuryOperations";
 
-const CACHE_KEY = "neo_treasury_cache";
+// Key remainder under the pinned "neo_treasury_" storage prefix — the on-disk
+// localStorage key stays the legacy runtime-cache "neo_treasury_cache"
+// byte-for-byte, so existing users keep their cached dashboard.
+const CACHE_KEY = "cache";
 
 function formatAmount(value: number, maximumFractionDigits: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits });
@@ -26,6 +28,10 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Pin app.storage.local to the legacy runtime-cache namespace so the
+  // pre-framework "neo_treasury_cache" key keeps resolving byte-for-byte
+  // (storage keys must not change across the framework migration).
+  storagePrefix: "neo_treasury_",
 
   setup(ctx) {
     const loading = createObservable(true);
@@ -81,7 +87,7 @@ defineMiniApp({
       error.set("");
 
       try {
-        const cached = readCachedJSON<TreasuryData>(CACHE_KEY);
+        const cached = ctx.framework.storage.local.get<TreasuryData>(CACHE_KEY);
         if (cached) {
           data.set(cached);
           // Cached balances/prices are not a live read — show the amber "stale"
@@ -101,7 +107,13 @@ defineMiniApp({
         // shows the amber "stale" signal, not the green "live synced" dot, so the
         // USD total is never presented as fresh when its record is old.
         stale.set(freshData.priceStale);
-        writeCachedJSON(CACHE_KEY, freshData);
+        try {
+          ctx.framework.storage.local.set(CACHE_KEY, freshData);
+        } catch (_e) {
+          // A cache-write failure (quota/sandboxed storage) is non-fatal and
+          // must not trip the outer catch into flagging the just-rendered
+          // FRESH data as stale — the legacy safeWriteJSON lane swallowed it.
+        }
       } catch (e) {
         if (!data.get()) {
           error.set(formatErrorMessage(e, ctx.t("loadFailed")));
@@ -141,11 +153,15 @@ defineMiniApp({
         const intent = buildTreasuryTransferIntent(walletAddress, form);
         lastIntent.set(intent);
 
-        // Raw framework invoke (no notify/reload wrapper): this handler owns its
-        // own try/catch error reformatting (formatErrorMessage) and status set,
-        // so app.chain.write would pre-empt those custom messages.
-        const result = await ctx.framework.chain.invoke("transfer", intent.args, {
+        // app.chain.write with notify:'silent' (S2): the framework never
+        // toasts on this lane and errors throw unchanged, so this handler
+        // keeps owning its own error reformatting (formatErrorMessage) and
+        // status copy exactly as the pre-framework raw invoke did.
+        const result = await ctx.framework.chain.write({
+          operation: "transfer",
+          args: intent.args,
           scriptHash: intent.scriptHash,
+          notify: "silent",
         });
 
         lastTxid.set(result.txid || "");

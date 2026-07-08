@@ -1,5 +1,5 @@
+import type { MiniAppFramework } from "@shared/react";
 import { createObservable, createDerived } from "@shared/react/context";
-import { clearCachedValue, readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { RequestStatus } from "../utils/vault";
 
 /**
@@ -22,13 +22,20 @@ export interface HistoryItem {
   createdAt: string;
 }
 
-const STORAGE_KEY = "multisig_vault_history";
+/**
+ * app.storage.local key for the activity log. The pre-framework log lived in
+ * raw localStorage as "multisig_vault_history" (runtime-cache, no prefix), so
+ * main.tsx pins the framework storagePrefix to "multisig_" and this key
+ * resolves to the EXACT legacy localStorage key — existing users keep their
+ * vault/request history across the migration.
+ */
+const STORAGE_KEY = "vault_history";
 
 function historyKey(item: Pick<HistoryItem, "kind" | "id">): string {
   return `${item.kind}:${item.id}`;
 }
 
-export function useMultisigHistory() {
+export function useMultisigHistory(app: MiniAppFramework) {
   const history = createObservable<HistoryItem[]>([]);
 
   const vaultCount = createDerived(
@@ -47,14 +54,16 @@ export function useMultisigHistory() {
   );
 
   const loadHistory = () => {
-    const saved = readCachedJSON<HistoryItem[]>(STORAGE_KEY);
+    const saved = app.storage.local.get<HistoryItem[]>(STORAGE_KEY);
     history.set(Array.isArray(saved) ? saved : []);
   };
 
   const saveHistory = () => {
     try {
-      writeCachedJSON(STORAGE_KEY, history.get());
+      app.storage.local.set(STORAGE_KEY, history.get());
     } catch (err) {
+      // Storage write failures (quota, sandboxed iframe) must never surface
+      // as an action error toast — the on-chain write already succeeded.
       console.warn(
         "[useMultisigHistory] saveHistory failed:",
         err instanceof Error ? err.message : String(err),
@@ -96,7 +105,7 @@ export function useMultisigHistory() {
 
   const clearHistory = () => {
     history.set([]);
-    clearCachedValue(STORAGE_KEY);
+    app.storage.local.delete(STORAGE_KEY);
   };
 
   return {

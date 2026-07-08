@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
+import { createMiniAppFramework } from "../react";
+import { createObservable } from "../react/context";
 import { addressToScriptHash } from "../utils/neo";
 import {
   buildTreasuryDisbursementPreview,
@@ -148,5 +152,114 @@ describe("neo-treasury balance fetching resilience", () => {
     const live = await fetchDaHongfeiData({ neo: 5, gas: 1 } as PriceData);
     expect(live.totalUsd).not.toBeNull();
     expect(live.totalUsd as number).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Framework-migration invariants (Wave 5): the disbursement write moved onto
+ * app.chain.write with notify:'silent' and the dashboard cache moved onto
+ * app.storage.local pinned to the legacy "neo_treasury_" namespace. Both
+ * must be byte-identical to the pre-framework behavior: same wallet payload,
+ * no framework toast (the handler owns its own status copy), and the same
+ * on-disk localStorage key so existing users keep their cached dashboard.
+ */
+describe("neo-treasury framework migration invariants", () => {
+  function makeApp(overrides: { invoke?: ReturnType<typeof vi.fn> } = {}) {
+    const invoke = overrides.invoke ?? vi.fn(async () => ({ txid: "0xtx", success: true }));
+    const notify = {
+      success: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      guardResult: vi.fn(),
+    };
+    const chain = {
+      address: createObservable<string | null>(SENDER),
+      ensureWallet: vi.fn(async () => SENDER),
+      read: vi.fn(async () => null),
+      invoke,
+      invokeWithPayment: vi.fn(),
+    };
+    const app = createMiniAppFramework(
+      { services: { chain, notify }, t: (key: string) => key } as never,
+      // Same options main.tsx passes: legacy runtime-cache namespace pin.
+      { appId: "miniapp-neo-treasury", storagePrefix: "neo_treasury_" },
+    );
+    return { app, invoke, notify };
+  }
+
+  afterEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it("sends the disbursement write with the exact pre-migration wallet payload and no framework toast", async () => {
+    const { app, invoke, notify } = makeApp();
+    const intent = buildTreasuryTransferIntent(SENDER, {
+      asset: "GAS",
+      amount: "0.1",
+      recipient: RECIPIENT,
+      memo: "treasury-disbursement",
+    });
+
+    // Mirrors the submitDisbursement handler in apps/neo-treasury/src/main.tsx.
+    const result = await app.chain.write({
+      operation: "transfer",
+      args: intent.args,
+      scriptHash: intent.scriptHash,
+      notify: "silent",
+    });
+
+    // Byte-identical to the legacy raw chain.invoke("transfer", args, {scriptHash}).
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith("transfer", intent.args, {
+      scriptHash: intent.scriptHash,
+    });
+    expect(result).toMatchObject({ txid: "0xtx" });
+    // notify:'silent' — the handler owns disbursementStatus/disbursementError.
+    expect(notify.success).not.toHaveBeenCalled();
+    expect(notify.error).not.toHaveBeenCalled();
+    expect(notify.guardResult).not.toHaveBeenCalled();
+  });
+
+  it("rethrows write failures unchanged so the handler's formatErrorMessage lane keeps working", async () => {
+    const boom = new Error("User rejected the request");
+    const { app, notify } = makeApp({ invoke: vi.fn(async () => { throw boom; }) });
+
+    await expect(
+      app.chain.write({
+        operation: "transfer",
+        args: [],
+        scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+        notify: "silent",
+      }),
+    ).rejects.toBe(boom);
+    expect(notify.error).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dashboard cache on the legacy neo_treasury_cache localStorage key", () => {
+    // Existing user data written by the pre-framework runtime-cache lane...
+    localStorage.setItem("neo_treasury_cache", JSON.stringify({ totalNeo: 42 }));
+
+    const { app } = makeApp();
+    // ...still resolves through app.storage.local under the pinned prefix.
+    expect(app.storage.local.get<{ totalNeo: number }>("cache")).toEqual({ totalNeo: 42 });
+
+    // And a fresh write lands on the SAME key, byte-for-byte.
+    app.storage.local.set("cache", { totalNeo: 43 });
+    expect(localStorage.getItem("neo_treasury_cache")).toBe(JSON.stringify({ totalNeo: 43 }));
+  });
+
+  it("keeps main.tsx off runtime-cache and tags the exempt RPC failover sweep", () => {
+    const appRoot = resolve(__dirname, "../../neo-treasury");
+    const main = readFileSync(resolve(appRoot, "src/main.tsx"), "utf8");
+    const treasury = readFileSync(resolve(appRoot, "src/utils/treasury.ts"), "utf8");
+
+    expect(main).not.toContain("@shared/utils/runtime-cache");
+    expect(main).toContain('storagePrefix: "neo_treasury_"');
+    expect(main).toContain('notify: "silent"');
+    // §3.6: the external-address multi-endpoint RPC balance sweep stays raw
+    // (no framework surface until n3index lands) and must carry the tag.
+    expect(treasury).toContain("framework-exempt: external-wallet RPC balance failover");
   });
 });

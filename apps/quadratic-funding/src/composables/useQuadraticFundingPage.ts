@@ -1,14 +1,58 @@
+/**
+ * useQuadraticFundingPage — page-level assembly for the Quadratic Funding
+ * miniapp, rewritten onto the MiniApp framework SDK (ctx.framework).
+ *
+ * The page owns the in-card status banner (useStatusMessage policy: sticky
+ * errors, auto-dismissed successes) that PlayArea renders, and builds the
+ * shared flow kit every composable routes its messaging through. Form
+ * handlers return the flow's explicit success boolean — produced by
+ * app.notify.guardResult inside the kit — so the view clears its inputs only
+ * on a confirmed on-chain success (the legacy `succeededSince` status
+ * snapshot is gone).
+ */
+
 import { createObservable, createDerived } from "@shared/react/context";
 import type { StatsDisplayItem } from "@shared/components";
-import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
-import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
-import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
-import { computeQuadraticMatches } from "@/composables/quadraticMatch";
+import type { MiniAppFramework } from "@shared/react";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatAddress } from "@shared/utils/format";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { createQuadraticFlowKit, type Translator } from "./quadraticFlowKit";
+import { useQuadraticRounds } from "./useQuadraticRounds";
+import { useQuadraticProjects } from "./useQuadraticProjects";
+import { useQuadraticContributions } from "./useQuadraticContributions";
+import { computeQuadraticMatches } from "./quadraticMatch";
+import type { DepositConfirmation } from "@shared/composables/useContractInteraction";
 
-export function useQuadraticFundingPage(t: (key: string) => string) {
+export interface UseQuadraticFundingPageOptions {
+  /** MiniApp framework SDK from ctx.framework — the only service surface. */
+  app: MiniAppFramework;
+  /** Translation function. */
+  t: Translator;
+  /** Deposit-confirmation override for the prepay flows (tests). */
+  confirmDeposit?: (
+    txid: string,
+    assetHash: string,
+  ) => Promise<DepositConfirmation>;
+}
+
+export function useQuadraticFundingPage({
+  app,
+  t,
+  confirmDeposit,
+}: UseQuadraticFundingPageOptions) {
   const activeTab = createObservable("contribute");
+
+  // In-card status banner (PlayArea's `.qf-setup-card__notice` /
+  // `.qf-controls__status`). Shared across the rounds/projects/contribution
+  // tabs so sub-pages don't silently miss feedback.
+  const sm = useStatusMessage();
+  const roundsStatus = sm.status;
+  const kit = createQuadraticFlowKit({
+    app,
+    t,
+    setStatus: sm.setStatus,
+    confirmDeposit,
+  });
 
   const {
     address,
@@ -26,7 +70,6 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     canFinalizeSelectedRound,
     canClaimUnused,
     canCancelSelectedRound,
-    status: roundsStatus,
     refreshRounds,
     selectRound,
     createRound,
@@ -38,9 +81,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     roundStatusLabel,
     formatSchedule,
     formatAmount,
-    setStatus,
-    ensureContractAddress,
-  } = useQuadraticRounds();
+  } = useQuadraticRounds({ app, t, kit });
 
   const {
     projects,
@@ -54,15 +95,17 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     claimProject,
     projectStatusLabel,
     projectStatusClass,
-  } = useQuadraticProjects(selectedRound, ensureContractAddress, setStatus);
+  } = useQuadraticProjects({ app, t, kit, selectedRound });
 
-  const { isContributing, contributeForm, selectProject, contribute } = useQuadraticContributions(
-    selectedRound,
-    ensureContractAddress,
-    setStatus,
-    refreshProjects,
-    refreshRounds
-  );
+  const { isContributing, contributeForm, selectProject, contribute } =
+    useQuadraticContributions({
+      app,
+      t,
+      kit,
+      selectedRound,
+      refreshProjects,
+      refreshRounds,
+    });
 
   // Computed display data
   const roundCount = createDerived(() => rounds.get().length, [rounds]);
@@ -131,7 +174,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     { label: t("sidebarSelectedRound"), value: selectedRoundId.get() ?? t("notAvailable") },
     {
       label: t("sidebarMatchingPool"),
-      value: selectedRound.get() ? formatAmount(selectedRound.get().matchingPool) : t("notAvailable"),
+      value: selectedRound.get() ? formatAmount(selectedRound.get()!.matchingPool) : t("notAvailable"),
     },
   ], []);
 
@@ -139,43 +182,34 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const projectsStatus = roundsStatus;
   const contributionStatus = roundsStatus;
 
-  // Form handlers — return whether the on-chain call succeeded so the view can
-  // clear its inputs only on success (loading state is bound via the
-  // isCreatingRound / isRegisteringProject / isContributing observables).
-  const statusType = (snapshot: unknown): string =>
-    snapshot && typeof snapshot === "object" ? String((snapshot as { type?: unknown }).type ?? "") : "";
-  const succeededSince = (before: unknown): boolean => {
-    const next = roundsStatus.get();
-    return Boolean(next && next !== before && statusType(next) === "success");
-  };
+  // Form handlers — the flows resolve with app.notify.guardResult's explicit
+  // success boolean, so the view can clear its inputs only on a confirmed
+  // on-chain success (loading state is bound via the isCreatingRound /
+  // isRegisteringProject / isContributing observables). Flows never reject —
+  // the kit banners/toasts every failure — so no catch wrapper is needed here.
+  const handleCreateRound = createRound;
+  const handleRegisterProject = registerProject;
+  const handleContribute = contribute;
 
-  const handleCreateRound = async (data: Parameters<typeof createRound>[0]): Promise<boolean> => {
-    const before = roundsStatus.get();
-    await createRound(data);
-    return succeededSince(before);
+  const handleAddMatching = async (amount: string) => {
+    await addMatching(amount);
   };
-
-  const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]): Promise<boolean> => {
-    const before = roundsStatus.get();
-    await registerProject(data);
-    return succeededSince(before);
+  const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => {
+    await finalizeRound(projectIdsRaw, matchedRaw);
   };
-
-  const handleContribute = async (data: Parameters<typeof contribute>[0]): Promise<boolean> => {
-    const before = roundsStatus.get();
-    await contribute(data);
-    return succeededSince(before);
-  };
-
-  const handleAddMatching = async (amount: string) => { await addMatching(amount).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
-  const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => { await finalizeRound(projectIdsRaw, matchedRaw).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
   const handleFinalizeSuggested = async () => {
     const entries = suggestedMatches.get().map((entry) => ({ id: entry.id, matchBaseUnits: entry.matchBaseUnits }));
-    await finalizeSuggested(entries).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); });
+    await finalizeSuggested(entries);
   };
-  const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => { await claimProject(project).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
-  const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
-  const handleCancelRound = async () => { await cancelRound().catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
+  const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => {
+    await claimProject(project);
+  };
+  const handleClaimUnused = async () => {
+    await claimUnused();
+  };
+  const handleCancelRound = async () => {
+    await cancelRound();
+  };
   const handleSelectRound = async (round: Parameters<typeof selectRound>[0]) => {
     selectRound(round);
     await refreshProjects();

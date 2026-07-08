@@ -1,31 +1,37 @@
-import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+/**
+ * useQuadraticProjects — project listing, claim eligibility and the
+ * register/claim write flows, rewritten onto the MiniApp framework SDK
+ * (reads via app.chain.readRaw, writes via app.chain.invoke; messaging owned
+ * by the shared flow kit so banner/notify copy stays byte-identical).
+ */
+
+import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { messages } from "@/locale/messages";
-import { requireNeoChain } from "@shared/utils/chain";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+import type { MiniAppFramework } from "@shared/react";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
-import type { ProjectItem } from "./quadraticTypes";
-import type { RoundItem } from "./quadraticTypes";
+import type { QuadraticFlowKit, Translator } from "./quadraticFlowKit";
+import type { ProjectItem, RoundItem } from "./quadraticTypes";
 
-export function useQuadraticProjects(
-  selectedRound: Observable<RoundItem | null>,
-  ensureContractAddress: () => Promise<string>,
-  setStatus: (msg: string, type: "success" | "error") => void
-) {
-  const { t } = createUseI18n(messages)();
-  const wallet = useWallet() as WalletSDK;
-  const address = refToObservable(wallet.address);
-  const chainType = refToObservable(wallet.chainType);
-  const { read, invokeDirectly, ensureWallet } = useContractInteraction({
-    appId: "miniapp-quadratic-funding",
-    t,
-    wallet,
-  });
+export interface UseQuadraticProjectsOptions {
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
+  /** Translation function. */
+  t: Translator;
+  /** Shared flow plumbing (guard/banner/preconditions). */
+  kit: QuadraticFlowKit;
+  /** Currently selected round (owned by useQuadraticRounds). */
+  selectedRound: Observable<RoundItem | null>;
+}
+
+export function useQuadraticProjects({
+  app,
+  t,
+  kit,
+  selectedRound,
+}: UseQuadraticProjectsOptions) {
+  const { arg } = app.chain;
+  const address = app.chain.address as Observable<string | null>;
 
   const projects = createObservable<ProjectItem[]>([]);
   const isRefreshingProjects = createObservable(false);
@@ -53,12 +59,11 @@ export function useQuadraticProjects(
   };
 
   const fetchProjectIds = async (roundId: string) => {
-    const contract = await ensureContractAddress();
-    const parsed = await read("getRoundProjects", [
-      { type: "Integer", value: roundId },
-      { type: "Integer", value: "0" },
-      { type: "Integer", value: "50" },
-    ], contract);
+    const parsed = await app.chain.readRaw("getRoundProjects", [
+      arg.integer(roundId),
+      arg.integer(0),
+      arg.integer(50),
+    ]);
     if (!Array.isArray(parsed)) return [] as string[];
     return parsed
       .map((value) => Number.parseInt(String(value || "0"), 10))
@@ -67,8 +72,7 @@ export function useQuadraticProjects(
   };
 
   const fetchProjectDetails = async (projectId: string) => {
-    const contract = await ensureContractAddress();
-    const parsed = await read("getProjectDetails", [{ type: "Integer", value: projectId }], contract);
+    const parsed = await app.chain.readRaw("getProjectDetails", [arg.integer(projectId)]);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     return parseProject(parsed as Record<string, unknown>, projectId);
   };
@@ -78,55 +82,51 @@ export function useQuadraticProjects(
     if (isRefreshingProjects.get()) return;
     try {
       isRefreshingProjects.set(true);
-      const ids = await fetchProjectIds(selectedRound.get().id);
+      const ids = await fetchProjectIds(selectedRound.get()!.id);
       const details = await Promise.all(ids.map(fetchProjectDetails));
       projects.set(details.filter(Boolean) as ProjectItem[]);
     } catch (e) {
-      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
+      kit.reportError(e);
     } finally {
       isRefreshingProjects.set(false);
     }
   };
 
-  const registerProject = async (data: { name: string; description: string; link: string }) => {
-    if (!requireNeoChain(chainType.get(), t)) return;
-    if (isRegisteringProject.get()) return;
+  const registerProject = async (data: {
+    name: string;
+    description: string;
+    link: string;
+  }): Promise<boolean> => {
+    if (!(await kit.onNeoChain())) return false;
+    if (isRegisteringProject.get()) return false;
     if (!selectedRound.get()) {
-      setStatus(t("noSelectedRound"), "error");
-      return;
+      kit.setStatus(t("noSelectedRound"), "error");
+      return false;
     }
 
     const name = data.name.trim().slice(0, 60);
     if (!name) {
-      setStatus(t("invalidProject"), "error");
-      return;
+      kit.setStatus(t("invalidProject"), "error");
+      return false;
     }
 
+    isRegisteringProject.set(true);
     try {
-      isRegisteringProject.set(true);
-      await ensureWallet();
-      if (!address.get()) throw new Error(t("walletNotConnected"));
+      const ok = await kit.guard(async () => {
+        const caller = await kit.ensureCaller();
+        const description = data.description.trim().slice(0, 300);
+        const link = data.link.trim().slice(0, 200);
 
-      const contract = await ensureContractAddress();
-      const description = data.description.trim().slice(0, 300);
-      const link = data.link.trim().slice(0, 200);
-
-      await invokeDirectly(
-        "registerProject",
-        [
-          { type: "Hash160", value: address.get() as string },
-          { type: "Integer", value: selectedRound.get().id },
-          { type: "String", value: name },
-          { type: "String", value: description },
-          { type: "String", value: link },
-        ],
-        contract,
-      );
-
-      setStatus(t("projectRegistered"), "success");
-      await refreshProjects();
-    } catch (e) {
-      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
+        await app.chain.invoke("registerProject", [
+          arg.hash160(caller),
+          arg.integer(selectedRound.get()!.id),
+          arg.string(name),
+          arg.string(description),
+          arg.string(link),
+        ]);
+      }, "projectRegistered");
+      if (ok) await refreshProjects();
+      return ok;
     } finally {
       isRegisteringProject.set(false);
     }
@@ -151,29 +151,21 @@ export function useQuadraticProjects(
     [projects, selectedRound, address],
   );
 
-  const claimProject = async (project: ProjectItem) => {
-    if (!requireNeoChain(chainType.get(), t)) return;
-    if (claimingProjectId.get()) return;
+  const claimProject = async (project: ProjectItem): Promise<boolean> => {
+    if (!(await kit.onNeoChain())) return false;
+    if (claimingProjectId.get()) return false;
 
+    claimingProjectId.set(project.id);
     try {
-      claimingProjectId.set(project.id);
-      await ensureWallet();
-      if (!address.get()) throw new Error(t("walletNotConnected"));
-
-      const contract = await ensureContractAddress();
-      await invokeDirectly(
-        "claimProject",
-        [
-          { type: "Hash160", value: address.get() as string },
-          { type: "Integer", value: project.id },
-        ],
-        contract,
-      );
-
-      setStatus(t("projectClaimed"), "success");
-      await refreshProjects();
-    } catch (e) {
-      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
+      const ok = await kit.guard(async () => {
+        const caller = await kit.ensureCaller();
+        await app.chain.invoke("claimProject", [
+          arg.hash160(caller),
+          arg.integer(project.id),
+        ]);
+      }, "projectClaimed");
+      if (ok) await refreshProjects();
+      return ok;
     } finally {
       claimingProjectId.set(null);
     }
