@@ -26,7 +26,8 @@
  *   "submitSolution"  {}
  *   "expireGame"      {}
  */
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { ChevronDown, RefreshCcw, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
@@ -38,7 +39,6 @@ import {
   gasDisplay,
 } from "./logic/game-rules";
 import type { Difficulty } from "./logic/game-rules";
-import { Play, Check, Clock } from "lucide-react";
 import "./PlayArea.scss";
 
 // ── Game config ───────────────────────────────────────────────────────────────
@@ -57,6 +57,7 @@ const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
 
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ── Observable bindings ───────────────────────────────────────────────────
   const gameStatus     = str("gameStatus", "idle");
@@ -75,6 +76,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const myRank         = val<number>("myRank", 0) ?? 0;
   const progressionReady = bool("progressionReady");
   const requiredDifficulty = val<number>("progressionRequiredDifficulty", 0) ?? 0;
+  const activeGameId   = str("activeGameId", "0");
 
   const rule     = ruleOf(gameDifficulty);
   const nowMs    = Date.now();
@@ -83,12 +85,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // ── Bridge state snapshot (plain object pushed into the Phaser scene) ─────
   const bridgeState = {
+    activeGameId,
     gameStatus,
     clues,
     gameDifficulty,
     deadline,
     dealtAt,
     poolFree,
+    credit: creditGas,
     isStarting,
     isDealing,
     isSubmitting,
@@ -100,7 +104,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // ── Dispatch forwarding ───────────────────────────────────────────────────
   const handleDispatch = useCallback(
-    (action: string, args: unknown) => dispatch(action, args as Record<string, unknown>),
+    (action: string, ...args: unknown[]) => (
+      args.length > 0
+        ? dispatch(action, args[0] as Record<string, unknown>)
+        : dispatch(action)
+    ),
     [dispatch],
   );
 
@@ -112,103 +120,63 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : gameStatus === "expired"             ? t("expiredBanner")
     : t("lobbyTitle");
 
-  // ── Primary action ────────────────────────────────────────────────────────
+  // ── Route and recovery status ─────────────────────────────────────────────
   const routeLocked = progressionReady && gameDifficulty < requiredDifficulty;
-  const routeScore = !progressionReady
-    ? [{
-        label: t("progressionStatusLabel"),
-        value: t("progressionUnavailableShort"),
-      }]
-    : routeLocked
-      ? [{
-          label: t("progressionStatusLabel"),
-          value: t("progressionNextRoute", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) }),
-        }]
-      : [];
-  const canStart  =
-    walletConnected &&
-    progressionReady &&
-    !routeLocked &&
-    poolFree >= Number(gasDisplay(rule.rewardFixed8));
   const timeUp    = gameStatus === "dealt" && deadline > 0 && remainMs <= 0;
 
-  type PrimaryAction = {
-    label: string;
-    onClick: () => void;
-    disabled?: boolean;
-    loading?: boolean;
-    icon?: React.ReactNode;
-    hint?: string;
-  };
-
-  let primaryAction: PrimaryAction;
-  if (gameStatus === "dealt") {
-    if (timeUp) {
-      primaryAction = {
-        label:    t("timeUpAction"),
-        onClick:  () => { void dispatch("expireGame", {}); },
-        disabled: busy,
-        hint:     t("timeUpHint"),
-      };
-    } else {
-      primaryAction = {
-        label:    t("submitAction"),
-        onClick:  () => { void dispatch("submitSolution", {}); },
-        disabled: busy,
-        loading:  isSubmitting,
-        icon:     <Check size={16} aria-hidden="true" />,
-        hint:     t("submitHint"),
-      };
-    }
-  } else if (gameStatus === "committed") {
-    primaryAction = {
-      label:   t("statusShuffling"),
-      onClick: () => { void dispatch("retryDeal", {}); },
-      disabled: isDealing,
-      loading:  isDealing,
-      icon:    <Clock size={16} aria-hidden="true" />,
-    };
-  } else {
-    primaryAction = {
-      label:    t("startAction"),
-      onClick:  () => { void dispatch("startGame", { difficulty: gameDifficulty }); },
-      disabled: busy || !canStart,
-      loading:  isStarting,
-      icon:     <Play size={16} aria-hidden="true" />,
-      hint:     !walletConnected
-                  ? t("walletRequiredStatus")
-                  : !progressionReady
-                  ? t("progressionUnavailable")
-                  : routeLocked
-                  ? t("progressionCleared", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) })
-                  : !canStart
-                  ? t("statusPoolLow")
-                  : t("startHint", { amount: gasDisplay(rule.entryFixed8) }),
-    };
-  }
-
   // ── Secondary actions ─────────────────────────────────────────────────────
-  const secondaryActions = [
+  const drawerActions = [
+    ...(gameStatus === "committed" && !isDealing
+      ? [{
+          label:   t("checkDealAgain"),
+          icon:    <RefreshCcw size={16} aria-hidden="true" />,
+          onClick: () => { void dispatch("retryDeal", {}); },
+        }]
+      : []),
     ...(timeUp || (gameStatus === "committed" && !isDealing)
       ? [{
-          label:   t("releaseAction"),
+          label:   timeUp ? t("timeUpAction") : t("releaseAction"),
+          icon:    <RotateCcw size={16} aria-hidden="true" />,
           onClick: () => { void dispatch("expireGame", {}); },
-          hint:    t("releaseHint"),
         }]
       : []),
     ...(creditGas > 0 && gameStatus !== "dealt"
       ? [{
           label:   t("withdrawAction", { amount: creditGas.toFixed(2) }),
+          icon:    <WalletCards size={16} aria-hidden="true" />,
           onClick: () => { void dispatch("withdrawWinnings", {}); },
-          hint:    t("withdrawHint"),
         }]
       : []),
+  ];
+
+  const routeStatus = !progressionReady
+    ? t("progressionUnavailableShort")
+    : routeLocked
+      ? t("progressionNextRoute", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) })
+      : t(`difficulty_${rule.key}`);
+  const hudItems = [
+    {
+      label: t("rewardMetric"),
+      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+      accent: true,
+    },
+    {
+      label: t("timeMetric"),
+      value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
+      accent: timeUp,
+    },
+    {
+      label: t("wonMetric"),
+      value: `${myTotalWon.toFixed(2)} GAS`,
+      accent: false,
+    },
   ];
 
   return (
     <div className="snake-playarea mx2 mx2-cat-game" aria-busy={busy || undefined}>
       <PlayStage
         category="game"
+        className="snake-playstage"
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
@@ -226,42 +194,82 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           ),
         }}
         scene={
-          <PhaserGameComponent
-            config={GAME_CONFIG}
-            state={bridgeState}
-            dispatch={handleDispatch}
-          />
-        }
-        score={[
-          ...routeScore,
-          {
-            label:  t("scoreReward"),
-            value:  `${gasDisplay(rule.rewardFixed8)} GAS`,
-            accent: true,
-          },
-          {
-            label: t("scoreTime"),
-            value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
-          },
-          {
-            label: t("scoreWon"),
-            value: `${myTotalWon.toFixed(2)} GAS`,
-          },
-        ]}
-        actions={{
-          primary:   primaryAction,
-          secondary: secondaryActions.length > 0 ? secondaryActions : undefined,
-        }}
-        drawerToggleLabel={t("drawerTitle")}
-        drawer={{
-          title:    t("drawerTitle"),
-          children: (
-            <div className="snake-drawer__head">
-              <p>{t("rulesCopy")}</p>
-              <p>{t("fairnessCopy")}</p>
+          <div className="snake-stage-shell">
+            <PhaserGameComponent
+              config={GAME_CONFIG}
+              state={bridgeState}
+              dispatch={handleDispatch}
+              className="snake-phaser-canvas"
+              ariaLabel="Snake Bounty arcade game"
+              loadingLabel="Opening bounty trail"
+            />
+            <div className="snake-stage-hud" aria-label={t("routeSummary")}>
+              {hudItems.map((item) => (
+                <div
+                  className="snake-stage-hud__metric"
+                  data-accent={item.accent ? "true" : undefined}
+                  key={`${item.label}-${item.value}`}
+                >
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="snake-stage-hud__drawer"
+                onClick={() => setDrawerOpen((open) => !open)}
+                aria-expanded={drawerOpen}
+              >
+                <span>{t("drawerTitleShort")}</span>
+                <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
+              </button>
             </div>
-          ),
-        }}
+            {drawerOpen && (
+              <section className="snake-ingame-drawer" aria-label={t("drawerTitle")}>
+                <div className="snake-ingame-drawer__head">
+                  <Trophy size={18} aria-hidden="true" />
+                  <div>
+                    <h3>{t("drawerTitle")}</h3>
+                    <p>{t("fairnessShort")}</p>
+                  </div>
+                </div>
+                <div className="snake-ingame-drawer__grid">
+                  <span>
+                    <small>{t("progressionStatusLabel")}</small>
+                    <strong>{routeStatus}</strong>
+                  </span>
+                  <span>
+                    <small>{t("creditLabel")}</small>
+                    <strong>{creditGas.toFixed(2)} GAS</strong>
+                  </span>
+                  <span>
+                    <small>{t("scoreReward")}</small>
+                    <strong>{gasDisplay(rule.rewardFixed8)} GAS</strong>
+                  </span>
+                  <span>
+                    <small>{t("scoreWon")}</small>
+                    <strong>{myTotalWon.toFixed(2)} GAS</strong>
+                  </span>
+                </div>
+                {drawerActions.length > 0 && (
+                  <div className="snake-ingame-drawer__actions">
+                    {drawerActions.map((action) => (
+                      <button type="button" key={action.label} onClick={action.onClick}>
+                        {action.icon}
+                        <span>{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="snake-ingame-drawer__fairness">
+                  <ShieldCheck size={17} aria-hidden="true" />
+                  <p>{t("rulesShort")}</p>
+                </div>
+              </section>
+            )}
+          </div>
+        }
+        actions={{}}
       />
     </div>
   );

@@ -316,7 +316,8 @@ describe("Red Envelope PlayArea (v2 scene-driven)", () => {
     expect(mobileBlock).toMatch(/\.redenv-presets\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(96px,\s*1fr\)\)/);
     expect(mobileBlock).not.toMatch(/\.redenv-presets\s*\{[^}]*grid-template-columns:\s*1fr/);
     expect(mobileBlock).toMatch(/\.redenv-ticket-dock\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
-    expect(mobileBlock).toMatch(/\.redenv-play-area \.mx2-score\s*\{[\s\S]*flex-wrap:\s*nowrap/);
+    expect(mobileBlock).toMatch(/\.redenv-play-area \.mx2-score\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(mobileBlock).not.toMatch(/\.redenv-play-area \.mx2-score\s*\{[\s\S]*overflow-x:\s*auto/);
     expect(mobileBlock).toMatch(/\.redenv-drawer-tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(mobileBlock).toMatch(/\.redenv-drawer-tabs strong\s*\{[\s\S]*display:\s*none/);
     expect(styles).not.toMatch(/backdrop-filter/);

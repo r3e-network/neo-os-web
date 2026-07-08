@@ -31,6 +31,8 @@ const C = {
 } as const;
 
 const FONT = "Inter, Arial, sans-serif";
+const DESIGN_W = 420;
+const DESIGN_H = 580;
 const MODE_BUTTON_W = 134;
 const MODE_BUTTON_H = 34;
 
@@ -135,17 +137,21 @@ export class GasLuckyPoolScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width: W, height: H } = this.scale;
 
-    this.buildBackground(W, H);
-    this.buildHero(W);
-    this.buildResultPill(W);
-    this.buildModeTabs(W);
-    this.buildCreatePanel(W);
-    this.buildClaimPanel(W);
-    this.buildStatus(W, H);
+    this.buildBackground(DESIGN_W, DESIGN_H);
+    this.buildHero(DESIGN_W);
+    this.buildResultPill(DESIGN_W);
+    this.buildModeTabs(DESIGN_W);
+    this.buildCreatePanel(DESIGN_W);
+    this.buildClaimPanel(DESIGN_W);
+    this.buildStatus(DESIGN_W, DESIGN_H);
+    this.fitCameraToHost();
     this.switchMode("create");
     this.onStateUpdate(this.state);
+  }
+
+  protected onResize(): void {
+    this.fitCameraToHost();
   }
 
   protected onStateUpdate(_state: GameState): void {
@@ -154,7 +160,6 @@ export class GasLuckyPoolScene extends BaseScene {
     const range = this.str("currentRange", "1-5 GAS");
     const progress = this.str("claimProgress", "");
     const status = this.str("claimStatus", "");
-    const lastStatus = this.str("lastStatus", "");
     const lastError = this.str("lastError", "");
     const lastTxid = this.str("lastTxid", "");
     const amount = this.str("lastClaimAmount", "0");
@@ -188,7 +193,6 @@ export class GasLuckyPoolScene extends BaseScene {
     this.statusText.setText(
       compactError(lastError) ||
         (lastTxid ? `Latest tx ${truncateMiddle(lastTxid, 8, 6)}` : "") ||
-        lastStatus ||
         "OneGate-ready GAS reward vault",
     );
 
@@ -382,7 +386,7 @@ export class GasLuckyPoolScene extends BaseScene {
     }).setOrigin(0.5);
     this.createPanel.add(this.createSummaryText);
 
-    this.createButton = this.makeActionButton(W / 2, 535, "Pack vault", "primary");
+    this.createButton = this.makeActionButton(W / 2, 528, "Pack vault", "primary");
     this.createButtonBg = this.createButton.getData("bg") as Phaser.GameObjects.Graphics;
     this.createButtonLabel = this.createButton.getData("label") as Phaser.GameObjects.Text;
     this.bindGameButton(this.createButtonBg, {
@@ -667,13 +671,12 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private spawnRewardBurst(): void {
-    const { width: W } = this.scale;
     for (let i = 0; i < 16; i += 1) {
-      const coin = this.makeGasBadge(W / 2, 248, 24)
+      const coin = this.makeGasBadge(DESIGN_W / 2, 248, 24)
         .setAlpha(0.95);
       this.animate({
         targets: coin,
-        x: W / 2 + Phaser.Math.Between(-145, 145),
+        x: DESIGN_W / 2 + Phaser.Math.Between(-145, 145),
         y: 118 + Phaser.Math.Between(-18, 110),
         angle: Phaser.Math.Between(-220, 220),
         alpha: { from: 1, to: 0 },
@@ -690,5 +693,16 @@ export class GasLuckyPoolScene extends BaseScene {
       duration: 260,
       ease: "Back.easeOut",
     });
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, DESIGN_H / 2);
   }
 }

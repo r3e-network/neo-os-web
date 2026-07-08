@@ -35,6 +35,8 @@ const C = {
 } as const;
 
 const FONT = "Inter, Arial, sans-serif";
+const DESIGN_W = 420;
+const DESIGN_H = 600;
 const KEY_PRESETS = ["1", "3", "5", "10"] as const;
 
 type PresetView = {
@@ -99,16 +101,20 @@ export class LastSurvivorScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width: W, height: H } = this.scale;
 
-    this.buildBackground(W, H);
-    this.buildHero(W);
-    this.buildHud(W);
-    this.buildTimerConsole(W);
-    this.buildControls(W, H);
-    this.buildStatus(W, H);
+    this.buildBackground(DESIGN_W, DESIGN_H);
+    this.buildHero(DESIGN_W);
+    this.buildHud(DESIGN_W);
+    this.buildTimerConsole(DESIGN_W);
+    this.buildControls(DESIGN_W, DESIGN_H);
+    this.buildStatus(DESIGN_W, DESIGN_H);
+    this.fitCameraToHost();
     this.startAmbientMotion();
     this.onStateUpdate(this.state);
+  }
+
+  protected onResize(): void {
+    this.fitCameraToHost();
   }
 
   protected onStateUpdate(_state: GameState): void {
@@ -153,7 +159,7 @@ export class LastSurvivorScene extends BaseScene {
       validation
         ? compactError(validation)
         : serviceNotice
-          ? compactError(serviceNotice)
+          ? "Arena service unavailable. Connect wallet and refresh."
           : needsLifecycleSync
             ? "Settle to pay the winner and open a fresh round."
             : isRoundActive
@@ -362,6 +368,7 @@ export class LastSurvivorScene extends BaseScene {
       fontSize: "12px",
       color: "#806f56",
       align: "center",
+      fixedWidth: W - 80,
       wordWrap: { width: W - 80 },
     }).setOrigin(0.5);
   }
@@ -456,8 +463,7 @@ export class LastSurvivorScene extends BaseScene {
 
   private renderDanger(dangerPct: number): void {
     if (!this.dangerRing) return;
-    const { width: W } = this.scale;
-    const cx = W / 2;
+    const cx = DESIGN_W / 2;
     const cy = 285;
     const radius = 44;
     const pct = Phaser.Math.Clamp(dangerPct / 100, 0, 1);
@@ -473,7 +479,7 @@ export class LastSurvivorScene extends BaseScene {
 
     if (this.dangerFill) {
       this.dangerFill.setFillStyle(dangerColor);
-      this.dangerFill.setDisplaySize((W - 128) * pct, 6);
+      this.dangerFill.setDisplaySize((DESIGN_W - 128) * pct, 6);
     }
   }
 
@@ -542,5 +548,16 @@ export class LastSurvivorScene extends BaseScene {
       yoyo: true,
       ease: "Back.easeOut",
     });
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, DESIGN_H / 2);
   }
 }

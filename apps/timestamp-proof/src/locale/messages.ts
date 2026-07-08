@@ -75,6 +75,14 @@ const appMessages = {
   proofPressAnchorAnchored: { en: "On-chain", zh: "已上链" },
   documentTypeHash: { en: "SHA-256 digest", zh: "SHA-256 摘要" },
   documentTypeText: { en: "Source content", zh: "原始内容" },
+  digestPassThrough: {
+    en: "Use this digest directly",
+    zh: "直接使用该摘要",
+  },
+  localHashPending: {
+    en: "Will hash locally on save",
+    zh: "保存时本地计算哈希",
+  },
   contentChars: { en: "Characters", zh: "字符数" },
   pendingDigest: { en: "After save", zh: "保存后生成" },
   proofRouteLabel: { en: "Proof route", zh: "证明路径" },

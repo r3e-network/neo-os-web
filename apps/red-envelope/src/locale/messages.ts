@@ -60,9 +60,11 @@ const appMessages = {
   claimedGasLabel: { en: "Claimed GAS", zh: "已领取 GAS" },
   recentClaimsTitle: { en: "Recent claims", zh: "最近领取" },
   historyTitle: { en: "Claim history", zh: "领取历史" },
+  moreActions: { en: "More actions", zh: "更多操作" },
+  drawerSummaryLabel: { en: "Envelope account summary", zh: "红包账户概览" },
   noPoolsCopy: {
-    en: "Create a GAS envelope or paste an ID from a OneGate QR to test the claim route.",
-    zh: "创建 GAS 红包，或粘贴 OneGate 二维码里的 ID 来测试领取路径。",
+    en: "Create a GAS envelope or open a OneGate QR claim link to test the claim route.",
+    zh: "创建 GAS 红包，或打开 OneGate 二维码领取链接来测试领取路径。",
   },
   noActivityCopy: {
     en: "Successful claims will appear here with wallet and amount evidence.",
@@ -93,8 +95,8 @@ const appMessages = {
     zh: "ID 已填入。领取时合约会校验红包是否可打开。",
   },
   claimTicketEmptyDesc: {
-    en: "Scan a QR, paste a link ID, or pick an open envelope below.",
-    zh: "扫描二维码、粘贴链接 ID，或从下方选择可开的红包。",
+    en: "Open a OneGate QR claim link or pick an open envelope below.",
+    zh: "打开 OneGate 二维码领取链接，或从下方选择可开的红包。",
   },
   scanOrPasteEnvelope: { en: "Scan or paste ID", zh: "扫描或粘贴 ID" },
   createReadyDesc: {

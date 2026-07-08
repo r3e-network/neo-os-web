@@ -36,11 +36,26 @@ describe("self-loan PlayArea (v2)", () => {
     expect(container.querySelector(".selfloan-desk")).toBeTruthy();
     expect(container.querySelectorAll(".selfloan-scene .mx2-coin").length).toBeGreaterThanOrEqual(5);
   });
+  it("presents collateral as a DeFi asset control instead of a raw form block", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ neoBalance: "100", neoBalanceDisplay: "100" })} dispatch={dispatch} />);
+
+    expect(container.querySelector(".selfloan-vault-picker")).toBeTruthy();
+    expect(container.querySelector(".selfloan-amount-box")).toBeNull();
+    expect(container.querySelectorAll(".selfloan-vault-picker .mx2-coin").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".selfloan-vault-picker__steppers button")).toHaveLength(2);
+    expect(container.querySelectorAll(".selfloan-quick-row button")).toHaveLength(4);
+
+    fireEvent.click(container.querySelectorAll(".selfloan-vault-picker__steppers button")[1]);
+    expect(dispatch).toHaveBeenCalledWith("setCollateralAmount", "1");
+    fireEvent.click(container.querySelector(".selfloan-quick-row__max") as Element);
+    expect(dispatch).toHaveBeenCalledWith("setCollateralAmount", "100");
+  });
   it("keeps borrow submission on the primary action", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state({ collateralAmount: "10" })} dispatch={dispatch} />);
+    const { container } = render(<PlayArea t={t} state={state({ collateralAmount: "10", selectedLtv: 3 })} dispatch={dispatch} />);
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "10" });
+    expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "10", ltvTier: 3 });
   });
   it("updates collateral with quick actions without changing the contract payload path", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
@@ -58,7 +73,7 @@ describe("self-loan PlayArea (v2)", () => {
     expect(input.value).toBe("12");
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
 
-    expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "12" });
+    expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "12", ltvTier: 1 });
   });
   it("has reduced-motion and no global backdrop pollution", () => {
     const s = readFileSync(appScssPath("self-loan"), "utf8");
@@ -79,6 +94,11 @@ describe("self-loan PlayArea (v2)", () => {
     expect(s).toMatch(/selfloan-scene__asset-row/);
     expect(s).toMatch(/selfloan-token-value/);
     expect(s).toMatch(/selfloan-scene__borrow-token/);
+    expect(s).toMatch(/selfloan-vault-picker\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\) auto/);
+    expect(s).toMatch(/selfloan-vault-picker__field\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
+    expect(s).toMatch(/selfloan-quick-row\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*selfloan-scene\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*selfloan-scene__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).not.toMatch(/selfloan-scene__image|selfloan-scene__wash|var\(--mx2-scene-art-opacity/);
     expect(s).not.toMatch(/backdrop-filter/);
     expect(s).not.toMatch(/radial-gradient/);

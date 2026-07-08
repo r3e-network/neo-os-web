@@ -28,7 +28,13 @@ function t(key: string, params?: Record<string, string | number>) {
     toAgentId: "To agent",
     agentId: "Agent",
     neoAmount: "NEO amount",
+    neoAmountControl: "NEO amount control",
+    decreaseAmount: "Decrease amount",
+    increaseAmount: "Increase amount",
+    quickAmount: "Quick NEO amounts",
+    maxAmount: "Max",
     candidatePublicKey: "Candidate public key",
+    candidateControl: "Candidate public key control",
     agentCandidateLabel: "Candidate",
     agentCandidateNone: "No candidate",
     cardRuleCandidate: "Candidate key is set explicitly",
@@ -92,6 +98,24 @@ describe("profitanchor-admin integration", () => {
     }));
   });
 
+  it("blocks empty or over-balance NEO movement before dispatch", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByLabelText } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const amountInput = getByLabelText("NEO amount") as HTMLInputElement;
+    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+
+    fireEvent.change(amountInput, { target: { value: "" } });
+    expect(primary.disabled).toBe(true);
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(amountInput, { target: { value: "99" } });
+    expect(container.querySelector(".admin-amount-console")?.getAttribute("data-invalid")).toBe("true");
+    expect(primary.disabled).toBe(true);
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it("switches to vote mode and dispatches voteAgent", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container, getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
@@ -107,7 +131,9 @@ describe("profitanchor-admin integration", () => {
     const { container, getByLabelText, getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(getByRole("button", { name: /Update candidate/i }));
+    expect(container.querySelector(".admin-candidate-console")).toBeTruthy();
     fireEvent.change(getByLabelText("Candidate public key"), { target: { value: "02dddd" } });
+    expect(container.textContent).toContain("02dddd");
     fireEvent.click(container.querySelector(".mx2-btn--primary") as HTMLButtonElement);
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("setAgentCandidate", {

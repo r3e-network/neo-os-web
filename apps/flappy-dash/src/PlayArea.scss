@@ -29,8 +29,43 @@ $game-accent: #00af92;
   display: block;
   --mx2-stage-floor: #faf9f7;
 
+  .mx2-stage {
+    box-sizing: border-box;
+    width: min(100%, 760px);
+    max-width: 760px;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    margin-inline: auto;
+    padding: 8px 12px;
+    background: #fffdf8;
+    overflow: hidden;
+  }
+
+  .mx2-stage__head {
+    position: absolute;
+    top: 18px;
+    left: 24px;
+    right: 24px;
+    z-index: 24;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .mx2-stage__titles {
+    max-width: min(56%, 360px);
+    border: 1px solid rgba(77, 201, 246, 0.2);
+    border-radius: 14px;
+    padding: 7px 10px 8px;
+    background: rgba(255, 253, 248, 0.82);
+    box-shadow: 0 10px 24px rgba(11, 103, 125, 0.11);
+    backdrop-filter: blur(10px);
+  }
+
   .mx2-stage__title {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 560;
     line-height: 1.08;
     letter-spacing: 0;
@@ -41,12 +76,212 @@ $game-accent: #00af92;
   }
 
   .mx2-stage__scene {
+    flex: 1 1 auto;
     min-height: 0;
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     justify-content: flex-start;
-    padding: 12px 12px 0;
+    padding: 0;
   }
+
+  .phaser-game-host {
+    margin-inline: auto;
+  }
+}
+
+.flappy-phaser-canvas {
+  flex: 0 0 auto;
+}
+
+.flappy-stage-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100dvh - 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(77, 201, 246, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(240, 251, 255, 0.96), rgba(255, 250, 238, 0.9)),
+    #f1fbff;
+}
+
+.flappy-stage-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 12;
+  width: min(100%, 440px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(77, 201, 246, 0.24);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: 0 10px 24px rgba(11, 103, 125, 0.1);
+}
+
+.flappy-stage-hud__metric,
+.flappy-stage-hud__drawer {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(77, 201, 246, 0.18);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.flappy-stage-hud__metric {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.flappy-stage-hud__metric[data-accent="true"] {
+  border-color: rgba(0, 175, 146, 0.36);
+  box-shadow: inset 2px 0 0 $game-accent;
+}
+
+.flappy-stage-hud__metric span {
+  color: #496477;
+  font-size: 0.58rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.flappy-stage-hud__metric strong {
+  color: #173247;
+  font-size: 0.82rem;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.flappy-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #057366;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.flappy-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.flappy-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.flappy-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(640px, calc(100% - 18px));
+  max-height: min(72vh, 580px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(77, 201, 246, 0.28);
+  border-radius: 14px;
+  background: #fffdf8;
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(11, 103, 125, 0.18);
+}
+
+.flappy-ingame-drawer__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.flappy-ingame-drawer__head svg {
+  color: #057366;
+}
+
+.flappy-ingame-drawer__head h3 {
+  margin: 0 0 3px;
+  color: #173247;
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.flappy-ingame-drawer__head p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.flappy-ingame-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.flappy-ingame-drawer__summary span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(77, 201, 246, 0.18);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.flappy-ingame-drawer__summary small {
+  color: var(--mx2-text-muted);
+  font-size: 0.68rem;
+}
+
+.flappy-ingame-drawer__summary strong {
+  color: #173247;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flappy-ingame-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.flappy-ingame-drawer__actions button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(0, 175, 146, 0.22);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #057366;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.flappy-ingame-drawer .flappy-drawer {
+  margin-top: 12px;
 }
 
 // ─── Scene ───────────────────────────────────────────────────────────────────
@@ -635,31 +870,170 @@ $game-accent: #00af92;
 
 // ─── Drawer ──────────────────────────────────────────────────────────────────
 
+.flappy-drawer {
+  display: grid;
+  gap: 14px;
+}
+
 .flappy-drawer__head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.07);
+  padding: 12px;
+  border: 1px solid rgba(77, 201, 246, 0.22);
+  border-radius: var(--mx2-r, 8px);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(233, 250, 255, 0.72)),
+    rgba(255, 255, 255, 0.92);
 
   p {
     margin: 0;
     font-size: 0.8rem;
     color: var(--mx2-text-muted);
+    line-height: 1.45;
+  }
+
+  img {
+    flex: 0 0 auto;
+    border-radius: 10px;
+    box-shadow: 0 6px 14px rgba(11, 103, 125, 0.12);
   }
 }
 
-.flappy-drawer__seed {
+.flappy-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.flappy-drawer__summary div,
+.flappy-drawer__section,
+.flappy-drawer__credit {
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: var(--mx2-r, 8px);
+  background: #fffef9;
+}
+
+.flappy-drawer__summary div {
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.flappy-drawer__summary span {
   display: block;
+  margin-bottom: 4px;
+  color: var(--mx2-text-muted);
+  font-size: 0.72rem;
+  font-weight: 620;
+}
+
+.flappy-drawer__summary strong {
+  display: block;
+  overflow: hidden;
+  color: #173247;
+  font-size: 0.92rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flappy-drawer__section {
+  padding: 12px;
+}
+
+.flappy-drawer__section h4 {
+  margin: 0 0 8px;
+  color: #173247;
+  font-size: 0.9rem;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.flappy-drawer__section p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.flappy-drawer__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+
+  h4 {
+    margin: 0;
+  }
+
+  .mx2-btn {
+    flex: 0 0 auto;
+  }
+}
+
+.flappy-drawer__empty {
+  padding: 10px 12px;
+  border-radius: var(--mx2-r-sm, 6px);
+  background: rgba(77, 201, 246, 0.08);
+}
+
+.flappy-drawer__fairness h4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flappy-drawer__seed,
+.flappy-drawer__status {
+  display: block;
+  margin-top: 10px !important;
   border: 1px solid rgba(31, 41, 55, 0.08);
   border-radius: var(--mx2-r-md, 8px);
   padding: 7px 10px;
-  background: rgba(31, 41, 55, 0.03);
-  font-size: 0.72rem;
+  background: rgba(77, 201, 246, 0.07);
+  font-size: 0.72rem !important;
   color: var(--mx2-text-muted);
+  line-height: 1.5 !important;
+  word-break: break-word;
+}
+
+.flappy-drawer__seed {
   font-family: var(--mx2-font-mono, monospace);
   word-break: break-all;
-  line-height: 1.5;
+}
+
+.flappy-drawer__credit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(238, 253, 249, 0.95), rgba(255, 254, 249, 0.95));
+
+  span {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+    color: var(--mx2-text-muted);
+    font-size: 0.8rem;
+  }
+
+  strong {
+    color: #067a5b;
+    font-weight: 680;
+  }
+
+  em {
+    color: var(--mx2-text-muted);
+    font-size: 0.72rem;
+    font-style: normal;
+    line-height: 1.35;
+  }
+
+  .mx2-btn {
+    flex: 0 0 auto;
+  }
 }
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
@@ -714,6 +1088,38 @@ $game-accent: #00af92;
   font-size: 0.66rem;
   font-weight: 680;
   color: $game-accent;
+}
+
+.flappy-history {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.flappy-history__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border-radius: var(--mx2-r-md);
+  background: rgba(31, 41, 55, 0.03);
+  color: var(--mx2-text-muted);
+  font-size: 0.76rem;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.flappy-history__won {
+  color: #067a5b;
+  font-weight: 680;
 }
 
 // ─── Keyframes ───────────────────────────────────────────────────────────────
@@ -893,8 +1299,106 @@ $game-accent: #00af92;
 // ─── Responsive ──────────────────────────────────────────────────────────────
 
 @media (max-width: 560px) {
+  .flappy-playarea .mx2-playstage.mx2-cat-game {
+    min-height: 100dvh;
+  }
+
+  .flappy-playarea .mx2-cat-game.mx2-stage,
+  .flappy-playarea .mx2-cat-game .mx2-stage__scene {
+    flex: 0 0 auto;
+  }
+
+  .flappy-playarea .mx2-cat-game.mx2-stage {
+    padding: 6px 14px 8px !important;
+  }
+
+  .flappy-playarea .mx2-stage {
+    width: 100%;
+    min-height: 100dvh;
+    padding: 6px 14px 8px;
+  }
+
+  .flappy-playarea .mx2-stage__head {
+    align-items: center;
+    gap: 8px;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+  }
+
+  .flappy-playarea .mx2-stage__titles {
+    max-width: 58%;
+    border-radius: 12px;
+    padding: 6px 8px 7px;
+  }
+
+  .flappy-playarea .mx2-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  .flappy-playarea .mx2-stage__title {
+    margin-top: 2px;
+    font-size: 18px;
+    line-height: 1.08;
+  }
+
   .flappy-playarea .mx2-stage__subtitle {
     display: none;
+  }
+
+  .flappy-playarea .mx2-stage__scene {
+    padding: 0;
+  }
+
+  .flappy-stage-shell {
+    height: calc(100dvh - 14px);
+    min-height: calc(100dvh - 14px);
+    justify-content: center;
+    gap: 8px;
+    border-radius: 18px;
+  }
+
+  .flappy-phaser-canvas {
+    --phaser-mobile-height-ratio: 1.5;
+  }
+
+  .flappy-stage-hud {
+    width: min(100%, 378px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    padding: 6px;
+    border-radius: 14px;
+  }
+
+  .flappy-stage-hud__metric,
+  .flappy-stage-hud__drawer {
+    min-height: 46px;
+    padding: 6px 7px;
+    border-radius: 11px;
+  }
+
+  .flappy-stage-hud__metric span {
+    font-size: 0.54rem;
+  }
+
+  .flappy-stage-hud__metric strong {
+    font-size: 0.76rem;
+  }
+
+  .flappy-stage-hud__drawer {
+    font-size: 0.68rem;
+  }
+
+  .flappy-ingame-drawer {
+    bottom: 10px;
+    width: calc(100% - 14px);
+    max-height: min(77vh, 650px);
+    padding: 16px;
+  }
+
+  .flappy-ingame-drawer__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .flappy-scene {
@@ -998,5 +1502,26 @@ $game-accent: #00af92;
 
   .flappy-lobby__result {
     padding: 10px 12px;
+  }
+
+  .flappy-drawer__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .flappy-drawer__section-head,
+  .flappy-drawer__credit {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .flappy-ranks__row,
+  .flappy-history__row {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .flappy-ranks__solves,
+  .flappy-history__row span:nth-child(3),
+  .flappy-history__row span:nth-child(4) {
+    display: none;
   }
 }

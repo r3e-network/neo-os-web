@@ -13,6 +13,72 @@ const messages = {
 };
 
 describe("MiniAppRoot launch params", () => {
+  it("normalizes the framework launch app id while preserving the play-area launch context", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/red-envelope/index.html?source=platform&operation=createEnvelope",
+    );
+
+    let frameworkLaunch: unknown;
+    let setupLaunchContext: unknown;
+    let playAreaLaunchContext: unknown;
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const PlayArea = (props: Record<string, unknown>) => {
+      playAreaLaunchContext = props.launchContext;
+      return React.createElement("div", { "data-testid": "play-area" });
+    };
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-redenvelope",
+        playArea: PlayArea as never,
+        manifest: {
+          name: "Launch App",
+          description: "Launch app",
+          icon: "gift",
+          category: "gaming",
+          tabs: [{ key: "play", labelKey: "play", icon: "gift", default: true }],
+        },
+        messages,
+        setupFn: (ctx: Record<string, unknown>) => {
+          setupLaunchContext = ctx.launchContext;
+          frameworkLaunch = (
+            ctx.framework as { platform?: { launch?: unknown } }
+          ).platform?.launch;
+          return { state: {} };
+        },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(frameworkLaunch).toBeDefined();
+      expect(playAreaLaunchContext).toBeDefined();
+    });
+
+    expect(frameworkLaunch).toMatchObject({
+      appId: "miniapp-redenvelope",
+      source: "platform",
+      operation: "createEnvelope",
+    });
+    expect(setupLaunchContext).toMatchObject({
+      appId: "miniapp-redenvelope",
+      source: "platform",
+      operation: "createEnvelope",
+    });
+    expect(playAreaLaunchContext).toMatchObject({
+      appId: "miniapp-redenvelope",
+      source: "platform",
+      operation: "createEnvelope",
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
   it("passes URL launch params to setup and play area for standalone OneGate dapps", async () => {
     window.history.pushState(
       {},

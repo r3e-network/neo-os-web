@@ -111,6 +111,7 @@ const appMessages = {
   bestScoreLabel: { en: "Best: {count}", zh: "最佳：{count}" },
 
   releaseAction: { en: "Release game", zh: "结算过期对局" },
+  timeUpAction: { en: "Time is up", zh: "时间已到" },
   releaseHint: {
     en: "Frees the reward reservation of an expired game (refunds an undealt entry).",
     zh: "释放过期对局占用的奖励额度（未发牌的对局将退回报名费）。",
@@ -153,6 +154,7 @@ const appMessages = {
   scoreWon: { en: "Total won", zh: "累计赢取" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  drawerTitleShort: { en: "Rules", zh: "规则" },
   leaderboardIntro: {
     en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
     zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",
@@ -178,6 +180,14 @@ const appMessages = {
   fairnessCopy: {
     en: "The pipe layout is generated inside the Morpheus TEE from a per-game seed: only its SHA-256 commitment is bound on-chain at the start, so the gap positions cannot be seen ahead of time or scripted. At settlement the enclave signs the result (problem hash, state hash, time, pipes passed) and the contract verifies both the signature and that the problem hash equals the original commitment before paying.",
     zh: "管道布局由 Morpheus TEE 用每局独立的种子在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此管道间隙位置无法提前获知或通过脚本预判。结算时飞地对结果（问题哈希、状态哈希、用时、通过管道数）签名，合约核验签名与承诺一致后才发奖。",
+  },
+  fairnessShort: {
+    en: "Pipe routes are sealed in the TEE before the run starts.",
+    zh: "管道路线上链前已在 TEE 中密封。",
+  },
+  rulesShort: {
+    en: "Tap to flap, clear the route target, then submit the verified run.",
+    zh: "点击振翅，通过路线目标后提交可验证成绩。",
   },
   commitmentLine: {
     en: "Game #{gameId} · sealed commitment {commitment}",

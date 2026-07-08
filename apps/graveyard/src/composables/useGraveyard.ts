@@ -69,6 +69,15 @@ export interface UseGraveyardOptions {
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
+type ComposeMode = "hash" | "write";
+
+export interface BurialDraftInput {
+  composeMode?: unknown;
+  memoryText?: unknown;
+  assetHash?: unknown;
+  memoryType?: unknown;
+}
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -135,6 +144,12 @@ const asNumber = (value: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const parseComposeMode = (value: unknown, fallback: ComposeMode): ComposeMode =>
+  value === "hash" ? "hash" : value === "write" ? "write" : fallback;
+
 /** Format a GAS base-unit amount as a trimmed decimal string (e.g. "0.1"). */
 const formatGasAmount = (base: bigint): string => {
   const whole = base / GAS_DECIMALS;
@@ -186,7 +201,7 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
   // "write" = the user types their memory and we sha256 it locally, so the raw
   // text never leaves the device — the same on-device-hash pattern as
   // time-capsule, giving first-time users a way to produce a burial target.
-  const composeMode = createObservable<"hash" | "write">("write");
+  const composeMode = createObservable<ComposeMode>("write");
   // Plaintext memory the user types in "write" mode. Hashed locally; never sent.
   const memoryText = createObservable("");
 
@@ -264,7 +279,7 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
    * target. This gives a first-time user an in-app way to produce a hash (the
    * legacy "hash" mode only accepted a pre-made one).
    */
-  const setMemoryText = async (text: string) => {
+  const setMemoryText = async (text: string, mode: ComposeMode = composeMode.get()) => {
     memoryText.set(text);
     const seq = ++memoryHashSeq;
     const trimmed = text.trim();
@@ -272,18 +287,41 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
       if (seq === memoryHashSeq) assetHash.set("");
       return;
     }
+    if (mode === "hash") {
+      if (seq === memoryHashSeq) assetHash.set(trimmed);
+      return;
+    }
     const digest = await sha256Hex(trimmed);
-    // Ignore if a newer keystroke superseded this one mid-hash.
-    if (seq === memoryHashSeq) assetHash.set(digest);
+    // Ignore if a newer keystroke or mode switch superseded this one mid-hash.
+    if (seq === memoryHashSeq && composeMode.get() === "write") assetHash.set(digest);
   };
 
   /** Switch compose mode, clearing the other mode's input so the target is unambiguous. */
-  const setComposeMode = (mode: "hash" | "write") => {
+  const setComposeMode = (mode: ComposeMode) => {
     if (composeMode.get() === mode) return;
+    memoryHashSeq += 1;
     composeMode.set(mode);
     memoryText.set("");
     assetHash.set("");
     showConfirm.set(false);
+  };
+
+  const applyBurialDraft = async (draft: unknown) => {
+    if (!isRecord(draft)) return;
+    const nextMode = parseComposeMode(draft.composeMode, composeMode.get());
+    if (composeMode.get() !== nextMode) setComposeMode(nextMode);
+
+    const nextType = Number(draft.memoryType);
+    if (Number.isInteger(nextType) && nextType > 0) memoryType.set(nextType);
+
+    if (nextMode === "hash") {
+      await setMemoryText(String(draft.assetHash ?? draft.memoryText ?? ""), "hash");
+      return;
+    }
+
+    if ("memoryText" in draft) {
+      await setMemoryText(String(draft.memoryText ?? ""), "write");
+    }
   };
 
   const initiateDestroy = () => {
@@ -318,7 +356,8 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
    * the memory type are anchored on-chain in the same paid flow; the memoryId is
    * read back from the MemoryBuried event.
    */
-  const executeDestroy = async () => {
+  const executeDestroy = async (draft?: BurialDraftInput) => {
+    await applyBurialDraft(draft);
     showConfirm.set(false);
     // In-flight guard: throw (not silent return) so the host surfaces a busy
     // message instead of a misleading success toast for the dropped click.

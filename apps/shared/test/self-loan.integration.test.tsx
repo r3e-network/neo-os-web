@@ -38,7 +38,7 @@ describe("self-loan integration: dispatch params + state", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "10" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("borrow", { collateralAmount: "10", ltvTier: 2 }));
   });
   it("dispatches setCollateralAmount on input change", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);

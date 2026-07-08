@@ -22,6 +22,9 @@ const PET_ASSETS = {
   badges: ["pet-potion-badge-easy", "pet-potion-badge-medium", "pet-potion-badge-hard"],
 } as const;
 
+const DESIGN_W = 420;
+const DESIGN_H = 580;
+
 const C = {
   canvas: 0xfffbef,
   surface: 0xffffff,
@@ -128,19 +131,23 @@ export class PetPotionScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width: W, height: H } = this.scale;
 
-    this.buildBackground(W, H);
-    this.buildHeader(W);
-    this.buildPetStage(W, H);
-    this.buildGoalMeter(W, H);
-    this.buildStats(W, H);
-    this.buildModeCards(W, H);
-    this.buildActionButtons(W, H);
-    this.buildPrimaryButton(W, H);
-    this.buildStatus(W, H);
+    this.fitCameraToHost();
+    this.buildBackground(DESIGN_W, DESIGN_H);
+    this.buildHeader(DESIGN_W);
+    this.buildPetStage(DESIGN_W, DESIGN_H);
+    this.buildGoalMeter(DESIGN_W, DESIGN_H);
+    this.buildStats(DESIGN_W, DESIGN_H);
+    this.buildModeCards(DESIGN_W, DESIGN_H);
+    this.buildActionButtons(DESIGN_W, DESIGN_H);
+    this.buildPrimaryButton(DESIGN_W, DESIGN_H);
+    this.buildStatus(DESIGN_W, DESIGN_H);
     this.startAmbientMotion();
     this.onStateUpdate(this.state);
+  }
+
+  protected onResize(): void {
+    this.fitCameraToHost();
   }
 
   protected onStateUpdate(_state: GameState): void {
@@ -194,10 +201,10 @@ export class PetPotionScene extends BaseScene {
     this.lastActionCount = actionsUsed;
 
     this.targetText.setText(isPlaying ? `Goal ${Math.round(Math.max(achieved, happiness))}/${activeMode.target}` : `${activeMode.label} care path`);
+    const statusCopy = this.statusCopy(status, isLoading, targetReached, actionsUsed);
     this.statusText.setColor("#7b6d5a");
-    this.statusText.setText(
-      this.statusCopy(status, isLoading, targetReached, actionsUsed),
-    );
+    this.statusText.setVisible(Boolean(statusCopy));
+    this.statusText.setText(statusCopy);
   }
 
   protected onBridgeError(error: GameBridgeError): void {
@@ -295,9 +302,9 @@ export class PetPotionScene extends BaseScene {
       { label: "Fed", color: C.orange },
       { label: "Energy", color: C.blue },
     ] as const;
-    const y0 = H * 0.64;
+    const y0 = H * 0.615;
     defs.forEach((def, index) => {
-      const y = y0 + index * 30;
+      const y = y0 + index * 24;
       this.add.text(44, y, def.label, {
         fontFamily: FONT,
         fontSize: "11px",
@@ -321,26 +328,26 @@ export class PetPotionScene extends BaseScene {
   }
 
   private buildModeCards(W: number, H: number): void {
-    const startX = W / 2 - 118;
-    const y = H - 118;
+    const startX = W / 2 - 116;
+    const y = H - 116;
     DIFFICULTIES.forEach((mode, index) => {
-      const container = this.add.container(startX + index * 118, y).setDepth(8);
+      const container = this.add.container(startX + index * 116, y).setDepth(8);
       const bg = this.add.graphics();
-      const badge = this.add.image(0, -18, mode.badge).setDisplaySize(42, 42);
-      const label = this.add.text(0, 14, mode.label, {
+      const badge = this.add.image(0, -16, mode.badge).setDisplaySize(38, 38);
+      const label = this.add.text(0, 13, mode.label, {
         fontFamily: FONT,
         fontSize: "12px",
         color: "#2f291f",
         fontStyle: "bold",
       }).setOrigin(0.5);
-      const reward = this.add.text(0, 34, `${mode.reward} GAS`, {
+      const reward = this.add.text(0, 31, `${mode.reward} GAS`, {
         fontFamily: FONT,
         fontSize: "10px",
         color: "#0c705d",
         fontStyle: "bold",
       }).setOrigin(0.5);
 
-      bg.setInteractive(new Phaser.Geom.Rectangle(-49, -48, 98, 94), Phaser.Geom.Rectangle.Contains);
+      bg.setInteractive(new Phaser.Geom.Rectangle(-45, -43, 90, 84), Phaser.Geom.Rectangle.Contains);
       this.bindGameButton(bg, {
         targets: container,
         hoverScale: 1.04,
@@ -453,7 +460,7 @@ export class PetPotionScene extends BaseScene {
       const pct = clamp01(value / 100);
       this.tweens.add({
         targets: stat.fill,
-        displayWidth: pct * (this.scale.width - 178),
+        displayWidth: pct * (DESIGN_W - 178),
         duration: 220,
         ease: "Sine.easeOut",
       });
@@ -465,7 +472,7 @@ export class PetPotionScene extends BaseScene {
     const pct = target > 0 ? clamp01(value / target) : 0;
     this.tweens.add({
       targets: this.goalFill,
-      displayWidth: pct * (this.scale.width - 128),
+      displayWidth: pct * (DESIGN_W - 128),
       duration: 260,
       ease: "Sine.easeOut",
     });
@@ -570,9 +577,9 @@ export class PetPotionScene extends BaseScene {
   private renderModeCard(bg: Phaser.GameObjects.Graphics, active: boolean, hover: boolean): void {
     bg.clear();
     bg.fillStyle(active ? 0xf2fffb : C.surface, hover || active ? 0.98 : 0.88);
-    bg.fillRoundedRect(-49, -48, 98, 94, 14);
+    bg.fillRoundedRect(-45, -43, 90, 84, 13);
     bg.lineStyle(active ? 2 : 1, active ? C.jade : C.stroke, active ? 0.78 : 0.62);
-    bg.strokeRoundedRect(-49, -48, 98, 94, 14);
+    bg.strokeRoundedRect(-45, -43, 90, 84, 13);
   }
 
   private renderActionButton(bg: Phaser.GameObjects.Graphics, color: number, hover: boolean): void {
@@ -604,7 +611,7 @@ export class PetPotionScene extends BaseScene {
       if (targetReached) return "Target reached. Claim before the deadline.";
       return `${actionsUsed} / 40 care actions used`;
     }
-    return "Pick a nursery path. The TEE keeps pet stats sealed until settlement.";
+    return "";
   }
 
   private coverImage(image: Phaser.GameObjects.Image, W: number, H: number): void {
@@ -613,5 +620,15 @@ export class PetPotionScene extends BaseScene {
     const sourceH = Number(source.height) || H;
     const scale = Math.max(W / sourceW, H / sourceH);
     image.setScale(scale);
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, DESIGN_H / 2);
   }
 }

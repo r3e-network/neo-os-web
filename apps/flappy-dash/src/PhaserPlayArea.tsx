@@ -4,15 +4,17 @@
  * Bridges observable state from main.tsx into the Phaser FlappyScene and
  * forwards Phaser dispatch calls back to the blockchain layer.
  *
- * The React shell (PlayStage) provides the outer chrome (title, badges,
- * score row, actions, drawer). The Phaser canvas handles all game rendering
- * including the lobby difficulty-picker, the game itself, and overlays.
+ * PlayStage provides only the app frame. Score, recovery actions, rules, and
+ * leaderboard live inside the flight deck so the game does not feel like a form
+ * with a canvas preview.
  */
 import * as Phaser from "phaser";
+import { useState } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { PhaserGameComponent } from "@framework/phaser";
+import { ChevronDown, RefreshCw, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
 import { FlappyScene } from "./scenes/FlappyScene";
 import { formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
 import type { LeaderEntry, SolveRow } from "./main";
@@ -26,31 +28,70 @@ const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   transparent: true,
 };
 
+function clampDifficulty(value: number): number {
+  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
+}
+
+function shortHash(value: string, head = 10, tail = 6): string {
+  if (!value || value.length <= head + tail + 1) return value;
+  return `${value.slice(0, head)}...${value.slice(-tail)}`;
+}
+
+function gasAmountDisplay(amount: number): string {
+  if (!Number.isFinite(amount)) return "0.00";
+  return amount.toLocaleString("en-US", {
+    minimumFractionDigits: Math.abs(amount) >= 10 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function historyElapsed(row: SolveRow): number {
+  const candidate = (row as { solveMs?: unknown; elapsedMs?: unknown }).solveMs
+    ?? (row as { solveMs?: unknown; elapsedMs?: unknown }).elapsedMs;
+  const value = Number(candidate ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function historyPipes(row: SolveRow): number {
+  const value = Number((row as { pipes?: unknown }).pipes ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ── Observables ─────────────────────────────────────────────────────────
   const gameStatus     = str("gameStatus", "idle");
   const seed           = str("seed", "");
   const activeGameId   = str("activeGameId", "0");
-  const gameDifficulty = val<number>("gameDifficulty", 0) ?? 0;
+  const gameDifficulty = clampDifficulty(Number(val<number>("gameDifficulty", 0) ?? 0));
+  const commitment     = str("commitment", "");
   const deadline       = val<number>("deadline", 0) ?? 0;
+  const dealtAt        = val<number>("dealtAt", 0) ?? 0;
+  const pipesPassed    = val<number>("pipesPassed", 0) ?? 0;
   const poolFree       = val<number>("poolFree", 0) ?? 0;
-  const creditGas      = val<number>("credit", 0) ?? 0;
+  const creditGas      = Number(val<number>("credit", 0) ?? 0);
   const isStarting     = bool("isStarting");
   const isDealing      = bool("isDealing");
   const isSubmitting   = bool("isSubmitting");
   const lastPayout     = str("lastPayout", "");
   const myRank         = val<number>("myRank", 0) ?? 0;
-  const myTotalWon     = val<number>("myTotalWon", 0) ?? 0;
+  const myTotalWon     = Number(val<number>("myTotalWon", 0) ?? 0);
+  const mySolves       = val<number>("mySolves", 0) ?? 0;
   const leaderboard    = val<LeaderEntry[]>("leaderboard", []) ?? [];
   const myHistory      = val<SolveRow[]>("myHistory", []) ?? [];
   const lastStatus     = str("lastStatus", "");
 
   const rule    = ruleOf(gameDifficulty);
   const nowMs   = Date.now();
-  const remMs   = gameStatus === "dealt" && deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
-  const timeUp  = gameStatus === "dealt" && deadline > 0 && remMs <= 0;
+  const isPlaying = gameStatus === "dealt";
+  const isSolved  = gameStatus === "solved";
+  const isExpired = gameStatus === "expired" || gameStatus === "refunded";
+  const dealPending = gameStatus === "committed";
+  const remMs   = isPlaying && deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
+  const timeUp  = isPlaying && deadline > 0 && remMs <= 0;
+  const busy    = isStarting || isDealing || isSubmitting;
 
   // ── Bridge state pushed into the Phaser scene ────────────────────────────
   const bridgeState = {
@@ -58,77 +99,75 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     seed,
     activeGameId,
     gameDifficulty,
+    commitment,
     deadline,
+    dealtAt,
+    pipesPassed,
     poolFree,
+    credit: creditGas,
     isStarting,
     isDealing,
     isSubmitting,
     lastPayout,
     myRank,
     myTotalWon,
+    lastStatus,
   };
 
   // ── PlayStage chrome ─────────────────────────────────────────────────────
-  const stageTitle =
-    isDealing || gameStatus === "committed"
-      ? t("statusShuffling")
-      : gameStatus === "dealt"
-        ? t("playingTitle", { difficulty: t(`difficulty_${rule.key}`) })
-        : gameStatus === "solved"
-          ? t("statusWonTitle")
-          : t("lobbyTitle");
+  const stageTitle = (() => {
+    if (isSubmitting) return t("statusSubmitting");
+    if (isDealing || dealPending) return t("statusShuffling");
+    if (isPlaying) return t("playingTitle", { difficulty: t(`difficulty_${rule.key}`) });
+    if (isSolved) return t("statusWonTitle");
+    if (isExpired) return t("expiredBanner");
+    return t("lobbyTitle");
+  })();
 
-  const scoreItems =
-    gameStatus === "idle"
-      ? undefined
-      : [
-          {
-            label: t("scoreReward"),
-            value: `${gasDisplay(rule.rewardFixed8)} GAS`,
-            accent: true,
-          },
-          {
-            label: t("scoreTime"),
-            value: gameStatus === "dealt" ? formatClock(remMs) : formatClock(rule.limitMs),
-          },
-          {
-            label: t("scorePipes"),
-            value: `0/${rule.targetPipes}`,
-          },
-          { label: t("scoreWon"), value: `${myTotalWon.toFixed(2)} GAS` },
-        ];
+  const hudItems = [
+    {
+      label: t("scoreReward"),
+      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+      accent: true,
+    },
+    {
+      label: t("scoreTime"),
+      value: isPlaying ? formatClock(remMs) : formatClock(rule.limitMs),
+    },
+    {
+      label: t("scorePipes"),
+      value: `${pipesPassed}/${rule.targetPipes}`,
+    },
+  ];
 
-  // Secondary action: expire when time is up or deal is stalled
-  const secondaryActions = [
-    ...(timeUp || (gameStatus === "committed" && !isDealing)
+  const drawerActions = [
+    ...(dealPending && !isDealing
       ? [
           {
-            label:   t("releaseAction"),
-            onClick: () => void dispatch("expireGame", {}),
-            hint:    t("releaseHint"),
+            label:   t("checkDealAgain"),
+            onClick: () => void dispatch("retryDeal", {}),
+            icon:    <RefreshCw size={16} aria-hidden="true" />,
+            hint:    t("statusDealPending"),
           },
         ]
       : []),
-    ...(creditGas > 0 && gameStatus !== "dealt"
+    ...(timeUp || (dealPending && !isDealing)
       ? [
           {
-            label:   t("withdrawAction", { amount: creditGas.toFixed(2) }),
-            onClick: () => void dispatch("withdrawWinnings", {}),
-            hint:    t("withdrawHint"),
+            label:   timeUp ? t("timeUpAction") : t("releaseAction"),
+            onClick: () => void dispatch("expireGame", {}),
+            icon:    <RotateCcw size={16} aria-hidden="true" />,
+            hint:    t("releaseHint"),
           },
         ]
       : []),
   ];
 
-  function shortHash(value: string, head = 10, tail = 6): string {
-    if (!value || value.length <= head + tail + 1) return value;
-    return `${value.slice(0, head)}…${value.slice(-tail)}`;
-  }
-
   return (
-    <div className="flappy-playarea mx2 mx2-cat-game">
+    <div className="flappy-playarea mx2 mx2-cat-game" aria-busy={busy || undefined}>
       <PlayStage
         category="game"
+        className="flappy-playstage"
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
@@ -141,89 +180,189 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               {myRank > 0 && (
                 <span className="mx2-badge">{t("rankBadge", { rank: myRank })}</span>
               )}
+              {creditGas > 0 && (
+                <span className="mx2-badge" data-tone="success">
+                  <WalletCards size={14} aria-hidden="true" /> {t("creditLabel")}
+                </span>
+              )}
             </>
           ),
         }}
         scene={
-          <PhaserGameComponent
-            config={GAME_CONFIG}
-            state={bridgeState}
-            dispatch={dispatch}
-            className="flappy-phaser-canvas"
-          />
-        }
-        score={scoreItems}
-        actions={{
-          secondary: secondaryActions.length > 0 ? secondaryActions : undefined,
-        }}
-        drawerToggleLabel={t("drawerTitle")}
-        drawer={{
-          title: t("drawerTitle"),
-          children: (
-            <>
-              <div className="flappy-drawer__head">
-                <p>{t("leaderboardIntro")}</p>
-              </div>
-              <h4>{t("leaderboardTitle")}</h4>
-              {leaderboard.length > 0 ? (
-                <ol className="flappy-ranks">
-                  {leaderboard.slice(0, 10).map((entry) => (
-                    <li
-                      key={entry.address}
-                      className="flappy-ranks__row"
-                      data-me={entry.isUser ? "true" : undefined}
-                    >
-                      <span className="flappy-ranks__rank">#{entry.rank}</span>
-                      <span className="flappy-ranks__addr">{shortHash(entry.address)}</span>
-                      <span className="flappy-ranks__solves">
-                        {t("solvesCount", { count: entry.solves })}
-                      </span>
-                      <span className="flappy-ranks__won">{entry.totalWon.toFixed(2)} GAS</span>
-                      {entry.isUser && (
-                        <span className="flappy-ranks__me">{t("youTag")}</span>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p>{t("leaderboardEmpty")}</p>
-              )}
+          <div className="flappy-stage-shell">
+            <PhaserGameComponent
+              config={GAME_CONFIG}
+              state={bridgeState}
+              dispatch={dispatch}
+              className="flappy-phaser-canvas"
+              ariaLabel="Flappy Dash arcade game"
+              loadingLabel="Opening flight deck"
+              preserveLogicalSize
+            />
+            <div className="flappy-stage-hud" aria-label={t("routeSummary")}>
+              {hudItems.map((item) => (
+                <div
+                  className="flappy-stage-hud__metric"
+                  data-accent={item.accent ? "true" : undefined}
+                  key={`${item.label}-${item.value}`}
+                >
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
               <button
                 type="button"
-                className="mx2-btn mx2-btn--ghost"
-                onClick={() => void dispatch("refreshLeaderboard", {})}
+                className="flappy-stage-hud__drawer"
+                onClick={() => setDrawerOpen((open) => !open)}
+                aria-expanded={drawerOpen}
               >
-                {t("refreshRanks")}
+                <span>{t("drawerTitleShort")}</span>
+                <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
               </button>
-              <h4>{t("historyTitle")}</h4>
-              {myHistory.length > 0 ? (
-                <ul className="mx2-history">
-                  {myHistory.map((row) => (
-                    <li key={row.gameId} className="mx2-history__item" data-outcome="won">
-                      <span className="mx2-history__face">
-                        {t(`difficulty_${ruleOf(Number(row.difficulty)).key}`)}
+            </div>
+            {drawerOpen && (
+              <section className="flappy-ingame-drawer" aria-label={t("drawerTitle")}>
+                <div className="flappy-ingame-drawer__head">
+                  <Trophy size={18} aria-hidden="true" />
+                  <div>
+                    <h3>{t("drawerTitle")}</h3>
+                    <p>{t("fairnessShort")}</p>
+                  </div>
+                </div>
+
+                <section className="flappy-ingame-drawer__summary" aria-label={t("sidebarTitle")}>
+                  <span>
+                    <small>{t("scoreWon")}</small>
+                    <strong>{gasAmountDisplay(myTotalWon)} GAS</strong>
+                  </span>
+                  <span>
+                    <small>{t("rankLabel")}</small>
+                    <strong>{myRank > 0 ? `#${myRank}` : "--"}</strong>
+                  </span>
+                  <span>
+                    <small>{t("solvesCount", { count: mySolves })}</small>
+                    <strong>{mySolves}</strong>
+                  </span>
+                  <span>
+                    <small>{t("networkBadge")}</small>
+                    <strong>{activeGameId !== "0" ? `#${activeGameId}` : t("lobbyReady")}</strong>
+                  </span>
+                </section>
+
+                {drawerActions.length > 0 && (
+                  <div className="flappy-ingame-drawer__actions">
+                    {drawerActions.map((action) => (
+                      <button type="button" key={action.label} onClick={action.onClick} title={action.hint}>
+                        {action.icon}
+                        <span>{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flappy-drawer">
+                  <div className="flappy-drawer__head">
+                    <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
+                    <p>{t("leaderboardIntro")}</p>
+                  </div>
+
+                  <section className="flappy-drawer__section" aria-label={t("leaderboardTitle")}>
+                    <div className="flappy-drawer__section-head">
+                      <h4>{t("leaderboardTitle")}</h4>
+                      <button
+                        type="button"
+                        className="mx2-btn mx2-btn--ghost"
+                        onClick={() => void dispatch("refreshLeaderboard", {})}
+                      >
+                        <RefreshCw size={16} aria-hidden="true" />
+                        {t("refreshRanks")}
+                      </button>
+                    </div>
+                    {leaderboard.length > 0 ? (
+                      <ol className="flappy-ranks">
+                        {leaderboard.slice(0, 10).map((entry) => (
+                          <li
+                            key={entry.address}
+                            className="flappy-ranks__row"
+                            data-me={entry.isUser ? "true" : undefined}
+                          >
+                            <span className="flappy-ranks__rank">#{entry.rank}</span>
+                            <span className="flappy-ranks__addr">{shortHash(entry.address)}</span>
+                            <span className="flappy-ranks__solves">
+                              {t("solvesCount", { count: entry.solves })}
+                            </span>
+                            <span className="flappy-ranks__won">
+                              {gasAmountDisplay(entry.totalWon)} GAS
+                            </span>
+                            {entry.isUser && (
+                              <span className="flappy-ranks__me">{t("youTag")}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="flappy-drawer__empty">{t("leaderboardEmpty")}</p>
+                    )}
+                  </section>
+
+                  <section className="flappy-drawer__section" aria-label={t("historyTitle")}>
+                    <h4>{t("historyTitle")}</h4>
+                    {myHistory.length > 0 ? (
+                      <ul className="flappy-history">
+                        {myHistory.slice(0, 8).map((row) => (
+                          <li key={row.gameId} className="flappy-history__row">
+                            <span>#{row.gameId}</span>
+                            <span>{t(`difficulty_${ruleOf(Number(row.difficulty)).key}`)}</span>
+                            <span>{formatClock(historyElapsed(row))}</span>
+                            <span>{t("historyPipes", { pipes: historyPipes(row) })}</span>
+                            <span className="flappy-history__won">{row.payout}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="flappy-drawer__empty">{t("historyEmpty")}</p>
+                    )}
+                  </section>
+
+                  <section className="flappy-drawer__section flappy-drawer__rules" aria-label={t("rulesTitle")}>
+                    <h4>{t("rulesTitle")}</h4>
+                    <p>{t("rulesCopy")}</p>
+                  </section>
+
+                  <section className="flappy-drawer__section flappy-drawer__fairness" aria-label={t("fairnessTitle")}>
+                    <h4><ShieldCheck size={16} aria-hidden="true" /> {t("fairnessTitle")}</h4>
+                    <p>{t("fairnessCopy")}</p>
+                    <p className="flappy-drawer__status">{t("rulesShort")}</p>
+                    {activeGameId !== "0" && commitment && (
+                      <p className="flappy-drawer__seed">
+                        {t("commitmentLine", { gameId: activeGameId, commitment: shortHash(commitment) })}
+                      </p>
+                    )}
+                    {lastStatus && <p className="flappy-drawer__status">{lastStatus}</p>}
+                  </section>
+
+                  {creditGas > 0 && (
+                    <section className="flappy-drawer__credit" aria-label={t("withdrawTitle")}>
+                      <span>
+                        {t("creditLabel")}: <strong>{gasAmountDisplay(creditGas)} GAS</strong>
+                        <em>{t("withdrawHint")}</em>
                       </span>
-                      <span className="mx2-history__stake">
-                        {formatClock(Number(row.elapsedMs))}
-                      </span>
-                      <span className="mx2-history__result">
-                        {t("historyPipes", { pipes: (row as { pipes?: number }).pipes ?? 0 })}
-                      </span>
-                      <span className="mx2-history__stake">{row.payout}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>{t("historyEmpty")}</p>
-              )}
-              <h4>{t("rulesTitle")}</h4>
-              <p>{t("rulesCopy")}</p>
-              <h4>{t("fairnessTitle")}</h4>
-              <p>{t("fairnessCopy")}</p>
-              {lastStatus && <p className="flappy-drawer__seed">{lastStatus}</p>}
-            </>
-          ),
-        }}
+                      <button
+                        type="button"
+                        className="mx2-btn mx2-btn--ghost"
+                        onClick={() => void dispatch("withdrawWinnings", {})}
+                      >
+                        <WalletCards size={16} aria-hidden="true" />
+                        {t("withdrawAction", { amount: gasAmountDisplay(creditGas) })}
+                      </button>
+                    </section>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+        }
+        actions={{}}
       />
     </div>
   );

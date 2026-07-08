@@ -38,9 +38,17 @@ interface MemoryTypeOption {
   label: string;
 }
 
+interface BurialDraftPayload {
+  composeMode: "write" | "hash";
+  memoryText: string;
+  assetHash: string;
+  memoryType: number;
+}
+
 const MEMORY_VAULT_IMAGE = "memory-vault-stage.webp";
+const FALLBACK_MEMORY_TYPE: MemoryTypeOption = { value: 1, label: "Secret" };
 const DEFAULT_MEMORY_TYPES: MemoryTypeOption[] = [
-  { value: 1, label: "Secret" },
+  FALLBACK_MEMORY_TYPE,
   { value: 2, label: "Regret" },
   { value: 3, label: "Wish" },
   { value: 4, label: "Confession" },
@@ -97,7 +105,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
   }, []);
 
   const selectedType = useMemo(
-    () => memoryTypeOptions.find((option) => Number(option.value) === memoryType) ?? memoryTypeOptions[0] ?? DEFAULT_MEMORY_TYPES[0],
+    () => memoryTypeOptions.find((option) => Number(option.value) === memoryType) ?? memoryTypeOptions[0] ?? FALLBACK_MEMORY_TYPE,
     [memoryType, memoryTypeOptions],
   );
 
@@ -105,6 +113,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const hasTargetHash = assetHash.trim().length > 0;
   const busy = isDestroying || destroyPreview;
   const sceneState = busy ? "burying" : hasDraft || hasTargetHash ? "ready" : "idle";
+  const activeDraftLabel = composeMode === "write" ? t("memoryTextLabel") : t("assetHash");
+  const activeDraftHint = composeMode === "write" ? t("composeModeWriteHint") : t("composeModeHashHint");
+  const activeDraftPlaceholder = composeMode === "write" ? t("memoryTextPlaceholder") : t("assetHashPlaceholder");
+  const activeDraftCopy = composeMode === "write" ? t("memoryTextHint") : t("assetHashHint");
+  const targetPreview = hasTargetHash ? compactHash(assetHash) : hasDraft ? t("hashReady") : t("hashPending");
 
   const setComposeMode = (mode: "write" | "hash") => {
     state.composeMode?.set(mode);
@@ -121,8 +134,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   };
 
   const syncDraft = () => {
-    void dispatch("setMemoryText", draftMemory);
+    void dispatch("setMemoryText", { composeMode, memoryText: draftMemory, assetHash: composeMode === "hash" ? draftMemory : assetHash });
   };
+
+  const burialDraftPayload = (): BurialDraftPayload => ({
+    composeMode,
+    memoryText: draftMemory,
+    assetHash: composeMode === "hash" ? draftMemory.trim() : assetHash.trim(),
+    memoryType,
+  });
 
   const startDestroyPreview = () => {
     if (destroyPreviewTimeout.current) clearTimeout(destroyPreviewTimeout.current);
@@ -134,9 +154,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
   };
 
   const handleDestroy = () => {
-    syncDraft();
+    const payload = burialDraftPayload();
+    state.memoryText?.set(payload.memoryText);
+    if (payload.composeMode === "hash") state.assetHash?.set(payload.assetHash);
     startDestroyPreview();
-    void dispatch("executeDestroy");
+    void dispatch("executeDestroy", payload);
   };
 
   const handleRefresh = () => {
@@ -216,33 +238,53 @@ export default function PlayArea({ t, state, dispatch }: P) {
         ))}
       </div>
 
-      <label className="graveyard-memory-card">
-        <span>
-          <strong>{composeMode === "write" ? t("memoryTextLabel") : t("assetHash")}</strong>
-          <em>{composeMode === "write" ? t("composeModeWriteHint") : t("composeModeHashHint")}</em>
-        </span>
-        {composeMode === "write" ? (
-          <textarea
-            className="graveyard-input graveyard-input--textarea"
-            value={draftMemory}
-            onChange={(event) => handleDraftChange(event.target.value)}
-            onBlur={syncDraft}
-            placeholder={t("memoryTextPlaceholder")}
-            rows={3}
-            disabled={busy}
-          />
-        ) : (
-          <input
-            className="graveyard-input"
-            value={draftMemory}
-            onChange={(event) => handleDraftChange(event.target.value)}
-            onBlur={syncDraft}
-            placeholder={t("assetHashPlaceholder")}
-            disabled={busy}
-          />
-        )}
-        <small>{composeMode === "write" ? t("memoryTextHint") : t("assetHashHint")}</small>
-      </label>
+      <section className="graveyard-artifact" data-mode={composeMode} aria-label={activeDraftLabel}>
+        <div className="graveyard-artifact__head">
+          <span className="graveyard-artifact__icon">
+            {composeMode === "write" ? <PenLine size={17} /> : <Hash size={17} />}
+          </span>
+          <span>
+            <strong>{activeDraftLabel}</strong>
+            <em>{activeDraftHint}</em>
+          </span>
+        </div>
+
+        <div className="graveyard-artifact__surface">
+          <label className="graveyard-artifact__editor-label">
+            <span>{activeDraftLabel}</span>
+            {composeMode === "write" ? (
+              <textarea
+                className="graveyard-artifact__editor graveyard-artifact__editor--textarea"
+                value={draftMemory}
+                onChange={(event) => handleDraftChange(event.target.value)}
+                onBlur={syncDraft}
+                placeholder={activeDraftPlaceholder}
+                rows={3}
+                disabled={busy}
+              />
+            ) : (
+              <input
+                className="graveyard-artifact__editor"
+                value={draftMemory}
+                onChange={(event) => handleDraftChange(event.target.value)}
+                onBlur={syncDraft}
+                placeholder={activeDraftPlaceholder}
+                disabled={busy}
+              />
+            )}
+          </label>
+          <div className="graveyard-artifact__seal">
+            <Hash size={15} />
+            <span>{t("hashPreview")}</span>
+            <strong>{targetPreview}</strong>
+          </div>
+        </div>
+
+        <div className="graveyard-artifact__foot">
+          <span>{activeDraftCopy}</span>
+          <strong>{draftMemory.trim().length} / 120</strong>
+        </div>
+      </section>
 
       <div className="graveyard-type-dock" role="radiogroup" aria-label={t("memoryType")}>
         {memoryTypeOptions.map((option) => (
@@ -307,10 +349,12 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
                   {editing && (
                     <div className="graveyard-history__editor">
-                      <input
+                      <textarea
+                        className="graveyard-history__epitaph-field"
                         value={epitaphText}
                         onChange={(event) => void dispatch("setEpitaphText", event.target.value)}
                         placeholder={t("epitaphPlaceholder")}
+                        rows={2}
                       />
                       <button type="button" onClick={() => void dispatch("saveEpitaph", item)} disabled={epitaphSavingId === item.id}>
                         {t("epitaphSave")}

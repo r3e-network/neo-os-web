@@ -178,7 +178,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [activeBlueprint, setActiveBlueprint] = useState("");
   const [customDetailsOpen, setCustomDetailsOpen] = useState(false);
 
-  const activeEvent = selectedEvent ?? events.find((event) => String(event.id) === selectedEventId) ?? events[0] ?? null;
+  const selectedEventMatchesId = selectedEvent && (!selectedEventId || String(selectedEvent.id) === selectedEventId);
+  const activeEvent = (selectedEventMatchesId ? selectedEvent : events.find((event) => String(event.id) === selectedEventId)) ?? events[0] ?? null;
   const activeTicket = tickets[0] ?? null;
   const checkinTicket = lookupTicket ?? tickets.find((ticket) => ticketId(ticket) === checkinTokenId) ?? null;
   const guestWallets = useMemo(() => {
@@ -201,6 +202,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const sceneState = isCheckingIn || isLookingUp ? "scanning" : isIssuing ? "issuing" : isCreating ? "publishing" : "idle";
   const hasLiveEvent = Boolean(activeEvent);
   const hasTransferContext = tickets.length > 0 || transferTokenId.trim().length > 0 || transferRecipient.trim().length > 0;
+  const eventDraftPayload = {
+    eventName: eventName.trim(),
+    eventVenue: eventVenue.trim(),
+    eventStart: eventStart.trim(),
+    eventEnd: eventEnd.trim(),
+    maxSupply: maxSupply.trim(),
+    notes: notes.trim(),
+  };
+  const issuePayload = {
+    eventId: String(activeEvent?.id ?? selectedEventId ?? "").trim(),
+    recipient: issueRecipient.trim(),
+    seat: issueSeat.trim(),
+    memo: issueMemo.trim(),
+  };
+  const checkinPayload = {
+    tokenId: checkinTokenId.trim(),
+  };
 
   useEffect(() => {
     if (events.length === 0) return;
@@ -250,7 +268,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (mode === "create") {
       return {
         label: isCreating ? t("creatingEvent") : t("createEvent"),
-        onClick: () => void dispatch("createEvent"),
+        onClick: () => void dispatch("createEvent", eventDraftPayload),
         disabled: isCreating || isLoading,
         loading: isCreating,
       };
@@ -258,14 +276,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (mode === "checkin") {
       return {
         label: isCheckingIn ? t("checkingIn") : t("checkIn"),
-        onClick: () => void dispatch("checkInTicket"),
+        onClick: () => void dispatch("checkInTicket", checkinPayload),
         disabled: busy || !canCheckInTicket,
         loading: isCheckingIn,
       };
     }
     return {
       label: isIssuing ? t("issuing") : t("issueTicket"),
-      onClick: () => void dispatch("issueTicket"),
+      onClick: () => void dispatch("issueTicket", issuePayload),
       disabled: busy || !canIssueTicket,
       loading: isIssuing,
     };
@@ -417,14 +435,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           {customDetailsOpen && (
             <div className="ticket-quick-fields">
-              <label className="ticket-field">
-                <span>{t("eventName")}</span>
-                <input value={eventName} onChange={(e) => updateEventDraft("eventName", e.target.value)} placeholder={t("eventNamePlaceholder")} disabled={busy} />
-              </label>
-              <label className="ticket-field">
-                <span>{t("eventVenue")}</span>
-                <input value={eventVenue} onChange={(e) => updateEventDraft("eventVenue", e.target.value)} placeholder={t("eventVenuePlaceholder")} disabled={busy} />
-              </label>
+              <OpenUiTextField
+                className="ticket-field"
+                label={t("eventName")}
+                value={eventName}
+                onChange={(e) => updateEventDraft("eventName", e.target.value)}
+                placeholder={t("eventNamePlaceholder")}
+                disabled={busy}
+              />
+              <OpenUiTextField
+                className="ticket-field"
+                label={t("eventVenue")}
+                value={eventVenue}
+                onChange={(e) => updateEventDraft("eventVenue", e.target.value)}
+                placeholder={t("eventVenuePlaceholder")}
+                disabled={busy}
+              />
             </div>
           )}
         </div>
@@ -439,10 +465,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           {activeEvent ? (
             <div className="ticket-guest-lane" aria-label={t("guestLaneLabel")}>
-              <label className="ticket-address-strip">
-                <span className="ticket-address-strip__meta"><WalletCards size={15} />{t("issueRecipient")}</span>
-                <input value={issueRecipient} onChange={(e) => state.issueRecipient?.set(e.target.value)} placeholder={t("issueRecipientPlaceholder")} disabled={busy} />
-              </label>
+              <OpenUiTextField
+                className="ticket-address-strip"
+                label={<span className="ticket-address-strip__meta"><WalletCards size={15} />{t("issueRecipient")}</span>}
+                value={issueRecipient}
+                onChange={(e) => state.issueRecipient?.set(e.target.value)}
+                placeholder={t("issueRecipientPlaceholder")}
+                disabled={busy}
+              />
               {guestWallets.length > 0 && (
                 <div className="ticket-recipient-picks" aria-label={t("recentGuests")}>
                   <span>{t("recentGuests")}</span>
@@ -477,10 +507,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   ))}
                 </div>
               </div>
-              <label className="ticket-memo-chip">
-                <span>{t("issueMemo")}</span>
-                <input value={issueMemo} onChange={(e) => state.issueMemo?.set(e.target.value)} placeholder={t("issueMemoPlaceholder")} disabled={busy} />
-              </label>
+              <OpenUiTextField
+                className="ticket-memo-chip"
+                label={t("issueMemo")}
+                value={issueMemo}
+                onChange={(e) => state.issueMemo?.set(e.target.value)}
+                placeholder={t("issueMemoPlaceholder")}
+                disabled={busy}
+              />
             </div>
           ) : (
             <div className="ticket-empty-prompt">
@@ -503,11 +537,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="ticket-scanner-console" aria-label={t("scannerSlotLabel")}>
             <span className="ticket-scanner-console__sensor"><QrCode size={18} /></span>
-            <label className="ticket-scan-slot">
-              <span>{t("checkinTokenId")}</span>
-              <input value={checkinTokenId} onChange={(e) => state.checkinTokenId?.set(e.target.value)} placeholder={t("checkinTokenIdPlaceholder")} disabled={busy} />
-            </label>
-            <button type="button" className="ticket-secondary-action" onClick={() => void dispatch("lookupTicket")} disabled={busy || !checkinTokenId.trim()}>
+            <OpenUiTextField
+              className="ticket-scan-slot"
+              label={t("checkinTokenId")}
+              value={checkinTokenId}
+              onChange={(e) => state.checkinTokenId?.set(e.target.value)}
+              placeholder={t("checkinTokenIdPlaceholder")}
+              disabled={busy}
+            />
+            <button type="button" className="ticket-secondary-action" onClick={() => void dispatch("lookupTicket", checkinPayload)} disabled={busy || !checkinTokenId.trim()}>
               <RefreshCw size={15} />
               {isLookingUp ? t("lookingUp") : t("lookup")}
             </button>

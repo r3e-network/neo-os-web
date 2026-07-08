@@ -7,6 +7,24 @@
   --mx2-stage-floor: #ffffff;
 }
 
+.fogplay-play-area.fogplay-phaser-playarea {
+  .mx2-stage {
+    box-sizing: border-box;
+    width: min(100%, 760px);
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  .mx2-stage__scene {
+    align-items: center;
+    padding: 12px 12px 0;
+  }
+
+  .phaser-game-host {
+    margin-inline: auto;
+  }
+}
+
 .fogplay-play-area .mx2-stage__scene {
   min-height: 0;
   flex-direction: column;
@@ -474,6 +492,192 @@
   text-align: center;
 }
 
+.fogplay-phaser-drawer {
+  display: grid;
+  gap: 14px;
+}
+
+.fogplay-phaser-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.fogplay-phaser-drawer__summary div,
+.fogplay-phaser-drawer__section,
+.fogplay-phaser-drawer__credit,
+.fogplay-phaser-drawer__notice {
+  border: 1px solid rgba(17, 94, 89, 0.1);
+  border-radius: var(--mx2-r, 8px);
+  background: #ffffff;
+}
+
+.fogplay-phaser-drawer__summary div {
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.fogplay-phaser-drawer__summary span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--mx2-text-muted);
+  font-size: 0.72rem;
+  font-weight: 620;
+}
+
+.fogplay-phaser-drawer__summary strong {
+  display: block;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 0.94rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fogplay-phaser-drawer__section {
+  padding: 12px;
+}
+
+.fogplay-phaser-drawer__section h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--mx2-ink);
+  font-size: 0.9rem;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.fogplay-phaser-drawer__section p,
+.fogplay-phaser-drawer__empty {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.fogplay-phaser-drawer__empty {
+  padding: 10px 12px;
+  border-radius: var(--mx2-r-sm, 6px);
+  background: rgba(22, 199, 132, 0.06);
+}
+
+.fogplay-phaser-drawer__notice,
+.fogplay-phaser-drawer__credit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+.fogplay-phaser-drawer__notice {
+  border-color: rgba(220, 38, 38, 0.24);
+  background: #fff7ed;
+  color: var(--mx2-danger);
+  font-size: 0.8rem;
+}
+
+.fogplay-phaser-drawer__notice strong {
+  color: inherit;
+  font-weight: 680;
+}
+
+.fogplay-phaser-drawer__credit {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.fogplay-phaser-drawer__credit span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  color: var(--mx2-text-muted);
+  font-size: 0.8rem;
+}
+
+.fogplay-phaser-drawer__credit strong {
+  color: var(--mx2-accent-strong);
+  font-weight: 680;
+}
+
+.fogplay-phaser-drawer__credit em {
+  color: var(--mx2-text-muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.fogplay-phaser-drawer__credit .mx2-btn {
+  flex: 0 0 auto;
+}
+
+.fogplay-phaser-history {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.fogplay-phaser-history__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border-radius: var(--mx2-r-md);
+  background: rgba(15, 23, 42, 0.035);
+  color: var(--mx2-text-muted);
+  font-size: 0.78rem;
+}
+
+.fogplay-phaser-history__row span,
+.fogplay-phaser-history__row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fogplay-phaser-history__row[data-outcome="won"] strong {
+  color: var(--mx2-accent-strong);
+}
+
+.fogplay-phaser-history__row[data-outcome="lost"] strong {
+  color: #9a5a2c;
+}
+
+.fogplay-phaser-timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.fogplay-phaser-timeline span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(22, 199, 132, 0.14);
+  border-radius: var(--mx2-r-pill);
+  background: #f0fdf4;
+  color: var(--mx2-ink);
+  font-size: 0.7rem;
+  font-weight: 640;
+}
+
+.fogplay-phaser-drawer__retry {
+  margin-top: 10px !important;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  border-radius: var(--mx2-r-md);
+  padding: 8px 10px;
+  background: #fff7ed;
+  color: var(--mx2-danger) !important;
+}
+
 .fogplay-play-area .mx2-action-rail__row .mx2-btn--primary {
   flex: 0 0 184px;
   min-width: 184px;
@@ -651,6 +855,28 @@
   .fogplay-bet-chip {
     min-width: 84px;
     padding: 7px 10px 7px 6px;
+  }
+
+  .fogplay-phaser-drawer__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .fogplay-phaser-drawer__credit,
+  .fogplay-phaser-drawer__notice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .fogplay-phaser-history__row {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .fogplay-phaser-history__row span:nth-child(2) {
+    display: none;
+  }
+
+  .fogplay-phaser-timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

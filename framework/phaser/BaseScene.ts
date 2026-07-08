@@ -115,11 +115,14 @@ export abstract class BaseScene extends Phaser.Scene {
     // Detect prefers-reduced-motion and keep it live while the scene is active.
     this.bindReducedMotion();
 
-    // Tell React the scene is ready
-    this.bridge.notifyReady();
-
     // Responsive resize
     this.scale.on("resize", this.onResize, this);
+
+    // Tell React the scene is ready after resize hooks are live, so the host's
+    // first mobile size application can rebuild the scene instead of only
+    // resizing the canvas.
+    this.bridge.notifyReady();
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupBaseScene, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupBaseScene, this);
   }

@@ -47,6 +47,11 @@ type LeaderEntry = {
 };
 
 export class BurnLeagueScene extends BaseScene {
+  private sceneReady = false;
+  private isRebuildingScene = false;
+  private scW = 420;
+  private scH = 600;
+
   private coreContainer!: Phaser.GameObjects.Container;
   private coreGlow!: Phaser.GameObjects.Ellipse;
   private brazierImage!: Phaser.GameObjects.Image;
@@ -81,16 +86,9 @@ export class BurnLeagueScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width, height } = this.scale;
-
-    this.buildBackground(width, height);
-    this.buildHud(width);
-    this.buildCore(width, height);
-    this.buildLeaderboard(width, height);
-    this.buildPresets(width, height);
-    this.buildBurnButton(width, height);
-    this.buildStatusLabel(width, height);
-
+    this.syncSceneSize();
+    this.rebuildScene();
+    this.sceneReady = true;
     this.onStateUpdate(this.state);
   }
 
@@ -99,7 +97,51 @@ export class BurnLeagueScene extends BaseScene {
     this.updateGasOrbit();
   }
 
+  protected onResize(_gameSize: Phaser.Structs.Size): void {
+    const previousW = this.scW;
+    const previousH = this.scH;
+    this.syncSceneSize();
+    if (
+      !this.sceneReady ||
+      this.isRebuildingScene ||
+      (previousW === this.scW && previousH === this.scH)
+    ) {
+      return;
+    }
+    this.rebuildScene();
+    this.onStateUpdate(this.state);
+  }
+
+  private syncSceneSize(): void {
+    this.scW = Math.max(1, Math.round(this.scale.width || 420));
+    this.scH = Math.max(1, Math.round(this.scale.height || 600));
+  }
+
+  private rebuildScene(): void {
+    this.isRebuildingScene = true;
+    this.tweens.killAll();
+    this.children.removeAll(true);
+    this.gasTokens = [];
+    this.presetBtns = [];
+
+    const width = this.scW;
+    const height = this.scH;
+    this.buildBackground(width, height);
+    this.buildHud(width);
+    this.buildCore(width, height);
+    this.buildLeaderboard(width, height);
+    this.buildPresets(width, height);
+    this.buildBurnButton(width, height);
+    this.buildStatusLabel(width, height);
+
+    this.isRebuildingScene = false;
+  }
+
   protected onStateUpdate(_state: GameState): void {
+    if (!this.sceneReady || this.isRebuildingScene || !this.statusLabel) {
+      return;
+    }
+
     const phase = this.str("seasonPhase", "dormant");
     const pot = this.str("prizePoolDisplay", "0");
     const userBurned = this.str("userBurnedDisplay", "0");

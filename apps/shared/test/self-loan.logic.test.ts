@@ -217,6 +217,21 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     expect(borrow?.args[1]).toMatchObject({ type: "Integer", value: "2" });
   });
 
+  it("honors the LTV tier carried by the borrow action payload", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.selectedTier.set(1);
+    await app.borrow({ collateralAmount: "10", ltvTier: 3 });
+
+    const calls = invokeCalls(invoke);
+    const borrow = calls.find((c) => c.op === "borrow");
+    expect(app.selectedLtv.get()).toBe(3);
+    expect(borrow?.args[1]).toMatchObject({ type: "Integer", value: "3" });
+  });
+
   it("rejects fractional NEO collateral before any chain call", async () => {
     const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
     const app = useSelfLoan({ app: makeApp(chain), t });

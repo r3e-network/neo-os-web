@@ -32,6 +32,9 @@ const appMessages = {
   entryAmount: { en: "Entry {amount} GAS", zh: "报名 {amount} GAS" },
   timeAmount: { en: "{minutes} min", zh: "{minutes} 分钟" },
   poolLine: { en: "Pool {pool} GAS", zh: "奖池 {pool} GAS" },
+  poolMetric: { en: "Pool", zh: "奖池" },
+  trayMetric: { en: "Tray", zh: "卡槽" },
+  toolsMetric: { en: "Tools", zh: "道具" },
   creditLine: { en: "your credit {credit} GAS", zh: "你的余额 {credit} GAS" },
 
   easyDesc: { en: "A friendly meadow with 8 symbol families and a quick 5-minute clock.", zh: "友好的草地牌局，8 组图案，5 分钟快节奏清盘。" },
@@ -151,6 +154,14 @@ const appMessages = {
   fairnessNote: {
     en: "The layout is sealed inside the Morpheus enclave, revealed only as you pick exposed cards, and verified before payout.",
     zh: "牌面在 Morpheus 飞地内密封，只在你选择可见卡片时揭示，并在派奖前验证。",
+  },
+  fairnessShort: {
+    en: "TEE-sealed cards, exposed picks, and contract-verified payout.",
+    zh: "TEE 密封牌面、逐张揭示、合约核验派奖。",
+  },
+  activeGameLine: {
+    en: "Game #{gameId} is live. Clear the board before settlement.",
+    zh: "对局 #{gameId} 进行中，请在结算前清空牌面。",
   },
   fairnessCopy: {
     en: "The card layout is generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, and each card's symbol is revealed only as you pick it — so the full layout cannot be extracted or searched outside the app. At settlement the enclave signs the result and the contract verifies both the signature and that the problem hash equals the original commitment before paying.",

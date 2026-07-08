@@ -93,7 +93,8 @@ describe("graveyard PlayArea (v2)", () => {
 
     expect(container.querySelector(".graveyard-scene")).toBeTruthy();
     expect((container.querySelector(".graveyard-vault__image") as HTMLImageElement)?.src).toContain("memory-vault-stage.webp");
-    expect(container.querySelector(".graveyard-memory-card")).toBeTruthy();
+    expect(container.querySelector(".graveyard-artifact")).toBeTruthy();
+    expect(container.querySelector(".graveyard-input")).toBeNull();
     expect(container.textContent).toContain("Burial review");
   });
 
@@ -119,8 +120,8 @@ describe("graveyard PlayArea (v2)", () => {
     expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-vault\s*\{[\s\S]*grid-template-rows:\s*auto auto auto/);
     expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-vault__media,[\s\S]*\.graveyard-vault__image\s*\{[\s\S]*height:\s*146px/);
     expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-review\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-input--textarea\s*\{[\s\S]*min-height:\s*66px/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-memory-card small\s*\{[\s\S]*display:\s*none/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-artifact__editor--textarea\s*\{[\s\S]*min-height:\s*66px/);
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-artifact__foot span\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-type-dock\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-type-dock\s*\{[\s\S]*overflow:\s*visible/);
     expect(s).not.toMatch(/\.graveyard-scene\s*\{[\s\S]*radial-gradient/);

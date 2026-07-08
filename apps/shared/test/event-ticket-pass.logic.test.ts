@@ -233,6 +233,69 @@ describe("useEventTicket (chain wiring)", () => {
     );
   });
 
+  it("honors action payloads before validating and invoking contract operations", async () => {
+    const { ticket, invoke } = setup();
+
+    await ticket.createEvent({
+      eventName: "Payload Workshop",
+      eventVenue: "Gate Studio",
+      eventStart: "2026-08-21 13:00",
+      eventEnd: "2026-08-21 17:00",
+      maxSupply: "80",
+      notes: "Reserved pass payload.",
+    });
+
+    expect(ticket.eventName.get()).toBe("Payload Workshop");
+    expect(ticket.eventVenue.get()).toBe("Gate Studio");
+    expect(invoke).toHaveBeenCalledWith(
+      "createEvent",
+      [
+        { type: "Hash160", value: OWNER },
+        { type: "String", value: "Payload Workshop" },
+        { type: "String", value: "Gate Studio" },
+        { type: "Integer", value: expect.any(String) },
+        { type: "Integer", value: expect.any(String) },
+        { type: "Integer", value: "80" },
+        { type: "String", value: "Reserved pass payload." },
+      ],
+      { waitForEvent: "EventCreated" },
+    );
+
+    await ticket.issueTicket({
+      eventId: "1",
+      recipient: OWNER,
+      seat: "VIP",
+      memo: "Door one",
+    });
+
+    expect(ticket.selectedEventId.get()).toBe("1");
+    expect(ticket.issueSeat.get()).toBe("VIP");
+    expect(invoke).toHaveBeenCalledWith(
+      "issueTicket",
+      [
+        { type: "Hash160", value: OWNER },
+        { type: "Hash160", value: OWNER },
+        { type: "Integer", value: "1" },
+        { type: "String", value: "VIP" },
+        { type: "String", value: "Door one" },
+      ],
+      { waitForEvent: "TicketIssued" },
+    );
+
+    await ticket.lookupTicket({ tokenId: TOKEN_ID });
+    expect(ticket.checkinTokenId.get()).toBe(TOKEN_ID);
+
+    await ticket.checkInTicket({ tokenId: TOKEN_ID });
+    expect(invoke).toHaveBeenCalledWith(
+      "checkIn",
+      [
+        { type: "Hash160", value: OWNER },
+        { type: "ByteArray", value: expect.any(String) },
+      ],
+      { waitForEvent: "TicketCheckedIn" },
+    );
+  });
+
   it("rejects ticket issuance until an event and valid recipient are present", async () => {
     const { ticket } = setup();
 

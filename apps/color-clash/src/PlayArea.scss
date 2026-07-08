@@ -29,16 +29,25 @@
 }
 
 .cclash-playarea .mx2-stage {
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
   padding: 22px 24px 20px;
   background: #fffdf8;
 }
 
 .cclash-playarea .mx2-stage__scene {
+  box-sizing: border-box;
   min-height: 0;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
   padding: 12px 12px 0;
+}
+
+.cclash-playarea .phaser-game-host {
+  margin-inline: auto;
 }
 
 .cclash-playarea .mx2-eyebrow,
@@ -752,16 +761,103 @@
 
 /* --------------------------------------------------------------- drawer -- */
 
+.cclash-drawer {
+  display: grid;
+  gap: 14px;
+}
+
 .cclash-drawer__head {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(216, 167, 66, 0.2);
+  border-radius: var(--mx2-r);
+  background: rgba(255, 245, 223, 0.68);
 
   p {
     margin: 0;
     font-size: 0.8rem;
     color: var(--mx2-text-muted);
   }
+}
+
+.cclash-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cclash-drawer__summary div,
+.cclash-drawer__section,
+.cclash-drawer__credit {
+  border: 1px solid rgba(216, 167, 66, 0.18);
+  border-radius: var(--mx2-r);
+  background: #fffdf8;
+}
+
+.cclash-drawer__summary div {
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.cclash-drawer__summary span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--cclash-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.cclash-drawer__summary strong {
+  display: block;
+  overflow: hidden;
+  color: var(--cclash-ink);
+  font-size: 0.92rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cclash-drawer__section {
+  padding: 12px;
+}
+
+.cclash-drawer__section h4 {
+  margin: 0 0 8px;
+  color: var(--cclash-ink);
+  font-size: 0.9rem;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.cclash-drawer__section p {
+  margin: 0;
+  color: var(--cclash-muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.cclash-drawer__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cclash-drawer__section-head h4 {
+  margin: 0;
+}
+
+.cclash-drawer__section-head .mx2-btn {
+  flex: 0 0 auto;
+}
+
+.cclash-drawer__empty {
+  padding: 10px 12px;
+  border-radius: var(--mx2-r-sm);
+  background: rgba(31, 41, 55, 0.03);
 }
 
 .cclash-ranks {
@@ -842,6 +938,55 @@
 .cclash-history__won {
   color: var(--cclash-success);
   font-weight: 600;
+}
+
+.cclash-drawer__fairness h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cclash-drawer__commitment {
+  margin-top: 10px !important;
+  padding: 8px 10px;
+  border-radius: var(--mx2-r-sm);
+  background: rgba(18, 169, 152, 0.09);
+  color: var(--cclash-success) !important;
+  font-family: var(--mx2-font-mono, monospace);
+  font-size: 0.72rem !important;
+}
+
+.cclash-drawer__credit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(18, 169, 152, 0.08);
+}
+
+.cclash-drawer__credit span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--cclash-muted);
+  font-size: 0.78rem;
+}
+
+.cclash-drawer__credit strong {
+  color: var(--cclash-success);
+  font-size: 0.92rem;
+  font-weight: 680;
+}
+
+.cclash-drawer__credit em {
+  color: var(--cclash-muted);
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.cclash-drawer__credit .mx2-btn {
+  flex: 0 0 auto;
 }
 
 /* PlayStage root forwarded className — reserved for any future stage-level overrides. */

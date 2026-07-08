@@ -48,8 +48,8 @@ import type { Difficulty } from "../logic/game-rules";
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
-const W = 440;              // canvas width
-const H = 580;              // canvas height
+const DESIGN_W = 440;       // logical canvas width
+const DESIGN_H = 580;       // logical canvas height
 const GAME_TICK_MS = 200;
 const SUBMIT_BUFFER_MS = 15_000;
 const MIN_SOLVE_BUFFER_MS = 10_000;
@@ -80,10 +80,10 @@ type SnakeLayout = {
 
 const C = {
   // Felt / background
-  felt:        0x2d6a4f,   // warm deep green
-  feltAlt:     0x2b6349,   // alternating cell tint
-  feltBorder:  0x1a4531,
-  feltInner:   0x3a7d5e,
+	  felt:        0x3a7d5e,   // warm green felt
+	  feltAlt:     0x367454,   // alternating cell tint
+	  feltBorder:  0x1c5138,
+	  feltInner:   0x47926f,
 
   // Snake
   head:        0x00b4d8,   // teal
@@ -98,21 +98,21 @@ const C = {
   star:        0xffc107,
 
   // HUD
-  hudBg:       0x1a3a2b,
-  barBg:       0x113322,
+	  hudBg:       0x1f513b,
+	  barBg:       0x17422f,
   timerFill:   0x00af92,
   timerLow:    0xf97066,
   lengthFill:  0x5af5d0,
 
   // Lobby cards
-  cardBg:      0x1e4232,
-  cardBorder:  0x2e6650,
+	  cardBg:      0x174d38,
+	  cardBorder:  0x56a979,
   cardActive:  0x047857,
   cardActiveBg:0x0d5740,
   white:       0xffffff,
   cream:       0xfff8e8,
-  muted:       0x80b89a,
-  gold2:       0xd4a843,
+	  muted:       0xc7f9d4,
+	  gold2:       0xffcf68,
 
   // Overlay
   overlay:     0x000000,
@@ -139,11 +139,12 @@ const SNAKE_ASSETS = {
 export class SnakeScene extends BaseScene {
 
   // ── Layout dims (computed after scale is known) ──────────────────────────
-  private scW = W;
-  private scH = H;
-  private layout = this.computeLayout(W, H);
+  private scW = DESIGN_W;
+  private scH = DESIGN_H;
+  private layout = this.computeLayout(DESIGN_W, DESIGN_H);
 
   // ── Graphics layers ──────────────────────────────────────────────────────
+  private backgroundGfx!: Phaser.GameObjects.Graphics;
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private snakeGfx!:     Phaser.GameObjects.Graphics;
   private foodGfx!:      Phaser.GameObjects.Graphics;
@@ -164,6 +165,9 @@ export class SnakeScene extends BaseScene {
   private overlayTitle!:     Phaser.GameObjects.Text;
   private overlaySub!:       Phaser.GameObjects.Text;
   private overlayBtn!:       Phaser.GameObjects.Container;
+  private overlayBtnBg!:     Phaser.GameObjects.Rectangle;
+  private overlayBtnTxt!:    Phaser.GameObjects.Text;
+  private overlayAction: (() => void) | null = null;
 
   // ── Lobby layer ──────────────────────────────────────────────────────────
   private lobbyContainer!:   Phaser.GameObjects.Container;
@@ -268,10 +272,9 @@ export class SnakeScene extends BaseScene {
   create(): void {
     super.create(); // wires the bridge first
 
-    const { width: ww, height: hh } = this.scale;
-    this.scW = ww;
-    this.scH = hh;
-    this.layout = this.computeLayout(ww, hh);
+    this.scW = DESIGN_W;
+    this.scH = DESIGN_H;
+    this.layout = this.computeLayout(DESIGN_W, DESIGN_H);
 
     this.buildBackground();
     this.buildGrid();
@@ -282,6 +285,7 @@ export class SnakeScene extends BaseScene {
     this.buildOverlay();
     this.buildLobby();
     this.buildStatusRow();
+    this.fitCameraToHost();
 
     // Wire input (keyboard + pointer/swipe)
     this.setupInput();
@@ -340,15 +344,25 @@ export class SnakeScene extends BaseScene {
 
     // ── Overlay ───────────────────────────────────────────────────────────
     if (isDealing || (gameStatus === "committed" && !inPlay)) {
-      this.showOverlay("Dealing", "Preparing your game", false);
+      this.showOverlay("Dealing", "Preparing your game");
     } else if (isSubmitting) {
-      this.showOverlay("Submitting", "Verifying your solution", false);
+      this.showOverlay("Submitting", "Verifying your solution");
     } else if (this.crashed && gameStatus === "dealt") {
-      this.showOverlay("Game Over", "The snake crashed.", true);
+      this.showOverlay("Game Over", "The snake crashed.", {
+        label: "Settle Run",
+        onPress: () => this.dispatch("submitSolution"),
+      });
+    } else if (this.targetReached && gameStatus === "dealt") {
+      const canSubmit = this.canSubmitTarget();
+      this.showOverlay("Target Reached", this.submitGateMessage(canSubmit), {
+        label: canSubmit ? "Submit Win" : "Waiting",
+        disabled: !canSubmit,
+        onPress: () => this.dispatch("submitSolution"),
+      });
     } else if (gameStatus === "solved") {
-      this.showOverlay("Solved", "Congratulations, you won.", false);
+      this.showOverlay("Solved", "Congratulations, you won.");
     } else if (gameStatus === "expired") {
-      this.showOverlay("Expired", "Time ran out.", false);
+      this.showOverlay("Expired", "Time ran out.");
     } else {
       this.overlayContainer.setVisible(false);
     }
@@ -433,6 +447,8 @@ export class SnakeScene extends BaseScene {
     const rule = ruleOf(this.num("gameDifficulty", 0));
     if (hasReachedTarget(this.snake, rule.targetLength)) {
       this.targetReached = true;
+      this.stopTickTimer();
+      this.onStateUpdate(this.state);
     }
 
     this.drawSnake();
@@ -452,6 +468,9 @@ export class SnakeScene extends BaseScene {
         this.nowMs = Date.now();
         if (this.str("gameStatus", "") === "dealt") {
           this.updateHUD();
+          if (this.targetReached || this.crashed) {
+            this.onStateUpdate(this.state);
+          }
         }
       },
       callbackScope: this,
@@ -493,13 +512,43 @@ export class SnakeScene extends BaseScene {
   // ── Build: background ────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    const gfx = this.add.graphics();
+    this.backgroundGfx = this.add.graphics();
+    this.renderResponsiveStage(DESIGN_H, DESIGN_H / 2);
+  }
+
+  private renderResponsiveStage(visibleWorldH: number, centerY: number): void {
+    if (!this.backgroundGfx) return;
+    const viewTop = centerY - visibleWorldH / 2;
+    const viewBottom = centerY + visibleWorldH / 2;
+    const stageTop = Math.min(0, viewTop - 10);
+    const stageBottom = Math.max(DESIGN_H, Math.min(viewBottom + 10, DESIGN_H + 170));
+    const stageHeight = stageBottom - stageTop;
+    const gfx = this.backgroundGfx;
+    gfx.clear();
     // Full canvas fill — warm deep green felt
     gfx.fillStyle(C.felt);
-    gfx.fillRect(0, 0, this.scW, this.scH);
+    gfx.fillRect(0, stageTop, this.scW, stageHeight);
+    if (stageBottom > DESIGN_H + 20) {
+      const trailTop = DESIGN_H - 8;
+      const trailHeight = stageBottom - trailTop - 8;
+      gfx.fillStyle(0x2f6f50, 0.82);
+      gfx.fillRoundedRect(16, trailTop, this.scW - 32, trailHeight, {
+        tl: 20,
+        tr: 20,
+        bl: 0,
+        br: 0,
+      });
+      gfx.lineStyle(1, 0x79cfa4, 0.26);
+      for (let x = 42; x < this.scW - 16; x += 44) {
+        gfx.lineBetween(x, trailTop + 28, x + 22, stageBottom - 28);
+      }
+      gfx.fillStyle(C.gold, 0.46);
+      gfx.fillCircle(this.scW * 0.5, trailTop + 58, 4);
+      gfx.fillCircle(this.scW * 0.72, trailTop + 92, 3);
+    }
     // Subtle inner rim for depth
     gfx.lineStyle(3, C.feltBorder, 0.6);
-    gfx.strokeRoundedRect(6, 6, this.scW - 12, this.scH - 12, 14);
+    gfx.strokeRoundedRect(6, 6, this.scW - 12, stageBottom - 12, 14);
   }
 
   // ── Build: grid ───────────────────────────────────────────────────────────
@@ -517,7 +566,7 @@ export class SnakeScene extends BaseScene {
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE; col++) {
         const even = (row + col) % 2 === 0;
-        gfx.fillStyle(even ? 0x2b6349 : 0x2d6a4f, 1);
+        gfx.fillStyle(even ? C.feltAlt : C.felt, 1);
         gfx.fillRect(
           gridLeft + col * cell,
           gridTop  + row * cell,
@@ -562,7 +611,7 @@ export class SnakeScene extends BaseScene {
     // Length label
     this.lengthLabel = this.add.text(gridLeft + gridPx / 2, hudTop + 46, "0 / 10 cells", {
       fontSize: "12px",
-      color: "#d4a843",
+      color: "#ffcf68",
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
@@ -601,13 +650,13 @@ export class SnakeScene extends BaseScene {
   // ── Build: status row ────────────────────────────────────────────────────
 
   private buildStatusRow(): void {
-    this.controlsHint = this.add.text(
+	    this.controlsHint = this.add.text(
       this.scW / 2,
       this.layout.controlsY,
       "Arrow keys / WASD / Swipe",
       {
         fontSize: "11px",
-        color: "#80b89a",
+	        color: "#c7f9d4",
       },
     ).setOrigin(0.5).setVisible(false);
 
@@ -617,7 +666,7 @@ export class SnakeScene extends BaseScene {
       "",
       {
         fontSize: "11px",
-        color: "#f97066",
+	        color: "#ffd166",
         fontStyle: "bold",
         wordWrap: { width: this.layout.gridPx },
       },
@@ -629,7 +678,7 @@ export class SnakeScene extends BaseScene {
       "",
       {
         fontSize: "10px",
-        color: "#80b89a",
+	        color: "#c7f9d4",
       },
     ).setOrigin(0.5);
   }
@@ -649,26 +698,24 @@ export class SnakeScene extends BaseScene {
       color: "#ffffff",
     }).setOrigin(0.5);
 
-    this.overlaySub = this.add.text(0, 12, "", {
-      fontSize: "13px",
-      color: "#80b89a",
+	    this.overlaySub = this.add.text(0, 12, "", {
+	      fontSize: "13px",
+	      color: "#d4f9df",
     }).setOrigin(0.5);
 
-    // Action button (used for "Start Game" shortcut from overlay in lobby)
-    const btnBg = this.add.rectangle(0, 44, 140, 32, C.gold)
+    this.overlayBtnBg = this.add.rectangle(0, 44, 140, 32, C.gold)
       .setStrokeStyle(1, C.goldLight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    const btnTxt = this.add.text(0, 44, "Play Again", {
+    this.overlayBtnTxt = this.add.text(0, 44, "Play Again", {
       fontSize: "13px",
       color: "#1a3a2b",
       fontStyle: "bold",
     }).setOrigin(0.5);
-    btnBg.on("pointerdown", () => {
-      if (!this.canStartSelectedDifficulty()) return;
-      this.dispatch("startGame", { difficulty: this.pickedDifficulty });
+    this.overlayBtnBg.on("pointerdown", () => {
+      this.overlayAction?.();
     });
-    this.overlayBtn = this.add.container(0, 0, [btnBg, btnTxt]);
+    this.overlayBtn = this.add.container(0, 0, [this.overlayBtnBg, this.overlayBtnTxt]);
 
     this.overlayContainer.add([
       this.overlayBg,
@@ -679,10 +726,23 @@ export class SnakeScene extends BaseScene {
     this.overlayContainer.setVisible(false);
   }
 
-  private showOverlay(title: string, sub: string, showBtn: boolean): void {
+  private showOverlay(
+    title: string,
+    sub: string,
+    button?: { label: string; disabled?: boolean; onPress: () => void },
+  ): void {
     this.overlayTitle.setText(title);
     this.overlaySub.setText(sub);
-    this.overlayBtn.setVisible(showBtn);
+    this.overlayAction = button && !button.disabled ? button.onPress : null;
+    this.overlayBtn.setVisible(Boolean(button));
+    if (button) {
+      this.overlayBtnTxt.setText(button.label);
+      this.overlayBtnBg
+        .setFillStyle(button.disabled ? 0x627268 : C.gold)
+        .setStrokeStyle(1, button.disabled ? 0x87938b : C.goldLight);
+      if (this.overlayBtnBg.input) this.overlayBtnBg.input.enabled = !button.disabled;
+      this.overlayBtn.setAlpha(button.disabled ? 0.68 : 1);
+    }
     this.overlayContainer.setVisible(true);
     this.overlayContainer.setScale(0.8);
     this.tweens.add({
@@ -706,12 +766,12 @@ export class SnakeScene extends BaseScene {
     const title = this.add.text(this.scW / 2 + 12, layout.lobbyTitleY, "Snake Bounty", {
       fontSize: "20px",
       fontStyle: "bold",
-      color: "#d4a843",
+	      color: "#ffcf68",
     }).setOrigin(0.5);
 
     const sub = this.add.text(this.scW / 2, layout.lobbySubY, "Grow the snake to win GAS", {
       fontSize: "12px",
-      color: "#80b89a",
+	      color: "#c7f9d4",
     }).setOrigin(0.5);
 
     // Arena preview panel
@@ -750,7 +810,7 @@ export class SnakeScene extends BaseScene {
       "• Submit before time runs out",
     ].join("\n"), {
       fontSize: "11px",
-      color: "#80b89a",
+	      color: "#d4f9df",
       lineSpacing: 5,
       wordWrap: { width: Math.max(220, layout.lobbyPanelW - 36) },
     });
@@ -775,7 +835,7 @@ export class SnakeScene extends BaseScene {
     // Pool info line
     const poolText = this.add.text(this.scW / 2, layout.lobbyStatusY, "", {
       fontSize: "11px",
-      color: "#80b89a",
+	      color: "#ffd166",
     }).setOrigin(0.5);
     this.lobbyStatusText = poolText;
 
@@ -880,17 +940,17 @@ export class SnakeScene extends BaseScene {
     const label = this.add.text(0, -6, DIFF_LABELS[difficulty], {
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#d4a843",
+      color: "#ffcf68",
     }).setOrigin(0.5);
 
     const targetTxt = this.add.text(0, 12, `${rule.targetLength} cells`, {
       fontSize: "11px",
-      color: "#80b89a",
+      color: "#d4f9df",
     }).setOrigin(0.5);
 
     const entryTxt = this.add.text(0, 28, `${gasDisplay(rule.entryFixed8)} GAS`, {
       fontSize: "10px",
-      color: "#5af5d0",
+      color: "#66ffe0",
     }).setOrigin(0.5);
 
     const lockTxt = this.add.text(0, 42, "Cleared", {
@@ -914,6 +974,9 @@ export class SnakeScene extends BaseScene {
         duration: 80,
         yoyo: true,
       });
+      if (this.canStartDifficulty(difficulty)) {
+        this.dispatch("startGame", { difficulty });
+      }
     });
     bg.on("pointerover", () => {
       if (!this.isDifficultyLocked(difficulty) && difficulty !== this.pickedDifficulty) {
@@ -940,10 +1003,10 @@ export class SnakeScene extends BaseScene {
       const isActive = i === this.pickedDifficulty;
       bg.setFillStyle(locked ? 0x183226 : isActive ? C.cardActiveBg : C.cardBg);
       bg.setStrokeStyle(2, locked ? 0x425846 : isActive ? C.cardActive : C.cardBorder);
-      label.setColor(locked ? "#8e9f91" : "#d4a843");
-      target.setColor(locked ? "#6f8474" : "#80b89a");
+      label.setColor(locked ? "#9fb7a6" : "#ffcf68");
+      target.setColor(locked ? "#8aa493" : "#d4f9df");
       entry.setText(locked ? "Completed" : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`);
-      entry.setColor(locked ? "#8e9f91" : "#5af5d0");
+      entry.setColor(locked ? "#9fb7a6" : "#66ffe0");
       lock.setVisible(locked);
       card.setAlpha(locked ? 0.58 : 1);
       if (bg.input) bg.input.enabled = !locked;
@@ -952,21 +1015,27 @@ export class SnakeScene extends BaseScene {
     const poolFree = this.num("poolFree", 0);
     const rule     = ruleOf(this.pickedDifficulty);
     const needed   = Number(gasDisplay(rule.rewardFixed8));
-    const progressionReady = this.bool("progressionReady", false);
+    const progressionReady = this.bool("progressionReady");
     const locked   = this.isDifficultyLocked(this.pickedDifficulty);
-    const ready    = progressionReady && !locked && poolFree >= needed;
+    const walletConnected = this.bool("walletConnected");
+    const busy     = this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting");
+    const ready    = this.canStartDifficulty(this.pickedDifficulty);
     if (this.lobbyStatusText) {
       const reward  = gasDisplay(rule.rewardFixed8);
       const time    = Math.round(rule.limitMs / 60000);
-      const statusText = !progressionReady
+      const statusText = busy
+        ? "Preparing your bounty route"
+        : !walletConnected
+          ? "Connect wallet to start a bounty route"
+          : !progressionReady
         ? "Checking account route history"
         : locked
           ? `Route cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
           : ready
-            ? `Pool: ${poolFree.toFixed(2)} GAS  ·  Win: ${reward} GAS  ·  ${time} min`
+            ? `Tap a route to start  ·  Win: ${reward} GAS  ·  ${time} min`
             : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
       this.lobbyStatusText.setText(statusText);
-      this.lobbyStatusText.setColor(ready ? "#80b89a" : "#f97066");
+      this.lobbyStatusText.setColor(ready ? "#d4f9df" : "#ffd166");
     }
   }
 
@@ -979,7 +1048,7 @@ export class SnakeScene extends BaseScene {
   }
 
   private isDifficultyLocked(difficulty: Difficulty): boolean {
-    return this.bool("progressionReady", false) && difficulty < this.requiredDifficulty();
+    return this.bool("progressionReady") && difficulty < this.requiredDifficulty();
   }
 
   private ensureSelectableDifficulty(): void {
@@ -988,12 +1057,40 @@ export class SnakeScene extends BaseScene {
     }
   }
 
-  private canStartSelectedDifficulty(): boolean {
-    if (!this.bool("progressionReady", false)) return false;
-    if (this.isDifficultyLocked(this.pickedDifficulty)) return false;
+  private canStartDifficulty(difficulty: Difficulty): boolean {
+    if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
+    if (!this.bool("walletConnected")) return false;
+    if (!this.bool("progressionReady")) return false;
+    if (this.isDifficultyLocked(difficulty)) return false;
     const poolFree = this.num("poolFree", 0);
-    const rule = ruleOf(this.pickedDifficulty);
+    const rule = ruleOf(difficulty);
     return poolFree >= Number(gasDisplay(rule.rewardFixed8));
+  }
+
+  private canSubmitTarget(): boolean {
+    if (!this.targetReached || this.str("gameStatus", "") !== "dealt") return false;
+    if (this.bool("isSubmitting")) return false;
+    const deadline = this.num("deadline", 0);
+    const dealtAt = this.num("dealtAt", 0);
+    const difficulty = this.num("gameDifficulty", 0);
+    const rule = ruleOf(difficulty as Difficulty);
+    const remainingMs = deadline > 0 ? deadline - this.nowMs : Number.POSITIVE_INFINITY;
+    if (remainingMs <= SUBMIT_BUFFER_MS) return false;
+    if (dealtAt <= 0) return true;
+    return this.nowMs - dealtAt >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
+  }
+
+  private submitGateMessage(canSubmit: boolean): string {
+    if (canSubmit) return "Submit for GAS before time runs out.";
+    const deadline = this.num("deadline", 0);
+    const dealtAt = this.num("dealtAt", 0);
+    const difficulty = this.num("gameDifficulty", 0);
+    const rule = ruleOf(difficulty as Difficulty);
+    const remainingMs = deadline > 0 ? deadline - this.nowMs : Number.POSITIVE_INFINITY;
+    if (remainingMs <= SUBMIT_BUFFER_MS) return "Too close to the deadline.";
+    if (dealtAt <= 0) return "Settlement unlock is being checked.";
+    const waitMs = rule.minSolveMs + MIN_SOLVE_BUFFER_MS - (this.nowMs - dealtAt);
+    return `Settlement unlocks in ${formatClock(waitMs)}.`;
   }
 
   // ── Draw: snake ───────────────────────────────────────────────────────────
@@ -1129,11 +1226,11 @@ export class SnakeScene extends BaseScene {
 
     // Timer label
     this.timerLabel.setText(formatClock(Math.max(0, remainingMs)));
-    this.timerLabel.setColor(isLow ? "#f97066" : "#5af5d0");
+    this.timerLabel.setColor(isLow ? "#ffd166" : "#66ffe0");
 
     // Length label
     this.lengthLabel.setText(`${currentLen} / ${rule.targetLength} cells`);
-    this.lengthLabel.setColor(this.targetReached ? "#5af5d0" : "#d4a843");
+    this.lengthLabel.setColor(this.targetReached ? "#66ffe0" : "#ffcf68");
 
     // Target badge
     const reward = gasDisplay(rule.rewardFixed8);
@@ -1220,8 +1317,22 @@ export class SnakeScene extends BaseScene {
 
   // ── Responsive resize ─────────────────────────────────────────────────────
 
-  protected onResize(_gameSize: Phaser.Structs.Size): void {
-    this.scene.restart();
+  protected onResize(): void {
+    this.fitCameraToHost();
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+    const visibleWorldH = viewH / zoom;
+    const tallViewportLift = Math.max(0, visibleWorldH - DESIGN_H) * 0.42;
+    const centerY = DESIGN_H / 2 + tallViewportLift;
+    this.renderResponsiveStage(visibleWorldH, centerY);
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, centerY);
   }
 
   // ── update (Phaser frame loop) ────────────────────────────────────────────

@@ -32,6 +32,8 @@ const C = {
 const FONT = "Inter, Arial, sans-serif";
 const MODE_BUTTON_W = 132;
 const MODE_BUTTON_H = 34;
+const DESIGN_W = 420;
+const DESIGN_H = 580;
 
 type Mode = "send" | "claim";
 
@@ -81,6 +83,10 @@ export class RedEnvelopeScene extends BaseScene {
   private heroContainer!: Phaser.GameObjects.Container;
   private heroImage!: Phaser.GameObjects.Image;
   private heroGlow!: Phaser.GameObjects.Ellipse;
+  private sceneBackdrop!: Phaser.GameObjects.Rectangle;
+  private sceneFrame!: Phaser.GameObjects.Graphics;
+  private tallStageDock!: Phaser.GameObjects.Graphics;
+  private tallStageCoins: Phaser.GameObjects.Container[] = [];
   private floatingCoins: Phaser.GameObjects.Container[] = [];
 
   private modeButtons = new Map<Mode, Phaser.GameObjects.Container>();
@@ -105,7 +111,7 @@ export class RedEnvelopeScene extends BaseScene {
   private claimButtonBg!: Phaser.GameObjects.Graphics;
   private claimButtonLabel!: Phaser.GameObjects.Text;
 
-  private activeMode: Mode = "send";
+  private activeMode: Mode = "claim";
   private selectedPlanIndex = 0;
   private activeEnvelopeId = "";
   private lastCreatedEnvelopeId = "";
@@ -125,17 +131,21 @@ export class RedEnvelopeScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width: W, height: H } = this.scale;
 
-    this.buildBackground(W, H);
-    this.buildHero(W);
-    this.buildResultPill(W);
-    this.buildModeTabs(W);
-    this.buildSendPanel(W);
-    this.buildClaimPanel(W);
-    this.buildStatus(W, H);
-    this.switchMode("send");
+    this.buildBackground(DESIGN_W, DESIGN_H);
+    this.buildHero(DESIGN_W);
+    this.buildResultPill(DESIGN_W);
+    this.buildModeTabs(DESIGN_W);
+    this.buildSendPanel(DESIGN_W);
+    this.buildClaimPanel(DESIGN_W);
+    this.buildStatus(DESIGN_W, DESIGN_H);
+    this.switchMode("claim");
+    this.fitCameraToHost();
     this.onStateUpdate(this.state);
+  }
+
+  protected onResize(): void {
+    this.fitCameraToHost();
   }
 
   protected onStateUpdate(_state: GameState): void {
@@ -154,33 +164,21 @@ export class RedEnvelopeScene extends BaseScene {
 
     if (!this.autoSelectedMode) {
       this.autoSelectedMode = true;
-      this.switchMode(this.activeEnvelopeId ? "claim" : "send");
+      this.switchMode("claim");
     }
 
     if (this.activeMode === "claim") this.heroImage.setTexture(REDENV_ASSETS.claimCard);
     else this.heroImage.setTexture(REDENV_ASSETS.stage);
 
     const wonAmount = lucky?.amount && lucky.amount > 0 ? fmtGas(lucky.amount) : "";
-    this.resultText.setText(
-      wonAmount
-        ? `+${wonAmount} GAS received`
-        : lastCreated
-          ? `Envelope #${lastCreated} is ready to share`
-          : "Create packets. Share a link. Open for GAS.",
-    );
-    this.setResultState(Boolean(wonAmount || lastCreated), Boolean(lastError));
+    this.updateResultPillCopy(lucky, lastCreated, lastError);
 
     this.activeEnvelopeText.setText(
       this.activeEnvelopeId ? `Envelope #${truncateMiddle(this.activeEnvelopeId, 8, 4)}` : "Open a claim link",
     );
     this.claimMetaText.setText(this.claimMeta(pools, envelopes));
 
-    this.statusText.setText(
-      compactError(lastError) ||
-        serviceNotice ||
-        (credit > 0 ? `Prepaid credit ${fmtGas(credit)} GAS available` : "") ||
-        "Random packet split is settled by the on-chain contract.",
-    );
+    this.updateStatusCopy(lastError, serviceNotice, credit);
 
     this.updateButtons();
     this.updateHeroMotion(Boolean(openingId));
@@ -218,7 +216,7 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private buildBackground(W: number, H: number): void {
-    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+    this.sceneBackdrop = this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
     const glowTop = this.add.ellipse(W / 2, 132, 390, 252, 0xffdf9e, 0.28);
     const glowBottom = this.add.ellipse(W / 2, 376, 360, 240, 0xfff2d3, 0.32);
     this.animate({
@@ -229,9 +227,70 @@ export class RedEnvelopeScene extends BaseScene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
-    const frame = this.add.graphics();
-    frame.lineStyle(2, C.stroke, 0.82);
-    frame.strokeRoundedRect(10, 10, W - 20, H - 20, 26);
+
+    this.tallStageDock = this.add.graphics();
+    for (let i = 0; i < 6; i += 1) {
+      const coin = this.makeGasBadge(58 + i * 61, H + 34 + (i % 2) * 14, 22)
+        .setAlpha(0.32);
+      this.tallStageCoins.push(coin);
+      if (!this.reducedMotion) {
+        this.animate({
+          targets: coin,
+          y: coin.y - 5,
+          angle: i % 2 === 0 ? 7 : -7,
+          duration: 1500 + i * 90,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      }
+    }
+
+    this.sceneFrame = this.add.graphics();
+    this.renderResponsiveStage(H, H / 2);
+  }
+
+  private renderResponsiveStage(visibleWorldH: number, centerY: number): void {
+    if (!this.sceneBackdrop || !this.sceneFrame || !this.tallStageDock) return;
+
+    const viewBottom = centerY + visibleWorldH / 2;
+    const stageBottom = Math.max(DESIGN_H, Math.min(viewBottom + 10, DESIGN_H + 165));
+    const dockTop = DESIGN_H - 8;
+    const dockHeight = Math.max(0, stageBottom - dockTop);
+    const hasTallDock = dockHeight > 24;
+
+    this.sceneBackdrop
+      .setPosition(DESIGN_W / 2, stageBottom / 2)
+      .setDisplaySize(DESIGN_W, stageBottom);
+
+    this.tallStageDock.clear();
+    this.tallStageDock.setVisible(hasTallDock);
+    for (const coin of this.tallStageCoins) coin.setVisible(hasTallDock);
+
+    if (hasTallDock) {
+      this.tallStageDock.fillStyle(0xfff4da, 0.78);
+      this.tallStageDock.fillRoundedRect(18, dockTop, DESIGN_W - 36, dockHeight + 18, {
+        tl: 22,
+        tr: 22,
+        bl: 0,
+        br: 0,
+      });
+      this.tallStageDock.lineStyle(1, 0xf2d2a1, 0.7);
+      this.tallStageDock.lineBetween(38, dockTop + 26, DESIGN_W - 38, dockTop + 26);
+      this.tallStageDock.lineStyle(1, 0xf5ddb5, 0.46);
+      for (let x = 54; x < DESIGN_W - 24; x += 46) {
+        this.tallStageDock.lineBetween(x, dockTop + 50, x + 28, stageBottom - 18);
+      }
+
+      const coinY = Math.min(stageBottom - 34, dockTop + 46);
+      this.tallStageCoins.forEach((coin, index) => {
+        coin.setPosition(58 + index * 61, coinY + (index % 2) * 13);
+      });
+    }
+
+    this.sceneFrame.clear();
+    this.sceneFrame.lineStyle(2, C.stroke, 0.82);
+    this.sceneFrame.strokeRoundedRect(10, 10, DESIGN_W - 20, stageBottom - 20, 26);
   }
 
   private buildHero(W: number): void {
@@ -359,6 +418,53 @@ export class RedEnvelopeScene extends BaseScene {
       bg.strokeRoundedRect(-MODE_BUTTON_W / 2, -MODE_BUTTON_H / 2, MODE_BUTTON_W, MODE_BUTTON_H, 17);
       text.setColor(active ? "#fff6df" : "#765230");
     }
+    this.updateResultPillCopy(
+      this.val<{ amount?: number; from?: string } | null>("luckyMessage", null),
+      this.lastCreatedEnvelopeId || asEnvelopeId(this.str("lastCreatedEnvelopeId", "")),
+      this.str("lastError", ""),
+    );
+    this.updateStatusCopy(
+      this.str("lastError", ""),
+      this.str("serviceNotice", ""),
+      this.num("prepaidCredit", 0),
+    );
+  }
+
+  private updateResultPillCopy(
+    lucky: { amount?: number; from?: string } | null | undefined,
+    lastCreated: string,
+    lastError: string,
+  ): void {
+    if (!this.resultText) return;
+    const wonAmount = lucky?.amount && lucky.amount > 0 ? fmtGas(lucky.amount) : "";
+    this.resultText.setText(
+      wonAmount
+        ? `+${wonAmount} GAS received`
+        : lastCreated
+          ? `Envelope #${lastCreated} is ready to share`
+          : this.activeMode === "claim"
+            ? this.activeEnvelopeId
+              ? "Envelope ready. Open once for GAS."
+              : "Open a shared link or active pool."
+            : "Create packets. Share a link. Open for GAS.",
+    );
+    this.setResultState(Boolean(wonAmount || lastCreated), Boolean(lastError));
+  }
+
+  private defaultStatusCopy(): string {
+    return this.activeMode === "claim"
+      ? "Use a shared envelope link before opening."
+      : "Random packet split is settled by the on-chain contract.";
+  }
+
+  private updateStatusCopy(lastError: string, serviceNotice: string, credit: number): void {
+    if (!this.statusText) return;
+    this.statusText.setText(
+      compactError(lastError) ||
+        serviceNotice ||
+        (credit > 0 ? `Prepaid credit ${fmtGas(credit)} GAS available` : "") ||
+        this.defaultStatusCopy(),
+    );
   }
 
   private buildSendPanel(W: number): void {
@@ -637,7 +743,7 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private spawnRewardBurst(): void {
-    const { width: W } = this.scale;
+    const W = DESIGN_W;
     for (let i = 0; i < 18; i += 1) {
       const coin = this.makeGasBadge(W / 2, 246, 24).setAlpha(0.95);
       this.animate({
@@ -669,5 +775,19 @@ export class RedEnvelopeScene extends BaseScene {
       fixedWidth: 342,
       align: "center",
     }).setOrigin(0.5);
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+    const visibleWorldH = viewH / zoom;
+    const tallViewportLift = Math.max(0, visibleWorldH - DESIGN_H) * 0.42;
+    const centerY = DESIGN_H / 2 + tallViewportLift;
+    this.renderResponsiveStage(visibleWorldH, centerY);
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, centerY);
   }
 }

@@ -109,11 +109,15 @@ const appMessages = {
   },
 
   scoreReward: { en: "Reward at stake", zh: "本局奖励" },
+  rewardMetric: { en: "Reward", zh: "奖励" },
   scoreTime: { en: "Time left", zh: "剩余时间" },
+  timeMetric: { en: "Time", zh: "时间" },
   scoreUndos: { en: "Undos left", zh: "剩余撤回" },
+  undosMetric: { en: "Undos", zh: "撤回" },
   scoreWon: { en: "Total won", zh: "累计赢取" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  drawerTitleShort: { en: "Rules", zh: "规则" },
   leaderboardIntro: {
     en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
     zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",
@@ -135,10 +139,18 @@ const appMessages = {
     en: "1. Pick a difficulty and pay the entry (Easy 0.02, Medium 0.10, Hard 0.20 GAS). 2. The Morpheus enclave deals a puzzle with a verified unique solution and binds its hash commitment on-chain. 3. Solve it before the deadline (15/25/40 min). Placed digits are FINAL — pencil notes are free; undos are recorded by the enclave and each burns 30% of the base reward, three max. 4. The enclave verifies your board, signs the settlement, and the contract pays 0.1/0.5/1 GAS (minus undo penalties) after checking the signature and the commitment. A short anti-bot floor applies.",
     zh: "1. 选择难度并支付报名费（简单 0.02、中等 0.10、困难 0.20 GAS）。2. Morpheus 飞地派发经验证唯一解的数独，并将其哈希承诺绑定上链。3. 在截止时间内完成（15/25/40 分钟）。落子即锁定——铅笔笔记免费；撤回由飞地记录，每次扣除基础奖励的 30%，最多三次。4. 飞地验证盘面并签署结算，合约核验签名与承诺后按 0.1/0.5/1 GAS（扣除撤回罚金）入账。提交前有一段防脚本的最短用时。",
   },
+  rulesShort: {
+    en: "Fill the sealed board, use pencil notes freely, and submit before the deadline.",
+    zh: "完成密封棋盘，可自由使用笔记，并在截止前提交。",
+  },
   fairnessTitle: { en: "Provably fair deals", zh: "可验证公平发牌" },
   fairnessCopy: {
     en: "The puzzle is generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, so the solution cannot be extracted or scripted outside the app. At settlement the enclave signs the result (problem hash, answer hash, time, undos) and the contract verifies both the signature and that the problem hash equals the original commitment before paying. The clue layout you see is all any client ever receives.",
     zh: "谜题由 Morpheus TEE 用每局独立的密钥在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此答案无法被提取、也无法在平台之外用脚本求解。结算时飞地对结果（问题哈希、答案哈希、用时、撤回次数）签名，合约先核验签名、再核验问题哈希与开局承诺一致后才发奖。任何客户端能看到的只有题面线索。",
+  },
+  fairnessShort: {
+    en: "The puzzle stays inside the Morpheus TEE until signed settlement.",
+    zh: "谜题保留在 Morpheus TEE 内，直到签名结算。",
   },
   commitmentLine: {
     en: "Game #{gameId} · sealed commitment {commitment}",

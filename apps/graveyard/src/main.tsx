@@ -6,7 +6,7 @@ import { defineMiniApp, refsToObservables } from "@shared/react";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useGraveyard } from "./composables/useGraveyard";
+import { useGraveyard, type BurialDraftInput } from "./composables/useGraveyard";
 import type { HistoryItem } from "./types";
 
 defineMiniApp({
@@ -34,10 +34,21 @@ defineMiniApp({
       graveyard.setComposeMode(mode === "hash" ? "hash" : "write");
     });
     ctx.framework.actions.register("setMemoryText", async (text: unknown) => {
+      if (text && typeof text === "object" && !Array.isArray(text)) {
+        const draft = text as BurialDraftInput;
+        if (draft.composeMode === "hash" || draft.composeMode === "write") {
+          graveyard.setComposeMode(draft.composeMode);
+        }
+        await graveyard.setMemoryText(
+          String(draft.memoryText ?? draft.assetHash ?? ""),
+          draft.composeMode === "hash" ? "hash" : "write",
+        );
+        return;
+      }
       await graveyard.setMemoryText(String(text ?? ""));
     });
-    ctx.framework.actions.register("executeDestroy", async () => {
-      await notify.guard(() => graveyard.executeDestroy(), "memoryBuried");
+    ctx.framework.actions.register("executeDestroy", async (draft: unknown) => {
+      await notify.guard(() => graveyard.executeDestroy(draft as BurialDraftInput), "memoryBuried");
     });
     ctx.framework.actions.register("requestForget", async (item: unknown) => {
       graveyard.requestForget(item as HistoryItem);

@@ -96,6 +96,22 @@ defineMiniApp({
       obs.myTotalWon.set(totalWon);
     };
 
+    const refreshProgression = async () => {
+      try {
+        const progression = await rewardGame.progression(2);
+        obs.progressionRequiredDifficulty.set(progression.requiredDifficulty);
+        obs.progressionMaxDifficulty.set(progression.maxDifficulty);
+        obs.progressionHardChallengeLevel.set(progression.hardChallengeLevel);
+        obs.progressionEffectiveLimitMs.set(progression.effectiveLimitMs ?? 0);
+        if (obs.gameDifficulty.get() < progression.requiredDifficulty) {
+          obs.gameDifficulty.set(progression.requiredDifficulty);
+        }
+        obs.progressionReady.set(true);
+      } catch {
+        obs.progressionReady.set(false);
+      }
+    };
+
     const loadLeaderboard = async () => {
       const { ranked, mine } = await app.game.leaderboard.load<SolveRow>(
         "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
@@ -159,6 +175,7 @@ defineMiniApp({
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
+      if (obs.progressionReady.get() && difficulty < obs.progressionRequiredDifficulty.get()) return;
       obs.isStarting.set(true);
       obs.lastStatus.set(ctx.t("statusStarting"));
       try {
@@ -187,6 +204,13 @@ defineMiniApp({
       } finally {
         obs.isStarting.set(false);
       }
+    });
+
+    app.actions.register("selectDifficulty", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as { difficulty?: unknown };
+      const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
+      if (obs.progressionReady.get() && difficulty < obs.progressionRequiredDifficulty.get()) return;
+      obs.gameDifficulty.set(difficulty);
     });
 
     app.actions.register("retryDeal", async () => {
@@ -248,7 +272,7 @@ defineMiniApp({
           ? ctx.t("statusSolved", { payout: settled.payoutGas.toFixed(2) })
           : ctx.t("statusExpired");
         setStatus(msg, settled.payoutGas > 0 ? "success" : "info");
-        await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
+        await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard(), refreshProgression()]);
         return finalized.tx;
       } catch (error) {
         const msg = error instanceof Error ? error.message : ctx.t("statusFailed");
@@ -269,7 +293,7 @@ defineMiniApp({
         forgetBoard(gameId);
         session = null;
         setStatus(ctx.t("statusExpired"), "info");
-        await refreshBalances();
+        await Promise.all([refreshBalances(), refreshProgression()]);
       } catch (error) {
         setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
         throw error;
@@ -287,7 +311,7 @@ defineMiniApp({
     });
 
     app.actions.register("refreshLeaderboard", async () => {
-      await Promise.all([loadLeaderboard(), refreshStats()]);
+      await Promise.all([loadLeaderboard(), refreshStats(), refreshProgression()]);
     });
 
     // ── State returned to PlayArea ────────────────────────────────────────────
@@ -322,7 +346,7 @@ defineMiniApp({
             }
           } catch { /* no active game recoverable */ }
         }
-        await Promise.all([refreshStats(), loadLeaderboard()]);
+        await Promise.all([refreshStats(), loadLeaderboard(), refreshProgression()]);
         if (obs.gameStatus.get() === "idle") obs.lastStatus.set(ctx.t("statusReady"));
       },
     };

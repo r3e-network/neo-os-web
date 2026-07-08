@@ -122,6 +122,13 @@ const appMessages = {
     en: "Choose a quick intent or write one focused question. The prompt stays local; only the draw and card ids are handled on-chain.",
     zh: "选择快捷意图或写下一个明确问题。问题保留在本地；链上只处理抽牌和卡牌编号。",
   },
+  moreActions: { en: "More actions", zh: "更多操作" },
+  drawerSummaryLabel: { en: "Tarot reading summary", zh: "塔罗读牌摘要" },
+  refreshReadingState: { en: "Refresh state", zh: "刷新状态" },
+  currentSpreadTitle: { en: "Current spread", zh: "当前牌阵" },
+  sealedReadingHint: { en: "Tap the card to reveal.", zh: "点击卡牌揭示。" },
+  readerWalletLabel: { en: "Wallet", zh: "钱包" },
+  readerWalletMissing: { en: "Not connected", zh: "未连接" },
   intentionDeckLabel: { en: "Intention deck", zh: "意图牌组" },
   questionPreviewLabel: { en: "Focus", zh: "聚焦" },
   questionPreviewFallback: {

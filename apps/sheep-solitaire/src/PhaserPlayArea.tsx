@@ -4,6 +4,8 @@
  * Bridges the observable state from main.tsx into the Phaser SheepScene
  * and forwards dispatch calls back to the blockchain layer.
  */
+import { useState } from "react";
+import { ChevronDown, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
@@ -19,44 +21,52 @@ const GAME_CONFIG = {
   transparent: true,
 } as const;
 
-const LOBBY_CARD_BOUNDS = [
-  { difficulty: 0, x: 200, y: 122, w: 340, h: 158 },
-  { difficulty: 1, x: 200, y: 292, w: 340, h: 158 },
-  { difficulty: 2, x: 200, y: 462, w: 340, h: 158 },
-] as const;
-
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const gameStatus  = str("gameStatus", "idle");
   const isDealing   = bool("isDealing");
   const isStarting  = bool("isStarting");
   const isSubmitting = bool("isSubmitting");
   const isGameOver  = bool("isGameOver");
-  const isLobbyInteractive =
-    (gameStatus === "idle" || gameStatus === "expired" || gameStatus === "refunded") &&
-    !isStarting &&
-    !isDealing;
+  const credit      = num("credit", 0);
+  const poolFree    = num("poolFree", 0);
+  const pileCards   = val<Array<{ picked?: boolean }>>("pileCards") ?? [];
+  const slotCards   = val<unknown[]>("slotCards") ?? [];
+  const activeGameId = str("activeGameId", "0");
+  const deadline    = num("deadline", 0);
+  const undosUsed   = num("undosUsed", 0);
+  const shuffleLeft = num("shuffleLeft", 1);
+  const remove3Left = num("remove3Left", 1);
+  const cardsLeft   = pileCards.filter((card) => !card?.picked).length + slotCards.length;
+  const trayUsed    = slotCards.length;
+  const canRelease  = gameStatus === "dealt" || isGameOver;
+  const canWithdraw = credit > 0 && gameStatus !== "dealt";
 
   // Bridge state snapshot: all values must be plain (serializable)
   const bridgeState = {
+    activeGameId,
     gameStatus,
     gameDifficulty: num("gameDifficulty", 0),
-    pileCards:      val("pileCards") ?? [],
-    slotCards:      val("slotCards") ?? [],
-    shuffleLeft:    num("shuffleLeft", 1),
-    remove3Left:    num("remove3Left", 1),
-    undosUsed:      num("undosUsed", 0),
+    pileCards,
+    slotCards,
+    dealtAt:        num("dealtAt", 0),
+    deadline,
+    shuffleLeft,
+    remove3Left,
+    undosUsed,
     isStarting,
     isDealing,
     isSubmitting,
+    isPicking:      bool("isPicking"),
     isUndoing:      bool("isUndoing"),
     isMatching:     bool("isMatching"),
     isGameOver,
     lastStatus:     str("lastStatus", ""),
     lastPayout:     str("lastPayout", ""),
-    credit:         num("credit", 0),
-    poolFree:       num("poolFree", 0),
+    credit,
+    poolFree,
   };
 
   // Derive stage header text
@@ -75,36 +85,46 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? t("statusDealt")
     : t("rollDescription");
 
-  const handleLobbyPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isLobbyInteractive) return;
+  const hudItems = [
+    {
+      label: gameStatus === "dealt" ? t("scoreCards") : t("poolMetric"),
+      value: gameStatus === "dealt" ? String(cardsLeft) : `${poolFree.toFixed(2)} GAS`,
+      accent: gameStatus === "dealt",
+    },
+    {
+      label: t("trayMetric"),
+      value: `${trayUsed}/7`,
+      accent: trayUsed >= 5,
+    },
+    {
+      label: t("toolsMetric"),
+      value: `${Math.max(0, 3 - undosUsed)} + ${shuffleLeft}/${remove3Left}`,
+      accent: false,
+    },
+  ];
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * GAME_CONFIG.width;
-    const y = ((event.clientY - rect.top) / rect.height) * GAME_CONFIG.height;
-    const hit = LOBBY_CARD_BOUNDS.find((card) =>
-      x >= card.x - card.w / 2 &&
-      x <= card.x + card.w / 2 &&
-      y >= card.y - card.h / 2 &&
-      y <= card.y + card.h / 2,
-    );
-    if (!hit) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    const bridge = (window as typeof window & {
-      __phaserBridge?: { dispatch(action: string, ...args: unknown[]): void };
-    }).__phaserBridge;
-    if (bridge) {
-      bridge.dispatch("startGame", { difficulty: hit.difficulty });
-    } else {
-      void dispatch("startGame", { difficulty: hit.difficulty });
-    }
-  };
+  const drawerActions = [
+    ...(canRelease
+      ? [{
+          label: t("expireGame"),
+          icon: <RotateCcw size={16} aria-hidden="true" />,
+          onClick: () => void dispatch("expireGame"),
+        }]
+      : []),
+    ...(canWithdraw
+      ? [{
+          label: t("withdrawAction", { amount: credit.toFixed(2) }),
+          icon: <WalletCards size={16} aria-hidden="true" />,
+          onClick: () => void dispatch("withdrawWinnings", {}),
+        }]
+      : []),
+  ];
 
   return (
     <div className="sheep-playarea mx2 mx2-cat-game">
       <PlayStage
         category="game"
+        className="sheep-playstage"
         stage={{
           eyebrow: t("rollTab"),
           title:   stageTitle,
@@ -117,39 +137,82 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           ),
         }}
         scene={
-          <div className="sheep-phaser-shell">
+          <div className="sheep-stage-shell">
             <PhaserGameComponent
               config={GAME_CONFIG}
               state={bridgeState}
               dispatch={dispatch}
+              className="sheep-phaser-canvas"
+              ariaLabel="Sheep Solitaire tile game"
+              loadingLabel="Opening sheep board"
             />
-            {isLobbyInteractive ? (
-              <div
-                className="sheep-phaser-lobby-hitarea"
-                aria-hidden="true"
-                onPointerDown={handleLobbyPointerDown}
-              />
-            ) : null}
+            <div className="sheep-stage-hud" aria-label={t("routeSummary")}>
+              {hudItems.map((item) => (
+                <div
+                  className="sheep-stage-hud__metric"
+                  data-accent={item.accent ? "true" : undefined}
+                  key={`${item.label}-${item.value}`}
+                >
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="sheep-stage-hud__drawer"
+                onClick={() => setDrawerOpen((open) => !open)}
+                aria-expanded={drawerOpen}
+              >
+                <span>{t("historyTitle")}</span>
+                <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
+              </button>
+            </div>
+            {drawerOpen && (
+              <section className="sheep-ingame-drawer" aria-label={t("drawerTitle")}>
+                <div className="sheep-ingame-drawer__head">
+                  <Trophy size={18} aria-hidden="true" />
+                  <div>
+                    <h3>{t("historyTitle")}</h3>
+                    <p>{t("fairnessNote")}</p>
+                  </div>
+                </div>
+                <div className="sheep-ingame-drawer__grid">
+                  <span>
+                    <small>{t("creditLabel")}</small>
+                    <strong>{credit.toFixed(2)} GAS</strong>
+                  </span>
+                  <span>
+                    <small>{t("scoreTime")}</small>
+                    <strong>{deadline > 0 ? "Live" : "--"}</strong>
+                  </span>
+                  <span>
+                    <small>{t("scoreCards")}</small>
+                    <strong>{cardsLeft}</strong>
+                  </span>
+                  <span>
+                    <small>{t("scoreUndos")}</small>
+                    <strong>{Math.max(0, 3 - undosUsed)}</strong>
+                  </span>
+                </div>
+                {drawerActions.length > 0 && (
+                  <div className="sheep-ingame-drawer__actions">
+                    {drawerActions.map((action) => (
+                      <button type="button" key={action.label} onClick={action.onClick}>
+                        {action.icon}
+                        <span>{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="sheep-ingame-drawer__fairness">
+                  <ShieldCheck size={17} aria-hidden="true" />
+                  <p>{activeGameId !== "0" ? t("activeGameLine", { gameId: activeGameId }) : t("fairnessShort")}</p>
+                </div>
+              </section>
+            )}
           </div>
         }
-        actions={{
-          primary: gameStatus === "solved"
-            ? {
-                label:   t("submitSolution"),
-                onClick: () => void dispatch("submitRun"),
-              }
-            : undefined,
-          secondary: gameStatus === "dealt" && !isGameOver
-            ? [
-                {
-                  label:   t("expireGame"),
-                  onClick: () => void dispatch("expireGame"),
-                },
-              ]
-            : undefined,
-        }}
-        drawerToggleLabel={t("historyTitle")}
-        drawer={{ children: <p>{t("fairnessNote")}</p> }}
+        actions={{}}
       />
     </div>
   );
