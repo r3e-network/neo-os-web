@@ -50,13 +50,13 @@ defineMiniApp({
     });
 
     // Error toasts come from the framework action wrapper. The success toast
-    // stays on ctx.services.notify.success because it is conditional (only
-    // when amount > 0) and parameterized — the framework's successKey path
-    // supports neither, and the framework exposes no notify surface.
+    // is emitted manually via app.notify.success because it is conditional
+    // (only when amount > 0) and parameterized — the action successKey path
+    // fires unconditionally, so it cannot express the amount-gated toast.
     ctx.framework.actions.register("withdrawCredit", async () => {
       const { amount } = await tarot.withdrawCredit();
       if (amount > 0) {
-        ctx.services.notify.success("creditWithdrawn", {
+        ctx.framework.notify.success("creditWithdrawn", {
           amount: Number(amount.toFixed(4)),
           tokenGas: ctx.t("tokenGas"),
         });

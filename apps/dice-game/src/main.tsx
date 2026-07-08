@@ -145,10 +145,10 @@ defineMiniApp({
     // Route the Neo N3 ad-hoc arg-building / reads / invokes / events through the
     // MiniApp framework SDK. Behaviour-preserving: arg.* builders emit the
     // identical stack items, and readRaw/invoke/invokeWithPayment/events/
-    // detectNetwork are raw passthroughs to the same ctx.services.chain the
-    // framework wraps. The EVM branch keeps ctx.services.chain directly — its
+    // detectNetwork are raw passthroughs to the host chain service the
+    // framework wraps. The EVM branch stays on the raw chain service — its
     // isEvmNetwork / ensureEvmWallet / invokeEvmWithValue helpers are not part of
-    // the framework chain surface.
+    // the N3-only framework chain surface (see the framework-exempt tags below).
     const app = ctx.framework;
     const launchFace = sanitizeFace(
       ctx.launchContext.params.face ?? ctx.launchContext.params.chosenNumber,
@@ -195,6 +195,8 @@ defineMiniApp({
      * credit (now withdrawable). Best-effort: a read failure leaves prior values.
      */
     const refreshLiquidity = async (network: string): Promise<void> => {
+      // framework-exempt: EVM lane (plan §3.6) — EVM/N3 split stays on the raw
+      // chain service; the framework chain surface is N3-only.
       if (ctx.services.chain.isEvmNetwork(network)) {
         houseLiquidity.set(0);
         directCredit.set(0);
@@ -266,6 +268,7 @@ defineMiniApp({
      * in-memory history is empty (a fresh load), newest-first.
      */
     const hydrateHistory = async (network: string): Promise<void> => {
+      // framework-exempt: EVM lane (plan §3.6) — N3-only Settled-event seeding.
       if (ctx.services.chain.isEvmNetwork(network)) return;
       const player = app.chain.address.get();
       const playerHash = player ? addressToScriptHash(player) : "";
@@ -511,6 +514,7 @@ defineMiniApp({
     ctx.framework.actions.register("fundGameCredit", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { amount?: unknown };
       const network = await refreshNetwork();
+      // framework-exempt: EVM lane (plan §3.6) — pre-funded credit is N3-only.
       if (ctx.services.chain.isEvmNetwork(network)) {
         ctx.setStatus(ctx.t("statusNeoXNoCredit"), "error");
         return;
@@ -548,6 +552,7 @@ defineMiniApp({
     // is atomic and holds no withdrawable credit.
     ctx.framework.actions.register("withdrawCredit", async () => {
       const network = await refreshNetwork();
+      // framework-exempt: EVM lane (plan §3.6) — no withdrawable credit on EVM.
       if (ctx.services.chain.isEvmNetwork(network)) {
         ctx.setStatus(ctx.t("statusNeoXNoCredit"), "error");
         return;
@@ -615,6 +620,9 @@ defineMiniApp({
         stakeAmount.set(`${nextAmount} GAS`);
         payoutPreview.set(payoutFor(nextAmount));
 
+        // framework-exempt: EVM lane (plan §3.6) — the whole Neo X branch below
+        // (isEvmNetwork gate, ensureEvmWallet, invokeEvmWithValue) stays on the
+        // raw chain service; the framework chain surface is N3-only.
         if (ctx.services.chain.isEvmNetwork(network)) {
           // -- Neo X (EVM) — async VRF settle (UNCHANGED) ----------------------
           const address = DICE_EVM_ADDRESS[network as EvmNetwork];

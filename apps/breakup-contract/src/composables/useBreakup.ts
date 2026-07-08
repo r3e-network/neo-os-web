@@ -66,7 +66,6 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { GAS_DECIMALS_MULTIPLIER } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
@@ -90,8 +89,14 @@ const TERMS_MAX = 2000;
 /** Memo the contract requires on the stake-deposit transfer. */
 const STAKE_MEMO = "miniapp-breakup:stake";
 
-/** Local store for per-pact title/terms (kept on-device, keyed by pactId). */
-const META_STORE_KEY = "breakup-contract-meta";
+/**
+ * Local store for per-pact title/terms (kept on-device, keyed by pactId).
+ * app.storage.local key — the app's storage namespace is pinned to the legacy
+ * "breakup-contract-" prefix (defineMiniApp storagePrefix), so this resolves to
+ * the exact pre-framework runtime-cache key ("breakup-contract-meta") and any
+ * title/terms persisted before the migration still hit.
+ */
+const META_STORE_KEY = "meta";
 
 /** How many pact ids to page in per refresh. */
 const PARTY_PAGE_LIMIT = 100;
@@ -191,7 +196,7 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
 
   const loadLocalMeta = (): Record<string, PactMeta> => {
     try {
-      const parsed = readCachedJSON<Record<string, PactMeta>>(META_STORE_KEY);
+      const parsed = app.storage.local.get<Record<string, PactMeta>>(META_STORE_KEY);
       return parsed && typeof parsed === "object" ? parsed : {};
     } catch {
       return {};
@@ -206,9 +211,9 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
   const saveLocalMeta = (pactId: string, meta: PactMeta) => {
     if (!pactId) return;
     try {
-      const store = readCachedJSON<Record<string, PactMeta>>(META_STORE_KEY) ?? {};
+      const store = app.storage.local.get<Record<string, PactMeta>>(META_STORE_KEY) ?? {};
       store[pactId] = meta;
-      writeCachedJSON(META_STORE_KEY, store);
+      app.storage.local.set(META_STORE_KEY, store);
     } catch (e) {
       console.warn("[useBreakup] local meta write failed:", e instanceof Error ? e.message : String(e));
     }

@@ -27,7 +27,7 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    envelope.setAddress(ctx.services.chain.address.get() ?? null);
+    envelope.setAddress(ctx.framework.chain.address.get() ?? null);
 
     ctx.framework.actions.register("createEnvelope", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
@@ -36,14 +36,14 @@ defineMiniApp({
         expiryHours?: string;
         memo?: string;
       };
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () =>
           envelope.create({
             amount: String(form.amount ?? ""),
             count: String(form.count ?? "1"),
             expiryHours: String(form.expiryHours ?? "24"),
           }),
-        "envelopeCreated",
+        { successKey: "envelopeCreated" },
       );
     });
 
@@ -52,9 +52,9 @@ defineMiniApp({
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
       if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => envelope.handleClaimFromPool(id),
-        "envelopeClaimed",
+        { successKey: "envelopeClaimed" },
       );
     });
 
@@ -63,10 +63,10 @@ defineMiniApp({
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
       if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         const { amount } = await envelope.reclaimEnvelope(id);
         if (amount > 0) {
-          ctx.services.notify.success("reclaimSuccess", {
+          ctx.framework.notify.success("reclaimSuccess", {
             amount: Number(amount.toFixed(4)),
             tokenGas: ctx.t("tokenGas"),
           });
@@ -75,10 +75,10 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawCredit", async () => {
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         const { amount } = await envelope.withdrawCredit();
         if (amount > 0) {
-          ctx.services.notify.success("creditWithdrawn", {
+          ctx.framework.notify.success("creditWithdrawn", {
             amount: Number(amount.toFixed(4)),
             tokenGas: ctx.t("tokenGas"),
           });
@@ -143,7 +143,7 @@ defineMiniApp({
       },
       loadData: hasLaunchEnvelopeId
         ? async () => {
-            envelope.setAddress(ctx.services.chain.address.get() ?? null);
+            envelope.setAddress(ctx.framework.chain.address.get() ?? null);
             // Deep-link / QR claim: hydrate the launched envelope so the recipient
             // sees its remaining-packets / pool-progress preview before claiming,
             // rather than landing on an empty list (it is not their own envelope,
@@ -158,7 +158,7 @@ defineMiniApp({
             await envelope.hydrateEnvelope(launchId);
           }
         : async () => {
-            envelope.setAddress(ctx.services.chain.address.get() ?? null);
+            envelope.setAddress(ctx.framework.chain.address.get() ?? null);
             await envelope.loadAll();
           },
     };

@@ -298,10 +298,10 @@ defineMiniApp({
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         await rewardGame.withdrawCredit(ctx.framework.amount.gasToFixed8(obs.credit.get()));
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {

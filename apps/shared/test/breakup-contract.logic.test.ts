@@ -145,6 +145,15 @@ function eventState(values: unknown[]) {
   return { state: values.map((value) => ({ value })) };
 }
 
+// The on-device title/terms store migrated from raw runtime-cache helpers onto
+// app.storage.local. storagePrefix pins the app's storage namespace to the
+// legacy runtime-cache namespace (defineMiniApp/main.tsx does the same), so the
+// store still lives at the exact pre-framework "breakup-contract-meta"
+// localStorage key (prefix + store key "meta").
+const STORAGE_PREFIX = "breakup-contract-";
+const META_STORE_KEY = "meta";
+const LEGACY_META_KEY = "breakup-contract-meta";
+
 /**
  * Wrap a mock ChainService in the MiniApp framework the composable now consumes.
  * The framework's arg builders/passthroughs are behavior-preserving, so every
@@ -153,7 +162,7 @@ function eventState(values: unknown[]) {
 function frameworkFor(chain: ChainService) {
   return createMiniAppFramework(
     { services: { chain }, t } as never,
-    { appId: "miniapp-breakupcontract" },
+    { appId: "miniapp-breakupcontract", storagePrefix: STORAGE_PREFIX },
   );
 }
 
@@ -540,5 +549,59 @@ describe("useBreakup", () => {
       pacts: { "7": pact({ id: 7 }) },
     });
     await expect(app.createContract()).resolves.toBe(true);
+  });
+
+  // ── On-device title/terms store: legacy localStorage key compatibility ──
+  // The store migrated from runtime-cache (readCachedJSON/writeCachedJSON) onto
+  // app.storage.local. The user-visible invariant: title/terms persisted BEFORE
+  // the migration must still rebuild after it, so the composed key must be
+  // byte-identical to the legacy "breakup-contract-meta" key.
+
+  it("composes the pinned storagePrefix + store key into the legacy meta key byte-for-byte", () => {
+    expect(`${STORAGE_PREFIX}${META_STORE_KEY}`).toBe(LEGACY_META_KEY);
+  });
+
+  it("persists the created pact's title/terms through app.storage.local to the exact legacy key", async () => {
+    const { app } = validApp({
+      events: { createPact: eventState(["7"]) },
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+
+    await app.createContract();
+
+    // The on-device meta store lands at the exact pre-framework localStorage
+    // key, keyed by the captured on-chain pact id.
+    const raw = globalThis.localStorage?.getItem(LEGACY_META_KEY);
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw as string)).toEqual({
+      "7": {
+        title: "Summer covenant",
+        terms: "Shared plans and clean exit rules.",
+      },
+    });
+  });
+
+  it("rebuilds title/terms from metadata written at the legacy key before the migration", async () => {
+    // A pact whose title/terms were persisted by the pre-migration runtime-cache
+    // path (raw "breakup-contract-meta" localStorage key). After the migration
+    // app.storage.local must still read it, so the listed pact shows the real
+    // title instead of the "Untitled pact" placeholder.
+    globalThis.localStorage?.setItem(
+      LEGACY_META_KEY,
+      JSON.stringify({ "7": { title: "Legacy covenant", terms: "Pre-migration terms." } }),
+    );
+
+    const { chain } = chainMock({
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+    const app = useBreakup({ app: frameworkFor(chain), t });
+    app.address.set(CREATOR);
+
+    await app.loadContracts();
+    const c = app.contracts.get()[0];
+    expect(c.title).toBe("Legacy covenant");
+    expect(c.terms).toBe("Pre-migration terms.");
   });
 });

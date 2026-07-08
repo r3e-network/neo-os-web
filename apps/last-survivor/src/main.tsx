@@ -52,10 +52,10 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawCredit", async () => {
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         const { amount } = await game.withdrawCredit();
         if (amount > 0) {
-          ctx.services.notify.success("creditWithdrawn", {
+          ctx.framework.notify.success("creditWithdrawn", {
             amount: Number(amount.toFixed(4)),
             tokenGas: ctx.t("tokenGas"),
           });

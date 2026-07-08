@@ -8,10 +8,33 @@ import {
   dealPuzzle,
   hexToBytes,
 } from "../../sudoku/src/logic/sudoku-engine";
-import { createBoard } from "../../sudoku/src/logic/board-store";
-import type { BoardState } from "../../sudoku/src/logic/board-store";
+import { configureBoardStorage, createBoard } from "../../sudoku/src/logic/board-store";
+import type { BoardState, BoardStorage } from "../../sudoku/src/logic/board-store";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+// board-store persists through the framework's app.storage.local surface. The
+// app pins storagePrefix to "miniapp-sudoku:", so a "board:<gameId>" key
+// resolves to the legacy "miniapp-sudoku:board:<gameId>" localStorage key —
+// mirror that binding here so PlayArea restores the exact key each test writes.
+const boardStorage: BoardStorage = {
+  get<T>(key: string, fallback: T | null = null): T | null {
+    const raw = window.localStorage.getItem(`miniapp-sudoku:${key}`);
+    if (raw === null) return fallback;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  },
+  set(key: string, value: unknown): void {
+    window.localStorage.setItem(`miniapp-sudoku:${key}`, JSON.stringify(value));
+  },
+  delete(key: string): void {
+    window.localStorage.removeItem(`miniapp-sudoku:${key}`);
+  },
+};
+configureBoardStorage(boardStorage);
 
 afterEach(() => {
   cleanup();

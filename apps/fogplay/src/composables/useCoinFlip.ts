@@ -73,7 +73,6 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { EventBus } from "@shared/services";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
@@ -155,8 +154,6 @@ export interface PendingBet {
 export interface UseCoinFlipOptions {
   /** MiniApp framework SDK from ctx.framework (chain args / reads / invokes). */
   app: MiniAppFramework;
-  /** EventBus instance from ctx.services.events. */
-  eventBus: EventBus;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -192,7 +189,7 @@ const isRevealNotReady = (raw: string): boolean =>
 // Composable
 // ============================================================================
 
-export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
+export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
   // -- Game State -------------------------------------------------------------
   const betAmount = createObservable("1");
   const choice = createObservable<"heads" | "tails">("heads");
@@ -521,9 +518,6 @@ export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
       const payoutGas = fromFixed8(payoutBase);
       winAmount.set(payoutGas.toFixed(2));
       showWinOverlay.set(true);
-      eventBus.emit("coinflip:win", { action: t("youWon"), payout: payoutGas });
-    } else {
-      eventBus.emit("coinflip:loss", { action: t("youLost") });
     }
     return gameResult;
   };
@@ -742,20 +736,17 @@ export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
 
       // -- Step 2: WAIT the K-block beacon window, then -- Step 3: SETTLE (reveal) ---
       revealing.set(true);
-      eventBus.emit("coinflip:committed", { action: t("betCommitted"), betId });
       await sleep(REVEAL_WAIT_MS);
 
       let gameResult: GameResult;
       try {
         gameResult = await settleBet(bet);
-      } catch (settleErr) {
+      } catch {
         // The bet is committed + escrowed on-chain; the reveal just didn't land.
         // Keep the pending bet so revealResult() can retry — never claim a result.
         revealing.set(false);
         revealFailed.set(true);
         isFlipping.set(false);
-        const message = settleErr instanceof Error ? settleErr.message : t("revealFailedRetry");
-        eventBus.emit("coinflip:error", { message });
         throw new Error(t("revealFailedRetry"));
       }
 
@@ -766,11 +757,6 @@ export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
       return gameResult;
     } catch (e) {
       const message = e instanceof Error ? e.message : t("commitFailed");
-      // Only emit a generic error when we didn't already emit a settle-specific
-      // one (revealFailed is set in the settle catch above).
-      if (!revealFailed.get()) {
-        eventBus.emit("coinflip:error", { message });
-      }
       isFlipping.set(false);
       revealing.set(false);
       throw new Error(message);
@@ -797,12 +783,10 @@ export function useCoinFlip({ app, eventBus, t }: UseCoinFlipOptions) {
       isFlipping.set(false);
       await loadAll();
       return gameResult;
-    } catch (settleErr) {
+    } catch {
       revealing.set(false);
       revealFailed.set(true);
       isFlipping.set(false);
-      const message = settleErr instanceof Error ? settleErr.message : t("revealFailedRetry");
-      eventBus.emit("coinflip:error", { message });
       throw new Error(t("revealFailedRetry"));
     }
   };
