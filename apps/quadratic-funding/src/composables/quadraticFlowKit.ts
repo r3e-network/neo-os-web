@@ -1,0 +1,194 @@
+/**
+ * quadraticFlowKit — the shared plumbing every Quadratic Funding flow uses,
+ * built ONLY on the MiniApp framework SDK (ctx.framework).
+ *
+ * This file is the app-side residue of the legacy-stack rewrite (plan §3
+ * Wave 5): the hand-rolled useWallet/useContractInteraction/useContractAddress
+ * wiring, the deposit-then-invoke sequence and the null-scaler are gone —
+ * what remains is the app-specific glue the framework cannot own:
+ *
+ *  - `guard`     — app.notify.guardResult around a chain flow, MIRRORED into
+ *                  the in-card status banner (PlayArea's `.qf-setup-card__notice`
+ *                  / `.qf-controls__status`) with the exact legacy copy. The
+ *                  returned boolean replaces the old `succeededSince` status-
+ *                  snapshot success detection.
+ *  - `onNeoChain`— the silent wrong-chain early-return that used to be
+ *                  `requireNeoChain(wallet.chainType, t)`.
+ *  - `ensureCaller` / `ensureContract` — the wallet/contract preconditions
+ *                  with this app's localized copy ("walletNotConnected" /
+ *                  "contractMissing").
+ *  - `scaleAssetAmount` — the legacy-permissive human→base-unit scaler on top
+ *                  of the framework's never-throwing app.amount.parse* lane.
+ *  - `settleDeposit` — the deposit-confirmation wait injected into
+ *                  app.funds.prepayAndCall's asset deposit lane.
+ */
+
+import type { MiniAppFramework } from "@shared/react";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { resolveNeoNetwork } from "@shared/constants";
+import {
+  waitForDepositConfirmation,
+  type DepositConfirmation,
+} from "@shared/composables/useContractInteraction";
+
+export type StatusSetter = (msg: string, type: "success" | "error") => void;
+
+export type Translator = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
+
+export type ScaledAmountResult =
+  | { ok: true; value: string }
+  | { ok: false; reason: "fractionalNeo" | "invalid" };
+
+export interface QuadraticFlowKitOptions {
+  /** MiniApp framework SDK from ctx.framework — the only service surface. */
+  app: MiniAppFramework;
+  /** Translation function (app + common messages). */
+  t: Translator;
+  /**
+   * In-card status banner setter (useStatusMessage policy: sticky errors,
+   * auto-dismissed successes). Every flow outcome lands here with the exact
+   * pre-rewrite copy, in addition to the platform notify channel.
+   */
+  setStatus: StatusSetter;
+  /**
+   * Override the deposit-confirmation wait used by the deposit-then-act
+   * flows. Defaults to {@link waitForDepositConfirmation} polling the N3Index
+   * for the transfer's indexed NEP-17 Transfer event on the asset token
+   * contract, on the wallet's own network. Injectable for tests.
+   */
+  confirmDeposit?: (
+    txid: string,
+    assetHash: string,
+  ) => Promise<DepositConfirmation>;
+}
+
+/**
+ * Chain types the flows accept — the same set the legacy `requireNeoChain`
+ * guard allowed. Anything else (Neo X EVM lanes) makes the write flows
+ * return early without a banner, exactly like the old guard.
+ */
+const N3_CHAIN_TYPES = new Set(["neo-n3", "neo-n3-mainnet", "neo-n3-testnet"]);
+
+export interface QuadraticFlowKit {
+  setStatus: StatusSetter;
+  /** Banner an error with the legacy formatErrorMessage + contractMissing fallback. */
+  reportError(error: unknown): void;
+  /**
+   * Silent wrong-chain guard (legacy `requireNeoChain` early return). Note
+   * the framework network probe treats an uninitialized wallet chainType as
+   * Neo N3, so a click during wallet init proceeds to the connect flow
+   * instead of the legacy silent no-op — the chain check inside every
+   * framework read/invoke still rejects a genuinely wrong network.
+   */
+  onNeoChain(): Promise<boolean>;
+  /**
+   * app.notify.guardResult around a chain flow: toasts the outcome on the
+   * platform notify channel AND mirrors it into the in-card banner with the
+   * legacy copy (t(successKey) / formatErrorMessage(error, t("contractMissing"))).
+   * Resolves with the explicit success boolean the PlayArea uses to clear
+   * its inputs — the replacement for the old `succeededSince` snapshot.
+   */
+  guard(fn: () => Promise<unknown>, successKey: string): Promise<boolean>;
+  /** Connect the wallet and return the caller address, or throw the legacy copy. */
+  ensureCaller(): Promise<string>;
+  /**
+   * Resolve the deployed contract hash (required by the prepay deposit lane,
+   * which reads the same accessor). The framework fills the accessor on the
+   * first default-contract read; when a write fires before any read has
+   * landed, nudge resolution with a cheap admin read. A still-missing
+   * contract throws the legacy "contractMissing" copy.
+   */
+  ensureContract(): Promise<string>;
+  /** Deposit-confirmation wait for the prepay lane (see options.confirmDeposit). */
+  settleDeposit(txid: string, assetHash: string): Promise<DepositConfirmation>;
+  /**
+   * Human input → base-unit integer string via app.amount.parseAssetToUnits
+   * (never throws). Keeps the legacy acceptance quirks the strict framework
+   * parser rejects — dot-leading (".5") and dot-trailing ("5.") GAS amounts —
+   * and the distinct "fractionalNeo" reason for NEO inputs containing
+   * "."/"," so the indivisible-NEO copy survives.
+   */
+  scaleAssetAmount(assetSymbol: string, raw: string): ScaledAmountResult;
+}
+
+export function createQuadraticFlowKit({
+  app,
+  t,
+  setStatus,
+  confirmDeposit,
+}: QuadraticFlowKitOptions): QuadraticFlowKit {
+  const reportError = (error: unknown): void => {
+    setStatus(formatErrorMessage(error, t("contractMissing")), "error");
+  };
+
+  const kit: QuadraticFlowKit = {
+    setStatus,
+    reportError,
+
+    async onNeoChain() {
+      return N3_CHAIN_TYPES.has(await app.chain.detectNetwork());
+    },
+
+    async guard(fn, successKey) {
+      const result = await app.notify.guardResult(fn, {
+        successKey,
+        errorKey: "contractMissing",
+      });
+      if (result.ok) {
+        setStatus(t(successKey), "success");
+        return true;
+      }
+      reportError(result.error);
+      return false;
+    },
+
+    async ensureCaller() {
+      await app.chain.ensureWallet();
+      const caller = app.chain.address.get();
+      if (!caller) throw new Error(t("walletNotConnected"));
+      return caller;
+    },
+
+    async ensureContract() {
+      if (!app.chain.contractAddress.get()) {
+        // Resolution errors fall through to the guard below so the legacy
+        // "contractMissing" copy is what the user sees.
+        await app.chain.readRaw("admin", []).catch(() => undefined);
+      }
+      const contract = app.chain.contractAddress.get();
+      if (!contract) throw new Error(t("contractMissing"));
+      return contract;
+    },
+
+    async settleDeposit(txid, assetHash) {
+      if (confirmDeposit) return confirmDeposit(txid, assetHash);
+      return waitForDepositConfirmation(txid, {
+        network: resolveNeoNetwork(await app.chain.detectNetwork()),
+        contractHash: assetHash,
+      });
+    },
+
+    scaleAssetAmount(assetSymbol, raw) {
+      const asset = assetSymbol.toUpperCase() === "NEO" ? "NEO" : "GAS";
+      const value = raw.trim();
+      // NEO is indivisible — any "."/"," is the distinct fractional reject
+      // (parse* would collapse it into a generic null).
+      if (asset === "NEO" && /[.,]/.test(value)) {
+        return { ok: false, reason: "fractionalNeo" };
+      }
+      // Legacy-permissive GAS spellings the strict parser rejects:
+      // ".5" → "0.5" and "5." → "5".
+      const normalized =
+        asset === "GAS" ? value.replace(/^\./, "0.").replace(/\.$/, "") : value;
+      const scaled = app.amount.parseAssetToUnits(asset, normalized);
+      return scaled === null
+        ? { ok: false, reason: "invalid" }
+        : { ok: true, value: scaled };
+    },
+  };
+
+  return kit;
+}

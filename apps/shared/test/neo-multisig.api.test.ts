@@ -406,6 +406,34 @@ describe("neo-multisig vault service", () => {
     expect(await failing.requestUnfunded(4)).toBeNull();
   });
 
+  it("keeps hasApproved/balanceOf Hash160 read args verbatim through arg.hash160", async () => {
+    const chain = mockChain({ hasApproved: true, balanceOf: 42 });
+    const api = makeApi(chain);
+    const signerHash = addressToScriptHash(SIGNER_B);
+
+    // Already-normalized 0x hashes must pass through UNCHANGED — the same
+    // bytes the pre-migration raw `{ type: "Hash160", value }` literals sent.
+    expect(await api.hasApproved(4, signerHash)).toBe(true);
+    expect(chain.read).toHaveBeenCalledWith(
+      "hasApproved",
+      [
+        { type: "Integer", value: "4" },
+        { type: "Hash160", value: signerHash },
+      ],
+      undefined,
+    );
+
+    expect(await api.balanceOf(7, "GAS")).toBe(42);
+    expect(chain.read).toHaveBeenCalledWith(
+      "balanceOf",
+      [
+        { type: "Integer", value: "7" },
+        { type: "Hash160", value: GAS_HASH },
+      ],
+      undefined,
+    );
+  });
+
   it("reads vault and request state back from the contract", async () => {
     const chain = mockChain({
       getVault: {

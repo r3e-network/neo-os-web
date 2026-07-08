@@ -8,12 +8,10 @@ import {
   addressToScriptHash,
   normalizeScriptHash,
   ownerMatchesAddress,
+  parseHash160,
 } from "@shared/utils/neo";
-import type {
-  ContractArg,
-  InvokeResult,
-  WalletSDK,
-} from "@shared/utils/wallet-sdk";
+import type { MiniAppFramework } from "@shared/react";
+import type { FrameworkContractArg } from "@framework/index";
 
 const LISTING_STATUS: Record<number, string> = {
   1: "active",
@@ -103,30 +101,6 @@ function sanitizeHex(value: unknown): string {
     .replace(/^0x/i, "");
 }
 
-function reverseHex(hexValue: string): string {
-  const hex = sanitizeHex(hexValue);
-  let output = "";
-  for (let index = hex.length; index > 0; index -= 2) {
-    output += hex.slice(index - 2, index);
-  }
-  return output;
-}
-
-function base64ToBytes(value: unknown): Uint8Array {
-  const binary = atob(String(value ?? ""));
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return bytes;
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
-    "",
-  );
-}
-
 function normalizeHash160Input(value: unknown, label: string): string {
   const raw = String(value ?? "").trim();
   if (!raw) {
@@ -172,48 +146,61 @@ export function formatGasFractions(value: unknown): string {
   return `${whole}.${fraction.toString().padStart(8, "0").replace(/0+$/, "")}`;
 }
 
-function decodeByteString(item: unknown): string {
-  if (!item || typeof item !== "object") return "";
-  const typed = item as { type?: string; value?: unknown };
-  if (typed.type === "String") return String(typed.value ?? "");
-  if (typed.type !== "ByteString") return "";
-  return new TextDecoder().decode(base64ToBytes(typed.value));
-}
+// ---------------------------------------------------------------------------
+// Parsed stack-value decoding
+//
+// Reads now go through app.chain (readRaw / enumerate), whose host lane parses
+// stack items before they reach the app (Integer → number|string, ByteString →
+// printable text or chain-order 0x-hex). The decoders below reproduce the
+// legacy raw-stack decode byte-for-byte on those parsed shapes: hashes come
+// back in the same bare display-order hex, integers as the same decimal
+// strings, titles as the same UTF-8 text.
+// ---------------------------------------------------------------------------
 
-function decodeHash160(item: unknown): string {
-  if (!item || typeof item !== "object") return "";
-  const typed = item as { type?: string; value?: unknown };
-  if (typed.type === "Hash160") return sanitizeHex(typed.value);
-  if (typed.type === "ByteString") {
-    return reverseHex(bytesToHex(base64ToBytes(typed.value)));
+/** Legacy decodeInteger on a parsed stack value — always a decimal string. */
+function parsedIntegerString(value: unknown): string {
+  if (typeof value === "boolean") return value ? "1" : "0";
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(Math.trunc(value));
   }
-  return "";
-}
-
-function decodeInteger(item: unknown): string {
-  if (!item || typeof item !== "object") return "0";
-  const typed = item as { type?: string; value?: unknown };
-  if (typed.type === "Integer") return String(typed.value ?? "0");
-  if (typed.type === "Boolean") return typed.value ? "1" : "0";
-  if (typed.type === "ByteString") {
-    return String(BigInt(`0x${bytesToHex(base64ToBytes(typed.value)) || "0"}`));
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^-?\d+$/.test(trimmed)) return trimmed;
+    // ByteString-integer lane: the parser renders non-text bytes as 0x-hex;
+    // the legacy decoder read those bytes as a big-endian BigInt.
+    if (/^0x[0-9a-fA-F]+$/.test(trimmed)) {
+      try {
+        return BigInt(trimmed).toString();
+      } catch {
+        return "0";
+      }
+    }
   }
   return "0";
 }
 
+/**
+ * Legacy decodeHash160 on a parsed stack value: UInt160 ByteStrings arrive
+ * from the parser as chain-order 0x-hex (or, when all 20 bytes are printable,
+ * as text). parseHash160 accepts both shapes and returns the display-order
+ * 0x-hex; strip the prefix to keep the bare-hex shape the raw decoder exposed
+ * (normalizeScriptHash re-adds the prefix downstream). Empty/absent buyer
+ * fields decode to "" exactly as before.
+ */
+function parsedHash160Hex(value: unknown): string {
+  return parseHash160(value).replace(/^0x/i, "");
+}
+
+/** Legacy decodeByteString on a parsed stack value — text or "". */
+function parsedText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 function decodeListing(
-  result: InvokeResult,
+  row: unknown,
 ): Omit<MarketListing, "myPendingPayment" | "isMine"> | null {
-  const item = Array.isArray(result?.stack) ? result.stack[0] : null;
-  if (!item || typeof item !== "object") return null;
-  const typed = item as { type?: string; value?: unknown };
-  if (
-    typed.type !== "Array" ||
-    !Array.isArray(typed.value) ||
-    typed.value.length === 0
-  ) {
-    return null;
-  }
+  if (!Array.isArray(row) || row.length === 0) return null;
 
   const [
     idItem,
@@ -227,28 +214,28 @@ function decodeListing(
     buyerItem,
     createdAtItem,
     updatedAtItem,
-  ] = typed.value;
+  ] = row;
 
-  const statusCode = Number(decodeInteger(statusItem));
-  const sellerScriptHash = decodeHash160(sellerItem);
-  const buyerScriptHash = decodeHash160(buyerItem);
+  const statusCode = Number(parsedIntegerString(statusItem));
+  const sellerScriptHash = parsedHash160Hex(sellerItem);
+  const buyerScriptHash = parsedHash160Hex(buyerItem);
 
   return {
-    id: decodeInteger(idItem),
-    aaContractHash: normalizeScriptHash(decodeHash160(aaContractItem)),
-    accountIdHash: normalizeScriptHash(decodeHash160(accountIdItem)),
+    id: parsedIntegerString(idItem),
+    aaContractHash: normalizeScriptHash(parsedHash160Hex(aaContractItem)),
+    accountIdHash: normalizeScriptHash(parsedHash160Hex(accountIdItem)),
     sellerScriptHash,
     buyerScriptHash,
     seller: sellerScriptHash ? normalizeScriptHash(sellerScriptHash) : "",
     buyer: buyerScriptHash ? normalizeScriptHash(buyerScriptHash) : "",
-    priceRaw: decodeInteger(priceItem),
-    priceGas: formatGasFractions(decodeInteger(priceItem)),
-    title: decodeByteString(titleItem),
-    metadataUri: decodeByteString(metadataUriItem),
+    priceRaw: parsedIntegerString(priceItem),
+    priceGas: formatGasFractions(parsedIntegerString(priceItem)),
+    title: parsedText(titleItem),
+    metadataUri: parsedText(metadataUriItem),
     statusCode,
     status: LISTING_STATUS[statusCode] || "unknown",
-    createdAt: decodeInteger(createdAtItem),
-    updatedAt: decodeInteger(updatedAtItem),
+    createdAt: parsedIntegerString(createdAtItem),
+    updatedAt: parsedIntegerString(updatedAtItem),
   };
 }
 
@@ -260,59 +247,62 @@ function requireAddress(address: string | null | undefined): string {
   return trimmed;
 }
 
-async function invokeMarketRead(
-  wallet: WalletSDK,
+/**
+ * Market read through the framework passthrough. The host lane returns null
+ * for a FAULTed read (a reverted read carries no data), so the legacy
+ * throw-on-FAULT branch surfaces via {@link requireReadResult} where the
+ * caller needs it.
+ */
+async function readMarket(
+  app: MiniAppFramework,
   marketHash: string,
   operation: string,
-  args: ContractArg[] = [],
-): Promise<InvokeResult> {
-  const result = await wallet.invokeRead({
+  args: FrameworkContractArg[] = [],
+): Promise<unknown> {
+  return app.chain.readRaw(operation, args, {
     scriptHash: normalizeScriptHash(marketHash),
-    operation,
-    args,
   });
-  if (
-    String(result?.state ?? "")
-      .toUpperCase()
-      .includes("FAULT")
-  ) {
-    const exception = result?.exception;
-    const sanitized =
-      typeof exception === "string" && exception.length < 100
-        ? exception
-        : "Contract operation failed";
-    throw new Error(sanitized);
+}
+
+/**
+ * A null read result on an always-returning contract method means the read
+ * FAULTed (wrong market hash / missing method). Rethrow the same sanitized
+ * generic the legacy FAULT branch produced for unusable exception payloads so
+ * the load flow keeps its error toast instead of presenting an empty board.
+ */
+function requireReadResult(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    throw new Error("Contract operation failed");
   }
-  return result;
+  return value;
 }
 
 export async function getPendingPaymentOf(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   listingId: string,
   payerAddress?: string | null,
 ): Promise<string> {
   if (!payerAddress) return "0";
   const payerHash = normalizeHash160Input(payerAddress, "Payer");
-  const result = await invokeMarketRead(
-    wallet,
-    marketHash,
-    "getPendingPaymentOf",
-    [
-      { type: "Integer", value: String(listingId) },
-      { type: "Hash160", value: normalizeScriptHash(payerHash) },
-    ],
-  );
-  return decodeInteger(result?.stack?.[0]);
+  const result = await readMarket(app, marketHash, "getPendingPaymentOf", [
+    { type: "Integer", value: String(listingId) },
+    { type: "Hash160", value: normalizeScriptHash(payerHash) },
+  ]);
+  // A FAULTed pending-payment read resolved to "0" in every legacy caller
+  // (each one caught and defaulted); the parsed lane folds that in directly.
+  return result === null || result === undefined
+    ? "0"
+    : parsedIntegerString(result);
 }
 
 export async function readAddressListing(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   listingId: string,
   currentAddress?: string | null,
 ): Promise<MarketListing> {
-  const result = await invokeMarketRead(wallet, marketHash, "getListing", [
+  const result = await readMarket(app, marketHash, "getListing", [
     { type: "Integer", value: String(listingId) },
   ]);
   const decoded = decodeListing(result);
@@ -322,7 +312,7 @@ export async function readAddressListing(
 
   const myPendingPayment = currentAddress
     ? await getPendingPaymentOf(
-        wallet,
+        app,
         marketHash,
         decoded.id,
         currentAddress,
@@ -343,16 +333,14 @@ export async function readAddressListing(
 }
 
 export async function listAddressListings(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   currentAddress?: string | null,
 ): Promise<ListAddressListingsResult> {
-  const countResult = await invokeMarketRead(
-    wallet,
-    marketHash,
-    "getListingCount",
+  const countResult = requireReadResult(
+    await readMarket(app, marketHash, "getListingCount"),
   );
-  const count = Number(decodeInteger(countResult?.stack?.[0]));
+  const count = Number(parsedIntegerString(countResult));
   if (!Number.isFinite(count) || count <= 0) {
     return { listings: [], total: 0, truncated: false };
   }
@@ -364,38 +352,31 @@ export async function listAddressListings(
   const startId = count - fetchCount + 1;
   const ids = Array.from({ length: fetchCount }, (_, index) => startId + index);
 
-  const reads = await runChunked(ids, READ_CHUNK_SIZE, (listingId) =>
-    invokeMarketRead(wallet, marketHash, "getListing", [
+  // Framework count-then-page fan-out: per-id read/decode failures are
+  // swallowed (one bad row never sinks the page) and rows come back sorted
+  // newest-first by numeric id — the same shape the hand-rolled chunked
+  // fetch + filter + sort produced.
+  const decoded = await app.chain.enumerate<
+    Omit<MarketListing, "myPendingPayment" | "isMine">
+  >({
+    ids,
+    cap: MAX_LISTINGS,
+    detailOp: "getListing",
+    detailArgs: (listingId) => [
       { type: "Integer", value: String(listingId) },
-    ]).catch((e: unknown) => {
-      console.warn(
-        "[aa-market] getListing failed at id",
-        listingId,
-        ":",
-        e instanceof Error ? e.message : String(e),
-      );
-      return null;
-    }),
-  );
-
-  const decoded = reads
-    .map((result) => (result ? decodeListing(result) : null))
-    .filter(
-      (
-        listing,
-      ): listing is Omit<MarketListing, "myPendingPayment" | "isMine"> =>
-        Boolean(listing),
-    );
+    ],
+    decode: (raw) => decodeListing(raw),
+    order: "newest",
+    scriptHash: normalizeScriptHash(marketHash),
+  });
 
   if (!currentAddress) {
     return {
-      listings: decoded
-        .map((listing) => ({
-          ...listing,
-          myPendingPayment: "0",
-          isMine: false,
-        }))
-        .sort((left, right) => Number(right.id) - Number(left.id)),
+      listings: decoded.map((listing) => ({
+        ...listing,
+        myPendingPayment: "0",
+        isMine: false,
+      })),
       total: count,
       truncated,
     };
@@ -406,7 +387,7 @@ export async function listAddressListings(
     READ_CHUNK_SIZE,
     (listing) =>
       getPendingPaymentOf(
-        wallet,
+        app,
         marketHash,
         listing.id,
         currentAddress,
@@ -422,13 +403,11 @@ export async function listAddressListings(
   );
 
   return {
-    listings: decoded
-      .map((listing, index) => ({
-        ...listing,
-        myPendingPayment: pendingPayments[index] || "0",
-        isMine: ownerMatchesAddress(listing.seller, currentAddress),
-      }))
-      .sort((left, right) => Number(right.id) - Number(left.id)),
+    listings: decoded.map((listing, index) => ({
+      ...listing,
+      myPendingPayment: pendingPayments[index] || "0",
+      isMine: ownerMatchesAddress(listing.seller, currentAddress),
+    })),
     total: count,
     truncated,
   };
@@ -450,7 +429,7 @@ function buildEscrowCreationSigner(
 }
 
 export async function createAddressListing(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   callerAddress: string,
   input: CreateListingInput,
@@ -465,62 +444,75 @@ export async function createAddressListing(
     "Account ID hash",
   );
 
-  const result = await wallet.invokeContract({
-    scriptHash: normalizeScriptHash(marketHash),
-    operation: "createListing",
-    args: [
+  const result = await app.chain.invoke(
+    "createListing",
+    [
       { type: "Hash160", value: normalizeScriptHash(aaContractHash) },
       { type: "Hash160", value: normalizeScriptHash(accountIdHash) },
       { type: "Integer", value: parseGasToFractions(input.priceGas) },
       { type: "String", value: String(input.title ?? "").trim() },
       { type: "String", value: String(input.metadataUri ?? "").trim() },
     ],
-    signers: [buildEscrowCreationSigner(address, marketHash, aaContractHash)],
-  });
+    {
+      scriptHash: normalizeScriptHash(marketHash),
+      // scopes-16 (CustomContracts) with an allowedContracts pair: the escrow
+      // creation witnesses both the market and the AA core contract.
+      signers: [buildEscrowCreationSigner(address, marketHash, aaContractHash)],
+    },
+  );
 
   return { txid: String(result?.txid ?? "") };
 }
 
 export async function updateAddressListingPrice(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   callerAddress: string,
   listingId: string,
   priceGas: string,
 ): Promise<{ txid: string }> {
   const address = requireAddress(callerAddress);
-  const result = await wallet.invokeContract({
-    scriptHash: normalizeScriptHash(marketHash),
-    operation: "updateListingPrice",
-    args: [
+  const result = await app.chain.invoke(
+    "updateListingPrice",
+    [
       { type: "Integer", value: String(listingId) },
       { type: "Integer", value: parseGasToFractions(priceGas) },
     ],
-    signers: [{ account: address, scopes: 1 }],
-  });
+    {
+      scriptHash: normalizeScriptHash(marketHash),
+      signers: [{ account: address, scopes: 1 }],
+    },
+  );
 
   return { txid: String(result?.txid ?? "") };
 }
 
 export async function cancelAddressListing(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   callerAddress: string,
   listingId: string,
 ): Promise<{ txid: string }> {
   const address = requireAddress(callerAddress);
-  const result = await wallet.invokeContract({
-    scriptHash: normalizeScriptHash(marketHash),
-    operation: "cancelListing",
-    args: [{ type: "Integer", value: String(listingId) }],
-    signers: [{ account: address, scopes: 1 }],
-  });
+  const result = await app.chain.invoke(
+    "cancelListing",
+    [{ type: "Integer", value: String(listingId) }],
+    {
+      scriptHash: normalizeScriptHash(marketHash),
+      signers: [{ account: address, scopes: 1 }],
+    },
+  );
 
   return { txid: String(result?.txid ?? "") };
 }
 
+// The GAS transfer's `data` parameter must travel as an Any/null argument.
+// FrameworkContractArg has no Any member (no framework surface builds one),
+// but the wallet lane forwards the literal untouched — cast once here.
+const ANY_NULL_ARG = { type: "Any", value: null } as unknown as FrameworkContractArg;
+
 export async function buyAddressListing(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   callerAddress: string,
   listing: Pick<MarketListing, "id" | "priceRaw">,
@@ -533,8 +525,12 @@ export async function buyAddressListing(
     "Backup owner",
   );
   const marketScriptHash = normalizeScriptHash(marketHash);
-  const result = await wallet.invokeMultiple({
-    invokeArgs: [
+  // Transfer-then-settle in ONE transaction (S7 chain.invokeMultiple): the
+  // GAS payment and the settle call ride the same signer. notify:'silent'
+  // because the buy operation owns its own toast keys — a FAULTed batch still
+  // throws (sanitized) for the operation's error lane.
+  const result = await app.chain.invokeMultiple(
+    [
       {
         scriptHash: GAS_HASH,
         operation: "transfer",
@@ -542,7 +538,7 @@ export async function buyAddressListing(
           { type: "Hash160", value: normalizeScriptHash(buyerHash) },
           { type: "Hash160", value: marketScriptHash },
           { type: "Integer", value: String(listing.priceRaw) },
-          { type: "Any", value: null },
+          ANY_NULL_ARG,
         ],
       },
       {
@@ -555,29 +551,31 @@ export async function buyAddressListing(
         ],
       },
     ],
-    signers: [{ account: address, scopes: 1 }],
-  });
+    { signers: [{ account: address, scopes: 1 }], notify: "silent" },
+  );
 
   return { txid: String(result?.txid ?? "") };
 }
 
 export async function refundPendingAddressPurchase(
-  wallet: WalletSDK,
+  app: MiniAppFramework,
   marketHash: string,
   callerAddress: string,
   listingId: string,
 ): Promise<{ txid: string }> {
   const address = requireAddress(callerAddress);
   const payerHash = normalizeHash160Input(address, "Payer");
-  const result = await wallet.invokeContract({
-    scriptHash: normalizeScriptHash(marketHash),
-    operation: "refundPendingPayment",
-    args: [
+  const result = await app.chain.invoke(
+    "refundPendingPayment",
+    [
       { type: "Integer", value: String(listingId) },
       { type: "Hash160", value: normalizeScriptHash(payerHash) },
     ],
-    signers: [{ account: address, scopes: 1 }],
-  });
+    {
+      scriptHash: normalizeScriptHash(marketHash),
+      signers: [{ account: address, scopes: 1 }],
+    },
+  );
 
   return { txid: String(result?.txid ?? "") };
 }

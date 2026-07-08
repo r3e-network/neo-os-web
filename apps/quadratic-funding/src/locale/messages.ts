@@ -147,6 +147,15 @@ const appMessages = {
     en: "Contract address not configured",
     zh: "合约地址未配置",
   },
+  // The framework's default-contract reads/invokes surface a missing
+  // deployment as the shared "contractUnavailable" key; the legacy stack
+  // mapped that case onto this app's "contractMissing" copy (the old
+  // useContractAddress wrapper). Override the shared key with the same copy
+  // so the banner/toast strings stay byte-identical across the rewrite.
+  contractUnavailable: {
+    en: "Contract address not configured",
+    zh: "合约地址未配置",
+  },
 
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },

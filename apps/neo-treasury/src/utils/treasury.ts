@@ -132,7 +132,12 @@ export interface TreasuryData {
   priceStale: boolean;
 }
 
-// RPC call helper
+// framework-exempt: external-wallet RPC balance failover (plan §3.6) — this
+// sweep reads NEP-17 balances for ARBITRARY external watchlist addresses (the
+// founders' wallets, not the connected wallet) against a pinned MAINNET
+// multi-endpoint failover list, independent of the host's network/bridge.
+// There is no framework surface for arbitrary-address multi-endpoint RPC
+// until n3index/framework rpc lands; keep raw until then.
 async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
   for (const endpoint of RPC_ENDPOINTS) {
     try {

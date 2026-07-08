@@ -1230,13 +1230,15 @@ export function createMiniAppFramework(
       await new Promise((resolve) => setTimeout(resolve, DEPOSIT_SETTLE_FALLBACK_MS));
     }
     // Step 3: the consuming call. Failures after the deposit are the
-    // stranded-credit branch (see the doc comment above).
+    // stranded-credit branch (see the doc comment above) — the wrap carries
+    // the OBSERVED settlement so "timeout"/"unreachable" deposits are not
+    // reported as proven ("confirmed") in the recovery copy.
     try {
       const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
       if (tx.success !== false) await spec.reload?.();
       return tx;
     } catch (error) {
-      throw new FrameworkPrepaidActionError(spec.operation, transfer.txid, error);
+      throw new FrameworkPrepaidActionError(spec.operation, transfer.txid, error, settlement);
     }
   };
 

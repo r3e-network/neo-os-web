@@ -16,7 +16,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const qf = useQuadraticFundingPage(ctx.t as (key: string) => string);
+    const qf = useQuadraticFundingPage({ app: ctx.framework, t: ctx.t });
 
     // These three return a success boolean so the view can clear its inputs
     // only on a confirmed on-chain success (dispatch forwards the payload).
@@ -96,7 +96,9 @@ defineMiniApp({
         isRefreshingProjects: qf.isRefreshingProjects,
         claimingProjectId: qf.claimingProjectId,
         claimableProjectIds: qf.claimableProjectIds,
-        contributeForm: qf.contributeForm,
+        // NOTE: qf.contributeForm (a plain mutable object, not a ref) is NOT
+        // exposed here — refsToObservables silently dropped it pre-rewrite
+        // (no .value / .get), so the state key never existed for the view.
         projectsStatus: qf.projectsStatus,
         contributionStatus: qf.contributionStatus,
         activeTab: qf.activeTab,
