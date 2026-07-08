@@ -45,6 +45,10 @@ defineMiniApp({
       await tarot.copyReading();
     });
 
+    ctx.framework.actions.register("refreshReadingState", async () => {
+      await tarot.loadAll();
+    });
+
     // Error toasts come from the framework action wrapper. The success toast
     // stays on ctx.services.notify.success because it is conditional (only
     // when amount > 0) and parameterized — the framework's successKey path
@@ -71,6 +75,7 @@ defineMiniApp({
         question: tarot.question,
         readingMode: tarot.readingMode,
         prepaidCredit: tarot.prepaidCredit,
+        walletAddress: tarot.address,
       },
       loadData: tarot.loadAll,
     };

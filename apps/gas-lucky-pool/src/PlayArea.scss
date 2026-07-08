@@ -28,6 +28,22 @@
   display: block;
 }
 
+.gas-pool-playarea .mx2-stage {
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.gas-pool-playarea .mx2-stage__scene {
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.gas-pool-playarea .phaser-game-host {
+  margin-inline: auto;
+}
+
 .vault-workspace {
   display: grid;
   grid-template-columns: minmax(300px, 1.08fr) minmax(280px, 0.92fr);
@@ -797,6 +813,249 @@
   box-shadow: 0 1px 3px rgba(13, 148, 136, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
+.gas-pool-drawer {
+  display: grid;
+  gap: 12px;
+}
+
+.gas-pool-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+
+  span {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    padding: 9px 10px;
+    border: 1px solid rgba(13, 148, 136, 0.14);
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  small {
+    color: var(--mx2-text-muted);
+    font-size: 0.68rem;
+    font-weight: 680;
+  }
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #0f766e;
+    font-size: 0.94rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+  }
+}
+
+.gas-pool-drawer__notice {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f0fdfa;
+
+  &[data-tone="error"] {
+    border-color: rgba(220, 38, 38, 0.22);
+    background: #fff1ec;
+  }
+
+  strong {
+    color: #12352f;
+    font-size: 0.88rem;
+  }
+
+  p,
+  small {
+    margin: 0;
+    color: var(--mx2-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+}
+
+.gas-pool-drawer__section,
+.gas-pool-drawer__credit,
+.gas-pool-drawer__guide {
+  display: grid;
+  gap: 9px;
+  border: 1px solid rgba(13, 148, 136, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+
+  p {
+    margin: 0;
+    color: var(--mx2-text-muted);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+}
+
+.gas-pool-drawer__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+
+  h4 {
+    margin: 0;
+  }
+
+  span {
+    color: var(--mx2-text-muted);
+    font-size: 0.72rem;
+    font-weight: 620;
+  }
+}
+
+.gas-pool-current {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+
+  span {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    padding: 8px 9px;
+    border-radius: 8px;
+    background: #f0fdfa;
+  }
+
+  small {
+    color: var(--mx2-text-muted);
+    font-size: 0.66rem;
+    font-weight: 650;
+  }
+
+  strong {
+    overflow: hidden;
+    color: #12352f;
+    font-size: 0.84rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+  }
+}
+
+.gas-pool-share {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(13, 148, 136, 0.14);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f8fffd;
+  color: #0f766e;
+  cursor: pointer;
+  text-align: left;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--mx2-font-mono, monospace);
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: #0f766e;
+    font-size: 0.68rem;
+    font-weight: 680;
+  }
+}
+
+.gas-pool-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.gas-pool-list li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgba(15, 118, 110, 0.055);
+  font-size: 0.78rem;
+
+  span {
+    color: #12352f;
+    font-weight: 680;
+  }
+
+  strong {
+    color: #0f766e;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    color: var(--mx2-text-muted);
+  }
+}
+
+.gas-pool-drawer__credit {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
+
+  > span {
+    display: grid;
+    gap: 2px;
+  }
+
+  small {
+    color: var(--mx2-text-muted);
+    font-size: 0.7rem;
+    font-weight: 680;
+  }
+
+  strong {
+    color: #0f766e;
+    font-size: 1rem;
+    font-weight: 680;
+  }
+
+  div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: flex-end;
+  }
+}
+
+.gas-pool-drawer__guide h4 {
+  margin: 0;
+  color: #12352f;
+  font-size: 0.86rem;
+}
+
+.gas-pool-drawer__seed {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  border-top: 1px solid rgba(13, 148, 136, 0.12);
+  padding-top: 9px;
+  color: #0f766e !important;
+
+  svg {
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+}
+
 @keyframes vaultCharge {
   0%, 100% {
     transform: translateY(-6px) scale(1);
@@ -823,6 +1082,15 @@
 }
 
 @media (max-width: 720px) {
+  .gas-pool-playarea .mx2-playstage.mx2-cat-game {
+    min-height: 0;
+  }
+
+  .gas-pool-playarea .mx2-cat-game.mx2-stage,
+  .gas-pool-playarea .mx2-cat-game .mx2-stage__scene {
+    flex: 0 0 auto;
+  }
+
   .gas-pool-playstage--creator .mx2-stage {
     padding: 16px 14px 18px;
   }
@@ -956,6 +1224,16 @@
 
   .vault-drawer__actions {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .gas-pool-drawer__summary,
+  .gas-pool-current,
+  .gas-pool-drawer__credit {
+    grid-template-columns: 1fr;
+  }
+
+  .gas-pool-list li {
     grid-template-columns: 1fr;
   }
 

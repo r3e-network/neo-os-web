@@ -36,11 +36,15 @@ import {
   rewardPctAfterUndos,
   ruleOf,
   formatClock,
+  gasDisplay,
 } from "../logic/game-rules";
+import { persistBoard, restoreBoard } from "../logic/board-store";
 
 // ── Layout constants ───────────────────────────────────────────────────────────
-const W         = 400;
-const H         = 600;
+const DESIGN_W  = 400;
+const DESIGN_H  = 600;
+const W         = DESIGN_W;
+const H         = DESIGN_H;
 const CELL      = 36;                           // px per cell
 const GRID_W    = 9 * CELL;                     // 324
 const GRID_X    = (W - GRID_W) / 2;            // 38  — left edge of grid
@@ -52,6 +56,8 @@ const STATUS_Y  = ACTION_Y + 46;               // status text         (~548)
 const TIMER_Y   = 20;                           // timer bar center y
 
 const FONT_FAMILY = "Inter, Arial, sans-serif";
+const SUBMIT_BUFFER_MS = 15_000;
+const MIN_SOLVE_BUFFER_MS = 10_000;
 
 // ── Colour palette ─────────────────────────────────────────────────────────────
 const C = {
@@ -123,8 +129,14 @@ export class SudokuScene extends BaseScene {
   private deadline              = 0;
   private dealtAt               = 0;
   private boardComplete         = false;
+  private expireDispatched      = false;
 
   // ── Scene-level display objects ────────────────────────────────────────────
+
+  // Responsive background plates
+  private backgroundBase!: Phaser.GameObjects.Rectangle;
+  private backgroundWarm!: Phaser.GameObjects.Rectangle;
+  private backgroundPaper!: Phaser.GameObjects.Rectangle;
 
   // Grid
   private paperBoard!: Phaser.GameObjects.Image;
@@ -179,10 +191,39 @@ export class SudokuScene extends BaseScene {
   // ── Scene construction ─────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    this.add.rectangle(W / 2, H / 2, W, H, C.appBg);
-    this.add.rectangle(W / 2, 118, W, 236, C.appBgWarm, 0.68);
-    this.add.rectangle(W / 2, H - 82, W - 28, 150, C.paper, 0.62)
+    this.backgroundBase = this.add.rectangle(W / 2, H / 2, W, H, C.appBg)
+      .setDepth(-12);
+    this.backgroundWarm = this.add.rectangle(W / 2, 118, W, 236, C.appBgWarm, 0.68)
+      .setDepth(-11);
+    this.backgroundPaper = this.add.rectangle(W / 2, H - 82, W - 28, 150, C.paper, 0.62)
+      .setDepth(-10)
       .setStrokeStyle(1, C.paperEdge, 0.35);
+  }
+
+  private renderResponsiveStage(
+    visibleWorldW: number,
+    visibleWorldH: number,
+    centerY: number,
+  ): void {
+    if (!this.backgroundBase || !this.backgroundWarm || !this.backgroundPaper) return;
+
+    const viewTop = centerY - visibleWorldH / 2;
+    const viewBottom = centerY + visibleWorldH / 2;
+    const stageW = Math.max(W, visibleWorldW + 40);
+    const stageH = Math.max(H, visibleWorldH + 34);
+    const stageCenterY = viewTop + stageH / 2;
+    const warmH = Math.max(236, Math.min(stageH * 0.36, 330));
+    const paperH = Math.max(150, Math.min(stageH * 0.22, 190));
+
+    this.backgroundBase
+      .setPosition(W / 2, stageCenterY)
+      .setSize(stageW, stageH);
+    this.backgroundWarm
+      .setPosition(W / 2, viewTop + warmH / 2)
+      .setSize(stageW, warmH);
+    this.backgroundPaper
+      .setPosition(W / 2, viewBottom - paperH / 2 - 8)
+      .setSize(Math.max(W - 28, visibleWorldW + 10), paperH);
   }
 
   private buildGrid(): void {
@@ -444,6 +485,7 @@ export class SudokuScene extends BaseScene {
       pressScale: 0.94,
       onPress: () => {
         this.pickedDifficulty = difficulty;
+        this.dispatch("selectDifficulty", { difficulty });
         this.updateDiffCards();
       },
     });
@@ -564,6 +606,7 @@ export class SudokuScene extends BaseScene {
     super.create(); // wires bridge
 
     this.buildBackground();
+    this.fitCameraToHost();
     this.buildGrid();
     this.buildTimerHUD();
     this.buildDigitBar();
@@ -595,8 +638,16 @@ export class SudokuScene extends BaseScene {
 
     this.timerLabel.setText(formatClock(remaining));
 
-    // Auto-expire when time runs out
-    if (remaining <= 0 && !this.bool("isSubmitting") && !this.bool("isUndoing")) {
+    this.refreshGameActionState();
+
+    // Auto-expire once when time runs out.
+    if (
+      remaining <= 0 &&
+      !this.expireDispatched &&
+      !this.bool("isSubmitting") &&
+      !this.bool("isUndoing")
+    ) {
+      this.expireDispatched = true;
       this.dispatch("expireGame", {});
     }
   }
@@ -651,6 +702,7 @@ export class SudokuScene extends BaseScene {
     const dealtAt    = this.num("dealtAt", 0);
     const poolFree   = this.num("poolFree", 0);
     const lastStatus = this.str("lastStatus", "");
+    let displayStatus = lastStatus;
     const busy       =
       this.bool("isStarting") ||
       this.bool("isDealing") ||
@@ -681,11 +733,24 @@ export class SudokuScene extends BaseScene {
     if (isLobby) {
       const rule = ruleOf(this.pickedDifficulty);
       const limitMin = Math.round(rule.limitMs / 60_000);
-      this.lobbyPoolText.setText(
-        `Pool: ${poolFree.toFixed(2)} GAS  ·  ${limitMin} min limit`,
-      );
+      const rewardGas = Number(gasDisplay(rule.rewardFixed8));
+      const walletConnected = this.bool("walletConnected");
+      const progressionReady = this.bool("progressionReady");
+      const routeLocked = progressionReady && this.pickedDifficulty < this.requiredDifficulty();
+      const canStart = this.canStartDifficulty(this.pickedDifficulty);
+      const gateLine = !walletConnected
+        ? "Connect wallet to open a sealed board"
+        : !progressionReady
+          ? "Checking account route history"
+          : routeLocked
+            ? `Clear ${DIFF_LABELS[this.requiredDifficulty()]} before replaying this route`
+            : poolFree < rewardGas
+              ? `Pool low (${poolFree.toFixed(2)} / ${rewardGas.toFixed(2)} GAS reward needed)`
+              : "Choose a route, then open the board";
+      displayStatus = gateLine;
+      this.lobbyPoolText.setText(`Pool: ${poolFree.toFixed(2)} GAS  ·  ${limitMin} min limit`);
       this.updateDiffCards();
-      this.actionButtonEnabled = !busy;
+      this.actionButtonEnabled = canStart;
 
       if (gameStatus === "solved") {
         this.actionBtnText.setText("Play again");
@@ -702,9 +767,19 @@ export class SudokuScene extends BaseScene {
         this.lobbyRewardArt.setAlpha(0.58);
         this.lobbyResultBadge.setAlpha(0.34);
       } else {
-        this.actionBtnText.setText(busy ? "Starting..." : "Start game");
-        this.actionBtnText.setColor("#2d2114");
-        this.actionBtnBg.setFillStyle(busy ? C.muted : C.gold);
+        this.actionBtnText.setText(
+          busy
+            ? "Starting..."
+            : canStart
+              ? "Open board"
+              : !walletConnected
+                ? "Connect wallet"
+                : routeLocked
+                  ? "Route locked"
+                  : "Pool low",
+        );
+        this.actionBtnText.setColor(canStart && !busy ? "#2d2114" : "#7a5a28");
+        this.actionBtnBg.setFillStyle(canStart && !busy ? C.gold : 0xf1e0be);
         this.actionBtnBg.setStrokeStyle(2, C.goldLight);
         this.lobbyRewardArt.setAlpha(0.82);
         this.lobbyResultBadge.setAlpha(0.42);
@@ -728,28 +803,35 @@ export class SudokuScene extends BaseScene {
 
       this.setUndoButtonState(undosLeft > 0 && !busy && this.moveHistory.length > 0);
 
-      this.setGameActionState(busy);
+      this.refreshGameActionState();
     }
 
     this.prevStatus = gameStatus;
-    this.statusLabel.setText(lastStatus);
+    this.statusLabel.setText(isGame ? this.gameStatusMessage(lastStatus) : displayStatus);
   }
 
   // ── Board initialisation ───────────────────────────────────────────────────
 
   private initBoard(clues: string): void {
-    this.board        = Array(81).fill(0);
-    this.given        = Array(81).fill(false);
+    const activeGameId = this.str("activeGameId", "0");
+    const restored = activeGameId !== "0" ? restoreBoard(activeGameId, clues) : null;
+    this.board        = restored ? [...restored.entries] : Array(81).fill(0);
+    this.given        = restored ? [...restored.given] : Array(81).fill(false);
     this.moveHistory  = [];
     this.selectedCell = -1;
     this.conflicts    = new Set();
     this.boardComplete = false;
+    this.expireDispatched = false;
 
-    for (let i = 0; i < 81; i++) {
-      const d = parseInt(clues[i] ?? "0", 10);
-      if (d >= 1 && d <= 9) {
-        this.board[i] = d;
-        this.given[i] = true;
+    if (restored) {
+      this.moveHistory = restored.placedOrder.map((cell) => ({ cell, prev: 0 }));
+    } else {
+      for (let i = 0; i < 81; i++) {
+        const d = parseInt(clues[i] ?? "0", 10);
+        if (d >= 1 && d <= 9) {
+          this.board[i] = d;
+          this.given[i] = true;
+        }
       }
     }
 
@@ -773,7 +855,7 @@ export class SudokuScene extends BaseScene {
       const hit = this.cellHit[i]!;
       art.clearTint();
 
-      let texture = SUDOKU_ASSETS.cellPlaced;
+      let texture: string = SUDOKU_ASSETS.cellPlaced;
       let alpha = digit ? 0.9 : 0.28;
       if (isGiven) {
         texture = SUDOKU_ASSETS.cellGiven;
@@ -846,24 +928,54 @@ export class SudokuScene extends BaseScene {
   }
 
   private setGameActionState(busy: boolean): void {
-    if (this.boardComplete && !busy) {
+    if (busy) {
+      this.actionButtonEnabled = false;
+      this.actionBtnText.setText(this.bool("isSubmitting") ? "Submitting..." : "Working...");
+      this.actionBtnText.setColor("#ffffff");
+      this.actionBtnBg.setFillStyle(C.muted);
+      this.actionBtnBg.setStrokeStyle(2, C.btnBorder);
+    } else if (this.canSubmitSolution()) {
       this.actionButtonEnabled = true;
       this.actionBtnText.setText("Submit solution");
       this.actionBtnText.setColor("#ffffff");
       this.actionBtnBg.setFillStyle(C.green);
       this.actionBtnBg.setStrokeStyle(2, 0x3cbf66);
-    } else if (busy) {
+    } else if (this.timeUp()) {
       this.actionButtonEnabled = false;
-      this.actionBtnText.setText("Submitting...");
+      this.actionBtnText.setText("Time is up");
       this.actionBtnText.setColor("#ffffff");
-      this.actionBtnBg.setFillStyle(C.muted);
-      this.actionBtnBg.setStrokeStyle(2, C.btnBorder);
+      this.actionBtnBg.setFillStyle(C.red);
+      this.actionBtnBg.setStrokeStyle(2, 0xe27d66);
+    } else if (this.boardComplete && this.submitWindowClosed()) {
+      this.actionButtonEnabled = false;
+      this.actionBtnText.setText("Too late to submit");
+      this.actionBtnText.setColor("#7a5a28");
+      this.actionBtnBg.setFillStyle(0xf1e0be);
+      this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
+    } else if (this.boardComplete && !this.minSolveReached()) {
+      this.actionButtonEnabled = false;
+      this.actionBtnText.setText("Wait to submit");
+      this.actionBtnText.setColor("#7a5a28");
+      this.actionBtnBg.setFillStyle(0xf1e0be);
+      this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
     } else {
       this.actionButtonEnabled = false;
       this.actionBtnText.setText("Solve to unlock");
       this.actionBtnText.setColor("#7a5a28");
       this.actionBtnBg.setFillStyle(0xf1e0be);
       this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
+    }
+  }
+
+  private refreshGameActionState(): void {
+    const busy =
+      this.bool("isStarting") ||
+      this.bool("isDealing") ||
+      this.bool("isSubmitting") ||
+      this.bool("isUndoing");
+    this.setGameActionState(busy);
+    if (this.prevStatus === "dealt") {
+      this.statusLabel.setText(this.gameStatusMessage(this.str("lastStatus", "")));
     }
   }
 
@@ -890,12 +1002,14 @@ export class SudokuScene extends BaseScene {
     if (gameStatus !== "dealt" || busy) return;
     if (this.selectedCell < 0) return;
     if (this.given[this.selectedCell]) return; // cannot overwrite given cells
+    if ((this.board[this.selectedCell] ?? 0) !== 0) return; // placed digits are final
 
     const prev = this.board[this.selectedCell] ?? 0;
     this.moveHistory.push({ cell: this.selectedCell, prev });
 
     this.board[this.selectedCell] = digit;
     this.renderBoard();
+    this.persistCurrentBoard();
     this.setUndoButtonState(MAX_UNDOS - this.num("undosUsed", 0) > 0);
     this.setGameActionState(false);
 
@@ -906,7 +1020,7 @@ export class SudokuScene extends BaseScene {
     }
 
     // Fire-and-forget telemetry to the React/chain layer
-    void this.bridge.dispatch("recordMove", { cell: this.selectedCell, digit });
+    this.dispatch("recordMove", { cell: this.selectedCell, digit });
   }
 
   private handleUndo(): void {
@@ -922,12 +1036,13 @@ export class SudokuScene extends BaseScene {
     this.board[last.cell] = last.prev;
     this.selectedCell = last.cell;
     this.renderBoard();
+    this.persistCurrentBoard();
     this.setUndoButtonState(
       MAX_UNDOS - this.num("undosUsed", 0) > 0 && this.moveHistory.length > 0,
     );
     this.setGameActionState(false);
 
-    void this.bridge.dispatch("useUndo", {});
+    this.dispatch("useUndo", {});
   }
 
   private handleActionButton(): void {
@@ -941,13 +1056,84 @@ export class SudokuScene extends BaseScene {
     if (busy) return;
 
     if (gameStatus === "dealt") {
-      if (!this.boardComplete) return;
+      if (!this.canSubmitSolution()) return;
       const solution = this.getBoardSolutionString();
-      void this.bridge.dispatch("submitSolution", { solution });
+      this.dispatch("submitSolution", { solution });
     } else {
       // Lobby / idle / solved / expired
-      void this.bridge.dispatch("startGame", { difficulty: this.pickedDifficulty });
+      if (!this.canStartDifficulty(this.pickedDifficulty)) return;
+      this.dispatch("startGame", { difficulty: this.pickedDifficulty });
     }
+  }
+
+  private canStartDifficulty(difficulty: number): boolean {
+    if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
+    if (!this.bool("walletConnected")) return false;
+    if (!this.bool("progressionReady")) return false;
+    if (difficulty < this.requiredDifficulty()) return false;
+    const rewardGas = Number(gasDisplay(ruleOf(difficulty).rewardFixed8));
+    return this.num("poolFree", 0) >= rewardGas;
+  }
+
+  private requiredDifficulty(): number {
+    return Math.max(0, Math.min(2, this.num("progressionRequiredDifficulty", 0)));
+  }
+
+  private elapsedMs(): number {
+    return this.dealtAt > 0 ? Date.now() - this.dealtAt : 0;
+  }
+
+  private remainingMs(): number {
+    return this.deadline > 0 ? this.deadline - Date.now() : 0;
+  }
+
+  private minSolveReached(): boolean {
+    const rule = ruleOf(this.num("gameDifficulty", 0));
+    return this.dealtAt > 0 && this.elapsedMs() >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
+  }
+
+  private timeUp(): boolean {
+    return this.str("gameStatus", "idle") === "dealt" && this.deadline > 0 && this.remainingMs() <= 0;
+  }
+
+  private submitWindowClosed(): boolean {
+    return this.str("gameStatus", "idle") === "dealt" &&
+      this.deadline > 0 &&
+      this.remainingMs() <= SUBMIT_BUFFER_MS;
+  }
+
+  private canSubmitSolution(): boolean {
+    return (
+      this.str("gameStatus", "idle") === "dealt" &&
+      this.boardComplete &&
+      this.minSolveReached() &&
+      !this.submitWindowClosed() &&
+      !this.timeUp() &&
+      !this.bool("isSubmitting") &&
+      !this.bool("isUndoing")
+    );
+  }
+
+  private gameStatusMessage(fallback: string): string {
+    if (this.timeUp()) return "Deadline passed. Release this board to start a new one.";
+    if (this.submitWindowClosed()) return "Too close to the deadline for settlement.";
+    if (this.boardComplete && !this.minSolveReached()) {
+      const rule = ruleOf(this.num("gameDifficulty", 0));
+      const wait = Math.max(0, rule.minSolveMs + MIN_SOLVE_BUFFER_MS - this.elapsedMs());
+      return `Submission unlocks in ${formatClock(wait)}`;
+    }
+    return fallback;
+  }
+
+  private persistCurrentBoard(): void {
+    const activeGameId = this.str("activeGameId", "0");
+    if (activeGameId === "0") return;
+    persistBoard(activeGameId, {
+      entries: [...this.board],
+      given: [...this.given],
+      notes: new Array(81).fill(0),
+      placedOrder: this.moveHistory.map((move) => move.cell),
+    });
   }
 
   // ── Sudoku logic helpers ───────────────────────────────────────────────────
@@ -1011,7 +1197,21 @@ export class SudokuScene extends BaseScene {
   // ── Responsive resize ──────────────────────────────────────────────────────
 
   protected onResize(_gameSize: Phaser.Structs.Size): void {
-    // Restart the scene to rebuild layout at new dimensions
-    this.scene.restart();
+    this.fitCameraToHost();
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+    const visibleWorldW = viewW / zoom;
+    const visibleWorldH = viewH / zoom;
+    const tallViewportLift = Math.max(0, visibleWorldH - DESIGN_H) * 0.08;
+    const centerY = DESIGN_H / 2 + tallViewportLift;
+    this.renderResponsiveStage(visibleWorldW, visibleWorldH, centerY);
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, centerY);
   }
 }

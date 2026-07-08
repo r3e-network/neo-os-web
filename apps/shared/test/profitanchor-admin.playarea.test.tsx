@@ -29,7 +29,13 @@ function t(key: string, params?: Record<string, string | number>) {
     toAgentId: "To agent",
     agentId: "Agent",
     neoAmount: "NEO amount",
+    neoAmountControl: "NEO amount control",
+    decreaseAmount: "Decrease amount",
+    increaseAmount: "Increase amount",
+    quickAmount: "Quick NEO amounts",
+    maxAmount: "Max",
     candidatePublicKey: "Candidate public key",
+    candidateControl: "Candidate public key control",
     agentCandidateLabel: "Candidate",
     agentCandidateNone: "No candidate",
     cardRuleCandidate: "Candidate key is set explicitly",
@@ -82,6 +88,8 @@ describe("profitanchor-admin PlayArea", () => {
     expect(container.querySelector(".admin-scene")).toBeTruthy();
     expect(container.querySelector(".admin-command")).toBeTruthy();
     expect(container.querySelector(".admin-ledger")).toBeTruthy();
+    expect(container.querySelector(".admin-amount-console")).toBeTruthy();
+    expect(container.querySelector(".admin-amount-console__stepper")).toBeTruthy();
     expect(container.querySelector(".admin-scene__backdrop")).toBeFalsy();
     expect(container.textContent).toContain("Move. Target. Vote.");
     expect(container.textContent).toContain("Agent 01");
@@ -95,6 +103,11 @@ describe("profitanchor-admin PlayArea", () => {
     expect(styles).toContain('@use "@shared/components-react/v2/v2" as *;');
     expect(styles).toMatch(/\.admin-workspace\s*\{[\s\S]*background:\s*#ffffff;/);
     expect(styles).toMatch(/\.admin-workspace\s*\{[\s\S]*box-shadow:\s*none;/);
+    expect(styles).toMatch(/\.admin-operation-ticket\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*0\.74fr\) minmax\(260px,\s*1fr\)/);
+    expect(styles).toMatch(/\.admin-amount-console\s*,[\s\S]*\.admin-candidate-console\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.admin-amount-console__stepper\s*\{[\s\S]*grid-template-columns:\s*34px minmax\(0,\s*1fr\) 34px/);
+    expect(styles).toMatch(/\.admin-amount-console__quick\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.admin-candidate-console__preview strong\s*\{[\s\S]*font-family:\s*ui-monospace/);
     expect(styles).not.toMatch(/AI-generated scene backdrop|admin-scene__backdrop|backdrop-filter|radial-gradient/);
     expect(source).not.toContain("admin-scene__backdrop");
   });

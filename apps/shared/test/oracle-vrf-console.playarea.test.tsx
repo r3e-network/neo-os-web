@@ -7,7 +7,21 @@ import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../oracle-vrf-console/src/PlayArea";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
-function t(key: string) { const m: Record<string,string> = { statusReady:"Ready", digestPlaceholder:"No digest", panelTitle:"Console", panelEyebrow:"Oracle", buildRequest:"Build" }; return m[key] ?? key; }
+function t(key: string) {
+  const m: Record<string,string> = {
+    statusReady:"Ready",
+    digestPlaceholder:"No digest",
+    panelTitle:"Console",
+    panelEyebrow:"Oracle",
+    buildRequest:"Build",
+    runAction:"Build VRF Request",
+    consumerPlaceholder:"Consumer",
+    saltPlaceholder:"Salt",
+    vrfConsumerRequired:"Consumer seed missing",
+    vrfSaltRequired:"Salt missing",
+  };
+  return m[key] ?? key;
+}
 function state(o: Partial<Record<string,unknown>> = {}): ObservableState {
   const b: Record<string,unknown> = { networkLabel:"Mainnet", endpointLabel:"Preview", lastStatus:"Ready", lastDigest:"No digest", requestCount:0, ...o };
   return Object.fromEntries(Object.entries(b).map(([k,v]) => [k, createObservable(v)]));
@@ -89,11 +103,34 @@ describe("oracle-vrf-console PlayArea (v2)", () => {
     expect(container.querySelector(".vrf-payload")).toBeTruthy();
   });
 
+  it("blocks missing consumer or salt before dispatching a VRF preview", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".vrf-field .mx2-open-field__control input.semi-input"));
+
+    fireEvent.change(inputs[0], { target: { value: "" } });
+    expect(primary.disabled).toBe(true);
+    expect(container.textContent).toContain("Consumer seed missing");
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(inputs[0], { target: { value: "miniapp-custom-game" } });
+    fireEvent.change(inputs[1], { target: { value: "" } });
+    expect(primary.disabled).toBe(true);
+    expect(container.textContent).toContain("Salt missing");
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it("keeps VRF drawer responsive and free of local native input styling", () => {
     const s = readFileSync(appScssPath("oracle-vrf-console"), "utf8");
     const source = readFileSync(appSourcePath("oracle-vrf-console"), "utf8");
 
     expect(source).toContain("OpenUiSegmented");
+    expect(source).toContain("if (!canBuild) return;");
+    expect(source).toContain("disabled: !canBuild || building");
     expect(source).not.toContain('role="tablist"');
     expect(source).not.toContain('role="tab"');
     expect(source).not.toContain('role="radiogroup"');

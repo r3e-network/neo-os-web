@@ -528,7 +528,8 @@ defineMiniApp({
 
     ctx.framework.actions.register("submitRun", async () => {
       const gameId = activeGameId.get();
-      if (gameId === "0" || isSubmitting.get() || gameStatus.get() !== "dealt") return;
+      const status = gameStatus.get();
+      if (gameId === "0" || isSubmitting.get() || (status !== "dealt" && status !== "solved")) return;
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
       try {
@@ -573,6 +574,19 @@ defineMiniApp({
       } finally {
         isSubmitting.set(false);
       }
+    });
+
+    ctx.framework.actions.register("returnToLobby", async () => {
+      if (isSubmitting.get() || isDealing.get() || isStarting.get()) return;
+      const gameId = activeGameId.get();
+      if (gameId !== "0" && gameStatus.get() === "dealt") return;
+      activeGameId.set("0");
+      gameStatus.set("idle");
+      session = null;
+      if (gameId !== "0") forgetOps(gameId);
+      pileCards.set([]);
+      slotCards.set([]);
+      lastStatus.set(ctx.t("statusReady"));
     });
 
     ctx.framework.actions.register("expireGame", async () => {

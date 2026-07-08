@@ -26,8 +26,10 @@ function t(key: string) {
     documentPreviewEmptyTitle: "Ready for content",
     documentTypeHash: "SHA-256 digest",
     documentTypeText: "Source content",
+    digestPassThrough: "Use this digest directly",
     enterContent: "Enter content to timestamp",
     latestId: "Latest ID",
+    localHashPending: "Will hash locally on save",
     localOnly: "Local only",
     noProofsHint: "Saved proof entries will appear here.",
     pendingDigest: "After save",
@@ -106,6 +108,8 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(container.querySelector(".tsp-document-card")).toBeTruthy();
     expect(container.querySelector(".tsp-proof-sheet")).toBeTruthy();
     expect(container.querySelector(".tsp-proof-sheet__surface")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet__editor")).toBeTruthy();
+    expect(container.querySelector(".tsp-proof-sheet__source")).toBeTruthy();
     expect(container.querySelector(".tsp-proof-sheet__seal")).toBeTruthy();
     expect(container.querySelector(".tsp-proof-sheet__seal-row")).toBeTruthy();
     expect(container.querySelector(".tsp-proof-sheet__privacy")).toBeTruthy();
@@ -116,6 +120,7 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(container.querySelector(".tool-scene")).toBeNull();
     expect(container.querySelector(".tsp-scene__backdrop")).toBeNull();
     expect(container.querySelector(".tsp-template-row")).toBeNull();
+    expect(container.querySelector(".tsp-document-card__input")).toBeNull();
     expect(container.textContent).not.toContain("wake the press");
   });
 
@@ -129,6 +134,34 @@ describe("timestamp-proof PlayArea (v2)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Create Proof/ }));
 
     expect(dispatch).toHaveBeenCalledWith("createProof", "release artifact v2");
+  });
+
+  it("treats pasted SHA-256 digests as the proof target and hides stale saved digests while editing", () => {
+    const proof = {
+      id: 4,
+      content: "old document",
+      contentHash: "b".repeat(64),
+      timestamp: Date.now(),
+      anchored: false,
+    };
+    const { container } = render(<PlayArea t={t} state={state({ proofs: [proof], latestId: "#4" })} dispatch={vi.fn()} />);
+
+    expect(container.textContent).toContain("bbbbbbbb...bbbbbb");
+
+    fireEvent.change(screen.getByLabelText("Paste your text, document hash, or idea..."), {
+      target: { value: "fresh private draft" },
+    });
+    expect(container.textContent).toContain("Will hash locally on save");
+    expect(container.textContent).not.toContain("bbbbbbbb...bbbbbb");
+
+    cleanup();
+    const digest = "a".repeat(64);
+    const rendered = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Paste your text, document hash, or idea..."), {
+      target: { value: digest },
+    });
+    expect(rendered.container.textContent).toContain("Use this digest directly");
+    expect(rendered.container.textContent).toContain("aaaaaaaa...aaaaaa");
   });
 
   it("keeps anchoring as a secondary action for an existing local proof", () => {
@@ -181,12 +214,13 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(styles).toMatch(/\.tsp-proof-sheet__seal\s*\{[\s\S]*position:\s*absolute/);
     expect(styles).toMatch(/\.tsp-proof-sheet__seal-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
     expect(styles).toMatch(/\.tsp-proof-sheet__privacy\s*\{[\s\S]*background:\s*var\(--mx2-brand-light\)/);
-    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*background:\s*transparent/);
-    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*border:\s*0/);
-    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*min-height:\s*56px/);
-    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*max-height:\s*72px/);
-    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*resize:\s*none/);
-    expect(styles).toMatch(/\.tsp-document-card__input\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__editor\.mx2-open-field\s*\{[\s\S]*display:\s*block/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__editor \.mx2-open-field__label\s*\{[\s\S]*clip:\s*rect\(0 0 0 0\)/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__editor textarea,[\s\S]*\.tsp-proof-sheet__textarea textarea\s*\{[\s\S]*min-height:\s*56px/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__editor textarea,[\s\S]*\.tsp-proof-sheet__textarea textarea\s*\{[\s\S]*max-height:\s*72px/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__editor textarea,[\s\S]*\.tsp-proof-sheet__textarea textarea\s*\{[\s\S]*resize:\s*none/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__editor textarea,[\s\S]*\.tsp-proof-sheet__textarea textarea\s*\{[\s\S]*box-shadow:\s*none/);
+    expect(styles).toMatch(/\.tsp-proof-sheet__source\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
     expect(styles).toMatch(/\.tsp-proof-sheet__digest\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
     expect(styles).toMatch(/\.tsp-template-dock\s*\{[\s\S]*display:\s*flex/);
     expect(styles).toMatch(/\.tsp-document-card__facts dd\s*\{[\s\S]*white-space:\s*normal/);
@@ -212,9 +246,9 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-drawer\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
     expect(styles).toMatch(/\.tsp-route li\[data-active="true"\]\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
-    expect(styles).not.toMatch(/\.tsp-document-card__input\s*\{[\s\S]*resize:\s*vertical/);
-    expect(styles).not.toMatch(/\.tsp-document-card__input\s*\{[^}]*min-height:\s*(?:9[0-9]|1[0-9]{2})px/);
-    expect(styles).not.toMatch(/\.tsp-document-card__input\s*\{[^}]*border:\s*1px/);
+    expect(styles).not.toMatch(/\.tsp-proof-sheet__editor textarea\s*\{[\s\S]*resize:\s*vertical/);
+    expect(styles).not.toMatch(/\.tsp-proof-sheet__editor textarea\s*\{[^}]*min-height:\s*(?:9[0-9]|1[0-9]{2})px/);
+    expect(styles).not.toMatch(/\.tsp-proof-sheet__editor textarea\s*\{[^}]*border:\s*1px/);
     expect(styles).not.toMatch(/\.tsp-drawer__section|\.tsp-drawer__list|\.tsp-drawer__section input|\.tsp-drawer__section-title/);
     expect(styles).not.toMatch(/#fffdf8/);
     expect(styles).not.toMatch(/tsp-template-row/);

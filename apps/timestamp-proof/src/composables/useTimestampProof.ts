@@ -11,6 +11,10 @@ const MAX_PROOFS = 200;
 // self-transfer, so a third party can find the proof by scanning the tx.
 const ANCHOR_PREFIX = "timestamp-proof:";
 
+function isSha256Digest(value: string): boolean {
+  return /^[0-9a-f]{64}$/i.test(value.trim());
+}
+
 export interface TimestampProof {
   id: number;
   content: string;
@@ -155,7 +159,9 @@ export function useTimestampProofContract(t: (key: string) => string) {
 
     try {
       isCreating.set(true);
-      const contentHash = await hashContent(normalizedContent);
+      const contentHash = isSha256Digest(normalizedContent)
+        ? normalizedContent.toLowerCase()
+        : await hashContent(normalizedContent);
       const currentProofs = readStoredProofs();
       const nextId = currentProofs.length > 0 ? Math.max(...currentProofs.map((item) => item.id)) + 1 : 1;
 

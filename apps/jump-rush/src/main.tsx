@@ -11,7 +11,7 @@ import {
 import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { ENTRY_MEMO, ruleOf, statusOf, gasDisplay } from "./logic/game-rules";
+import { ENTRY_MEMO, MAX_UNDOS, ruleOf, statusOf, gasDisplay } from "./logic/game-rules";
 import { morpheusNetworkOf, teeFinalize, teeMove, teeStart } from "./logic/tee-session";
 import type { TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
 
@@ -406,6 +406,10 @@ defineMiniApp({
     ctx.framework.actions.register("useUndo", async () => {
       const gameId = activeGameId.get();
       if (gameId === "0" || isUndoing.get() || gameStatus.get() !== "dealt") return;
+      if (undosUsed.get() >= MAX_UNDOS) {
+        ctx.setStatus(ctx.t("undoLimitReached"), "info");
+        return;
+      }
       isUndoing.set(true);
       try {
         await sendOp({ type: "undo" });

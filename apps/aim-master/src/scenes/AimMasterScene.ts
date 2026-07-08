@@ -16,7 +16,7 @@
  *
  * Dispatches:
  *   "startGame"      { difficulty: number }
- *   "recordMove"     { position: number }
+ *   "aimHit"         { ringsHit, totalRings, roundResults, totalPoints }
  *   "submitSolution" {}
  *   "expireGame"     {}
  */
@@ -34,6 +34,8 @@ import {
   DEFAULT_CONFIG,
   calculateHitResult,
   isAccuracyHit,
+  totalPoints,
+  type HitResult,
 } from "../logic/aim-engine";
 
 // ── Layout constants ────────────────────────────────────────────────────────
@@ -168,6 +170,7 @@ export class AimMasterScene extends BaseScene {
 
   // Shot tracking (local — mirrors React's localRings)
   private shotRings: number[] = [];
+  private shotResults: HitResult[] = [];
   private accuracyHits = 0;
   private currentTargetAccuracy = 3;
   private currentDifficulty = 0;
@@ -310,6 +313,10 @@ export class AimMasterScene extends BaseScene {
   // ── BaseScene: state handler ───────────────────────────────────────────────
 
   protected onStateUpdate(_state: GameState): void {
+    if (!this.sceneReady || this.isRebuildingScene || !this.poolText || !this.statusText) {
+      return;
+    }
+
     const status       = this.str("gameStatus", "idle");
     const pattern      = this.str("pattern", "");
     const difficulty   = this.num("gameDifficulty", 0);
@@ -375,7 +382,7 @@ export class AimMasterScene extends BaseScene {
   private buildBackground(): void {
     const w = this.scW;
     const h = this.scH;
-    const rangeH = Math.min(Math.max(250, h * 0.38), 320);
+    const rangeH = Math.min(Math.max(270, h * 0.42), 360);
     this.add.rectangle(w / 2, h / 2, w, h, C.canvas);
     this.add.image(w / 2, 0, AIM_ASSETS.range)
       .setOrigin(0.5, 0)
@@ -422,7 +429,7 @@ export class AimMasterScene extends BaseScene {
     const gap = Math.max(8, Math.floor((w - cardW * 3) / 4));
     const cardY = Math.min(
       h - 300,
-      Math.max(heroY + heroSize * 0.62 + cardH / 2 + 24, h * 0.58),
+      Math.max(heroY + heroSize * 0.62 + cardH / 2 + 24, h * 0.52),
     );
     const startX = gap + cardW / 2;
 
@@ -441,7 +448,7 @@ export class AimMasterScene extends BaseScene {
     this.lobbyContainer.add(this.poolText);
 
     this.lobbyStartBtnBg = this.add.graphics();
-    this.lobbyButtonY = Math.min(h - 112, Math.max(this.poolText.y + 54, h * 0.85));
+    this.lobbyButtonY = Math.min(h - 82, Math.max(this.poolText.y + 82, h * 0.81));
     this.drawLobbyStartButton(false, false);
     this.lobbyStartBtnBg.setInteractive(
       this.lobbyButtonHitArea(),
@@ -471,6 +478,12 @@ export class AimMasterScene extends BaseScene {
   ): Phaser.GameObjects.Container {
     const c = this.add.container(cx, cy);
     const active = rule.difficulty === this.selectedDifficulty;
+    const compactCard = cardH <= 104 || cardW <= 110;
+    const badgeY = compactCard ? -31 : -32;
+    const nameY = compactCard ? -5 : -2;
+    const accY = compactCard ? 14 : 18;
+    const rewardY = compactCard ? 29 : 34;
+    const entryY = compactCard ? cardH / 2 - 6 : cardH / 2 - 10;
 
     const bg = this.add.graphics();
     this.drawDiffCardBackground(bg, cardW, cardH, active, false);
@@ -487,30 +500,30 @@ export class AimMasterScene extends BaseScene {
     });
 
     const badgeKey = DIFFICULTY_BADGES[rule.difficulty] ?? AIM_ASSETS.badgeEasy;
-    const badge = this.add.image(0, -32, badgeKey).setDisplaySize(44, 44);
+    const badge = this.add.image(0, badgeY, badgeKey).setDisplaySize(44, 44);
 
-    const nameTxt = this.add.text(0, -2, rule.key.toUpperCase(), {
-      fontSize: "12px",
+    const nameTxt = this.add.text(0, nameY, rule.key.toUpperCase(), {
+      fontSize: compactCard ? "11px" : "12px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color: "#1a1a19",
     }).setOrigin(0.5);
 
-    const accTxt = this.add.text(0, 18, `${rule.targetAccuracy} hits`, {
-      fontSize: "11px",
+    const accTxt = this.add.text(0, accY, `${rule.targetAccuracy} hits`, {
+      fontSize: compactCard ? "10px" : "11px",
       fontFamily: FONT_FAMILY,
       color: "#5c5a56",
     }).setOrigin(0.5);
 
-    const rewardTxt = this.add.text(0, 34, `${gasDisplay(rule.rewardFixed8)} GAS`, {
-      fontSize: "11px",
+    const rewardTxt = this.add.text(0, rewardY, `${gasDisplay(rule.rewardFixed8)} GAS`, {
+      fontSize: compactCard ? "10px" : "11px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color: "#0ea371",
     }).setOrigin(0.5);
 
-    const entryTxt = this.add.text(0, cardH / 2 - 10, `Entry ${gasDisplay(rule.entryFixed8)}`, {
-      fontSize: "10px",
+    const entryTxt = this.add.text(0, entryY, `Entry ${gasDisplay(rule.entryFixed8)}`, {
+      fontSize: compactCard ? "9px" : "10px",
       fontFamily: FONT_FAMILY,
       color: "#8b8984",
     }).setOrigin(0.5);
@@ -891,6 +904,7 @@ export class AimMasterScene extends BaseScene {
   private parseAndStartPattern(pattern: string, difficulty: number): void {
     // Reset shot state for new round
     this.shotRings      = [];
+    this.shotResults    = [];
     this.accuracyHits   = 0;
     this.pendingSubmit  = false;
     this.updateProgressDots();
@@ -977,6 +991,7 @@ export class AimMasterScene extends BaseScene {
     if (newStatus === "dealt") {
       // Fresh round — reset local shot tracking
       this.shotRings    = [];
+      this.shotResults  = [];
       this.accuracyHits = 0;
       this.pendingSubmit = false;
       this.prevPattern  = ""; // force pattern re-parse on next sync
@@ -998,14 +1013,18 @@ export class AimMasterScene extends BaseScene {
     const pos = this.currentGaugeLogical;
     const hit = calculateHitResult(pos);
 
-    // Record the shot in React layer
-    this.dispatch("recordMove", { position: Math.round(pos) });
-
     // Update local state
     this.shotRings.push(hit.ring);
+    this.shotResults.push(hit);
     if (isAccuracyHit(hit.ring)) {
       this.accuracyHits++;
     }
+    this.dispatch("aimHit", {
+      ringsHit: this.accuracyHits,
+      totalRings: this.shotRings.length,
+      roundResults: this.shotResults,
+      totalPoints: totalPoints(this.shotRings),
+    });
 
     // Visual feedback
     this.showHitFeedback(hit.ring);

@@ -2,7 +2,8 @@
  * Graveyard -- bright memory vault styles.
  *
  * The scene uses a bounded foreground image and clear review cards. Inputs sit
- * in a compact compose console instead of becoming the whole application.
+ * inside a compact memory artifact so the user is operating the thing being
+ * buried instead of staring at a plain form.
  */
 @use "@shared/styles/v2/tokens" as *;
 @use "@shared/styles/v2/motion" as *;
@@ -58,8 +59,7 @@
 
 .graveyard-vault,
 .graveyard-review,
-.graveyard-console,
-.graveyard-memory-card,
+.graveyard-artifact,
 .graveyard-history__item,
 .graveyard-empty {
   border: 1px solid var(--mx2-border);
@@ -266,11 +266,14 @@
   width: min(880px, 100%);
   margin: 14px auto 0;
   display: grid;
-  grid-template-columns: minmax(250px, 1fr) minmax(270px, 1.1fr) minmax(190px, 0.8fr);
+  grid-template-columns: minmax(188px, 0.7fr) minmax(310px, 1.35fr) minmax(180px, 0.8fr);
   align-items: stretch;
   gap: 12px;
-  border-radius: 24px;
-  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .graveyard-console__mode {
@@ -312,70 +315,164 @@
   box-shadow: 0 10px 22px rgba(5, 150, 105, 0.11);
 }
 
-.graveyard-memory-card {
+.graveyard-artifact {
   min-width: 0;
   display: grid;
-  gap: 9px;
-  border-radius: 20px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  overflow: hidden;
+  border-color: var(--mx2-brand-subtle);
+  border-radius: 22px;
   padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 252, 250, 0.98)),
+    var(--mx2-brand-light);
 }
 
-.graveyard-memory-card > span {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.graveyard-artifact__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
   gap: 10px;
 }
 
-.graveyard-memory-card strong {
+.graveyard-artifact__icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 15px;
+  background: #ffffff;
+  color: var(--mx2-accent-strong);
+  box-shadow: inset 0 0 0 1px var(--mx2-border);
+}
+
+.graveyard-artifact__head span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.graveyard-artifact strong {
   color: var(--mx2-ink);
   font-size: 13px;
   font-weight: 680;
 }
 
-.graveyard-memory-card em {
+.graveyard-artifact em {
   color: var(--mx2-text-muted);
   font-size: 11px;
   font-style: normal;
   font-weight: 620;
-  text-align: right;
 }
 
-.graveyard-memory-card small {
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-weight: 680;
-  line-height: 1.35;
+.graveyard-artifact__surface {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  border: 1px solid rgba(71, 120, 106, 0.22);
+  border-radius: 18px;
+  padding: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(244, 251, 247, 0.92)),
+    #ffffff;
 }
 
-.graveyard-input {
+.graveyard-artifact__editor-label {
+  min-width: 0;
+  display: block;
+}
+
+.graveyard-artifact__editor-label > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.graveyard-artifact__editor {
   width: 100%;
   min-width: 0;
-  border: 1.5px solid var(--mx2-border-strong);
-  border-radius: 16px;
-  padding: 10px 12px;
-  background: #ffffff;
+  border: 0;
+  border-radius: 14px;
+  padding: 4px 2px;
+  background: transparent;
   color: var(--mx2-ink);
   font: inherit;
   font-size: 13px;
   font-weight: 620;
 }
 
-.graveyard-input--textarea {
-  min-height: 88px;
-  max-height: 128px;
+.graveyard-artifact__editor--textarea {
+  min-height: 78px;
+  max-height: 118px;
   resize: vertical;
-  line-height: 1.4;
+  line-height: 1.42;
 }
 
-.graveyard-input:focus {
+.graveyard-artifact__editor:focus {
   outline: none;
-  border-color: var(--mx2-accent);
-  box-shadow: var(--mx2-shadow-glow);
+  box-shadow: none;
 }
 
-.graveyard-input::placeholder {
+.graveyard-artifact__editor::placeholder {
   color: var(--mx2-text-faint);
+}
+
+.graveyard-artifact__seal,
+.graveyard-artifact__foot {
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  gap: 7px;
+}
+
+.graveyard-artifact__seal {
+  grid-template-columns: auto auto minmax(0, 1fr);
+  border-top: 1px solid rgba(71, 120, 106, 0.18);
+  padding-top: 9px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.graveyard-artifact__seal strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-accent-ink);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graveyard-artifact__foot {
+  grid-template-columns: minmax(0, 1fr) auto;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.graveyard-artifact__foot strong {
+  white-space: nowrap;
+}
+
+.graveyard-artifact__foot span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graveyard-artifact[data-mode="hash"] .graveyard-artifact__editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0;
+}
+
+.graveyard-artifact[data-mode="hash"] .graveyard-artifact__surface {
+  align-content: center;
 }
 
 .graveyard-type-dock {
@@ -548,16 +645,18 @@
   line-height: 1.35;
 }
 
-.graveyard-history__editor input {
+.graveyard-history__epitaph-field {
   flex: 1 1 180px;
-  min-height: 34px;
+  min-height: 42px;
   border: 1px solid var(--mx2-border);
-  border-radius: var(--mx2-r-pill);
-  padding: 7px 10px;
+  border-radius: 14px;
+  padding: 8px 10px;
   color: var(--mx2-ink);
   font: inherit;
   font-size: 12px;
   font-weight: 620;
+  line-height: 1.35;
+  resize: vertical;
 }
 
 .graveyard-empty {
@@ -701,34 +800,35 @@
     padding: 8px 9px;
   }
 
-  .graveyard-memory-card {
+  .graveyard-artifact {
     gap: 6px;
     border-radius: 18px;
     padding: 9px;
   }
 
-  .graveyard-memory-card > span,
   .graveyard-drawer__head {
     display: grid;
     gap: 2px;
   }
 
-  .graveyard-memory-card em {
-    text-align: left;
+  .graveyard-artifact__surface {
+    gap: 6px;
+    border-radius: 15px;
+    padding: 8px;
   }
 
-  .graveyard-input {
+  .graveyard-artifact__editor {
     border-radius: 14px;
-    padding: 8px 10px;
+    padding: 3px 1px;
     font-size: 12px;
   }
 
-  .graveyard-input--textarea {
+  .graveyard-artifact__editor--textarea {
     min-height: 66px;
     max-height: 84px;
   }
 
-  .graveyard-memory-card small {
+  .graveyard-artifact__foot span {
     display: none;
   }
 

@@ -4,6 +4,8 @@ import {
   ArrowRight,
   BadgeCheck,
   KeyRound,
+  Minus,
+  Plus,
   Route,
   ShieldCheck,
   Users,
@@ -109,7 +111,19 @@ export default function PlayArea({ t, state, dispatch }: Props) {
   const toAgent = roster.find((agent) => agent.normalizedId === toId) ?? roster[1] ?? roster[0];
   const focusedAgent = mode === "move" ? fromAgent : fromAgent;
   const focusedCandidate = candidate || agentCandidate(focusedAgent);
+  const normalizedAmount = normalizeWholeNeoAmount(amount);
+  const amountValue = Number(normalizedAmount || "0");
+  const sourceBalance = typeof fromAgent?.neoBalance === "number" ? fromAgent.neoBalance : null;
+  const sourceWholeBalance = sourceBalance === null ? 0 : Math.max(0, Math.floor(sourceBalance));
+  const amountExceedsBalance = sourceBalance !== null && amountValue > sourceBalance;
   const isReadOnly = adminState === "denied";
+  const canSubmit = !isReadOnly && (
+    mode === "move"
+      ? amountValue > 0 && !amountExceedsBalance
+      : mode === "candidate"
+        ? focusedCandidate.trim().length > 0
+        : true
+  );
 
   const selectAgent = (id: number) => {
     if (mode === "move") {
@@ -124,9 +138,14 @@ export default function PlayArea({ t, state, dispatch }: Props) {
     setFromAgentId(id);
   };
 
+  const stepAmount = (delta: number) => {
+    setAmount(String(Math.max(1, amountValue + delta)));
+  };
+
   const submit = () => {
     if (mode === "move") {
-      void dispatch("transferAgentNeo", { fromAgentId: fromId, toAgentId: toId, amount: Number(normalizeWholeNeoAmount(amount)) });
+      if (amountValue <= 0 || amountExceedsBalance) return;
+      void dispatch("transferAgentNeo", { fromAgentId: fromId, toAgentId: toId, amount: amountValue });
       return;
     }
     if (mode === "candidate") {
@@ -196,15 +215,44 @@ export default function PlayArea({ t, state, dispatch }: Props) {
             <strong>{operationHint}</strong>
           </div>
           {mode === "move" ? (
-            <label>
-              <span>{t("neoAmount")}</span>
-              <input value={amount} inputMode="numeric" onChange={(event) => setAmount(normalizeWholeNeoAmount(event.target.value))} />
-            </label>
+            <div className="admin-amount-console" role="group" aria-label={t("neoAmountControl")} data-invalid={amountExceedsBalance ? "true" : undefined}>
+              <div className="admin-amount-console__asset">
+                <CoinArt size={28} variant="neo" />
+                <span>{t("neoAmount")}</span>
+                <strong>{amountValue || 0} NEO</strong>
+              </div>
+              <div className="admin-amount-console__stepper">
+                <button type="button" aria-label={t("decreaseAmount")} onClick={() => stepAmount(-1)} disabled={amountValue <= 1}>
+                  <Minus size={14} />
+                </button>
+                <label className="admin-amount-console__input">
+                  <span>{t("neoAmount")}</span>
+                  <input value={amount} inputMode="numeric" onChange={(event) => setAmount(normalizeWholeNeoAmount(event.target.value))} />
+                </label>
+                <button type="button" aria-label={t("increaseAmount")} onClick={() => stepAmount(1)}>
+                  <Plus size={14} />
+                </button>
+              </div>
+              <div className="admin-amount-console__quick" aria-label={t("quickAmount")}>
+                {[1, 5, 10].map((preset) => (
+                  <button key={preset} type="button" onClick={() => setAmount(String(preset))}>{preset}</button>
+                ))}
+                {sourceWholeBalance > 0 && <button type="button" onClick={() => setAmount(String(sourceWholeBalance))}>{t("maxAmount")}</button>}
+              </div>
+              <small>{amountExceedsBalance ? t("moveExceedsBalance") : t("moveBalanceHint")}</small>
+            </div>
           ) : mode === "candidate" ? (
-            <label className="admin-operation-ticket__candidate">
-              <span>{t("candidatePublicKey")}</span>
-              <input value={candidate} onChange={(event) => setCandidate(event.target.value)} placeholder={short(agentCandidate(focusedAgent), 14, 10)} />
-            </label>
+            <div className="admin-candidate-console" role="group" aria-label={t("candidateControl")}>
+              <div className="admin-candidate-console__preview">
+                <KeyRound size={17} />
+                <span>{t("agentCandidateLabel")}</span>
+                <strong>{short(focusedCandidate, 14, 10) || t("agentCandidateNone")}</strong>
+              </div>
+              <label className="admin-candidate-console__input">
+                <span>{t("candidatePublicKey")}</span>
+                <input value={candidate} onChange={(event) => setCandidate(event.target.value)} placeholder={short(agentCandidate(focusedAgent), 14, 10)} />
+              </label>
+            </div>
           ) : (
             <p>{t("voteWitnessNote", { agent: fromId, account: short(agentAddress(focusedAgent), 10, 6) })}</p>
           )}
@@ -283,7 +331,7 @@ export default function PlayArea({ t, state, dispatch }: Props) {
           primary: {
             label: operationLabel,
             onClick: submit,
-            disabled: isReadOnly || (mode === "candidate" && !focusedCandidate.trim()),
+            disabled: !canSubmit,
             icon: <BadgeCheck size={17} />,
           },
         }}

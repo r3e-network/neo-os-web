@@ -763,7 +763,8 @@
   background: #ffffff;
 }
 
-.ticket-field span {
+.ticket-field span,
+.ticket-field .mx2-open-field__label {
   color: var(--mx2-text-muted);
   font-size: 9px;
   font-weight: 680;
@@ -771,9 +772,20 @@
   text-transform: uppercase;
 }
 
-.ticket-field input {
+.ticket-field .mx2-open-field__control.semi-input-wrapper {
+  min-height: 20px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ticket-field input,
+.ticket-field .mx2-open-field__control.semi-input-wrapper .semi-input {
   width: 100%;
   min-width: 0;
+  height: auto;
   border: 0;
   padding: 0;
   background: transparent;
@@ -781,9 +793,11 @@
   font: inherit;
   font-size: 14px;
   font-weight: 620;
+  line-height: 1.25;
 }
 
-.ticket-field input:focus {
+.ticket-field input:focus,
+.ticket-field .mx2-open-field__control.semi-input-wrapper:focus-within {
   outline: none;
 }
 
@@ -936,6 +950,11 @@
   white-space: nowrap;
 }
 
+.ticket-address-strip .mx2-open-field__label {
+  min-width: 0;
+  display: inline-flex;
+}
+
 .ticket-seat-board {
   min-width: 0;
   display: grid;
@@ -944,7 +963,9 @@
 
 .ticket-seat-board__label,
 .ticket-memo-chip span,
-.ticket-scan-slot span {
+.ticket-scan-slot span,
+.ticket-memo-chip .mx2-open-field__label,
+.ticket-scan-slot .mx2-open-field__label {
   color: var(--mx2-text-muted);
   font-size: 9px;
   font-weight: 680;
@@ -962,11 +983,26 @@
   background: #fff7ed;
 }
 
+.ticket-address-strip .mx2-open-field__control.semi-input-wrapper,
+.ticket-memo-chip .mx2-open-field__control.semi-input-wrapper,
+.ticket-scan-slot .mx2-open-field__control.semi-input-wrapper {
+  min-height: 20px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .ticket-address-strip input,
 .ticket-memo-chip input,
-.ticket-scan-slot input {
+.ticket-scan-slot input,
+.ticket-address-strip .mx2-open-field__control.semi-input-wrapper .semi-input,
+.ticket-memo-chip .mx2-open-field__control.semi-input-wrapper .semi-input,
+.ticket-scan-slot .mx2-open-field__control.semi-input-wrapper .semi-input {
   width: 100%;
   min-width: 0;
+  height: auto;
   border: 0;
   padding: 0;
   background: transparent;
@@ -974,11 +1010,15 @@
   font: inherit;
   font-size: 14px;
   font-weight: 620;
+  line-height: 1.25;
 }
 
 .ticket-address-strip input:focus,
 .ticket-memo-chip input:focus,
-.ticket-scan-slot input:focus {
+.ticket-scan-slot input:focus,
+.ticket-address-strip .mx2-open-field__control.semi-input-wrapper:focus-within,
+.ticket-memo-chip .mx2-open-field__control.semi-input-wrapper:focus-within,
+.ticket-scan-slot .mx2-open-field__control.semi-input-wrapper:focus-within {
   outline: none;
 }
 

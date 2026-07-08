@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
 interface P {
@@ -88,7 +88,16 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const anchoredCount = proofs.filter((p) => p.anchored).length;
   const activeProof = verifiedProof ?? latestProof ?? null;
   const activeDigest = activeProof?.contentHash || "";
-  const documentType = hasDraft && isDigestLike(trimmedMsg) ? t("documentTypeHash") : t("documentTypeText");
+  const hasDigestDraft = hasDraft && isDigestLike(trimmedMsg);
+  const documentType = hasDigestDraft ? t("documentTypeHash") : t("documentTypeText");
+  const digestPreview = hasDigestDraft
+    ? shortHash(trimmedMsg)
+    : hasDraft
+      ? t("pendingDigest")
+      : activeDigest
+        ? shortHash(activeDigest)
+        : t("pendingDigest");
+  const sourceStateLabel = hasDigestDraft ? t("documentTypeHash") : hasDraft ? t("documentTypeText") : t("documentPreviewEmptyTitle");
   const sceneState = isCreating
     ? "creating"
     : isAnchoring
@@ -141,24 +150,29 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <span>{t("proofSheetLabel")}</span>
             <strong>{hasDraft ? `${contentChars} ${t("contentChars").toLowerCase()}` : t("documentPreviewEmptyTitle")}</strong>
           </div>
-          <div className="tsp-proof-sheet__surface">
-            <textarea
-              className="tsp-document-card__input"
+          <div className="tsp-proof-sheet__surface" data-source={hasDigestDraft ? "digest" : hasDraft ? "content" : "empty"}>
+            <OpenUiTextArea
+              className="tsp-proof-sheet__editor"
+              textareaClassName="tsp-proof-sheet__textarea"
+              label={t("contentPlaceholder")}
               value={msg}
               onChange={(event) => setMsg(event.target.value)}
               placeholder={t("contentPlaceholder")}
               disabled={isCreating}
-              aria-label={t("contentPlaceholder")}
               rows={3}
             />
-            <span className="tsp-proof-sheet__seal" aria-hidden="true">
+            <span className="tsp-proof-sheet__seal" data-ready={hasDraft ? "true" : undefined} aria-hidden="true">
               <Stamp size={22} strokeWidth={2.2} />
             </span>
+          </div>
+          <div className="tsp-proof-sheet__source">
+            <span>{sourceStateLabel}</span>
+            <strong>{hasDigestDraft ? t("digestPassThrough") : hasDraft ? t("localHashPending") : t("proofRouteWaiting")}</strong>
           </div>
           <div className="tsp-proof-sheet__seal-row">
             <div className="tsp-proof-sheet__digest">
               <Fingerprint size={15} strokeWidth={2.3} aria-hidden="true" />
-              <span>{activeDigest ? shortHash(activeDigest) : t("pendingDigest")}</span>
+              <span>{digestPreview}</span>
             </div>
             <div className="tsp-proof-sheet__privacy">
               <ShieldCheck size={15} strokeWidth={2.25} aria-hidden="true" />
@@ -193,7 +207,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           </div>
           <div>
             <dt>{t("proofDigest")}</dt>
-            <dd>{activeDigest ? shortHash(activeDigest) : t("pendingDigest")}</dd>
+            <dd>{digestPreview}</dd>
           </div>
         </dl>
       </section>

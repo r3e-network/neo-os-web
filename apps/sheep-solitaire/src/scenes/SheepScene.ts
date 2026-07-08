@@ -111,6 +111,9 @@ const TRAY_Y_FRAC = 0.625;
 const TOOLS_Y_FRAC = 0.745;
 const STATUS_Y_FRAC = 0.835;
 const SLOT_COUNT = 7;
+const DESIGN_W = 400;
+const DESIGN_H = 640;
+const FONT = "Inter, Arial, sans-serif";
 
 // ── SheepScene ────────────────────────────────────────────────────────────────
 
@@ -128,6 +131,10 @@ export class SheepScene extends BaseScene {
   private progressLabel!:    Phaser.GameObjects.Text;
   private statusLabel!:      Phaser.GameObjects.Text;
   private matchedLabel!:     Phaser.GameObjects.Text;
+  private sceneBackdrop!:    Phaser.GameObjects.Rectangle;
+  private stagePanel!:       Phaser.GameObjects.Rectangle;
+  private stageFrame!:       Phaser.GameObjects.Graphics;
+  private tallMeadow!:       Phaser.GameObjects.Graphics;
 
   // Tool button references
   private undoBtn!:    Phaser.GameObjects.Container;
@@ -148,6 +155,7 @@ export class SheepScene extends BaseScene {
   private prevPileLen = 0;
   private currentStatus = "idle";
   private ghostInFlight = false;
+  private resultAnimationKey = "";
 
   constructor() {
     super("SheepScene");
@@ -181,13 +189,13 @@ export class SheepScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width: W, height: H } = this.scale;
 
-    this.buildBackground(W, H);
-    this.buildLobby(W, H);
-    this.buildLoadScreen(W, H);
-    this.buildGameScreen(W, H);
-    this.buildResultScreen(W, H);
+    this.buildBackground(DESIGN_W, DESIGN_H);
+    this.buildLobby(DESIGN_W, DESIGN_H);
+    this.buildLoadScreen(DESIGN_W, DESIGN_H);
+    this.buildGameScreen(DESIGN_W, DESIGN_H);
+    this.buildResultScreen(DESIGN_W, DESIGN_H);
+    this.fitCameraToHost();
 
     this.onStateUpdate(this.state);
   }
@@ -209,6 +217,7 @@ export class SheepScene extends BaseScene {
     this.setGroupActive(this.resultGroup, showResult);
 
     this.currentStatus = status;
+    if (!showResult) this.resultAnimationKey = "";
 
     if (showGame)   this.updateGameScreen();
     if (showResult) this.updateResultScreen();
@@ -220,8 +229,8 @@ export class SheepScene extends BaseScene {
   // ── Background ─────────────────────────────────────────────────────────────
 
   private buildBackground(W: number, H: number): void {
-    this.add.rectangle(W / 2, H / 2, W, H, 0xfffbef);
-    this.add.rectangle(W / 2, H / 2, W - 18, H - 18, 0xf8f0dc)
+    this.sceneBackdrop = this.add.rectangle(W / 2, H / 2, W, H, 0xfffbef);
+    this.stagePanel = this.add.rectangle(W / 2, H / 2, W - 18, H - 18, 0xf8f0dc)
       .setStrokeStyle(2, 0xe7d19b);
 
     const table = this.add.image(W / 2, H * 0.36, SHEEP_ASSETS.table)
@@ -233,6 +242,50 @@ export class SheepScene extends BaseScene {
       .setStrokeStyle(1, 0xffffff, 50);
     this.add.rectangle(W / 2, 78, W - 38, 74, C.panel, 235)
       .setStrokeStyle(1, 0xe7d19b);
+    this.tallMeadow = this.add.graphics();
+    this.stageFrame = this.add.graphics();
+    this.renderResponsiveStage(H, H / 2);
+  }
+
+  private renderResponsiveStage(visibleWorldH: number, centerY: number): void {
+    if (!this.sceneBackdrop || !this.stagePanel || !this.stageFrame || !this.tallMeadow) return;
+
+    const viewTop = centerY - visibleWorldH / 2;
+    const viewBottom = centerY + visibleWorldH / 2;
+    const stageTop = Math.min(0, viewTop - 12);
+    const stageBottom = Math.max(DESIGN_H, Math.min(viewBottom + 10, DESIGN_H + 170));
+    const stageHeight = stageBottom - stageTop;
+
+    this.sceneBackdrop
+      .setPosition(DESIGN_W / 2, stageTop + stageHeight / 2)
+      .setDisplaySize(DESIGN_W, stageHeight);
+    this.stagePanel
+      .setPosition(DESIGN_W / 2, stageTop + stageHeight / 2)
+      .setDisplaySize(DESIGN_W - 18, Math.max(1, stageHeight - 18));
+
+    this.tallMeadow.clear();
+    if (stageBottom > DESIGN_H + 20) {
+      const meadowTop = DESIGN_H - 10;
+      const meadowHeight = stageBottom - meadowTop - 8;
+      this.tallMeadow.fillStyle(0xf4efdb, 0.98);
+      this.tallMeadow.fillRoundedRect(18, meadowTop, DESIGN_W - 36, meadowHeight, {
+        tl: 20,
+        tr: 20,
+        bl: 0,
+        br: 0,
+      });
+      this.tallMeadow.fillStyle(0xd9edb7, 0.72);
+      this.tallMeadow.fillEllipse(DESIGN_W * 0.32, meadowTop + 42, 150, 30);
+      this.tallMeadow.fillEllipse(DESIGN_W * 0.68, meadowTop + 68, 170, 34);
+      this.tallMeadow.lineStyle(1, 0xb5cc85, 0.42);
+      for (let x = 42; x < DESIGN_W - 18; x += 44) {
+        this.tallMeadow.lineBetween(x, meadowTop + 28, x - 18, stageBottom - 28);
+      }
+    }
+
+    this.stageFrame.clear();
+    this.stageFrame.lineStyle(2, 0xe7d19b, 0.9);
+    this.stageFrame.strokeRoundedRect(9, 9, DESIGN_W - 18, stageBottom - 18, 18);
   }
 
   // ── Lobby ──────────────────────────────────────────────────────────────────
@@ -240,25 +293,30 @@ export class SheepScene extends BaseScene {
   private buildLobby(W: number, _H: number): void {
     this.lobbyGroup = this.add.container(0, 0);
 
-    const mascot = this.add.image(W / 2 - 118, 57, SHEEP_ASSETS.mascot)
-      .setDisplaySize(58, 58);
+    const mascot = this.add.image(W / 2 - 130, 57, SHEEP_ASSETS.mascot)
+      .setDisplaySize(52, 52);
 
-    const title = this.add.text(W / 2 + 14, 52, "Sheep Solitaire", {
-      fontSize: "22px",
-      fontStyle: "bold",
+    const headerTextX = W / 2 + 38;
+    const title = this.add.text(headerTextX, 52, "Sheep Solitaire", {
+      fontFamily: FONT,
+      fontSize: "21px",
+      fontStyle: "700",
       color: "#2f281d",
     }).setOrigin(0.5);
 
-    const sub = this.add.text(W / 2, 82, "Match 3 tiles to clear the board", {
-      fontSize: "13px",
+    const sub = this.add.text(headerTextX, 82, "Match 3 tiles to clear the board", {
+      fontFamily: FONT,
+      fontSize: "12px",
       color: "#7a6544",
+      wordWrap: { width: 230 },
+      align: "center",
     }).setOrigin(0.5);
 
     this.lobbyGroup.add([mascot, title, sub]);
 
     // 3 difficulty cards
-    const cardTopY = 122;
-    const cardH    = 158;
+    const cardTopY = 184;
+    const cardH    = 132;
     const gap      = 12;
     const cardW    = W - 60;
     const cx       = W / 2;
@@ -283,39 +341,43 @@ export class SheepScene extends BaseScene {
       .setStrokeStyle(2, borderColor);
     bg.setInteractive({ useHandCursor: true });
 
-    const badge = this.add.image(cx - w / 2 + 54, cy - 36, SHEEP_ASSETS.badges[difficulty])
+    const badge = this.add.image(cx - w / 2 + 54, cy - 36, SHEEP_ASSETS.badges[difficulty] ?? SHEEP_ASSETS.badges[0])
       .setDisplaySize(58, 58);
 
     const label = this.add.text(cx - 4, cy - 48, DIFFICULTY_LABELS[difficulty]!, {
+      fontFamily: FONT,
       fontSize: "20px",
-      fontStyle: "bold",
+      fontStyle: "700",
       color: "#2f281d",
     }).setOrigin(0.5);
 
     const cardTypes = difficulty === 0 ? 8 : difficulty === 1 ? 12 : 15;
     const infoText  = `${cardTypes} tile types  ·  ${DIFFICULTY_TIMER[difficulty]}`;
     const infoLabel = this.add.text(cx - 4, cy - 18, infoText, {
+      fontFamily: FONT,
       fontSize: "13px",
       color: "#7a6544",
     }).setOrigin(0.5);
 
-    const entryLabel = this.add.text(cx - 46, cy + 12, `Entry ${DIFFICULTY_ENTRY[difficulty]}`, {
-      fontSize: "14px",
+    const entryLabel = this.add.text(cx - w / 2 + 112, cy + 12, `Entry ${DIFFICULTY_ENTRY[difficulty]}`, {
+      fontFamily: FONT,
+      fontSize: "12px",
       color: "#8f6a20",
-    }).setOrigin(0.5);
+    }).setOrigin(0, 0.5);
 
-    const rewardLabel = this.add.text(cx + 70, cy + 12, `Win ${DIFFICULTY_REWARD[difficulty]}`, {
-      fontSize: "15px",
-      fontStyle: "bold",
+    const rewardLabel = this.add.text(cx + w / 2 - 22, cy + 12, `Win ${DIFFICULTY_REWARD[difficulty]}`, {
+      fontFamily: FONT,
+      fontSize: "13px",
+      fontStyle: "700",
       color: "#217d4d",
-    }).setOrigin(0.5);
+    }).setOrigin(1, 0.5);
 
     // Preview real tile assets.
     const tileCount = Math.min(cardTypes, 8);
     const tileStartX = cx - (tileCount / 2 - 0.5) * 30;
     const previewLabels: Phaser.GameObjects.Image[] = [];
     for (let i = 0; i < tileCount; i++) {
-      const tile = this.add.image(tileStartX + i * 30, cy + 56, this.tileAssetKey(i))
+      const tile = this.add.image(tileStartX + i * 30, cy + 46, this.tileAssetKey(i))
         .setDisplaySize(30, 30);
       previewLabels.push(tile);
     }
@@ -357,11 +419,13 @@ export class SheepScene extends BaseScene {
     spinner.add(spinnerArt);
 
     const loadText = this.add.text(W / 2, H / 2 + 24, "Preparing your board…", {
+      fontFamily: FONT,
       fontSize: "16px",
       color: "#2f281d",
     }).setOrigin(0.5);
 
     const subText = this.add.text(W / 2, H / 2 + 48, "Securing puzzle on-chain", {
+      fontFamily: FONT,
       fontSize: "12px",
       color: "#7a6544",
     }).setOrigin(0.5);
@@ -390,6 +454,7 @@ export class SheepScene extends BaseScene {
 
     // ── Progress label ───────────────────────────────────────────────────────
     this.progressLabel = this.add.text(W / 2, 30, "", {
+      fontFamily: FONT,
       fontSize: "13px",
       color: "#c8d8b0",
     }).setOrigin(0.5);
@@ -403,6 +468,7 @@ export class SheepScene extends BaseScene {
 
     // Tray label
     const trayLabel = this.add.text(16, trayY - 46, "Tray", {
+      fontFamily: FONT,
       fontSize: "11px",
       color: "#8f6a20",
     }).setAlpha(0.8);
@@ -431,6 +497,7 @@ export class SheepScene extends BaseScene {
 
     // ── Status label ─────────────────────────────────────────────────────────
     this.statusLabel = this.add.text(W / 2, H * STATUS_Y_FRAC, "", {
+      fontFamily: FONT,
       fontSize: "12px",
       color: "#a0c090",
       wordWrap: { width: W - 40 },
@@ -440,6 +507,7 @@ export class SheepScene extends BaseScene {
 
     // ── Matched counter ──────────────────────────────────────────────────────
     this.matchedLabel = this.add.text(W - 18, 30, "", {
+      fontFamily: FONT,
       fontSize: "12px",
       color: "#7dd87d",
       align: "right",
@@ -486,11 +554,13 @@ export class SheepScene extends BaseScene {
     });
 
     const txt = this.add.text(0, -2, label, {
+      fontFamily: FONT,
       fontSize: "13px",
       color: "#f0c866",
     }).setOrigin(0.5);
 
     const countTxt = this.add.text(36, -16, countStr, {
+      fontFamily: FONT,
       fontSize: "10px",
       color: "#7dd87d",
     }).setOrigin(0.5);
@@ -509,12 +579,14 @@ export class SheepScene extends BaseScene {
       .setStrokeStyle(3, C.gold);
 
     this.resultTitle = this.add.text(W / 2, H / 2 - 72, "", {
+      fontFamily: FONT,
       fontSize: "32px",
-      fontStyle: "bold",
+      fontStyle: "700",
       color: "#f0c866",
     }).setOrigin(0.5);
 
     this.resultSub = this.add.text(W / 2, H / 2 - 22, "", {
+      fontFamily: FONT,
       fontSize: "16px",
       color: "#c8d8b0",
     }).setOrigin(0.5);
@@ -534,8 +606,9 @@ export class SheepScene extends BaseScene {
     });
 
     this.resultActionTxt = this.add.text(W / 2, H / 2 + 52, "Play Again", {
+      fontFamily: FONT,
       fontSize: "18px",
-      fontStyle: "bold",
+      fontStyle: "700",
       color: "#ffffff",
     }).setOrigin(0.5);
 
@@ -572,7 +645,7 @@ export class SheepScene extends BaseScene {
 
     if (pileCards.length === 0) return;
 
-    const W = this.scale.width;
+    const W = DESIGN_W;
     const difficulty = this.num("gameDifficulty", 0);
 
     // Columns per layer based on difficulty
@@ -587,7 +660,7 @@ export class SheepScene extends BaseScene {
 
     const cx = W / 2;
     // pile base y — cards stack upward from here
-    const pileBaseY = this.scale.height * TRAY_Y_FRAC - 46;
+    const pileBaseY = DESIGN_H * TRAY_Y_FRAC - 46;
 
     // Render order: layer 2 → 1 → 0
     for (let layerIdx = 2; layerIdx >= 0; layerIdx--) {
@@ -657,8 +730,8 @@ export class SheepScene extends BaseScene {
     if (slotCards.length >= SLOT_COUNT) return;
 
     // Calculate target slot position
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = DESIGN_W;
+    const H = DESIGN_H;
     const trayY   = H * TRAY_Y_FRAC;
     const slotStep = (W - 32) / SLOT_COUNT;
     const slotStartX = 16 + slotStep / 2;
@@ -698,8 +771,8 @@ export class SheepScene extends BaseScene {
   private rebuildTray(slotCards: CardView[]): void {
     this.trayContainer.removeAll(true);
 
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = DESIGN_W;
+    const H = DESIGN_H;
     const trayY    = H * TRAY_Y_FRAC;
     const slotStep = (W - 32) / SLOT_COUNT;
     const slotStartX = 16 + slotStep / 2;
@@ -722,8 +795,8 @@ export class SheepScene extends BaseScene {
 
   /** Flash + scale-down animation for tray cards being removed on a match. */
   private animateMatchClear(): void {
-    const H = this.scale.height;
-    const W = this.scale.width;
+    const H = DESIGN_H;
+    const W = DESIGN_W;
     const trayY    = H * TRAY_Y_FRAC;
     const slotStep = (W - 32) / SLOT_COUNT;
     const slotStartX = 16 + slotStep / 2;
@@ -787,8 +860,10 @@ export class SheepScene extends BaseScene {
     const totalCards  = cardTypes * 3;
     const remaining   = pileCards.length + slotCards.length;
     const matched     = totalCards - remaining;
+    const deadline    = this.num("deadline", 0);
+    const clock       = deadline > 0 ? `Time ${this.formatTimeLeft(deadline)}` : "Time --";
 
-    this.progressLabel.setText(`Pile: ${pileCards.length}  ·  Tray: ${slotCards.length}/${SLOT_COUNT}`);
+    this.progressLabel.setText(`${clock}  ·  Pile: ${pileCards.length}  ·  Tray: ${slotCards.length}/${SLOT_COUNT}`);
     this.matchedLabel.setText(`Matched ${matched}/${totalCards}`);
   }
 
@@ -796,14 +871,31 @@ export class SheepScene extends BaseScene {
     const status  = this.str("gameStatus", "idle");
     const payout  = this.str("lastPayout", "");
     const isGameOver = this.bool("isGameOver");
+    const activeGameId = this.str("activeGameId", "0");
+    const credit = this.num("credit", 0);
+    const canSettle = status === "solved" && activeGameId !== "0";
 
     if (status === "solved") {
-      this.resultTitle.setText("You Won").setColor("#f0c866");
-      this.resultSub.setText(payout ? `Payout: ${payout}` : "Board cleared!");
-      this.resultActionTxt.setText("Claim & Play Again");
+      this.resultTitle.setText(canSettle ? "You Won" : "Reward Credited").setColor("#f0c866");
+      this.resultSub.setText(
+        canSettle
+          ? (payout ? `Payout: ${payout}` : "Board cleared!")
+          : credit > 0
+          ? `${credit.toFixed(2)} GAS is ready to withdraw`
+          : "Board verified on-chain",
+      );
+      this.resultActionTxt.setText(canSettle ? "Claim Reward" : credit > 0 ? "Withdraw" : "Back to Routes");
       this.resultActionBg.setFillStyle(C.green);
       this.resultActionBg.off("pointerdown");
-      this.resultActionBg.on("pointerdown", () => this.dispatch("submitRun"));
+      this.resultActionBg.on("pointerdown", () => {
+        if (canSettle) {
+          this.dispatch("submitRun");
+        } else if (credit > 0) {
+          this.dispatch("withdrawWinnings", {});
+        } else {
+          this.dispatch("returnToLobby");
+        }
+      });
     } else if (isGameOver) {
       this.resultTitle.setText("Game Over").setColor("#e25d4d");
       this.resultSub.setText("Tray is full — no more moves!");
@@ -813,22 +905,25 @@ export class SheepScene extends BaseScene {
       this.resultActionBg.on("pointerdown", () => this.dispatch("expireGame"));
     }
 
-    // Entrance animation on first show
-    this.resultGroup.setAlpha(0).setScale(0.85);
-    this.tweens.add({
-      targets: this.resultGroup,
-      alpha: 1,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 280,
-      ease: "Back.easeOut",
-    });
+    const animationKey = `${status}:${isGameOver ? "gameover" : "ok"}:${activeGameId}:${credit > 0 ? "credit" : "no-credit"}`;
+    if (this.resultAnimationKey !== animationKey) {
+      this.resultAnimationKey = animationKey;
+      this.resultGroup.setAlpha(0).setScale(0.85);
+      this.tweens.add({
+        targets: this.resultGroup,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 280,
+        ease: "Back.easeOut",
+      });
+    }
   }
 
   // ── Resize ─────────────────────────────────────────────────────────────────
 
-  protected onResize(_gameSize: Phaser.Structs.Size): void {
-    this.scene.restart();
+  protected onResize(): void {
+    this.fitCameraToHost();
   }
 
   private setGroupActive(group: Phaser.GameObjects.Container, active: boolean): void {
@@ -836,7 +931,8 @@ export class SheepScene extends BaseScene {
   }
 
   private setObjectActive(target: Phaser.GameObjects.GameObject, active: boolean): void {
-    target.setVisible(active);
+    (target as Phaser.GameObjects.GameObject & { setVisible(visible: boolean): Phaser.GameObjects.GameObject })
+      .setVisible(active);
     const interactiveTarget = target as Phaser.GameObjects.GameObject & {
       input?: { enabled: boolean } | null;
     };
@@ -850,5 +946,26 @@ export class SheepScene extends BaseScene {
 
   private tileAssetKey(symbolIdx: number): string {
     return SHEEP_ASSETS.tiles[Math.abs(symbolIdx) % SHEEP_ASSETS.tiles.length] ?? SHEEP_ASSETS.tiles[0];
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H);
+    const visibleWorldH = viewH / zoom;
+    const tallViewportLift = Math.max(0, visibleWorldH - DESIGN_H) * 0.34;
+    const centerY = DESIGN_H / 2 + tallViewportLift;
+    this.renderResponsiveStage(visibleWorldH, centerY);
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(DESIGN_W / 2, centerY);
+  }
+
+  private formatTimeLeft(deadline: number): string {
+    const secondsLeft = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    const minutes = Math.floor(secondsLeft / 60);
+    const seconds = secondsLeft % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   }
 }

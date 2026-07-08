@@ -678,12 +678,17 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
   };
 
   /**
-   * Borrow from manifest form data: { collateralAmount }. Sets the amount then runs
-   * the deposit-then-borrow flow under the isBorrowing flag.
+   * Borrow from manifest form data: { collateralAmount, ltvTier }. Sets the
+   * explicit amount/tier from the PlayArea action payload, then runs the
+   * deposit-then-borrow flow under the isBorrowing flag.
    */
   const borrow = async (formData: Record<string, unknown>) => {
     const nextCollateral = String(formData.collateralAmount ?? "").trim();
+    const nextTier = Number(formData.ltvTier ?? formData.selectedLtv ?? "");
     if (nextCollateral) collateralAmount.set(nextCollateral);
+    if (Number.isInteger(nextTier) && nextTier >= 1 && nextTier <= 3) {
+      selectedTier.set(nextTier);
+    }
 
     if (isBorrowing.get()) return;
     try {

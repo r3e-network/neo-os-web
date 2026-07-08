@@ -96,11 +96,13 @@ const GROUND_TILE_SCALE = GROUND_HEIGHT / 24;
 
 type LocalPhase = "idle" | "ready" | "playing" | "crashed" | "won";
 type GameStatus = "idle" | "committed" | "dealt" | "solved" | "expired";
+type SfxKind = "select" | "start" | "flap" | "score" | "crash" | "win";
 
 // ─── Scene ────────────────────────────────────────────────────────────────────
 
 export class FlappyScene extends BaseScene {
   // ── Sprite layers ─────────────────────────────────────────────────────────
+  private skyBackdrop!: Phaser.GameObjects.Rectangle;
   private backgroundSprite!: Phaser.GameObjects.TileSprite;
   private groundSprite!: Phaser.GameObjects.TileSprite;
   private pipeLayer!: Phaser.GameObjects.Container;
@@ -152,10 +154,16 @@ export class FlappyScene extends BaseScene {
   private prevActiveGameId = "";
   private cloudOffset = 0;
   private groundOffset = 0;
+  private fittedViewW = 0;
+  private fittedViewH = 0;
   private frameAccum = 0;       // ms carry for fixed-60-fps step
   private reportTimer = 0;      // frames since last recordFlap
   private deadlineMs = 0;
   private lastReportedScore = -1;
+  private lastScoreSfx = 0;
+  private lastOverlayOutcome: "crashed" | "won" | "expired" | "" = "";
+  private audioContext: AudioContext | null = null;
+  private audioUnlocked = false;
 
   constructor() {
     super("FlappyScene");
@@ -175,8 +183,13 @@ export class FlappyScene extends BaseScene {
 
   create(): void {
     super.create();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.closeAudio, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.closeAudio, this);
 
     // Render layers (order matters: lowest depth first)
+    this.skyBackdrop = this.add.rectangle(W / 2, H / 2, W + 260, H + 620, 0x87ceeb, 1)
+      .setDepth(-2);
+
     this.backgroundSprite = this.add.tileSprite(
       0,
       0,
@@ -228,11 +241,17 @@ export class FlappyScene extends BaseScene {
     // Draw initial static scene so there's no blank frame.
     this.drawSky();
     this.drawGround(0);
+    this.fitCameraToHost();
 
     this.onStateUpdate(this.state);
   }
 
+  protected onResize(): void {
+    this.fitCameraToHost();
+  }
+
   update(_time: number, delta: number): void {
+    this.fitCameraToHostIfNeeded();
     if (this.localPhase !== "playing" || !this.flappyState) return;
 
     // Accumulate delta and step at fixed ~60 fps increments
@@ -240,7 +259,11 @@ export class FlappyScene extends BaseScene {
     const STEP = 1000 / 60;
     while (this.frameAccum >= STEP) {
       this.frameAccum -= STEP;
+      const previousScore = this.flappyState.score;
       updateFrame(this.flappyState);
+      if (this.flappyState.score > previousScore) {
+        this.playPipePassFeedback(this.flappyState.score);
+      }
 
       // Check phase transitions set by the engine
       const phase = this.flappyState.phase;
@@ -317,6 +340,8 @@ export class FlappyScene extends BaseScene {
       this.frameAccum      = 0;
       this.reportTimer     = 0;
       this.lastReportedScore = -1;
+      this.lastScoreSfx = 0;
+      this.lastOverlayOutcome = "";
 
       this.showGameLayer();
       this.showReadyOverlay();
@@ -328,6 +353,7 @@ export class FlappyScene extends BaseScene {
         this.flappyState  = null;
         this.prevSeed     = "";
         this.frameAccum   = 0;
+        this.lastOverlayOutcome = "";
       }
 
       if (status === "committed" || isDealing) {
@@ -344,12 +370,41 @@ export class FlappyScene extends BaseScene {
     }
   }
 
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || W));
+    const viewH = Math.max(1, Math.round(this.scale.height || H));
+    const mobileZoomCorrection = viewW < W ? 0.82 : 1;
+    const zoom = Math.min(viewW / W, viewH / H) * mobileZoomCorrection;
+    const visibleW = viewW / Math.max(zoom, 0.001);
+    const visibleH = viewH / Math.max(zoom, 0.001);
+    const scrollX = (W - visibleW) / 2;
+    const scrollY = (H - visibleH) / 2;
+    this.fittedViewW = viewW;
+    this.fittedViewH = viewH;
+
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .setScroll(scrollX, scrollY);
+  }
+
+  private fitCameraToHostIfNeeded(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || W));
+    const viewH = Math.max(1, Math.round(this.scale.height || H));
+    if (viewW !== this.fittedViewW || viewH !== this.fittedViewH) {
+      this.fitCameraToHost();
+    }
+  }
+
   // ── Input ──────────────────────────────────────────────────────────────────
 
   private handleTap(): void {
+    this.unlockAudio();
     if (this.gameStatus !== "dealt" || !this.flappyState) return;
 
     if (this.localPhase === "ready") {
+      this.playSfx("start");
+      this.emitFlapBurst();
       this.localPhase = "playing";
       this.flappyState.phase = "playing";
       this.hideReadyOverlay();
@@ -358,7 +413,245 @@ export class FlappyScene extends BaseScene {
 
     if (this.localPhase === "playing") {
       engineFlap(this.flappyState);
+      this.playSfx("flap");
+      this.emitFlapBurst();
       this.dispatch("recordFlap", { pipes: this.flappyState.score });
+    }
+  }
+
+  // ── Game feel: SFX and burst feedback ─────────────────────────────────────
+
+  private unlockAudio(): void {
+    const context = this.ensureAudioContext();
+    if (!context) return;
+    this.audioUnlocked = true;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+  }
+
+  private ensureAudioContext(): AudioContext | null {
+    if (this.audioContext) return this.audioContext;
+    if (typeof window === "undefined") return null;
+
+    const audioWindow = window as typeof window & {
+      webkitAudioContext?: new () => AudioContext;
+    };
+    const AudioContextCtor = window.AudioContext ?? audioWindow.webkitAudioContext;
+    if (!AudioContextCtor) return null;
+
+    try {
+      this.audioContext = new AudioContextCtor();
+    } catch {
+      this.audioContext = null;
+    }
+    return this.audioContext;
+  }
+
+  private playSfx(kind: SfxKind): void {
+    const context = this.ensureAudioContext();
+    if (!context) return;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+    this.audioUnlocked = true;
+
+    switch (kind) {
+      case "select":
+        this.playTone(context, 520, 0.045, 0, "triangle", 0.022, 680);
+        break;
+      case "start":
+        this.playTone(context, 392, 0.07, 0, "triangle", 0.035, 587);
+        this.playTone(context, 784, 0.09, 0.06, "sine", 0.032, 988);
+        break;
+      case "flap":
+        this.playTone(context, 740, 0.07, 0, "square", 0.022, 1180);
+        this.playTone(context, 420, 0.05, 0.018, "triangle", 0.018, 520);
+        break;
+      case "score":
+        this.playTone(context, 659, 0.06, 0, "sine", 0.03, 880);
+        this.playTone(context, 988, 0.08, 0.055, "triangle", 0.026, 1175);
+        break;
+      case "crash":
+        this.playTone(context, 180, 0.18, 0, "sawtooth", 0.038, 64);
+        this.playTone(context, 90, 0.12, 0.055, "square", 0.018, 44);
+        break;
+      case "win":
+        [523, 659, 784, 1046].forEach((frequency, index) => {
+          this.playTone(context, frequency, 0.12, index * 0.07, "triangle", 0.028);
+        });
+        break;
+    }
+  }
+
+  private playTone(
+    context: AudioContext,
+    frequency: number,
+    duration: number,
+    delay = 0,
+    type: OscillatorType = "sine",
+    volume = 0.03,
+    endFrequency?: number,
+  ): void {
+    const startAt = context.currentTime + delay;
+    const endAt = startAt + duration;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(Math.max(1, frequency), startAt);
+    if (endFrequency) {
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), endAt);
+    }
+
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.linearRampToValueAtTime(volume, startAt + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startAt);
+    oscillator.stop(endAt + 0.03);
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    };
+  }
+
+  private emitFlapBurst(): void {
+    if (this.reducedMotion || !this.birdSprite.visible) return;
+    const originX = this.birdSprite.x - 16;
+    const originY = this.birdSprite.y + 8;
+
+    for (let index = 0; index < 3; index++) {
+      const puff = this.add.ellipse(
+        originX - index * 5,
+        originY + Phaser.Math.Between(-4, 5),
+        18 - index * 3,
+        8,
+        0xffffff,
+        0.48 - index * 0.1,
+      ).setDepth(5);
+
+      this.tweens.add({
+        targets: puff,
+        x: puff.x - 28 - index * 6,
+        alpha: 0,
+        scaleX: 1.8,
+        scaleY: 0.45,
+        duration: 260 + index * 35,
+        ease: "Sine.easeOut",
+        onComplete: () => puff.destroy(),
+      });
+    }
+  }
+
+  private playPipePassFeedback(score: number): void {
+    if (score <= this.lastScoreSfx) return;
+    this.lastScoreSfx = score;
+    this.playSfx("score");
+    if (this.reducedMotion) return;
+
+    this.tweens.add({
+      targets: this.scoreText,
+      scale: 1.28,
+      duration: 90,
+      ease: "Sine.easeOut",
+      yoyo: true,
+    });
+
+    const pop = this.add.text(W / 2 + 42, 54, `+${score}`, {
+      fontFamily: UI_FONT,
+      fontSize: "18px",
+      fontStyle: "bold",
+      color: "#fff8b8",
+      stroke: "#173247",
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(12);
+
+    this.tweens.add({
+      targets: pop,
+      y: pop.y - 24,
+      alpha: 0,
+      scale: 1.18,
+      duration: 460,
+      ease: "Sine.easeOut",
+      onComplete: () => pop.destroy(),
+    });
+  }
+
+  private playResultFeedback(outcome: "crashed" | "won" | "expired"): void {
+    const won = outcome === "won";
+    this.playSfx(won ? "win" : "crash");
+    if (this.reducedMotion) return;
+
+    if (won) {
+      this.cameras.main.flash(220, 255, 244, 181, false, undefined, 0.24);
+      this.emitWinBurst();
+      return;
+    }
+
+    this.cameras.main.shake(170, 0.006);
+    this.cameras.main.flash(120, 255, 90, 70, false, undefined, 0.18);
+    this.emitCrashBurst();
+  }
+
+  private emitWinBurst(): void {
+    const colors = [0xffd166, 0x16c784, 0x4dc9f6, 0xffffff];
+    for (let index = 0; index < 18; index++) {
+      const spark = this.add.circle(
+        W / 2 + Phaser.Math.Between(-92, 92),
+        H / 2 - 48 + Phaser.Math.Between(-28, 30),
+        Phaser.Math.Between(3, 6),
+        colors[index % colors.length]!,
+        0.92,
+      ).setDepth(34);
+
+      this.tweens.add({
+        targets: spark,
+        x: spark.x + Phaser.Math.Between(-42, 42),
+        y: spark.y + Phaser.Math.Between(-76, 34),
+        alpha: 0,
+        scale: 0.4,
+        duration: 680 + index * 18,
+        ease: "Sine.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  private emitCrashBurst(): void {
+    const x = this.birdSprite.visible ? this.birdSprite.x : W / 2;
+    const y = this.birdSprite.visible ? this.birdSprite.y : H / 2;
+    for (let index = 0; index < 8; index++) {
+      const shard = this.add.rectangle(
+        x,
+        y,
+        Phaser.Math.Between(10, 18),
+        4,
+        index % 2 === 0 ? 0xe25d4d : 0x173247,
+        0.72,
+      ).setAngle(Phaser.Math.Between(-38, 38)).setDepth(34);
+
+      this.tweens.add({
+        targets: shard,
+        x: shard.x + Phaser.Math.Between(-52, 52),
+        y: shard.y + Phaser.Math.Between(-34, 52),
+        alpha: 0,
+        angle: shard.angle + Phaser.Math.Between(-90, 90),
+        duration: 420 + index * 18,
+        ease: "Cubic.easeOut",
+        onComplete: () => shard.destroy(),
+      });
+    }
+  }
+
+  private closeAudio(): void {
+    const context = this.audioContext;
+    this.audioContext = null;
+    this.audioUnlocked = false;
+    if (context && context.state !== "closed") {
+      void context.close().catch(() => undefined);
     }
   }
 
@@ -495,8 +788,8 @@ export class FlappyScene extends BaseScene {
     }).setOrigin(0.5, 0);
     this.lobbyContainer.add(titleTxt);
 
-    const heroPanel = this.add.rectangle(W / 2, 174, 330, 176, C.white, 0.42)
-      .setStrokeStyle(1, 0xffffff, 0.42)
+    const heroPanel = this.add.rectangle(W / 2, 174, 330, 176, C.white, 0.6)
+      .setStrokeStyle(1, 0xffffff, 0.58)
       .setOrigin(0.5);
     this.lobbyContainer.add(heroPanel);
 
@@ -526,7 +819,9 @@ export class FlappyScene extends BaseScene {
     const heroCopy = this.add.text(W / 2, 258, "Pass the gates, prove the run, claim GAS.", {
       fontFamily: UI_FONT,
       fontSize: "12px",
-      color: "#2f6175",
+      color: "#173247",
+      stroke: "#ffffff",
+      strokeThickness: 3,
     }).setOrigin(0.5);
     this.lobbyContainer.add([heroBirdShadow, heroBird, heroCopy]);
 
@@ -645,8 +940,10 @@ export class FlappyScene extends BaseScene {
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
     bg.on("pointerdown", () => {
+      this.playSfx("select");
       this.pickedDifficulty = rule.difficulty;
       this.updateCardHighlights();
+      this.pressFeedback(c, { scale: 0.96, duration: 70 });
     });
     bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0xffffff, 0.98); });
     bg.on("pointerout",   () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(C.chipBg, 0.92); });
@@ -734,6 +1031,7 @@ export class FlappyScene extends BaseScene {
     const rule        = ruleOf(this.pickedDifficulty);
     const rewardGas   = Number(gasDisplay(rule.rewardFixed8));
     if (isStarting || poolFree < rewardGas) return;
+    this.playSfx("start");
     this.dispatch("startGame", { difficulty: this.pickedDifficulty });
   }
 
@@ -866,7 +1164,7 @@ export class FlappyScene extends BaseScene {
     // Secondary action button (Submit / Expire)
     this.overlaySecondBtn = this.add.container(0, 72).setVisible(false);
     const secondBg = this.add.rectangle(0, 0, 200, 36, 0x1a2a3a)
-      .setStrokeStyle(1, C.cardBorder)
+      .setStrokeStyle(1, C.chipBorder)
       .setOrigin(0.5);
     secondBg.setInteractive({ useHandCursor: true });
     this.bindGameButton(secondBg, {
@@ -906,6 +1204,11 @@ export class FlappyScene extends BaseScene {
       ease: "Back.easeOut",
     });
 
+    if (this.lastOverlayOutcome !== outcome) {
+      this.lastOverlayOutcome = outcome;
+      this.playResultFeedback(outcome);
+    }
+
     if (outcome === "won") {
       this.overlayTitle.setText("You Win!").setColor("#16c784");
       this.overlayBody.setText(
@@ -939,6 +1242,7 @@ export class FlappyScene extends BaseScene {
     if (phase === "won") {
       // Submit the solution to the contract
       const score = this.flappyState?.score ?? 0;
+      this.playSfx("select");
       this.dispatch("submitSolution", { pipes: score });
       this.overlayActionLabel.setText("Submitting…");
       return;
@@ -955,6 +1259,8 @@ export class FlappyScene extends BaseScene {
         this.frameAccum = 0;
         this.reportTimer = 0;
         this.lastReportedScore = -1;
+        this.lastScoreSfx = 0;
+        this.lastOverlayOutcome = "";
         this.overlayContainer.setVisible(false);
         this.showReadyOverlay();
         this.updateScoreHud(0);
@@ -964,6 +1270,7 @@ export class FlappyScene extends BaseScene {
       this.localPhase = "idle";
       this.flappyState = null;
       this.overlayContainer.setVisible(false);
+      this.lastOverlayOutcome = "";
       this.showLobbyLayer();
     }
   }
@@ -972,12 +1279,15 @@ export class FlappyScene extends BaseScene {
     // "Play Again" after a win — retry locally (no new game started)
     const seed = this.str("seed", "");
     if (seed && this.gameStatus === "dealt") {
+      this.playSfx("start");
       this.flappyState = createGameState(seed);
       this.flappyState.phase = "ready";
       this.localPhase = "ready";
       this.frameAccum = 0;
       this.reportTimer = 0;
       this.lastReportedScore = -1;
+      this.lastScoreSfx = 0;
+      this.lastOverlayOutcome = "";
       this.overlayContainer.setVisible(false);
       this.overlaySecondBtn.setVisible(false);
       this.showReadyOverlay();

@@ -148,11 +148,15 @@ const appMessages = {
   },
 
   scoreReward: { en: "Reward at stake", zh: "本局奖励" },
+  rewardMetric: { en: "Reward", zh: "奖励" },
   scoreTime: { en: "Time left", zh: "剩余时间" },
+  timeMetric: { en: "Time", zh: "时间" },
   scoreLength: { en: "Length", zh: "长度" },
   scoreWon: { en: "Total won", zh: "累计赢取" },
+  wonMetric: { en: "Won", zh: "已赢" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  drawerTitleShort: { en: "Rules", zh: "规则" },
   leaderboardIntro: {
     en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
     zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",
@@ -173,10 +177,18 @@ const appMessages = {
     en: "1. Choose a bounty trail and pay the entry (Garden 0.02, Market 0.10, Apex 0.20 GAS). 2. The Morpheus enclave seeds a 20×20 grid with food placements from a deterministic seed and binds its hash commitment on-chain. 3. Use arrow keys, WASD, or swipe to move the snake. Eat food to grow. Reach the target length (10/20/35) before the deadline (3/5/10 min) to win. 4. Crash into a wall or yourself and it's game over — no reward. 5. The enclave verifies your game, signs the settlement, and the contract checks the signature and commitment before paying. A short anti-bot floor applies.",
     zh: "1. 选择赏金蛇道并支付报名费（花园 0.02、集市 0.10、巅峰 0.20 GAS）。2. Morpheus 飞地在 20×20 网格中用确定性种子放置食物，并将哈希承诺绑定上链。3. 使用方向键、WASD 或滑动操作蛇移动。吃食物增长。在截止时间（3/5/10 分钟）前达到目标长度（10/20/35）即可赢取奖励。4. 撞到墙壁或自己则游戏结束——无奖励。5. 飞地验证游戏并签署结算，合约核验签名与承诺后发奖。提交前有一段防脚本的最短用时。",
   },
+  rulesShort: {
+    en: "Eat bounty fruit, grow to the target length, then submit before the clock expires.",
+    zh: "吃下赏金果，成长到目标长度，并在倒计时结束前提交。",
+  },
   fairnessTitle: { en: "Provably fair grid", zh: "可验证公平网格" },
   fairnessCopy: {
     en: "The food placements are generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, so the snake's path cannot be scripted outside the app. At settlement the enclave signs the result (problem hash, answer hash, time) and the contract verifies both the signature and that the problem hash equals the original commitment before paying. The grid and food positions you see are all any client ever receives.",
     zh: "食物位置由 Morpheus TEE 用每局独立的密钥在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此蛇的路径无法在平台之外用脚本模拟。结算时飞地对结果（问题哈希、答案哈希、用时）签名，合约先核验签名、再核验问题哈希与开局承诺一致后才发奖。任何客户端能看到的只有网格和食物位置。",
+  },
+  fairnessShort: {
+    en: "Food placements stay inside the Morpheus TEE until settlement verification.",
+    zh: "食物位置保留在 Morpheus TEE 内，直到结算验证。",
   },
   commitmentLine: {
     en: "Game #{gameId} · sealed commitment {commitment}",

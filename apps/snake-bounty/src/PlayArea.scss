@@ -65,12 +65,222 @@
   --mx2-stage-floor: #faf9f7;
 }
 
+.snake-playarea .mx2-stage {
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 12px;
+}
+
 .snake-playarea .mx2-stage__scene {
+  flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
-  padding: 12px 12px 0;
+  padding: 8px 12px 10px;
+}
+
+.snake-playarea .phaser-game-host {
+  margin-inline: auto;
+}
+
+.snake-phaser-canvas {
+  flex: 0 0 auto;
+}
+
+.snake-stage-shell {
+  position: relative;
+  width: 100%;
+  min-height: calc(100dvh - 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 48% 20%, rgba(0, 175, 146, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0), rgba(244, 251, 239, 0.88));
+}
+
+.snake-stage-hud {
+  width: min(100%, 440px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid rgba(0, 175, 146, 0.16);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.93);
+  box-shadow: 0 10px 24px rgba(10, 128, 80, 0.08);
+}
+
+.snake-stage-hud__metric,
+.snake-stage-hud__drawer {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(0, 175, 146, 0.13);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.snake-stage-hud__metric {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.snake-stage-hud__metric[data-accent="true"] {
+  border-color: rgba(0, 175, 146, 0.36);
+  box-shadow: inset 2px 0 0 var(--mx2-brand);
+}
+
+.snake-stage-hud__metric span {
+  color: #047857;
+  font-size: 0.58rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.snake-stage-hud__metric strong {
+  color: #123b2d;
+  font-size: 0.82rem;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.snake-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #047857;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.snake-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.snake-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.snake-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(640px, calc(100% - 18px));
+  max-height: min(72vh, 580px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(0, 175, 146, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.97);
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(10, 80, 62, 0.18);
+}
+
+.snake-ingame-drawer__head,
+.snake-ingame-drawer__fairness {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.snake-ingame-drawer__head {
+  margin-bottom: 12px;
+}
+
+.snake-ingame-drawer__head svg,
+.snake-ingame-drawer__fairness svg {
+  color: #047857;
+}
+
+.snake-ingame-drawer__head h3 {
+  margin: 0 0 3px;
+  color: #123b2d;
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.snake-ingame-drawer__head p,
+.snake-ingame-drawer__fairness p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.snake-ingame-drawer__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.snake-ingame-drawer__grid span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(0, 175, 146, 0.12);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.snake-ingame-drawer__grid small {
+  color: var(--mx2-text-muted);
+  font-size: 0.68rem;
+}
+
+.snake-ingame-drawer__grid strong {
+  color: #123b2d;
+  font-size: 0.85rem;
+}
+
+.snake-ingame-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.snake-ingame-drawer__actions button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(0, 175, 146, 0.2);
+  border-radius: 999px;
+  background: var(--mx2-brand-light);
+  color: #047857;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.snake-ingame-drawer__fairness {
+  margin-top: 12px;
+  border: 1px solid rgba(0, 175, 146, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(0, 175, 146, 0.06);
 }
 
 // Neutral canvas wrapper (background-clarity gate); the arena backdrop lives on
@@ -969,6 +1179,77 @@
 
 .snake-grid[data-turn] {
   animation: snake-turn-pulse 220ms ease-out;
+}
+
+@media (max-width: 560px) {
+  .snake-playarea .mx2-playstage.mx2-cat-game {
+    min-height: 100dvh;
+  }
+
+  .snake-playarea .mx2-cat-game.mx2-stage,
+  .snake-playarea .mx2-cat-game .mx2-stage__scene {
+    flex: 0 0 auto;
+  }
+
+  .snake-playarea .mx2-stage {
+    width: 100%;
+    min-height: 100dvh;
+    padding: 8px 8px 10px;
+  }
+
+  .snake-playarea .mx2-stage__scene {
+    padding: 6px 0 8px;
+  }
+
+  .snake-stage-shell {
+    min-height: calc(100dvh - 52px);
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 18px;
+  }
+
+  .snake-phaser-canvas {
+    --phaser-mobile-height-ratio: 1.91;
+  }
+
+  .snake-stage-hud {
+    width: min(100%, 378px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    padding: 6px;
+    border-radius: 14px;
+    margin-top: auto;
+  }
+
+  .snake-stage-hud__metric,
+  .snake-stage-hud__drawer {
+    min-height: 46px;
+    padding: 6px 7px;
+    border-radius: 11px;
+  }
+
+  .snake-stage-hud__metric span {
+    font-size: 0.54rem;
+  }
+
+  .snake-stage-hud__metric strong {
+    font-size: 0.76rem;
+  }
+
+  .snake-stage-hud__drawer {
+    font-size: 0.68rem;
+  }
+
+  .snake-ingame-drawer {
+    bottom: 10px;
+    width: calc(100% - 14px);
+    max-height: min(77vh, 650px);
+    padding: 16px;
+  }
+
+  .snake-ingame-drawer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

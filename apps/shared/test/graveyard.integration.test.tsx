@@ -90,10 +90,13 @@ describe("graveyard integration: dispatch params", () => {
   it("dispatchs setMemoryText + executeDestroy on destroy", () => {
     const d = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />);
-    fireEvent.change(container.querySelector(".graveyard-input") as Element, { target: { value: "My token" } });
+    fireEvent.change(container.querySelector(".graveyard-artifact__editor") as Element, { target: { value: "My token" } });
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    expect(d).toHaveBeenCalledWith("setMemoryText", "My token");
-    expect(d).toHaveBeenCalledWith("executeDestroy");
+    expect(d).toHaveBeenCalledWith("executeDestroy", expect.objectContaining({
+      composeMode: "write",
+      memoryText: "My token",
+      memoryType: 1,
+    }));
   });
   it("disables destroy when no memory text", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);

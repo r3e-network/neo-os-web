@@ -106,6 +106,15 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const modeLabel = values.mode === "batch-proof" ? t("modeBatch") : t("modeSingle");
   const hasDigest = Boolean(lastDigest && lastDigest !== digestPlaceholder);
   const digestDisplay = shortDigest(lastDigest, digestPlaceholder);
+  const consumerReady = values.consumer.trim().length > 0;
+  const saltReady = values.salt.trim().length > 0;
+  const canBuild = consumerReady && saltReady;
+  const blockedReason = !consumerReady
+    ? t("vrfConsumerRequired")
+    : !saltReady
+      ? t("vrfSaltRequired")
+      : "";
+  const proofStatus = building ? t("buildingRequest") : canBuild ? lastStatus : blockedReason;
   const presets: VrfPreset[] = [
     {
       key: "game",
@@ -180,6 +189,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   };
 
   const buildRequest = () => {
+    if (!canBuild) return;
     if (previewTimeout.current) clearTimeout(previewTimeout.current);
     setBuilding(true);
     const next = consoleConfig.buildResult(values, t);
@@ -233,7 +243,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           <span className="oracle-console-scene__proof-icon"><ShieldCheck size={22} /></span>
           <div>
             <span>{t("vrfStatusLabel")}</span>
-            <strong>{building ? t("buildingRequest") : lastStatus}</strong>
+            <strong>{proofStatus}</strong>
           </div>
           <p>{hasDigest ? digestDisplay : t("vrfEmptyCopy")}</p>
         </article>
@@ -494,6 +504,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               icon: <Sparkles size={17} />,
               onClick: buildRequest,
               loading: building,
+              disabled: !canBuild || building,
+              hint: canBuild ? undefined : blockedReason,
             },
             secondary: [
               {

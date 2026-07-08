@@ -33,16 +33,23 @@
 }
 
 .sheep-playarea .mx2-stage {
-  padding: 22px 24px 20px;
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 12px;
   background: #fffdf8;
 }
 
 .sheep-playarea .mx2-stage__scene {
+  flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  padding: 12px 12px 0;
+  padding: 8px 12px 10px;
 }
 
 .sheep-playarea .mx2-eyebrow,
@@ -75,19 +82,204 @@
   line-height: 1.42;
 }
 
-.sheep-phaser-shell {
+.sheep-stage-shell {
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: calc(100dvh - 72px);
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(190, 242, 100, 0.16), transparent 38%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0), rgba(250, 249, 247, 0.88));
+}
+
+.sheep-playarea .phaser-game-host {
+  margin-inline: auto;
+}
+
+.sheep-phaser-canvas {
+  flex: 0 0 auto;
   width: 100%;
 }
 
-.sheep-phaser-lobby-hitarea {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
+.sheep-stage-hud {
+  width: min(100%, 400px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid rgba(63, 98, 18, 0.14);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 10px 24px rgba(56, 42, 20, 0.07);
+}
+
+.sheep-stage-hud__metric,
+.sheep-stage-hud__drawer {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(63, 98, 18, 0.12);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.sheep-stage-hud__metric {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.sheep-stage-hud__metric[data-accent="true"] {
+  border-color: rgba(132, 204, 22, 0.36);
+  box-shadow: inset 2px 0 0 var(--sheep-green);
+}
+
+.sheep-stage-hud__metric span {
+  color: var(--sheep-green-deep);
+  font-size: 0.58rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.sheep-stage-hud__metric strong {
+  color: #463a2d;
+  font-size: 0.82rem;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.sheep-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--sheep-green-deep);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 680;
   cursor: pointer;
-  background: transparent;
-  touch-action: none;
+}
+
+.sheep-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.sheep-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.sheep-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(640px, calc(100% - 18px));
+  max-height: min(72vh, 580px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(63, 98, 18, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.97);
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(56, 42, 20, 0.18);
+}
+
+.sheep-ingame-drawer__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.sheep-ingame-drawer__head svg,
+.sheep-ingame-drawer__fairness svg {
+  color: var(--sheep-green-deep);
+}
+
+.sheep-ingame-drawer__head h3 {
+  margin: 0 0 3px;
+  color: #463a2d;
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.sheep-ingame-drawer__head p,
+.sheep-ingame-drawer__fairness p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.sheep-ingame-drawer__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sheep-ingame-drawer__grid span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(63, 98, 18, 0.11);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.sheep-ingame-drawer__grid small {
+  color: var(--mx2-text-muted);
+  font-size: 0.68rem;
+}
+
+.sheep-ingame-drawer__grid strong {
+  color: #463a2d;
+  font-size: 0.85rem;
+}
+
+.sheep-ingame-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sheep-ingame-drawer__actions button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(63, 98, 18, 0.18);
+  border-radius: 999px;
+  background: #f7fee7;
+  color: var(--sheep-green-deep);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.sheep-ingame-drawer__fairness {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  margin-top: 12px;
+  border: 1px solid rgba(63, 98, 18, 0.11);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(132, 204, 22, 0.06);
 }
 
 .sheep-scene {
@@ -960,12 +1152,23 @@
     padding: 10px 8px 10px;
   }
 
+  .sheep-playarea .mx2-playstage.mx2-cat-game {
+    min-height: 100dvh;
+  }
+
+  .sheep-playarea .mx2-cat-game.mx2-stage,
+  .sheep-playarea .mx2-cat-game .mx2-stage__scene {
+    flex: 0 0 auto;
+  }
+
   .sheep-playarea .mx2-stage {
-    padding: 16px 16px 18px;
+    width: 100%;
+    min-height: 100dvh;
+    padding: 8px 8px 10px;
   }
 
   .sheep-playarea .mx2-stage__head {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
   }
 
   .sheep-playarea .mx2-stage__title {
@@ -975,6 +1178,60 @@
 
   .sheep-playarea .mx2-stage__subtitle {
     display: none;
+  }
+
+  .sheep-playarea .mx2-stage__scene {
+    padding: 6px 0 8px;
+  }
+
+  .sheep-stage-shell {
+    min-height: calc(100dvh - 52px);
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 18px;
+  }
+
+  .sheep-phaser-canvas {
+    --phaser-mobile-height-ratio: 1.91;
+  }
+
+  .sheep-stage-hud {
+    width: min(100%, 378px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    padding: 6px;
+    border-radius: 14px;
+    margin-top: auto;
+  }
+
+  .sheep-stage-hud__metric,
+  .sheep-stage-hud__drawer {
+    min-height: 46px;
+    padding: 6px 7px;
+    border-radius: 11px;
+  }
+
+  .sheep-stage-hud__metric span {
+    font-size: 0.54rem;
+  }
+
+  .sheep-stage-hud__metric strong {
+    font-size: 0.76rem;
+  }
+
+  .sheep-stage-hud__drawer {
+    font-size: 0.68rem;
+  }
+
+  .sheep-ingame-drawer {
+    bottom: 10px;
+    width: calc(100% - 14px);
+    max-height: min(77vh, 650px);
+    padding: 16px;
+  }
+
+  .sheep-ingame-drawer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sheep-scene[data-state="idle"],

@@ -54,7 +54,7 @@ defineMiniApp({
     const obs = ctx.framework.game.session.observables(ctx.t);
 
     // Game-specific observables not covered by the shared session surface.
-    const patternData = createObservable("");
+    const pattern = createObservable("");
     const ringsHit = createObservable(0);
     const roundIndex = createObservable(0);
     const roundResults = createObservable<HitResult[]>([]);
@@ -112,7 +112,7 @@ defineMiniApp({
       try {
         const started = await rewardGame.openSession(gameId, difficulty);
         session = started;
-        patternData.set(String(started.view.pattern ?? ""));
+        pattern.set(String(started.view.pattern ?? ""));
         obs.commitment.set(started.commitment);
         const game = await ctx.framework.chain.readRaw("getGame", [
           ctx.framework.chain.arg.integer(gameId),
@@ -141,7 +141,7 @@ defineMiniApp({
           throw new Error(ctx.t("statusFailed"));
         }
         session = started;
-        patternData.set(String(started.view.pattern ?? ""));
+        pattern.set(String(started.view.pattern ?? ""));
         obs.commitment.set(started.commitment);
       } catch {
         obs.lastStatus.set(ctx.t("statusDealPending"));
@@ -202,7 +202,7 @@ defineMiniApp({
         ringsHit.set(0);
         roundIndex.set(0);
         roundResults.set([]);
-        patternData.set("");
+        pattern.set("");
         obs.commitment.set("");
         obs.dealtAt.set(0);
         obs.deadline.set(0);
@@ -309,7 +309,7 @@ defineMiniApp({
     });
 
     return {
-      state: { ...obs, patternData, targetAccuracy, ringsHit, roundIndex, roundResults },
+      state: { ...obs, pattern, patternData: pattern, targetAccuracy, ringsHit, roundIndex, roundResults },
       loadData: async () => {
         await refreshBalances();
         const playerHash = ctx.framework.game.player.scriptHash();

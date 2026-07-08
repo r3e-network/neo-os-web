@@ -320,7 +320,7 @@ describe("Dice Game PlayArea (v2 scene-driven)", () => {
     expect(tableMatBlock).not.toContain("radial-gradient");
     expect(styles).not.toMatch(/dice-scene__table-photo/);
     expect(styles).toMatch(/\.dice-controls\s*\{[\s\S]*max-width:\s*620px/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-playarea \.mx2-stage\s*\{[\s\S]*padding:\s*13px 14px 14px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-playarea \.mx2-stage\s*\{[\s\S]*padding:\s*8px 8px 10px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-playarea \.mx2-stage__subtitle\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-scene__bet-lane\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-scene__play-table\s*\{[\s\S]*min-height:\s*278px/);
@@ -328,13 +328,12 @@ describe("Dice Game PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-bet-spot__die\s*\{[\s\S]*width:\s*34px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-chip-tray\s*\{[\s\S]*gap:\s*7px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-chip-btn\s*\{[\s\S]*min-width:\s*46px/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.dice-playarea \.mx2-score\s*\{[\s\S]*display:\s*none/);
+    expect(styles).not.toContain(".dice-playarea .mx2-score");
     expect(styles).not.toMatch(/@media \(max-width:\s*720px\)[\s\S]*grid-template-columns:\s*repeat\(3,\s*64px\)/);
     expect(controlsRailWashBlock).toBe("");
     expect(styles).not.toContain("opacity: 0.06;");
     expect(styles).toMatch(/dice-scene__hud-card[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.dice-playarea \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 154px/);
-    expect(styles).not.toMatch(/\.dice-playarea \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*300px/);
+    expect(styles).not.toContain(".dice-playarea .mx2-action-rail__row");
     expect(styles).toMatch(/prefers-reduced-motion/);
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.dice-scene__die-anchor\.mx2-roll/);
     for (const match of styles.matchAll(/letter-spacing:\s*([^;]+);/g)) {
