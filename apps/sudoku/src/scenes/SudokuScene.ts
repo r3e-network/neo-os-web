@@ -484,6 +484,7 @@ export class SudokuScene extends BaseScene {
       hoverScale: 1.03,
       pressScale: 0.94,
       onPress: () => {
+        this.sfx.play("select");
         this.pickedDifficulty = difficulty;
         this.dispatch("selectDifficulty", { difficulty });
         this.updateDiffCards();
@@ -792,6 +793,7 @@ export class SudokuScene extends BaseScene {
       if (clues !== this.prevClues) {
         this.prevClues = clues;
         this.initBoard(clues);
+        this.sfx.play("start");
       }
 
       const undosLeft = MAX_UNDOS - undosUsed;
@@ -804,6 +806,11 @@ export class SudokuScene extends BaseScene {
       this.setUndoButtonState(undosLeft > 0 && !busy && this.moveHistory.length > 0);
 
       this.refreshGameActionState();
+    }
+
+    // Solved fanfare fires once, on the dealt → solved transition only
+    if (gameStatus === "solved" && this.prevStatus === "dealt") {
+      this.sfx.play("win");
     }
 
     this.prevStatus = gameStatus;
@@ -985,6 +992,7 @@ export class SudokuScene extends BaseScene {
     const gameStatus = this.str("gameStatus", "idle");
     if (gameStatus !== "dealt") return;
 
+    this.sfx.play("tap");
     if (this.selectedCell === index) {
       // Tap same cell → deselect
       this.selectedCell = -1;
@@ -1001,8 +1009,14 @@ export class SudokuScene extends BaseScene {
 
     if (gameStatus !== "dealt" || busy) return;
     if (this.selectedCell < 0) return;
-    if (this.given[this.selectedCell]) return; // cannot overwrite given cells
-    if ((this.board[this.selectedCell] ?? 0) !== 0) return; // placed digits are final
+    if (this.given[this.selectedCell]) {
+      this.sfx.play("error");
+      return; // cannot overwrite given cells
+    }
+    if ((this.board[this.selectedCell] ?? 0) !== 0) {
+      this.sfx.play("error");
+      return; // placed digits are final
+    }
 
     const prev = this.board[this.selectedCell] ?? 0;
     this.moveHistory.push({ cell: this.selectedCell, prev });
@@ -1012,6 +1026,15 @@ export class SudokuScene extends BaseScene {
     this.persistCurrentBoard();
     this.setUndoButtonState(MAX_UNDOS - this.num("undosUsed", 0) > 0);
     this.setGameActionState(false);
+
+    // Placement cue: conflicting digit → error, completed row/col/box → combo
+    if (this.conflicts.has(this.selectedCell)) {
+      this.sfx.play("error");
+    } else if (this.completesUnit(this.selectedCell)) {
+      this.sfx.play("combo");
+    } else {
+      this.sfx.play("move");
+    }
 
     // Micro-bounce on the selected cell
     const art = this.cellArt[this.selectedCell];
@@ -1032,6 +1055,7 @@ export class SudokuScene extends BaseScene {
     if (this.moveHistory.length === 0) return;
 
     // Optimistic local rollback — the on-chain ledger is updated via dispatch
+    this.sfx.play("tick");
     const last = this.moveHistory.pop()!;
     this.board[last.cell] = last.prev;
     this.selectedCell = last.cell;
@@ -1188,6 +1212,31 @@ export class SudokuScene extends BaseScene {
       this.board.every((d) => d > 0) &&
       this.computeConflicts(this.board).size === 0
     );
+  }
+
+  /**
+   * True when the row, column, or 3×3 box containing `index` is fully filled
+   * with no conflicts. Used only to pick the placement sound cue.
+   */
+  private completesUnit(index: number): boolean {
+    const row    = Math.floor(index / 9);
+    const col    = index % 9;
+    const boxRow = Math.floor(row / 3) * 3;
+    const boxCol = Math.floor(col / 3) * 3;
+
+    const clean = (cells: number[]): boolean =>
+      cells.every((c) => (this.board[c] ?? 0) > 0 && !this.conflicts.has(c));
+
+    const rowCells = Array.from({ length: 9 }, (_, c) => row * 9 + c);
+    const colCells = Array.from({ length: 9 }, (_, r) => r * 9 + col);
+    const boxCells: number[] = [];
+    for (let br = 0; br < 3; br++) {
+      for (let bc = 0; bc < 3; bc++) {
+        boxCells.push((boxRow + br) * 9 + (boxCol + bc));
+      }
+    }
+
+    return clean(rowCells) || clean(colCells) || clean(boxCells);
   }
 
   private getBoardSolutionString(): string {

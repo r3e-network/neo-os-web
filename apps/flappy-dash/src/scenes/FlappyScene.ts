@@ -162,8 +162,6 @@ export class FlappyScene extends BaseScene {
   private lastReportedScore = -1;
   private lastScoreSfx = 0;
   private lastOverlayOutcome: "crashed" | "won" | "expired" | "" = "";
-  private audioContext: AudioContext | null = null;
-  private audioUnlocked = false;
 
   constructor() {
     super("FlappyScene");
@@ -183,8 +181,6 @@ export class FlappyScene extends BaseScene {
 
   create(): void {
     super.create();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.closeAudio, this);
-    this.events.once(Phaser.Scenes.Events.DESTROY, this.closeAudio, this);
 
     // Render layers (order matters: lowest depth first)
     this.skyBackdrop = this.add.rectangle(W / 2, H / 2, W + 260, H + 620, 0x87ceeb, 1)
@@ -399,7 +395,7 @@ export class FlappyScene extends BaseScene {
   // ── Input ──────────────────────────────────────────────────────────────────
 
   private handleTap(): void {
-    this.unlockAudio();
+    this.sfx.unlock();
     if (this.gameStatus !== "dealt" || !this.flappyState) return;
 
     if (this.localPhase === "ready") {
@@ -421,101 +417,52 @@ export class FlappyScene extends BaseScene {
 
   // ── Game feel: SFX and burst feedback ─────────────────────────────────────
 
-  private unlockAudio(): void {
-    const context = this.ensureAudioContext();
-    if (!context) return;
-    this.audioUnlocked = true;
-    if (context.state === "suspended") {
-      void context.resume();
-    }
-  }
-
-  private ensureAudioContext(): AudioContext | null {
-    if (this.audioContext) return this.audioContext;
-    if (typeof window === "undefined") return null;
-
-    const audioWindow = window as typeof window & {
-      webkitAudioContext?: new () => AudioContext;
-    };
-    const AudioContextCtor = window.AudioContext ?? audioWindow.webkitAudioContext;
-    if (!AudioContextCtor) return null;
-
-    try {
-      this.audioContext = new AudioContextCtor();
-    } catch {
-      this.audioContext = null;
-    }
-    return this.audioContext;
-  }
-
   private playSfx(kind: SfxKind): void {
-    const context = this.ensureAudioContext();
-    if (!context) return;
-    if (context.state === "suspended") {
-      void context.resume();
-    }
-    this.audioUnlocked = true;
+    // Historical behaviour: every cue also unlocked the mixer, so lobby taps
+    // wired through raw pointerdown handlers produce sound on the first press.
+    this.sfx.unlock();
 
     switch (kind) {
       case "select":
-        this.playTone(context, 520, 0.045, 0, "triangle", 0.022, 680);
+        this.sfx.play("tap");
         break;
       case "start":
-        this.playTone(context, 392, 0.07, 0, "triangle", 0.035, 587);
-        this.playTone(context, 784, 0.09, 0.06, "sine", 0.032, 988);
+        // Louder launch chord than the shared "start" preset.
+        this.sfx.tones([
+          { frequency: 392, duration: 0.07, type: "triangle", gain: 0.035, endFrequency: 587 },
+          { frequency: 784, duration: 0.09, delay: 0.06, type: "sine", gain: 0.032, endFrequency: 988 },
+        ]);
         break;
       case "flap":
-        this.playTone(context, 740, 0.07, 0, "square", 0.022, 1180);
-        this.playTone(context, 420, 0.05, 0.018, "triangle", 0.018, 520);
+        this.sfx.tones([
+          { frequency: 740, duration: 0.07, type: "square", gain: 0.022, endFrequency: 1180 },
+          { frequency: 420, duration: 0.05, delay: 0.018, type: "triangle", gain: 0.018, endFrequency: 520 },
+        ]);
         break;
       case "score":
-        this.playTone(context, 659, 0.06, 0, "sine", 0.03, 880);
-        this.playTone(context, 988, 0.08, 0.055, "triangle", 0.026, 1175);
+        this.sfx.tones([
+          { frequency: 659, duration: 0.06, type: "sine", gain: 0.03, endFrequency: 880 },
+          { frequency: 988, duration: 0.08, delay: 0.055, type: "triangle", gain: 0.026, endFrequency: 1175 },
+        ]);
         break;
       case "crash":
-        this.playTone(context, 180, 0.18, 0, "sawtooth", 0.038, 64);
-        this.playTone(context, 90, 0.12, 0.055, "square", 0.018, 44);
+        this.sfx.tones([
+          { frequency: 180, duration: 0.18, type: "sawtooth", gain: 0.038, endFrequency: 64 },
+          { frequency: 90, duration: 0.12, delay: 0.055, type: "square", gain: 0.018, endFrequency: 44 },
+        ]);
         break;
       case "win":
-        [523, 659, 784, 1046].forEach((frequency, index) => {
-          this.playTone(context, frequency, 0.12, index * 0.07, "triangle", 0.028);
-        });
+        this.sfx.tones(
+          [523, 659, 784, 1046].map((frequency, index) => ({
+            frequency,
+            duration: 0.12,
+            delay: index * 0.07,
+            type: "triangle" as const,
+            gain: 0.028,
+          })),
+        );
         break;
     }
-  }
-
-  private playTone(
-    context: AudioContext,
-    frequency: number,
-    duration: number,
-    delay = 0,
-    type: OscillatorType = "sine",
-    volume = 0.03,
-    endFrequency?: number,
-  ): void {
-    const startAt = context.currentTime + delay;
-    const endAt = startAt + duration;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(Math.max(1, frequency), startAt);
-    if (endFrequency) {
-      oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), endAt);
-    }
-
-    gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.linearRampToValueAtTime(volume, startAt + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
-
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(startAt);
-    oscillator.stop(endAt + 0.03);
-    oscillator.onended = () => {
-      oscillator.disconnect();
-      gain.disconnect();
-    };
   }
 
   private emitFlapBurst(): void {
@@ -643,15 +590,6 @@ export class FlappyScene extends BaseScene {
         ease: "Cubic.easeOut",
         onComplete: () => shard.destroy(),
       });
-    }
-  }
-
-  private closeAudio(): void {
-    const context = this.audioContext;
-    this.audioContext = null;
-    this.audioUnlocked = false;
-    if (context && context.state !== "closed") {
-      void context.close().catch(() => undefined);
     }
   }
 

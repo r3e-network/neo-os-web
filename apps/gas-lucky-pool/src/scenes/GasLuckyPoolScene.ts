@@ -125,6 +125,8 @@ export class GasLuckyPoolScene extends BaseScene {
   private busy = false;
   private autoSelectedMode = false;
   private lastRewardText = "";
+  private lastProgressKey = "";
+  private lastErrorCue = "";
 
   constructor() {
     super("GasLuckyPoolScene");
@@ -199,8 +201,22 @@ export class GasLuckyPoolScene extends BaseScene {
     this.updateButtons();
     this.updateCoinMotion();
 
+    const progressKey = progress || status;
+    if (progressKey !== this.lastProgressKey) {
+      this.lastProgressKey = progressKey;
+      if (progressKey === "submitting" || progressKey === "submitted" || progressKey === "confirming") {
+        this.sfx.play("tick");
+      }
+    }
+
+    if (lastError && lastError !== this.lastErrorCue) {
+      this.sfx.play("error");
+    }
+    this.lastErrorCue = lastError;
+
     if (rewardText && rewardText !== this.lastRewardText) {
       this.lastRewardText = rewardText;
+      this.sfx.play("win");
       this.spawnRewardBurst();
     }
   }
@@ -333,7 +349,10 @@ export class GasLuckyPoolScene extends BaseScene {
     this.bindGameButton(bg, {
       targets: button,
       pressScale: 0.97,
-      onPress: () => this.switchMode(mode),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.switchMode(mode);
+      },
     });
 
     button.add([bg, text]);
@@ -393,7 +412,10 @@ export class GasLuckyPoolScene extends BaseScene {
       targets: this.createButton,
       enabled: () => !this.busy,
       pressScale: 0.97,
-      onPress: () => this.dispatchCreate(),
+      onPress: () => {
+        this.sfx.play("start");
+        this.dispatchCreate();
+      },
     });
     this.createPanel.add(this.createButton);
 
@@ -408,7 +430,10 @@ export class GasLuckyPoolScene extends BaseScene {
     this.bindGameButton(bg, {
       targets: card,
       pressScale: 0.96,
-      onPress: () => this.selectPlan(index, true),
+      onPress: () => {
+        this.sfx.play("select");
+        this.selectPlan(index, true);
+      },
     });
 
     const title = this.add.text(0, -30, plan.title, {
@@ -538,7 +563,10 @@ export class GasLuckyPoolScene extends BaseScene {
       targets: this.checkButton,
       enabled: () => this.hasClaimKey && !this.busy,
       pressScale: 0.97,
-      onPress: () => this.dispatchCheckClaim(),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.dispatchCheckClaim();
+      },
     });
 
     this.claimButton = this.makeActionButton(W / 2 + 76, 515, "Claim", "primary", 154);
@@ -548,7 +576,10 @@ export class GasLuckyPoolScene extends BaseScene {
       targets: this.claimButton,
       enabled: () => this.hasClaimContext && !this.busy,
       pressScale: 0.97,
-      onPress: () => this.dispatchClaim(),
+      onPress: () => {
+        this.sfx.play("chip");
+        this.dispatchClaim();
+      },
     });
 
     this.claimPanel.add([this.checkButton, this.claimButton]);

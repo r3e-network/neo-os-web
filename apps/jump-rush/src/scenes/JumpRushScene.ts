@@ -246,6 +246,7 @@ export class JumpRushScene extends BaseScene {
     const undosUsed  = this.num("undosUsed", 0);
     const pView      = (this.val<number[]>("platformsView") ?? []) as number[];
 
+    const prevStatus     = this.prevGameStatus;
     const statusChanged  = status !== this.prevGameStatus;
     const platformsChanged =
       pView.length !== this.prevPlatformsView.length ||
@@ -255,6 +256,11 @@ export class JumpRushScene extends BaseScene {
     this.prevGameStatus    = status;
     this.prevDeadline      = deadline;
     this.prevUndosUsed     = undosUsed;
+
+    // Crash-out cue: run expired mid-game (once per transition)
+    if (statusChanged && status === "expired" && prevStatus === "dealt") {
+      this.sfx.play("lose");
+    }
 
     // Loading overlay (committed / isDealing)
     const showLoading = status === "committed" || isDealing || isStarting;
@@ -876,10 +882,12 @@ export class JumpRushScene extends BaseScene {
     this.lobbyStartBg.on("pointerover", () => this.refreshLobbyStartButton(true));
     this.lobbyStartBg.on("pointerout", () => this.refreshLobbyStartButton(false));
     this.lobbyStartBg.on("pointerdown", () => {
+      this.sfx.unlock();
       if (!this.canStartRun()) {
         this.tweens.add({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
         return;
       }
+      this.sfx.play("start");
       this.tweens.add({ targets: cont, scale: 0.96, duration: 80, yoyo: true });
       this.dispatch("startGame", { difficulty: this.selectedDifficulty });
     });
@@ -1041,6 +1049,7 @@ export class JumpRushScene extends BaseScene {
   // ── Input handlers ─────────────────────────────────────────────────────────
 
   private onChargeStart(): void {
+    this.sfx.unlock();
     if (
       this.isJumping ||
       this.isCharging ||
@@ -1088,6 +1097,7 @@ export class JumpRushScene extends BaseScene {
 
     this.isJumping = true;
     this.setBunnyPose("jump");
+    this.sfx.play("flap");
 
     // Restore bunny scale from charge squish
     this.tweens.add({
@@ -1161,10 +1171,12 @@ export class JumpRushScene extends BaseScene {
 
     if (isPerfect) {
       this.comboCount += 1;
+      this.sfx.play("combo");
       this.showPerfectLabel();
       this.addGoldGlow();
     } else {
       this.comboCount = 0;
+      this.sfx.play("land");
     }
 
     this.refreshProgressDots();
@@ -1174,6 +1186,7 @@ export class JumpRushScene extends BaseScene {
     // Check if all platforms cleared
     if (this.currentPlatformIndex >= this.platforms.length - 1) {
       this.allCleared = true;
+      this.sfx.play("score");
       this.submitContainer.setVisible(true);
       this.chargeBarContainer.setVisible(false);
       this.stopBunnyIdle();
@@ -1189,6 +1202,7 @@ export class JumpRushScene extends BaseScene {
     this.isCharging = false;
     this.hasMissed = true;
     this.comboCount = 0;
+    this.sfx.play("lose");
     this.chargeLevel = 0;
     this.refreshChargeFill();
     this.refreshCombo();

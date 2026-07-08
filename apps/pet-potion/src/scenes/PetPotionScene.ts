@@ -109,6 +109,8 @@ export class PetPotionScene extends BaseScene {
   private currentStage = -1;
   private lastActionCount = 0;
   private cueTimer?: Phaser.Time.TimerEvent;
+  private lastGameStatus = "idle";
+  private lastTargetReached = false;
 
   constructor() {
     super("PetPotionScene");
@@ -132,6 +134,7 @@ export class PetPotionScene extends BaseScene {
   create(): void {
     super.create();
 
+    this.input.on("pointerdown", () => this.sfx.unlock());
     this.fitCameraToHost();
     this.buildBackground(DESIGN_W, DESIGN_H);
     this.buildHeader(DESIGN_W);
@@ -200,6 +203,14 @@ export class PetPotionScene extends BaseScene {
     }
     this.lastActionCount = actionsUsed;
 
+    if (status !== this.lastGameStatus) {
+      if (status === "solved") this.sfx.play("win");
+      this.lastGameStatus = status;
+    }
+    const potionReady = isPlaying && targetReached;
+    if (potionReady && !this.lastTargetReached) this.sfx.play("reveal");
+    this.lastTargetReached = potionReady;
+
     this.targetText.setText(isPlaying ? `Goal ${Math.round(Math.max(achieved, happiness))}/${activeMode.target}` : `${activeMode.label} care path`);
     const statusCopy = this.statusCopy(status, isLoading, targetReached, actionsUsed);
     this.statusText.setColor("#7b6d5a");
@@ -208,6 +219,7 @@ export class PetPotionScene extends BaseScene {
   }
 
   protected onBridgeError(error: GameBridgeError): void {
+    this.sfx.play("error");
     this.statusText?.setText(compactError(error.message));
     this.statusText?.setColor("#d84d3f");
   }
@@ -353,6 +365,7 @@ export class PetPotionScene extends BaseScene {
         hoverScale: 1.04,
         pressScale: 0.95,
         onPress: () => {
+          this.sfx.play("select");
           this.selectedDifficulty = mode.id;
           this.updateModeCards();
           this.onStateUpdate(this.state);
@@ -377,6 +390,8 @@ export class PetPotionScene extends BaseScene {
         hoverScale: 1.05,
         pressScale: 0.91,
         onPress: () => {
+          // Cute care chirp for every feed/play/pet/rest interaction.
+          this.sfx.tones([{ frequency: 900, duration: 0.06, type: "triangle", gain: 0.022, endFrequency: 1400 }]);
           this.showActionCue(action.key);
           this.dispatch("recordAction", { type: action.key });
         },
@@ -432,6 +447,9 @@ export class PetPotionScene extends BaseScene {
       ? PET_ASSETS.egg
       : PET_ASSETS.pets[Math.max(0, Math.min(2, stage))]!;
     if (stage !== this.currentStage || this.petImage.texture.key !== texture) {
+      if (stage > this.currentStage && stage >= 0) {
+        this.sfx.play(this.currentStage < 0 ? "spawn" : "combo");
+      }
       this.currentStage = stage;
       this.petImage.setTexture(texture);
       const size = stage < 0 ? 178 : stage === 0 ? 182 : stage === 1 ? 202 : 218;
@@ -502,9 +520,11 @@ export class PetPotionScene extends BaseScene {
     const status = this.str("gameStatus", "idle");
     if (this.bool("isStarting") || this.bool("isSubmitting") || this.bool("isDealing")) return;
     if (isPlayingStatus(status)) {
+      this.sfx.play("chip");
       this.dispatch("submitSolution");
       return;
     }
+    this.sfx.play("throw");
     this.dispatch("startGame", this.selectedDifficulty);
   }
 

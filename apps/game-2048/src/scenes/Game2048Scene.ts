@@ -187,8 +187,6 @@ export class Game2048Scene extends BaseScene {
   private prevStatus     = "";
   private prevIsMoving   = false;
   private shown2048      = false;
-  private audioContext: AudioContext | null = null;
-  private audioUnlocked = false;
 
   constructor() {
     super("Game2048Scene");
@@ -205,8 +203,6 @@ export class Game2048Scene extends BaseScene {
 
   create(): void {
     super.create();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.closeAudio, this);
-    this.events.once(Phaser.Scenes.Events.DESTROY, this.closeAudio, this);
     this.layout = this.computeLayout(this.scale.width || CW, this.scale.height || CH);
 
     this.buildBackground();
@@ -623,7 +619,7 @@ export class Game2048Scene extends BaseScene {
       bg.setStrokeStyle(this.pickedDiff === idx ? 3 : 2, this.pickedDiff === idx ? 0xf65e3b : 0xbbada0);
     });
     bg.on("pointerdown", () => {
-      this.unlockAudio();
+      this.sfx.unlock();
       this.playSfx("select");
       this.pickedDiff = idx;
       this.highlightDiffCard(idx);
@@ -686,7 +682,7 @@ export class Game2048Scene extends BaseScene {
       pressScale: 0.95,
       enabled: () => this.canStartPicked(),
       onPress: () => {
-        this.unlockAudio();
+        this.sfx.unlock();
         this.playSfx("start");
         this.dispatch("startGame", { difficulty: this.pickedDiff });
       },
@@ -1150,95 +1146,37 @@ export class Game2048Scene extends BaseScene {
     }
   }
 
-  private unlockAudio(): void {
-    const context = this.ensureAudioContext();
-    if (!context) return;
-    if (context.state === "suspended") {
-      void context.resume();
-    }
-    this.audioUnlocked = true;
-  }
-
-  private ensureAudioContext(): AudioContext | null {
-    if (this.audioContext) return this.audioContext;
-    const AudioCtor =
-      window.AudioContext ??
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtor) return null;
-    this.audioContext = new AudioCtor();
-    return this.audioContext;
-  }
-
   private playSfx(kind: SfxKind): void {
-    const context = this.ensureAudioContext();
-    if (!context) return;
-    if (context.state === "suspended") {
-      if (!this.audioUnlocked) return;
-      void context.resume();
-    }
-
     switch (kind) {
       case "select":
-        this.playTone(context, 520, 0.045, 0, "triangle", 0.022, 680);
+        this.sfx.play("tap");
         break;
       case "start":
-        this.playTone(context, 392, 0.07, 0, "triangle", 0.03, 587);
-        this.playTone(context, 784, 0.09, 0.06, "sine", 0.026, 988);
+        this.sfx.play("start");
         break;
       case "move":
-        this.playTone(context, 260, 0.045, 0, "triangle", 0.016, 320);
+        this.sfx.play("move");
         break;
       case "merge":
-        this.playTone(context, 440, 0.06, 0, "sine", 0.024, 660);
-        this.playTone(context, 880, 0.07, 0.045, "triangle", 0.021, 1040);
+        this.sfx.play("merge");
         break;
       case "spawn":
-        this.playTone(context, 720, 0.045, 0, "sine", 0.016, 940);
+        this.sfx.play("spawn");
         break;
       case "win":
-        [523, 659, 784, 1046].forEach((frequency, index) => {
-          this.playTone(context, frequency, 0.12, index * 0.065, "triangle", 0.026);
-        });
+        // Original fanfare holds every note for 0.12s (the shared "win" preset
+        // lets the last note ring slightly longer).
+        this.sfx.tones(
+          [523, 659, 784, 1046].map((frequency, index) => ({
+            frequency,
+            duration: 0.12,
+            delay: index * 0.065,
+            type: "triangle" as const,
+            gain: 0.026,
+          })),
+        );
         break;
     }
-  }
-
-  private playTone(
-    context: AudioContext,
-    frequency: number,
-    duration: number,
-    delay = 0,
-    type: OscillatorType = "sine",
-    gainValue = 0.02,
-    endFrequency?: number,
-  ): void {
-    const startAt = context.currentTime + delay;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, startAt);
-    if (endFrequency) {
-      oscillator.frequency.exponentialRampToValueAtTime(
-        Math.max(1, endFrequency),
-        startAt + duration,
-      );
-    }
-    gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(gainValue, startAt + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(startAt);
-    oscillator.stop(startAt + duration + 0.025);
-  }
-
-  private closeAudio(): void {
-    if (!this.audioContext) return;
-    void this.audioContext.close();
-    this.audioContext = null;
-    this.audioUnlocked = false;
   }
 
   // ── Input ─────────────────────────────────────────────────────────────────────
@@ -1279,7 +1217,7 @@ export class Game2048Scene extends BaseScene {
   }
 
   private handleMove(dir: number): void {
-    this.unlockAudio();
+    this.sfx.unlock();
     if (this.str("gameStatus", "idle") !== "dealt") return;
     if (this.bool("isMoving") || this.bool("isSubmitting")) return;
     if (!this.canMove(dir)) return;
